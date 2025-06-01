@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,13 @@ const mockClassrooms: Classroom[] = [
   { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", studentIds: ["s1", "s2", "s3"], inviteCode: "PROG101" },
   { id: "class2", name: "Advanced Data Structures", teacherId: "teacher1", studentIds: ["s4", "s5"], inviteCode: "DATA202" },
   { id: "class3", name: "Web Development Basics", teacherId: "teacher2", studentIds: ["s1", "s6", "s7", "s8"], inviteCode: "WEBDEV" },
+  { 
+    id: "test-classroom-1", 
+    name: "Introduction to AI", 
+    teacherId: "teacher-test-id", 
+    studentIds: ["student-test-id", "s2"], 
+    inviteCode: "AI101TEST" 
+  },
 ];
 
 export default function TeacherClassroomsPage() {
@@ -74,3 +82,4 @@ export default function TeacherClassroomsPage() {
     </div>
   );
 }
+

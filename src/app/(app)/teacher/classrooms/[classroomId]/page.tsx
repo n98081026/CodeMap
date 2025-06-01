@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,8 +16,16 @@ import { useToast } from "@/hooks/use-toast";
 
 // Mock data
 const mockClassrooms: Classroom[] = [
-  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", studentIds: ["s1", "s2", "s3"], inviteCode: "PROG101" },
-  { id: "class2", name: "Advanced Data Structures", teacherId: "teacher1", studentIds: ["s4", "s5"], inviteCode: "DATA202" },
+  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", studentIds: ["s1", "s2", "s3"], inviteCode: "PROG101", teacherName: "Dr. Code" },
+  { id: "class2", name: "Advanced Data Structures", teacherId: "teacher1", studentIds: ["s4", "s5"], inviteCode: "DATA202", teacherName: "Dr. Code" },
+  { 
+    id: "test-classroom-1", 
+    name: "Introduction to AI", 
+    teacherId: "teacher-test-id", 
+    teacherName: "Test Teacher",
+    studentIds: ["student-test-id", "s2"], 
+    inviteCode: "AI101TEST" 
+  },
 ];
 const mockStudents: User[] = [
   { id: "s1", name: "Alice Smith", email: "alice@example.com", role: UserRole.STUDENT },
@@ -24,14 +33,17 @@ const mockStudents: User[] = [
   { id: "s3", name: "Carol White", email: "carol@example.com", role: UserRole.STUDENT },
   { id: "s4", name: "David Brown", email: "david@example.com", role: UserRole.STUDENT },
   { id: "s5", name: "Eve Davis", email: "eve@example.com", role: UserRole.STUDENT },
+  { id: "student-test-id", name: "Test Student", email: "student-test@example.com", role: UserRole.STUDENT },
 ];
 const mockConceptMaps: ConceptMap[] = [
   { id: "map1", name: "Basic Algorithms", ownerId: "s1", sharedWithClassroomId: "class1", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: "2023-01-10", updatedAt: "2023-01-11" },
   { id: "map2", name: "Sorting Techniques", ownerId: "s2", sharedWithClassroomId: "class1", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: "2023-01-12", updatedAt: "2023-01-12" },
+  { id: "map-test-student", name: "AI Intro Map", ownerId: "student-test-id", sharedWithClassroomId: "test-classroom-1", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: "2023-04-01", updatedAt: "2023-04-01" },
 ];
 const mockProjectSubmissions: ProjectSubmission[] = [
   { id: "sub1", studentId: "s1", classroomId: "class1", originalFileName: "project1.zip", fileSize: 1024, submissionTimestamp: "2023-01-15", analysisStatus: ProjectSubmissionStatus.COMPLETED, generatedConceptMapId: "genMap1" },
   { id: "sub2", studentId: "s3", classroomId: "class1", originalFileName: "project_final.rar", fileSize: 2048, submissionTimestamp: "2023-01-18", analysisStatus: ProjectSubmissionStatus.PROCESSING },
+  { id: "sub-test-student", studentId: "student-test-id", classroomId: "test-classroom-1", originalFileName: "ai_project_draft.zip", fileSize: 1536, submissionTimestamp: "2023-04-02", analysisStatus: ProjectSubmissionStatus.COMPLETED, generatedConceptMapId: "map-ai-generated" },
 ];
 
 
@@ -74,7 +86,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     <div className="space-y-6">
       <DashboardHeader 
         title={classroom.name}
-        description={`Invite Code: ${classroom.inviteCode} | Manage students, maps, and submissions.`}
+        description={`Teacher: ${classroom.teacherName || 'N/A'} | Invite Code: ${classroom.inviteCode} | Manage students, maps, and submissions.`}
         icon={Users}
       >
          <Button asChild variant="outline">
@@ -230,3 +242,4 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     </div>
   );
 }
+

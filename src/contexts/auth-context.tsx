@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from 'react';
@@ -17,11 +18,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Test accounts
+const testTeacher: User = { id: "teacher-test-id", email: "teacher-test@example.com", name: "Test Teacher", role: UserRole.TEACHER };
+const testStudent: User = { id: "student-test-id", email: "student-test@example.com", name: "Test Student", role: UserRole.STUDENT };
+
 // Mock users for demonstration
 const mockUsers: Record<string, User> = {
   "student@example.com": { id: "student1", email: "student@example.com", name: "Student User", role: UserRole.STUDENT },
   "teacher@example.com": { id: "teacher1", email: "teacher@example.com", name: "Teacher User", role: UserRole.TEACHER },
   "admin@example.com": { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN },
+  [testTeacher.email]: testTeacher,
+  [testStudent.email]: testStudent,
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -34,6 +41,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedUser = localStorage.getItem('codemapUser');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+    } else {
+      // Automatically log in as test student if no user is stored
+      setUser(testStudent);
+      localStorage.setItem('codemapUser', JSON.stringify(testStudent));
     }
     setIsLoading(false);
   }, []);
@@ -42,17 +53,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
-    // For demo, we'll use a predefined user or create one if not exists
-    const existingUser = Object.values(mockUsers).find(u => u.email === email && u.role === role);
-    const loggedInUser = existingUser || { id: `user-${Date.now()}`, email, name: email.split('@')[0], role };
     
-    setUser(loggedInUser);
-    localStorage.setItem('codemapUser', JSON.stringify(loggedInUser));
+    const userToLogin = Object.values(mockUsers).find(u => u.email === email && u.role === role);
+
+    if (userToLogin) {
+      setUser(userToLogin);
+      localStorage.setItem('codemapUser', JSON.stringify(userToLogin));
+      
+      if (userToLogin.role === UserRole.ADMIN) router.push('/admin/dashboard');
+      else if (userToLogin.role === UserRole.TEACHER) router.push('/teacher/dashboard');
+      else router.push('/student/dashboard');
+    } else {
+      // Handle case where user is not found (e.g., show error)
+      // For now, we'll just log out to prevent inconsistent state.
+      console.error("Login failed: User not found or role mismatch.");
+      setUser(null);
+      localStorage.removeItem('codemapUser');
+      router.push('/login'); // Or show an error message on the login page
+    }
     setIsLoading(false);
-    
-    if (loggedInUser.role === UserRole.ADMIN) router.push('/admin/dashboard');
-    else if (loggedInUser.role === UserRole.TEACHER) router.push('/teacher/dashboard');
-    else router.push('/student/dashboard');
   };
 
   const register = async (name: string, email: string, role: UserRole) => {
@@ -101,3 +120,4 @@ export const useAuth = () => {
   }
   return context;
 };
+
