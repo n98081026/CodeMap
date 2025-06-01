@@ -1,0 +1,132 @@
+// src/services/projectSubmissions/projectSubmissionService.ts
+'use server';
+
+/**
+ * @fileOverview Project Submission service for handling submission-related operations.
+ */
+
+import type { ProjectSubmission, ConceptMap } from '@/types';
+import { ProjectSubmissionStatus, UserRole } from '@/types';
+import { getUserById } from '@/services/users/userService';
+// import { getConceptMapById } from '@/services/conceptMaps/conceptMapService'; // If populating generatedMap
+
+// Mock data for submissions
+let mockSubmissionsData: ProjectSubmission[] = [
+  { 
+    id: "sub1", 
+    studentId: "student-test-id", // Use test student
+    originalFileName: "final-project.zip", 
+    fileSize: 2345678, 
+    submissionTimestamp: new Date("2023-04-10T10:00:00Z").toISOString(), 
+    analysisStatus: ProjectSubmissionStatus.COMPLETED, 
+    generatedConceptMapId: "mapA" // Assuming mapA is owned by student-test-id
+  },
+  { 
+    id: "sub2", 
+    studentId: "student-test-id", 
+    originalFileName: "alpha-release.rar", 
+    fileSize: 102400, 
+    submissionTimestamp: new Date("2023-04-12T14:30:00Z").toISOString(), 
+    analysisStatus: ProjectSubmissionStatus.PROCESSING 
+  },
+  { 
+    id: "sub3", 
+    studentId: "student1", 
+    originalFileName: "buggy-code.zip", 
+    fileSize: 50000, 
+    submissionTimestamp: new Date("2023-04-13T09:15:00Z").toISOString(), 
+    analysisStatus: ProjectSubmissionStatus.FAILED, 
+    analysisError: "Unsupported file structure in archive." 
+  },
+   { 
+    id: "sub4", 
+    studentId: "student1", 
+    originalFileName: "early-draft.zip", 
+    fileSize: 50000, 
+    submissionTimestamp: new Date("2023-04-01T09:15:00Z").toISOString(), 
+    analysisStatus: ProjectSubmissionStatus.PENDING
+  },
+];
+
+/**
+ * Creates a new project submission record.
+ * Actual file handling and AI analysis triggering would be separate.
+ */
+export async function createSubmission(
+  studentId: string,
+  originalFileName: string,
+  fileSize: number,
+  classroomId?: string | null
+): Promise<ProjectSubmission> {
+  const student = await getUserById(studentId);
+  if (!student || student.role !== UserRole.STUDENT) {
+    throw new Error("Invalid student ID or user is not a student.");
+  }
+
+  const now = new Date().toISOString();
+  const newSubmission: ProjectSubmission = {
+    id: `sub-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+    studentId,
+    originalFileName,
+    fileSize,
+    classroomId: classroomId || null,
+    submissionTimestamp: now,
+    analysisStatus: ProjectSubmissionStatus.PENDING, // Initial status
+  };
+  mockSubmissionsData.unshift(newSubmission); // Add to beginning for recent first
+  return newSubmission;
+}
+
+/**
+ * Retrieves a project submission by its ID.
+ */
+export async function getSubmissionById(submissionId: string): Promise<ProjectSubmission | null> {
+  const submission = mockSubmissionsData.find(s => s.id === submissionId);
+  // if (submission && submission.generatedConceptMapId && !submission.generatedConceptMap) {
+  //   submission.generatedConceptMap = await getConceptMapById(submission.generatedConceptMapId);
+  // }
+  return submission || null;
+}
+
+/**
+ * Retrieves all submissions for a specific student.
+ */
+export async function getSubmissionsByStudentId(studentId: string): Promise<ProjectSubmission[]> {
+  const submissions = mockSubmissionsData.filter(s => s.studentId === studentId);
+  // for (const submission of submissions) {
+  //   if (submission.generatedConceptMapId && !submission.generatedConceptMap) {
+  //     submission.generatedConceptMap = await getConceptMapById(submission.generatedConceptMapId);
+  //   }
+  // }
+  return submissions;
+}
+
+/**
+ * Updates the status of a project submission.
+ * This would typically be called by an analysis worker/microservice.
+ */
+export async function updateSubmissionStatus(
+  submissionId: string,
+  status: ProjectSubmissionStatus,
+  analysisError?: string | null,
+  generatedConceptMapId?: string | null
+): Promise<ProjectSubmission | null> {
+  const submissionIndex = mockSubmissionsData.findIndex(s => s.id === submissionId);
+  if (submissionIndex === -1) {
+    return null; // Submission not found
+  }
+
+  const submission = mockSubmissionsData[submissionIndex];
+  submission.analysisStatus = status;
+  submission.analysisError = analysisError || null;
+  submission.generatedConceptMapId = generatedConceptMapId || null;
+  // submission.generatedConceptMap = generatedConceptMapId ? (await getConceptMapById(generatedConceptMapId)) : null;
+  
+  mockSubmissionsData[submissionIndex] = submission;
+  return submission;
+}
+
+// Function to get all mock submissions (for admin/testing)
+export async function getAllSubmissions(): Promise<ProjectSubmission[]> {
+    return mockSubmissionsData;
+}

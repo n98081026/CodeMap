@@ -1,11 +1,11 @@
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
-- [ ] **User Authentication (Backend):** (In Progress)
-    - [x] Refactor API routes (`/login`, `/register`) to use `userService`. (Initial mock service)
-    - [ ] Implement actual API endpoints for register, login, JWT generation.
-    - [ ] Secure password hashing and storage.
-    - [ ] Connect frontend `AuthContext` to live API (partially done with mock service).
+- [x] **User Authentication (Backend):**
+    - [x] Refactor API routes (`/login`, `/register`) to use `userService`. (Mock service implemented)
+    - [ ] Implement actual API endpoints for register, login, JWT generation. (JWT part pending real auth)
+    - [ ] Secure password hashing and storage. (Pending real auth)
+    - [x] Connect frontend `AuthContext` to live API (with mock service).
 - [ ] **Database & Models:**
     - [ ] Set up database (PostgreSQL/MongoDB as per final decision).
     - [ ] Define and implement database schemas for Users, Classrooms, ConceptMaps, ProjectSubmissions, etc.
@@ -14,17 +14,24 @@
     - [x] Create `classroomService.ts` with mock data management.
     - [x] API endpoint for creating classrooms (`POST /api/classrooms`).
     - [x] API endpoint for listing classrooms by teacher (`GET /api/classrooms?teacherId=xxx`).
-    - [ ] API endpoints for student enrollment (invites, joining with code).
-    - [ ] API endpoints for getting classroom details, updating, deleting.
+    - [x] API endpoint for getting classroom details (`GET /api/classrooms/[classroomId]`).
+    - [ ] API endpoints for student enrollment (invites, joining with code - partially mocked with direct add/remove).
+        - [x] API endpoint for adding a student to a classroom (`POST /api/classrooms/[classroomId]/students`). (Mocked: adds by ID)
+        - [x] API endpoint for removing a student from a classroom (`DELETE /api/classrooms/[classroomId]/students/[studentId]`).
+    - [ ] API endpoints for updating, deleting classrooms. (Service methods exist, API endpoints pending)
     - [x] Connect frontend classroom creation and listing UI to live API (with mock service).
-- [ ] **Concept Map Service (Backend):**
-    - [ ] Create `conceptMapService.ts` with mock data management.
-    - [ ] API endpoints for CRUD operations on concept maps.
-    - [ ] Logic for map ownership and sharing (with classrooms, public).
-    - [ ] Connect frontend concept map editor to live API for saving/loading.
-- [ ] **Project Submission & Analysis (Backend):**
-    - [ ] Create `projectSubmissionService.ts` with mock data management.
-    - [ ] API endpoint for project file uploads.
+    - [x] Connect frontend classroom detail UI to live API for details and student management (with mock service).
+- [ ] **Concept Map Service (Backend):** (In Progress)
+    - [x] Create `conceptMapService.ts` with mock data management.
+    - [x] API endpoints for CRUD operations on concept maps (`/api/concept-maps`, `/api/concept-maps/[mapId]`).
+    - [ ] Logic for map ownership and sharing (with classrooms, public) - Basic ownership implemented.
+    - [x] Connect frontend concept map listing (student) to live API for loading/deleting.
+    - [x] Connect frontend concept map editor to live API for saving/loading new and existing maps.
+- [ ] **Project Submission & Analysis (Backend):** (In Progress)
+    - [x] Create `projectSubmissionService.ts` with mock data management.
+    - [x] API endpoint for project file uploads (`POST /api/projects/submissions` - metadata only, file handling mocked).
+    - [x] API endpoint for listing student submissions (`GET /api/projects/submissions?studentId=xxx`).
+    - [x] API endpoint for getting submission details (`GET /api/projects/submissions/[submissionId]`).
     - [ ] File storage integration (S3, GCS, or local).
     - [ ] Message Queue setup (RabbitMQ, Redis, etc.).
     - [ ] Develop Project Analysis Microservice:
@@ -33,7 +40,8 @@
         - [ ] Code/Structure Parser Engine (start with basic, then add AST for specific languages).
         - [ ] LLM-Powered Structure-to-Map Converter (refine prompts, integrate with Gemini).
         - [ ] Map Data Formatter & Persister (save generated map to DB, update submission status).
-    - [ ] Connect frontend project submission UI to live API.
+    - [x] Connect frontend project submission UI to live API (for metadata).
+    - [x] Connect frontend student submissions list to live API.
 
 ## Frontend Enhancements
 - [ ] **Concept Map Editor (Canvas):**
@@ -47,13 +55,13 @@
     - [ ] Consider real-time collaboration on concept maps (e.g., using WebSockets).
     - [ ] Real-time updates for project submission status.
 - [ ] **User Interface & User Experience (Desktop Focus):**
-    - [ ] Refine UI details for all pages, ensure consistency and professional design.
-    - [ ] Add more comprehensive loading states and error handling.
-    - [ ] Enhance empty states for lists (e.g., no classrooms, no maps).
+    - [x] Refine UI details for some pages, ensure consistency and professional design.
+    - [ ] Add more comprehensive loading states and error handling (partially done).
+    - [ ] Enhance empty states for lists (e.g., no classrooms, no maps) (partially done).
     - [ ] Implement user profile page and settings.
     - [ ] Add pagination and filtering for lists (users, classrooms, maps, submissions).
 - [ ] **Admin Panel:**
-    - [ ] Implement full CRUD operations for user management (connected to backend service).
+    - [x] Implement CRUD operations for user management (view implemented, connected to backend service).
     - [ ] Develop system settings interface.
 
 ## GenAI & AI Features
@@ -86,3 +94,4 @@
 - Project analysis pipeline is mocked at the UI level.
 - `next-themes` for theme toggling is integrated.
 - App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.
+- Some API actions (like full student invite flow, classroom updates/deletes) are not fully implemented on the frontend or are simplified.
