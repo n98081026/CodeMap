@@ -1,23 +1,29 @@
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
-- [ ] **User Authentication (Backend):**
+- [ ] **User Authentication (Backend):** (In Progress)
+    - [x] Refactor API routes (`/login`, `/register`) to use `userService`. (Initial mock service)
     - [ ] Implement actual API endpoints for register, login, JWT generation.
     - [ ] Secure password hashing and storage.
-    - [ ] Connect frontend `AuthContext` to live API.
+    - [ ] Connect frontend `AuthContext` to live API (partially done with mock service).
 - [ ] **Database & Models:**
     - [ ] Set up database (PostgreSQL/MongoDB as per final decision).
     - [ ] Define and implement database schemas for Users, Classrooms, ConceptMaps, ProjectSubmissions, etc.
     - [ ] Create ORM/ODM layer (Prisma, Sequelize, etc.).
-- [ ] **Classroom Management (Backend):**
-    - [ ] API endpoints for CRUD operations on classrooms.
+- [ ] **Classroom Management (Backend):** (In Progress)
+    - [x] Create `classroomService.ts` with mock data management.
+    - [x] API endpoint for creating classrooms (`POST /api/classrooms`).
+    - [x] API endpoint for listing classrooms by teacher (`GET /api/classrooms?teacherId=xxx`).
     - [ ] API endpoints for student enrollment (invites, joining with code).
-    - [ ] Connect frontend classroom management UI to live API.
+    - [ ] API endpoints for getting classroom details, updating, deleting.
+    - [x] Connect frontend classroom creation and listing UI to live API (with mock service).
 - [ ] **Concept Map Service (Backend):**
+    - [ ] Create `conceptMapService.ts` with mock data management.
     - [ ] API endpoints for CRUD operations on concept maps.
     - [ ] Logic for map ownership and sharing (with classrooms, public).
     - [ ] Connect frontend concept map editor to live API for saving/loading.
 - [ ] **Project Submission & Analysis (Backend):**
+    - [ ] Create `projectSubmissionService.ts` with mock data management.
     - [ ] API endpoint for project file uploads.
     - [ ] File storage integration (S3, GCS, or local).
     - [ ] Message Queue setup (RabbitMQ, Redis, etc.).
@@ -36,19 +42,18 @@
     - [ ] Connect `PropertiesInspector` to selected elements on canvas.
     - [ ] Visualize GenAI results (extracted concepts, suggested relations, expanded concepts) on the canvas or allow adding them.
 - [ ] **State Management:**
-    - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext`.
+    - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching.
 - [ ] **Real-time Features (Optional):**
     - [ ] Consider real-time collaboration on concept maps (e.g., using WebSockets).
     - [ ] Real-time updates for project submission status.
-- [ ] **User Interface & User Experience:**
+- [ ] **User Interface & User Experience (Desktop Focus):**
     - [ ] Refine UI details for all pages, ensure consistency and professional design.
-    - [ ] Improve responsiveness across different screen sizes.
     - [ ] Add more comprehensive loading states and error handling.
     - [ ] Enhance empty states for lists (e.g., no classrooms, no maps).
     - [ ] Implement user profile page and settings.
     - [ ] Add pagination and filtering for lists (users, classrooms, maps, submissions).
 - [ ] **Admin Panel:**
-    - [ ] Implement full CRUD operations for user management.
+    - [ ] Implement full CRUD operations for user management (connected to backend service).
     - [ ] Develop system settings interface.
 
 ## GenAI & AI Features
@@ -74,9 +79,10 @@
 - [ ] **Developer Documentation:** Document API endpoints, architecture, and setup instructions.
 
 ## Known Issues / Current Mocked Areas
-- All backend interactions are currently mocked.
+- Backend services are currently mocked (in-memory data).
 - Default test student and teacher accounts with a pre-configured classroom are set up for easier development and testing (see `AuthContext` and mock data files).
-- Data persistence for anything beyond auth (localStorage) is not implemented.
+- Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
 - Concept map canvas is a placeholder.
 - Project analysis pipeline is mocked at the UI level.
-- Theme toggling with `next-themes` is integrated.
+- `next-themes` for theme toggling is integrated.
+- App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.

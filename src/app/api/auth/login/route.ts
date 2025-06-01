@@ -1,35 +1,20 @@
-
+// src/app/api/auth/login/route.ts
 import { NextResponse } from 'next/server';
-import type { User } from '@/types';
-import { UserRole } from '@/types';
+import { findUserByEmailAndRole } from '@/services/users/userService';
+import type { UserRole } from '@/types';
 
-// This is a mock database for demonstration purposes.
-// In a real application, you would connect to a proper database.
-const testTeacher: User = { id: "teacher-test-id", email: "teacher-test@example.com", name: "Test Teacher", role: UserRole.TEACHER };
-const testStudent: User = { id: "student-test-id", email: "student-test@example.com", name: "Test Student", role: UserRole.STUDENT };
-
-const mockUserDatabase: Record<string, User> = {
-  "student@example.com": { id: "student1", email: "student@example.com", name: "Student User", role: UserRole.STUDENT },
-  "teacher@example.com": { id: "teacher1", email: "teacher@example.com", name: "Teacher User", role: UserRole.TEACHER },
-  "admin@example.com": { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN },
-  [testTeacher.email]: testTeacher,
-  [testStudent.email]: testStudent,
-};
 
 export async function POST(request: Request) {
   try {
-    const { email, password, role } = await request.json();
+    const { email, password, role } = await request.json() as { email: string; password?: string; role: UserRole };
 
-    // Basic validation
     if (!email || !role) {
       return NextResponse.json({ message: "Email and role are required" }, { status: 400 });
     }
-    // Password is included in the request but not used for validation in this mock
-    // In a real app, you would hash the incoming password and compare it to a stored hash.
+    // Password is included in the request but not used for validation in this mock service
+    // In a real app, the service would handle password verification.
 
-    const userToLogin = Object.values(mockUserDatabase).find(
-      (u) => u.email === email && u.role === role
-    );
+    const userToLogin = await findUserByEmailAndRole(email, role);
 
     if (userToLogin) {
       // In a real app, you would generate a JWT or session token here
