@@ -36,6 +36,8 @@ const mockClassroomsForSelection: Classroom[] = [
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/zip", "application/vnd.rar", "application/x-rar-compressed", "application/octet-stream", "application/x-zip-compressed"];
 
+const NONE_CLASSROOM_VALUE = "_NONE_"; // Special value for the "None" option
+
 const projectUploadSchema = z.object({
   projectFile: z
     .custom<FileList>()
@@ -66,7 +68,7 @@ export function ProjectUploadForm() {
     resolver: zodResolver(projectUploadSchema),
     defaultValues: {
       projectFile: undefined,
-      classroomId: "",
+      classroomId: "", // Initial value is empty string, placeholder will show
     },
   });
 
@@ -83,7 +85,7 @@ export function ProjectUploadForm() {
       studentId: user.id,
       originalFileName: file.name,
       fileSize: file.size,
-      classroomId: values.classroomId || null,
+      classroomId: values.classroomId === NONE_CLASSROOM_VALUE ? null : (values.classroomId || null),
     };
 
     try {
@@ -111,19 +113,11 @@ export function ProjectUploadForm() {
       if (confirm("Project submitted. Do you want to attempt to generate a concept map now? (This may take a moment and is a mock process)")) {
         setIsGeneratingMap(true);
         try {
-          const projectDescription = `Project file: ${file.name}. Submitted for classroom: ${values.classroomId || 'N/A'}`;
+          const projectDescription = `Project file: ${file.name}. Submitted for classroom: ${values.classroomId === NONE_CLASSROOM_VALUE ? 'N/A' : values.classroomId || 'N/A'}`;
           const projectCodeStructure = `File: ${file.name}, Size: ${file.size} bytes. (Mock structure for AI)`;
           const mapResult = await aiGenerateMapFromProject({ projectDescription, projectCodeStructure });
           
-          // Mock update of submission status
           console.log("AI Map Generation Result (mock):", mapResult.conceptMapData);
-          // In a real app, the backend would update the submission record with the generatedConceptMapId
-          // For demo, we can make a PUT request to our new submission update endpoint if we want to simulate this
-          // await fetch(`/api/projects/submissions/${newSubmission.id}`, {
-          //   method: 'PUT',
-          //   headers: {'Content-Type': 'application/json'},
-          //   body: JSON.stringify({ status: 'completed', generatedConceptMapId: 'mockMapId123' })
-          // });
 
           toast({
             title: "AI Concept Map Generation (Mock)",
@@ -186,7 +180,7 @@ export function ProjectUploadForm() {
               <FormLabel>Classroom (Optional)</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
-                defaultValue={field.value}
+                value={field.value} // Use value for controlled component
                 disabled={isSubmitting || isGeneratingMap}
               >
                 <FormControl>
@@ -195,7 +189,7 @@ export function ProjectUploadForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value={NONE_CLASSROOM_VALUE}>None</SelectItem>
                   {availableClassrooms.map((classroom) => (
                     <SelectItem key={classroom.id} value={classroom.id}>
                       {classroom.name}
