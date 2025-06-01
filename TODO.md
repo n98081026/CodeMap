@@ -75,8 +75,8 @@
 
 ## Known Issues / Current Mocked Areas
 - All backend interactions are currently mocked.
+- Default test student and teacher accounts with a pre-configured classroom are set up for easier development and testing (see `AuthContext` and mock data files).
 - Data persistence for anything beyond auth (localStorage) is not implemented.
 - Concept map canvas is a placeholder.
 - Project analysis pipeline is mocked at the UI level.
-- Theme toggle with `next-themes` requires installation if not already present.
-  (Assumed `ThemeProvider` from `next-themes` will be used in `(app)/layout.tsx`).
+- Theme toggling with `next-themes` is integrated.
