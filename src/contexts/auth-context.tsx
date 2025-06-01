@@ -11,25 +11,15 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, role: UserRole) => Promise<void>;
+  login: (email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
-  register: (name: string, email: string, role: UserRole) => Promise<void>;
+  register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Test accounts
-const testTeacher: User = { id: "teacher-test-id", email: "teacher-test@example.com", name: "Test Teacher", role: UserRole.TEACHER };
+// Test student for auto-login convenience
 const testStudent: User = { id: "student-test-id", email: "student-test@example.com", name: "Test Student", role: UserRole.STUDENT };
-
-// Mock users for demonstration
-const mockUsers: Record<string, User> = {
-  "student@example.com": { id: "student1", email: "student@example.com", name: "Student User", role: UserRole.STUDENT },
-  "teacher@example.com": { id: "teacher1", email: "teacher@example.com", name: "Teacher User", role: UserRole.TEACHER },
-  "admin@example.com": { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN },
-  [testTeacher.email]: testTeacher,
-  [testStudent.email]: testStudent,
-};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -42,52 +32,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      // Automatically log in as test student if no user is stored
+      // Automatically log in as test student if no user is stored for dev convenience
       setUser(testStudent);
       localStorage.setItem('codemapUser', JSON.stringify(testStudent));
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, role: UserRole) => {
+  const login = async (email: string, password: string, role: UserRole) => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const userToLogin = Object.values(mockUsers).find(u => u.email === email && u.role === role);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, role }),
+      });
 
-    if (userToLogin) {
-      setUser(userToLogin);
-      localStorage.setItem('codemapUser', JSON.stringify(userToLogin));
-      
-      if (userToLogin.role === UserRole.ADMIN) router.push('/admin/dashboard');
-      else if (userToLogin.role === UserRole.TEACHER) router.push('/teacher/dashboard');
-      else router.push('/student/dashboard');
-    } else {
-      // Handle case where user is not found (e.g., show error)
-      // For now, we'll just log out to prevent inconsistent state.
-      console.error("Login failed: User not found or role mismatch.");
+      const data = await response.json();
+
+      if (response.ok && data.user) {
+        setUser(data.user);
+        localStorage.setItem('codemapUser', JSON.stringify(data.user));
+        
+        if (data.user.role === UserRole.ADMIN) router.push('/admin/dashboard');
+        else if (data.user.role === UserRole.TEACHER) router.push('/teacher/dashboard');
+        else router.push('/student/dashboard');
+      } else {
+        throw new Error(data.message || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
       setUser(null);
       localStorage.removeItem('codemapUser');
-      router.push('/login'); // Or show an error message on the login page
+      // Error will be caught by the form and displayed via toast
+      throw error; 
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
-  const register = async (name: string, email: string, role: UserRole) => {
+  const register = async (name: string, email: string, password: string, role: UserRole) => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const newUser: User = { id: `user-${Date.now()}`, email, name, role };
-    setUser(newUser);
-    localStorage.setItem('codemapUser', JSON.stringify(newUser));
-    // Add to mock users for potential re-login during session
-    mockUsers[email] = newUser; 
-    setIsLoading(false);
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password, role }),
+      });
 
-    if (newUser.role === UserRole.ADMIN) router.push('/admin/dashboard');
-    else if (newUser.role === UserRole.TEACHER) router.push('/teacher/dashboard');
-    else router.push('/student/dashboard');
+      const data = await response.json();
+
+      if (response.status === 201 && data.user) {
+        setUser(data.user);
+        localStorage.setItem('codemapUser', JSON.stringify(data.user));
+
+        if (data.user.role === UserRole.ADMIN) router.push('/admin/dashboard');
+        else if (data.user.role === UserRole.TEACHER) router.push('/teacher/dashboard');
+        else router.push('/student/dashboard');
+      } else {
+        throw new Error(data.message || "Registration failed");
+      }
+    } catch (error) {
+      console.error("Registration failed:", error);
+      // Error will be caught by the form and displayed via toast
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = () => {
@@ -98,7 +113,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const isAuthenticated = !!user;
 
-  // Handle route protection
    useEffect(() => {
     if (!isLoading && !isAuthenticated && !['/login', '/register'].includes(pathname)) {
       router.push('/login');
@@ -120,4 +134,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
