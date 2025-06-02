@@ -12,11 +12,9 @@ import { useAuth } from "@/contexts/auth-context";
 
 export default function AdminSettingsPage() {
   const { user } = useAuth();
-  let adminDashboardLink = "/application/admin/dashboard";
-   if (user && user.role !== UserRole.ADMIN) {
-     adminDashboardLink = user.role === UserRole.TEACHER ? "/application/teacher/dashboard" : "/application/student/dashboard";
-  }
-
+  // For the Admin Settings page, the icon should always link back to the Admin Dashboard.
+  const adminDashboardLink = "/application/admin/dashboard";
+  
   return (
     <div className="space-y-6">
       <DashboardHeader
@@ -48,9 +46,11 @@ export default function AdminSettingsPage() {
               <h3 className="font-medium">API Rate Limits</h3>
               <p className="text-sm text-muted-foreground">Adjust API rate limits for different user roles.</p>
             </div>
+             <Button variant="outline" disabled>Save Settings (Disabled)</Button>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+

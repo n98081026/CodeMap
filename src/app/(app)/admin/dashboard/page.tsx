@@ -1,3 +1,4 @@
+
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ export default function AdminDashboardPage() {
         title="Admin Dashboard"
         description="System overview and management tools."
         icon={LayoutDashboard}
+        iconLinkHref="/"
       />
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -49,7 +51,7 @@ export default function AdminDashboardPage() {
               Total registered users in the system.
             </p>
             <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/admin/users">Manage Users <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href="/application/admin/users">Manage Users <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </CardContent>
         </Card>
@@ -64,8 +66,8 @@ export default function AdminDashboardPage() {
              <p className="text-xs text-muted-foreground mb-4">
               Active classrooms. Configure system parameters here.
             </p>
-            <Button asChild variant="outline" size="sm" className="w-full" disabled>
-              <Link href="#">Configure Settings <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Button asChild variant="outline" size="sm" className="w-full">
+              <Link href="/application/admin/settings">Configure Settings <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </CardContent>
         </Card>
@@ -73,3 +75,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
