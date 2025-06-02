@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    allowedDevOrigins: [
+      'https://6000-firebase-studio-1748759442381.cluster-zkm2jrwbnbd4awuedc2alqxrpk.cloudworkstations.dev',
+    ],
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Don't resolve 'async_hooks' on the client-side
