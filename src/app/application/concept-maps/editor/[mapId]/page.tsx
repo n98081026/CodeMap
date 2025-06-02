@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
 
 
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -70,7 +71,11 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
   
+  // States for AI suggestions before they are added to the map
   const [aiExtractedConcepts, setAiExtractedConcepts] = useState<string[]>([]);
+  const [aiSuggestedRelations, setAiSuggestedRelations] = useState<Array<{ source: string; target: string; relation: string }>>([]);
+  const [aiExpandedConcepts, setAiExpandedConcepts] = useState<string[]>([]);
+
 
   // React Flow state, derived from mapData
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<RFConceptMapNodeData>([]);
@@ -91,6 +96,8 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       setCurrentMapOwnerId(user?.id || null); // New map owned by current user
       setCurrentMapCreatedAt(new Date().toISOString());
       setAiExtractedConcepts([]);
+      setAiSuggestedRelations([]);
+      setAiExpandedConcepts([]);
       setIsLoading(false);
       setError(null);
       return;
@@ -100,6 +107,8 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     setIsLoading(true);
     setError(null);
     setAiExtractedConcepts([]);
+    setAiSuggestedRelations([]);
+    setAiExpandedConcepts([]);
     try {
       const response = await fetch(`/api/concept-maps/${id}`);
       if (!response.ok) {
@@ -134,10 +143,10 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       const existingRfNode = rfNodes.find(n => n.id === appNode.id);
       return {
         id: appNode.id,
-        type: appNode.type || 'default', // Default React Flow node type
+        type: appNode.type || 'default', 
         data: { label: appNode.text, details: appNode.details, type: appNode.type },
         position: existingRfNode?.position || { 
-          x: appNode.x ?? (Math.random() * 400), // Default random position if not set
+          x: appNode.x ?? (Math.random() * 400), 
           y: appNode.y ?? (Math.random() * 300),
         },
         style: {
@@ -166,15 +175,15 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     }));
     setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapData.nodes, mapData.edges]); // Only re-transform if mapData.nodes or mapData.edges change structure
+  }, [mapData.nodes, mapData.edges]); 
 
 
   const onRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
     setRfNodes((nds) => onNodesChangeReactFlow(changes, nds));
-    // Update mapData with new positions from rfNodes after drag
+    
     changes.forEach(change => {
-        if (change.type === 'position' && change.position) {
+        if (change.type === 'position' && change.position && change.dragging === false) { // Update only on drag end
             setMapData(prevMapData => ({
                 ...prevMapData,
                 nodes: prevMapData.nodes.map(n => 
@@ -252,7 +261,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
               const rfUpdates = updates as Partial<RFConceptMapNodeData>;
               if (rfUpdates.label !== undefined) nodeUpdates.text = rfUpdates.label;
               if (rfUpdates.details !== undefined) nodeUpdates.details = rfUpdates.details;
-              if (rfUpdates.type !== undefined) nodeUpdates.type = rfUpdates.type; // Make sure type is handled
+              if (rfUpdates.type !== undefined) nodeUpdates.type = rfUpdates.type; 
               return { ...node, ...nodeUpdates };
             }
             return node;
@@ -293,13 +302,20 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
     setIsSaving(true);
     
-    // mapData is already up-to-date with positions due to onRfNodesChange
+    const finalNodesToSave = rfNodes.map(rfNode => {
+        const appNode = mapData.nodes.find(n => n.id === rfNode.id);
+        return {
+            ...(appNode || { id: rfNode.id, text: rfNode.data.label, type: rfNode.data.type || 'default'}), // Fallback if not in mapData.nodes
+            x: rfNode.position.x,
+            y: rfNode.position.y,
+            text: rfNode.data.label, // Ensure text is from React Flow node data
+            details: rfNode.data.details,
+            type: rfNode.data.type || appNode?.type || 'default'
+        };
+    });
+    
     const mapDataToSave: ConceptMapData = {
-      nodes: mapData.nodes.map(n => ({ // Ensure x,y are numbers, not undefined
-          ...n,
-          x: n.x ?? 0, 
-          y: n.y ?? 0,
-      })),
+      nodes: finalNodesToSave,
       edges: mapData.edges, 
     };
 
@@ -327,7 +343,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId, // Pass ownerId for backend authorization if needed
+            ownerId: currentMapOwnerId, 
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -362,22 +378,25 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     }
   };
 
-
+  // AI Suggestion Handlers
   const handleConceptsExtracted = (concepts: string[]) => {
     setAiExtractedConcepts(concepts); 
-    toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts. You can add them to the map.` });
-    addConceptsToMapData(concepts, 'ai-extracted-concept');
+    toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts. You can add them to the map via the suggestions panel.` });
+    // Removed: addConceptsToMapData(concepts, 'ai-extracted-concept');
   };
 
   const handleRelationsSuggested = (relations: Array<{ source: string; target: string; relation: string }>) => {
-    toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations. You can add them to the map.` });
-    handleAddSuggestedRelationsToMap(relations);
+    setAiSuggestedRelations(relations);
+    toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations. You can add them to the map via the suggestions panel.` });
+    // Removed: handleAddSuggestedRelationsToMap(relations);
   };
 
   const handleConceptExpanded = (newConcepts: string[]) => {
-    toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map.` });
-    addConceptsToMapData(newConcepts, 'ai-expanded-concept');
+    setAiExpandedConcepts(newConcepts);
+    toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map via the suggestions panel.` });
+    // Removed: addConceptsToMapData(newConcepts, 'ai-expanded-concept');
   };
+
 
   const addConceptsToMapData = (conceptsToAdd: string[], type: string) => {
     if (isViewOnlyMode) return;
@@ -389,15 +408,19 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
           id: uniqueNodeId(),
           text: conceptText,
           type: type,
-          x: Math.random() * 400, // Assign random initial positions
+          x: Math.random() * 400, 
           y: Math.random() * 300,
         }));
 
       if (newNodes.length > 0) {
         toast({ title: "Concepts Added to Map", description: `${newNodes.length} new concepts added. Save the map to persist.` });
+        if (type === 'ai-extracted-concept') setAiExtractedConcepts([]);
+        if (type === 'ai-expanded-concept') setAiExpandedConcepts([]);
         return { ...prevMapData, nodes: [...prevMapData.nodes, ...newNodes] };
       } else {
         toast({ title: "No New Concepts Added", description: "All suggested concepts may already exist in the map.", variant: "default" });
+        if (type === 'ai-extracted-concept') setAiExtractedConcepts([]);
+        if (type === 'ai-expanded-concept') setAiExpandedConcepts([]);
         return prevMapData;
       }
     });
@@ -437,9 +460,11 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       
       if (toastMessage) {
         toast({ title: "Relations Added to Map", description: `${toastMessage.trim()} Save the map to persist.` });
+        setAiSuggestedRelations([]);
         return { nodes: modifiableNodes, edges: modifiableEdges };
       } else {
          toast({ title: "No New Relations Added", description: "All suggested relations/concepts may already exist.", variant: "default" });
+         setAiSuggestedRelations([]);
          return prevMapData;
       }
     });
@@ -464,8 +489,17 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       toast({ title: "Cannot Add Edge", description: "Not enough nodes to create an edge. Add at least two nodes first.", variant: "default" });
       return;
     }
+    // Connect the last two nodes based on their current order in mapData.nodes
+    // This might not correspond to the two *most recently added* if nodes were deleted or reordered.
+    // For a robust "connect selected" or "connect last two visually added", React Flow's selection/connection hooks would be needed.
+    // This is a simple implementation.
     const sourceNode = mapData.nodes[mapData.nodes.length - 2];
     const targetNode = mapData.nodes[mapData.nodes.length - 1];
+
+    if (!sourceNode || !targetNode) {
+        toast({ title: "Error Adding Edge", description: "Could not find suitable source/target nodes.", variant: "destructive" });
+        return;
+    }
 
     const newEdge: ConceptMapEdge = {
       id: uniqueEdgeId(),
@@ -521,7 +555,6 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     updatedAt: new Date().toISOString(),
   };
 
-  // Find the actual selected element from mapData for the inspector
   let actualSelectedElementForInspector: ConceptMapNode | ConceptMapEdge | null = null;
   if (selectedElementId && selectedElementType) {
     if (selectedElementType === 'node') {
@@ -536,7 +569,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     <div className="flex h-full flex-col space-y-4">
       <DashboardHeader
         title={isViewOnlyMode ? `Viewing: ${mapName}` : mapName}
-        description={isViewOnlyMode ? "This map is in view-only mode. Node dragging is enabled." : "Create, edit, and visualize your ideas. Nodes are draggable."}
+        description={isViewOnlyMode ? "This map is in view-only mode." : "Create, edit, and visualize your ideas. Nodes are draggable."}
         icon={(isNewMapMode || actualParams.mapId === 'new') ? Compass : Share2}
         iconLinkHref={user?.role === 'student' ? "/application/student/concept-maps" : 
                        user?.role === 'teacher' ? "/application/teacher/dashboard" : 
@@ -591,6 +624,21 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
           />
         </aside>
       </div>
+      
+      {/* CanvasPlaceholder re-added for AI suggestions display */}
+      <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
+        <CanvasPlaceholder
+            mapData={mapData} // To show current map structure for context if desired by placeholder
+            extractedConcepts={aiExtractedConcepts}
+            suggestedRelations={aiSuggestedRelations}
+            expandedConcepts={aiExpandedConcepts}
+            onAddExtractedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-extracted-concept')}
+            onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
+            onAddExpandedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-expanded-concept')}
+            isViewOnlyMode={isViewOnlyMode}
+        />
+      </div>
+
 
       {isExtractConceptsModalOpen && !isViewOnlyMode && (
         <ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />
@@ -642,6 +690,13 @@ declare module "@/components/concept-map/interactive-canvas" {
     onNodesDelete?: OnNodesDelete;
     onEdgesDelete?: OnEdgesDelete;
     onSelectionChange?: (params: SelectionChanges) => void;
+  }
+}
+
+// Declare module for CanvasPlaceholder to allow new props
+declare module "@/components/concept-map/canvas-placeholder" {
+  interface CanvasPlaceholderProps {
+    isViewOnlyMode?: boolean;
   }
 }
 
