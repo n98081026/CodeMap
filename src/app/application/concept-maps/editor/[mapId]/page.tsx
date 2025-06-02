@@ -10,8 +10,8 @@ import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
 import React, { useEffect, useState, useCallback, use } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { Node as RFNode, Edge as RFEdge, OnNodesChange, OnEdgesChange, OnNodesDelete, OnEdgesDelete, SelectionChanges } from 'reactflow';
-import { useNodesState, useEdgesState, MarkerType } from 'reactflow';
+import type { Node as RFNode, Edge as RFEdge, OnNodesChange, OnEdgesChange, OnNodesDelete, OnEdgesDelete, SelectionChanges, Connection } from 'reactflow';
+import { useNodesState, useEdgesState, MarkerType, addEdge as rfAddEdge } from 'reactflow';
 
 
 import {
@@ -221,6 +221,21 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     toast({ title: "Edges Deleted", description: `${deletedEdgeIds.size} edge(s) removed.` });
   }, [isViewOnlyMode, toast]);
 
+  const handleRfConnect: (params: Connection) => void = useCallback((params) => {
+    if (isViewOnlyMode) return;
+    const newEdge: ConceptMapEdge = {
+        id: uniqueEdgeId(),
+        source: params.source!,
+        target: params.target!,
+        label: "connects", // Default label for new edges
+    };
+    setMapData(prev => ({
+        ...prev,
+        edges: [...prev.edges, newEdge]
+    }));
+    toast({ title: "Edge Created", description: `New connection added between nodes. Save map to persist.` });
+  }, [isViewOnlyMode, toast]);
+
 
   const handleSelectionChange = useCallback((params: SelectionChanges) => {
     const { nodes, edges } = params;
@@ -382,19 +397,16 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   const handleConceptsExtracted = (concepts: string[]) => {
     setAiExtractedConcepts(concepts); 
     toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts. You can add them to the map via the suggestions panel.` });
-    // Removed: addConceptsToMapData(concepts, 'ai-extracted-concept');
   };
 
   const handleRelationsSuggested = (relations: Array<{ source: string; target: string; relation: string }>) => {
     setAiSuggestedRelations(relations);
     toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations. You can add them to the map via the suggestions panel.` });
-    // Removed: handleAddSuggestedRelationsToMap(relations);
   };
 
   const handleConceptExpanded = (newConcepts: string[]) => {
     setAiExpandedConcepts(newConcepts);
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map via the suggestions panel.` });
-    // Removed: addConceptsToMapData(newConcepts, 'ai-expanded-concept');
   };
 
 
@@ -489,10 +501,6 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       toast({ title: "Cannot Add Edge", description: "Not enough nodes to create an edge. Add at least two nodes first.", variant: "default" });
       return;
     }
-    // Connect the last two nodes based on their current order in mapData.nodes
-    // This might not correspond to the two *most recently added* if nodes were deleted or reordered.
-    // For a robust "connect selected" or "connect last two visually added", React Flow's selection/connection hooks would be needed.
-    // This is a simple implementation.
     const sourceNode = mapData.nodes[mapData.nodes.length - 2];
     const targetNode = mapData.nodes[mapData.nodes.length - 1];
 
@@ -608,6 +616,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
             onEdgesChange={onRfEdgesChange}
             onNodesDelete={handleRfNodesDeleted}
             onEdgesDelete={handleRfEdgesDeleted}
+            onConnect={handleRfConnect}
             onSelectionChange={handleSelectionChange}
             isViewOnlyMode={isViewOnlyMode}
           />
@@ -625,10 +634,9 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
         </aside>
       </div>
       
-      {/* CanvasPlaceholder re-added for AI suggestions display */}
       <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
         <CanvasPlaceholder
-            mapData={mapData} // To show current map structure for context if desired by placeholder
+            mapData={mapData}
             extractedConcepts={aiExtractedConcepts}
             suggestedRelations={aiSuggestedRelations}
             expandedConcepts={aiExpandedConcepts}
@@ -690,10 +698,10 @@ declare module "@/components/concept-map/interactive-canvas" {
     onNodesDelete?: OnNodesDelete;
     onEdgesDelete?: OnEdgesDelete;
     onSelectionChange?: (params: SelectionChanges) => void;
+    onConnect?: (params: Connection) => void;
   }
 }
 
-// Declare module for CanvasPlaceholder to allow new props
 declare module "@/components/concept-map/canvas-placeholder" {
   interface CanvasPlaceholderProps {
     isViewOnlyMode?: boolean;
