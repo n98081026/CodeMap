@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import type { Classroom, ConceptMap } from "@/types";
 import { UserRole } from "@/types";
-import { ArrowLeft, BookOpen, Share2, Loader2, AlertTriangle, Eye, FileText, Info } from "lucide-react";
+import { ArrowLeft, BookOpen, Share2, Loader2, AlertTriangle, Eye, FileText, Info, Library } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -22,15 +22,7 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
   const [errorClassroom, setErrorClassroom] = useState<string | null>(null);
   const [errorMaps, setErrorMaps] = useState<string | null>(null);
 
-  const getDashboardLink = useCallback(() => {
-    if (!user) return "/application/login"; // Should not happen if page is protected
-    switch (user.role) {
-      case UserRole.ADMIN: return "/application/admin/dashboard";
-      case UserRole.TEACHER: return "/application/teacher/dashboard";
-      case UserRole.STUDENT: return "/application/student/dashboard";
-      default: return "/application/student/dashboard"; // Default for safety
-    }
-  }, [user]);
+  const studentDashboardLink = "/application/student/dashboard";
 
   const fetchClassroomDetails = useCallback(async () => {
     if (!params.classroomId) return;
@@ -86,7 +78,7 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
             title="Loading Classroom..." 
             icon={Loader2} 
             iconClassName="animate-spin" 
-            iconLinkHref={getDashboardLink()} 
+            iconLinkHref={studentDashboardLink} 
         />
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -98,14 +90,17 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
   if (errorClassroom || !classroom) {
     return (
       <div className="space-y-6 p-4">
-        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={getDashboardLink()} />
+        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={studentDashboardLink} />
         <Card>
           <CardHeader>
-            <CardTitle className="text-destructive">Could not load classroom</CardTitle>
+            <CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2"/>Could not load classroom</CardTitle>
           </CardHeader>
           <CardContent>
             <p>{errorClassroom || "The classroom data could not be found."}</p>
-            <Button asChild variant="outline" className="mt-4">
+            <Button onClick={fetchClassroomDetails} variant="outline" className="mt-4">
+                Try Again
+            </Button>
+             <Button asChild variant="secondary" className="mt-4 ml-2">
               <Link href="/application/student/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to My Classrooms</Link>
             </Button>
           </CardContent>
@@ -118,9 +113,9 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
     <div className="space-y-6">
       <DashboardHeader
         title={classroom.name}
-        description={`Teacher: ${classroom.teacherName || "N/A"}`}
+        description={`Teacher: ${classroom.teacherName || "N/A"}. ${classroom.description || ""}`}
         icon={BookOpen}
-        iconLinkHref={getDashboardLink()}
+        iconLinkHref={studentDashboardLink}
       >
         <Button asChild variant="outline">
           <Link href="/application/student/classrooms">
@@ -134,19 +129,13 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
           <CardTitle className="flex items-center"><Info className="mr-2 h-5 w-5 text-primary"/>Classroom Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {classroom.description && (
-            <div>
-                <h3 className="font-semibold">Description:</h3>
-                <p className="text-muted-foreground">{classroom.description}</p>
-            </div>
-          )}
           <div>
             <h3 className="font-semibold">Students Enrolled:</h3>
             <p className="text-muted-foreground">{classroom.studentIds.length}</p>
           </div>
           {classroom.inviteCode && (
             <div>
-                <h3 className="font-semibold">Invite Code:</h3>
+                <h3 className="font-semibold">Invite Code (for reference):</h3>
                 <p className="text-muted-foreground font-mono">{classroom.inviteCode}</p>
             </div>
           )}
@@ -161,20 +150,22 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
         <CardContent>
           {isLoadingMaps && (
             <div className="flex justify-center items-center py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" /> <p className="ml-2">Loading maps...</p>
+              <Loader2 className="h-6 w-6 animate-spin text-primary" /> <p className="ml-2">Loading shared maps...</p>
             </div>
           )}
           {errorMaps && !isLoadingMaps && (
-            <div className="text-destructive p-4 border border-destructive rounded-md">
-              <AlertTriangle className="inline mr-2"/>{errorMaps}
-              <Button onClick={fetchSharedMaps} variant="link" className="p-0 h-auto ml-1">Try Again</Button>
+            <div className="text-destructive p-4 border border-destructive rounded-md flex flex-col items-center text-center">
+              <AlertTriangle className="h-8 w-8 mb-2"/>
+              <p className="font-semibold">Error loading shared maps</p>
+              <p className="text-sm mb-3">{errorMaps}</p>
+              <Button onClick={fetchSharedMaps} variant="outline" size="sm">Try Again</Button>
             </div>
           )}
           {!isLoadingMaps && !errorMaps && sharedMaps.length === 0 && (
             <div className="text-center py-10">
-                <FileText className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
+                <Library className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
                 <h3 className="text-xl font-semibold text-muted-foreground">No Shared Maps</h3>
-                <p className="text-sm text-muted-foreground">No concept maps have been shared with this classroom yet.</p>
+                <p className="text-sm text-muted-foreground">No concept maps have been shared with this classroom yet by the teacher or other students.</p>
             </div>
           )}
           {!isLoadingMaps && !errorMaps && sharedMaps.length > 0 && (

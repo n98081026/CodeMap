@@ -1,13 +1,12 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
-import { UserRole } from "@/types";
-import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle } from "lucide-react"; // Removed Inbox
+import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle, Library } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -20,14 +19,10 @@ export default function StudentClassroomsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  let studentDashboardLink = "/application/student/dashboard";
-  if (user && user.role !== UserRole.STUDENT) {
-    // Fallback if a non-student somehow reaches this page, though unlikely with auth context
-    studentDashboardLink = user.role === UserRole.ADMIN ? "/application/admin/dashboard" : "/application/teacher/dashboard";
-  }
+  const studentDashboardLink = "/application/student/dashboard";
 
 
-  const fetchEnrolledClassrooms = async () => {
+  const fetchEnrolledClassrooms = useCallback(async () => {
     if (!user) {
         setIsLoading(false); 
         return;
@@ -49,12 +44,11 @@ export default function StudentClassroomsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
 
   useEffect(() => {
     fetchEnrolledClassrooms();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, fetchEnrolledClassrooms]);
 
 
   return (
@@ -76,9 +70,9 @@ export default function StudentClassroomsPage() {
       {error && !isLoading && (
          <Card className="shadow-md border-destructive">
           <CardHeader><CardTitle className="flex items-center text-destructive"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Classrooms</CardTitle></CardHeader>
-          <CardContent>
-            <p>{error}</p>
-            <Button onClick={fetchEnrolledClassrooms} className="mt-4">Try Again</Button>
+          <CardContent className="flex flex-col items-center text-center">
+            <p className="mb-3">{error}</p>
+            <Button onClick={fetchEnrolledClassrooms} variant="outline" size="sm">Try Again</Button>
           </CardContent>
         </Card>
       )}
@@ -86,12 +80,12 @@ export default function StudentClassroomsPage() {
       {!isLoading && !error && enrolledClassrooms.length === 0 && (
         <Card className="shadow-md w-full max-w-lg mx-auto">
           <CardHeader className="items-center text-center">
-            <BookOpen className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
+            <Library className="h-16 w-16 text-muted-foreground/70 mb-4" />
             <CardTitle>No Classrooms Yet</CardTitle>
             <CardDescription>You are not currently enrolled in any classrooms.</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-sm text-muted-foreground">If you have an invite code from your teacher, they can provide instructions on how to join a classroom.</p>
+            <p className="text-sm text-muted-foreground">If you have an invite code from your teacher, they can provide instructions on how to join a classroom. Your teacher can add you using your student ID.</p>
           </CardContent>
         </Card>
       )}
@@ -109,7 +103,7 @@ export default function StudentClassroomsPage() {
               </CardHeader>
               <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground">
-                  {classroom.studentIds.length} students in this class.
+                  {classroom.studentIds.length} students enrolled.
                 </p>
                 {classroom.description && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{classroom.description}</p>}
               </CardContent>
