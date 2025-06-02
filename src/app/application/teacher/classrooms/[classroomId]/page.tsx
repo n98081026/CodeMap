@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -10,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types"; 
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react"; // Removed Inbox, FileText
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react"; 
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -43,9 +42,9 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [errorSubmissions, setErrorSubmissions] = useState<string | null>(null);
 
-  let headerIconLink = "/application/teacher/dashboard"; // Default for teachers
+  let headerIconLink = "/application/teacher/dashboard"; 
   if (user && user.role === UserRole.ADMIN) {
-     headerIconLink = "/application/admin/dashboard"; // Admins go to admin dashboard
+     headerIconLink = "/application/admin/dashboard"; 
   }
 
   const fetchClassroomDetails = useCallback(async () => {
@@ -145,7 +144,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     fetchClassroomDetails(); 
   };
 
-  if (isLoadingClassroom && !classroom) { // Only show full page loader if classroom itself is loading for the first time
+  if (isLoadingClassroom && !classroom) { 
     return (
       <div className="space-y-6 p-4">
         <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={headerIconLink}/>
@@ -382,12 +381,4 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     </div>
   );
 }
-// Helper for DashboardHeader to allow className on icon
-declare module "@/components/dashboard/dashboard-header" {
-  interface DashboardHeaderProps {
-    iconClassName?: string;
-  }
-}
-
-
-
+// Removed declare module for DashboardHeaderProps as it's defined in its own file now

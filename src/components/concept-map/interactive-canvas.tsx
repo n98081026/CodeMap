@@ -19,7 +19,17 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
-import type { RFConceptMapNodeData, RFConceptMapEdgeData } from '@/app/application/concept-maps/editor/[mapId]/page'; // Import shared types
+
+// Moved these type definitions here to be self-contained or imported from a central types file if shared more widely
+export interface RFConceptMapNodeData {
+  label: string;
+  details?: string;
+  type?: string; 
+}
+
+export interface RFConceptMapEdgeData {
+  label?: string;
+}
 
 interface InteractiveCanvasProps {
   nodes: Node<RFConceptMapNodeData>[]; 
@@ -60,7 +70,7 @@ export function InteractiveCanvas({
   isViewOnlyMode 
 }: InteractiveCanvasProps) {
   
-  const flowKey = `rf-${nodes.length}-${edges.length}-${isViewOnlyMode}`; // Add isViewOnlyMode to key to ensure re-render on mode change
+  const flowKey = `rf-${nodes.length}-${edges.length}-${isViewOnlyMode}`;
 
   return (
     <Card className="h-[calc(100vh-200px)] w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden">
@@ -79,7 +89,7 @@ export function InteractiveCanvas({
           fitViewOptions={fitViewOptions}
           nodesDraggable={!isViewOnlyMode}
           nodesConnectable={!isViewOnlyMode} 
-          elementsSelectable={true} // Allow selection even in view-only to see properties
+          elementsSelectable={true} 
           deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
           className="bg-background"
           proOptions={{ hideAttribution: true }} 
@@ -92,4 +102,3 @@ export function InteractiveCanvas({
     </Card>
   );
 }
-

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Settings2, Box, Waypoints } from "lucide-react";
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
-import type { RFConceptMapNodeData, RFConceptMapEdgeData } from "@/app/application/concept-maps/editor/[mapId]/page";
+import { RFConceptMapNodeData, RFConceptMapEdgeData } from "@/components/concept-map/interactive-canvas"; // Import from canvas
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -60,7 +60,7 @@ export function PropertiesInspector({
         }
         isPublicToInitWith = currentMap.isPublic || false;
         sharedIdToInitWith = currentMap.sharedWithClassroomId || null;
-        if (nameToInitWith === "Untitled Concept Map" && !isViewOnlyMode) { // Only call if not view only
+        if (nameToInitWith === "Untitled Concept Map" && !isViewOnlyMode) { 
           onMapPropertiesChange({
             name: nameToInitWith,
             isPublic: isPublicToInitWith,
@@ -72,7 +72,7 @@ export function PropertiesInspector({
       setLocalIsPublic(isPublicToInitWith);
       setLocalSharedWithClassroomId(sharedIdToInitWith);
       processedMapIdRef.current = currentMap.id === 'new' ? `new::${currentMap.name}` : currentMap.id;
-    } else if (!isViewOnlyMode) { // Only default if not view only and no current map
+    } else if (!isViewOnlyMode) { 
       const defaultName = "Untitled Concept Map";
       setLocalMapName(defaultName);
       setLocalIsPublic(false);
@@ -81,7 +81,7 @@ export function PropertiesInspector({
       processedMapIdRef.current = null;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMap, isNewMapMode, isViewOnlyMode]); // Added isViewOnlyMode dependency
+  }, [currentMap, isNewMapMode, isViewOnlyMode]);
 
 
   useEffect(() => {
@@ -164,7 +164,7 @@ export function PropertiesInspector({
                   onCheckedChange={handleIsPublicChange}
                   disabled={isViewOnlyMode}
                   className={cn(isViewOnlyMode && "cursor-not-allowed data-[state=checked]:bg-muted-foreground/30 data-[state=unchecked]:bg-muted/30")}
-                  thumbClassName={cn(isViewOnlyMode && "bg-muted-foreground/50" )}
+                  // thumbClassName={cn(isViewOnlyMode && "bg-muted-foreground/50" )} // This prop doesn't exist on ShadCN Switch
               />
               <Label 
                 htmlFor="isPublicSwitch" 
