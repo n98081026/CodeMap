@@ -1,4 +1,3 @@
-
 "use client";
 
 import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
@@ -8,7 +7,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
-import React, { useEffect, useState, useCallback, use } from "react"; // Added 'use'
+import React, { useEffect, useState, useCallback, use } from "react";
 import { useRouter } from 'next/navigation';
 
 import {
@@ -17,23 +16,22 @@ import {
   ExpandConceptModal,
 } from "@/components/concept-map/genai-modals";
 import { useToast } from "@/hooks/use-toast";
-import type { ConceptMap, ConceptMapData } from "@/types";
+import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 
 export default function ConceptMapEditorPage({ params: paramsPromise }: { params: Promise<{ mapId: string }> }) {
-  const actualParams = use(paramsPromise); // Unwrap the params Promise
+  const actualParams = use(paramsPromise);
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
   
   const [isNewMapMode, setIsNewMapMode] = useState(actualParams.mapId === "new");
-  const [currentMap, setCurrentMap] = useState<ConceptMap | null>(null); // Store loaded map details
+  const [currentMap, setCurrentMap] = useState<ConceptMap | null>(null); 
   
-  // State for map properties, managed by this page, updated by PropertiesInspector
   const [mapName, setMapName] = useState(isNewMapMode ? "New Concept Map" : "Loading Map...");
-  const [mapData, setMapData] = useState<ConceptMapData>({ nodes: [], edges: [] }); // Actual map data for canvas
+  const [mapData, setMapData] = useState<ConceptMapData>({ nodes: [], edges: [] }); 
   const [isPublic, setIsPublic] = useState(false);
   const [sharedWithClassroomId, setSharedWithClassroomId] = useState<string | null>(null);
 
@@ -45,16 +43,23 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
   
-  const [extractedConcepts, setExtractedConcepts] = useState<string[]>([]);
+  // State for GenAI results to be passed to CanvasPlaceholder
+  const [aiExtractedConcepts, setAiExtractedConcepts] = useState<string[]>([]);
+  const [aiSuggestedRelations, setAiSuggestedRelations] = useState<any[]>([]);
+  const [aiExpandedConcepts, setAiExpandedConcepts] = useState<string[]>([]);
+
 
   const loadMapData = useCallback(async (id: string) => {
     if (id === "new") {
       setIsNewMapMode(true);
       setCurrentMap(null);
       setMapName("New Concept Map");
-      setMapData({ nodes: [], edges: [] }); // Reset map data for new map
+      setMapData({ nodes: [], edges: [] }); 
       setIsPublic(false);
       setSharedWithClassroomId(null);
+      setAiExtractedConcepts([]);
+      setAiSuggestedRelations([]);
+      setAiExpandedConcepts([]);
       setIsLoading(false);
       setError(null);
       return;
@@ -63,6 +68,9 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     setIsNewMapMode(false);
     setIsLoading(true);
     setError(null);
+    setAiExtractedConcepts([]);
+    setAiSuggestedRelations([]);
+    setAiExpandedConcepts([]);
     try {
       const response = await fetch(`/api/concept-maps/${id}`);
       if (!response.ok) {
@@ -78,7 +86,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     } catch (err) {
       setError((err as Error).message);
       toast({ title: "Error Loading Map", description: (err as Error).message, variant: "destructive" });
-      setMapName("Error Loading Map"); // Keep for display
+      setMapName("Error Loading Map"); 
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +138,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
           body: JSON.stringify(payload),
         });
       } else { 
-        const updatePayload = { // ownerId needed for service's mock auth
+        const updatePayload = { 
             name: mapName,
             mapData: mapData,
             isPublic: isPublic,
@@ -154,7 +162,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       setMapName(savedMap.name); 
       setIsPublic(savedMap.isPublic);
       setSharedWithClassroomId(savedMap.sharedWithClassroomId);
-      setIsNewMapMode(false); // It's no longer a "new" map after saving
+      setIsNewMapMode(false); 
       
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
       
@@ -171,24 +179,26 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
   const handleConceptsExtracted = (concepts: string[]) => {
     console.log("Extracted Concepts:", concepts);
-    setExtractedConcepts(concepts);
+    setAiExtractedConcepts(concepts);
     toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts.` });
   };
 
   const handleRelationsSuggested = (relations: any[]) => {
     console.log("Suggested Relations:", relations);
+    setAiSuggestedRelations(relations);
     toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations.` });
   };
 
   const handleConceptExpanded = (newConcepts: string[]) => {
     console.log("Expanded Concepts:", newConcepts);
+    setAiExpandedConcepts(newConcepts);
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas.` });
   };
 
   if (isLoading) {
     return (
       <div className="flex h-full flex-col space-y-4 p-4">
-        <DashboardHeader title="Loading Map..." icon={Loader2} iconClassName="animate-spin" />
+        <DashboardHeader title="Loading Map..." icon={Loader2} iconClassName="animate-spin" iconLinkHref="/application/student/concept-maps" />
         <div className="flex justify-center items-center py-10 flex-grow">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
@@ -234,7 +244,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       <DashboardHeader
         title={mapName}
         description="Create, edit, and visualize your ideas."
-        icon={isNewMapMode && !currentMap?.id ? Compass : Share2}
+        icon={(isNewMapMode || !currentMap?.id) ? Compass : Share2}
         iconLinkHref={user?.role === 'student' ? "/application/student/concept-maps" : 
                        user?.role === 'teacher' ? "/application/teacher/dashboard" : 
                        user?.role === 'admin' ? "/application/admin/dashboard" : "/"}
@@ -260,13 +270,17 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
       <div className="flex flex-1 gap-4 overflow-hidden">
         <div className="flex-grow">
-          <CanvasPlaceholder /> 
+          <CanvasPlaceholder 
+            extractedConcepts={aiExtractedConcepts}
+            suggestedRelations={aiSuggestedRelations}
+            expandedConcepts={aiExpandedConcepts}
+          /> 
         </div>
         <aside className="hidden w-80 flex-shrink-0 lg:block">
           <PropertiesInspector 
             currentMap={mapForInspector} 
             onMapPropertiesChange={handleMapPropertiesChange}
-            isNewMapMode={isNewMapMode || !currentMap?.id}
+            isNewMapMode={(isNewMapMode || !currentMap?.id)}
           />
         </aside>
       </div>
@@ -275,16 +289,23 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
         <ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />
       )}
       {isSuggestRelationsModalOpen && (
-        <SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={extractedConcepts.slice(0,3)} onOpenChange={setIsSuggestRelationsModalOpen} />
+        <SuggestRelationsModal 
+          onRelationsSuggested={handleRelationsSuggested} 
+          initialConcepts={aiExtractedConcepts.slice(0,3)} 
+          onOpenChange={setIsSuggestRelationsModalOpen} 
+        />
       )}
       {isExpandConceptModalOpen && (
-        <ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={extractedConcepts.length > 0 ? extractedConcepts[0] : ""} onOpenChange={setIsExpandConceptModalOpen} />
+        <ExpandConceptModal 
+          onConceptExpanded={handleConceptExpanded} 
+          initialConcept={aiExtractedConcepts.length > 0 ? aiExtractedConcepts[0] : ""} 
+          onOpenChange={setIsExpandConceptModalOpen} 
+        />
       )}
     </div>
   );
 }
 
-// Helper for DashboardHeader to allow className on icon
 declare module "@/components/dashboard/dashboard-header" {
   interface DashboardHeaderProps {
     iconClassName?: string;
@@ -295,4 +316,10 @@ declare module "@/components/concept-map/properties-inspector" {
         isNewMapMode?: boolean;
     }
 }
-
+declare module "@/components/concept-map/canvas-placeholder" {
+  interface CanvasPlaceholderProps {
+    extractedConcepts?: string[];
+    suggestedRelations?: any[]; // Replace 'any' with a more specific type if available
+    expandedConcepts?: string[];
+  }
+}

@@ -60,6 +60,7 @@
     - [ ] Zoom/pan functionality.
     - [x] Connect `PropertiesInspector` to selected elements on canvas (map-level properties connected and saved).
     - [ ] Visualize GenAI results (extracted concepts, suggested relations, expanded concepts) on the canvas or allow adding them.
+        - [x] Display GenAI results (textually) on `CanvasPlaceholder`.
 - [ ] **State Management:**
     - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching.
 - [ ] **Real-time Features (Optional):**
@@ -103,12 +104,10 @@
 - Backend services are currently mocked (in-memory data).
 - Default test student and teacher accounts are set up for easier development and testing (see `AuthContext` and mock data files).
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
-- Concept map canvas is a placeholder.
-- Project analysis pipeline is mocked at the UI level (AI map gen call updates status).
+- Concept map canvas is a placeholder. Project analysis pipeline is mocked at the UI level (AI map gen call updates status).
 - `next-themes` for theme toggling is integrated.
 - App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" typically handled by registration. Tooltip added to button.
 - Change password functionality on profile page is a placeholder.
-
 ```
