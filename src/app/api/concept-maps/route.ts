@@ -3,18 +3,12 @@
 import { NextResponse } from 'next/server';
 import { createConceptMap, getConceptMapsByOwnerId, getConceptMapsByClassroomId } from '@/services/conceptMaps/conceptMapService';
 import type { ConceptMapData } from '@/types';
-// import { getAuth } from '@clerk/nextjs/server'; // Placeholder for actual auth
 
 export async function POST(request: Request) {
   try {
-    // In a real app, get ownerId from authenticated session
-    // const { userId: ownerId } = getAuth(request as any); // Example with Clerk
-    // if (!ownerId) {
-    //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    // }
     const { name, ownerId, mapData, isPublic, sharedWithClassroomId } = await request.json() as {
       name: string;
-      ownerId: string; // For now, client must send ownerId
+      ownerId: string; 
       mapData: ConceptMapData;
       isPublic: boolean;
       sharedWithClassroomId?: string | null;
@@ -50,6 +44,9 @@ export async function GET(request: Request) {
       return NextResponse.json(maps);
     }
 
+    // If neither ownerId nor classroomId is provided, return an empty array or a specific message.
+    // For the student dashboard calling with ownerId, this path shouldn't be hit if ownerId is always present.
+    // If it's a general call without parameters, what should be returned? For now, an error.
     return NextResponse.json({ message: "Query parameter 'ownerId' or 'classroomId' is required." }, { status: 400 });
 
   } catch (error) {
@@ -58,3 +55,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: `Failed to fetch concept maps: ${errorMessage}` }, { status: 500 });
   }
 }
+
+    

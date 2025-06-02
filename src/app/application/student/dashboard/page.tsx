@@ -22,17 +22,17 @@ const LoadingSpinner = () => (
 );
 
 export default function StudentDashboardPage() {
-  const { user } = useAuth(); // Removed isLoading from here as MainLayout handles initial auth loading
+  const { user } = useAuth(); 
   const { toast } = useToast();
 
   const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true); // Specific to dashboard data fetching
+  const [isLoadingData, setIsLoadingData] = useState(true); 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!user) {
-        setIsLoadingData(false); // Ensure loading stops if no user
+        setIsLoadingData(false); 
         return;
       }
       setIsLoadingData(true); 
@@ -50,29 +50,31 @@ export default function StudentDashboardPage() {
         let submissionsCount = 0;
         let errors: string[] = [];
 
-        if (classroomsResponse.ok) {
-          const data = await classroomsResponse.json();
-          classroomsCount = data.length;
-        } else {
-          const errData = await classroomsResponse.json().catch(() => ({ message: `Classrooms: ${classroomsResponse.statusText}` }));
-          errors.push(errData.message || `Failed to fetch classrooms`);
-        }
+        // Helper to process each response
+        const processResponse = async (response: Response, itemName: string): Promise<number> => {
+          if (response.ok) {
+            const data = await response.json();
+            return data.length;
+          } else {
+            let errorLead = `${itemName} API Error (${response.status})`;
+            let errorDetail = response.statusText || "Unknown error";
+            try {
+              // Attempt to parse JSON error from API
+              const errData = await response.json();
+              errorDetail = errData.message || errorDetail;
+            } catch (jsonError) {
+              // If .json() fails, response was not JSON. Try to get text.
+              const textError = await response.text().catch(() => "Could not read error response body.");
+              errorDetail = `${errorDetail} (Response not JSON: ${textError.substring(0, 100)}${textError.length > 100 ? '...' : ''})`;
+            }
+            errors.push(`${errorLead}: ${errorDetail}`);
+            return 0; // Return 0 for count on error
+          }
+        };
 
-        if (mapsResponse.ok) {
-          const data = await mapsResponse.json();
-          mapsCount = data.length;
-        } else {
-          const errData = await mapsResponse.json().catch(() => ({ message: `Concept Maps: ${mapsResponse.statusText}` }));
-          errors.push(errData.message || `Failed to fetch concept maps`);
-        }
-
-        if (submissionsResponse.ok) {
-          const data = await submissionsResponse.json();
-          submissionsCount = data.length;
-        } else {
-          const errData = await submissionsResponse.json().catch(() => ({ message: `Submissions: ${submissionsResponse.statusText}` }));
-          errors.push(errData.message || `Failed to fetch submissions`);
-        }
+        classroomsCount = await processResponse(classroomsResponse, "Classrooms");
+        mapsCount = await processResponse(mapsResponse, "Concept Maps");
+        submissionsCount = await processResponse(submissionsResponse, "Project Submissions");
         
         setDashboardData({
           enrolledClassroomsCount: classroomsCount,
@@ -90,7 +92,6 @@ export default function StudentDashboardPage() {
         console.error("Error fetching student dashboard data:", errorMessage);
         setError(errorMessage); 
         toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
-        // Set counts to 0 or keep existing if partial data is preferred, error state will handle display
         setDashboardData(prev => prev || { enrolledClassroomsCount: 0, conceptMapsCount: 0, projectSubmissionsCount: 0 });
       } finally {
         setIsLoadingData(false); 
@@ -104,7 +105,24 @@ export default function StudentDashboardPage() {
     }
   }, [user, toast]);
 
-  if (!user) return <LoadingSpinner />; // Handled by MainLayout usually, but good failsafe
+  if (!user) return <LoadingSpinner />;
+
+  const displayCountOrError = (count: number | undefined, itemError: boolean) => {
+    if (isLoadingData) {
+      return <div className="flex items-center space-x-2"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading...</span></div>;
+    }
+    if (itemError && (count === 0 || count === undefined)) { // Show error if there was an error for this item and count is 0/undefined
+        return <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
+    }
+    return <div className="text-3xl font-bold">{count ?? 0}</div>;
+  };
+  
+  // Check if any part of the error message indicates a specific item failed.
+  // This is a simplification; more granular error state per item would be better.
+  const classroomError = !!error && (error.includes("Classrooms") || dashboardData?.enrolledClassroomsCount === 0 && isLoadingData === false);
+  const mapsError = !!error && (error.includes("Concept Maps") || dashboardData?.conceptMapsCount === 0 && isLoadingData === false);
+  const submissionsError = !!error && (error.includes("Submissions") || dashboardData?.projectSubmissionsCount === 0 && isLoadingData === false);
+
 
   return (
     <div className="space-y-6">
@@ -121,15 +139,7 @@ export default function StudentDashboardPage() {
             <BookOpen className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>
-            {isLoadingData ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 animate-spin" /> <span>Loading...</span>
-              </div>
-            ) : error && dashboardData?.enrolledClassroomsCount === 0 && !dashboardData ? ( // Show error if error exists and count is still 0 because it was never set
-              <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>
-            ) : (
-              <div className="text-3xl font-bold">{dashboardData?.enrolledClassroomsCount ?? 0}</div>
-            )}
+            {displayCountOrError(dashboardData?.enrolledClassroomsCount, classroomError)}
             <p className="text-xs text-muted-foreground mb-4">
               Classrooms you are enrolled in.
             </p>
@@ -145,15 +155,7 @@ export default function StudentDashboardPage() {
             <Share2 className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>
-            {isLoadingData ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 animate-spin" /> <span>Loading...</span>
-              </div>
-            ) : error && dashboardData?.conceptMapsCount === 0 && !dashboardData ? (
-              <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>
-            ) : (
-              <div className="text-3xl font-bold">{dashboardData?.conceptMapsCount ?? 0}</div>
-            )}
+            {displayCountOrError(dashboardData?.conceptMapsCount, mapsError)}
             <p className="text-xs text-muted-foreground mb-4">
               Concept maps you have created or have access to.
             </p>
@@ -169,15 +171,7 @@ export default function StudentDashboardPage() {
             <FolderKanban className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>
-            {isLoadingData ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 animate-spin" /> <span>Loading...</span>
-              </div>
-            ) : error && dashboardData?.projectSubmissionsCount === 0 && !dashboardData ? (
-              <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>
-            ) : (
-              <div className="text-3xl font-bold">{dashboardData?.projectSubmissionsCount ?? 0}</div>
-            )}
+             {displayCountOrError(dashboardData?.projectSubmissionsCount, submissionsError)}
             <p className="text-xs text-muted-foreground mb-4">
               Projects you have submitted for analysis.
             </p>
@@ -209,3 +203,5 @@ export default function StudentDashboardPage() {
     </div>
   );
 }
+
+    

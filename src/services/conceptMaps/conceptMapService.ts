@@ -1,3 +1,4 @@
+
 // src/services/conceptMaps/conceptMapService.ts
 'use server';
 
@@ -94,13 +95,19 @@ export async function updateConceptMap(mapId: string, updates: Partial<Omit<Conc
     return null;
   }
   
-  // Prevent changing ownerId or createdAt through this method
-  const { ownerId, createdAt, id, ...restUpdates } = updates as any;
+  const currentMap = mockConceptMapsData[mapIndex];
+  
+  // Ensure ownerId is not part of 'updates' to prevent changing ownership this way
+  const { ownerId: newOwnerId, ...validUpdates } = updates as any;
+  if (newOwnerId && newOwnerId !== currentMap.ownerId) {
+    // This check should ideally be more robust or handled by auth layer
+    console.warn("Attempt to change map ownerId via updateConceptMap was ignored.");
+  }
 
 
   mockConceptMapsData[mapIndex] = {
-    ...mockConceptMapsData[mapIndex],
-    ...restUpdates,
+    ...currentMap,
+    ...validUpdates, // Apply only valid updates
     updatedAt: new Date().toISOString(),
   };
   return mockConceptMapsData[mapIndex];
@@ -124,3 +131,5 @@ export async function deleteConceptMap(mapId: string, ownerId: string): Promise<
   mockConceptMapsData.splice(mapIndex, 1);
   return true;
 }
+
+    

@@ -1,3 +1,4 @@
+
 // src/services/classrooms/classroomService.ts
 'use server';
 
@@ -7,7 +8,7 @@
 
 import type { Classroom, User } from '@/types';
 import { UserRole } from '@/types';
-import { getUserById, mockUserDatabase } from '@/services/users/userService'; // To fetch teacher/student details
+import { getUserById } from '@/services/users/userService'; // To fetch teacher/student details
 
 // Mock data for classrooms - this will be replaced by database calls
 let mockClassroomsData: Classroom[] = [
@@ -138,7 +139,7 @@ export async function addStudentToClassroom(classroomId: string, studentId: stri
     mockClassroomsData[classroomIndex] = classroom; 
     return classroom;
   }
-  // If student already in classroom, just ensure details are fresh (though not strictly necessary here as it's just IDs)
+  // If student already in classroom, just ensure details are fresh
   classroom.students = await populateStudentDetails(classroom.studentIds);
   return classroom;
 }
@@ -159,10 +160,10 @@ export async function removeStudentFromClassroom(classroomId: string, studentId:
    const initialStudentCount = classroom.studentIds.length;
    classroom.studentIds = classroom.studentIds.filter(id => id !== studentId);
 
-   if (classroom.studentIds.length < initialStudentCount) { // If student was actually removed
+   if (classroom.studentIds.length < initialStudentCount) { 
      classroom.students = await populateStudentDetails(classroom.studentIds);
      mockClassroomsData[classroomIndex] = classroom; 
-   } else { // If student wasn't in the list, still refresh student details (could be argued not needed)
+   } else { 
      classroom.students = await populateStudentDetails(classroom.studentIds);
    }
    return classroom;
@@ -187,7 +188,6 @@ export async function updateClassroom(classroomId: string, updates: { name?: str
   }
   
   mockClassroomsData[classroomIndex] = classroomToUpdate;
-  // Repopulate details, though for name/desc update it's not strictly needed for this mock
   await populateTeacherName(mockClassroomsData[classroomIndex]);
   mockClassroomsData[classroomIndex].students = await populateStudentDetails(mockClassroomsData[classroomIndex].studentIds);
 
@@ -206,10 +206,13 @@ export async function deleteClassroom(classroomId: string): Promise<boolean> {
 }
 
 export async function getAllClassrooms(): Promise<Classroom[]> {
-  const classrooms = mockClassroomsData;
+  const classrooms = [...mockClassroomsData]; // Return a copy
   for (const classroom of classrooms) {
      await populateTeacherName(classroom);
+     // Optionally populate student details if needed by admin view, but can be heavy
+     // classroom.students = await populateStudentDetails(classroom.studentIds);
   }
   return classrooms;
 }
-```
+
+    

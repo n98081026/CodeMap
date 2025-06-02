@@ -1,3 +1,4 @@
+
 // src/services/projectSubmissions/projectSubmissionService.ts
 'use server';
 
@@ -5,21 +6,20 @@
  * @fileOverview Project Submission service for handling submission-related operations.
  */
 
-import type { ProjectSubmission, ConceptMap } from '@/types';
+import type { ProjectSubmission } from '@/types';
 import { ProjectSubmissionStatus, UserRole } from '@/types';
 import { getUserById } from '@/services/users/userService';
-// import { getConceptMapById } from '@/services/conceptMaps/conceptMapService'; // If populating generatedMap
 
 // Mock data for submissions
 let mockSubmissionsData: ProjectSubmission[] = [
   { 
     id: "sub1", 
-    studentId: "student-test-id", // Use test student
+    studentId: "student-test-id", 
     originalFileName: "final-project.zip", 
     fileSize: 2345678, 
     submissionTimestamp: new Date("2023-04-10T10:00:00Z").toISOString(), 
     analysisStatus: ProjectSubmissionStatus.COMPLETED, 
-    generatedConceptMapId: "mapA", // Assuming mapA is owned by student-test-id
+    generatedConceptMapId: "mapA", 
     classroomId: "test-classroom-1",
   },
   { 
@@ -57,14 +57,13 @@ let mockSubmissionsData: ProjectSubmission[] = [
     fileSize: 78000, 
     submissionTimestamp: new Date("2023-05-01T11:00:00Z").toISOString(), 
     analysisStatus: ProjectSubmissionStatus.COMPLETED,
-    generatedConceptMapId: "map_web_proj", // Placeholder
+    generatedConceptMapId: "map_web_proj", 
     classroomId: "class3",
   },
 ];
 
 /**
  * Creates a new project submission record.
- * Actual file handling and AI analysis triggering would be separate.
  */
 export async function createSubmission(
   studentId: string,
@@ -85,9 +84,9 @@ export async function createSubmission(
     fileSize,
     classroomId: classroomId || null,
     submissionTimestamp: now,
-    analysisStatus: ProjectSubmissionStatus.PENDING, // Initial status
+    analysisStatus: ProjectSubmissionStatus.PENDING,
   };
-  mockSubmissionsData.unshift(newSubmission); // Add to beginning for recent first
+  mockSubmissionsData.unshift(newSubmission); 
   return newSubmission;
 }
 
@@ -113,10 +112,8 @@ export async function getSubmissionsByClassroomId(classroomId: string): Promise<
     return mockSubmissionsData.filter(s => s.classroomId === classroomId);
 }
 
-
 /**
  * Updates the status of a project submission.
- * This would typically be called by an analysis worker/microservice.
  */
 export async function updateSubmissionStatus(
   submissionId: string,
@@ -126,7 +123,7 @@ export async function updateSubmissionStatus(
 ): Promise<ProjectSubmission | null> {
   const submissionIndex = mockSubmissionsData.findIndex(s => s.id === submissionId);
   if (submissionIndex === -1) {
-    return null; // Submission not found
+    return null; 
   }
 
   const submission = mockSubmissionsData[submissionIndex];
@@ -138,8 +135,8 @@ export async function updateSubmissionStatus(
   return submission;
 }
 
-// Function to get all mock submissions (for admin/testing)
 export async function getAllSubmissions(): Promise<ProjectSubmission[]> {
-    return mockSubmissionsData;
+    return [...mockSubmissionsData]; // Return a copy
 }
-```
+
+    
