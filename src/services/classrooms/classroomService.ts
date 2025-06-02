@@ -11,9 +11,9 @@ import { getUserById, mockUserDatabase } from '@/services/users/userService'; //
 
 // Mock data for classrooms - this will be replaced by database calls
 let mockClassroomsData: Classroom[] = [
-  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["student1", "s2", "s3"], inviteCode: "PROG101", students: [] },
-  { id: "class2", name: "Advanced Data Structures", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["s4", "s5"], inviteCode: "DATA202", students: [] },
-  { id: "class3", name: "Web Development Basics", teacherId: "teacher2", studentIds: ["student1", "s6", "s7", "s8"], inviteCode: "WEBDEV", students: [] },
+  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["student1", "s2", "s3"], inviteCode: "PROG101", students: [], description: "Learn the fundamentals of programming using Python." },
+  { id: "class2", name: "Advanced Data Structures", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["s4", "s5"], inviteCode: "DATA202", students: [], description: "Deep dive into complex data structures and algorithms." },
+  { id: "class3", name: "Web Development Basics", teacherId: "teacher2", studentIds: ["student1", "s6", "s7", "s8"], inviteCode: "WEBDEV", students: [], description: "Covers HTML, CSS, and basic JavaScript." },
   {
     id: "test-classroom-1",
     name: "Introduction to AI",
@@ -21,7 +21,8 @@ let mockClassroomsData: Classroom[] = [
     teacherName: "Test Teacher",
     studentIds: ["student-test-id", "s2"],
     inviteCode: "AI101TEST",
-    students: []
+    students: [],
+    description: "An introductory course to Artificial Intelligence concepts."
   },
 ];
 
@@ -54,6 +55,7 @@ export async function createClassroom(name: string, description: string | undefi
   const newClassroom: Classroom = {
     id: `class-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     name,
+    description: description || undefined,
     teacherId,
     teacherName: teacher.name,
     studentIds: [],
@@ -71,7 +73,6 @@ export async function createClassroom(name: string, description: string | undefi
  */
 export async function getClassroomsByTeacherId(teacherId: string): Promise<Classroom[]> {
   const classrooms = mockClassroomsData.filter(c => c.teacherId === teacherId);
-  // Optionally populate student counts or other light details here if needed for list view
   for (const classroom of classrooms) {
      if (!classroom.teacherName && classroom.teacherId) {
         const teacher = await getUserById(classroom.teacherId);
@@ -118,12 +119,10 @@ export async function addStudentToClassroom(classroomId: string, studentId: stri
   const classroom = mockClassroomsData[classroomIndex];
   if (!classroom.studentIds.includes(studentId)) {
     classroom.studentIds.push(studentId);
-    // Re-populate student details after adding
     classroom.students = await populateStudentDetails(classroom.studentIds);
-    mockClassroomsData[classroomIndex] = classroom; // Update in mock DB
+    mockClassroomsData[classroomIndex] = classroom; 
     return classroom;
   }
-  // Re-populate even if student was already there, to ensure consistency
   classroom.students = await populateStudentDetails(classroom.studentIds);
   return classroom;
 }
@@ -145,11 +144,9 @@ export async function removeStudentFromClassroom(classroomId: string, studentId:
    classroom.studentIds = classroom.studentIds.filter(id => id !== studentId);
 
    if (classroom.studentIds.length < initialStudentCount) {
-     // Student was removed, re-populate student details
      classroom.students = await populateStudentDetails(classroom.studentIds);
-     mockClassroomsData[classroomIndex] = classroom; // Update in mock DB
+     mockClassroomsData[classroomIndex] = classroom; 
    } else {
-     // Student not found in classroom, ensure students list is still consistent
      classroom.students = await populateStudentDetails(classroom.studentIds);
    }
    return classroom;
@@ -158,18 +155,23 @@ export async function removeStudentFromClassroom(classroomId: string, studentId:
 /**
  * Updates a classroom.
  * @param classroomId The ID of the classroom.
- * @param updates Partial classroom data to update.
+ * @param updates Partial classroom data to update (name, description).
  * @returns The updated classroom or null if not found.
  */
-export async function updateClassroom(classroomId: string, updates: Partial<Classroom>): Promise<Classroom | null> {
+export async function updateClassroom(classroomId: string, updates: { name?: string; description?: string }): Promise<Classroom | null> {
   const classroomIndex = mockClassroomsData.findIndex(c => c.id === classroomId);
   if (classroomIndex === -1) return null;
 
-  mockClassroomsData[classroomIndex] = { ...mockClassroomsData[classroomIndex], ...updates };
-  // If studentIds were updated, re-populate students array
-  if (updates.studentIds) {
-    mockClassroomsData[classroomIndex].students = await populateStudentDetails(mockClassroomsData[classroomIndex].studentIds);
+  // Only allow updating specific fields like name and description
+  const classroomToUpdate = mockClassroomsData[classroomIndex];
+  if (updates.name !== undefined) {
+    classroomToUpdate.name = updates.name;
   }
+  if (updates.description !== undefined) {
+    classroomToUpdate.description = updates.description;
+  }
+  
+  mockClassroomsData[classroomIndex] = classroomToUpdate;
   return mockClassroomsData[classroomIndex];
 }
 
@@ -184,8 +186,6 @@ export async function deleteClassroom(classroomId: string): Promise<boolean> {
   return mockClassroomsData.length < initialLength;
 }
 
-
-// Function to get all mock classrooms (for potential admin/testing purposes)
 export async function getAllClassrooms(): Promise<Classroom[]> {
   const classrooms = mockClassroomsData;
   for (const classroom of classrooms) {
@@ -193,8 +193,6 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
         const teacher = await getUserById(classroom.teacherId);
         if (teacher) classroom.teacherName = teacher.name;
      }
-     // Optionally populate students here too if admin list needs it
-     // classroom.students = await populateStudentDetails(classroom.studentIds);
   }
   return classrooms;
 }

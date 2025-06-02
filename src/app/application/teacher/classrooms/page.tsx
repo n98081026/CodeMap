@@ -6,10 +6,34 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
-import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle } from "lucide-react";
+import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter as FormDialogFooter, // Renamed to avoid conflict
+  DialogHeader as FormDialogHeader, // Renamed
+  DialogTitle as FormDialogTitle, // Renamed
+  DialogTrigger as FormDialogTrigger, // Renamed
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
 
 export default function TeacherClassroomsPage() {
   const { user } = useAuth();
@@ -18,38 +42,93 @@ export default function TeacherClassroomsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchTeacherClassrooms() {
-      if (!user || !user.id) {
-        setIsLoading(false);
-        setError("User not authenticated.");
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`/api/classrooms?teacherId=${user.id}`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch classrooms");
-        }
-        const data: Classroom[] = await response.json();
-        setTeacherClassrooms(data);
-      } catch (err) {
-        const errorMessage = (err as Error).message;
-        setError(errorMessage);
-        toast({
-          title: "Error Fetching Classrooms",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null);
+  const [editFormData, setEditFormData] = useState({ name: "", description: "" });
 
+
+  const fetchTeacherClassrooms = async () => {
+    if (!user || !user.id) {
+      setIsLoading(false);
+      setError("User not authenticated.");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/classrooms?teacherId=${user.id}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch classrooms");
+      }
+      const data: Classroom[] = await response.json();
+      setTeacherClassrooms(data);
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      setError(errorMessage);
+      toast({
+        title: "Error Fetching Classrooms",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTeacherClassrooms();
   }, [user, toast]);
+
+  const handleDeleteClassroom = async (classroomId: string, classroomName: string) => {
+    try {
+      const response = await fetch(`/api/classrooms/${classroomId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete classroom");
+      }
+      toast({ title: "Classroom Deleted", description: `Classroom "${classroomName}" has been deleted.` });
+      fetchTeacherClassrooms(); // Refresh list
+    } catch (err) {
+      toast({ title: "Error Deleting Classroom", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+
+  const openEditModal = (classroom: Classroom) => {
+    setEditingClassroom(classroom);
+    setEditFormData({ name: classroom.name, description: classroom.description || "" });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdateClassroom = async () => {
+    if (!editingClassroom) return;
+    setIsLoading(true); // Use general loading state for simplicity or add a specific one
+    try {
+      const response = await fetch(`/api/classrooms/${editingClassroom.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update classroom");
+      }
+      toast({ title: "Classroom Updated", description: `Classroom "${editFormData.name}" has been updated.` });
+      setIsEditModalOpen(false);
+      setEditingClassroom(null);
+      fetchTeacherClassrooms(); 
+    } catch (err) {
+      toast({ title: "Error Updating Classroom", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -65,7 +144,7 @@ export default function TeacherClassroomsPage() {
         </Button>
       </DashboardHeader>
 
-      {isLoading && (
+      {isLoading && !error && (
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="ml-2">Loading classrooms...</p>
@@ -81,7 +160,7 @@ export default function TeacherClassroomsPage() {
           </CardHeader>
           <CardContent>
             <p>{error}</p>
-            <Button onClick={() => window.location.reload()} className="mt-4">Try Again</Button>
+            <Button onClick={fetchTeacherClassrooms} className="mt-4">Try Again</Button>
           </CardContent>
         </Card>
       )}
@@ -111,19 +190,70 @@ export default function TeacherClassroomsPage() {
                   <Users className="mr-2 h-4 w-4" />
                   <span>{classroom.studentIds.length} Students</span>
                 </div>
-                {/* Add more details like last activity, number of maps/submissions */}
+                {classroom.description && <p className="text-sm text-muted-foreground mt-2 truncate">Desc: {classroom.description}</p>}
               </CardContent>
-              <CardFooter>
-                <Button asChild className="w-full">
+              <CardFooter className="grid grid-cols-3 gap-2">
+                 <Button asChild variant="default" size="sm" className="col-span-1">
                   <Link href={`/application/teacher/classrooms/${classroom.id}`}>
-                    View Details <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">View</span>
                   </Link>
                 </Button>
+                <Button variant="outline" size="sm" className="col-span-1" onClick={() => openEditModal(classroom)}>
+                  <Edit className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="col-span-1">
+                      <Trash2 className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Delete</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the classroom "{classroom.name}" and all associated data.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteClassroom(classroom.id, classroom.name)}>
+                        Delete Classroom
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardFooter>
             </Card>
           ))}
         </div>
       )}
+      
+      {/* Edit Classroom Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <FormDialogHeader>
+            <FormDialogTitle>Edit Classroom: {editingClassroom?.name}</FormDialogTitle>
+          </FormDialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid items-center gap-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" name="name" value={editFormData.name} onChange={handleEditFormChange} />
+            </div>
+            <div className="grid items-center gap-1.5">
+              <Label htmlFor="description">Description</Label>
+              <Textarea id="description" name="description" value={editFormData.description} onChange={handleEditFormChange} />
+            </div>
+          </div>
+          <FormDialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)} disabled={isLoading}>Cancel</Button>
+            <Button onClick={handleUpdateClassroom} disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save Changes
+            </Button>
+          </FormDialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

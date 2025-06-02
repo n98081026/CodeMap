@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -13,75 +14,110 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 interface InviteStudentDialogProps {
   classroomId: string;
-  onInviteSent?: () => void; // Callback after invite is "sent"
+  onInviteSent?: (studentEmail?: string, studentId?: string) => void; 
 }
 
 export function InviteStudentDialog({ classroomId, onInviteSent }: InviteStudentDialogProps) {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // Can be email or student ID
+  const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleInvite = async () => {
-    if (!email.trim() || !email.includes('@')) { // Basic email validation
+  const handleInviteOrAdd = async () => {
+    if (!identifier.trim()) {
       toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address.",
+        title: "Input Required",
+        description: "Please enter a student email or ID.",
         variant: "destructive",
       });
       return;
     }
+    setIsLoading(true);
 
-    // Mock API call
-    console.log(`Inviting student with email ${email} to classroom ${classroomId}`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Basic check: if it looks like an email, treat as mock invite. Otherwise, try as student ID.
+    const isEmail = identifier.includes('@');
 
-    toast({
-      title: "Invite Sent",
-      description: `An invitation has been sent to ${email}.`,
-    });
-    setEmail(""); // Clear input
-    setIsOpen(false); // Close dialog
-    onInviteSent?.();
+    if (isEmail) {
+      // Mock email invite
+      console.log(`Mock inviting student with email ${identifier} to classroom ${classroomId}`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      toast({
+        title: "Invite Sent (Mock)",
+        description: `An invitation has been 'sent' to ${identifier}.`,
+      });
+      onInviteSent?.(identifier, undefined);
+    } else {
+      // Attempt to add by student ID
+      try {
+        const response = await fetch(`/api/classrooms/${classroomId}/students`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentId: identifier }),
+        });
+        const responseData = await response.json();
+        if (!response.ok) {
+          throw new Error(responseData.message || "Failed to add student by ID");
+        }
+        toast({
+          title: "Student Added",
+          description: `Student with ID "${identifier}" has been added to the classroom.`,
+        });
+        onInviteSent?.(undefined, identifier);
+      } catch (error) {
+         toast({
+          title: "Error Adding Student",
+          description: (error as Error).message,
+          variant: "destructive",
+        });
+      }
+    }
+
+    setIsLoading(false);
+    setIdentifier(""); 
+    setIsOpen(false); 
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button>
-          <UserPlus className="mr-2 h-4 w-4" /> Invite Students
+          <UserPlus className="mr-2 h-4 w-4" /> Invite/Add Student
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Invite Students</DialogTitle>
+          <DialogTitle>Invite or Add Student</DialogTitle>
           <DialogDescription>
-            Enter the email address of the student you want to invite. They will receive an email with instructions to join.
+            Enter student's email to send an invite (mock), or their existing Student ID to add them directly.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              Email
+            <Label htmlFor="identifier" className="text-right">
+              Email / ID
             </Label>
             <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="student@example.com"
+              id="identifier"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="student@example.com or student-id-123"
               className="col-span-3"
+              disabled={isLoading}
             />
           </div>
-          {/* Optionally add functionality for inviting multiple students (e.g., comma-separated, or a textarea) */}
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-          <Button type="submit" onClick={handleInvite}>Send Invite</Button>
+          <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>Cancel</Button>
+          <Button type="submit" onClick={handleInviteOrAdd} disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? "Processing..." : "Send Invite / Add"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

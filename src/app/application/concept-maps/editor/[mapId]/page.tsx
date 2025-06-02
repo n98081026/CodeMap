@@ -8,7 +8,9 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from 'next/navigation';
+
 import {
   ExtractConceptsModal,
   SuggestRelationsModal,
@@ -21,55 +23,75 @@ import { useAuth } from "@/contexts/auth-context";
 
 export default function ConceptMapEditorPage({ params }: { params: { mapId: string } }) {
   const { toast } = useToast();
-  const { user } = useAuth(); // Needed for saving maps (ownerId)
+  const { user } = useAuth();
+  const router = useRouter();
   
   const isNewMap = params.mapId === "new";
+  const [currentMap, setCurrentMap] = useState<ConceptMap | null>(null); // Store loaded map details
+  
+  // State for map properties, managed by this page, updated by PropertiesInspector
   const [mapName, setMapName] = useState(isNewMap ? "New Concept Map" : "Loading Map...");
   const [mapData, setMapData] = useState<ConceptMapData>({ nodes: [], edges: [] }); // Actual map data for canvas
-  const [currentMap, setCurrentMap] = useState<ConceptMap | null>(null); // Store loaded map details
+  const [isPublic, setIsPublic] = useState(false);
+  const [sharedWithClassroomId, setSharedWithClassroomId] = useState<string | null>(null);
 
-  const [isLoading, setIsLoading] = useState(!isNewMap); // Only load if not a new map
+  const [isLoading, setIsLoading] = useState(!isNewMap);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-
-  // State to control modal visibility
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
   
   const [extractedConcepts, setExtractedConcepts] = useState<string[]>([]);
 
+  const loadMapData = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/concept-maps/${id}`);
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Failed to load map");
+      }
+      const data: ConceptMap = await response.json();
+      setCurrentMap(data);
+      setMapName(data.name);
+      setMapData(data.mapData);
+      setIsPublic(data.isPublic);
+      setSharedWithClassroomId(data.sharedWithClassroomId || null);
+    } catch (err) {
+      setError((err as Error).message);
+      toast({ title: "Error Loading Map", description: (err as Error).message, variant: "destructive" });
+      setMapName("Error Loading Map"); // Keep for display
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (!isNewMap && params.mapId) {
-      setIsLoading(true);
-      setError(null);
-      fetch(`/api/concept-maps/${params.mapId}`)
-        .then(async res => {
-          if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.message || "Failed to load map");
-          }
-          return res.json();
-        })
-        .then((data: ConceptMap) => {
-          setMapName(data.name);
-          setMapData(data.mapData); // This should be the data for the canvas component
-          setCurrentMap(data);
-        })
-        .catch(err => {
-          setError((err as Error).message);
-          toast({ title: "Error Loading Map", description: (err as Error).message, variant: "destructive" });
-          setMapName("Error Loading Map");
-        })
-        .finally(() => setIsLoading(false));
+      loadMapData(params.mapId);
     } else {
-        setMapName("New Concept Map");
-        // For new maps, initialize with potentially a default name input or allow user to set it.
-        // For now, the mapData is empty, canvas would be blank.
+      // Initialize for a new map
+      setCurrentMap(null);
+      setMapName("New Concept Map");
+      setMapData({ nodes: [], edges: [] });
+      setIsPublic(false);
+      setSharedWithClassroomId(null);
+      setIsLoading(false);
     }
-  }, [params.mapId, isNewMap, toast]);
+  }, [params.mapId, isNewMap, loadMapData]);
+
+  const handleMapPropertiesChange = useCallback((properties: {
+    name: string;
+    isPublic: boolean;
+    sharedWithClassroomId: string | null;
+  }) => {
+    setMapName(properties.name);
+    setIsPublic(properties.isPublic);
+    setSharedWithClassroomId(properties.sharedWithClassroomId);
+  }, []);
 
 
   const handleSaveMap = async () => {
@@ -79,21 +101,22 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     }
     if (!mapName.trim()) {
         toast({ title: "Map Name Required", description: "Please provide a name for your concept map.", variant: "destructive"});
-        // Potentially open a dialog to set map name if it's a new map and name is default.
         return;
     }
 
     setIsSaving(true);
     const payload = {
-      name: mapName, // This might need to be editable via PropertiesInspector or a dedicated field
-      ownerId: user.id,
-      mapData: mapData, // This is the state of your canvas
-      isPublic: currentMap?.isPublic ?? false, // Default to private for new maps
-      sharedWithClassroomId: currentMap?.sharedWithClassroomId ?? null,
+      name: mapName,
+      ownerId: user.id, // For new maps or to verify ownership on update
+      mapData: mapData, // This is the state of your canvas (currently placeholder)
+      isPublic: isPublic,
+      sharedWithClassroomId: sharedWithClassroomId,
     };
 
     try {
       let response;
+      let newMapId = currentMap?.id;
+
       if (isNewMap || !currentMap?.id) { // Creating a new map
         response = await fetch('/api/concept-maps', {
           method: 'POST',
@@ -101,11 +124,18 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
           body: JSON.stringify(payload),
         });
       } else { // Updating an existing map
+        // The API for PUT /api/concept-maps/[mapId] expects ownerId in body for auth check
+        const updatePayload = {
+            name: mapName,
+            mapData: mapData,
+            isPublic: isPublic,
+            sharedWithClassroomId: sharedWithClassroomId,
+            ownerId: currentMap.ownerId, // Critical for auth check in API
+        };
         response = await fetch(`/api/concept-maps/${currentMap.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          // Send ownerId for auth check during update
-          body: JSON.stringify({ ...payload, ownerId: currentMap.ownerId }), 
+          body: JSON.stringify(updatePayload), 
         });
       }
 
@@ -114,13 +144,17 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
         throw new Error(errorData.message || "Failed to save map");
       }
       const savedMap: ConceptMap = await response.json();
-      setCurrentMap(savedMap);
-      setMapName(savedMap.name);
-      // If it was a new map, router.replace might be needed to update URL with new mapId
-      // For now, just show success
+      setCurrentMap(savedMap); // Update currentMap with potentially new ID or updatedAt
+      setMapName(savedMap.name); // Ensure name is updated if API modifies it
+      setIsPublic(savedMap.isPublic);
+      setSharedWithClassroomId(savedMap.sharedWithClassroomId);
+      
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
-      if (isNewMap && savedMap.id) {
-        // router.replace(`/application/concept-maps/editor/${savedMap.id}`); // Optional: update URL
+      
+      if ((isNewMap || !currentMap?.id) && savedMap.id) {
+         newMapId = savedMap.id;
+         // Replace URL to reflect the new map ID without a full page reload
+         router.replace(`/application/concept-maps/editor/${newMapId}`, { scroll: false });
       }
     } catch (err) {
       toast({ title: "Error Saving Map", description: (err as Error).message, variant: "destructive" });
@@ -149,7 +183,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   if (isLoading) {
     return (
       <div className="flex h-full flex-col space-y-4 p-4">
-        <DashboardHeader title="Loading Map..." icon={Loader2} />
+        <DashboardHeader title="Loading Map..." icon={Loader2} iconClassName="animate-spin" />
         <div className="flex justify-center items-center py-10 flex-grow">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
@@ -157,7 +191,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     );
   }
 
-  if (error) {
+  if (error && !isNewMap) { // Only show full page error if it was an attempt to load an existing map
      return (
       <div className="flex h-full flex-col space-y-4 p-4">
         <DashboardHeader title="Error Loading Map" icon={AlertTriangle} />
@@ -177,15 +211,27 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       </div>
     );
   }
+  
+  // Construct a temporary map object for PropertiesInspector if it's a new, unsaved map
+  const mapForInspector = currentMap || {
+    id: "new", // Special ID for new maps
+    name: mapName,
+    ownerId: user?.id || "", // Tentative owner
+    mapData: mapData,
+    isPublic: isPublic,
+    sharedWithClassroomId: sharedWithClassroomId,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
 
   return (
     <div className="flex h-full flex-col space-y-4">
       <DashboardHeader
-        title={mapName} // Display current map name (can be updated via input)
+        title={mapName}
         description="Create, edit, and visualize your ideas."
-        icon={isNewMap ? Compass : Share2}
+        icon={isNewMap && !currentMap?.id ? Compass : Share2}
       >
-        {/* TODO: Add an input field here or in PropertiesInspector to change mapName */}
         <Button onClick={handleSaveMap} disabled={isSaving}>
           {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           {isSaving ? "Saving..." : "Save Map"}
@@ -207,12 +253,13 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
 
       <div className="flex flex-1 gap-4 overflow-hidden">
         <div className="flex-grow">
-          {/* Pass mapData and a setter to CanvasPlaceholder/ActualCanvas */}
           <CanvasPlaceholder /> 
         </div>
         <aside className="hidden w-80 flex-shrink-0 lg:block">
-          {/* Pass currentMap and mapName setter to PropertiesInspector */}
-          <PropertiesInspector currentMap={currentMap} onMapNameChange={setMapName}/>
+          <PropertiesInspector 
+            currentMap={mapForInspector} 
+            onMapPropertiesChange={handleMapPropertiesChange}
+          />
         </aside>
       </div>
 
@@ -227,4 +274,11 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       )}
     </div>
   );
+}
+
+// Helper for DashboardHeader to allow className on icon
+declare module "@/components/dashboard/dashboard-header" {
+  interface DashboardHeaderProps {
+    iconClassName?: string;
+  }
 }

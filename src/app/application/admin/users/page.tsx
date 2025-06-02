@@ -11,9 +11,29 @@ import { UserRole } from "@/types";
 import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
-
-// This page will eventually call an API to get all users.
-// For now, it can fetch from a new API route or use a service directly (if on server, but this is client)
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -21,52 +41,88 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function fetchUsers() {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // In a real app, this API would be protected and require admin rights.
-        // For now, we'll assume it's a simple GET that returns all users from the mock service.
-        // We need to create this API route if it doesn't exist.
-        // Let's assume an API route /api/users that calls userService.getAllUsers()
-        const response = await fetch('/api/users'); // Placeholder for actual API
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch users");
-        }
-        const data: User[] = await response.json();
-        setUsers(data);
-      } catch (err) {
-        const errorMessage = (err as Error).message;
-        setError(errorMessage);
-        toast({
-          title: "Error Fetching Users",
-          description: errorMessage,
-          variant: "destructive",
-        });
-        // Fallback to local mock if API fails during dev? Or just show error.
-        // For now, just show error.
-      } finally {
-        setIsLoading(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState({ name: "", email: "", role: UserRole.STUDENT });
+
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/users');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch users");
       }
+      const data: User[] = await response.json();
+      setUsers(data);
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      setError(errorMessage);
+      toast({ title: "Error Fetching Users", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
-    // fetchUsers(); // We need to create /api/users first
-    // For now, let's keep the mock data to avoid breaking the page,
-    // and create /api/users in a subsequent step.
-    const mockUsers: User[] = [
-      { id: "1", name: "Alice Wonderland", email: "alice@example.com", role: UserRole.STUDENT },
-      { id: "2", name: "Bob The Builder", email: "bob@example.com", role: UserRole.TEACHER },
-      { id: "3", name: "Charlie Brown", email: "charlie@example.com", role: UserRole.STUDENT },
-      { id: "4", name: "Diana Prince", email: "diana@example.com", role: UserRole.ADMIN },
-      { id: "student-test-id", name: "Test Student", email: "student-test@example.com", role: UserRole.STUDENT },
-      { id: "teacher-test-id", name: "Test Teacher", email: "teacher-test@example.com", role: UserRole.TEACHER },
-    ];
-    setUsers(mockUsers);
-    setIsLoading(false);
+  };
 
-
+  useEffect(() => {
+    fetchUsers();
   }, [toast]);
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+     if (userId === "student-test-id" || userId === "teacher-test-id") {
+      toast({ title: "Operation Denied", description: "Pre-defined test users cannot be deleted.", variant: "destructive" });
+      return;
+    }
+    try {
+      const response = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete user");
+      }
+      toast({ title: "User Deleted", description: `User "${userName}" has been deleted.` });
+      fetchUsers(); // Refresh list
+    } catch (err) {
+      toast({ title: "Error Deleting User", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+  
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+    setEditFormData({ name: user.name, email: user.email, role: user.role });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement> | string, fieldName?: string) => {
+    if (typeof e === "string" && fieldName) { // For Select component
+      setEditFormData(prev => ({ ...prev, [fieldName]: e as UserRole }));
+    } else if (typeof e !== "string") { // For Input components
+      const { name, value } = e.target;
+      setEditFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+    try {
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update user");
+      }
+      toast({ title: "User Updated", description: `User "${editFormData.name}" has been updated.` });
+      setIsEditModalOpen(false);
+      setEditingUser(null);
+      fetchUsers(); // Refresh list
+    } catch (err) {
+      toast({ title: "Error Updating User", description: (err as Error).message, variant: "destructive" });
+    }
+  };
 
 
   return (
@@ -97,7 +153,7 @@ export default function AdminUsersPage() {
           </CardHeader>
           <CardContent>
             <p>{error}</p>
-            <Button onClick={() => window.location.reload()} className="mt-4">Try Again</Button>
+            <Button onClick={fetchUsers} className="mt-4">Try Again</Button>
           </CardContent>
         </Card>
       )}
@@ -106,7 +162,7 @@ export default function AdminUsersPage() {
          <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>All Users</CardTitle>
-            <CardDescription>A list of all registered users. (Actions are currently disabled)</CardDescription>
+            <CardDescription>A list of all registered users.</CardDescription>
           </CardHeader>
           <CardContent>
             {users.length === 0 ? (
@@ -132,12 +188,30 @@ export default function AdminUsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="mr-2" disabled title="Edit user (disabled)">
+                      <Button variant="ghost" size="icon" className="mr-2" title="Edit user" onClick={() => openEditModal(user)} disabled={user.id === "student-test-id" || user.id === "teacher-test-id"}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" disabled title="Delete user (disabled)">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" title="Delete user" disabled={user.id === "student-test-id" || user.id === "teacher-test-id"}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the user "{user.name}".
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteUser(user.id, user.name)}>
+                              Delete User
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -147,9 +221,44 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
       )}
+      
+      {/* Edit User Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User: {editingUser?.name}</DialogTitle>
+            <DialogDescription>Modify the user's details below.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">Name</Label>
+              <Input id="name" name="name" value={editFormData.name} onChange={handleEditFormChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">Email</Label>
+              <Input id="email" name="email" type="email" value={editFormData.email} onChange={handleEditFormChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="role" className="text-right">Role</Label>
+              <Select name="role" value={editFormData.role} onValueChange={(value) => handleEditFormChange(value, "role")}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UserRole.STUDENT}>Student</SelectItem>
+                  <SelectItem value={UserRole.TEACHER}>Teacher</SelectItem>
+                  <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdateUser}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
-
-// We will also need to create /api/users route that uses userService.getAllUsers()
-// For now, this page will continue to use mock data until that API is explicitly requested/created.

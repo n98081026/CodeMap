@@ -4,51 +4,93 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea"; // Keep for potential future use (node/edge details)
 import { Button } from "@/components/ui/button";
 import { Settings2, Check, X } from "lucide-react";
 import type { ConceptMap } from "@/types";
 import { useEffect, useState } from "react";
-import { Switch } from "@/components/ui/switch"; // For isPublic toggle
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 interface PropertiesInspectorProps {
   currentMap: ConceptMap | null;
-  onMapNameChange: (newName: string) => void;
+  onMapPropertiesChange: (properties: {
+    name: string;
+    isPublic: boolean;
+    sharedWithClassroomId: string | null;
+  }) => void;
   // TODO: Add more props for selected node/edge properties editing
 }
 
-export function PropertiesInspector({ currentMap, onMapNameChange }: PropertiesInspectorProps) {
-  const [mapName, setMapName] = useState(currentMap?.name || "");
-  const [isPublic, setIsPublic] = useState(currentMap?.isPublic || false);
-  const [sharedWithClassroomId, setSharedWithClassroomId] = useState(currentMap?.sharedWithClassroomId || "");
+export function PropertiesInspector({ currentMap, onMapPropertiesChange }: PropertiesInspectorProps) {
+  const { toast } = useToast();
+  const [mapName, setMapName] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
+  const [sharedWithClassroomId, setSharedWithClassroomId] = useState<string | null>(null);
+
+  const [initialName, setInitialName] = useState("");
+  const [initialIsPublic, setInitialIsPublic] = useState(false);
+  const [initialSharedId, setInitialSharedId] = useState<string | null>(null);
+
 
   useEffect(() => {
-    setMapName(currentMap?.name || "New Concept Map");
-    setIsPublic(currentMap?.isPublic || false);
-    setSharedWithClassroomId(currentMap?.sharedWithClassroomId || "");
+    if (currentMap) {
+      setMapName(currentMap.name);
+      setIsPublic(currentMap.isPublic);
+      setSharedWithClassroomId(currentMap.sharedWithClassroomId || null);
+
+      setInitialName(currentMap.name);
+      setInitialIsPublic(currentMap.isPublic);
+      setInitialSharedId(currentMap.sharedWithClassroomId || null);
+
+    } else { // New map, not yet saved
+      setMapName("New Concept Map"); // Default for new maps
+      setIsPublic(false);
+      setSharedWithClassroomId(null);
+
+      setInitialName("New Concept Map");
+      setInitialIsPublic(false);
+      setInitialSharedId(null);
+    }
   }, [currentMap]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMapName(e.target.value);
   };
-
-  const handleApplyMapName = () => {
-    onMapNameChange(mapName);
-    // In a real app, this might also trigger a save or update to the parent component's state that then saves
+  
+  const handleIsPublicChange = (checked: boolean) => {
+    setIsPublic(checked);
   };
 
-  // Placeholder: In a real app, this would be more complex, likely involving a save operation.
+  const handleSharedIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSharedWithClassroomId(e.target.value.trim() || null);
+  };
+
   const handleApplyMapSettings = () => {
-     if (currentMap) {
-        // This function should ideally trigger an update API call via the parent editor page.
-        // For now, it updates parent state which then gets saved by the main save button.
-        onMapNameChange(mapName); 
-        // To update isPublic and sharedWithClassroomId, the parent (editor page)
-        // would need functions to update `currentMap` state, which then gets saved.
-        // e.g., onMapSettingsChange({ name: mapName, isPublic, sharedWithClassroomId })
-        console.log("Applying map settings (mock):", { name: mapName, isPublic, sharedWithClassroomId });
+     if (!mapName.trim()) {
+        toast({ title: "Map Name Required", description: "Map name cannot be empty.", variant: "destructive" });
+        setMapName(initialName); // Revert to initial if invalid
+        return;
      }
+    onMapPropertiesChange({
+      name: mapName,
+      isPublic: isPublic,
+      sharedWithClassroomId: sharedWithClassroomId,
+    });
+    setInitialName(mapName); // Update initial values after successful apply
+    setInitialIsPublic(isPublic);
+    setInitialSharedId(sharedWithClassroomId);
+    toast({ title: "Properties Updated", description: "Map properties have been updated in the editor. Save the map to persist changes." });
   };
+
+  const handleCancelChanges = () => {
+    setMapName(initialName);
+    setIsPublic(initialIsPublic);
+    setSharedWithClassroomId(initialSharedId);
+    toast({ title: "Changes Reverted", description: "Map properties reverted to last saved state in editor.", variant: "default" });
+  };
+
+  const hasChanges = mapName !== initialName || isPublic !== initialIsPublic || sharedWithClassroomId !== initialSharedId;
 
   return (
     <Card className="h-full shadow-lg">
@@ -60,70 +102,49 @@ export function PropertiesInspector({ currentMap, onMapNameChange }: PropertiesI
         <CardDescription>Edit map or selected element's properties.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {currentMap || mapName === "New Concept Map" ? (
-          <>
-            <div>
-              <Label htmlFor="mapNameInspector">Map Name</Label>
-              <div className="flex items-center gap-2">
-                <Input 
-                  id="mapNameInspector" 
-                  value={mapName} 
-                  onChange={handleNameChange}
-                  placeholder="Enter map name"
+        <div>
+          <Label htmlFor="mapNameInspector">Map Name</Label>
+          <Input 
+            id="mapNameInspector" 
+            value={mapName} 
+            onChange={handleNameChange}
+            placeholder="Enter map name"
+          />
+        </div>
+        <div>
+            <div className="flex items-center space-x-2">
+                <Switch 
+                    id="isPublicSwitch" 
+                    checked={isPublic} 
+                    onCheckedChange={handleIsPublicChange}
                 />
-                {/* Apply button could be here, or rely on main save */}
-              </div>
+                <Label htmlFor="isPublicSwitch">Publicly Visible</Label>
             </div>
-            <div>
-                <div className="flex items-center space-x-2">
-                    <Switch 
-                        id="isPublicSwitch" 
-                        checked={isPublic} 
-                        onCheckedChange={setIsPublic}
-                        disabled={!currentMap} // Disable if no map loaded or new map not yet saved
-                    />
-                    <Label htmlFor="isPublicSwitch">Publicly Visible</Label>
-                </div>
+        </div>
+          <div>
+          <Label htmlFor="sharedClassroomId">Share with Classroom ID (Optional)</Label>
+          <Input 
+            id="sharedClassroomId" 
+            value={sharedWithClassroomId || ""} 
+            onChange={handleSharedIdChange}
+            placeholder="Enter classroom ID or leave blank"
+          />
+        </div>
+        
+        {hasChanges && (
+            <div className="flex space-x-2 pt-2">
+                <Button onClick={handleApplyMapSettings} className="flex-1">
+                    <Check className="mr-2 h-4 w-4" /> Apply to Editor
+                </Button>
+                <Button onClick={handleCancelChanges} variant="outline" className="flex-1">
+                    <X className="mr-2 h-4 w-4" /> Cancel
+                </Button>
             </div>
-             <div>
-              <Label htmlFor="sharedClassroomId">Share with Classroom ID (Optional)</Label>
-              <Input 
-                id="sharedClassroomId" 
-                value={sharedWithClassroomId || ""} 
-                onChange={(e) => setSharedWithClassroomId(e.target.value)}
-                placeholder="Enter classroom ID"
-                disabled={!currentMap}
-              />
-            </div>
-            <Button onClick={handleApplyMapSettings} className="w-full" disabled={!currentMap && mapName !== "New Concept Map"}>
-                Apply Map Settings
-            </Button>
-            <hr className="my-4"/>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">Load or create a map to see its properties.</p>
         )}
         
+        <hr className="my-4"/>
         <p className="text-sm text-muted-foreground pt-4 border-t">Select an element on the canvas to edit its properties here (placeholder).</p>
         
-        {/* Example fields for a selected node (conditionally render this) */}
-        {false && ( 
-          <>
-            <div>
-              <Label htmlFor="nodeText">Node Text</Label>
-              <Input id="nodeText" defaultValue="Sample Node" />
-            </div>
-            <div>
-              <Label htmlFor="nodeType">Node Type</Label>
-              <Input id="nodeType" defaultValue="Generic" />
-            </div>
-            <div>
-              <Label htmlFor="nodeDetails">Node Details</Label>
-              <Textarea id="nodeDetails" placeholder="Additional details..." />
-            </div>
-            <Button className="w-full" disabled>Apply Node Changes</Button>
-          </>
-        )}
       </CardContent>
     </Card>
   );

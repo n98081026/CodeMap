@@ -14,6 +14,7 @@ export interface User {
 export interface Classroom {
   id: string;
   name: string;
+  description?: string; // Added optional description
   teacherId: string;
   teacherName?: string;
   studentIds: string[];
