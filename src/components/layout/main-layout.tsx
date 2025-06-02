@@ -1,34 +1,18 @@
+
 "use client";
 import type { ReactNode } from 'react';
 import { Navbar } from './navbar';
 import { SidebarNav } from './sidebar-nav';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '@/contexts/auth-context';
-import { Skeleton } from '@/components/ui/skeleton';
+// Removed useAuth and Skeleton as AppLayout now gates rendering
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { isLoading, isAuthenticated } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full bg-primary/20" />
-          <Skeleton className="h-4 w-48 bg-primary/20" />
-        </div>
-      </div>
-    );
-  }
-  
-  // If not authenticated and not loading, AuthContext's useEffect should redirect.
-  // This is a fallback or for scenarios where redirect hasn't happened yet.
-  if (!isAuthenticated) {
-     return null; 
-  }
+  // isLoading and isAuthenticated checks are now handled by the parent AppLayout.
+  // MainLayout is only rendered when the user is authenticated and app is not loading.
 
   return (
     <div className="flex h-screen flex-col">
