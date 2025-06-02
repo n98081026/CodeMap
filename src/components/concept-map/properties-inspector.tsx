@@ -19,15 +19,16 @@ interface PropertiesInspectorProps {
     isPublic: boolean;
     sharedWithClassroomId: string | null;
   }) => void;
-  // TODO: Add more props for selected node/edge properties editing
+  isNewMapMode?: boolean; 
 }
 
-export function PropertiesInspector({ currentMap, onMapPropertiesChange }: PropertiesInspectorProps) {
+export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMapMode }: PropertiesInspectorProps) {
   const { toast } = useToast();
   const [mapName, setMapName] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [sharedWithClassroomId, setSharedWithClassroomId] = useState<string | null>(null);
 
+  // Store initial values to detect changes
   const [initialName, setInitialName] = useState("");
   const [initialIsPublic, setInitialIsPublic] = useState(false);
   const [initialSharedId, setInitialSharedId] = useState<string | null>(null);
@@ -39,20 +40,25 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange }: Prope
       setIsPublic(currentMap.isPublic);
       setSharedWithClassroomId(currentMap.sharedWithClassroomId || null);
 
-      setInitialName(currentMap.name);
-      setInitialIsPublic(currentMap.isPublic);
-      setInitialSharedId(currentMap.sharedWithClassroomId || null);
+      // Set initial values only when currentMap changes (i.e., map loaded or saved)
+      // or if it's identified as new map mode from parent.
+      if (isNewMapMode || (currentMap.id && currentMap.id !== 'new')) {
+         setInitialName(currentMap.name);
+         setInitialIsPublic(currentMap.isPublic);
+         setInitialSharedId(currentMap.sharedWithClassroomId || null);
+      }
 
     } else { // New map, not yet saved
-      setMapName("New Concept Map"); // Default for new maps
+      const defaultNewName = "New Concept Map";
+      setMapName(defaultNewName); 
       setIsPublic(false);
       setSharedWithClassroomId(null);
 
-      setInitialName("New Concept Map");
+      setInitialName(defaultNewName);
       setInitialIsPublic(false);
       setInitialSharedId(null);
     }
-  }, [currentMap]);
+  }, [currentMap, isNewMapMode]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMapName(e.target.value);
@@ -77,17 +83,25 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange }: Prope
       isPublic: isPublic,
       sharedWithClassroomId: sharedWithClassroomId,
     });
-    setInitialName(mapName); // Update initial values after successful apply
+    // Update initial values after changes are applied to the editor's state
+    setInitialName(mapName); 
     setInitialIsPublic(isPublic);
     setInitialSharedId(sharedWithClassroomId);
-    toast({ title: "Properties Updated", description: "Map properties have been updated in the editor. Save the map to persist changes." });
+    toast({ title: "Properties Staged", description: "Map properties updated locally. Click 'Save Map' in the toolbar to persist." });
   };
 
   const handleCancelChanges = () => {
+    // Revert local state to the initial state (from last loaded/saved map or new map defaults)
     setMapName(initialName);
     setIsPublic(initialIsPublic);
     setSharedWithClassroomId(initialSharedId);
-    toast({ title: "Changes Reverted", description: "Map properties reverted to last saved state in editor.", variant: "default" });
+    // Also inform parent to revert its state if needed, or parent relies on its own state for 'Save Map'
+    onMapPropertiesChange({
+        name: initialName,
+        isPublic: initialIsPublic,
+        sharedWithClassroomId: initialSharedId,
+    });
+    toast({ title: "Changes Discarded", description: "Local property changes have been discarded.", variant: "default" });
   };
 
   const hasChanges = mapName !== initialName || isPublic !== initialIsPublic || sharedWithClassroomId !== initialSharedId;
@@ -134,7 +148,7 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange }: Prope
         {hasChanges && (
             <div className="flex space-x-2 pt-2">
                 <Button onClick={handleApplyMapSettings} className="flex-1">
-                    <Check className="mr-2 h-4 w-4" /> Apply to Editor
+                    <Check className="mr-2 h-4 w-4" /> Apply 
                 </Button>
                 <Button onClick={handleCancelChanges} variant="outline" className="flex-1">
                     <X className="mr-2 h-4 w-4" /> Cancel
@@ -149,3 +163,4 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange }: Prope
     </Card>
   );
 }
+

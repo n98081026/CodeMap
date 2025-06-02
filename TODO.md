@@ -24,7 +24,7 @@
     - [x] Connect frontend classroom creation and listing UI (teacher) to live API (with mock service).
     - [x] Connect frontend classroom listing UI (student) to live API (with mock service).
     - [x] Connect frontend classroom list UI for edit/delete actions (Teacher).
-    - [ ] Connect frontend classroom detail UI (teacher) to live API for details and student management (student list, map list, submission list connected. Add/remove student by ID working, list refreshes).
+    - [x] Connect frontend classroom detail UI (teacher) to live API for details and student management (student list, map list, submission list connected. Add/remove student by ID working, list refreshes).
     - [x] Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.
 - [x] **Concept Map Service (Backend & Frontend Integration):** (Core API & Service Done)
     - [x] Create `conceptMapService.ts` with mock data management.
@@ -110,3 +110,5 @@
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" typically handled by registration. Tooltip added to button.
 - Change password functionality on profile page is a placeholder.
+
+```

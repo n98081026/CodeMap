@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { ConceptMap } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle, Inbox } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +36,7 @@ export default function StudentConceptMapsPage() {
     studentDashboardLink = user.role === UserRole.ADMIN ? "/application/admin/dashboard" : "/application/teacher/dashboard";
   }
 
-  const fetchStudentMaps = async () => {
+  const fetchStudentMaps = useCallback(async () => {
     if (!user) {
       setIsLoading(false);
       return;
@@ -65,14 +65,13 @@ export default function StudentConceptMapsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
 
   useEffect(() => {
     if (user) {
       fetchStudentMaps();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, fetchStudentMaps]);
 
   const handleDeleteMap = async (mapId: string, mapName: string) => {
     if (!user) return;
@@ -132,17 +131,20 @@ export default function StudentConceptMapsPage() {
       )}
 
       {!isLoading && !error && studentMaps.length === 0 && (
-         <Card className="shadow-md">
-          <CardHeader><CardTitle>No Concept Maps Yet</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">You haven&apos;t created any concept maps. Click the button above to get started!</p>
-            <Button asChild className="mt-4">
-              <Link href="/application/concept-maps/editor/new">
-                <PlusCircle className="mr-2 h-4 w-4" /> Create New Map
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+         <Card className="shadow-md w-full max-w-lg mx-auto">
+            <CardHeader className="items-center text-center">
+              <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
+              <CardTitle>No Concept Maps Yet</CardTitle>
+              <CardDescription>You haven&apos;t created any concept maps.</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Button asChild>
+                <Link href="/application/concept-maps/editor/new">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Map
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
       )}
 
       {!isLoading && !error && studentMaps.length > 0 && (
@@ -153,7 +155,7 @@ export default function StudentConceptMapsPage() {
                 <CardTitle className="text-xl">{map.name}</CardTitle>
                 <CardDescription>
                   {map.isPublic ? "Public" : "Private"}
-                  {map.sharedWithClassroomId && ` | Shared with Classroom ID: ${map.sharedWithClassroomId}`}
+                  {map.sharedWithClassroomId && ` | Shared with: ${map.sharedWithClassroomId}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
@@ -201,3 +203,4 @@ export default function StudentConceptMapsPage() {
     </div>
   );
 }
+
