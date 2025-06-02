@@ -61,7 +61,7 @@ export default function StudentDashboardPage() {
           try { const errData = await classroomsResponse.json(); errorMsg = `${errorMsg}: ${errData.message || classroomsResponse.statusText}`; }
           catch(e) { errorMsg = `${errorMsg}: ${classroomsResponse.statusText || "Failed to parse error"}`;}
           setErrorClassrooms(errorMsg);
-          toast({ title: "Error Fetching Classrooms", description: errorMsg, variant: "destructive" });
+          // toast({ title: "Error Fetching Classrooms", description: errorMsg, variant: "destructive" }); // Already shown on list page
         } else {
           const data = await classroomsResponse.json();
           classroomsCount = data.length;
@@ -69,7 +69,7 @@ export default function StudentDashboardPage() {
       } catch (err) {
         const errorMessage = (err as Error).message;
         setErrorClassrooms(errorMessage);
-        toast({ title: "Error Fetching Classrooms", description: errorMessage, variant: "destructive" });
+        // toast({ title: "Error Fetching Classrooms", description: errorMessage, variant: "destructive" }); // Already shown on list page
       } finally {
         setIsLoadingClassrooms(false);
       }
@@ -81,7 +81,7 @@ export default function StudentDashboardPage() {
           try { const errData = await mapsResponse.json(); errorMsg = `${errorMsg}: ${errData.message || mapsResponse.statusText}`; }
           catch(e) { errorMsg = `${errorMsg}: ${mapsResponse.statusText || "Failed to parse error"}`;}
           setErrorMaps(errorMsg);
-          toast({ title: "Error Fetching Concept Maps", description: errorMsg, variant: "destructive" });
+          // toast({ title: "Error Fetching Concept Maps", description: errorMsg, variant: "destructive" }); // Already shown on list page
         } else {
           const data = await mapsResponse.json();
           mapsCount = data.length;
@@ -89,7 +89,7 @@ export default function StudentDashboardPage() {
       } catch (err) {
         const errorMessage = (err as Error).message;
         setErrorMaps(errorMessage);
-        toast({ title: "Error Fetching Concept Maps", description: errorMessage, variant: "destructive" });
+        // toast({ title: "Error Fetching Concept Maps", description: errorMessage, variant: "destructive" }); // Already shown on list page
       } finally {
         setIsLoadingMaps(false);
       }
@@ -101,7 +101,7 @@ export default function StudentDashboardPage() {
           try { const errData = await submissionsResponse.json(); errorMsg = `${errorMsg}: ${errData.message || submissionsResponse.statusText}`; }
           catch(e) { errorMsg = `${errorMsg}: ${submissionsResponse.statusText || "Failed to parse error"}`;}
           setErrorSubmissions(errorMsg);
-          toast({ title: "Error Fetching Submissions", description: errorMsg, variant: "destructive" });
+          // toast({ title: "Error Fetching Submissions", description: errorMsg, variant: "destructive" }); // Already shown on list page
         } else {
           const data = await submissionsResponse.json();
           submissionsCount = data.length;
@@ -109,7 +109,7 @@ export default function StudentDashboardPage() {
       } catch (err) {
         const errorMessage = (err as Error).message;
         setErrorSubmissions(errorMessage);
-        toast({ title: "Error Fetching Submissions", description: errorMessage, variant: "destructive" });
+        // toast({ title: "Error Fetching Submissions", description: errorMessage, variant: "destructive" }); // Already shown on list page
       } finally {
         setIsLoadingSubmissions(false);
       }
@@ -129,7 +129,7 @@ export default function StudentDashboardPage() {
        setIsLoadingSubmissions(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, toast]);
+  }, [user]); // Removed toast from deps as it's stable
 
   if (!user && (isLoadingClassrooms || isLoadingMaps || isLoadingSubmissions)) return <LoadingSpinner />;
   if (!user) return null; // Or redirect to login if preferred
@@ -224,3 +224,6 @@ export default function StudentDashboardPage() {
     </div>
   );
 }
+
+
+    

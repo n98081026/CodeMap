@@ -52,7 +52,7 @@
     - [x] Connect frontend student submissions list to live API.
     - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states.
     - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states.
-    - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states.
+    - [x/ ] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states. (Classroom count fetched, student count derived. Could be optimized for student count or add individual loading).
 
 ## Frontend Enhancements
 - [ ] **Concept Map Editor (Canvas):**
@@ -103,7 +103,7 @@
 
 ## Known Issues / Current Mocked Areas
 - Backend services are currently mocked (in-memory data).
-- AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage.
+- AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage. This is primarily a development convenience.
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
 - Concept map canvas is a placeholder. Project analysis pipeline is mocked at the UI level (AI map gen call updates status).
 - `next-themes` for theme toggling is integrated.
@@ -111,3 +111,5 @@
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" typically handled by registration. Tooltip added to button.
 - [x] Implement change password functionality on profile page (mocked backend).
+
+    
