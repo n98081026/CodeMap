@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2, Inbox } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +21,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -182,16 +181,16 @@ export default function TeacherClassroomsPage() {
       )}
 
       {!isLoading && !error && teacherClassrooms.length === 0 && (
-        <Card className="shadow-md">
-          <CardHeader>
+        <Card className="shadow-md w-full max-w-lg mx-auto">
+          <CardHeader className="items-center text-center">
+            <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
             <CardTitle>No Classrooms Yet</CardTitle>
             <CardDescription>You haven&apos;t created or been assigned to any classrooms.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p>Click the button above to create your first classroom.</p>
+          <CardContent className="text-center">
              <Button asChild className="mt-4">
               <Link href="/application/teacher/classrooms/new">
-                <PlusCircle className="mr-2 h-4 w-4" /> Create Classroom
+                <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Classroom
               </Link>
             </Button>
           </CardContent>
@@ -301,4 +300,3 @@ export default function TeacherClassroomsPage() {
     </div>
   );
 }
-

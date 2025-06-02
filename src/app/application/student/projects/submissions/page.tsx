@@ -7,9 +7,9 @@ import { UserRole } from "@/types";
 import { SubmissionListItem } from "@/components/projects/submission-list-item";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { FolderKanban, PlusCircle, Loader2, AlertTriangle } from "lucide-react";
+import { FolderKanban, PlusCircle, Loader2, AlertTriangle, Inbox } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
@@ -80,10 +80,18 @@ export default function MySubmissionsPage() {
       )}
 
       {!isLoading && !error && userSubmissions.length === 0 && (
-        <Card className="shadow-md">
-          <CardHeader><CardTitle>No Submissions Yet</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">You haven&apos;t submitted any projects for analysis. Click the button above to submit your first project.</p>
+        <Card className="shadow-md w-full max-w-lg mx-auto">
+          <CardHeader className="items-center text-center">
+            <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
+            <CardTitle>No Submissions Yet</CardTitle>
+            <CardDescription>You haven&apos;t submitted any projects for analysis.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+             <Button asChild>
+                <Link href="/application/student/projects/submit">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Submit Your First Project
+                </Link>
+              </Button>
           </CardContent>
         </Card>
       )}

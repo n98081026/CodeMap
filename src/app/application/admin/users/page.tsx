@@ -1,3 +1,4 @@
+
 // src/app/application/admin/users/page.tsx
 "use client";
 
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -20,15 +21,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  DialogDescription as FormDialogDescription,
+  DialogFooter as FormDialogFooter,
+  DialogHeader as FormDialogHeader,
+  DialogTitle as FormDialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -202,15 +202,24 @@ export default function AdminUsersPage() {
       )}
       
       {!isLoading && !error && (
+        users.length === 0 && totalUsers === 0 ? (
+           <Card className="shadow-md w-full max-w-lg mx-auto">
+            <CardHeader className="items-center text-center">
+              <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
+              <CardTitle>No Users Found</CardTitle>
+              <CardDescription>There are no users in the system yet.</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-sm text-muted-foreground">New users can register through the public registration page.</p>
+            </CardContent>
+          </Card>
+        ) : (
          <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>All Users ({totalUsers})</CardTitle>
             <CardDescription>A list of all registered users. Test users cannot be edited or deleted.</CardDescription>
           </CardHeader>
           <CardContent>
-            {users.length === 0 && totalUsers === 0 ? (
-              <p>No users found.</p>
-            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -260,7 +269,6 @@ export default function AdminUsersPage() {
                 ))}
               </TableBody>
             </Table>
-            )}
           </CardContent>
           {totalPages > 1 && (
             <CardFooter className="flex items-center justify-between border-t pt-4">
@@ -290,14 +298,15 @@ export default function AdminUsersPage() {
             </CardFooter>
           )}
         </Card>
+        )
       )}
       
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User: {editingUser?.name}</DialogTitle>
-            <DialogDescription>Modify the user's details below.</DialogDescription>
-          </DialogHeader>
+          <FormDialogHeader>
+            <FormDialogTitle>Edit User: {editingUser?.name}</FormDialogTitle>
+            <FormDialogDescription>Modify the user's details below.</FormDialogDescription>
+          </FormDialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">Name</Label>
@@ -321,10 +330,10 @@ export default function AdminUsersPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
+          <FormDialogFooter>
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
             <Button onClick={handleUpdateUser}>Save Changes</Button>
-          </DialogFooter>
+          </FormDialogFooter>
         </DialogContent>
       </Dialog>
 
