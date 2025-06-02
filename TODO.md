@@ -59,7 +59,7 @@
     - [ ] Implement actual canvas interactions (node/edge creation, drag, edit, delete).
     - [ ] Zoom/pan functionality.
     - [x] Connect `PropertiesInspector` to selected elements on canvas (map-level properties connected and saved).
-    - [ ] Visualize GenAI results (extracted concepts, suggested relations, expanded concepts) on the canvas or allow adding them.
+    - [x] Visualize GenAI results (extracted concepts, suggested relations, expanded concepts) on the canvas or allow adding them.
         - [x] Display GenAI results (textually) on `CanvasPlaceholder`.
 - [ ] **State Management:**
     - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching.
@@ -84,6 +84,7 @@
     - [ ] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice.
 - [ ] **Integrate GenAI Output:**
     - [ ] Develop intuitive ways for users to interact with and utilize the outputs of GenAI tools within the concept map editor.
+        - [x] Add placeholder "Add to Map" indicators for AI-generated content in CanvasPlaceholder.
     - [ ] Allow users to accept/reject/modify AI suggestions.
 
 ## Testing & Deployment
