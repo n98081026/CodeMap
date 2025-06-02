@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { ProjectSubmission } from "@/types";
@@ -8,14 +7,67 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Eye, FileArchive, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface SubmissionListItemProps {
   submission: ProjectSubmission;
 }
 
-export function SubmissionListItem({ submission }: SubmissionListItemProps) {
+const POLLING_INTERVAL = 7000; // Poll every 7 seconds
+
+export function SubmissionListItem({ submission: initialSubmission }: SubmissionListItemProps) {
+  const [currentSubmission, setCurrentSubmission] = useState<ProjectSubmission>(initialSubmission);
+
+  useEffect(() => {
+    setCurrentSubmission(initialSubmission); // Ensure state updates if prop changes
+  }, [initialSubmission]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+
+    const activeStatuses = [
+      ProjectSubmissionStatus.PENDING,
+      ProjectSubmissionStatus.QUEUED,
+      ProjectSubmissionStatus.PROCESSING,
+    ];
+
+    const fetchStatus = async () => {
+      if (!activeStatuses.includes(currentSubmission.analysisStatus)) {
+        if (intervalId) clearInterval(intervalId);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/projects/submissions/${currentSubmission.id}`);
+        if (!response.ok) {
+          // Silently fail for polling, or add minimal logging. Avoid spamming toasts.
+          console.error(`Polling failed for submission ${currentSubmission.id}: ${response.statusText}`);
+          return;
+        }
+        const updatedSubmission: ProjectSubmission = await response.json();
+        setCurrentSubmission(updatedSubmission);
+
+        if (!activeStatuses.includes(updatedSubmission.analysisStatus)) {
+          if (intervalId) clearInterval(intervalId);
+        }
+      } catch (error) {
+        console.error(`Error polling for submission ${currentSubmission.id}:`, error);
+      }
+    };
+
+    if (activeStatuses.includes(currentSubmission.analysisStatus)) {
+      // Initial fetch in case status changed since page load
+      fetchStatus(); 
+      intervalId = setInterval(fetchStatus, POLLING_INTERVAL);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [currentSubmission.id, currentSubmission.analysisStatus]); // Re-run effect if ID or status changes
+
   const getStatusIconAndColor = () => {
-    switch (submission.analysisStatus) {
+    switch (currentSubmission.analysisStatus) {
       case ProjectSubmissionStatus.COMPLETED:
         return { icon: CheckCircle2, color: "text-green-500" };
       case ProjectSubmissionStatus.PROCESSING:
@@ -35,9 +87,9 @@ export function SubmissionListItem({ submission }: SubmissionListItemProps) {
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-lg">{submission.originalFileName}</CardTitle>
+            <CardTitle className="text-lg">{currentSubmission.originalFileName}</CardTitle>
             <CardDescription>
-              Submitted: {new Date(submission.submissionTimestamp).toLocaleString()}
+              Submitted: {new Date(currentSubmission.submissionTimestamp).toLocaleString()}
             </CardDescription>
           </div>
           <StatusIcon className={`h-6 w-6 ${statusColor}`} />
@@ -48,31 +100,31 @@ export function SubmissionListItem({ submission }: SubmissionListItemProps) {
           <span className="text-sm font-medium">Status:</span>
           <Badge 
             variant={
-              submission.analysisStatus === ProjectSubmissionStatus.COMPLETED ? 'default' :
-              submission.analysisStatus === ProjectSubmissionStatus.FAILED ? 'destructive' :
+              currentSubmission.analysisStatus === ProjectSubmissionStatus.COMPLETED ? 'default' :
+              currentSubmission.analysisStatus === ProjectSubmissionStatus.FAILED ? 'destructive' :
               'secondary'
             }
             className="capitalize"
           >
-            {submission.analysisStatus}
+            {currentSubmission.analysisStatus}
           </Badge>
         </div>
-        {submission.analysisStatus === ProjectSubmissionStatus.FAILED && submission.analysisError && (
-          <p className="text-xs text-destructive">Error: {submission.analysisError}</p>
+        {currentSubmission.analysisStatus === ProjectSubmissionStatus.FAILED && currentSubmission.analysisError && (
+          <p className="text-xs text-destructive">Error: {currentSubmission.analysisError}</p>
         )}
-        <p className="text-xs text-muted-foreground">File Size: {(submission.fileSize / 1024).toFixed(2)} KB</p>
-        {submission.classroomId && <p className="text-xs text-muted-foreground">Classroom ID: {submission.classroomId}</p>}
+        <p className="text-xs text-muted-foreground">File Size: {(currentSubmission.fileSize / 1024).toFixed(2)} KB</p>
+        {currentSubmission.classroomId && <p className="text-xs text-muted-foreground">Classroom ID: {currentSubmission.classroomId}</p>}
       </CardContent>
       <CardFooter>
-        {submission.analysisStatus === ProjectSubmissionStatus.COMPLETED && submission.generatedConceptMapId ? (
+        {currentSubmission.analysisStatus === ProjectSubmissionStatus.COMPLETED && currentSubmission.generatedConceptMapId ? (
           <Button asChild className="w-full">
-            <Link href={`/application/concept-maps/editor/${submission.generatedConceptMapId}`}>
+            <Link href={`/application/concept-maps/editor/${currentSubmission.generatedConceptMapId}`}>
               <Eye className="mr-2 h-4 w-4" /> View Generated Map
             </Link>
           </Button>
         ) : (
           <Button className="w-full" variant="outline" disabled>
-            {submission.analysisStatus === ProjectSubmissionStatus.PROCESSING || submission.analysisStatus === ProjectSubmissionStatus.QUEUED ? "Analysis in Progress" : "Map Not Available"}
+            {currentSubmission.analysisStatus === ProjectSubmissionStatus.PROCESSING || currentSubmission.analysisStatus === ProjectSubmissionStatus.QUEUED ? "Analysis in Progress" : "Map Not Available"}
           </Button>
         )}
       </CardFooter>

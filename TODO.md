@@ -48,7 +48,7 @@
         - [ ] Code/Structure Parser Engine (start with basic, then add AST for specific languages).
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Gemini, parses output, creates new ConceptMap record).
         - [x] Map Data Formatter & Persister (saves generated map via service to mock DB, updates submission status with real map ID).
-    - [x] Connect frontend project submission UI to live API (for metadata, including real AI map generation and saving).
+    - [x] Connect frontend project submission UI to live API (for metadata, including real AI map generation and saving, uses AlertDialog for confirmation).
     - [x] Connect frontend student submissions list to live API.
     - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states.
     - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states.
@@ -59,22 +59,22 @@
     - [x] Implement actual canvas interactions (node/edge creation, drag, edit, delete).
     - [x] Zoom/pan functionality.
     - [x] Connect `PropertiesInspector` for map-level properties (name, public, classroomId); changes directly update parent state and are saved.
-    - [x] Connect `PropertiesInspector` to selected elements on canvas (for element-specific properties - pending canvas implementation).
-    - [x] Visualize GenAI results (textually) on `CanvasPlaceholder`. (Also includes mock node/edge additions)
+    - [x] Connect `PropertiesInspector` to selected elements on canvas (for element-specific properties).
+    - [x] Visualize GenAI results (textually) on `CanvasPlaceholder` and allow adding to map.
     - [x] Simplify `PropertiesInspector` for map-level changes (remove local Apply/Cancel, changes directly update parent).
 - [ ] **State Management:**
     - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching.
-- [ ] **Real-time Features (Optional):**
-    - [ ] Consider real-time collaboration on concept maps (e.g., using WebSockets).
-    - [ ] Real-time updates for project submission status.
+- [ ] **Real-time Features (Optional - Future Consideration):**
+    - [ ] Consider real-time collaboration on concept maps (e.g., using WebSockets) - (High Complexity).
+    - [x] Real-time updates for project submission status (Basic polling implemented in SubmissionListItem).
 - [x] **User Interface & User Experience (Desktop Focus):**
     - [x] Refine UI details for some pages, ensure consistency and professional design. (Ongoing)
     - [x] Add more comprehensive loading states and error handling. (Done for many list pages and dashboards)
-    - [x] Enhance empty states for lists (e.g., no classrooms, no maps). (Done for many list pages)
+    - [x] Enhance empty states for lists (e.g., no classrooms, no maps, no students in classroom). (Done for many list pages)
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination, Teacher classrooms page has pagination).
     - [x] Add loading spinner to Login/Register pages during auth state check. (Current implementation prevents form flash, considered complete)
-    - [x] Make header icons link to main dashboards for easier navigation.
+    - [x] Make header icons link to main dashboards for easier navigation (Role-based for Concept Map Editor).
     - [x] Implement "View Only" mode for Concept Map Editor.
     - [x] Refine `PropertiesInspector` in "View Only" mode (muted labels).
 - [x] **Admin Panel:**
@@ -91,7 +91,7 @@
     - [x] Allow users to accept/reject/modify AI suggestions.
         - [x] Implement 'Add to Map' for AI suggestions, updating mapData state directly.
 
-## Testing & Deployment
+## Testing & Deployment (Future - Out of Scope for AI Agent Implementation)
 - [ ] **Testing:**
     - [ ] Write unit tests for critical components and utility functions.
     - [ ] Implement integration tests for user flows.
@@ -100,10 +100,6 @@
     - [ ] Set up CI/CD pipeline.
     - [ ] Configure production environment.
     - [ ] Database migrations strategy.
-
-## Documentation
-- [ ] **User Documentation:** Create guides for students and teachers.
-- [ ] **Developer Documentation:** Document API endpoints, architecture, and setup instructions.
 
 ## Known Issues / Current Mocked Areas
 - Backend services are currently mocked (in-memory data).
@@ -116,3 +112,5 @@
 - Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
 - [x] Implement change password functionality on profile page (mocked backend).
 
+```
+    
