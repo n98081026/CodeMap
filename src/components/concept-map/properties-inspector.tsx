@@ -46,7 +46,7 @@ export function PropertiesInspector({
   // State for selected element properties
   const [elementLabel, setElementLabel] = useState("");
   const [elementDetails, setElementDetails] = useState("");
-  // Add more states for other element properties if needed (e.g., type for nodes)
+  const [elementNodeType, setElementNodeType] = useState(""); // State for node type
 
   const processedMapIdRef = useRef<string | null>(null);
 
@@ -94,14 +94,17 @@ export function PropertiesInspector({
         const node = selectedElement as ConceptMapNode;
         setElementLabel(node.text);
         setElementDetails(node.details || "");
+        setElementNodeType(node.type || 'default');
       } else if (selectedElementType === 'edge') {
         const edge = selectedElement as ConceptMapEdge;
         setElementLabel(edge.label);
-        setElementDetails(""); // Edges don't have details in current model
+        setElementDetails(""); // Edges don't have details
+        setElementNodeType(""); // Edges don't have 'type' in the same way nodes do
       }
     } else {
       setElementLabel("");
       setElementDetails("");
+      setElementNodeType("");
     }
   }, [selectedElement, selectedElementType]);
 
@@ -138,6 +141,13 @@ export function PropertiesInspector({
     setElementDetails(newDetails);
     onSelectedElementPropertyUpdate({ details: newDetails });
   };
+  const handleElementNodeTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node') return;
+    const newType = e.target.value;
+    setElementNodeType(newType);
+    onSelectedElementPropertyUpdate({ type: newType });
+  };
+
 
   const renderMapProperties = () => (
     <>
@@ -149,7 +159,6 @@ export function PropertiesInspector({
           onChange={handleMapNameChange}
           placeholder="Enter map name"
           disabled={isViewOnlyMode}
-          readOnly={isViewOnlyMode}
           className={cn(isViewOnlyMode && "cursor-not-allowed")}
         />
       </div>
@@ -178,7 +187,6 @@ export function PropertiesInspector({
           onChange={handleSharedIdChange}
           placeholder="Enter classroom ID or leave blank"
           disabled={isViewOnlyMode}
-          readOnly={isViewOnlyMode}
           className={cn(isViewOnlyMode && "cursor-not-allowed")}
         />
       </div>
@@ -201,7 +209,13 @@ export function PropertiesInspector({
       </div>
       <div className="mt-2">
         <Label htmlFor="nodeType" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Type</Label>
-        <Input id="nodeType" value={node.type || 'default'} disabled={isViewOnlyMode} readOnly /> 
+        <Input 
+          id="nodeType" 
+          value={elementNodeType} 
+          onChange={handleElementNodeTypeChange} 
+          disabled={isViewOnlyMode} 
+          placeholder="e.g., service, component, feature"
+        /> 
       </div>
     </>
   );
@@ -248,10 +262,13 @@ export function PropertiesInspector({
                 Map properties are not editable in view-only mode.
             </p>
         )}
+         {(selectedElement && isViewOnlyMode) && (
+             <p className="text-xs text-muted-foreground pt-4 border-t mt-4">
+                Element properties are not editable in view-only mode.
+            </p>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-
-    
