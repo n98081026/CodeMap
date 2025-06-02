@@ -25,10 +25,11 @@ export default function HomePage() {
             router.replace('/application/student/dashboard');
             break;
           default:
-            router.replace('/application/login');
+            // Fallback, though should ideally be covered by role-specific dashboards
+            router.replace('/login'); // Auth pages are at root
         }
       } else {
-        router.replace('/application/login');
+        router.replace('/login'); // Auth pages are at root
       }
     }
   }, [user, isAuthenticated, isLoading, router]);

@@ -43,11 +43,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (pathname.startsWith('/application/teacher')) {
         autoLoginUser = testTeacher;
       }
-      setUser(autoLoginUser);
-      localStorage.setItem('codemapUser', JSON.stringify(autoLoginUser));
+      // Only auto-login if we are on a path that suggests a role, excluding root auth pages
+      if (pathname.startsWith('/application/')) {
+        setUser(autoLoginUser);
+        localStorage.setItem('codemapUser', JSON.stringify(autoLoginUser));
+      }
     }
     setIsLoading(false);
-  }, [pathname]); // Add pathname to dependencies to re-evaluate if path changes before localStorage is set
+  }, [pathname]); 
 
   const login = async (email: string, password: string, role: UserRole) => {
     setIsLoading(true);
@@ -76,7 +79,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Login failed:", error);
       setUser(null);
       localStorage.removeItem('codemapUser');
-      // Error will be caught by the form and displayed via toast
       throw error; 
     } finally {
       setIsLoading(false);
@@ -108,7 +110,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error("Registration failed:", error);
-      // Error will be caught by the form and displayed via toast
       throw error;
     } finally {
       setIsLoading(false);
@@ -118,7 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('codemapUser');
-    router.push('/application/login');
+    router.push('/login'); // Auth pages are at root
   };
   
   const isAuthenticated = !!user;
@@ -126,8 +127,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    useEffect(() => {
     // This effect handles redirection if not authenticated after initial loading.
     // It's separate from the initial load effect to avoid race conditions.
-    if (!isLoading && !isAuthenticated && !['/application/login', '/application/register', '/'].includes(pathname) && !pathname.startsWith("/_next/")) {
-      router.push('/application/login');
+    if (!isLoading && !isAuthenticated && !['/login', '/register', '/'].includes(pathname) && !pathname.startsWith("/_next/")) {
+       // If trying to access an /application/... path while not authenticated, redirect to login
+      if (pathname.startsWith('/application/')) {
+        router.push('/login');
+      }
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
