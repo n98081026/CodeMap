@@ -19,7 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,8 +68,8 @@ function EditProfileDialog({
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to update profile.");
       }
-      const updatedUser = await response.json();
-      onProfileUpdate(updatedUser);
+      const updatedUserFromApi: User = await response.json(); // Ensure we get the full user object
+      onProfileUpdate(updatedUserFromApi); // Pass the full object to context updater
       toast({ title: "Profile Updated", description: "Your profile has been successfully updated." });
       onOpenChange(false);
     } catch (error) {
@@ -91,7 +90,7 @@ function EditProfileDialog({
         email: currentUser.email,
       });
     }
-  }, [currentUser, form]);
+  }, [currentUser, form, isOpen]); // Reset form if currentUser changes or dialog is re-opened
 
 
   return (
@@ -177,6 +176,13 @@ function ChangePasswordDialog({
     },
   });
 
+  const handleDialogStateChange = (open: boolean) => {
+    if (!open) { // If dialog is closing
+      form.reset(); // Reset form fields
+    }
+    onOpenChange(open);
+  };
+
   const onSubmit = async (data: ChangePasswordFormValues) => {
     setIsSaving(true);
     try {
@@ -193,8 +199,7 @@ function ChangePasswordDialog({
       }
       
       toast({ title: "Password Changed", description: "Your password has been successfully updated (mock)." });
-      form.reset();
-      onOpenChange(false);
+      handleDialogStateChange(false); // This will reset form and close dialog
     } catch (error) {
       toast({
         title: "Change Password Failed",
@@ -207,7 +212,7 @@ function ChangePasswordDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleDialogStateChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Change Password</DialogTitle>
@@ -256,7 +261,7 @@ function ChangePasswordDialog({
             />
             <DialogFooter>
                <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={() => { form.reset(); onOpenChange(false);}} disabled={isSaving}>Cancel</Button>
+                <Button type="button" variant="outline" disabled={isSaving}>Cancel</Button>
               </DialogClose>
               <Button type="submit" disabled={isSaving}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -277,7 +282,13 @@ export default function ProfilePage() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   if (!user) {
-    return null;
+    // Render loading state or redirect if user is not available.
+    // This should ideally be handled by the AppLayout's auth check.
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
   }
 
   const getDashboardLink = () => {
@@ -289,12 +300,12 @@ export default function ProfilePage() {
       case UserRole.STUDENT:
         return "/application/student/dashboard";
       default:
-        return "/application/login";
+        return "/application/login"; // Fallback, though AuthContext should prevent this
     }
   };
 
-  const handleProfileUpdated = (updatedUser: User) => {
-    updateCurrentUserData(updatedUser);
+  const handleProfileUpdated = (updatedUserFromApi: User) => {
+    updateCurrentUserData(updatedUserFromApi); // Pass the full user object from API
   };
 
   return (
