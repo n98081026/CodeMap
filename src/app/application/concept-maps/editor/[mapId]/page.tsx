@@ -24,15 +24,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const uniqueMockItemId = () => `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+interface MockCanvasItem {
+  id: string;
+  type: 'node' | 'edge';
+  label: string;
+}
 
 export default function ConceptMapEditorPage({ params: paramsPromise }: { params: Promise<{ mapId: string }> }) {
   const actualParams = use(paramsPromise);
-  const searchParams = useSearchParams(); // Get search params
+  const searchParams = useSearchParams(); 
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
   
-  const isViewOnlyMode = searchParams.get('viewOnly') === 'true'; // Determine view-only mode
+  const isViewOnlyMode = searchParams.get('viewOnly') === 'true'; 
 
   const [isNewMapMode, setIsNewMapMode] = useState(actualParams.mapId === "new");
   const [currentMap, setCurrentMap] = useState<ConceptMap | null>(null); 
@@ -54,6 +61,8 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   const [aiSuggestedRelations, setAiSuggestedRelations] = useState<Array<{ source: string; target: string; relation: string }>>([]);
   const [aiExpandedConcepts, setAiExpandedConcepts] = useState<string[]>([]);
 
+  const [mockCanvasItems, setMockCanvasItems] = useState<MockCanvasItem[]>([]);
+
 
   const loadMapData = useCallback(async (id: string) => {
     if (id === "new") {
@@ -61,6 +70,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       setCurrentMap(null);
       setMapName("New Concept Map");
       setMapData({ nodes: [], edges: [] }); 
+      setMockCanvasItems([]);
       setIsPublic(false);
       setSharedWithClassroomId(null);
       setAiExtractedConcepts([]);
@@ -77,6 +87,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     setAiExtractedConcepts([]);
     setAiSuggestedRelations([]);
     setAiExpandedConcepts([]);
+    setMockCanvasItems([]);
     try {
       const response = await fetch(`/api/concept-maps/${id}`);
       if (!response.ok) {
@@ -86,7 +97,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       const data: ConceptMap = await response.json();
       setCurrentMap(data);
       setMapName(data.name);
-      setMapData(data.mapData || { nodes: [], edges: [] }); // Ensure mapData is initialized
+      setMapData(data.mapData || { nodes: [], edges: [] }); 
       setIsPublic(data.isPublic);
       setSharedWithClassroomId(data.sharedWithClassroomId || null);
     } catch (err) {
@@ -277,6 +288,20 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     });
   };
 
+  const handleMockAddNode = () => {
+    if (isViewOnlyMode) return;
+    const newNodeLabel = `New Node ${mockCanvasItems.filter(item => item.type === 'node').length + 1}`;
+    setMockCanvasItems(prev => [...prev, { id: uniqueMockItemId(), type: 'node', label: newNodeLabel }]);
+    toast({ title: "Mock Node Added", description: `"${newNodeLabel}" added to canvas placeholder. This is a visual mock.`});
+  };
+
+  const handleMockAddEdge = () => {
+    if (isViewOnlyMode) return;
+    const newEdgeLabel = `New Edge ${mockCanvasItems.filter(item => item.type === 'edge').length + 1}`;
+    setMockCanvasItems(prev => [...prev, { id: uniqueMockItemId(), type: 'edge', label: newEdgeLabel }]);
+    toast({ title: "Mock Edge Added", description: `"${newEdgeLabel}" added to canvas placeholder. This is a visual mock.`});
+  };
+
 
   if (isLoading) {
     return (
@@ -352,6 +377,8 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
         onSuggestRelations={() => setIsSuggestRelationsModalOpen(true)}
         onExpandConcept={() => setIsExpandConceptModalOpen(true)}
         isViewOnlyMode={isViewOnlyMode}
+        onMockAddNode={handleMockAddNode}
+        onMockAddEdge={handleMockAddEdge}
       />
 
       <div className="flex flex-1 gap-4 overflow-hidden">
@@ -364,6 +391,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
             onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
             onAddExpandedConcepts={handleAddExpandedConceptsToMap}
             isViewOnlyMode={isViewOnlyMode}
+            mockCanvasItems={mockCanvasItems}
           /> 
         </div>
         <aside className="hidden w-80 flex-shrink-0 lg:block">
@@ -413,6 +441,7 @@ declare module "@/components/concept-map/canvas-placeholder" {
     extractedConcepts?: string[];
     suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
     expandedConcepts?: string[];
+    mockCanvasItems?: Array<{ id: string; type: 'node' | 'edge'; label: string }>;
     onAddExtractedConcepts?: (concepts: string[]) => void;
     onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
     onAddExpandedConcepts?: (concepts: string[]) => void;
@@ -422,6 +451,8 @@ declare module "@/components/concept-map/canvas-placeholder" {
 declare module "@/components/concept-map/editor-toolbar" {
   interface EditorToolbarProps {
     isViewOnlyMode?: boolean;
+    onMockAddNode?: () => void;
+    onMockAddEdge?: () => void;
   }
 }
     
