@@ -2,7 +2,7 @@
 "use client";
 import { LoginForm } from "@/components/auth/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CodeXml } from "lucide-react";
+import { CodeXml, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -22,8 +22,8 @@ export default function LoginPage() {
   
   if (isLoading || isAuthenticated) { // Prevent flash of login form if already logged in or loading
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-         {/* Optional: Add a loading spinner here */}
+      <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-background to-accent/10">
+         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }

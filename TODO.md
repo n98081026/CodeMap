@@ -47,11 +47,11 @@
         - [ ] Code/Structure Parser Engine (start with basic, then add AST for specific languages).
         - [ ] LLM-Powered Structure-to-Map Converter (refine prompts, integrate with Gemini).
         - [ ] Map Data Formatter & Persister (save generated map to DB, update submission status).
-    - [x] Connect frontend project submission UI to live API (for metadata).
+    - [x] Connect frontend project submission UI to live API (for metadata, including mock AI map gen status update).
     - [x] Connect frontend student submissions list to live API.
-    - [x] Connect frontend Admin Dashboard to fetch user & classroom counts.
-    - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts.
-    - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts.
+    - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states.
+    - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states.
+    - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states.
 
 ## Frontend Enhancements
 - [ ] **Concept Map Editor (Canvas):**
@@ -65,11 +65,12 @@
     - [ ] Consider real-time collaboration on concept maps (e.g., using WebSockets).
     - [ ] Real-time updates for project submission status.
 - [x] **User Interface & User Experience (Desktop Focus):**
-    - [x] Refine UI details for some pages, ensure consistency and professional design.
-    - [x] Add more comprehensive loading states and error handling.
-    - [x] Enhance empty states for lists (e.g., no classrooms, no maps).
+    - [x] Refine UI details for some pages, ensure consistency and professional design. (Ongoing)
+    - [x] Add more comprehensive loading states and error handling. (Done for many list pages and dashboards)
+    - [x] Enhance empty states for lists (e.g., no classrooms, no maps). (Done for many list pages)
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination).
+    - [x] Add loading spinner to Login/Register pages during auth state check.
 - [x] **Admin Panel:** (In Progress)
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow).
     - [x] Develop system settings interface (Placeholder page created and linked).
@@ -107,4 +108,3 @@
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" typically handled by registration.
 - Change password functionality on profile page is a placeholder.
-```
