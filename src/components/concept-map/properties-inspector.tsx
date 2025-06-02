@@ -4,12 +4,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Settings2, Check, X } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import type { ConceptMap } from "@/types";
 import { useEffect, useState, useRef } from "react";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface PropertiesInspectorProps {
@@ -24,15 +22,9 @@ interface PropertiesInspectorProps {
 }
 
 export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMapMode, isViewOnlyMode }: PropertiesInspectorProps) {
-  const { toast } = useToast();
-
   const [localMapName, setLocalMapName] = useState("");
   const [localIsPublic, setLocalIsPublic] = useState(false);
   const [localSharedWithClassroomId, setLocalSharedWithClassroomId] = useState<string | null>(null);
-
-  const [initialLocalName, setInitialLocalName] = useState("");
-  const [initialLocalIsPublic, setInitialLocalIsPublic] = useState(false);
-  const [initialLocalSharedId, setInitialLocalSharedId] = useState<string | null>(null);
   
   const processedMapIdRef = useRef<string | null>(null);
 
@@ -43,20 +35,24 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
       let sharedIdToInitWith = currentMap.sharedWithClassroomId || null;
 
       if (isNewMapMode && currentMap.id === 'new' && processedMapIdRef.current !== 'new::' + currentMap.name) {
-        if (currentMap.name === "New Concept Map") {
+        if (currentMap.name === "New Concept Map" || currentMap.name === "Loading Map...") {
             nameToInitWith = "Untitled Concept Map";
         }
         isPublicToInitWith = currentMap.isPublic || false;
         sharedIdToInitWith = currentMap.sharedWithClassroomId || null;
+         // If it's a truly new map, immediately propagate the "Untitled" name upwards
+        if (nameToInitWith === "Untitled Concept Map") {
+          onMapPropertiesChange({
+            name: nameToInitWith,
+            isPublic: isPublicToInitWith,
+            sharedWithClassroomId: sharedIdToInitWith,
+          });
+        }
       }
       
       setLocalMapName(nameToInitWith);
       setLocalIsPublic(isPublicToInitWith);
       setLocalSharedWithClassroomId(sharedIdToInitWith);
-
-      setInitialLocalName(nameToInitWith);
-      setInitialLocalIsPublic(isPublicToInitWith);
-      setInitialLocalSharedId(sharedIdToInitWith);
       
       processedMapIdRef.current = currentMap.id === 'new' ? `new::${currentMap.name}` : currentMap.id;
 
@@ -65,63 +61,44 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
       setLocalMapName(defaultName);
       setLocalIsPublic(false);
       setLocalSharedWithClassroomId(null);
-
-      setInitialLocalName(defaultName);
-      setInitialLocalIsPublic(false);
-      setInitialLocalSharedId(null);
+      onMapPropertiesChange({ name: defaultName, isPublic: false, sharedWithClassroomId: null });
       processedMapIdRef.current = null;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMap, isNewMapMode]);
 
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode) return;
-    setLocalMapName(e.target.value);
+    const newName = e.target.value;
+    setLocalMapName(newName);
+    onMapPropertiesChange({
+      name: newName,
+      isPublic: localIsPublic,
+      sharedWithClassroomId: localSharedWithClassroomId,
+    });
   };
   
   const handleIsPublicChange = (checked: boolean) => {
     if (isViewOnlyMode) return;
     setLocalIsPublic(checked);
+    onMapPropertiesChange({
+      name: localMapName,
+      isPublic: checked,
+      sharedWithClassroomId: localSharedWithClassroomId,
+    });
   };
 
   const handleSharedIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode) return;
-    setLocalSharedWithClassroomId(e.target.value.trim() || null);
-  };
-
-  const handleApplyMapSettings = () => {
-     if (isViewOnlyMode) return;
-     if (!localMapName.trim()) {
-        toast({ title: "Map Name Required", description: "Map name cannot be empty.", variant: "destructive" });
-        return;
-     }
+    const newSharedId = e.target.value.trim() || null;
+    setLocalSharedWithClassroomId(newSharedId);
     onMapPropertiesChange({
       name: localMapName,
       isPublic: localIsPublic,
-      sharedWithClassroomId: localSharedWithClassroomId,
+      sharedWithClassroomId: newSharedId,
     });
-    setInitialLocalName(localMapName);
-    setInitialLocalIsPublic(localIsPublic);
-    setInitialLocalSharedId(localSharedWithClassroomId);
-
-    toast({ title: "Properties Staged", description: "Map properties updated locally. Click 'Save Map' in the toolbar to persist." });
   };
-
-  const handleCancelChanges = () => {
-    if (isViewOnlyMode) return;
-    setLocalMapName(initialLocalName);
-    setLocalIsPublic(initialLocalIsPublic);
-    setLocalSharedWithClassroomId(initialLocalSharedId);
-    
-    onMapPropertiesChange({
-        name: initialLocalName,
-        isPublic: initialLocalIsPublic,
-        sharedWithClassroomId: initialLocalSharedId,
-    });
-    toast({ title: "Changes Discarded", description: "Local property changes have been reverted.", variant: "default" });
-  };
-
-  const hasChanges = localMapName !== initialLocalName || localIsPublic !== initialLocalIsPublic || localSharedWithClassroomId !== initialLocalSharedId;
 
   return (
     <Card className="h-full shadow-lg">
@@ -177,17 +154,6 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
           />
         </div>
         
-        {hasChanges && !isViewOnlyMode && (
-            <div className="flex space-x-2 pt-2">
-                <Button onClick={handleApplyMapSettings} className="flex-1" disabled={isViewOnlyMode}>
-                    <Check className="mr-2 h-4 w-4" /> Apply 
-                </Button>
-                <Button onClick={handleCancelChanges} variant="outline" className="flex-1" disabled={isViewOnlyMode}>
-                    <X className="mr-2 h-4 w-4" /> Cancel
-                </Button>
-            </div>
-        )}
-        
         <hr className="my-4"/>
         <p className="text-sm text-muted-foreground pt-4 border-t">
           {isViewOnlyMode ? "Element properties are not editable in view-only mode." : "Select an element on the canvas to edit its properties here (placeholder)."}
@@ -197,3 +163,4 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
     </Card>
   );
 }
+
