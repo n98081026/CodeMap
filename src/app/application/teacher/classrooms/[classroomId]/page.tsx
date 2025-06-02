@@ -144,7 +144,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     fetchClassroomDetails(); 
   };
 
-  if (isLoadingClassroom) {
+  if (isLoadingClassroom && !classroom) { // Only show full page loader if classroom itself is loading for the first time
     return (
       <div className="space-y-6 p-4">
         <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={teacherDashboardLink}/>
@@ -192,9 +192,9 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
 
       <Tabs defaultValue="students" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="students"><Users className="mr-2 h-4 w-4 sm:inline hidden" />Students ({enrolledStudents.length})</TabsTrigger>
-          <TabsTrigger value="maps"><Share2 className="mr-2 h-4 w-4 sm:inline hidden" />Concept Maps ({classroomMaps.length})</TabsTrigger>
-          <TabsTrigger value="submissions"><FolderKanban className="mr-2 h-4 w-4 sm:inline hidden" />Submissions ({classroomSubmissions.length})</TabsTrigger>
+          <TabsTrigger value="students"><Users className="mr-2 h-4 w-4 sm:inline hidden" />Students ({isLoadingClassroom ? '...' : enrolledStudents.length})</TabsTrigger>
+          <TabsTrigger value="maps"><Share2 className="mr-2 h-4 w-4 sm:inline hidden" />Concept Maps ({isLoadingMaps ? '...' : classroomMaps.length})</TabsTrigger>
+          <TabsTrigger value="submissions"><FolderKanban className="mr-2 h-4 w-4 sm:inline hidden" />Submissions ({isLoadingSubmissions ? '...' : classroomSubmissions.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="students">
@@ -358,3 +358,11 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     </div>
   );
 }
+// Helper for DashboardHeader to allow className on icon
+declare module "@/components/dashboard/dashboard-header" {
+  interface DashboardHeaderProps {
+    iconClassName?: string;
+  }
+}
+
+    
