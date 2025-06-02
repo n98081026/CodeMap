@@ -8,7 +8,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
-import React, { useEffect, useState, useCallback } from "react"; // Removed 'use'
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Node as RFNode, Edge as RFEdge, OnNodesChange, OnEdgesChange, OnNodesDelete, OnEdgesDelete, SelectionChanges, Connection } from 'reactflow';
 import { useNodesState, useEdgesState, MarkerType } from 'reactflow';
@@ -30,7 +30,6 @@ import type { RFConceptMapNodeData, RFConceptMapEdgeData } from "@/components/co
 
 
 export default function ConceptMapEditorPage({ params }: { params: { mapId: string } }) {
-  // const actualParams = use(paramsPromise); // Removed: use params directly
   const searchParams = useSearchParams(); 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -49,6 +48,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<RFConceptMapNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
 
+  // Local state for modal visibility
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
@@ -56,7 +56,14 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
 
   const loadMapData = useCallback(async (id: string) => {
     if (id === "new") {
-      store.initializeNewMap(user?.id || "unknown-user"); 
+      if (user && user.id) { // Ensure user is available
+        store.initializeNewMap(user.id); 
+      } else {
+        // This case should ideally not be reached if AppLayout protects this page
+        toast({ title: "Authentication Error", description: "User data not available for new map.", variant: "destructive" });
+        store.setError("User data not available."); // Set an error state in the store
+        return;
+      }
       return;
     }
 
@@ -78,7 +85,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     } finally {
       store.setIsLoading(false);
     }
-  }, [toast, user?.id, store]);
+  }, [toast, user, store]); // Added user and store to dependency array
 
   useEffect(() => {
     if (params.mapId) {
@@ -88,12 +95,11 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
 
   useEffect(() => {
     const transformedNodes = (store.mapData.nodes || []).map(appNode => {
-      const existingRfNode = rfNodes.find(n => n.id === appNode.id);
       return {
         id: appNode.id,
         type: appNode.type || 'default', 
-        data: { label: appNode.text, details: appNode.details, type: appNode.type },
-        position: existingRfNode?.position || { 
+        data: { label: appNode.text, details: appNode.details, type: appNode.type || 'default' },
+        position: { 
           x: appNode.x ?? (Math.random() * 400), 
           y: appNode.y ?? (Math.random() * 300),
         },
@@ -240,7 +246,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
 
     const payload = {
       name: mapName,
-      ownerId: isNewMapMode ? user.id : currentMapOwnerId || user.id, 
+      ownerId: (isNewMapMode || !currentMapOwnerId) ? user.id : currentMapOwnerId, // Robust ownerId determination
       mapData: mapDataToSave,
       isPublic: isPublic,
       sharedWithClassroomId: sharedWithClassroomId,
@@ -248,7 +254,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
 
     try {
       let response;
-      const currentMapIdForAPI = isNewMapMode ? null : store.mapId; 
+      const currentMapIdForAPI = (isNewMapMode || store.mapId === 'new') ? null : store.mapId; 
       
       if (!currentMapIdForAPI) { 
         response = await fetch('/api/concept-maps', {
@@ -257,12 +263,13 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
           body: JSON.stringify(payload),
         });
       } else { 
+        // For PUT, ensure ownerId sent in payload is the existing map's ownerId for API auth check
         const updatePayload = { 
             name: mapName,
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId, 
+            ownerId: currentMapOwnerId, // Critical for PUT auth check in API
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -452,7 +459,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     );
   }
 
-  if (error && !isNewMapMode) { 
+  if (error && !isNewMapMode && mapId !=='new') { // Only show full error page if it's not a new map or an error during new map init
      return (
       <div className="flex h-full flex-col space-y-4 p-4">
         <DashboardHeader title="Error Loading Map" icon={AlertTriangle} iconLinkHref={getRoleBasedDashboardLink()} />
@@ -589,5 +596,3 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   );
 }
 
-// Removed declare module blocks as they are no longer needed
-// Components should export their own prop types
