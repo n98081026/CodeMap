@@ -56,7 +56,7 @@ export default function TeacherClassroomsPage() {
 
 
   let teacherDashboardLink = "/application/teacher/dashboard";
-  if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) { // Admin only, not teacher
+  if (user && user.role === UserRole.ADMIN && !user.roles.includes(UserRole.TEACHER as any) ) { // Admin only, not teacher
      teacherDashboardLink = "/application/admin/dashboard";
   }
 
@@ -351,3 +351,5 @@ export default function TeacherClassroomsPage() {
     </div>
   );
 }
+
+    

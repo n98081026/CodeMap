@@ -22,16 +22,16 @@
         - [x] API endpoint for removing a student from a classroom (`DELETE /api/classrooms/[classroomId]/students/[studentId]`).
     - [x] API endpoints for updating, deleting classrooms (`PUT /api/classrooms/[classroomId]`, `DELETE /api/classrooms/[classroomId]`).
     - [x] Connect frontend classroom creation and listing UI (teacher) to live API (with mock service).
-    - [x] Connect frontend classroom listing UI (student) to live API (with mock service).
+    - [ ] Connect frontend classroom listing UI (student) to live API (with mock service).
     - [x] Connect frontend classroom list UI for edit/delete actions (Teacher).
     - [x] Connect frontend classroom detail UI (teacher) to live API for details and student management (student list, map list, submission list connected. Add/remove student by ID working, list refreshes).
-    - [x] Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.
+    - [ ] Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.
 - [x] **Concept Map Service (Backend & Frontend Integration):** (Core API & Service Done)
     - [x] Create `conceptMapService.ts` with mock data management.
     - [x] API endpoints for CRUD operations on concept maps (`/api/concept-maps`, `/api/concept-maps/[mapId]`).
     - [x] API endpoint for listing concept maps by classroom (`GET /api/concept-maps?classroomId=xxx`).
     - [x] Logic for map ownership and sharing (with classrooms, public) - Basic ownership and `sharedWithClassroomId` implemented.
-    - [x] Connect frontend concept map listing (student) to live API for loading/deleting.
+    - [ ] Connect frontend concept map listing (student) to live API for loading/deleting.
     - [x] Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).
 - [x] **Project Submission & Analysis (Backend & Frontend Integration):** (Core API & Service Done for metadata, status updates robust, AI map gen saves real map)
     - [x] Create `projectSubmissionService.ts` with mock data management.
@@ -45,7 +45,7 @@
     - [ ] Develop Project Analysis Microservice:
         - [ ] Task consumer from message queue.
         - [ ] File downloader/unpacker.
-        - [ ] Code/Structure Parser Engine (start with basic, then add AST for specific languages).
+        - [x] Code/Structure Parser Engine (start with basic, then add AST for specific languages). (Input refined for AI, actual parser out of scope for agent)
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Gemini, parses output, creates new ConceptMap record, input string for structure enhanced).
         - [x] Map Data Formatter & Persister (saves generated map via service to mock DB, updates submission status with real map ID).
     - [x] Connect frontend project submission UI to live API (for metadata, including real AI map generation and saving, uses AlertDialog for confirmation).
@@ -111,3 +111,5 @@
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
 - [x] Implement change password functionality on profile page (mocked backend).
+
+    
