@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Settings2, Box, Waypoints } from "lucide-react";
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { RFConceptMapNodeData, RFConceptMapEdgeData } from "@/components/concept-map/interactive-canvas"; // Import from canvas
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
@@ -46,42 +46,18 @@ export function PropertiesInspector({
   const [elementDetails, setElementDetails] = useState("");
   const [elementNodeType, setElementNodeType] = useState(""); 
 
-  const processedMapIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (currentMap) {
-      let nameToInitWith = currentMap.name;
-      let isPublicToInitWith = currentMap.isPublic;
-      let sharedIdToInitWith = currentMap.sharedWithClassroomId || null;
-
-      if (isNewMapMode && currentMap.id === 'new' && processedMapIdRef.current !== 'new::' + currentMap.name) {
-        if (currentMap.name === "New Concept Map" || currentMap.name === "Loading Map...") {
-            nameToInitWith = "Untitled Concept Map";
-        }
-        isPublicToInitWith = currentMap.isPublic || false;
-        sharedIdToInitWith = currentMap.sharedWithClassroomId || null;
-        if (nameToInitWith === "Untitled Concept Map" && !isViewOnlyMode) { 
-          onMapPropertiesChange({
-            name: nameToInitWith,
-            isPublic: isPublicToInitWith,
-            sharedWithClassroomId: sharedIdToInitWith,
-          });
-        }
-      }
-      setLocalMapName(nameToInitWith);
-      setLocalIsPublic(isPublicToInitWith);
-      setLocalSharedWithClassroomId(sharedIdToInitWith);
-      processedMapIdRef.current = currentMap.id === 'new' ? `new::${currentMap.name}` : currentMap.id;
-    } else if (!isViewOnlyMode) { 
-      const defaultName = "Untitled Concept Map";
-      setLocalMapName(defaultName);
-      setLocalIsPublic(false);
-      setLocalSharedWithClassroomId(null);
-      onMapPropertiesChange({ name: defaultName, isPublic: false, sharedWithClassroomId: null });
-      processedMapIdRef.current = null;
+      setLocalMapName(currentMap.name);
+      setLocalIsPublic(currentMap.isPublic);
+      setLocalSharedWithClassroomId(currentMap.sharedWithClassroomId || null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMap, isNewMapMode, isViewOnlyMode]);
+    // If currentMap is null (e.g., store not yet initialized fully for a new map, or an error state),
+    // local states will retain their initial empty/false values or previous values.
+    // The responsibility of initializing default map properties for a "new" map lies with
+    // the store's `initializeNewMap` action. This effect simply reflects the store's current state.
+  }, [currentMap]);
 
 
   useEffect(() => {
@@ -108,18 +84,18 @@ export function PropertiesInspector({
   const handleMapNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode) return;
     const newName = e.target.value;
-    setLocalMapName(newName);
+    setLocalMapName(newName); // Update local state for immediate UI feedback
     onMapPropertiesChange({ name: newName, isPublic: localIsPublic, sharedWithClassroomId: localSharedWithClassroomId });
   };
   const handleIsPublicChange = (checked: boolean) => {
     if (isViewOnlyMode) return;
-    setLocalIsPublic(checked);
+    setLocalIsPublic(checked); // Update local state
     onMapPropertiesChange({ name: localMapName, isPublic: checked, sharedWithClassroomId: localSharedWithClassroomId });
   };
   const handleSharedIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode) return;
     const newSharedId = e.target.value.trim() || null;
-    setLocalSharedWithClassroomId(newSharedId);
+    setLocalSharedWithClassroomId(newSharedId); // Update local state
     onMapPropertiesChange({ name: localMapName, isPublic: localIsPublic, sharedWithClassroomId: newSharedId });
   };
 
@@ -164,7 +140,6 @@ export function PropertiesInspector({
                   onCheckedChange={handleIsPublicChange}
                   disabled={isViewOnlyMode}
                   className={cn(isViewOnlyMode && "cursor-not-allowed data-[state=checked]:bg-muted-foreground/30 data-[state=unchecked]:bg-muted/30")}
-                  // thumbClassName={cn(isViewOnlyMode && "bg-muted-foreground/50" )} // This prop doesn't exist on ShadCN Switch
               />
               <Label 
                 htmlFor="isPublicSwitch" 
@@ -267,3 +242,4 @@ export function PropertiesInspector({
     </Card>
   );
 }
+
