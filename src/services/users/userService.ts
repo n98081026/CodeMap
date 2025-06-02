@@ -1,3 +1,4 @@
+
 // src/services/users/userService.ts
 'use server';
 
@@ -10,6 +11,7 @@
  * - getAllUsers - Retrieves all users (with pagination).
  * - updateUser - Updates a user's details.
  * - deleteUser - Deletes a user.
+ * - changeUserPassword - (Mock) Changes a user's password.
  */
 
 import type { User } from '@/types';
@@ -63,9 +65,10 @@ export async function createUser(name: string, email: string, password: string, 
     email,
     name,
     role,
+    // password: password // We don't store actual passwords in this mock service
   };
 
-  mockUserDatabase[email] = newUser; 
+  mockUserDatabase[email] = newUser;
   return newUser;
 }
 
@@ -77,14 +80,14 @@ export async function getUserById(userId: string): Promise<User | null> {
 export async function getAllUsers(page: number = 1, limit: number = 10): Promise<{ users: User[]; totalCount: number }> {
   const allUsersArray = Object.values(mockUserDatabase);
   const totalCount = allUsersArray.length;
-  
+
   // Sort users by name for consistent pagination
   allUsersArray.sort((a, b) => a.name.localeCompare(b.name));
-  
+
   const startIndex = (page - 1) * limit;
   const endIndex = page * limit;
   const paginatedUsers = allUsersArray.slice(startIndex, endIndex);
-  
+
   return { users: paginatedUsers, totalCount };
 }
 
@@ -103,7 +106,7 @@ export async function updateUser(userId: string, updates: Partial<Omit<User, 'id
     }
     oldEmailKey = user.email; // Store old email to remove it as key
   }
-  
+
   // Apply updates
   const updatedUser = { ...user, ...updates };
 
@@ -133,4 +136,32 @@ export async function deleteUser(userId: string): Promise<boolean> {
     return true;
   }
   return false; // Should not happen if user was found by ID
+}
+
+
+/**
+ * (Mock) Changes a user's password.
+ * In this mock, it checks if the currentPassword is 'password123'.
+ * It does not actually store or change the password.
+ * @param userId The ID of the user.
+ * @param currentPassword The user's current password.
+ * @param newPassword The new password to set.
+ * @throws Error if user not found or current password incorrect.
+ */
+export async function changeUserPassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  const user = findUserByIdInternal(userId);
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
+  // Mock current password validation
+  const MOCK_CURRENT_PASSWORD = "password123"; // For demo purposes
+  if (currentPassword !== MOCK_CURRENT_PASSWORD) {
+    throw new Error("Incorrect current password.");
+  }
+
+  // In a real application, you would hash the newPassword and save it.
+  // For this mock, we do nothing with newPassword.
+  console.log(`Mock password change for user ${userId}. New password would be: ${newPassword} (not stored).`);
+  return Promise.resolve();
 }

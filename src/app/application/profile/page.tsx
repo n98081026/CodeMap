@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { UserCircle, Shield, Edit3, KeyRound, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { UserRole } from "@/types";
-import React, { useState } from "react"; // Ensured React is imported
+import { UserRole, type User } from "@/types";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -61,7 +62,7 @@ function EditProfileDialog({
       const response = await fetch(`/api/users/${currentUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: data.name, email: data.email }), 
+        body: JSON.stringify({ name: data.name, email: data.email }),
       });
 
       if (!response.ok) {
@@ -69,9 +70,9 @@ function EditProfileDialog({
         throw new Error(errorData.message || "Failed to update profile.");
       }
       const updatedUser = await response.json();
-      onProfileUpdate(updatedUser); 
+      onProfileUpdate(updatedUser);
       toast({ title: "Profile Updated", description: "Your profile has been successfully updated." });
-      onOpenChange(false); 
+      onOpenChange(false);
     } catch (error) {
       toast({
         title: "Update Failed",
@@ -82,7 +83,7 @@ function EditProfileDialog({
       setIsSaving(false);
     }
   };
-  
+
   React.useEffect(() => {
     if (currentUser) {
       form.reset({
@@ -144,13 +145,139 @@ function EditProfileDialog({
   );
 }
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, { message: "Current password is required." }),
+  newPassword: z.string().min(6, { message: "New password must be at least 6 characters." }),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "New passwords don't match.",
+  path: ["confirmPassword"],
+});
+
+type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
+
+function ChangePasswordDialog({
+  userId,
+  isOpen,
+  onOpenChange,
+}: {
+  userId: string;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const form = useForm<ChangePasswordFormValues>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onSubmit = async (data: ChangePasswordFormValues) => {
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/users/${userId}/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: data.currentPassword, newPassword: data.newPassword }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to change password.");
+      }
+      
+      toast({ title: "Password Changed", description: "Your password has been successfully updated (mock)." });
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Change Password Failed",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>Update your account password. (Mock: current password is 'password123')</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="currentPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Current Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} disabled={isSaving} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="newPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>New Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} disabled={isSaving} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm New Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} disabled={isSaving} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+               <DialogClose asChild>
+                <Button type="button" variant="outline" onClick={() => { form.reset(); onOpenChange(false);}} disabled={isSaving}>Cancel</Button>
+              </DialogClose>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Change Password
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 export default function ProfilePage() {
   const { user, updateCurrentUserData } = useAuth();
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   if (!user) {
-    return null; 
+    return null;
   }
 
   const getDashboardLink = () => {
@@ -220,8 +347,8 @@ export default function ProfilePage() {
               <h3 className="font-medium">Change Password</h3>
               <p className="text-sm text-muted-foreground">Update your account password.</p>
             </div>
-            <Button variant="outline" disabled>
-              <KeyRound className="mr-2 h-4 w-4" /> Change (Soon)
+            <Button variant="outline" onClick={() => setIsChangePasswordOpen(true)}>
+              <KeyRound className="mr-2 h-4 w-4" /> Change Password
             </Button>
           </div>
         </CardContent>
@@ -246,11 +373,18 @@ export default function ProfilePage() {
         </Card>
       )}
       {isEditProfileOpen && user && (
-        <EditProfileDialog 
-            currentUser={user} 
+        <EditProfileDialog
+            currentUser={user}
             onProfileUpdate={handleProfileUpdated}
             isOpen={isEditProfileOpen}
-            onOpenChange={setIsEditProfileOpen} 
+            onOpenChange={setIsEditProfileOpen}
+        />
+      )}
+      {isChangePasswordOpen && user && (
+        <ChangePasswordDialog
+          userId={user.id}
+          isOpen={isChangePasswordOpen}
+          onOpenChange={setIsChangePasswordOpen}
         />
       )}
     </div>
