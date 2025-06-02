@@ -14,6 +14,7 @@ interface AuthContextType {
   login: (email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
+  updateCurrentUserData: (updatedFields: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,9 +57,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(data.user);
         localStorage.setItem('codemapUser', JSON.stringify(data.user));
         
-        if (data.user.role === UserRole.ADMIN) router.push('/admin/dashboard');
-        else if (data.user.role === UserRole.TEACHER) router.push('/teacher/dashboard');
-        else router.push('/student/dashboard');
+        if (data.user.role === UserRole.ADMIN) router.push('/application/admin/dashboard');
+        else if (data.user.role === UserRole.TEACHER) router.push('/application/teacher/dashboard');
+        else router.push('/application/student/dashboard');
       } else {
         throw new Error(data.message || "Login failed");
       }
@@ -90,9 +91,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(data.user);
         localStorage.setItem('codemapUser', JSON.stringify(data.user));
 
-        if (data.user.role === UserRole.ADMIN) router.push('/admin/dashboard');
-        else if (data.user.role === UserRole.TEACHER) router.push('/teacher/dashboard');
-        else router.push('/student/dashboard');
+        if (data.user.role === UserRole.ADMIN) router.push('/application/admin/dashboard');
+        else if (data.user.role === UserRole.TEACHER) router.push('/application/teacher/dashboard');
+        else router.push('/application/student/dashboard');
       } else {
         throw new Error(data.message || "Registration failed");
       }
@@ -108,20 +109,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('codemapUser');
-    router.push('/login');
+    router.push('/application/login');
   };
   
   const isAuthenticated = !!user;
 
    useEffect(() => {
-    if (!isLoading && !isAuthenticated && !['/login', '/register'].includes(pathname)) {
-      router.push('/login');
+    if (!isLoading && !isAuthenticated && !['/application/login', '/application/register'].includes(pathname)) {
+      router.push('/application/login');
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
+  const updateCurrentUserData = (updatedFields: Partial<User>) => {
+    if (user) {
+      const newUser = { ...user, ...updatedFields };
+      setUser(newUser);
+      localStorage.setItem('codemapUser', JSON.stringify(newUser));
+    }
+  };
+
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, register, updateCurrentUserData }}>
       {children}
     </AuthContext.Provider>
   );

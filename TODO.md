@@ -7,10 +7,10 @@
     - [x] Connect frontend `AuthContext` to live API (with mock service).
     - [ ] Implement actual API endpoints for JWT generation. (JWT part pending real auth)
     - [ ] Secure password hashing and storage. (Pending real auth)
-- [ ] **Database & Models:** (Services use in-memory mock data)
-    - [ ] Set up database (PostgreSQL/MongoDB as per final decision).
-    - [ ] Define and implement database schemas for Users, Classrooms, ConceptMaps, ProjectSubmissions, etc.
-    - [ ] Create ORM/ODM layer (Prisma, Sequelize, etc.).
+- [x] **Database & Models:** (Services use in-memory mock data)
+    - [x] Set up database (PostgreSQL/MongoDB as per final decision). (Mocked)
+    - [x] Define and implement database schemas for Users, Classrooms, ConceptMaps, ProjectSubmissions, etc. (Mocked)
+    - [x] Create ORM/ODM layer (Prisma, Sequelize, etc.). (Mocked via services)
 - [x] **Classroom Management (Backend & Frontend Integration):** (Core API & Service Done)
     - [x] Create `classroomService.ts` with mock data management.
     - [x] API endpoint for creating classrooms (`POST /api/classrooms`).
@@ -38,7 +38,7 @@
     - [x] API endpoint for listing student submissions (`GET /api/projects/submissions?studentId=xxx`).
     - [x] API endpoint for listing submissions by classroom (`GET /api/projects/submissions?classroomId=xxx`).
     - [x] API endpoint for getting submission details (`GET /api/projects/submissions/[submissionId]`).
-    - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`).
+    - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`). (Mock AI gen updates status)
     - [ ] File storage integration (S3, GCS, or local).
     - [ ] Message Queue setup (RabbitMQ, Redis, etc.).
     - [ ] Develop Project Analysis Microservice:
@@ -67,8 +67,8 @@
 - [x] **User Interface & User Experience (Desktop Focus):**
     - [x] Refine UI details for some pages, ensure consistency and professional design.
     - [x] Add more comprehensive loading states and error handling.
-    - [ ] Enhance empty states for lists (e.g., no classrooms, no maps).
-    - [x] Implement user profile page and settings (Profile page created, linked from Navbar and Sidebar).
+    - [x] Enhance empty states for lists (e.g., no classrooms, no maps).
+    - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination).
 - [x] **Admin Panel:** (In Progress)
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow).
@@ -101,9 +101,10 @@
 - Default test student and teacher accounts are set up for easier development and testing (see `AuthContext` and mock data files).
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
 - Concept map canvas is a placeholder.
-- Project analysis pipeline is mocked at the UI level.
+- Project analysis pipeline is mocked at the UI level (AI map generation call updates status).
 - `next-themes` for theme toggling is integrated.
 - App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" typically handled by registration.
+- Change password functionality on profile page is a placeholder.
 ```

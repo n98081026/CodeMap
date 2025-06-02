@@ -7,21 +7,155 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { UserCircle, Shield, Edit3, KeyRound, ArrowLeft } from "lucide-react";
+import { UserCircle, Shield, Edit3, KeyRound, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { UserRole } from "@/types";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+
+const profileFormSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
+  email: z.string().email({ message: "Invalid email address." }),
+});
+
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
+
+function EditProfileDialog({
+  currentUser,
+  onProfileUpdate,
+  isOpen,
+  onOpenChange,
+}: {
+  currentUser: User;
+  onProfileUpdate: (updatedUser: User) => void;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      name: currentUser.name,
+      email: currentUser.email,
+    },
+  });
+
+  const onSubmit = async (data: ProfileFormValues) => {
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/users/${currentUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: data.name, email: data.email }), // Only send name and email
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update profile.");
+      }
+      const updatedUser = await response.json();
+      onProfileUpdate(updatedUser); // This will call updateCurrentUserData from AuthContext
+      toast({ title: "Profile Updated", description: "Your profile has been successfully updated." });
+      onOpenChange(false); // Close dialog
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Reset form if currentUser changes (e.g. on initial load or if props change)
+  React.useEffect(() => {
+    if (currentUser) {
+      form.reset({
+        name: currentUser.name,
+        email: currentUser.email,
+      });
+    }
+  }, [currentUser, form]);
+
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Profile</DialogTitle>
+          <DialogDescription>Update your name and email address.</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isSaving} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} disabled={isSaving} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <DialogClose asChild>
+                 <Button type="button" variant="outline" disabled={isSaving}>Cancel</Button>
+              </DialogClose>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, updateCurrentUserData } = useAuth();
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   if (!user) {
-    // Or a loading skeleton, but AuthProvider should handle redirect if not authenticated
     return null; 
   }
 
   const getDashboardLink = () => {
-    if (!user) return "/login"; // Should not happen if user is loaded
     switch (user.role) {
       case UserRole.ADMIN:
         return "/application/admin/dashboard";
@@ -34,6 +168,9 @@ export default function ProfilePage() {
     }
   };
 
+  const handleProfileUpdated = (updatedUser: User) => {
+    updateCurrentUserData(updatedUser);
+  };
 
   return (
     <div className="space-y-6">
@@ -81,8 +218,8 @@ export default function ProfilePage() {
               <h3 className="font-medium">Edit Profile</h3>
               <p className="text-sm text-muted-foreground">Update your name or email address.</p>
             </div>
-            <Button variant="outline" disabled>
-              <Edit3 className="mr-2 h-4 w-4" /> Edit (Soon)
+            <Button variant="outline" onClick={() => setIsEditProfileOpen(true)}>
+              <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
             </Button>
           </div>
           <div className="flex items-center justify-between rounded-lg border p-4">
@@ -114,6 +251,14 @@ export default function ProfilePage() {
             </Button>
           </CardContent>
         </Card>
+      )}
+      {isEditProfileOpen && (
+        <EditProfileDialog 
+            currentUser={user} 
+            onProfileUpdate={handleProfileUpdated}
+            isOpen={isEditProfileOpen}
+            onOpenChange={setIsEditProfileOpen} 
+        />
       )}
     </div>
   );
