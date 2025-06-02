@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
-import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle, Inbox } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +45,7 @@ export default function StudentClassroomsPage() {
 
   useEffect(() => {
     fetchEnrolledClassrooms();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
 
@@ -74,12 +75,14 @@ export default function StudentClassroomsPage() {
       )}
 
       {!isLoading && !error && enrolledClassrooms.length === 0 && (
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Not Enrolled in Any Classrooms</CardTitle>
+        <Card className="shadow-md w-full max-w-lg mx-auto">
+          <CardHeader className="items-center text-center">
+            <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
+            <CardTitle>No Classrooms Yet</CardTitle>
+            <CardDescription>You are not currently enrolled in any classrooms.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">You are not currently enrolled in any classrooms. If you have an invite code, your teacher can provide instructions on how to join.</p>
+          <CardContent className="text-center">
+            <p className="text-sm text-muted-foreground">If you have an invite code from your teacher, they can provide instructions on how to join a classroom.</p>
           </CardContent>
         </Card>
       )}
@@ -102,9 +105,8 @@ export default function StudentClassroomsPage() {
                 {classroom.description && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{classroom.description}</p>}
               </CardContent>
               <CardFooter>
-                <Button asChild className="w-full" variant="outline" disabled>
-                  {/* Link to a student-specific view of classroom if needed, or just info display */}
-                  <span className="cursor-not-allowed">View Classroom <ArrowRight className="ml-2 h-4 w-4" /></span>
+                <Button asChild className="w-full" variant="outline">
+                  <Link href={`/application/student/classrooms/${classroom.id}`}>View Classroom <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -114,4 +116,3 @@ export default function StudentClassroomsPage() {
     </div>
   );
 }
-```
