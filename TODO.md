@@ -58,9 +58,10 @@
 - [ ] **Concept Map Editor (Canvas):**
     - [ ] Implement actual canvas interactions (node/edge creation, drag, edit, delete).
     - [ ] Zoom/pan functionality.
-    - [x] Connect `PropertiesInspector` to selected elements on canvas (map-level properties connected and saved, changes directly update parent state. Element-level properties pending actual canvas elements).
+    - [x] Connect `PropertiesInspector` for map-level properties (name, public, classroomId); changes directly update parent state and are saved.
+    - [ ] Connect `PropertiesInspector` to selected elements on canvas (for element-specific properties - pending canvas implementation).
     - [x] Visualize GenAI results (textually) on `CanvasPlaceholder`. (Also includes mock node/edge additions)
-    - [x] Simplify PropertiesInspector for map-level changes (remove local Apply/Cancel, changes directly update parent).
+    - [x] Simplify `PropertiesInspector` for map-level changes (remove local Apply/Cancel, changes directly update parent).
 - [ ] **State Management:**
     - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching.
 - [ ] **Real-time Features (Optional):**
@@ -75,7 +76,7 @@
     - [x] Add loading spinner to Login/Register pages during auth state check. (Current implementation prevents form flash, considered complete)
     - [x] Make header icons link to main dashboards for easier navigation.
     - [x] Implement "View Only" mode for Concept Map Editor.
-    - [x] Refine PropertiesInspector in "View Only" mode (muted labels).
+    - [x] Refine `PropertiesInspector` in "View Only" mode (muted labels).
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow - Add button tooltip added).
     - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard, Admin Dashboard link to it enabled).
@@ -114,4 +115,3 @@
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
 - [x] Implement change password functionality on profile page (mocked backend).
-```
