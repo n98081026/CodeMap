@@ -19,8 +19,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Test student for auto-login convenience
+// Predefined test users for auto-login convenience during development
 const testStudent: User = { id: "student-test-id", email: "student-test@example.com", name: "Test Student", role: UserRole.STUDENT };
+const testTeacher: User = { id: "teacher-test-id", email: "teacher-test@example.com", name: "Test Teacher", role: UserRole.TEACHER };
+const testAdmin: User = { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN };
+
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -33,12 +36,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      // Automatically log in as test student if no user is stored for dev convenience
-      setUser(testStudent);
-      localStorage.setItem('codemapUser', JSON.stringify(testStudent));
+      // Automatically log in a test user based on path if no user is stored (for dev convenience)
+      let autoLoginUser: User = testStudent; // Default to student
+      if (pathname.startsWith('/application/admin')) {
+        autoLoginUser = testAdmin;
+      } else if (pathname.startsWith('/application/teacher')) {
+        autoLoginUser = testTeacher;
+      }
+      setUser(autoLoginUser);
+      localStorage.setItem('codemapUser', JSON.stringify(autoLoginUser));
     }
     setIsLoading(false);
-  }, []);
+  }, [pathname]); // Add pathname to dependencies to re-evaluate if path changes before localStorage is set
 
   const login = async (email: string, password: string, role: UserRole) => {
     setIsLoading(true);
@@ -115,7 +124,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !!user;
 
    useEffect(() => {
-    if (!isLoading && !isAuthenticated && !['/application/login', '/application/register'].includes(pathname)) {
+    // This effect handles redirection if not authenticated after initial loading.
+    // It's separate from the initial load effect to avoid race conditions.
+    if (!isLoading && !isAuthenticated && !['/application/login', '/application/register', '/'].includes(pathname) && !pathname.startsWith("/_next/")) {
       router.push('/application/login');
     }
   }, [isLoading, isAuthenticated, pathname, router]);

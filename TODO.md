@@ -14,7 +14,7 @@
 - [x] **Classroom Management (Backend & Frontend Integration):** (Core API & Service Done)
     - [x] Create `classroomService.ts` with mock data management.
     - [x] API endpoint for creating classrooms (`POST /api/classrooms`).
-    - [x] API endpoint for listing classrooms by teacher (`GET /api/classrooms?teacherId=xxx`).
+    - [x] API endpoint for listing classrooms by teacher (`GET /api/classrooms?teacherId=xxx`). (Supports pagination)
     - [x] API endpoint for listing classrooms by student (`GET /api/classrooms?studentId=xxx`).
     - [x] API endpoint for getting classroom details (`GET /api/classrooms/[classroomId]`).
     - [x] API endpoints for student enrollment (invites, joining with code - partially mocked with direct add/remove).
@@ -70,7 +70,7 @@
     - [x] Add more comprehensive loading states and error handling. (Done for many list pages and dashboards)
     - [x] Enhance empty states for lists (e.g., no classrooms, no maps). (Done for many list pages)
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
-    - [x] Add pagination and filtering for lists (Admin User Management page now has pagination).
+    - [x] Add pagination and filtering for lists (Admin User Management page now has pagination, Teacher classrooms page has pagination).
     - [x] Add loading spinner to Login/Register pages during auth state check.
     - [x] Make header icons link to main dashboards for easier navigation.
 - [x] **Admin Panel:**
@@ -103,7 +103,7 @@
 
 ## Known Issues / Current Mocked Areas
 - Backend services are currently mocked (in-memory data).
-- Default test student and teacher accounts are set up for easier development and testing (see `AuthContext` and mock data files).
+- AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage.
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
 - Concept map canvas is a placeholder. Project analysis pipeline is mocked at the UI level (AI map gen call updates status).
 - `next-themes` for theme toggling is integrated.
@@ -111,4 +111,3 @@
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" typically handled by registration. Tooltip added to button.
 - [x] Implement change password functionality on profile page (mocked backend).
-

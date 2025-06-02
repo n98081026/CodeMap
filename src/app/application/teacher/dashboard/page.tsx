@@ -33,14 +33,13 @@ export default function TeacherDashboardPage() {
   const [errorStudents, setErrorStudents] = useState<string | null>(null);
   
   let adminDashboardLink = "/application/admin/dashboard";
-  let teacherDashboardLink = "/application/teacher/dashboard";
-  if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) {
-     adminDashboardLink = "/application/admin/dashboard";
-     teacherDashboardLink = adminDashboardLink; // If admin only, main dashboard is admin's
-  } else if (user && user.role === UserRole.ADMIN && user.role.includes(UserRole.TEACHER as any)) {
-    adminDashboardLink = "/application/admin/dashboard"; // teacher also admin
-    teacherDashboardLink = "/application/teacher/dashboard";
-  }
+  // let teacherDashboardLink = "/application/teacher/dashboard"; // Default for this page's header icon
+  // if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) {
+  //    teacherDashboardLink = adminDashboardLink; // If admin only, main dashboard is admin's
+  // } else if (user && user.role === UserRole.ADMIN && user.role.includes(UserRole.TEACHER as any)) {
+  //   // teacher is also admin, keep teacherDashboardLink as is, Admin Panel button goes to adminDashboardLink
+  // }
+  const pageSpecificDashboardLink = "/"; // Link to root, which will redirect correctly
 
 
   useEffect(() => {
@@ -112,6 +111,7 @@ export default function TeacherDashboardPage() {
         title={`Welcome, ${user.name}!`}
         description="Manage your classrooms and student activities."
         icon={LayoutDashboard}
+        iconLinkHref={pageSpecificDashboardLink}
       >
         {user.role === UserRole.ADMIN && (
           <Button asChild variant="outline">

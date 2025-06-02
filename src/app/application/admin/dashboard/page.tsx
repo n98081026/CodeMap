@@ -1,3 +1,4 @@
+
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,7 @@ export default function AdminDashboardPage() {
         title="Admin Dashboard"
         description="System overview and management tools."
         icon={LayoutDashboard}
+        iconLinkHref="/"
       />
 
       <div className="grid gap-6 md:grid-cols-2">

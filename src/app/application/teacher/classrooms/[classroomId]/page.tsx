@@ -181,7 +181,8 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
       <DashboardHeader 
         title={classroom.name}
         description={`Teacher: ${classroom.teacherName || 'N/A'} | Invite Code: ${classroom.inviteCode} | Manage students, maps, and submissions.`}
-        icon={Users}
+        icon={isLoadingClassroom ? Loader2 : Users}
+        iconClassName={isLoadingClassroom ? "animate-spin" : ""}
         iconLinkHref={teacherDashboardLink}
       >
          <Button asChild variant="outline">
@@ -364,5 +365,3 @@ declare module "@/components/dashboard/dashboard-header" {
     iconClassName?: string;
   }
 }
-
-    
