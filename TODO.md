@@ -71,7 +71,8 @@
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination).
     - [x] Add loading spinner to Login/Register pages during auth state check.
-- [x] **Admin Panel:** (In Progress)
+    - [x] Make header icons link to main dashboards for easier navigation.
+- [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow - Add button tooltip added).
     - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard).
 
@@ -108,5 +109,3 @@
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" typically handled by registration. Tooltip added to button.
 - Change password functionality on profile page is a placeholder.
-
-```

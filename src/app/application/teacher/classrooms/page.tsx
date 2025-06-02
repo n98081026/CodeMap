@@ -26,9 +26,12 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription as FormDialogDescription,
   DialogFooter as FormDialogFooter, 
   DialogHeader as FormDialogHeader, 
   DialogTitle as FormDialogTitle, 
+  DialogTrigger as FormDialogTrigger,
+  DialogClose
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +48,8 @@ export default function TeacherClassroomsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null);
   const [editFormData, setEditFormData] = useState({ name: "", description: "" });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
 
   let teacherDashboardLink = "/application/teacher/dashboard";
   if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) { // Admin only, not teacher
@@ -113,7 +118,11 @@ export default function TeacherClassroomsPage() {
 
   const handleUpdateClassroom = async () => {
     if (!editingClassroom) return;
-    setIsLoading(true); 
+    if (!editFormData.name.trim()) {
+      toast({ title: "Validation Error", description: "Classroom name cannot be empty.", variant: "destructive" });
+      return;
+    }
+    setIsSavingEdit(true); 
     try {
       const response = await fetch(`/api/classrooms/${editingClassroom.id}`, {
         method: 'PUT',
@@ -131,7 +140,7 @@ export default function TeacherClassroomsPage() {
     } catch (err) {
       toast({ title: "Error Updating Classroom", description: (err as Error).message, variant: "destructive" });
     } finally {
-      setIsLoading(false);
+      setIsSavingEdit(false);
     }
   };
 
@@ -180,6 +189,11 @@ export default function TeacherClassroomsPage() {
           </CardHeader>
           <CardContent>
             <p>Click the button above to create your first classroom.</p>
+             <Button asChild className="mt-4">
+              <Link href="/application/teacher/classrooms/new">
+                <PlusCircle className="mr-2 h-4 w-4" /> Create Classroom
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -197,7 +211,7 @@ export default function TeacherClassroomsPage() {
                   <Users className="mr-2 h-4 w-4" />
                   <span>{classroom.studentIds.length} Students</span>
                 </div>
-                {classroom.description && <p className="text-sm text-muted-foreground mt-2 truncate">Desc: {classroom.description}</p>}
+                {classroom.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">Desc: {classroom.description}</p>}
               </CardContent>
               <CardFooter className="grid grid-cols-3 gap-2">
                  <Button asChild variant="default" size="sm" className="col-span-1">
@@ -218,7 +232,7 @@ export default function TeacherClassroomsPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the classroom "{classroom.name}" and all associated data.
+                        This action cannot be undone. This will permanently delete the classroom "{classroom.name}" and all associated data. Student enrollments will be removed.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -236,25 +250,49 @@ export default function TeacherClassroomsPage() {
       )}
       
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <FormDialogHeader>
             <FormDialogTitle>Edit Classroom: {editingClassroom?.name}</FormDialogTitle>
+            <FormDialogDescription>
+              Update the details for this classroom.
+            </FormDialogDescription>
           </FormDialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid items-center gap-1.5">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" name="name" value={editFormData.name} onChange={handleEditFormChange} />
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-classroom-name" className="text-right">
+                Name
+              </Label>
+              <Input 
+                id="edit-classroom-name" 
+                name="name" 
+                value={editFormData.name} 
+                onChange={handleEditFormChange} 
+                className="col-span-3" 
+                disabled={isSavingEdit}
+              />
             </div>
-            <div className="grid items-center gap-1.5">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" name="description" value={editFormData.description} onChange={handleEditFormChange} />
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-classroom-description" className="text-right">
+                Description
+              </Label>
+              <Textarea 
+                id="edit-classroom-description" 
+                name="description" 
+                value={editFormData.description} 
+                onChange={handleEditFormChange} 
+                className="col-span-3 resize-none"
+                placeholder="Optional: A brief description of the classroom."
+                disabled={isSavingEdit}
+              />
             </div>
           </div>
           <FormDialogFooter>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)} disabled={isLoading}>Cancel</Button>
-            <Button onClick={handleUpdateClassroom} disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Save Changes
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isSavingEdit}>Cancel</Button>
+            </DialogClose>
+            <Button type="submit" onClick={handleUpdateClassroom} disabled={isSavingEdit}>
+                {isSavingEdit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isSavingEdit ? "Saving..." : "Save Changes"}
             </Button>
           </FormDialogFooter>
         </DialogContent>
@@ -263,3 +301,4 @@ export default function TeacherClassroomsPage() {
     </div>
   );
 }
+
