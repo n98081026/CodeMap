@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types"; 
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, Inbox, FileText } from "lucide-react";
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react"; // Removed Inbox, FileText
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -276,7 +276,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                 {errorMaps && !isLoadingMaps && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorMaps} <Button onClick={fetchClassroomMaps} variant="link">Try Again</Button></div>}
                 {!isLoadingMaps && !errorMaps && classroomMaps.length === 0 && (
                     <div className="text-center py-10">
-                        <FileText className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
+                        <Share2 className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
                         <h3 className="text-xl font-semibold text-muted-foreground">No Shared Maps</h3>
                         <p className="text-sm text-muted-foreground">No concept maps have been shared with this classroom yet.</p>
                     </div>
@@ -325,7 +325,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
             {errorSubmissions && !isLoadingSubmissions && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorSubmissions} <Button onClick={fetchClassroomSubmissions} variant="link">Try Again</Button></div>}
             {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && (
                  <div className="text-center py-10">
-                    <Inbox className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
+                    <FolderKanban className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
                     <h3 className="text-xl font-semibold text-muted-foreground">No Submissions Yet</h3>
                     <p className="text-sm text-muted-foreground">Students in this classroom haven&apos;t submitted any projects for analysis.</p>
                 </div>
@@ -388,5 +388,6 @@ declare module "@/components/dashboard/dashboard-header" {
     iconClassName?: string;
   }
 }
+
 
 
