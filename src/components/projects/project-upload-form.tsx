@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import type { Classroom, ProjectSubmission } from "@/types"; 
+import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types"; 
 import { ProjectSubmissionStatus } from "@/types";
 import { UploadCloud, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -53,7 +53,7 @@ export function ProjectUploadForm() {
   const { user } = useAuth();
   const [isSubmittingMetadata, setIsSubmittingMetadata] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
-  const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>(mockClassroomsForSelection);
+  const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>(mockClassroomsForSelection); // In a real app, fetch this
 
   const form = useForm<z.infer<typeof projectUploadSchema>>({
     resolver: zodResolver(projectUploadSchema),
@@ -81,11 +81,8 @@ export function ProjectUploadForm() {
       console.log(`Submission ${submissionId} status updated to ${status}`);
     } catch (error) {
       console.error(`Error updating submission status for ${submissionId}:`, error);
-      toast({
-        title: "Status Update Failed",
-        description: `Could not update submission status to ${status}. ${(error as Error).message}`,
-        variant: "destructive",
-      });
+      // Toasting here might be too much if called during a longer process, parent handles toasts.
+      throw error; // Re-throw to be caught by the main onSubmit handler
     }
   }
 
@@ -126,44 +123,81 @@ export function ProjectUploadForm() {
       });
       form.reset();
       
-      if (confirm("Project record submitted. Do you want to attempt to generate a concept map now? (This is a mock AI process and may take a moment)")) {
+      if (confirm("Project record submitted. Do you want to attempt to generate a concept map now? This may take a moment.")) {
         setIsProcessingAI(true);
-        toast({ title: "AI Processing Started", description: "Mock AI map generation is now 'processing'..." });
+        toast({ title: "AI Processing Started", description: "AI map generation is now processing..." });
         
         await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.PROCESSING);
 
         try {
-          // Simulate some delay for AI processing
-          await new Promise(resolve => setTimeout(resolve, 3000)); 
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause before AI call
           
           const projectDescription = `Project file: ${file.name}. Submitted for classroom: ${values.classroomId === NONE_CLASSROOM_VALUE ? 'N/A' : values.classroomId || 'N/A'}`;
           const projectCodeStructure = `File: ${file.name}, Size: ${file.size} bytes. (Mock structure for AI)`;
           
-          // Call the actual AI flow (which is a server action)
           const mapResult = await aiGenerateMapFromProject({ projectDescription, projectCodeStructure });
-          console.log("AI Map Generation Result (mock data):", mapResult.conceptMapData);
+          
+          let parsedMapData: ConceptMapData;
+          try {
+            parsedMapData = JSON.parse(mapResult.conceptMapData);
+            if (!parsedMapData.nodes || !parsedMapData.edges) {
+                throw new Error("AI output is not in the expected map data format (missing nodes/edges).");
+            }
+          } catch (parseError) {
+            throw new Error(`Failed to parse AI-generated map data: ${(parseError as Error).message}`);
+          }
 
-          const mockGeneratedMapId = `genmap-${newSubmission!.id}`;
-          await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.COMPLETED, mockGeneratedMapId);
+          const newMapPayload = {
+            name: `Generated Map for ${file.name}`,
+            ownerId: user.id,
+            mapData: parsedMapData,
+            isPublic: false,
+            sharedWithClassroomId: submissionPayload.classroomId,
+          };
+
+          const mapCreateResponse = await fetch('/api/concept-maps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newMapPayload),
+          });
+
+          if (!mapCreateResponse.ok) {
+            const errorData = await mapCreateResponse.json();
+            throw new Error(errorData.message || "Failed to save the AI-generated concept map.");
+          }
+          const createdMap: ConceptMap = await mapCreateResponse.json();
+
+          await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.COMPLETED, createdMap.id);
           
           toast({
-            title: "AI Concept Map Generation (Mock)",
-            description: "Mock AI process 'completed'. A map ID has been associated.",
+            title: "AI Concept Map Generated",
+            description: `Map "${createdMap.name}" created and linked to your submission.`,
           });
+          router.push("/application/student/projects/submissions");
+
         } catch (aiError) {
-          console.error("AI Map Generation Error (Mock):", aiError);
-          await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing failed");
+          console.error("AI Map Generation or Saving Error:", aiError);
+          await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing or map saving failed");
           toast({
-            title: "AI Map Generation Failed (Mock)",
-            description: (aiError as Error).message || "Could not generate concept map.",
+            title: "AI Map Generation Failed",
+            description: (aiError as Error).message,
             variant: "destructive",
           });
+          // Don't redirect immediately on AI failure, user might want to see the error or retry if an option existed.
+          // For now, error is toasted.
         } finally {
           setIsProcessingAI(false);
-          router.push("/application/student/projects/submissions");
+          // Only redirect if it wasn't an AI error that might need user attention before navigating away
+          if (!(newSubmission && newSubmission.analysisStatus === ProjectSubmissionStatus.FAILED)) {
+             router.push("/application/student/projects/submissions");
+          }
         }
       } else {
-         router.push("/application/student/projects/submissions");
+         // User chose not to generate map, or submission creation failed before confirmation
+         // If newSubmission exists, it's PENDING. If not, an earlier error occurred.
+         if (newSubmission) {
+            router.push("/application/student/projects/submissions");
+         }
       }
 
     } catch (error) {
@@ -233,10 +267,11 @@ export function ProjectUploadForm() {
         />
         <Button type="submit" className="w-full" disabled={isBusy || !form.formState.isValid}>
           {isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-          {isSubmittingMetadata ? "Submitting Record..." : isProcessingAI ? "AI Processing (Mock)..." : "Submit Project"}
+          {isSubmittingMetadata ? "Submitting Record..." : isProcessingAI ? "AI Processing..." : "Submit Project"}
         </Button>
-        {isProcessingAI && <p className="text-sm text-center text-muted-foreground">AI is 'processing' your project. Please wait...</p>}
+        {isProcessingAI && <p className="text-sm text-center text-muted-foreground">AI is processing your project. Please wait...</p>}
       </form>
     </Form>
   );
 }
+
