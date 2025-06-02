@@ -14,7 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/application/login');
+      router.replace('/login'); // Corrected: redirect to actual login page at root
     }
   }, [isAuthenticated, isLoading, router]);
 
