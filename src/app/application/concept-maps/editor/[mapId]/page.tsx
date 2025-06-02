@@ -21,6 +21,7 @@ import {
 } from "@/components/concept-map/genai-modals";
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
+import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
@@ -233,7 +234,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
         ...prev,
         edges: [...prev.edges, newEdge]
     }));
-    toast({ title: "Edge Created", description: `New connection added between nodes. Save map to persist.` });
+    toast({ title: "Edge Created", description: `New connection added. Save map to persist.` });
   }, [isViewOnlyMode, toast]);
 
 
@@ -572,6 +573,36 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     }
   }
 
+  const getRoleBasedDashboardLink = () => {
+    if (!user) return "/";
+    switch (user.role) {
+      case UserRole.STUDENT: return "/application/student/dashboard";
+      case UserRole.TEACHER: return "/application/teacher/dashboard";
+      case UserRole.ADMIN: return "/application/admin/dashboard";
+      default: return "/";
+    }
+  };
+
+  const getBackLink = () => {
+    if (!user) return "/";
+    switch (user.role) {
+      case UserRole.STUDENT: return "/application/student/concept-maps";
+      case UserRole.TEACHER: return "/application/teacher/classrooms";
+      case UserRole.ADMIN: return "/application/admin/dashboard";
+      default: return "/";
+    }
+  };
+
+  const getBackButtonText = () => {
+    if (!user) return "Back";
+    switch (user.role) {
+      case UserRole.STUDENT: return "Back to My Maps";
+      case UserRole.TEACHER: return "Back to Classrooms";
+      case UserRole.ADMIN: return "Back to Dashboard";
+      default: return "Back";
+    }
+  };
+
 
   return (
     <div className="flex h-full flex-col space-y-4">
@@ -579,9 +610,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
         title={isViewOnlyMode ? `Viewing: ${mapName}` : mapName}
         description={isViewOnlyMode ? "This map is in view-only mode." : "Create, edit, and visualize your ideas. Nodes are draggable."}
         icon={(isNewMapMode || actualParams.mapId === 'new') ? Compass : Share2}
-        iconLinkHref={user?.role === 'student' ? "/application/student/concept-maps" : 
-                       user?.role === 'teacher' ? "/application/teacher/dashboard" : 
-                       user?.role === 'admin' ? "/application/admin/dashboard" : "/"}
+        iconLinkHref={getRoleBasedDashboardLink()}
       >
         {!isViewOnlyMode && (
           <Button onClick={handleSaveMap} disabled={isSaving}>
@@ -590,8 +619,8 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
           </Button>
         )}
         <Button asChild variant="outline">
-          <Link href="/application/student/concept-maps"> 
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Maps
+          <Link href={getBackLink()}> 
+            <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}
           </Link>
         </Button>
       </DashboardHeader>
