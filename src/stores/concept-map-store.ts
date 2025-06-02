@@ -4,8 +4,8 @@ import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from 
 
 // --- Unique ID Generation ---
 // Moved from ConceptMapEditorPage to be co-located with store actions that use them.
-constrzezUniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-constrzezUniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 
 interface ConceptMapState {
@@ -143,7 +143,7 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
   // --- Granular Map Data Actions ---
   addNode: (options) => set((state) => {
     const newNode: ConceptMapNode = {
-      id: rzezUniqueNodeId(),
+      id: uniqueNodeId(),
       text: options.text,
       type: options.type,
       x: options.position.x,
@@ -172,7 +172,7 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
 
   addEdge: (options) => set((state) => {
     const newEdge: ConceptMapEdge = {
-      id: rzezUniqueEdgeId(),
+      id: uniqueEdgeId(),
       source: options.source,
       target: options.target,
       label: options.label || 'connects',
