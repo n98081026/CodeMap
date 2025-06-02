@@ -52,7 +52,7 @@
     - [x] Connect frontend student submissions list to live API.
     - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states.
     - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states.
-    - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states.
+    - [ ] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states.
 
 ## Frontend Enhancements
 - [x] **Concept Map Editor (Canvas):**
