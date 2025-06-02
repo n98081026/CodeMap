@@ -29,7 +29,7 @@ interface InteractiveCanvasProps {
   onNodesDelete?: OnNodesDelete;
   onEdgesDelete?: OnEdgesDelete;
   onSelectionChange?: (params: SelectionChanges) => void;
-  onConnect?: (params: Connection) => void; // Added onConnect prop
+  onConnect?: (params: Connection) => void; 
   isViewOnlyMode?: boolean;
 }
 
@@ -56,11 +56,11 @@ export function InteractiveCanvas({
   onNodesDelete,
   onEdgesDelete,
   onSelectionChange,
-  onConnect, // Destructure onConnect
+  onConnect, 
   isViewOnlyMode 
 }: InteractiveCanvasProps) {
   
-  const flowKey = `rf-${nodes.length}-${edges.length}`;
+  const flowKey = `rf-${nodes.length}-${edges.length}-${isViewOnlyMode}`; // Add isViewOnlyMode to key to ensure re-render on mode change
 
   return (
     <Card className="h-[calc(100vh-200px)] w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden">
@@ -74,12 +74,12 @@ export function InteractiveCanvas({
           onNodesDelete={onNodesDelete}
           onEdgesDelete={onEdgesDelete}
           onSelectionChange={onSelectionChange}
-          onConnect={onConnect} // Pass onConnect to ReactFlow
+          onConnect={onConnect} 
           fitView
           fitViewOptions={fitViewOptions}
           nodesDraggable={!isViewOnlyMode}
           nodesConnectable={!isViewOnlyMode} 
-          elementsSelectable={true}
+          elementsSelectable={true} // Allow selection even in view-only to see properties
           deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
           className="bg-background"
           proOptions={{ hideAttribution: true }} 

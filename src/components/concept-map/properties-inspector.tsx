@@ -13,14 +13,14 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 interface PropertiesInspectorProps {
-  currentMap: ConceptMap | null; // For map-level properties
+  currentMap: ConceptMap | null; 
   onMapPropertiesChange: (properties: {
     name: string;
     isPublic: boolean;
     sharedWithClassroomId: string | null;
   }) => void;
   
-  selectedElement?: ConceptMapNode | ConceptMapEdge | null; // The actual element from mapData
+  selectedElement?: ConceptMapNode | ConceptMapEdge | null; 
   selectedElementType?: 'node' | 'edge' | null;
   onSelectedElementPropertyUpdate?: (updates: Partial<RFConceptMapNodeData> | Partial<RFConceptMapEdgeData>) => void;
 
@@ -38,19 +38,16 @@ export function PropertiesInspector({
   isViewOnlyMode 
 }: PropertiesInspectorProps) {
   
-  // State for map-level properties
   const [localMapName, setLocalMapName] = useState("");
   const [localIsPublic, setLocalIsPublic] = useState(false);
   const [localSharedWithClassroomId, setLocalSharedWithClassroomId] = useState<string | null>(null);
   
-  // State for selected element properties
   const [elementLabel, setElementLabel] = useState("");
   const [elementDetails, setElementDetails] = useState("");
-  const [elementNodeType, setElementNodeType] = useState(""); // State for node type
+  const [elementNodeType, setElementNodeType] = useState(""); 
 
   const processedMapIdRef = useRef<string | null>(null);
 
-  // Effect for map-level properties
   useEffect(() => {
     if (currentMap) {
       let nameToInitWith = currentMap.name;
@@ -63,7 +60,7 @@ export function PropertiesInspector({
         }
         isPublicToInitWith = currentMap.isPublic || false;
         sharedIdToInitWith = currentMap.sharedWithClassroomId || null;
-        if (nameToInitWith === "Untitled Concept Map") {
+        if (nameToInitWith === "Untitled Concept Map" && !isViewOnlyMode) { // Only call if not view only
           onMapPropertiesChange({
             name: nameToInitWith,
             isPublic: isPublicToInitWith,
@@ -75,7 +72,7 @@ export function PropertiesInspector({
       setLocalIsPublic(isPublicToInitWith);
       setLocalSharedWithClassroomId(sharedIdToInitWith);
       processedMapIdRef.current = currentMap.id === 'new' ? `new::${currentMap.name}` : currentMap.id;
-    } else {
+    } else if (!isViewOnlyMode) { // Only default if not view only and no current map
       const defaultName = "Untitled Concept Map";
       setLocalMapName(defaultName);
       setLocalIsPublic(false);
@@ -84,10 +81,9 @@ export function PropertiesInspector({
       processedMapIdRef.current = null;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMap, isNewMapMode]);
+  }, [currentMap, isNewMapMode, isViewOnlyMode]); // Added isViewOnlyMode dependency
 
 
-  // Effect for selected element properties
   useEffect(() => {
     if (selectedElement && selectedElementType) {
       if (selectedElementType === 'node') {
@@ -98,8 +94,8 @@ export function PropertiesInspector({
       } else if (selectedElementType === 'edge') {
         const edge = selectedElement as ConceptMapEdge;
         setElementLabel(edge.label);
-        setElementDetails(""); // Edges don't have details
-        setElementNodeType(""); // Edges don't have 'type' in the same way nodes do
+        setElementDetails(""); 
+        setElementNodeType(""); 
       }
     } else {
       setElementLabel("");
@@ -109,7 +105,6 @@ export function PropertiesInspector({
   }, [selectedElement, selectedElementType]);
 
 
-  // Handlers for map-level properties
   const handleMapNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode) return;
     const newName = e.target.value;
@@ -128,7 +123,6 @@ export function PropertiesInspector({
     onMapPropertiesChange({ name: localMapName, isPublic: localIsPublic, sharedWithClassroomId: newSharedId });
   };
 
-  // Handlers for selected element properties
   const handleElementLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate) return;
     const newLabel = e.target.value;
@@ -159,7 +153,7 @@ export function PropertiesInspector({
           onChange={handleMapNameChange}
           placeholder="Enter map name"
           disabled={isViewOnlyMode}
-          className={cn(isViewOnlyMode && "cursor-not-allowed")}
+          className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
         />
       </div>
       <div>
@@ -169,7 +163,8 @@ export function PropertiesInspector({
                   checked={localIsPublic} 
                   onCheckedChange={handleIsPublicChange}
                   disabled={isViewOnlyMode}
-                  className={cn(isViewOnlyMode && "cursor-not-allowed")}
+                  className={cn(isViewOnlyMode && "cursor-not-allowed data-[state=checked]:bg-muted-foreground/30 data-[state=unchecked]:bg-muted/30")}
+                  thumbClassName={cn(isViewOnlyMode && "bg-muted-foreground/50" )}
               />
               <Label 
                 htmlFor="isPublicSwitch" 
@@ -187,7 +182,7 @@ export function PropertiesInspector({
           onChange={handleSharedIdChange}
           placeholder="Enter classroom ID or leave blank"
           disabled={isViewOnlyMode}
-          className={cn(isViewOnlyMode && "cursor-not-allowed")}
+          className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
         />
       </div>
     </>
@@ -201,11 +196,11 @@ export function PropertiesInspector({
       </div>
       <div>
         <Label htmlFor="nodeLabel" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Label (Text)</Label>
-        <Input id="nodeLabel" value={elementLabel} onChange={handleElementLabelChange} disabled={isViewOnlyMode} />
+        <Input id="nodeLabel" value={elementLabel} onChange={handleElementLabelChange} disabled={isViewOnlyMode} className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}/>
       </div>
       <div className="mt-2">
         <Label htmlFor="nodeDetails" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Details</Label>
-        <Textarea id="nodeDetails" value={elementDetails} onChange={handleElementDetailsChange} disabled={isViewOnlyMode} rows={3} className="resize-none"/>
+        <Textarea id="nodeDetails" value={elementDetails} onChange={handleElementDetailsChange} disabled={isViewOnlyMode} rows={3} className={cn("resize-none", isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}/>
       </div>
       <div className="mt-2">
         <Label htmlFor="nodeType" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Type</Label>
@@ -215,6 +210,7 @@ export function PropertiesInspector({
           onChange={handleElementNodeTypeChange} 
           disabled={isViewOnlyMode} 
           placeholder="e.g., service, component, feature"
+          className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
         /> 
       </div>
     </>
@@ -228,7 +224,7 @@ export function PropertiesInspector({
       </div>
       <div>
         <Label htmlFor="edgeLabel" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Label</Label>
-        <Input id="edgeLabel" value={elementLabel} onChange={handleElementLabelChange} disabled={isViewOnlyMode} />
+        <Input id="edgeLabel" value={elementLabel} onChange={handleElementLabelChange} disabled={isViewOnlyMode} className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}/>
       </div>
     </>
   );
@@ -271,4 +267,3 @@ export function PropertiesInspector({
     </Card>
   );
 }
-

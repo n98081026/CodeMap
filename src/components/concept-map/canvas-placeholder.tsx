@@ -9,12 +9,10 @@ import type { ConceptMapData } from "@/types";
 
 
 interface CanvasPlaceholderProps {
-  mapData?: ConceptMapData; // Still here if we want to show textual alongside graphical, but primary display shifts
-  // The following props might be removed if this component is fully replaced or only shows AI suggestions textually
+  mapData?: ConceptMapData; 
   extractedConcepts?: string[];
   suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
   expandedConcepts?: string[];
-  // mockCanvasItems?: Array<{ id: string; type: 'node' | 'edge'; label: string }>; // mockCanvasItems are not used with ReactFlow
   onAddExtractedConcepts?: (concepts: string[]) => void;
   onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
   onAddExpandedConcepts?: (concepts: string[]) => void;
@@ -22,21 +20,16 @@ interface CanvasPlaceholderProps {
 }
 
 export function CanvasPlaceholder({
-  mapData, // This component will likely be deprecated or repurposed for AI suggestion display only
+  mapData, 
   extractedConcepts,
   suggestedRelations,
   expandedConcepts,
-  // mockCanvasItems,
   onAddExtractedConcepts,
   onAddSuggestedRelations,
   onAddExpandedConcepts,
   isViewOnlyMode
 }: CanvasPlaceholderProps) {
   
-  // This component's role changes. It might become a textual display for AI suggestions
-  // if the main canvas is now handled by InteractiveCanvas.
-  // For now, let's assume it might still show AI outputs textually.
-
   const hasAiOutput =
     (extractedConcepts && extractedConcepts.length > 0) ||
     (suggestedRelations && suggestedRelations.length > 0) ||
@@ -46,9 +39,6 @@ export function CanvasPlaceholder({
   const hasMapDataEdges = mapData && mapData.edges && mapData.edges.length > 0;
   const hasAnyContent = hasAiOutput || hasMapDataNodes || hasMapDataEdges;
 
-
-  // If InteractiveCanvas is used, this component might only show AI suggestions or be removed.
-  // The following rendering logic is kept but might become redundant or repurposed.
   return (
     <Card className="h-[calc(100vh-200px)] w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
       <CardContent className="flex h-full flex-col items-center justify-center text-center p-4">
@@ -60,7 +50,7 @@ export function CanvasPlaceholder({
               The interactive canvas is now active. Use the toolbar to add elements.
             </p>
             <p className="text-xs text-muted-foreground/70 mt-2">
-              (This placeholder might be used for AI suggestions if needed.)
+              This area shows AI suggestions textually below the canvas.
             </p>
           </>
         ) : (
@@ -70,7 +60,6 @@ export function CanvasPlaceholder({
                  Textual Map & AI Suggestions
                </h3>
 
-              {/* Display Nodes from mapData */}
               {hasMapDataNodes && (
                 <Card className="mb-4 bg-primary/5">
                   <CardHeader>
@@ -94,7 +83,6 @@ export function CanvasPlaceholder({
                 </Card>
               )}
 
-              {/* Display Edges from mapData */}
               {hasMapDataEdges && (
                  <Card className="mb-4 bg-green-500/5">
                   <CardHeader>
@@ -119,7 +107,6 @@ export function CanvasPlaceholder({
                 </Card>
               )}
               
-              {/* AI Suggestions Sections */}
               {extractedConcepts && extractedConcepts.length > 0 && onAddExtractedConcepts && (
                 <div className="p-3 border rounded-md bg-background/50">
                   <h4 className="font-semibold text-primary mb-2 flex items-center"><SearchCode className="mr-2 h-5 w-5"/>Extracted Concepts:</h4>
@@ -175,7 +162,7 @@ export function CanvasPlaceholder({
               )}
               {hasAnyContent && (
                  <p className="text-xs text-muted-foreground/70 mt-6 text-center">
-                   Map elements are now rendered on the interactive canvas.
+                   Map elements are rendered on the interactive canvas above. AI suggestions can be added from here.
                  </p>
               )}
             </div>
@@ -185,3 +172,4 @@ export function CanvasPlaceholder({
     </Card>
   );
 }
+

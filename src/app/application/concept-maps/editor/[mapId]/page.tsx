@@ -539,7 +539,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
         if (sharedWithClassroomId && !isNewMapMode) {
           return `/application/teacher/classrooms/${sharedWithClassroomId}`;
         }
-        return "/application/teacher/dashboard"; // Fallback for teacher if no specific classroom context or new map
+        return "/application/teacher/dashboard"; 
       case UserRole.ADMIN: return "/application/admin/dashboard";
       default: return "/";
     }
@@ -616,7 +616,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     <div className="flex h-full flex-col space-y-4">
       <DashboardHeader
         title={isViewOnlyMode ? `Viewing: ${mapName}` : mapName}
-        description={isViewOnlyMode ? "This map is in view-only mode." : "Create, edit, and visualize your ideas. Nodes are draggable."}
+        description={isViewOnlyMode ? "This map is in view-only mode. Interactions are disabled." : "Create, edit, and visualize your ideas. Nodes are draggable."}
         icon={(isNewMapMode || actualParams.mapId === 'new') ? Compass : Share2}
         iconLinkHref={getRoleBasedDashboardLink()}
       >

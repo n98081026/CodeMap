@@ -61,7 +61,7 @@ export function EditorToolbar({
               <FilePlus className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>New Map</TooltipContent>
+          <TooltipContent>New Map (Disabled in View Mode)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -69,7 +69,7 @@ export function EditorToolbar({
               {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Save Map</TooltipContent>
+          <TooltipContent>Save Map (Disabled in View Mode)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -77,7 +77,7 @@ export function EditorToolbar({
               <Upload className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Import</TooltipContent>
+          <TooltipContent>Import (Disabled in View Mode)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -85,7 +85,7 @@ export function EditorToolbar({
               <Download className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Export</TooltipContent>
+          <TooltipContent>Export (Disabled in View Mode)</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />
@@ -97,7 +97,7 @@ export function EditorToolbar({
               <Undo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Undo</TooltipContent>
+          <TooltipContent>Undo (Disabled in View Mode)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -105,7 +105,7 @@ export function EditorToolbar({
               <Redo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Redo</TooltipContent>
+          <TooltipContent>Redo (Disabled in View Mode)</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />
@@ -117,7 +117,7 @@ export function EditorToolbar({
               <PlusSquare className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Add Node</TooltipContent>
+          <TooltipContent>Add Node (Disabled in View Mode)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -125,7 +125,7 @@ export function EditorToolbar({
               <Spline className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Add Edge</TooltipContent>
+          <TooltipContent>Add Edge (Disabled in View Mode)</TooltipContent>
         </Tooltip>
         
         <Separator orientation="vertical" className="mx-1 h-full" />
@@ -137,7 +137,7 @@ export function EditorToolbar({
               <SearchCode className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Extract Concepts (AI)</TooltipContent>
+          <TooltipContent>Extract Concepts (AI) (Disabled in View Mode)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -145,7 +145,7 @@ export function EditorToolbar({
               <Lightbulb className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Suggest Relations (AI)</TooltipContent>
+          <TooltipContent>Suggest Relations (AI) (Disabled in View Mode)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -153,7 +153,7 @@ export function EditorToolbar({
               <Brain className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Expand Concept (AI)</TooltipContent>
+          <TooltipContent>Expand Concept (AI) (Disabled in View Mode)</TooltipContent>
         </Tooltip>
 
         {/* Spacer */}
