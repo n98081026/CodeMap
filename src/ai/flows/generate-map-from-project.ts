@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file defines a Genkit flow to generate a concept map from a project's code.
@@ -12,7 +13,12 @@ import {z} from 'genkit';
 
 const GenerateMapFromProjectInputSchema = z.object({
   projectDescription: z.string().describe('A high-level description of the software project, its purpose, and main functionalities.'),
-  projectCodeStructure: z.string().describe('A textual representation of the project\'s directory and file structure. This could be an output from a tree command or a summary of key files and their roles.'),
+  projectCodeStructure: z.string().describe(
+    "A textual representation of the project's directory and file structure. " +
+    "This should ideally include key directories, main files within them, their primary exports or roles, " +
+    "and any significant internal or external dependencies if known. " +
+    "For example: 'Project Root: my-app.zip\\nsrc/ (contains: components/, services/)\\n  components/Button.tsx (exports: ButtonComponent)\\n  services/api.ts (imports: axios; exports: fetchData)\\nutils/helpers.js (exports: formatData)\\npackage.json (dependencies: react, zod)'"
+  ),
 });
 export type GenerateMapFromProjectInput = z.infer<typeof GenerateMapFromProjectInputSchema>;
 
@@ -43,16 +49,17 @@ Project Code Structure:
 Based on the above information, generate a concept map with the following characteristics:
 
 1.  **Nodes**:
-    *   Represent major directories as logical blocks or high-level components.
-    *   Represent key files (e.g., main entry points, core modules, service definitions) as distinct modules or services.
-    *   Represent significant classes, functions, or data structures if they are central to the architecture or functionality.
+    *   Represent major directories as logical blocks or high-level components (e.g., 'src', 'components', 'services').
+    *   Represent key files (e.g., main entry points, core modules, service definitions, UI components) as distinct modules or services.
+    *   Represent significant classes, functions, or data structures if they are central to the architecture or functionality, especially if mentioned as exports in the code structure.
     *   Infer and represent high-level features or user stories as functional nodes if evident from the description or structure.
-    *   Identify and represent key external dependencies or services if mentioned.
+    *   Identify and represent key external dependencies or services if mentioned (e.g., from package.json or import statements in the code structure).
 
 2.  **Node Types**: Use clear and consistent types for your nodes. Suggested types include: 'directory', 'file', 'module', 'service', 'class', 'function', 'feature', 'data_structure', 'external_dependency', 'ui_component', 'api_endpoint'. Choose the most appropriate type for each node. Each node must have an "id" (unique string), "text" (display label), and "type". Optionally, include "details" for a brief explanation.
 
 3.  **Relationships (Edges)**: Define meaningful relationships between nodes.
     *   Use descriptive labels like: 'contains', 'imports', 'exports', 'calls', 'inherits_from', 'implements', 'depends_on', 'manages', 'interacts_with', 'routes_to', 'triggers', 'uses_data'.
+    *   Pay close attention to 'imports' and 'exports' relationships if this information is present in the projectCodeStructure.
     *   Focus on primary relationships that highlight the architecture and data flow.
     *   Each edge must have an "id" (unique string), "source" (source node id), "target" (target node id), and "label".
 
@@ -103,3 +110,4 @@ const generateMapFromProjectFlow = ai.defineFlow(
     return output!;
   }
 );
+

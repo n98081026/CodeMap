@@ -157,8 +157,28 @@ export function ProjectUploadForm() {
       await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.PROCESSING);
       await new Promise(resolve => setTimeout(resolve, 1000)); 
       
-      const projectDescription = `Project file: ${currentSubmissionForAI.originalFileName}. Submitted for classroom: ${currentSubmissionForAI.classroomId || 'N/A'}`;
-      const projectCodeStructure = `File: ${currentSubmissionForAI.originalFileName}, Size: ${currentSubmissionForAI.fileSize} bytes. (Mock structure for AI)`;
+      const projectDescription = `Project file: ${currentSubmissionForAI.originalFileName}. Submitted by ${user.name}. Project submitted for classroom: ${currentSubmissionForAI.classroomId || 'Personal Project'}. Focus on identifying main components and their interactions.`;
+      
+      // Enhanced mock projectCodeStructure
+      const projectCodeStructure = `
+        Project Root: ${currentSubmissionForAI.originalFileName} (Size: ${(currentSubmissionForAI.fileSize / 1024).toFixed(2)} KB)
+        
+        Key Directories & Files (Example):
+        /src
+          /components
+            - Button.tsx (exports: ButtonComponent; details: Reusable UI button)
+            - UserProfile.tsx (exports: UserProfileDisplay; uses: AvatarComponent)
+          /services
+            - authService.ts (exports: loginUser, logoutUser; depends_on: apiHelper)
+            - dataService.ts (exports: fetchData, saveData; details: Handles API calls for core data)
+          /pages
+            - HomePage.tsx (uses: ButtonComponent, dataService)
+            - SettingsPage.tsx (uses: UserProfileDisplay)
+          - app.ts (main entry; imports: authService, dataService, HomePage)
+        /utils
+          - helpers.ts (exports: formatUtility, validationUtility)
+        package.json (dependencies: react, nextjs, zod, lucide-react)
+      `;
       
       const mapResult = await aiGenerateMapFromProject({ projectDescription, projectCodeStructure });
       
@@ -173,7 +193,7 @@ export function ProjectUploadForm() {
       }
 
       const newMapPayload = {
-        name: `Generated Map for ${currentSubmissionForAI.originalFileName}`,
+        name: `AI Map for ${currentSubmissionForAI.originalFileName}`,
         ownerId: user.id,
         mapData: parsedMapData,
         isPublic: false,
