@@ -26,104 +26,124 @@ export default function StudentDashboardPage() {
   const { toast } = useToast();
 
   const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true); 
-  const [error, setError] = useState<string | null>(null);
+  
+  const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(true);
+  const [isLoadingMaps, setIsLoadingMaps] = useState(true);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(true);
+
+  const [errorClassrooms, setErrorClassrooms] = useState<string | null>(null);
+  const [errorMaps, setErrorMaps] = useState<string | null>(null);
+  const [errorSubmissions, setErrorSubmissions] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!user) {
-        setIsLoadingData(false); 
+        setIsLoadingClassrooms(false);
+        setIsLoadingMaps(false);
+        setIsLoadingSubmissions(false);
         return;
       }
-      setIsLoadingData(true); 
-      setError(null); 
+
+      // Reset states for each item
+      setIsLoadingClassrooms(true); setErrorClassrooms(null);
+      setIsLoadingMaps(true); setErrorMaps(null);
+      setIsLoadingSubmissions(true); setErrorSubmissions(null);
+
+      let classroomsCount = 0;
+      let mapsCount = 0;
+      let submissionsCount = 0;
 
       try {
-        const [classroomsResponse, mapsResponse, submissionsResponse] = await Promise.all([
-          fetch(`/api/classrooms?studentId=${user.id}`),
-          fetch(`/api/concept-maps?ownerId=${user.id}`),
-          fetch(`/api/projects/submissions?studentId=${user.id}`)
-        ]);
-
-        let classroomsCount = 0;
-        let mapsCount = 0;
-        let submissionsCount = 0;
-        let errors: string[] = [];
-
-        // Helper to process each response
-        const processResponse = async (response: Response, itemName: string): Promise<number> => {
-          if (response.ok) {
-            const data = await response.json();
-            return data.length;
-          } else {
-            let errorLead = `${itemName} API Error (${response.status})`;
-            let errorDetail = response.statusText || "Unknown error";
-            try {
-              // Attempt to parse JSON error from API
-              const errData = await response.json();
-              errorDetail = errData.message || errorDetail;
-            } catch (jsonError) {
-              // If .json() fails, response was not JSON. Try to get text.
-              const textError = await response.text().catch(() => "Could not read error response body.");
-              errorDetail = `${errorDetail} (Response not JSON: ${textError.substring(0, 100)}${textError.length > 100 ? '...' : ''})`;
-            }
-            errors.push(`${errorLead}: ${errorDetail}`);
-            return 0; // Return 0 for count on error
-          }
-        };
-
-        classroomsCount = await processResponse(classroomsResponse, "Classrooms");
-        mapsCount = await processResponse(mapsResponse, "Concept Maps");
-        submissionsCount = await processResponse(submissionsResponse, "Project Submissions");
-        
-        setDashboardData({
-          enrolledClassroomsCount: classroomsCount,
-          conceptMapsCount: mapsCount,
-          projectSubmissionsCount: submissionsCount,
-        });
-
-        if (errors.length > 0) {
-          const combinedErrorMessage = errors.join('; ');
-          throw new Error(combinedErrorMessage);
+        const classroomsResponse = await fetch(`/api/classrooms?studentId=${user.id}`);
+        if (!classroomsResponse.ok) {
+          let errorMsg = `Classrooms API Error (${classroomsResponse.status})`;
+          try { const errData = await classroomsResponse.json(); errorMsg = `${errorMsg}: ${errData.message || classroomsResponse.statusText}`; }
+          catch(e) { errorMsg = `${errorMsg}: ${classroomsResponse.statusText || "Failed to parse error"}`;}
+          setErrorClassrooms(errorMsg);
+          toast({ title: "Error Fetching Classrooms", description: errorMsg, variant: "destructive" });
+        } else {
+          const data = await classroomsResponse.json();
+          classroomsCount = data.length;
         }
-
       } catch (err) {
         const errorMessage = (err as Error).message;
-        console.error("Error fetching student dashboard data:", errorMessage);
-        setError(errorMessage); 
-        toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
-        setDashboardData(prev => prev || { enrolledClassroomsCount: 0, conceptMapsCount: 0, projectSubmissionsCount: 0 });
+        setErrorClassrooms(errorMessage);
+        toast({ title: "Error Fetching Classrooms", description: errorMessage, variant: "destructive" });
       } finally {
-        setIsLoadingData(false); 
+        setIsLoadingClassrooms(false);
       }
+
+      try {
+        const mapsResponse = await fetch(`/api/concept-maps?ownerId=${user.id}`);
+         if (!mapsResponse.ok) {
+          let errorMsg = `Concept Maps API Error (${mapsResponse.status})`;
+          try { const errData = await mapsResponse.json(); errorMsg = `${errorMsg}: ${errData.message || mapsResponse.statusText}`; }
+          catch(e) { errorMsg = `${errorMsg}: ${mapsResponse.statusText || "Failed to parse error"}`;}
+          setErrorMaps(errorMsg);
+          toast({ title: "Error Fetching Concept Maps", description: errorMsg, variant: "destructive" });
+        } else {
+          const data = await mapsResponse.json();
+          mapsCount = data.length;
+        }
+      } catch (err) {
+        const errorMessage = (err as Error).message;
+        setErrorMaps(errorMessage);
+        toast({ title: "Error Fetching Concept Maps", description: errorMessage, variant: "destructive" });
+      } finally {
+        setIsLoadingMaps(false);
+      }
+      
+      try {
+        const submissionsResponse = await fetch(`/api/projects/submissions?studentId=${user.id}`);
+        if (!submissionsResponse.ok) {
+          let errorMsg = `Submissions API Error (${submissionsResponse.status})`;
+          try { const errData = await submissionsResponse.json(); errorMsg = `${errorMsg}: ${errData.message || submissionsResponse.statusText}`; }
+          catch(e) { errorMsg = `${errorMsg}: ${submissionsResponse.statusText || "Failed to parse error"}`;}
+          setErrorSubmissions(errorMsg);
+          toast({ title: "Error Fetching Submissions", description: errorMsg, variant: "destructive" });
+        } else {
+          const data = await submissionsResponse.json();
+          submissionsCount = data.length;
+        }
+      } catch (err) {
+        const errorMessage = (err as Error).message;
+        setErrorSubmissions(errorMessage);
+        toast({ title: "Error Fetching Submissions", description: errorMessage, variant: "destructive" });
+      } finally {
+        setIsLoadingSubmissions(false);
+      }
+      
+      setDashboardData({
+        enrolledClassroomsCount: classroomsCount,
+        conceptMapsCount: mapsCount,
+        projectSubmissionsCount: submissionsCount,
+      });
     };
 
     if (user) {
       fetchDashboardData();
     } else {
-       setIsLoadingData(false); 
+       setIsLoadingClassrooms(false);
+       setIsLoadingMaps(false);
+       setIsLoadingSubmissions(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, toast]);
 
-  if (!user) return <LoadingSpinner />;
+  if (!user && (isLoadingClassrooms || isLoadingMaps || isLoadingSubmissions)) return <LoadingSpinner />;
+  if (!user) return null; // Or redirect to login if preferred
 
-  const displayCountOrError = (count: number | undefined, itemError: boolean) => {
-    if (isLoadingData) {
-      return <div className="flex items-center space-x-2"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading...</span></div>;
+  const displayCountOrError = (count: number | undefined, isLoading: boolean, error: string | null, itemName: string) => {
+    if (isLoading) {
+      return <div className="flex items-center space-x-2"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (itemError && (count === 0 || count === undefined)) { // Show error if there was an error for this item and count is 0/undefined
+    if (error) { // Show error if there was an error for this item, regardless of count
         return <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
   };
   
-  // Check if any part of the error message indicates a specific item failed.
-  // This is a simplification; more granular error state per item would be better.
-  const classroomError = !!error && (error.includes("Classrooms") || dashboardData?.enrolledClassroomsCount === 0 && isLoadingData === false);
-  const mapsError = !!error && (error.includes("Concept Maps") || dashboardData?.conceptMapsCount === 0 && isLoadingData === false);
-  const submissionsError = !!error && (error.includes("Submissions") || dashboardData?.projectSubmissionsCount === 0 && isLoadingData === false);
-
-
   return (
     <div className="space-y-6">
       <DashboardHeader 
@@ -139,7 +159,7 @@ export default function StudentDashboardPage() {
             <BookOpen className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>
-            {displayCountOrError(dashboardData?.enrolledClassroomsCount, classroomError)}
+            {displayCountOrError(dashboardData?.enrolledClassroomsCount, isLoadingClassrooms, errorClassrooms, "classrooms")}
             <p className="text-xs text-muted-foreground mb-4">
               Classrooms you are enrolled in.
             </p>
@@ -155,7 +175,7 @@ export default function StudentDashboardPage() {
             <Share2 className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>
-            {displayCountOrError(dashboardData?.conceptMapsCount, mapsError)}
+            {displayCountOrError(dashboardData?.conceptMapsCount, isLoadingMaps, errorMaps, "maps")}
             <p className="text-xs text-muted-foreground mb-4">
               Concept maps you have created or have access to.
             </p>
@@ -171,7 +191,7 @@ export default function StudentDashboardPage() {
             <FolderKanban className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>
-             {displayCountOrError(dashboardData?.projectSubmissionsCount, submissionsError)}
+             {displayCountOrError(dashboardData?.projectSubmissionsCount, isLoadingSubmissions, errorSubmissions, "submissions")}
             <p className="text-xs text-muted-foreground mb-4">
               Projects you have submitted for analysis.
             </p>
@@ -203,5 +223,3 @@ export default function StudentDashboardPage() {
     </div>
   );
 }
-
-    

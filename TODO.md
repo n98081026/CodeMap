@@ -102,9 +102,10 @@
 - Default test student and teacher accounts are set up for easier development and testing (see `AuthContext` and mock data files).
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
 - Concept map canvas is a placeholder.
-- Project analysis pipeline is mocked at the UI level (AI map generation call updates status).
+- Project analysis pipeline is mocked at the UI level (AI map gen call updates status).
 - `next-themes` for theme toggling is integrated.
 - App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" typically handled by registration.
 - Change password functionality on profile page is a placeholder.
+
