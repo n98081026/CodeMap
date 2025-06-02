@@ -42,7 +42,8 @@ export default function AdminDashboardPage() {
       setIsLoadingUsers(true);
       setErrorUsers(null);
       try {
-        const usersResponse = await fetch('/api/users'); // Fetches first page by default, but totalCount is what we need
+        // The /api/users endpoint with pagination includes totalCount
+        const usersResponse = await fetch('/api/users?page=1&limit=1'); 
         if (!usersResponse.ok) {
           const errData = await usersResponse.json();
           throw new Error(`Failed to fetch users: ${errData.message || usersResponse.statusText}`);
@@ -64,7 +65,8 @@ export default function AdminDashboardPage() {
       setIsLoadingClassrooms(true);
       setErrorClassrooms(null);
       try {
-        const classroomsResponse = await fetch('/api/classrooms'); // No query params implies fetch all for admin
+        // Calling /api/classrooms without params fetches all classrooms for admin count
+        const classroomsResponse = await fetch('/api/classrooms'); 
         if (!classroomsResponse.ok) {
           const errData = await classroomsResponse.json();
           throw new Error(`Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`);
@@ -89,6 +91,7 @@ export default function AdminDashboardPage() {
 
 
   if (!user || user.role !== UserRole.ADMIN) {
+    // Show a loader or null while redirecting or if auth state is initially loading
     return ( 
         <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -100,7 +103,7 @@ export default function AdminDashboardPage() {
     if (isLoading) {
       return <div className="flex items-center space-x-2"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (error) {
+    if (error && (count === null || count === 0) ) { // Show error only if data isn't already available
         return <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
@@ -112,7 +115,7 @@ export default function AdminDashboardPage() {
         title="Admin Dashboard"
         description="System overview and management tools."
         icon={LayoutDashboard}
-        iconLinkHref="/application/admin/dashboard"
+        iconLinkHref="/application/admin/dashboard" // Ensured this points to the admin dashboard
       />
 
       <div className="grid gap-6 md:grid-cols-2">
