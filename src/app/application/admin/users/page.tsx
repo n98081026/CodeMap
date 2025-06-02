@@ -9,10 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
-import Link from "next/link";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from '@/contexts/auth-context';
 
 const USERS_PER_PAGE = 7;
 
@@ -43,6 +43,7 @@ export default function AdminUsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user: adminUser } = useAuth();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -51,6 +52,11 @@ export default function AdminUsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
+
+  let adminDashboardLink = "/application/admin/dashboard";
+   if (adminUser && adminUser.role !== UserRole.ADMIN) {
+     adminDashboardLink = adminUser.role === UserRole.TEACHER ? "/application/teacher/dashboard" : "/application/student/dashboard";
+  }
 
 
   const fetchUsers = useCallback(async (page: number) => {
@@ -90,7 +96,6 @@ export default function AdminUsersPage() {
         throw new Error(errorData.message || "Failed to delete user");
       }
       toast({ title: "User Deleted", description: `User "${userName}" has been deleted.` });
-      // Refresh users, potentially adjusting currentPage if last item on page deleted
       if (users.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
@@ -101,16 +106,16 @@ export default function AdminUsersPage() {
     }
   };
   
-  const openEditModal = (user: User) => {
-    setEditingUser(user);
-    setEditFormData({ name: user.name, email: user.email, role: user.role });
+  const openEditModal = (userToEdit: User) => {
+    setEditingUser(userToEdit);
+    setEditFormData({ name: userToEdit.name, email: userToEdit.email, role: userToEdit.role });
     setIsEditModalOpen(true);
   };
 
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement> | string, fieldName?: string) => {
-    if (typeof e === "string" && fieldName) { // For Select component
+    if (typeof e === "string" && fieldName) { 
       setEditFormData(prev => ({ ...prev, [fieldName]: e as UserRole }));
-    } else if (typeof e !== "string") { // For Input components
+    } else if (typeof e !== "string") { 
       const { name, value } = e.target;
       setEditFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -131,7 +136,7 @@ export default function AdminUsersPage() {
       toast({ title: "User Updated", description: `User "${editFormData.name}" has been updated.` });
       setIsEditModalOpen(false);
       setEditingUser(null);
-      fetchUsers(currentPage); // Refresh current page
+      fetchUsers(currentPage); 
     } catch (err) {
       toast({ title: "Error Updating User", description: (err as Error).message, variant: "destructive" });
     }
@@ -155,12 +160,8 @@ export default function AdminUsersPage() {
         title="User Management"
         description="View, edit, and manage all users in the system."
         icon={Users}
+        iconLinkHref={adminDashboardLink}
       >
-        <Button asChild variant="outline">
-          <Link href="/application/admin/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Admin Dashboard
-          </Link>
-        </Button>
         <Button disabled>
           <PlusCircle className="mr-2 h-4 w-4" /> Add New User
         </Button>
@@ -207,22 +208,22 @@ export default function AdminUsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
+                {users.map((userRow) => (
+                  <TableRow key={userRow.id}>
+                    <TableCell className="font-medium">{userRow.name}</TableCell>
+                    <TableCell>{userRow.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === UserRole.ADMIN ? "destructive" : user.role === UserRole.TEACHER ? "secondary" : "default"}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      <Badge variant={userRow.role === UserRole.ADMIN ? "destructive" : userRow.role === UserRole.TEACHER ? "secondary" : "default"}>
+                        {userRow.role.charAt(0).toUpperCase() + userRow.role.slice(1)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="mr-2" title="Edit user" onClick={() => openEditModal(user)} disabled={user.id === "student-test-id" || user.id === "teacher-test-id"}>
+                      <Button variant="ghost" size="icon" className="mr-2" title="Edit user" onClick={() => openEditModal(userRow)} disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id"}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" title="Delete user" disabled={user.id === "student-test-id" || user.id === "teacher-test-id"}>
+                          <Button variant="ghost" size="icon" title="Delete user" disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id"}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </AlertDialogTrigger>
@@ -230,12 +231,12 @@ export default function AdminUsersPage() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the user "{user.name}".
+                              This action cannot be undone. This will permanently delete the user "{userRow.name}".
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteUser(user.id, user.name)}>
+                            <AlertDialogAction onClick={() => handleDeleteUser(userRow.id, userRow.name)}>
                               Delete User
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -278,7 +279,6 @@ export default function AdminUsersPage() {
         </Card>
       )}
       
-      {/* Edit User Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -318,4 +318,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-```

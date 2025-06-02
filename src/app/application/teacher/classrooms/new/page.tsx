@@ -1,3 +1,4 @@
+
 // src/app/application/teacher/classrooms/new/page.tsx
 "use client";
 
@@ -20,7 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Users, BookOpen, Loader2 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { useAuth } from "@/contexts/auth-context"; // To get teacherId
+import { useAuth } from "@/contexts/auth-context"; 
+import { UserRole } from "@/types";
 
 const classroomFormSchema = z.object({
   name: z.string().min(3, { message: "Classroom name must be at least 3 characters." }).max(100),
@@ -30,7 +32,12 @@ const classroomFormSchema = z.object({
 export default function CreateClassroomPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user } = useAuth(); // Get current user to pass teacherId
+  const { user } = useAuth(); 
+
+  let teacherDashboardLink = "/application/teacher/dashboard";
+  if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) {
+     teacherDashboardLink = "/application/admin/dashboard";
+  }
 
   const form = useForm<z.infer<typeof classroomFormSchema>>({
     resolver: zodResolver(classroomFormSchema),
@@ -50,7 +57,7 @@ export default function CreateClassroomPage() {
       return;
     }
 
-    form.formState.isSubmitting; // to trigger loading state on button
+    // form.formState.isSubmitting; // This line doesn't do anything, form.formState.isSubmitting is read in button
 
     try {
       const response = await fetch('/api/classrooms', {
@@ -69,15 +76,13 @@ export default function CreateClassroomPage() {
         title: "Classroom Created",
         description: `Classroom "${newClassroom.name}" has been successfully created.`,
       });
-      router.push("/application/teacher/classrooms"); // Redirect to classrooms list
+      router.push("/application/teacher/classrooms"); 
     } catch (error) {
       toast({
         title: "Error Creating Classroom",
         description: (error as Error).message,
         variant: "destructive",
       });
-    } finally {
-       // Manually reset isSubmitting if using form.formState.isSubmitting in button
     }
   }
 
@@ -87,6 +92,7 @@ export default function CreateClassroomPage() {
         title="Create New Classroom"
         description="Set up a new classroom for your students."
         icon={BookOpen}
+        iconLinkHref={teacherDashboardLink}
       />
       <Card className="shadow-lg">
         <CardHeader>
@@ -103,7 +109,7 @@ export default function CreateClassroomPage() {
                   <FormItem>
                     <FormLabel>Classroom Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Introduction to Computer Science" {...field} />
+                      <Input placeholder="e.g., Introduction to Computer Science" {...field} disabled={form.formState.isSubmitting}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -120,6 +126,7 @@ export default function CreateClassroomPage() {
                         placeholder="A brief description of the classroom's focus or goals."
                         className="resize-none"
                         {...field}
+                        disabled={form.formState.isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />

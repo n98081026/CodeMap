@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types"; 
-import { ProjectSubmissionStatus } from "@/types";
+import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,7 @@ import {
 
 
 export default function ClassroomDetailPage({ params }: { params: { classroomId: string } }) {
+  const { user } = useAuth();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
   const [isLoadingClassroom, setIsLoadingClassroom] = useState(true);
   const [errorClassroom, setErrorClassroom] = useState<string | null>(null);
@@ -39,6 +41,11 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
   const [classroomSubmissions, setClassroomSubmissions] = useState<ProjectSubmission[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [errorSubmissions, setErrorSubmissions] = useState<string | null>(null);
+
+  let teacherDashboardLink = "/application/teacher/dashboard";
+  if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) {
+     teacherDashboardLink = "/application/admin/dashboard";
+  }
 
   const fetchClassroomDetails = useCallback(async () => {
     setIsLoadingClassroom(true);
@@ -140,7 +147,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
   if (isLoadingClassroom) {
     return (
       <div className="space-y-6 p-4">
-        <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" />
+        <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={teacherDashboardLink}/>
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -151,7 +158,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
   if (errorClassroom || !classroom) {
     return (
       <div className="space-y-6 p-4">
-        <DashboardHeader title="Error" icon={AlertTriangle} />
+        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={teacherDashboardLink} />
         <Card>
           <CardHeader>
             <CardTitle className="text-destructive">Could not load classroom</CardTitle>
@@ -175,6 +182,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
         title={classroom.name}
         description={`Teacher: ${classroom.teacherName || 'N/A'} | Invite Code: ${classroom.inviteCode} | Manage students, maps, and submissions.`}
         icon={Users}
+        iconLinkHref={teacherDashboardLink}
       >
          <Button asChild variant="outline">
           <Link href="/application/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
@@ -267,7 +275,6 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                     </TableHeader>
                     <TableBody>
                         {classroomMaps.map((map) => {
-                        // Attempt to find owner in the main classroom student list, or show ID if not found (e.g. owner not a student in this class but shared it somehow)
                         const owner = enrolledStudents.find(s => s.id === map.ownerId); 
                         return (
                             <TableRow key={map.id}>
@@ -351,10 +358,3 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     </div>
   );
 }
-
-// Extend DashboardHeaderProps if needed for iconClassName, but it's not directly used in this file
-// declare module "@/components/dashboard/dashboard-header" {
-//   interface DashboardHeaderProps {
-//     iconClassName?: string;
-//   }
-// }

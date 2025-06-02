@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Classroom, ConceptMap } from "@/types";
+import { UserRole } from "@/types";
 import { ArrowLeft, BookOpen, Users, Share2, Loader2, AlertTriangle, Eye, FileText } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -20,6 +21,11 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
   const [isLoadingMaps, setIsLoadingMaps] = useState(true);
   const [errorClassroom, setErrorClassroom] = useState<string | null>(null);
   const [errorMaps, setErrorMaps] = useState<string | null>(null);
+
+  let studentDashboardLink = "/application/student/dashboard";
+   if (user && user.role !== UserRole.STUDENT) {
+    studentDashboardLink = user.role === UserRole.ADMIN ? "/application/admin/dashboard" : "/application/teacher/dashboard";
+  }
 
   const fetchClassroomDetails = useCallback(async () => {
     if (!params.classroomId) return;
@@ -69,7 +75,7 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
   if (isLoadingClassroom) {
     return (
       <div className="space-y-6 p-4">
-        <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" />
+        <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={studentDashboardLink} />
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -80,7 +86,7 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
   if (errorClassroom || !classroom) {
     return (
       <div className="space-y-6 p-4">
-        <DashboardHeader title="Error" icon={AlertTriangle} />
+        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={studentDashboardLink} />
         <Card>
           <CardHeader>
             <CardTitle className="text-destructive">Could not load classroom</CardTitle>
@@ -102,6 +108,7 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
         title={classroom.name}
         description={`Teacher: ${classroom.teacherName || "N/A"}. ${classroom.studentIds.length} students enrolled.`}
         icon={BookOpen}
+        iconLinkHref={studentDashboardLink}
       >
         <Button asChild variant="outline">
           <Link href="/application/student/classrooms">

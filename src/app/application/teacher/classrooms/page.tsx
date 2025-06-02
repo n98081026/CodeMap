@@ -1,3 +1,4 @@
+
 // src/app/application/teacher/classrooms/page.tsx
 "use client";
 
@@ -6,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
+import { UserRole } from "@/types";
 import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -23,12 +25,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogFooter as FormDialogFooter, // Renamed to avoid conflict
-  DialogHeader as FormDialogHeader, // Renamed
-  DialogTitle as FormDialogTitle, // Renamed
-  DialogTrigger as FormDialogTrigger, // Renamed
+  DialogFooter as FormDialogFooter, 
+  DialogHeader as FormDialogHeader, 
+  DialogTitle as FormDialogTitle, 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,11 @@ export default function TeacherClassroomsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null);
   const [editFormData, setEditFormData] = useState({ name: "", description: "" });
+
+  let teacherDashboardLink = "/application/teacher/dashboard";
+  if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) { // Admin only, not teacher
+     teacherDashboardLink = "/application/admin/dashboard";
+  }
 
 
   const fetchTeacherClassrooms = async () => {
@@ -78,7 +83,8 @@ export default function TeacherClassroomsPage() {
 
   useEffect(() => {
     fetchTeacherClassrooms();
-  }, [user, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleDeleteClassroom = async (classroomId: string, classroomName: string) => {
     try {
@@ -88,7 +94,7 @@ export default function TeacherClassroomsPage() {
         throw new Error(errorData.message || "Failed to delete classroom");
       }
       toast({ title: "Classroom Deleted", description: `Classroom "${classroomName}" has been deleted.` });
-      fetchTeacherClassrooms(); // Refresh list
+      fetchTeacherClassrooms(); 
     } catch (err) {
       toast({ title: "Error Deleting Classroom", description: (err as Error).message, variant: "destructive" });
     }
@@ -107,7 +113,7 @@ export default function TeacherClassroomsPage() {
 
   const handleUpdateClassroom = async () => {
     if (!editingClassroom) return;
-    setIsLoading(true); // Use general loading state for simplicity or add a specific one
+    setIsLoading(true); 
     try {
       const response = await fetch(`/api/classrooms/${editingClassroom.id}`, {
         method: 'PUT',
@@ -136,6 +142,7 @@ export default function TeacherClassroomsPage() {
         title="Manage Classrooms"
         description="View, edit, and manage your classrooms."
         icon={BookOpen}
+        iconLinkHref={teacherDashboardLink}
       >
         <Button asChild>
           <Link href="/application/teacher/classrooms/new">
@@ -228,7 +235,6 @@ export default function TeacherClassroomsPage() {
         </div>
       )}
       
-      {/* Edit Classroom Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent>
           <FormDialogHeader>

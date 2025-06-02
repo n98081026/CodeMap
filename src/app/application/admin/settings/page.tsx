@@ -6,22 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { UserRole } from "@/types";
+import { useAuth } from "@/contexts/auth-context";
+
 
 export default function AdminSettingsPage() {
+  const { user } = useAuth();
+  let adminDashboardLink = "/application/admin/dashboard";
+   if (user && user.role !== UserRole.ADMIN) {
+     adminDashboardLink = user.role === UserRole.TEACHER ? "/application/teacher/dashboard" : "/application/student/dashboard";
+  }
+
   return (
     <div className="space-y-6">
       <DashboardHeader
         title="System Settings"
         description="Configure global application settings and parameters."
         icon={Settings}
-      >
-        <Button asChild variant="outline">
-          <Link href="/application/admin/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Admin Dashboard
-          </Link>
-        </Button>
-      </DashboardHeader>
+        iconLinkHref={adminDashboardLink}
+      />
 
       <Card className="shadow-lg">
         <CardHeader>
@@ -36,17 +39,14 @@ export default function AdminSettingsPage() {
             <div>
               <h3 className="font-medium">Feature Flags</h3>
               <p className="text-sm text-muted-foreground">Enable or disable experimental features.</p>
-              {/* Placeholder for feature flag toggles */}
             </div>
             <div>
               <h3 className="font-medium">Notification Settings</h3>
               <p className="text-sm text-muted-foreground">Configure system-wide email notifications.</p>
-              {/* Placeholder for notification settings */}
             </div>
             <div>
               <h3 className="font-medium">API Rate Limits</h3>
               <p className="text-sm text-muted-foreground">Adjust API rate limits for different user roles.</p>
-              {/* Placeholder for rate limit settings */}
             </div>
           </div>
         </CardContent>

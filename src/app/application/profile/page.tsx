@@ -7,10 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { UserCircle, Shield, Edit3, KeyRound, ArrowLeft, Loader2 } from "lucide-react";
+import { UserCircle, Shield, Edit3, KeyRound, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { UserRole } from "@/types";
-import { useState } from "react";
+import React, { useState } from "react"; // Ensured React is imported
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
@@ -62,7 +61,7 @@ function EditProfileDialog({
       const response = await fetch(`/api/users/${currentUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: data.name, email: data.email }), // Only send name and email
+        body: JSON.stringify({ name: data.name, email: data.email }), 
       });
 
       if (!response.ok) {
@@ -70,9 +69,9 @@ function EditProfileDialog({
         throw new Error(errorData.message || "Failed to update profile.");
       }
       const updatedUser = await response.json();
-      onProfileUpdate(updatedUser); // This will call updateCurrentUserData from AuthContext
+      onProfileUpdate(updatedUser); 
       toast({ title: "Profile Updated", description: "Your profile has been successfully updated." });
-      onOpenChange(false); // Close dialog
+      onOpenChange(false); 
     } catch (error) {
       toast({
         title: "Update Failed",
@@ -84,7 +83,6 @@ function EditProfileDialog({
     }
   };
   
-  // Reset form if currentUser changes (e.g. on initial load or if props change)
   React.useEffect(() => {
     if (currentUser) {
       form.reset({
@@ -178,13 +176,8 @@ export default function ProfilePage() {
         title="My Profile"
         description="View and manage your account details."
         icon={UserCircle}
-      >
-        <Button asChild variant="outline">
-            <Link href={getDashboardLink()}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-            </Link>
-        </Button>
-      </DashboardHeader>
+        iconLinkHref={getDashboardLink()}
+      />
 
       <Card className="shadow-lg">
         <CardHeader>
@@ -252,7 +245,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       )}
-      {isEditProfileOpen && (
+      {isEditProfileOpen && user && (
         <EditProfileDialog 
             currentUser={user} 
             onProfileUpdate={handleProfileUpdated}

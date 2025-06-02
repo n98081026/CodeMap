@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { ConceptMap } from "@/types";
-import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
+import { UserRole } from "@/types";
+import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,11 @@ export default function StudentConceptMapsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  let studentDashboardLink = "/application/student/dashboard";
+  if (user && user.role !== UserRole.STUDENT) {
+    studentDashboardLink = user.role === UserRole.ADMIN ? "/application/admin/dashboard" : "/application/teacher/dashboard";
+  }
+
   const fetchStudentMaps = async () => {
     if (!user) {
       setIsLoading(false);
@@ -46,7 +52,6 @@ export default function StudentConceptMapsPage() {
           throw new Error(errorData.message || `Failed to fetch concept maps (Status: ${response.status})`);
         } else {
           let errorText = await response.text();
-          // Limit the length of the HTML error message to avoid overly long toasts
           if (errorText.length > 200) errorText = errorText.substring(0, 200) + "...";
           throw new Error(`Server error (Status: ${response.status}). Response: ${errorText}`);
         }
@@ -75,7 +80,7 @@ export default function StudentConceptMapsPage() {
       const response = await fetch(`/api/concept-maps/${mapId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ownerId: user.id }) // Send ownerId for authorization check
+        body: JSON.stringify({ ownerId: user.id }) 
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -85,7 +90,7 @@ export default function StudentConceptMapsPage() {
         title: "Concept Map Deleted",
         description: `"${mapName}" has been deleted.`,
       });
-      fetchStudentMaps(); // Refresh list
+      fetchStudentMaps(); 
     } catch (error) {
       toast({
         title: "Error Deleting Map",
@@ -101,12 +106,8 @@ export default function StudentConceptMapsPage() {
         title="My Concept Maps"
         description="Manage all your created and shared concept maps."
         icon={Share2}
+        iconLinkHref={studentDashboardLink}
       >
-        <Button asChild variant="outline">
-            <Link href="/application/student/dashboard">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-            </Link>
-        </Button>
         <Button asChild>
           <Link href="/application/concept-maps/editor/new">
             <PlusCircle className="mr-2 h-4 w-4" /> Create New Map
@@ -159,7 +160,6 @@ export default function StudentConceptMapsPage() {
                 <p className="text-sm text-muted-foreground">
                   Last updated: {new Date(map.updatedAt).toLocaleDateString()}
                 </p>
-                {/* Add more details like node/edge count if available */}
               </CardContent>
               <CardFooter className="grid grid-cols-3 gap-2">
                 <Button asChild variant="outline" size="sm">

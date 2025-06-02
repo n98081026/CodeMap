@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
-import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle, Inbox, ArrowLeft } from "lucide-react";
+import { UserRole } from "@/types";
+import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle, Inbox } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -19,9 +20,16 @@ export default function StudentClassroomsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  let studentDashboardLink = "/application/student/dashboard";
+  if (user && user.role !== UserRole.STUDENT) {
+    // Fallback if a non-student somehow reaches this page, though unlikely with auth context
+    studentDashboardLink = user.role === UserRole.ADMIN ? "/application/admin/dashboard" : "/application/teacher/dashboard";
+  }
+
+
   const fetchEnrolledClassrooms = async () => {
     if (!user) {
-        setIsLoading(false); // Stop loading if no user
+        setIsLoading(false); 
         return;
     }
     setIsLoading(true);
@@ -55,13 +63,8 @@ export default function StudentClassroomsPage() {
         title="My Classrooms"
         description="Here are the classrooms you are currently enrolled in."
         icon={BookOpen}
-      >
-        <Button asChild variant="outline">
-          <Link href="/application/student/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-          </Link>
-        </Button>
-      </DashboardHeader>
+        iconLinkHref={studentDashboardLink}
+      />
 
       {isLoading && (
         <div className="flex justify-center items-center py-10">

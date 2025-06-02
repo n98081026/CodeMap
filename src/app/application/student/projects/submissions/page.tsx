@@ -3,10 +3,11 @@
 
 import { useEffect, useState } from "react";
 import type { ProjectSubmission } from "@/types";
+import { UserRole } from "@/types";
 import { SubmissionListItem } from "@/components/projects/submission-list-item";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { FolderKanban, PlusCircle, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
+import { FolderKanban, PlusCircle, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
@@ -18,6 +19,11 @@ export default function MySubmissionsPage() {
   const [userSubmissions, setUserSubmissions] = useState<ProjectSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  let studentDashboardLink = "/application/student/dashboard";
+  if (user && user.role !== UserRole.STUDENT) {
+    studentDashboardLink = user.role === UserRole.ADMIN ? "/application/admin/dashboard" : "/application/teacher/dashboard";
+  }
 
   const fetchSubmissions = async () => {
     if (!user) return;
@@ -41,8 +47,8 @@ export default function MySubmissionsPage() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     if (user) fetchSubmissions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   return (
@@ -51,12 +57,8 @@ export default function MySubmissionsPage() {
         title="My Project Submissions"
         description="Track the status of your submitted projects and access generated concept maps."
         icon={FolderKanban}
+        iconLinkHref={studentDashboardLink}
       >
-        <Button asChild variant="outline">
-          <Link href="/application/student/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-          </Link>
-        </Button>
         <Button asChild>
           <Link href="/application/student/projects/submit">
             <PlusCircle className="mr-2 h-4 w-4" /> Submit New Project
