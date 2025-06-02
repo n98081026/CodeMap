@@ -40,11 +40,11 @@
     - [x] API endpoint for listing submissions by classroom (`GET /api/projects/submissions?classroomId=xxx`).
     - [x] API endpoint for getting submission details (`GET /api/projects/submissions/[submissionId]`).
     - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`). (Now updates status including real generated map ID)
-    - [ ] File storage integration (S3, GCS, or local).
-    - [ ] Message Queue setup (RabbitMQ, Redis, etc.).
+    - [ ] File storage integration (S3, GCS, or local). (Out of scope for agent)
+    - [ ] Message Queue setup (RabbitMQ, Redis, etc.). (Out of scope for agent)
     - [ ] Develop Project Analysis Microservice:
-        - [ ] Task consumer from message queue.
-        - [ ] File downloader/unpacker.
+        - [ ] Task consumer from message queue. (Out of scope for agent)
+        - [ ] File downloader/unpacker. (Out of scope for agent)
         - [x] Code/Structure Parser Engine (start with basic, then add AST for specific languages). (Input refined for AI, actual parser out of scope for agent)
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Gemini, parses output, creates new ConceptMap record, input string for structure enhanced).
         - [x] Map Data Formatter & Persister (saves generated map via service to mock DB, updates submission status with real map ID).
@@ -111,5 +111,7 @@
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
 - [x] Implement change password functionality on profile page (mocked backend).
+
+    
 
     
