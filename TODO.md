@@ -5,7 +5,7 @@
 - [x] **User Authentication (Backend):**
     - [x] Refactor API routes (`/login`, `/register`) to use `userService`.
     - [x] Connect frontend `AuthContext` to live API (with mock service).
-    - [ ] Implement actual API endpoints for JWT generation. (JWT part pending real auth)
+    - [ ] Implement actual API endpoints for JWT generation. (Pending real auth)
     - [ ] Secure password hashing and storage. (Pending real auth)
 - [x] **Database & Models:** (Services use in-memory mock data)
     - [x] Set up database (PostgreSQL/MongoDB as per final decision). (Mocked)
@@ -33,22 +33,22 @@
     - [x] Logic for map ownership and sharing (with classrooms, public) - Basic ownership and `sharedWithClassroomId` implemented.
     - [x] Connect frontend concept map listing (student) to live API for loading/deleting.
     - [x] Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).
-- [x] **Project Submission & Analysis (Backend & Frontend Integration):** (Core API & Service Done for metadata, status updates robust)
+- [x] **Project Submission & Analysis (Backend & Frontend Integration):** (Core API & Service Done for metadata, status updates robust, AI map gen saves real map)
     - [x] Create `projectSubmissionService.ts` with mock data management.
     - [x] API endpoint for project file uploads (`POST /api/projects/submissions` - metadata only, file handling mocked).
     - [x] API endpoint for listing student submissions (`GET /api/projects/submissions?studentId=xxx`).
     - [x] API endpoint for listing submissions by classroom (`GET /api/projects/submissions?classroomId=xxx`).
     - [x] API endpoint for getting submission details (`GET /api/projects/submissions/[submissionId]`).
-    - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`). (Mock AI gen updates status)
+    - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`). (Now updates status including real generated map ID)
     - [ ] File storage integration (S3, GCS, or local).
     - [ ] Message Queue setup (RabbitMQ, Redis, etc.).
     - [ ] Develop Project Analysis Microservice:
         - [ ] Task consumer from message queue.
         - [ ] File downloader/unpacker.
         - [ ] Code/Structure Parser Engine (start with basic, then add AST for specific languages).
-        - [x] LLM-Powered Structure-to-Map Converter (refine prompts, integrate with Gemini).
-        - [ ] Map Data Formatter & Persister (save generated map to DB, update submission status).
-    - [x] Connect frontend project submission UI to live API (for metadata, including mock AI map gen status update).
+        - [x] LLM-Powered Structure-to-Map Converter (integrates with Gemini, parses output, creates new ConceptMap record).
+        - [x] Map Data Formatter & Persister (saves generated map via service to mock DB, updates submission status with real map ID).
+    - [x] Connect frontend project submission UI to live API (for metadata, including real AI map generation and saving).
     - [x] Connect frontend student submissions list to live API.
     - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states.
     - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states.
@@ -58,8 +58,9 @@
 - [ ] **Concept Map Editor (Canvas):**
     - [ ] Implement actual canvas interactions (node/edge creation, drag, edit, delete).
     - [ ] Zoom/pan functionality.
-    - [x] Connect `PropertiesInspector` to selected elements on canvas (map-level properties connected and saved).
-    - [x] Visualize GenAI results (textually) on `CanvasPlaceholder`.
+    - [x] Connect `PropertiesInspector` to selected elements on canvas (map-level properties connected and saved, changes directly update parent state. Element-level properties pending actual canvas elements).
+    - [x] Visualize GenAI results (textually) on `CanvasPlaceholder`. (Also includes mock node/edge additions)
+    - [x] Simplify PropertiesInspector for map-level changes (remove local Apply/Cancel, changes directly update parent).
 - [ ] **State Management:**
     - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching.
 - [ ] **Real-time Features (Optional):**
@@ -73,6 +74,8 @@
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination, Teacher classrooms page has pagination).
     - [x] Add loading spinner to Login/Register pages during auth state check. (Current implementation prevents form flash, considered complete)
     - [x] Make header icons link to main dashboards for easier navigation.
+    - [x] Implement "View Only" mode for Concept Map Editor.
+    - [x] Refine PropertiesInspector in "View Only" mode (muted labels).
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow - Add button tooltip added).
     - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard, Admin Dashboard link to it enabled).
@@ -103,13 +106,12 @@
 
 ## Known Issues / Current Mocked Areas
 - Backend services are currently mocked (in-memory data).
-- AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage. This behavior is enhanced to auto-login based on URL structure (e.g., /admin path logs in admin).
+- AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage. This behavior is enhanced to auto-login based on URL structure (e.g., /admin path logs in admin, /teacher logs in teacher, else student).
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
-- Concept map canvas is a placeholder. Project analysis pipeline is mocked at the UI level (AI map gen call updates status).
+- Concept map canvas is a placeholder. Project Analysis now generates a real ConceptMap record from AI output.
 - `next-themes` for theme toggling is integrated.
 - App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
 - [x] Implement change password functionality on profile page (mocked backend).
-
-    
+```
