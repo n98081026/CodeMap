@@ -91,7 +91,7 @@
     - [x] Develop intuitive ways for users to interact with and utilize the outputs of GenAI tools within the concept map editor.
         - [x] Add placeholder "Add to Map" indicators for AI-generated content in CanvasPlaceholder. (Functional, adds to Zustand store)
     - [x] Allow users to accept/reject/modify AI suggestions.
-        - [x] Implement 'Add to Map' for AI suggestions, updating mapData state directly in Zustand store. (Functional)
+        - [x] Implement 'Add to Map' for AI suggestions, updating mapData state directly in Zustand store. (Functional, suggestions cleared after adding)
 
 ## Testing & Deployment (Future - Out of Scope for AI Agent Implementation)
 - [ ] **Testing:**
