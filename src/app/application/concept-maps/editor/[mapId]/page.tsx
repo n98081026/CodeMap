@@ -49,7 +49,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   
   const isViewOnlyMode = searchParams.get('viewOnly') === 'true'; 
 
-  // --- Zustand Store Selectors and Actions ---
+  // Zustand Store Selectors and Actions
   const store = useConceptMapStore();
   const { 
     mapId, mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
@@ -63,10 +63,15 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<RFConceptMapNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
 
+  // Local state for modal visibility
+  const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
+  const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
+  const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
+
 
   const loadMapData = useCallback(async (id: string) => {
     if (id === "new") {
-      store.initializeNewMap(user?.id || "unknown-user"); // Pass current user ID
+      store.initializeNewMap(user?.id || "unknown-user"); 
       return;
     }
 
@@ -98,7 +103,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
   // Sync store.mapData to React Flow's internal state (rfNodes, rfEdges)
   useEffect(() => {
-    const transformedNodes = (mapData.nodes || []).map(appNode => {
+    const transformedNodes = (store.mapData.nodes || []).map(appNode => {
       const existingRfNode = rfNodes.find(n => n.id === appNode.id);
       return {
         id: appNode.id,
@@ -122,7 +127,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     });
     setRfNodes(transformedNodes as RFNode<RFConceptMapNodeData>[]);
 
-    const transformedEdges = (mapData.edges || []).map(appEdge => ({
+    const transformedEdges = (store.mapData.edges || []).map(appEdge => ({
       id: appEdge.id,
       source: appEdge.source,
       target: appEdge.target,
@@ -134,7 +139,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     }));
     setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapData.nodes, mapData.edges, store.mapData]); // Depend on store.mapData
+  }, [store.mapData]); 
 
 
   const onRfNodesChange: OnNodesChange = useCallback((changes) => {
@@ -143,7 +148,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     
     changes.forEach(change => {
         if (change.type === 'position' && change.position && change.dragging === false) { 
-            store.updateNode(change.id, { x: change.position!.x, y: change.position!.y });
+            store.updateNode(change.id, { x: change.position.x, y: change.position.y });
         }
     });
   }, [setRfNodes, onNodesChangeReactFlow, isViewOnlyMode, store]);
@@ -232,9 +237,8 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
     store.setIsSaving(true);
     
-    // Ensure nodes have up-to-date positions from React Flow state if changed
     const finalNodesToSave = rfNodes.map(rfNode => {
-        const appNodeFromStore = mapData.nodes.find(n => n.id === rfNode.id);
+        const appNodeFromStore = store.mapData.nodes.find(n => n.id === rfNode.id);
         return {
             ...(appNodeFromStore || { id: rfNode.id, text: rfNode.data.label, type: rfNode.data.type || 'default'}),
             x: rfNode.position.x,
@@ -247,7 +251,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     
     const mapDataToSave: ConceptMapData = {
       nodes: finalNodesToSave,
-      edges: mapData.edges, 
+      edges: store.mapData.edges, 
     };
 
     const payload = {
@@ -260,7 +264,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
     try {
       let response;
-      const currentMapIdForAPI = isNewMapMode ? null : mapId;
+      const currentMapIdForAPI = isNewMapMode ? null : store.mapId; 
       
       if (!currentMapIdForAPI) { 
         response = await fetch('/api/concept-maps', {
@@ -289,7 +293,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       }
       const savedMap: ConceptMap = await response.json();
       
-      store.setLoadedMap(savedMap); // Update store with saved map details, including new ID if it was a new map
+      store.setLoadedMap(savedMap); 
       
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
       
@@ -354,14 +358,22 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       let sourceNode = store.mapData.nodes.find(node => node.text === rel.source);
       if (!sourceNode) {
         store.addNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        sourceNode = store.mapData.nodes.find(node => node.text === rel.source); // Re-fetch after adding
-        if(sourceNode) conceptsAddedFromRelationsCount++; else return; // Should exist now
+        // Re-fetch after adding, assuming store updates synchronously or effect will handle re-rendering.
+        // For direct use here, we might need to be careful if store updates are async or delayed.
+        // A safer approach might be to get the new node ID from store.addNode if it returned it.
+        // Or, rely on React Flow to re-render based on store.mapData changing.
+        // For now, assume the new node is available for the next find.
+        const updatedNodes = useConceptMapStore.getState().mapData.nodes;
+        sourceNode = updatedNodes.find(node => node.text === rel.source); 
+        if(sourceNode) conceptsAddedFromRelationsCount++; else return; 
       }
+      
       let targetNode = store.mapData.nodes.find(node => node.text === rel.target);
       if (!targetNode) {
         store.addNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        targetNode = store.mapData.nodes.find(node => node.text === rel.target); // Re-fetch
-        if(targetNode) conceptsAddedFromRelationsCount++; else return; // Should exist now
+        const updatedNodes = useConceptMapStore.getState().mapData.nodes;
+        targetNode = updatedNodes.find(node => node.text === rel.target); 
+        if(targetNode) conceptsAddedFromRelationsCount++; else return; 
       }
 
       // Check if edge already exists
@@ -485,22 +497,22 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   }
   
   const mapForInspector: ConceptMap = {
-    id: mapId || actualParams.mapId, // Use mapId from store if available
+    id: store.mapId || actualParams.mapId, 
     name: mapName,
     ownerId: currentMapOwnerId || user?.id || "", 
-    mapData: mapData, // From store
+    mapData: store.mapData, 
     isPublic: isPublic,
     sharedWithClassroomId: sharedWithClassroomId,
     createdAt: currentMapCreatedAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString(), // Could be refined to store updatedAt on save
+    updatedAt: new Date().toISOString(), 
   };
 
   let actualSelectedElementForInspector: ConceptMapNode | ConceptMapEdge | null = null;
   if (selectedElementId && selectedElementType) {
     if (selectedElementType === 'node') {
-      actualSelectedElementForInspector = mapData.nodes.find(n => n.id === selectedElementId) || null;
+      actualSelectedElementForInspector = store.mapData.nodes.find(n => n.id === selectedElementId) || null;
     } else if (selectedElementType === 'edge') {
-      actualSelectedElementForInspector = mapData.edges.find(e => e.id === selectedElementId) || null;
+      actualSelectedElementForInspector = store.mapData.edges.find(e => e.id === selectedElementId) || null;
     }
   }
 
@@ -509,7 +521,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       <DashboardHeader
         title={isViewOnlyMode ? `Viewing: ${mapName}` : mapName}
         description={isViewOnlyMode ? "This map is in view-only mode. Interactions are disabled." : "Create, edit, and visualize your ideas. Nodes are draggable."}
-        icon={(isNewMapMode || mapId === 'new') ? Compass : Share2}
+        icon={(isNewMapMode || store.mapId === 'new') ? Compass : Share2}
         iconLinkHref={getRoleBasedDashboardLink()}
       >
         {!isViewOnlyMode && (
@@ -528,9 +540,9 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       <EditorToolbar
         onSaveMap={handleSaveMap}
         isSaving={isSaving}
-        onExtractConcepts={() => store.setAiExtractedConcepts([]) /* Clear old ones */ /* Then open modal */}
-        onSuggestRelations={() => store.setAiSuggestedRelations([]) /* Clear old ones */ /* Then open modal */}
-        onExpandConcept={() => store.setAiExpandedConcepts([]) /* Clear old ones */ /* Then open modal */}
+        onExtractConcepts={() => { store.resetAiSuggestions(); setIsExtractConceptsModalOpen(true); }}
+        onSuggestRelations={() => { store.resetAiSuggestions(); setIsSuggestRelationsModalOpen(true); }}
+        onExpandConcept={() => { store.resetAiSuggestions(); setIsExpandConceptModalOpen(true); }}
         isViewOnlyMode={isViewOnlyMode}
         onAddNodeToData={handleAddNodeToData}
         onAddEdgeToData={handleAddEdgeToData}
@@ -557,7 +569,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
             selectedElement={actualSelectedElementForInspector}
             selectedElementType={selectedElementType}
             onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdate}
-            isNewMapMode={(isNewMapMode || mapId === 'new')}
+            isNewMapMode={(isNewMapMode || store.mapId === 'new')}
             isViewOnlyMode={isViewOnlyMode}
           />
         </aside>
@@ -565,7 +577,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       
       <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
         <CanvasPlaceholder
-            mapData={mapData}
+            mapData={store.mapData}
             extractedConcepts={aiExtractedConcepts}
             suggestedRelations={aiSuggestedRelations}
             expandedConcepts={aiExpandedConcepts}
@@ -576,29 +588,26 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
         />
       </div>
 
-
-      {store.isLoading && store.error === null && !isNewMapMode /* Example of controlling modals via store if needed, or keep local state */}
-      {/* For simplicity, GenAI modals are still using local state to control their open/closed status in their parent, which is fine for now. */}
-      {/* State to control modal visibility - local state for modals is acceptable */}
-      {/* [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] - these would be local in this file. */}
-      {/* To integrate with store, they would become: store.isExtractConceptsModalOpen and store.setIsExtractConceptsModalOpen() */}
-      {/* For now, keeping modal visibility local to editor page and passing callbacks */}
-
-      <ExtractConceptsModal 
-        onOpenChange={(isOpen) => { if(!isOpen) store.setAiExtractedConcepts([]); /* Potentially clear on close too */}} 
-        onConceptsExtracted={handleConceptsExtracted}
-        // open prop would control it, for controlled component style
-      />
-      <SuggestRelationsModal 
-        onOpenChange={(isOpen) => { if(!isOpen) store.setAiSuggestedRelations([]); }}
-        onRelationsSuggested={handleRelationsSuggested} 
-        initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)} 
-      />
-      <ExpandConceptModal 
-        onOpenChange={(isOpen) => { if(!isOpen) store.setAiExpandedConcepts([]); }}
-        onConceptExpanded={handleConceptExpanded} 
-        initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""} 
-      />
+      {isExtractConceptsModalOpen && !isViewOnlyMode && (
+        <ExtractConceptsModal 
+            onConceptsExtracted={handleConceptsExtracted} 
+            onOpenChange={setIsExtractConceptsModalOpen} 
+        />
+      )}
+      {isSuggestRelationsModalOpen && !isViewOnlyMode && (
+        <SuggestRelationsModal 
+          onRelationsSuggested={handleRelationsSuggested} 
+          initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)} 
+          onOpenChange={setIsSuggestRelationsModalOpen} 
+        />
+      )}
+      {isExpandConceptModalOpen && !isViewOnlyMode && (
+        <ExpandConceptModal 
+          onConceptExpanded={handleConceptExpanded} 
+          initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""} 
+          onOpenChange={setIsExpandConceptModalOpen} 
+        />
+      )}
     </div>
   );
 }
@@ -641,71 +650,3 @@ declare module "@/components/concept-map/canvas-placeholder" {
     isViewOnlyMode?: boolean;
   }
 }
-// A bit of a hack to manage GenAI modals for now, as they are complex to fully control from store without more plumbing
-// This assumes the GenAI modals are structured to be shown/hidden via props passed from this page.
-// The actual ExtractConceptsModal, etc. in this example file don't have an `open` prop, they are
-// conditionally rendered. So, the onExtractConcepts on EditorToolbar needs to set local state
-// in *this* file to show them. This part is slightly simplified in the diff for brevity
-// but illustrates the direction if modals were store-controlled.
-// For the current diff, I'll remove the direct store manipulation for modal open state to reflect the
-// provided modal structure that uses conditional rendering controlled by local state in this page.
-
-// Re-adding local state for modal visibility as the current modal components are designed for it
-// This is a slight deviation from "full store control" but practical for the current component structure
-const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
-const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
-const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
-
-// Update EditorToolbar calls to use these local state setters for modals
-// e.g., onExtractConcepts={() => setIsExtractConceptsModalOpen(true)}
-
-// Inside the return, replace the dummy modal components with the actual ones controlled by this local state:
-/*
-      {isExtractConceptsModalOpen && !isViewOnlyMode && (
-        <ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />
-      )}
-      {isSuggestRelationsModalOpen && !isViewOnlyMode && (
-        <SuggestRelationsModal 
-          onRelationsSuggested={handleRelationsSuggested} 
-          initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)} 
-          onOpenChange={setIsSuggestRelationsModalOpen} 
-        />
-      )}
-      {isExpandConceptModalOpen && !isViewOnlyMode && (
-        <ExpandConceptModal 
-          onConceptExpanded={handleConceptExpanded} 
-          initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""} 
-          onOpenChange={setIsExpandConceptModalOpen} 
-        />
-      )}
-*/
-// The above change for local modal state management needs to be outside the main component function body to be valid.
-// I will incorporate this correction into the final CDATA.
-// For the EditorToolbar props, it should be:
-// onExtractConcepts={() => { store.resetAiSuggestions(); setIsExtractConceptsModalOpen(true); }}
-// ... similar for others ...
-// And for the modal components themselves:
-// <ExtractConceptsModal onOpenChange={setIsExtractConceptsModalOpen} ... />
-// The `actualParams` is correctly handled by `use(paramsPromise)` at the top.
-// The `useConceptMapStore()` selector is correct as `store`.
-// The `handleSaveMap` needs to get the `mapId` from `store.mapId` for the API call if not new.
-// Corrected `handleSaveMap` logic for mapId.
-
-// Final check on `addConceptsToMapData` and `handleAddSuggestedRelationsToMap`
-// `store.addNode` and `store.addEdge` are used, which is correct.
-// The re-fetching of nodes after adding inside `handleAddSuggestedRelationsToMap` might be slightly problematic if the store updates are not synchronous or if the find relies on state that hasn't updated yet.
-// However, Zustand updates are generally synchronous for simple state changes.
-// For `store.addNode`, it will add to `mapData.nodes`. The subsequent `find` should pick up the newly added node.
-
-// One more check: `useEffect` for syncing `mapData` to `rfNodes/rfEdges`. Added `store.mapData` as a dependency.
-// When `store.addNode` is called, `store.mapData` changes, triggering this `useEffect`, which correctly updates `rfNodes`.
-
-// The `EditorToolbar` onExtractConcepts etc. will need to be updated to also call the local modal setters.
-// The dummy modal components at the end of the return need to be removed and replaced by the conditionally rendered ones.
-
-// Correcting the GenAI Modal part based on the notes above:
-// 1. The useState for modal visibility should be outside the main component. No, it should be inside.
-// 2. The onExtractConcepts prop for EditorToolbar needs to call setIsExtractConceptsModalOpen(true) AND store.resetAiSuggestions().
-// 3. The actual modals should be rendered conditionally based on these local states.
-// I'll put these changes directly into the CDATA below.
-
