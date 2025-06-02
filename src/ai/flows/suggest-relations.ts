@@ -1,4 +1,4 @@
-// use server'
+'use server';
 
 /**
  * @fileOverview AI agent that suggests relationships between concepts in a concept map.

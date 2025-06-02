@@ -26,10 +26,11 @@ const nextConfig: NextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Don't resolve 'async_hooks' on the client-side
+      // Don't resolve 'async_hooks' or 'fs' on the client-side
       config.resolve.fallback = {
         ...config.resolve.fallback,
         async_hooks: false,
+        fs: false,
       };
     }
     return config;
