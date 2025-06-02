@@ -73,14 +73,18 @@ export function CanvasPlaceholder({
                     <CardDescription className="text-xs">These nodes are part of the current map data. Save the map to persist.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ul className="list-none text-sm space-y-1">
+                    <div className="space-y-2">
                       {mapData?.nodes.map((node) => (
-                        <li key={node.id} className="flex items-center">
-                          <Layers className="mr-2 h-4 w-4 text-blue-500"/>
-                          {node.text} <span className="text-xs text-muted-foreground ml-1">({node.type || 'node'})</span>
-                        </li>
+                        <div key={node.id} className="p-3 border rounded-md shadow-sm bg-background hover:shadow-md transition-shadow">
+                          <div className="flex items-center">
+                            <Layers className="mr-2 h-4 w-4 text-primary flex-shrink-0"/>
+                            <span className="font-medium text-sm">{node.text}</span>
+                            <span className="text-xs text-muted-foreground ml-2">({node.type || 'node'})</span>
+                          </div>
+                          {node.details && <p className="text-xs text-muted-foreground mt-1 pl-6">{node.details}</p>}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -95,12 +99,14 @@ export function CanvasPlaceholder({
                   <CardContent>
                     <ul className="list-none text-sm space-y-1">
                       {mapData?.edges.map((edge) => (
-                        <li key={edge.id} className="flex items-center">
-                           <Link2 className="mr-2 h-4 w-4 text-green-500"/>
-                           Source: {mapData.nodes.find(n=>n.id === edge.source)?.text || edge.source.substring(0,6)+'...'} 
-                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-1"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                           Target: {mapData.nodes.find(n=>n.id === edge.target)?.text || edge.target.substring(0,6)+'...'} 
-                           <span className="text-xs text-muted-foreground ml-1">({edge.label})</span>
+                        <li key={edge.id} className="flex items-center p-2 border-b border-dashed border-green-500/20">
+                           <Link2 className="mr-2 h-4 w-4 text-green-500 flex-shrink-0"/>
+                           <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                             <span><span className="font-medium">From:</span> {mapData.nodes.find(n=>n.id === edge.source)?.text || edge.source.substring(0,8)+'...'}</span>
+                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-1 hidden sm:inline-block transform rotate-0 sm:rotate-0"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                             <span><span className="font-medium">To:</span> {mapData.nodes.find(n=>n.id === edge.target)?.text || edge.target.substring(0,8)+'...'}</span>
+                             <span className="text-xs text-muted-foreground sm:ml-1">({edge.label})</span>
+                           </div>
                         </li>
                       ))}
                     </ul>
