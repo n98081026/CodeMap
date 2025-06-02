@@ -11,13 +11,13 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateMapFromProjectInputSchema = z.object({
-  projectDescription: z.string().describe('A description of the project.'),
-  projectCodeStructure: z.string().describe('The project code structure.'),
+  projectDescription: z.string().describe('A high-level description of the software project, its purpose, and main functionalities.'),
+  projectCodeStructure: z.string().describe('A textual representation of the project\'s directory and file structure. This could be an output from a tree command or a summary of key files and their roles.'),
 });
 export type GenerateMapFromProjectInput = z.infer<typeof GenerateMapFromProjectInputSchema>;
 
 const GenerateMapFromProjectOutputSchema = z.object({
-  conceptMapData: z.string().describe('The concept map data in JSON format.'),
+  conceptMapData: z.string().describe('The concept map data in a well-formed JSON string format, representing nodes and edges. Node IDs must be unique strings.'),
 });
 export type GenerateMapFromProjectOutput = z.infer<typeof GenerateMapFromProjectOutputSchema>;
 
@@ -31,15 +31,57 @@ const prompt = ai.definePrompt({
   name: 'generateMapFromProjectPrompt',
   input: {schema: GenerateMapFromProjectInputSchema},
   output: {schema: GenerateMapFromProjectOutputSchema},
-  prompt: `Analyze the following software project's structure and generate a concept map representing its key architectural components, functionalities, and their primary relationships.\n\nProject Description: {{{projectDescription}}}\n\nProject Code Structure: {{{projectCodeStructure}}}\n\nGenerate a concept map with:\n1. Nodes: Represent major directories (as logical blocks), key files (as modules), significant classes/functions (as components or functionalities), and high-level features inferred.\n2. Node Types: Use 'directory', 'file', 'class', 'function', 'feature', 'external_dependency'.\n3. Relationships: Use labels like 'contains', 'imports', 'calls', 'inherits_from', 'implements', 'depends_on'.\n4. Focus on the most important elements to avoid an overly cluttered map.\n\nOutput the concept map data as a JSON object with \"nodes\" (each with \"id\", \"text\", \"type\", optional \"details\") and \"edges\" (each with \"id\", \"source\", \"target\", \"label\") arrays. Ensure node IDs are unique strings.\n\nExample:\n{
-  \"nodes\": [
-    { \"id\": \"dir_src\", \"text\": \"src Directory\", \"type\": \"directory\" },
-    { \"id\": \"file_app_js\", \"text\": \"app.js\", \"type\": \"file\", \"details\": \"Main entry point\" }
+  prompt: `You are an expert software architect and system analyst specializing in creating insightful concept maps from code and project descriptions.
+Your task is to analyze the provided software project information and generate a concept map that clearly represents its key architectural components, core functionalities, and their primary interrelationships.
+
+Project Description:
+{{{projectDescription}}}
+
+Project Code Structure:
+{{{projectCodeStructure}}}
+
+Based on the above information, generate a concept map with the following characteristics:
+
+1.  **Nodes**:
+    *   Represent major directories as logical blocks or high-level components.
+    *   Represent key files (e.g., main entry points, core modules, service definitions) as distinct modules or services.
+    *   Represent significant classes, functions, or data structures if they are central to the architecture or functionality.
+    *   Infer and represent high-level features or user stories as functional nodes if evident from the description or structure.
+    *   Identify and represent key external dependencies or services if mentioned.
+
+2.  **Node Types**: Use clear and consistent types for your nodes. Suggested types include: 'directory', 'file', 'module', 'service', 'class', 'function', 'feature', 'data_structure', 'external_dependency', 'ui_component', 'api_endpoint'. Choose the most appropriate type for each node. Each node must have an "id" (unique string), "text" (display label), and "type". Optionally, include "details" for a brief explanation.
+
+3.  **Relationships (Edges)**: Define meaningful relationships between nodes.
+    *   Use descriptive labels like: 'contains', 'imports', 'exports', 'calls', 'inherits_from', 'implements', 'depends_on', 'manages', 'interacts_with', 'routes_to', 'triggers', 'uses_data'.
+    *   Focus on primary relationships that highlight the architecture and data flow.
+    *   Each edge must have an "id" (unique string), "source" (source node id), "target" (target node id), and "label".
+
+4.  **Clarity and Focus**:
+    *   Prioritize the most important elements and relationships to create a clear and understandable map. Avoid excessive detail or clutter.
+    *   The map should provide a good overview of how the project is structured and how its parts work together.
+
+5.  **Output Format**:
+    *   You MUST output the concept map data as a single, well-formed JSON string.
+    *   The JSON object must have two top-level keys: "nodes" (an array of node objects) and "edges" (an array of edge objects).
+    *   Ensure all node "id" values are unique strings. Edges use these IDs to connect nodes.
+    *   Pay close attention to correct JSON syntax: proper quoting of keys and string values, commas between elements in arrays and key-value pairs in objects, and no trailing commas.
+
+Example JSON Output Structure:
+{
+  "nodes": [
+    { "id": "src_dir", "text": "Source Directory (src)", "type": "directory", "details": "Contains all primary source code." },
+    { "id": "app_entry", "text": "app.ts", "type": "file", "details": "Main application entry point." },
+    { "id": "user_service", "text": "UserService", "type": "service", "details": "Manages user data and authentication." }
   ],
-  \"edges\": [
-    { \"id\": \"edge1\", \"source\": \"dir_src\", \"target\": \"file_app_js\", \"label\": \"contains\" }
+  "edges": [
+    { "id": "edge_1", "source": "src_dir", "target": "app_entry", "label": "contains" },
+    { "id": "edge_2", "source": "app_entry", "target": "user_service", "label": "initializes" },
+    { "id": "edge_3", "source": "user_service", "target": "external_auth_api", "label": "depends_on" }
   ]
-}`,
+}
+
+Analyze the provided project information and generate the concept map JSON data.
+`,
 });
 
 const generateMapFromProjectFlow = ai.defineFlow(
@@ -50,6 +92,14 @@ const generateMapFromProjectFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
+    // Basic validation attempt (can be more sophisticated)
+    try {
+      JSON.parse(output!.conceptMapData);
+    } catch (e) {
+      console.error("Generated conceptMapData is not valid JSON:", output?.conceptMapData);
+      // Potentially throw or attempt to fix, or rely on schema validation if strict enough
+      // For now, we'll let it pass and hope schema validation catches it, or client handles malformed JSON.
+    }
     return output!;
   }
 );

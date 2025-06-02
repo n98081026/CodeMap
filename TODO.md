@@ -46,7 +46,7 @@
         - [ ] Task consumer from message queue.
         - [ ] File downloader/unpacker.
         - [ ] Code/Structure Parser Engine (start with basic, then add AST for specific languages).
-        - [ ] LLM-Powered Structure-to-Map Converter (refine prompts, integrate with Gemini).
+        - [x] LLM-Powered Structure-to-Map Converter (refine prompts, integrate with Gemini).
         - [ ] Map Data Formatter & Persister (save generated map to DB, update submission status).
     - [x] Connect frontend project submission UI to live API (for metadata, including mock AI map gen status update).
     - [x] Connect frontend student submissions list to live API.
@@ -80,7 +80,7 @@
 ## GenAI & AI Features
 - [x] **Refine GenAI Prompts:**
     - [x] Iterate on prompts for `extractConcepts`, `suggestRelations`, `expandConcept` for better accuracy and relevance.
-    - [ ] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice.
+    - [x] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice.
 - [x] **Integrate GenAI Output:**
     - [x] Develop intuitive ways for users to interact with and utilize the outputs of GenAI tools within the concept map editor.
         - [x] Add placeholder "Add to Map" indicators for AI-generated content in CanvasPlaceholder.
