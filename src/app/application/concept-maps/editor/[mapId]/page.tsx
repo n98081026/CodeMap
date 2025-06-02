@@ -56,12 +56,12 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
 
   const loadMapData = useCallback(async (id: string) => {
     if (id === "new") {
-      if (user && user.id) { // Ensure user is available
+      if (user && user.id) {
         store.initializeNewMap(user.id); 
       } else {
-        // This case should ideally not be reached if AppLayout protects this page
+        console.error("User data not available for initializing new map.");
+        store.setError("User data not available for new map initialization.");
         toast({ title: "Authentication Error", description: "User data not available for new map.", variant: "destructive" });
-        store.setError("User data not available."); // Set an error state in the store
         return;
       }
       return;
@@ -85,7 +85,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     } finally {
       store.setIsLoading(false);
     }
-  }, [toast, user, store]); // Added user and store to dependency array
+  }, [toast, user, store]); 
 
   useEffect(() => {
     if (params.mapId) {
@@ -211,7 +211,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   }, [selectedElementId, selectedElementType, isViewOnlyMode, store]);
 
 
-  const handleSaveMap = async () => {
+  const handleSaveMap = useCallback(async () => {
     if (isViewOnlyMode) {
         toast({ title: "View Only Mode", description: "Cannot save changes in view-only mode.", variant: "default"});
         return;
@@ -246,7 +246,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
 
     const payload = {
       name: mapName,
-      ownerId: (isNewMapMode || !currentMapOwnerId) ? user.id : currentMapOwnerId, // Robust ownerId determination
+      ownerId: (isNewMapMode || !currentMapOwnerId) ? user.id : currentMapOwnerId,
       mapData: mapDataToSave,
       isPublic: isPublic,
       sharedWithClassroomId: sharedWithClassroomId,
@@ -263,13 +263,12 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
           body: JSON.stringify(payload),
         });
       } else { 
-        // For PUT, ensure ownerId sent in payload is the existing map's ownerId for API auth check
         const updatePayload = { 
             name: mapName,
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId, // Critical for PUT auth check in API
+            ownerId: currentMapOwnerId, 
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -297,7 +296,11 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     } finally {
       store.setIsSaving(false);
     }
-  };
+  }, [
+    isViewOnlyMode, user, mapName, store, rfNodes, 
+    isNewMapMode, currentMapOwnerId, isPublic, sharedWithClassroomId, 
+    params.mapId, router, toast 
+  ]);
 
   const handleConceptsExtracted = (concepts: string[]) => {
     store.setAiExtractedConcepts(concepts); 
@@ -459,7 +462,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     );
   }
 
-  if (error && !isNewMapMode && mapId !=='new') { // Only show full error page if it's not a new map or an error during new map init
+  if (error && !isNewMapMode && params.mapId !=='new') { 
      return (
       <div className="flex h-full flex-col space-y-4 p-4">
         <DashboardHeader title="Error Loading Map" icon={AlertTriangle} iconLinkHref={getRoleBasedDashboardLink()} />
