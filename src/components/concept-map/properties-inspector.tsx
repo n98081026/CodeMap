@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Settings2, Check, X } from "lucide-react";
 import type { ConceptMap } from "@/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,86 +24,117 @@ interface PropertiesInspectorProps {
 
 export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMapMode, isViewOnlyMode }: PropertiesInspectorProps) {
   const { toast } = useToast();
-  const [mapName, setMapName] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
-  const [sharedWithClassroomId, setSharedWithClassroomId] = useState<string | null>(null);
 
-  const [initialName, setInitialName] = useState("");
-  const [initialIsPublic, setInitialIsPublic] = useState(false);
-  const [initialSharedId, setInitialSharedId] = useState<string | null>(null);
+  // Local state for editing within the inspector
+  const [localMapName, setLocalMapName] = useState("");
+  const [localIsPublic, setLocalIsPublic] = useState(false);
+  const [localSharedWithClassroomId, setLocalSharedWithClassroomId] = useState<string | null>(null);
 
+  // State to track initial values for "Cancel" functionality, reflecting the last applied state or initial prop state
+  const [initialLocalName, setInitialLocalName] = useState("");
+  const [initialLocalIsPublic, setInitialLocalIsPublic] = useState(false);
+  const [initialLocalSharedId, setInitialLocalSharedId] = useState<string | null>(null);
+  
+  // Ref to track if currentMap prop has been processed for the current map instance
+  const processedMapIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (currentMap) {
-      setMapName(currentMap.name);
-      setIsPublic(currentMap.isPublic);
-      setSharedWithClassroomId(currentMap.sharedWithClassroomId || null);
+      let nameToInitWith = currentMap.name;
+      let isPublicToInitWith = currentMap.isPublic;
+      let sharedIdToInitWith = currentMap.sharedWithClassroomId || null;
 
-      if (isNewMapMode || (currentMap.id && currentMap.id !== 'new')) {
-         setInitialName(currentMap.name);
-         setInitialIsPublic(currentMap.isPublic);
-         setInitialSharedId(currentMap.sharedWithClassroomId || null);
+      // If it's a new map mode, and we haven't processed this specific 'new' map instance yet (or its name is still generic default)
+      // set the inspector's display name to "Untitled Concept Map".
+      if (isNewMapMode && currentMap.id === 'new' && processedMapIdRef.current !== 'new::' + currentMap.name) {
+        if (currentMap.name === "New Concept Map") { // Only override if it's the generic default
+            nameToInitWith = "Untitled Concept Map";
+        }
+        // For a truly new map, defaults are usually false/null.
+        // These might already be set by the parent, but we ensure inspector starts clean.
+        isPublicToInitWith = currentMap.isPublic || false;
+        sharedIdToInitWith = currentMap.sharedWithClassroomId || null;
       }
+      
+      setLocalMapName(nameToInitWith);
+      setLocalIsPublic(isPublicToInitWith);
+      setLocalSharedWithClassroomId(sharedIdToInitWith);
 
-    } else { 
-      const defaultNewName = "New Concept Map";
-      setMapName(defaultNewName); 
-      setIsPublic(false);
-      setSharedWithClassroomId(null);
+      // Set initial values for inspector's "Cancel" button to these derived values
+      setInitialLocalName(nameToInitWith);
+      setInitialLocalIsPublic(isPublicToInitWith);
+      setInitialLocalSharedId(sharedIdToInitWith);
+      
+      // Mark this map instance (by ID and potentially name for 'new' maps) as processed for its initial state
+      processedMapIdRef.current = currentMap.id === 'new' ? `new::${currentMap.name}` : currentMap.id;
 
-      setInitialName(defaultNewName);
-      setInitialIsPublic(false);
-      setInitialSharedId(null);
+    } else {
+      // Fallback, though currentMap should generally be provided
+      const defaultName = "Untitled Concept Map";
+      setLocalMapName(defaultName);
+      setLocalIsPublic(false);
+      setLocalSharedWithClassroomId(null);
+
+      setInitialLocalName(defaultName);
+      setInitialLocalIsPublic(false);
+      setInitialLocalSharedId(null);
+      processedMapIdRef.current = null;
     }
   }, [currentMap, isNewMapMode]);
 
+
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode) return;
-    setMapName(e.target.value);
+    setLocalMapName(e.target.value);
   };
   
   const handleIsPublicChange = (checked: boolean) => {
     if (isViewOnlyMode) return;
-    setIsPublic(checked);
+    setLocalIsPublic(checked);
   };
 
   const handleSharedIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode) return;
-    setSharedWithClassroomId(e.target.value.trim() || null);
+    setLocalSharedWithClassroomId(e.target.value.trim() || null);
   };
 
   const handleApplyMapSettings = () => {
      if (isViewOnlyMode) return;
-     if (!mapName.trim()) {
+     if (!localMapName.trim()) {
         toast({ title: "Map Name Required", description: "Map name cannot be empty.", variant: "destructive" });
-        setMapName(initialName); 
+        // Do not revert localMapName here, let user correct it or cancel
         return;
      }
     onMapPropertiesChange({
-      name: mapName,
-      isPublic: isPublic,
-      sharedWithClassroomId: sharedWithClassroomId,
+      name: localMapName,
+      isPublic: localIsPublic,
+      sharedWithClassroomId: localSharedWithClassroomId,
     });
-    setInitialName(mapName); 
-    setInitialIsPublic(isPublic);
-    setInitialSharedId(sharedWithClassroomId);
+    // Update initial values to reflect the newly applied state
+    setInitialLocalName(localMapName);
+    setInitialLocalIsPublic(localIsPublic);
+    setInitialLocalSharedId(localSharedWithClassroomId);
+
     toast({ title: "Properties Staged", description: "Map properties updated locally. Click 'Save Map' in the toolbar to persist." });
   };
 
   const handleCancelChanges = () => {
     if (isViewOnlyMode) return;
-    setMapName(initialName);
-    setIsPublic(initialIsPublic);
-    setSharedWithClassroomId(initialSharedId);
+    // Revert local editing state to the initial state (last applied or from props)
+    setLocalMapName(initialLocalName);
+    setLocalIsPublic(initialLocalIsPublic);
+    setLocalSharedWithClassroomId(initialLocalSharedId);
+    
+    // Also propagate this reversion to the parent page
     onMapPropertiesChange({
-        name: initialName,
-        isPublic: initialIsPublic,
-        sharedWithClassroomId: initialSharedId,
+        name: initialLocalName,
+        isPublic: initialLocalIsPublic,
+        sharedWithClassroomId: initialLocalSharedId,
     });
-    toast({ title: "Changes Discarded", description: "Local property changes have been discarded.", variant: "default" });
+    toast({ title: "Changes Discarded", description: "Local property changes have been reverted.", variant: "default" });
   };
 
-  const hasChanges = mapName !== initialName || isPublic !== initialIsPublic || sharedWithClassroomId !== initialSharedId;
+  const hasChanges = localMapName !== initialLocalName || localIsPublic !== initialLocalIsPublic || localSharedWithClassroomId !== initialLocalSharedId;
 
   return (
     <Card className="h-full shadow-lg">
@@ -121,7 +152,7 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
           <Label htmlFor="mapNameInspector">Map Name</Label>
           <Input 
             id="mapNameInspector" 
-            value={mapName} 
+            value={localMapName} 
             onChange={handleNameChange}
             placeholder="Enter map name"
             disabled={isViewOnlyMode}
@@ -132,18 +163,18 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
             <div className="flex items-center space-x-2">
                 <Switch 
                     id="isPublicSwitch" 
-                    checked={isPublic} 
+                    checked={localIsPublic} 
                     onCheckedChange={handleIsPublicChange}
                     disabled={isViewOnlyMode}
                 />
-                <Label htmlFor="isPublicSwitch" className={isViewOnlyMode ? "cursor-not-allowed opacity-70" : ""}>Publicly Visible</Label>
+                <Label htmlFor="isPublicSwitch" className={cn("cursor-pointer", isViewOnlyMode ? "cursor-not-allowed opacity-70" : "")}>Publicly Visible</Label>
             </div>
         </div>
           <div>
           <Label htmlFor="sharedClassroomId">Share with Classroom ID (Optional)</Label>
           <Input 
             id="sharedClassroomId" 
-            value={sharedWithClassroomId || ""} 
+            value={localSharedWithClassroomId || ""} 
             onChange={handleSharedIdChange}
             placeholder="Enter classroom ID or leave blank"
             disabled={isViewOnlyMode}
