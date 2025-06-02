@@ -123,7 +123,7 @@ export default function AdminUsersPage() {
     if (typeof e === "string" && fieldName) { 
       setEditFormData(prev => ({ ...prev, [fieldName]: e as UserRole }));
     } else if (typeof e !== "string") { 
-      const { name, value } = e.target;
+      const { name, value } = e.target as HTMLInputElement;
       setEditFormData(prev => ({ ...prev, [name]: value }));
     }
   };
@@ -169,7 +169,7 @@ export default function AdminUsersPage() {
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage - 1);
+      setCurrentPage(currentPage + 1);
     }
   };
 
