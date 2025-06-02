@@ -109,7 +109,7 @@ export default function StudentDashboardPage() {
       } catch (err) {
         const errorMessage = (err as Error).message;
         setErrorSubmissions(errorMessage);
-        // toast({ title: "Error Fetching Submissions", description: errorMessage, variant: "destructive" }); // Already shown on list page
+        // toast({ title: "Error Fetching Submissions", description: errorMsg, variant: "destructive" }); // Already shown on list page
       } finally {
         setIsLoadingSubmissions(false);
       }
