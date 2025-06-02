@@ -52,7 +52,7 @@
     - [x] Connect frontend student submissions list to live API.
     - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states.
     - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states.
-    - [ ] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states.
+    - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states.
 
 ## Frontend Enhancements
 - [x] **Concept Map Editor (Canvas):**
@@ -71,7 +71,7 @@
     - [x] Refine UI details for some pages, ensure consistency and professional design. (Ongoing)
     - [x] Add more comprehensive loading states and error handling. (Done for many list pages and dashboards)
     - [x] Enhance empty states for lists (e.g., no classrooms, no maps, no students in classroom). (Done for many list pages, including teacher classroom student list)
-    - [x_] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
+    - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination, Teacher classrooms page has pagination).
     - [x] Add loading spinner to Login/Register pages during auth state check. (Current implementation prevents form flash, considered complete)
     - [x] Make header icons link to main dashboards for easier navigation (Role-based for Concept Map Editor).
