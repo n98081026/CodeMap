@@ -17,17 +17,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import type { Classroom } from "@/types"; // Assuming Classroom type is available
+import type { Classroom, ProjectSubmission } from "@/types"; 
+import { ProjectSubmissionStatus } from "@/types";
 import { UploadCloud, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
-import { useAuth } from "@/contexts/auth-context"; // To get studentId
+import { useAuth } from "@/contexts/auth-context"; 
 
-// Mock classroom data - In a real app, fetch this if needed for classroom selection
 const mockClassroomsForSelection: Classroom[] = [
-  // This should ideally be populated by classrooms the student is enrolled in.
-  // For now, it might be static or fetched if a studentClasses API exists.
-  // For this form, it's less critical as classroomId is optional for submission metadata.
   { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", studentIds: [] },
   { id: "test-classroom-1", name: "Introduction to AI", teacherId: "teacher-test-id", studentIds: [] },
 ];
@@ -36,7 +33,7 @@ const mockClassroomsForSelection: Classroom[] = [
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/zip", "application/vnd.rar", "application/x-rar-compressed", "application/octet-stream", "application/x-zip-compressed"];
 
-const NONE_CLASSROOM_VALUE = "_NONE_"; // Special value for the "None" option
+const NONE_CLASSROOM_VALUE = "_NONE_";
 
 const projectUploadSchema = z.object({
   projectFile: z
@@ -54,23 +51,43 @@ export function ProjectUploadForm() {
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGeneratingMap, setIsGeneratingMap] = useState(false);
-  const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>(mockClassroomsForSelection); // Placeholder
-
-  // TODO: Fetch classrooms student is enrolled in for the dropdown if needed.
-  // useEffect(() => {
-  //   if (user) { /* fetch student's classrooms for selection */ }
-  // }, [user]);
-
+  const [isSubmittingMetadata, setIsSubmittingMetadata] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>(mockClassroomsForSelection);
 
   const form = useForm<z.infer<typeof projectUploadSchema>>({
     resolver: zodResolver(projectUploadSchema),
     defaultValues: {
       projectFile: undefined,
-      classroomId: "", // Initial value is empty string, placeholder will show
+      classroomId: "", 
     },
   });
+
+  async function updateSubmissionStatusOnServer(submissionId: string, status: ProjectSubmissionStatus, generatedConceptMapId?: string | null, analysisError?: string | null) {
+    try {
+      const payload: any = { status };
+      if (generatedConceptMapId) payload.generatedConceptMapId = generatedConceptMapId;
+      if (analysisError) payload.analysisError = analysisError;
+
+      const response = await fetch(`/api/projects/submissions/${submissionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to update submission status to ${status}`);
+      }
+      console.log(`Submission ${submissionId} status updated to ${status}`);
+    } catch (error) {
+      console.error(`Error updating submission status for ${submissionId}:`, error);
+      toast({
+        title: "Status Update Failed",
+        description: `Could not update submission status to ${status}. ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    }
+  }
 
   async function onSubmit(values: z.infer<typeof projectUploadSchema>) {
     if (!user) {
@@ -78,7 +95,7 @@ export function ProjectUploadForm() {
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSubmittingMetadata(true);
     const file = values.projectFile[0];
     
     const submissionPayload = {
@@ -88,9 +105,9 @@ export function ProjectUploadForm() {
       classroomId: values.classroomId === NONE_CLASSROOM_VALUE ? null : (values.classroomId || null),
     };
 
+    let newSubmission: ProjectSubmission | null = null;
+
     try {
-      // Actual file upload to a storage service would happen here or before this call.
-      // For now, we only send metadata to the backend API.
       const response = await fetch('/api/projects/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,37 +119,48 @@ export function ProjectUploadForm() {
         throw new Error(errorData.message || "Failed to create submission record");
       }
       
-      const newSubmission = await response.json();
+      newSubmission = await response.json();
       toast({
         title: "Project Submitted",
-        description: `"${file.name}" has been submitted. Record ID: ${newSubmission.id}`,
+        description: `"${file.name}" record created. ID: ${newSubmission!.id}`,
       });
       form.reset();
       
-      // AI Map Generation (Mock or existing flow)
-      if (confirm("Project submitted. Do you want to attempt to generate a concept map now? (This may take a moment and is a mock process)")) {
-        setIsGeneratingMap(true);
+      if (confirm("Project record submitted. Do you want to attempt to generate a concept map now? (This is a mock AI process and may take a moment)")) {
+        setIsProcessingAI(true);
+        toast({ title: "AI Processing Started", description: "Mock AI map generation is now 'processing'..." });
+        
+        await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.PROCESSING);
+
         try {
+          // Simulate some delay for AI processing
+          await new Promise(resolve => setTimeout(resolve, 3000)); 
+          
           const projectDescription = `Project file: ${file.name}. Submitted for classroom: ${values.classroomId === NONE_CLASSROOM_VALUE ? 'N/A' : values.classroomId || 'N/A'}`;
           const projectCodeStructure = `File: ${file.name}, Size: ${file.size} bytes. (Mock structure for AI)`;
-          const mapResult = await aiGenerateMapFromProject({ projectDescription, projectCodeStructure });
           
-          console.log("AI Map Generation Result (mock):", mapResult.conceptMapData);
+          // Call the actual AI flow (which is a server action)
+          const mapResult = await aiGenerateMapFromProject({ projectDescription, projectCodeStructure });
+          console.log("AI Map Generation Result (mock data):", mapResult.conceptMapData);
 
+          const mockGeneratedMapId = `genmap-${newSubmission!.id}`;
+          await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.COMPLETED, mockGeneratedMapId);
+          
           toast({
             title: "AI Concept Map Generation (Mock)",
-            description: "A concept map generation process has been initiated (mock).",
+            description: "Mock AI process 'completed'. A map ID has been associated.",
           });
-           router.push("/application/student/projects/submissions");
-        } catch (error) {
-          console.error("AI Map Generation Error (Mock):", error);
+        } catch (aiError) {
+          console.error("AI Map Generation Error (Mock):", aiError);
+          await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing failed");
           toast({
             title: "AI Map Generation Failed (Mock)",
-            description: (error as Error).message || "Could not generate concept map.",
+            description: (aiError as Error).message || "Could not generate concept map.",
             variant: "destructive",
           });
         } finally {
-          setIsGeneratingMap(false);
+          setIsProcessingAI(false);
+          router.push("/application/student/projects/submissions");
         }
       } else {
          router.push("/application/student/projects/submissions");
@@ -145,9 +173,11 @@ export function ProjectUploadForm() {
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingMetadata(false);
     }
   }
+  
+  const isBusy = isSubmittingMetadata || isProcessingAI;
 
   return (
     <Form {...form}>
@@ -163,7 +193,7 @@ export function ProjectUploadForm() {
                   type="file" 
                   accept=".zip,.rar,.ZIP,.RAR"
                   onChange={(e) => field.onChange(e.target.files)}
-                  disabled={isSubmitting || isGeneratingMap}
+                  disabled={isBusy}
                 />
               </FormControl>
               <FormMessage />
@@ -180,8 +210,8 @@ export function ProjectUploadForm() {
               <FormLabel>Classroom (Optional)</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
-                value={field.value} // Use value for controlled component
-                disabled={isSubmitting || isGeneratingMap}
+                value={field.value} 
+                disabled={isBusy}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -201,11 +231,11 @@ export function ProjectUploadForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isSubmitting || isGeneratingMap || !form.formState.isValid}>
-          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-          {isSubmitting ? "Submitting Record..." : isGeneratingMap ? "AI Processing (Mock)..." : "Submit Project"}
+        <Button type="submit" className="w-full" disabled={isBusy || !form.formState.isValid}>
+          {isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+          {isSubmittingMetadata ? "Submitting Record..." : isProcessingAI ? "AI Processing (Mock)..." : "Submit Project"}
         </Button>
-        {isGeneratingMap && <p className="text-sm text-center text-muted-foreground">AI is processing your project. Please wait...</p>}
+        {isProcessingAI && <p className="text-sm text-center text-muted-foreground">AI is 'processing' your project. Please wait...</p>}
       </form>
     </Form>
   );
