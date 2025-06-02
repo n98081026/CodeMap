@@ -56,10 +56,10 @@
 
 ## Frontend Enhancements
 - [ ] **Concept Map Editor (Canvas):**
-    - [ ] Implement actual canvas interactions (node/edge creation, drag, edit, delete).
-    - [ ] Zoom/pan functionality.
+    - [x] Implement actual canvas interactions (node/edge creation, drag, edit, delete).
+    - [x] Zoom/pan functionality.
     - [x] Connect `PropertiesInspector` for map-level properties (name, public, classroomId); changes directly update parent state and are saved.
-    - [ ] Connect `PropertiesInspector` to selected elements on canvas (for element-specific properties - pending canvas implementation).
+    - [x] Connect `PropertiesInspector` to selected elements on canvas (for element-specific properties - pending canvas implementation).
     - [x] Visualize GenAI results (textually) on `CanvasPlaceholder`. (Also includes mock node/edge additions)
     - [x] Simplify `PropertiesInspector` for map-level changes (remove local Apply/Cancel, changes directly update parent).
 - [ ] **State Management:**
@@ -109,9 +109,10 @@
 - Backend services are currently mocked (in-memory data).
 - AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage. This behavior is enhanced to auto-login based on URL structure (e.g., /admin path logs in admin, /teacher logs in teacher, else student).
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
-- Concept map canvas is a placeholder. Project Analysis now generates a real ConceptMap record from AI output.
+- Concept map canvas is now implemented using React Flow. Project Analysis now generates a real ConceptMap record from AI output.
 - `next-themes` for theme toggling is integrated.
 - App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
 - [x] Implement change password functionality on profile page (mocked backend).
+
