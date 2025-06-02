@@ -10,28 +10,19 @@ import type { Classroom, User } from '@/types';
 import { UserRole } from '@/types';
 import { getUserById } from '@/services/users/userService'; // To fetch teacher/student details
 
-// Mock data for classrooms - this will be replaced by database calls
+// Mock data for classrooms - reduced to a few key entries
 let mockClassroomsData: Classroom[] = [
-  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["student1", "s2", "s3", "student-test-id"], inviteCode: "PROG101", students: [], description: "Learn the fundamentals of programming using Python. Covers variables, loops, functions, and basic data structures." },
-  { id: "class2", name: "Advanced Data Structures", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["s4", "s5"], inviteCode: "DATA202", students: [], description: "Deep dive into complex data structures like graphs, trees, and heaps, along with algorithmic analysis." },
-  { id: "class3", name: "Web Development Basics", teacherId: "teacher2", teacherName: "Ms. Script", studentIds: ["student1", "s6", "s7", "s8"], inviteCode: "WEBDEV", students: [], description: "Covers HTML, CSS, and fundamental JavaScript concepts for building interactive web pages." },
+  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["student1", "student-test-id"], inviteCode: "PROG101", students: [], description: "Learn the fundamentals of programming using Python. Covers variables, loops, functions, and basic data structures." },
   {
     id: "test-classroom-1",
     name: "Introduction to AI",
     teacherId: "teacher-test-id",
     teacherName: "Test Teacher",
-    studentIds: ["student-test-id", "s2"],
+    studentIds: ["student-test-id"],
     inviteCode: "AI101TEST",
     students: [],
     description: "An introductory course to Artificial Intelligence concepts, including search, logic, and basic machine learning."
   },
-  { id: "class4-teacher1", name: "Python for Data Science", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["student1", "s5"], inviteCode: "PYDS303", students: [], description: "Practical applications of Python for data analysis, manipulation (Pandas), and visualization (Matplotlib, Seaborn)." },
-  { id: "class5-teacher1", name: "Java Fundamentals", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["s3", "s4", "student-test-id"], inviteCode: "JAVA101", students: [], description: "Core concepts of Java programming including OOP, collections, and exception handling." },
-  { id: "class6-teacher1", name: "Software Engineering Principles", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["s2"], inviteCode: "SWE200", students: [], description: "Best practices in software development lifecycle, requirements, design, testing, and maintenance." },
-  { id: "class7-teacher-test", name: "Machine Learning Basics", teacherId: "teacher-test-id", teacherName: "Test Teacher", studentIds: ["student-test-id"], inviteCode: "MLBASICS", students: [], description: "Fundamentals of machine learning algorithms: regression, classification, and clustering." },
-  { id: "class8-teacher-test", name: "Advanced Algorithms", teacherId: "teacher-test-id", teacherName: "Test Teacher", studentIds: ["s2"], inviteCode: "ALGADV", students: [], description: "Exploring complex algorithm design and analysis techniques, including dynamic programming and graph algorithms." },
-  { id: "class9-teacher-test", name: "Cloud Computing with AWS", teacherId: "teacher-test-id", teacherName: "Test Teacher", studentIds: [], inviteCode: "AWSCLOUD", students: [], description: "Introduction to cloud services using AWS: EC2, S3, Lambda, and basic cloud architecture patterns." },
-  { id: "class10-teacher-test", name: "Cybersecurity Essentials", teacherId: "teacher-test-id", teacherName: "Test Teacher", studentIds: ["student-test-id", "s2"], inviteCode: "CYBERSEC", students: [], description: "Basic principles of cybersecurity, common threats, and fundamental defensive measures." },
 ];
 
 // Helper to populate student details - in real app, this would be an efficient DB query

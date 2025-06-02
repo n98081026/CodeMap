@@ -18,34 +18,23 @@ import type { User } from '@/types';
 import { UserRole } from '@/types';
 
 // This is a mock database for demonstration purposes.
-// In a real application, you would connect to a proper database.
+// Reduced to key users for leaner testing.
 const testTeacher: User = { id: "teacher-test-id", email: "teacher-test@example.com", name: "Test Teacher", role: UserRole.TEACHER };
 const testStudent: User = { id: "student-test-id", email: "student-test@example.com", name: "Test Student", role: UserRole.STUDENT };
+const adminUser: User = { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN };
+const regularTeacher: User = { id: "teacher1", email: "teacher@example.com", name: "Teacher User", role: UserRole.TEACHER };
+const regularStudent: User = { id: "student1", email: "student@example.com", name: "Student User", role: UserRole.STUDENT };
+
 
 let mockUserDatabase: Record<string, User> = { // Use 'let' if you plan to modify it
-  "student@example.com": { id: "student1", email: "student@example.com", name: "Student User", role: UserRole.STUDENT },
-  "teacher@example.com": { id: "teacher1", email: "teacher@example.com", name: "Teacher User", role: UserRole.TEACHER },
-  "admin@example.com": { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN },
+  [adminUser.email]: adminUser,
+  [regularTeacher.email]: regularTeacher,
+  [regularStudent.email]: regularStudent,
   [testTeacher.email]: testTeacher,
   [testStudent.email]: testStudent,
+  // Add one more unique student and teacher if needed for some classroom scenarios
+  "student2@example.com": { id: "s2", email: "student2@example.com", name: "Student Two", role: UserRole.STUDENT },
   "teacher2@example.com": { id: "teacher2", email: "teacher2@example.com", name: "Ms. Script", role: UserRole.TEACHER },
-  "alice@example.com": { id: "user-alice", name: "Alice Wonderland", email: "alice@example.com", role: UserRole.STUDENT },
-  "bob@example.com": { id: "user-bob", name: "Bob The Builder", email: "bob@example.com", role: UserRole.TEACHER },
-  "charlie@example.com": { id: "user-charlie", name: "Charlie Brown", email: "charlie@example.com", role: UserRole.STUDENT },
-  "diana@example.com": { id: "user-diana", name: "Diana Prince", email: "diana@example.com", role: UserRole.ADMIN },
-  "eva@example.com": { id: "user-eva", name: "Eva Green", email: "eva@example.com", role: UserRole.STUDENT },
-  "frank@example.com": { id: "user-frank", name: "Frank Castle", email: "frank@example.com", role: UserRole.TEACHER },
-  "grace@example.com": { id: "user-grace", name: "Grace Hopper", email: "grace@example.com", role: UserRole.ADMIN },
-  "henry@example.com": { id: "user-henry", name: "Henry Cavill", email: "henry@example.com", role: UserRole.STUDENT },
-  "irene@example.com": { id: "user-irene", name: "Irene Adler", email: "irene@example.com", role: UserRole.TEACHER },
-  "jack@example.com": { id: "user-jack", name: "Jack Sparrow", email: "jack@example.com", role: UserRole.STUDENT },
-  "s2@example.com": { id: "s2", email: "s2@example.com", name: "Student Two", role: UserRole.STUDENT },
-  "s3@example.com": { id: "s3", email: "s3@example.com", name: "Student Three", role: UserRole.STUDENT },
-  "s4@example.com": { id: "s4", email: "s4@example.com", name: "Student Four", role: UserRole.STUDENT },
-  "s5@example.com": { id: "s5", email: "s5@example.com", name: "Student Five", role: UserRole.STUDENT },
-  "s6@example.com": { id: "s6", email: "s6@example.com", name: "Student Six", role: UserRole.STUDENT },
-  "s7@example.com": { id: "s7", email: "s7@example.com", name: "Student Seven", role: UserRole.STUDENT },
-  "s8@example.com": { id: "s8", email: "s8@example.com", name: "Student Eight", role: UserRole.STUDENT },
 };
 
 // Helper to find user by ID for internal use, as mockUserDatabase is keyed by email
@@ -179,4 +168,3 @@ export async function changeUserPassword(userId: string, currentPassword: string
   console.log(`Mock password change for user ${userId}. New password would be: ${newPassword} (not stored).`);
   return Promise.resolve();
 }
-

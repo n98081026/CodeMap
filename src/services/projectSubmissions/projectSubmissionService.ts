@@ -10,7 +10,7 @@ import type { ProjectSubmission } from '@/types';
 import { ProjectSubmissionStatus, UserRole } from '@/types';
 import { getUserById } from '@/services/users/userService';
 
-// Mock data for submissions
+// Mock data for submissions - reduced to a few key entries
 let mockSubmissionsData: ProjectSubmission[] = [
   { 
     id: "sub1", 
@@ -41,34 +41,6 @@ let mockSubmissionsData: ProjectSubmission[] = [
     analysisError: "Unsupported file structure in archive. Please ensure it's a standard ZIP or RAR.",
     classroomId: "class1",
   },
-   { 
-    id: "sub4", 
-    studentId: "student1", 
-    originalFileName: "early-draft-ideas.zip", 
-    fileSize: 50000, 
-    submissionTimestamp: new Date("2023-04-01T09:15:00Z").toISOString(), 
-    analysisStatus: ProjectSubmissionStatus.PENDING,
-    classroomId: "class1",
-  },
-  { 
-    id: "sub5_class3", 
-    studentId: "s6", 
-    originalFileName: "my_web_app.zip", 
-    fileSize: 78000, 
-    submissionTimestamp: new Date("2023-05-01T11:00:00Z").toISOString(), 
-    analysisStatus: ProjectSubmissionStatus.COMPLETED,
-    generatedConceptMapId: "map_web_proj", 
-    classroomId: "class3",
-  },
-  {
-    id: "sub6_student_test_pending",
-    studentId: "student-test-id",
-    originalFileName: "new-feature-submission.zip",
-    fileSize: 123456,
-    submissionTimestamp: new Date().toISOString(), // Recent submission
-    analysisStatus: ProjectSubmissionStatus.PENDING,
-    classroomId: "test-classroom-1"
-  }
 ];
 
 /**
