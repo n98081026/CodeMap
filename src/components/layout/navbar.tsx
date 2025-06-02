@@ -15,18 +15,20 @@ import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from 'next-themes'; 
 import { useEffect, useState } from 'react';
 import { UserRole } from '@/types';
+import { usePathname } from 'next/navigation'; // Added usePathname
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname(); // Get current path
 
   useEffect(() => {
     setMounted(true);
   }, []);
   
   const getDashboardLink = () => {
-    if (!user) return "/application/login";
+    if (!user) return "/application/login"; // Should ideally not be hit if isAuthenticated is true
     switch (user.role) {
       case UserRole.ADMIN:
         return "/application/admin/dashboard";
@@ -35,8 +37,19 @@ export function Navbar() {
       case UserRole.STUDENT:
         return "/application/student/dashboard";
       default:
-        return "/application/login";
+        return "/application/login"; // Fallback
     }
+  };
+
+  const getLogoLink = () => {
+    if (isAuthenticated) {
+      return getDashboardLink();
+    }
+    // For unauthenticated users
+    if (pathname === '/login' || pathname === '/register') {
+      return '/login';
+    }
+    return '/'; // Default for root or other public pages
   };
 
 
@@ -45,7 +58,7 @@ export function Navbar() {
     return (
       <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-6">
-        <Link href={isAuthenticated ? getDashboardLink() : "/"} className="flex items-center space-x-2">
+        <Link href={getLogoLink()} className="flex items-center space-x-2">
           <CodeXml className="h-7 w-7 text-primary" />
           <span className="font-headline text-xl font-semibold">CodeMap</span>
         </Link>
@@ -61,7 +74,7 @@ export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-6">
-        <Link href={isAuthenticated ? getDashboardLink() : "/"} className="flex items-center space-x-2">
+        <Link href={getLogoLink()} className="flex items-center space-x-2">
           <CodeXml className="h-7 w-7 text-primary" />
           <span className="font-headline text-xl font-semibold">CodeMap</span>
         </Link>
@@ -114,7 +127,7 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <Button asChild>
-              <Link href="/application/login">
+              <Link href="/login">
                 <LogIn className="mr-2 h-4 w-4" /> Login
               </Link>
             </Button>
