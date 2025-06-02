@@ -192,7 +192,7 @@ export default function AdminUsersPage() {
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              <p>New users should be created via the public registration page.</p>
+              <p>New users should register via the public registration page.</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
