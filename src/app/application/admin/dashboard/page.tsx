@@ -21,9 +21,14 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [totalUsersCount, setTotalUsersCount] = useState<number | null>(null);
+  const [activeClassroomsCount, setActiveClassroomsCount] = useState<number | null>(null);
+
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(true);
+
+  const [errorUsers, setErrorUsers] = useState<string | null>(null);
+  const [errorClassrooms, setErrorClassrooms] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && user.role !== UserRole.ADMIN) {
@@ -32,50 +37,53 @@ export default function AdminDashboardPage() {
   }, [user, router]);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!user || user.role !== UserRole.ADMIN) {
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
+    const fetchUsersCount = async () => {
+      if (!user || user.role !== UserRole.ADMIN) return;
+      setIsLoadingUsers(true);
+      setErrorUsers(null);
       try {
-        // Fetch all users for count
-        const usersResponse = await fetch('/api/users');
+        const usersResponse = await fetch('/api/users'); // Fetches first page by default, but totalCount is what we need
         if (!usersResponse.ok) {
           const errData = await usersResponse.json();
           throw new Error(`Failed to fetch users: ${errData.message || usersResponse.statusText}`);
         }
         const usersData = await usersResponse.json();
-        const totalUsersCount = usersData.totalCount; // Use totalCount from paginated response
+        setTotalUsersCount(usersData.totalCount);
+      } catch (err) {
+        const errorMessage = (err as Error).message;
+        console.error("Error fetching users count:", errorMessage);
+        setErrorUsers(errorMessage);
+        toast({ title: "Error Fetching Users Count", description: errorMessage, variant: "destructive" });
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
 
-        // Fetch all classrooms for count (admin scope)
+    const fetchClassroomsCount = async () => {
+      if (!user || user.role !== UserRole.ADMIN) return;
+      setIsLoadingClassrooms(true);
+      setErrorClassrooms(null);
+      try {
         const classroomsResponse = await fetch('/api/classrooms'); // No query params implies fetch all for admin
         if (!classroomsResponse.ok) {
           const errData = await classroomsResponse.json();
           throw new Error(`Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`);
         }
         const classroomsData = await classroomsResponse.json();
-        const activeClassroomsCount = classroomsData.length;
-        
-        setDashboardData({
-          totalUsersCount: totalUsersCount,
-          activeClassroomsCount: activeClassroomsCount,
-        });
-
+        setActiveClassroomsCount(classroomsData.length);
       } catch (err) {
         const errorMessage = (err as Error).message;
-        console.error("Error fetching admin dashboard data:", errorMessage);
-        setError(errorMessage);
-        toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
-        setDashboardData({ totalUsersCount: 0, activeClassroomsCount: 0 }); // Set to default on error
+        console.error("Error fetching classrooms count:", errorMessage);
+        setErrorClassrooms(errorMessage);
+        toast({ title: "Error Fetching Classrooms Count", description: errorMessage, variant: "destructive" });
       } finally {
-        setIsLoading(false);
+        setIsLoadingClassrooms(false);
       }
     };
 
     if (user && user.role === UserRole.ADMIN) {
-      fetchDashboardData();
+      fetchUsersCount();
+      fetchClassroomsCount();
     }
   }, [user, toast]);
 
@@ -87,6 +95,16 @@ export default function AdminDashboardPage() {
         </div>
     );
   }
+
+  const displayCountOrError = (count: number | null, isLoading: boolean, error: string | null, itemName: string) => {
+    if (isLoading) {
+      return <div className="flex items-center space-x-2"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
+    }
+    if (error) {
+        return <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
+    }
+    return <div className="text-3xl font-bold">{count ?? 0}</div>;
+  };
 
   return (
     <div className="space-y-6">
@@ -104,15 +122,7 @@ export default function AdminDashboardPage() {
             <Users className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 animate-spin" /> <span>Loading users...</span>
-              </div>
-            ) : error && dashboardData?.totalUsersCount === 0 ? ( 
-              <div className="text-destructive"><AlertTriangle className="inline mr-1 h-4 w-4" />Error</div>
-            ) : (
-              <div className="text-3xl font-bold">{dashboardData?.totalUsersCount ?? 0}</div>
-            )}
+            {displayCountOrError(totalUsersCount, isLoadingUsers, errorUsers, "users")}
             <p className="text-xs text-muted-foreground mb-4">
               Total registered users in the system.
             </p>
@@ -128,15 +138,7 @@ export default function AdminDashboardPage() {
             <Settings className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>
-             {isLoading ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 animate-spin" /> <span>Loading classrooms...</span>
-              </div>
-            ) : error && dashboardData?.activeClassroomsCount === 0 ? (
-              <div className="text-destructive"><AlertTriangle className="inline mr-1 h-4 w-4" />Error</div>
-            ) : (
-              <div className="text-3xl font-bold">{dashboardData?.activeClassroomsCount ?? 0}</div>
-            )}
+            {displayCountOrError(activeClassroomsCount, isLoadingClassrooms, errorClassrooms, "classrooms")}
              <p className="text-xs text-muted-foreground mb-4">
               Active classrooms. Configure system parameters here.
             </p>
@@ -149,3 +151,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
