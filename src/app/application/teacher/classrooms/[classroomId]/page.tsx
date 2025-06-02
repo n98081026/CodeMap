@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types"; 
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react"; 
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, FileText } from "lucide-react"; 
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -274,7 +274,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                     <div className="text-center py-10">
                         <Share2 className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
                         <h3 className="text-xl font-semibold text-muted-foreground">No Shared Maps</h3>
-                        <p className="text-sm text-muted-foreground">No concept maps have been shared with this classroom yet.</p>
+                        <p className="text-sm text-muted-foreground">No concept maps have been shared with this classroom yet by students.</p>
                     </div>
                 )}
                 {!isLoadingMaps && !errorMaps && classroomMaps.length > 0 && (
@@ -378,3 +378,12 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     </div>
   );
 }
+// Helper for DashboardHeader to allow className on icon
+declare module "@/components/dashboard/dashboard-header" {
+  interface DashboardHeaderProps {
+    iconClassName?: string;
+  }
+}
+
+
+    
