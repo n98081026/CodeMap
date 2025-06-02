@@ -28,6 +28,7 @@ let mockUserDatabase: Record<string, User> = { // Use 'let' if you plan to modif
   "admin@example.com": { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN },
   [testTeacher.email]: testTeacher,
   [testStudent.email]: testStudent,
+  "teacher2@example.com": { id: "teacher2", email: "teacher2@example.com", name: "Ms. Script", role: UserRole.TEACHER },
   "alice@example.com": { id: "user-alice", name: "Alice Wonderland", email: "alice@example.com", role: UserRole.STUDENT },
   "bob@example.com": { id: "user-bob", name: "Bob The Builder", email: "bob@example.com", role: UserRole.TEACHER },
   "charlie@example.com": { id: "user-charlie", name: "Charlie Brown", email: "charlie@example.com", role: UserRole.STUDENT },
@@ -38,6 +39,13 @@ let mockUserDatabase: Record<string, User> = { // Use 'let' if you plan to modif
   "henry@example.com": { id: "user-henry", name: "Henry Cavill", email: "henry@example.com", role: UserRole.STUDENT },
   "irene@example.com": { id: "user-irene", name: "Irene Adler", email: "irene@example.com", role: UserRole.TEACHER },
   "jack@example.com": { id: "user-jack", name: "Jack Sparrow", email: "jack@example.com", role: UserRole.STUDENT },
+  "s2@example.com": { id: "s2", email: "s2@example.com", name: "Student Two", role: UserRole.STUDENT },
+  "s3@example.com": { id: "s3", email: "s3@example.com", name: "Student Three", role: UserRole.STUDENT },
+  "s4@example.com": { id: "s4", email: "s4@example.com", name: "Student Four", role: UserRole.STUDENT },
+  "s5@example.com": { id: "s5", email: "s5@example.com", name: "Student Five", role: UserRole.STUDENT },
+  "s6@example.com": { id: "s6", email: "s6@example.com", name: "Student Six", role: UserRole.STUDENT },
+  "s7@example.com": { id: "s7", email: "s7@example.com", name: "Student Seven", role: UserRole.STUDENT },
+  "s8@example.com": { id: "s8", email: "s8@example.com", name: "Student Eight", role: UserRole.STUDENT },
 };
 
 // Helper to find user by ID for internal use, as mockUserDatabase is keyed by email

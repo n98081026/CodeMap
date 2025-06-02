@@ -11,11 +11,12 @@ import { getUserById } from '@/services/users/userService'; // To validate owner
 
 // Mock data for concept maps
 let mockConceptMapsData: ConceptMap[] = [
-  { id: "mapA", name: "My First Project Overview", ownerId: "student-test-id", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: new Date("2023-03-01T10:00:00Z").toISOString(), updatedAt: new Date("2023-03-02T11:00:00Z").toISOString() },
-  { id: "mapB", name: "Algorithm Study Notes", ownerId: "student-test-id", mapData: { nodes: [], edges: [] }, isPublic: true, sharedWithClassroomId: "class1", createdAt: new Date("2023-03-05T14:00:00Z").toISOString(), updatedAt: new Date("2023-03-08T15:00:00Z").toISOString() },
-  { id: "mapC", name: "Database Design Ideas", ownerId: "student1", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: new Date("2023-03-10T09:00:00Z").toISOString(), updatedAt: new Date("2023-03-10T09:00:00Z").toISOString() },
-  { id: "mapD_class1", name: "Shared Prog Concepts", ownerId: "student1", mapData: { nodes: [], edges: [] }, isPublic: false, sharedWithClassroomId: "class1", createdAt: new Date("2023-04-01T09:00:00Z").toISOString(), updatedAt: new Date("2023-04-01T09:00:00Z").toISOString() },
-  { id: "mapE_test_classroom", name: "AI Basics for Test Class", ownerId: "student-test-id", mapData: { nodes: [], edges: [] }, isPublic: false, sharedWithClassroomId: "test-classroom-1", createdAt: new Date("2023-04-02T09:00:00Z").toISOString(), updatedAt: new Date("2023-04-02T09:00:00Z").toISOString() },
+  { id: "mapA", name: "My First Project Overview", ownerId: "student-test-id", mapData: { nodes: [{id: "n1", text: "Main Feature", type: "feature", x: 50, y: 50}, {id: "n2", text: "User Login", type: "auth", x: 250, y: 150}], edges: [{id:"e1", source: "n1", target: "n2", label: "requires"}] }, isPublic: false, createdAt: new Date("2023-03-01T10:00:00Z").toISOString(), updatedAt: new Date("2023-03-02T11:00:00Z").toISOString() },
+  { id: "mapB", name: "Algorithm Study Notes", ownerId: "student-test-id", mapData: { nodes: [{id: "n1", text: "Sorting", type: "topic"}, {id: "n2", text: "QuickSort", type: "algorithm"}], edges: [{id:"e1", source:"n1", target:"n2", label: "example"}] }, isPublic: true, sharedWithClassroomId: "class1", createdAt: new Date("2023-03-05T14:00:00Z").toISOString(), updatedAt: new Date("2023-03-08T15:00:00Z").toISOString() },
+  { id: "mapC", name: "Database Design Ideas", ownerId: "student1", mapData: { nodes: [{id: "n1", text: "User Table", type: "table"}], edges: [] }, isPublic: false, createdAt: new Date("2023-03-10T09:00:00Z").toISOString(), updatedAt: new Date("2023-03-10T09:00:00Z").toISOString() },
+  { id: "mapD_class1", name: "Shared Prog Concepts", ownerId: "student1", mapData: { nodes: [{id: "n1", text: "Loops", type: "concept"}], edges: [] }, isPublic: false, sharedWithClassroomId: "class1", createdAt: new Date("2023-04-01T09:00:00Z").toISOString(), updatedAt: new Date("2023-04-01T09:00:00Z").toISOString() },
+  { id: "mapE_test_classroom", name: "AI Basics for Test Class", ownerId: "student-test-id", mapData: { nodes: [{id:"n1", text:"Neural Network", type:"model"}], edges: [] }, isPublic: false, sharedWithClassroomId: "test-classroom-1", createdAt: new Date("2023-04-02T09:00:00Z").toISOString(), updatedAt: new Date("2023-04-02T09:00:00Z").toISOString() },
+  { id: "map_web_proj", name: "Web Project Structure Map", ownerId: "s6", mapData: { nodes: [{id: "node-wp-1", text: "Frontend Entry (App.tsx)", type: "file", x: 50, y: 50}, {id: "node-wp-2", text: "Backend API (/api/users)", type: "api_endpoint", x: 250, y: 150}], edges: [{id:"edge-wp-1", source: "node-wp-1", target: "node-wp-2", label: "calls"}] }, isPublic: false, sharedWithClassroomId: "class3", createdAt: new Date("2023-05-01T12:00:00Z").toISOString(), updatedAt: new Date("2023-05-01T12:30:00Z").toISOString() }
 ];
 
 /**
@@ -44,7 +45,7 @@ export async function createConceptMap(
     id: `map-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     name,
     ownerId,
-    mapData,
+    mapData: mapData || { nodes: [], edges: [] }, // Ensure mapData is initialized
     isPublic,
     sharedWithClassroomId: sharedWithClassroomId || null,
     createdAt: now,
@@ -108,6 +109,7 @@ export async function updateConceptMap(mapId: string, updates: Partial<Omit<Conc
   mockConceptMapsData[mapIndex] = {
     ...currentMap,
     ...validUpdates, // Apply only valid updates
+    mapData: validUpdates.mapData || currentMap.mapData, // Ensure mapData is preserved or updated
     updatedAt: new Date().toISOString(),
   };
   return mockConceptMapsData[mapIndex];

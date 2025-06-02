@@ -15,7 +15,7 @@ let mockSubmissionsData: ProjectSubmission[] = [
   { 
     id: "sub1", 
     studentId: "student-test-id", 
-    originalFileName: "final-project.zip", 
+    originalFileName: "final-project-v1.zip", 
     fileSize: 2345678, 
     submissionTimestamp: new Date("2023-04-10T10:00:00Z").toISOString(), 
     analysisStatus: ProjectSubmissionStatus.COMPLETED, 
@@ -25,7 +25,7 @@ let mockSubmissionsData: ProjectSubmission[] = [
   { 
     id: "sub2", 
     studentId: "student-test-id", 
-    originalFileName: "alpha-release.rar", 
+    originalFileName: "alpha-prototype.rar", 
     fileSize: 102400, 
     submissionTimestamp: new Date("2023-04-12T14:30:00Z").toISOString(), 
     analysisStatus: ProjectSubmissionStatus.PROCESSING,
@@ -34,17 +34,17 @@ let mockSubmissionsData: ProjectSubmission[] = [
   { 
     id: "sub3", 
     studentId: "student1", 
-    originalFileName: "buggy-code.zip", 
+    originalFileName: "buggy-code-fix-attempt.zip", 
     fileSize: 50000, 
     submissionTimestamp: new Date("2023-04-13T09:15:00Z").toISOString(), 
     analysisStatus: ProjectSubmissionStatus.FAILED, 
-    analysisError: "Unsupported file structure in archive.",
+    analysisError: "Unsupported file structure in archive. Please ensure it's a standard ZIP or RAR.",
     classroomId: "class1",
   },
    { 
     id: "sub4", 
     studentId: "student1", 
-    originalFileName: "early-draft.zip", 
+    originalFileName: "early-draft-ideas.zip", 
     fileSize: 50000, 
     submissionTimestamp: new Date("2023-04-01T09:15:00Z").toISOString(), 
     analysisStatus: ProjectSubmissionStatus.PENDING,
@@ -53,13 +53,22 @@ let mockSubmissionsData: ProjectSubmission[] = [
   { 
     id: "sub5_class3", 
     studentId: "s6", 
-    originalFileName: "web_project.zip", 
+    originalFileName: "my_web_app.zip", 
     fileSize: 78000, 
     submissionTimestamp: new Date("2023-05-01T11:00:00Z").toISOString(), 
     analysisStatus: ProjectSubmissionStatus.COMPLETED,
     generatedConceptMapId: "map_web_proj", 
     classroomId: "class3",
   },
+  {
+    id: "sub6_student_test_pending",
+    studentId: "student-test-id",
+    originalFileName: "new-feature-submission.zip",
+    fileSize: 123456,
+    submissionTimestamp: new Date().toISOString(), // Recent submission
+    analysisStatus: ProjectSubmissionStatus.PENDING,
+    classroomId: "test-classroom-1"
+  }
 ];
 
 /**
