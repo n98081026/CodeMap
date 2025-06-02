@@ -2,14 +2,14 @@
 // src/app/application/admin/users/page.tsx
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState, useCallback } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
 import Link from "next/link";
@@ -31,11 +31,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const USERS_PER_PAGE = 7;
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -47,18 +48,23 @@ export default function AdminUsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editFormData, setEditFormData] = useState({ name: "", email: "", role: UserRole.STUDENT });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
-  const fetchUsers = async () => {
+
+  const fetchUsers = useCallback(async (page: number) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch(`/api/users?page=${page}&limit=${USERS_PER_PAGE}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch users");
       }
-      const data: User[] = await response.json();
-      setUsers(data);
+      const data = await response.json() as { users: User[], totalCount: number };
+      setUsers(data.users);
+      setTotalUsers(data.totalCount);
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
@@ -66,12 +72,11 @@ export default function AdminUsersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    fetchUsers();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Toast dependency removed as it's stable
+    fetchUsers(currentPage);
+  }, [currentPage, fetchUsers]);
 
   const handleDeleteUser = async (userId: string, userName: string) => {
      if (userId === "student-test-id" || userId === "teacher-test-id") {
@@ -85,7 +90,12 @@ export default function AdminUsersPage() {
         throw new Error(errorData.message || "Failed to delete user");
       }
       toast({ title: "User Deleted", description: `User "${userName}" has been deleted.` });
-      fetchUsers(); // Refresh list
+      // Refresh users, potentially adjusting currentPage if last item on page deleted
+      if (users.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        fetchUsers(currentPage);
+      }
     } catch (err) {
       toast({ title: "Error Deleting User", description: (err as Error).message, variant: "destructive" });
     }
@@ -121,12 +131,23 @@ export default function AdminUsersPage() {
       toast({ title: "User Updated", description: `User "${editFormData.name}" has been updated.` });
       setIsEditModalOpen(false);
       setEditingUser(null);
-      fetchUsers(); // Refresh list
+      fetchUsers(currentPage); // Refresh current page
     } catch (err) {
       toast({ title: "Error Updating User", description: (err as Error).message, variant: "destructive" });
     }
   };
 
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -161,7 +182,7 @@ export default function AdminUsersPage() {
           </CardHeader>
           <CardContent>
             <p>{error}</p>
-            <Button onClick={fetchUsers} className="mt-4">Try Again</Button>
+            <Button onClick={() => fetchUsers(currentPage)} className="mt-4">Try Again</Button>
           </CardContent>
         </Card>
       )}
@@ -169,11 +190,11 @@ export default function AdminUsersPage() {
       {!isLoading && !error && (
          <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>All Users</CardTitle>
+            <CardTitle>All Users ({totalUsers})</CardTitle>
             <CardDescription>A list of all registered users. Test users cannot be edited or deleted.</CardDescription>
           </CardHeader>
           <CardContent>
-            {users.length === 0 ? (
+            {users.length === 0 && totalUsers === 0 ? (
               <p>No users found.</p>
             ) : (
             <Table>
@@ -227,6 +248,33 @@ export default function AdminUsersPage() {
             </Table>
             )}
           </CardContent>
+          {totalPages > 1 && (
+            <CardFooter className="flex items-center justify-between border-t pt-4">
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1 || isLoading}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages || isLoading}
+                >
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardFooter>
+          )}
         </Card>
       )}
       
@@ -270,3 +318,4 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+```

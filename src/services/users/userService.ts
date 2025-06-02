@@ -7,7 +7,7 @@
  * - findUserByEmailAndRole - Finds a user by email and role.
  * - createUser - Creates a new user.
  * - getUserById - Retrieves a user by their ID.
- * - getAllUsers - Retrieves all users.
+ * - getAllUsers - Retrieves all users (with pagination).
  * - updateUser - Updates a user's details.
  * - deleteUser - Deletes a user.
  */
@@ -26,6 +26,16 @@ let mockUserDatabase: Record<string, User> = { // Use 'let' if you plan to modif
   "admin@example.com": { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN },
   [testTeacher.email]: testTeacher,
   [testStudent.email]: testStudent,
+  "alice@example.com": { id: "user-alice", name: "Alice Wonderland", email: "alice@example.com", role: UserRole.STUDENT },
+  "bob@example.com": { id: "user-bob", name: "Bob The Builder", email: "bob@example.com", role: UserRole.TEACHER },
+  "charlie@example.com": { id: "user-charlie", name: "Charlie Brown", email: "charlie@example.com", role: UserRole.STUDENT },
+  "diana@example.com": { id: "user-diana", name: "Diana Prince", email: "diana@example.com", role: UserRole.ADMIN },
+  "eva@example.com": { id: "user-eva", name: "Eva Green", email: "eva@example.com", role: UserRole.STUDENT },
+  "frank@example.com": { id: "user-frank", name: "Frank Castle", email: "frank@example.com", role: UserRole.TEACHER },
+  "grace@example.com": { id: "user-grace", name: "Grace Hopper", email: "grace@example.com", role: UserRole.ADMIN },
+  "henry@example.com": { id: "user-henry", name: "Henry Cavill", email: "henry@example.com", role: UserRole.STUDENT },
+  "irene@example.com": { id: "user-irene", name: "Irene Adler", email: "irene@example.com", role: UserRole.TEACHER },
+  "jack@example.com": { id: "user-jack", name: "Jack Sparrow", email: "jack@example.com", role: UserRole.STUDENT },
 };
 
 // Helper to find user by ID for internal use, as mockUserDatabase is keyed by email
@@ -64,8 +74,18 @@ export async function getUserById(userId: string): Promise<User | null> {
   return user || null;
 }
 
-export async function getAllUsers(): Promise<User[]> {
-  return Object.values(mockUserDatabase);
+export async function getAllUsers(page: number = 1, limit: number = 10): Promise<{ users: User[]; totalCount: number }> {
+  const allUsersArray = Object.values(mockUserDatabase);
+  const totalCount = allUsersArray.length;
+  
+  // Sort users by name for consistent pagination
+  allUsersArray.sort((a, b) => a.name.localeCompare(b.name));
+  
+  const startIndex = (page - 1) * limit;
+  const endIndex = page * limit;
+  const paginatedUsers = allUsersArray.slice(startIndex, endIndex);
+  
+  return { users: paginatedUsers, totalCount };
 }
 
 export async function updateUser(userId: string, updates: Partial<Omit<User, 'id' | 'password'>>): Promise<User | null> {
@@ -114,3 +134,4 @@ export async function deleteUser(userId: string): Promise<boolean> {
   }
   return false; // Should not happen if user was found by ID
 }
+```

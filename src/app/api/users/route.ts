@@ -2,19 +2,20 @@
 import { NextResponse } from 'next/server';
 import { getAllUsers } from '@/services/users/userService';
 
-// This route is for admin purposes to get all users.
-// In a real application, this route should be protected and only accessible by administrators.
 export async function GET(request: Request) {
   try {
     // TODO: Add authentication and authorization checks here to ensure only admins can access this.
-    // For example:
-    // const session = await getServerSession(authOptions); // if using NextAuth
-    // if (!session || session.user.role !== UserRole.ADMIN) {
-    //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    // }
+    
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
 
-    const users = await getAllUsers();
-    return NextResponse.json(users);
+    if (isNaN(page) || page < 1 || isNaN(limit) || limit < 1) {
+      return NextResponse.json({ message: "Invalid page or limit parameters" }, { status: 400 });
+    }
+
+    const { users, totalCount } = await getAllUsers(page, limit);
+    return NextResponse.json({ users, totalCount });
 
   } catch (error) {
     console.error("Get All Users API error:", error);
@@ -22,3 +23,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "Failed to fetch users: " + errorMessage }, { status: 500 });
   }
 }
+```
