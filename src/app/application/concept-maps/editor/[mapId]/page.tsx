@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
 import React, { useEffect, useState, useCallback, use } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import {
   ExtractConceptsModal,
@@ -17,7 +17,7 @@ import {
   ExpandConceptModal,
 } from "@/components/concept-map/genai-modals";
 import { useToast } from "@/hooks/use-toast";
-import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
+import type { ConceptMap, ConceptMapData } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -27,10 +27,13 @@ const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slic
 
 export default function ConceptMapEditorPage({ params: paramsPromise }: { params: Promise<{ mapId: string }> }) {
   const actualParams = use(paramsPromise);
+  const searchParams = useSearchParams(); // Get search params
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
   
+  const isViewOnlyMode = searchParams.get('viewOnly') === 'true'; // Determine view-only mode
+
   const [isNewMapMode, setIsNewMapMode] = useState(actualParams.mapId === "new");
   const [currentMap, setCurrentMap] = useState<ConceptMap | null>(null); 
   
@@ -113,6 +116,10 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
 
   const handleSaveMap = async () => {
+    if (isViewOnlyMode) {
+        toast({ title: "View Only Mode", description: "Cannot save changes in view-only mode.", variant: "default"});
+        return;
+    }
     if (!user) {
         toast({ title: "Authentication Error", description: "You must be logged in to save a map.", variant: "destructive"});
         return;
@@ -171,7 +178,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
       
       if ((isNewMapMode || !currentMap?.id) && savedMap.id) {
-         router.replace(`/application/concept-maps/editor/${savedMap.id}`, { scroll: false });
+         router.replace(`/application/concept-maps/editor/${savedMap.id}${isViewOnlyMode ? '?viewOnly=true' : ''}`, { scroll: false });
       }
     } catch (err) {
       toast({ title: "Error Saving Map", description: (err as Error).message, variant: "destructive" });
@@ -197,6 +204,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   };
 
   const addConceptsToMapData = (conceptsToAdd: string[], type: string) => {
+    if (isViewOnlyMode) return;
     setMapData(prevMapData => {
       const newNodes = [...(prevMapData.nodes || [])];
       let conceptsActuallyAddedCount = 0;
@@ -224,6 +232,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   };
 
   const handleAddSuggestedRelationsToMap = (relations: Array<{ source: string; target: string; relation: string }>) => {
+    if (isViewOnlyMode) return;
     setMapData(prevMapData => {
       const newNodes = [...(prevMapData.nodes || [])];
       const newEdges = [...(prevMapData.edges || [])];
@@ -244,7 +253,6 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
           conceptsAddedFromRelationsCount++;
         }
 
-        // Check if edge already exists (simple check, could be more robust)
         if (!newEdges.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
           newEdges.push({ id: uniqueEdgeId(), source: sourceNode.id, target: targetNode.id, label: rel.relation });
           relationsActuallyAddedCount++;
@@ -303,7 +311,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   }
   
   const mapForInspector = currentMap || {
-    id: actualParams.mapId, // Use actualParams.mapId if currentMap is null (new map)
+    id: actualParams.mapId,
     name: mapName,
     ownerId: user?.id || "", 
     mapData: mapData,
@@ -317,17 +325,19 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   return (
     <div className="flex h-full flex-col space-y-4">
       <DashboardHeader
-        title={mapName}
-        description="Create, edit, and visualize your ideas."
+        title={isViewOnlyMode ? `Viewing: ${mapName}` : mapName}
+        description={isViewOnlyMode ? "This map is in view-only mode." : "Create, edit, and visualize your ideas."}
         icon={(isNewMapMode || !currentMap?.id) ? Compass : Share2}
         iconLinkHref={user?.role === 'student' ? "/application/student/concept-maps" : 
                        user?.role === 'teacher' ? "/application/teacher/dashboard" : 
                        user?.role === 'admin' ? "/application/admin/dashboard" : "/"}
       >
-        <Button onClick={handleSaveMap} disabled={isSaving}>
-          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {isSaving ? "Saving..." : "Save Map"}
-        </Button>
+        {!isViewOnlyMode && (
+          <Button onClick={handleSaveMap} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {isSaving ? "Saving..." : "Save Map"}
+          </Button>
+        )}
         <Button asChild variant="outline">
           <Link href="/application/student/concept-maps"> 
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Maps
@@ -341,6 +351,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
         onExtractConcepts={() => setIsExtractConceptsModalOpen(true)}
         onSuggestRelations={() => setIsSuggestRelationsModalOpen(true)}
         onExpandConcept={() => setIsExpandConceptModalOpen(true)}
+        isViewOnlyMode={isViewOnlyMode}
       />
 
       <div className="flex flex-1 gap-4 overflow-hidden">
@@ -352,6 +363,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
             onAddExtractedConcepts={handleAddExtractedConceptsToMap}
             onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
             onAddExpandedConcepts={handleAddExpandedConceptsToMap}
+            isViewOnlyMode={isViewOnlyMode}
           /> 
         </div>
         <aside className="hidden w-80 flex-shrink-0 lg:block">
@@ -359,21 +371,22 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
             currentMap={mapForInspector} 
             onMapPropertiesChange={handleMapPropertiesChange}
             isNewMapMode={(isNewMapMode || !currentMap?.id)}
+            isViewOnlyMode={isViewOnlyMode}
           />
         </aside>
       </div>
 
-      {isExtractConceptsModalOpen && (
+      {isExtractConceptsModalOpen && !isViewOnlyMode && (
         <ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />
       )}
-      {isSuggestRelationsModalOpen && (
+      {isSuggestRelationsModalOpen && !isViewOnlyMode && (
         <SuggestRelationsModal 
           onRelationsSuggested={handleRelationsSuggested} 
           initialConcepts={aiExtractedConcepts.slice(0,3)} 
           onOpenChange={setIsSuggestRelationsModalOpen} 
         />
       )}
-      {isExpandConceptModalOpen && (
+      {isExpandConceptModalOpen && !isViewOnlyMode && (
         <ExpandConceptModal 
           onConceptExpanded={handleConceptExpanded} 
           initialConcept={aiExtractedConcepts.length > 0 ? aiExtractedConcepts[0] : ""} 
@@ -392,6 +405,7 @@ declare module "@/components/dashboard/dashboard-header" {
 declare module "@/components/concept-map/properties-inspector" {
     interface PropertiesInspectorProps {
         isNewMapMode?: boolean;
+        isViewOnlyMode?: boolean;
     }
 }
 declare module "@/components/concept-map/canvas-placeholder" {
@@ -402,7 +416,12 @@ declare module "@/components/concept-map/canvas-placeholder" {
     onAddExtractedConcepts?: (concepts: string[]) => void;
     onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
     onAddExpandedConcepts?: (concepts: string[]) => void;
+    isViewOnlyMode?: boolean;
   }
 }
-
+declare module "@/components/concept-map/editor-toolbar" {
+  interface EditorToolbarProps {
+    isViewOnlyMode?: boolean;
+  }
+}
     

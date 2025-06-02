@@ -13,18 +13,39 @@ interface EditorToolbarProps {
   onExtractConcepts: () => void;
   onSuggestRelations: () => void;
   onExpandConcept: () => void;
+  isViewOnlyMode?: boolean;
 }
 
 
-export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSuggestRelations, onExpandConcept }: EditorToolbarProps) {
+export function EditorToolbar({ 
+  onSaveMap, 
+  isSaving, 
+  onExtractConcepts, 
+  onSuggestRelations, 
+  onExpandConcept,
+  isViewOnlyMode 
+}: EditorToolbarProps) {
   const { toast } = useToast();
 
   const handlePlaceholderClick = (action: string) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "This action is disabled in view-only mode.", variant: "default" });
+      return;
+    }
     toast({
       title: "Action Clicked (Placeholder)",
       description: `${action} functionality is not yet implemented.`,
     });
   };
+
+  const handleGenAIClick = (actionCallback: () => void, toolName: string) => {
+    if (isViewOnlyMode) {
+       toast({ title: "View Only Mode", description: `Cannot use ${toolName} in view-only mode.`, variant: "default" });
+      return;
+    }
+    actionCallback();
+  }
+
 
   return (
     <TooltipProvider>
@@ -32,7 +53,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         {/* File Operations */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("New Map")}>
+            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("New Map")} disabled={isViewOnlyMode}>
               <FilePlus className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -40,7 +61,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onSaveMap} disabled={isSaving}>
+            <Button variant="ghost" size="icon" onClick={onSaveMap} disabled={isSaving || isViewOnlyMode}>
               {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
             </Button>
           </TooltipTrigger>
@@ -48,7 +69,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Import Map")}>
+            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Import Map")} disabled={isViewOnlyMode}>
               <Upload className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -56,7 +77,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Export Map")}>
+            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Export Map")} disabled={isViewOnlyMode}>
               <Download className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -68,7 +89,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         {/* Edit Operations */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Undo")}>
+            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Undo")} disabled={isViewOnlyMode}>
               <Undo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -76,7 +97,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Redo")}>
+            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Redo")} disabled={isViewOnlyMode}>
               <Redo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -88,7 +109,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         {/* Insert Elements */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Add Node")}>
+            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Add Node")} disabled={isViewOnlyMode}>
               <PlusSquare className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -96,7 +117,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Add Edge")}>
+            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Add Edge")} disabled={isViewOnlyMode}>
               <Spline className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -108,7 +129,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         {/* GenAI Tools */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onExtractConcepts}>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onExtractConcepts, "Extract Concepts")} disabled={isViewOnlyMode}>
               <SearchCode className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -116,7 +137,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onSuggestRelations}>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onSuggestRelations, "Suggest Relations")} disabled={isViewOnlyMode}>
               <Lightbulb className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -124,7 +145,7 @@ export function EditorToolbar({ onSaveMap, isSaving, onExtractConcepts, onSugges
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onExpandConcept}>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onExpandConcept, "Expand Concept")} disabled={isViewOnlyMode}>
               <Brain className="h-5 w-5" />
             </Button>
           </TooltipTrigger>

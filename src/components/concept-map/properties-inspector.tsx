@@ -4,7 +4,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Keep for potential future use (node/edge details)
 import { Button } from "@/components/ui/button";
 import { Settings2, Check, X } from "lucide-react";
 import type { ConceptMap } from "@/types";
@@ -20,15 +19,15 @@ interface PropertiesInspectorProps {
     sharedWithClassroomId: string | null;
   }) => void;
   isNewMapMode?: boolean; 
+  isViewOnlyMode?: boolean;
 }
 
-export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMapMode }: PropertiesInspectorProps) {
+export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMapMode, isViewOnlyMode }: PropertiesInspectorProps) {
   const { toast } = useToast();
   const [mapName, setMapName] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [sharedWithClassroomId, setSharedWithClassroomId] = useState<string | null>(null);
 
-  // Store initial values to detect changes
   const [initialName, setInitialName] = useState("");
   const [initialIsPublic, setInitialIsPublic] = useState(false);
   const [initialSharedId, setInitialSharedId] = useState<string | null>(null);
@@ -40,15 +39,13 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
       setIsPublic(currentMap.isPublic);
       setSharedWithClassroomId(currentMap.sharedWithClassroomId || null);
 
-      // Set initial values only when currentMap changes (i.e., map loaded or saved)
-      // or if it's identified as new map mode from parent.
       if (isNewMapMode || (currentMap.id && currentMap.id !== 'new')) {
          setInitialName(currentMap.name);
          setInitialIsPublic(currentMap.isPublic);
          setInitialSharedId(currentMap.sharedWithClassroomId || null);
       }
 
-    } else { // New map, not yet saved
+    } else { 
       const defaultNewName = "New Concept Map";
       setMapName(defaultNewName); 
       setIsPublic(false);
@@ -61,21 +58,25 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
   }, [currentMap, isNewMapMode]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isViewOnlyMode) return;
     setMapName(e.target.value);
   };
   
   const handleIsPublicChange = (checked: boolean) => {
+    if (isViewOnlyMode) return;
     setIsPublic(checked);
   };
 
   const handleSharedIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isViewOnlyMode) return;
     setSharedWithClassroomId(e.target.value.trim() || null);
   };
 
   const handleApplyMapSettings = () => {
+     if (isViewOnlyMode) return;
      if (!mapName.trim()) {
         toast({ title: "Map Name Required", description: "Map name cannot be empty.", variant: "destructive" });
-        setMapName(initialName); // Revert to initial if invalid
+        setMapName(initialName); 
         return;
      }
     onMapPropertiesChange({
@@ -83,7 +84,6 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
       isPublic: isPublic,
       sharedWithClassroomId: sharedWithClassroomId,
     });
-    // Update initial values after changes are applied to the editor's state
     setInitialName(mapName); 
     setInitialIsPublic(isPublic);
     setInitialSharedId(sharedWithClassroomId);
@@ -91,11 +91,10 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
   };
 
   const handleCancelChanges = () => {
-    // Revert local state to the initial state (from last loaded/saved map or new map defaults)
+    if (isViewOnlyMode) return;
     setMapName(initialName);
     setIsPublic(initialIsPublic);
     setSharedWithClassroomId(initialSharedId);
-    // Also inform parent to revert its state if needed, or parent relies on its own state for 'Save Map'
     onMapPropertiesChange({
         name: initialName,
         isPublic: initialIsPublic,
@@ -113,7 +112,9 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
           <Settings2 className="h-5 w-5 text-primary" />
           <CardTitle className="text-lg">Properties</CardTitle>
         </div>
-        <CardDescription>Edit map or selected element's properties.</CardDescription>
+        <CardDescription>
+          {isViewOnlyMode ? "Viewing map properties." : "Edit map or selected element's properties."}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
@@ -123,6 +124,8 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
             value={mapName} 
             onChange={handleNameChange}
             placeholder="Enter map name"
+            disabled={isViewOnlyMode}
+            readOnly={isViewOnlyMode}
           />
         </div>
         <div>
@@ -131,8 +134,9 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
                     id="isPublicSwitch" 
                     checked={isPublic} 
                     onCheckedChange={handleIsPublicChange}
+                    disabled={isViewOnlyMode}
                 />
-                <Label htmlFor="isPublicSwitch">Publicly Visible</Label>
+                <Label htmlFor="isPublicSwitch" className={isViewOnlyMode ? "cursor-not-allowed opacity-70" : ""}>Publicly Visible</Label>
             </div>
         </div>
           <div>
@@ -142,25 +146,28 @@ export function PropertiesInspector({ currentMap, onMapPropertiesChange, isNewMa
             value={sharedWithClassroomId || ""} 
             onChange={handleSharedIdChange}
             placeholder="Enter classroom ID or leave blank"
+            disabled={isViewOnlyMode}
+            readOnly={isViewOnlyMode}
           />
         </div>
         
-        {hasChanges && (
+        {hasChanges && !isViewOnlyMode && (
             <div className="flex space-x-2 pt-2">
-                <Button onClick={handleApplyMapSettings} className="flex-1">
+                <Button onClick={handleApplyMapSettings} className="flex-1" disabled={isViewOnlyMode}>
                     <Check className="mr-2 h-4 w-4" /> Apply 
                 </Button>
-                <Button onClick={handleCancelChanges} variant="outline" className="flex-1">
+                <Button onClick={handleCancelChanges} variant="outline" className="flex-1" disabled={isViewOnlyMode}>
                     <X className="mr-2 h-4 w-4" /> Cancel
                 </Button>
             </div>
         )}
         
         <hr className="my-4"/>
-        <p className="text-sm text-muted-foreground pt-4 border-t">Select an element on the canvas to edit its properties here (placeholder).</p>
+        <p className="text-sm text-muted-foreground pt-4 border-t">
+          {isViewOnlyMode ? "Element properties are not editable in view-only mode." : "Select an element on the canvas to edit its properties here (placeholder)."}
+        </p>
         
       </CardContent>
     </Card>
   );
 }
-

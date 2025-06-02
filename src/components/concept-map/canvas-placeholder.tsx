@@ -13,6 +13,7 @@ interface CanvasPlaceholderProps {
   onAddExtractedConcepts?: (concepts: string[]) => void;
   onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
   onAddExpandedConcepts?: (concepts: string[]) => void;
+  isViewOnlyMode?: boolean;
 }
 
 export function CanvasPlaceholder({
@@ -21,7 +22,8 @@ export function CanvasPlaceholder({
   expandedConcepts,
   onAddExtractedConcepts,
   onAddSuggestedRelations,
-  onAddExpandedConcepts
+  onAddExpandedConcepts,
+  isViewOnlyMode
 }: CanvasPlaceholderProps) {
   const hasAiOutput =
     (extractedConcepts && extractedConcepts.length > 0) ||
@@ -36,16 +38,21 @@ export function CanvasPlaceholder({
             <GitFork className="h-16 w-16 text-muted-foreground/50 mb-4" />
             <h3 className="text-xl font-semibold text-muted-foreground">Concept Map Canvas</h3>
             <p className="text-sm text-muted-foreground">
-              Create nodes and edges using the toolbar above, or use AI tools to generate content.
+              {isViewOnlyMode 
+                ? "You are viewing this map in read-only mode." 
+                : "Create nodes and edges using the toolbar above, or use AI tools to generate content."
+              }
             </p>
             <p className="text-xs text-muted-foreground/70 mt-2">
-              (Canvas interaction is a placeholder. AI suggestions will appear below.)
+              (Canvas interaction is a placeholder. AI suggestions will appear below if used.)
             </p>
           </>
         ) : (
           <ScrollArea className="h-full w-full">
             <div className="p-4 space-y-4 text-left">
-              <h3 className="text-xl font-semibold text-muted-foreground mb-4 text-center">AI Generated Content</h3>
+              <h3 className="text-xl font-semibold text-muted-foreground mb-4 text-center">
+                {isViewOnlyMode ? "Viewing AI Generated Content" : "AI Generated Content"}
+              </h3>
 
               {extractedConcepts && extractedConcepts.length > 0 && onAddExtractedConcepts && (
                 <div className="p-3 border rounded-md bg-background/50">
@@ -55,12 +62,14 @@ export function CanvasPlaceholder({
                       <li key={`extracted-${index}`}>{concept}</li>
                     ))}
                   </ul>
-                  <div className="pt-2 border-t border-dashed">
-                    <Button size="sm" variant="outline" className="w-full" onClick={() => onAddExtractedConcepts(extractedConcepts)}>
-                      <PlusCircle className="mr-2 h-4 w-4"/> Add All Extracted Concepts to Map
-                    </Button>
-                    <p className="text-xs text-muted-foreground mt-1 text-center">(Modifies local map data. Save map to persist.)</p>
-                  </div>
+                  {!isViewOnlyMode && (
+                    <div className="pt-2 border-t border-dashed">
+                      <Button size="sm" variant="outline" className="w-full" onClick={() => onAddExtractedConcepts(extractedConcepts)} disabled={isViewOnlyMode}>
+                        <PlusCircle className="mr-2 h-4 w-4"/> Add All Extracted Concepts to Map
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1 text-center">(Modifies local map data. Save map to persist.)</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -72,12 +81,14 @@ export function CanvasPlaceholder({
                       <li key={`relation-${index}`}>{`${rel.source} -> ${rel.target} (${rel.relation})`}</li>
                     ))}
                   </ul>
-                  <div className="pt-2 border-t border-dashed">
-                    <Button size="sm" variant="outline" className="w-full" onClick={() => onAddSuggestedRelations(suggestedRelations)}>
-                      <PlusCircle className="mr-2 h-4 w-4"/> Add All Suggested Relations to Map
-                    </Button>
-                     <p className="text-xs text-muted-foreground mt-1 text-center">(Modifies local map data. Save map to persist.)</p>
-                  </div>
+                  {!isViewOnlyMode && (
+                    <div className="pt-2 border-t border-dashed">
+                      <Button size="sm" variant="outline" className="w-full" onClick={() => onAddSuggestedRelations(suggestedRelations)} disabled={isViewOnlyMode}>
+                        <PlusCircle className="mr-2 h-4 w-4"/> Add All Suggested Relations to Map
+                      </Button>
+                       <p className="text-xs text-muted-foreground mt-1 text-center">(Modifies local map data. Save map to persist.)</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -89,12 +100,14 @@ export function CanvasPlaceholder({
                       <li key={`expanded-${index}`}>{concept}</li>
                     ))}
                   </ul>
-                  <div className="pt-2 border-t border-dashed">
-                    <Button size="sm" variant="outline" className="w-full" onClick={() => onAddExpandedConcepts(expandedConcepts)}>
-                      <PlusCircle className="mr-2 h-4 w-4"/> Add All Expanded Ideas to Map
-                    </Button>
-                    <p className="text-xs text-muted-foreground mt-1 text-center">(Modifies local map data. Save map to persist.)</p>
-                  </div>
+                  {!isViewOnlyMode && (
+                    <div className="pt-2 border-t border-dashed">
+                      <Button size="sm" variant="outline" className="w-full" onClick={() => onAddExpandedConcepts(expandedConcepts)} disabled={isViewOnlyMode}>
+                        <PlusCircle className="mr-2 h-4 w-4"/> Add All Expanded Ideas to Map
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1 text-center">(Modifies local map data. Save map to persist.)</p>
+                    </div>
+                  )}
                 </div>
               )}
                <p className="text-xs text-muted-foreground/70 mt-6 text-center">
@@ -107,5 +120,3 @@ export function CanvasPlaceholder({
     </Card>
   );
 }
-
-    
