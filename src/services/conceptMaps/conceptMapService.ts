@@ -124,4 +124,3 @@ export async function deleteConceptMap(mapId: string, ownerId: string): Promise<
   mockConceptMapsData.splice(mapIndex, 1);
   return true;
 }
-```

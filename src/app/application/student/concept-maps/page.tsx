@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { ConceptMap } from "@/types";
-import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -31,14 +31,25 @@ export default function StudentConceptMapsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchStudentMaps = async () => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const response = await fetch(`/api/concept-maps?ownerId=${user.id}`);
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch concept maps");
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to fetch concept maps (Status: ${response.status})`);
+        } else {
+          let errorText = await response.text();
+          // Limit the length of the HTML error message to avoid overly long toasts
+          if (errorText.length > 200) errorText = errorText.substring(0, 200) + "...";
+          throw new Error(`Server error (Status: ${response.status}). Response: ${errorText}`);
+        }
       }
       const data: ConceptMap[] = await response.json();
       setStudentMaps(data);
@@ -52,7 +63,10 @@ export default function StudentConceptMapsPage() {
   };
 
   useEffect(() => {
-    fetchStudentMaps();
+    if (user) {
+      fetchStudentMaps();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleDeleteMap = async (mapId: string, mapName: string) => {
@@ -88,6 +102,11 @@ export default function StudentConceptMapsPage() {
         description="Manage all your created and shared concept maps."
         icon={Share2}
       >
+        <Button asChild variant="outline">
+            <Link href="/application/student/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+            </Link>
+        </Button>
         <Button asChild>
           <Link href="/application/concept-maps/editor/new">
             <PlusCircle className="mr-2 h-4 w-4" /> Create New Map
@@ -104,7 +123,10 @@ export default function StudentConceptMapsPage() {
       {error && !isLoading && (
          <Card className="shadow-md border-destructive">
           <CardHeader><CardTitle className="flex items-center text-destructive"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Maps</CardTitle></CardHeader>
-          <CardContent><p>{error}</p><Button onClick={fetchStudentMaps} className="mt-4">Try Again</Button></CardContent>
+          <CardContent>
+            <p className="whitespace-pre-wrap break-words">{error}</p>
+            <Button onClick={fetchStudentMaps} className="mt-4">Try Again</Button>
+          </CardContent>
         </Card>
       )}
 
@@ -113,6 +135,11 @@ export default function StudentConceptMapsPage() {
           <CardHeader><CardTitle>No Concept Maps Yet</CardTitle></CardHeader>
           <CardContent>
             <p className="text-muted-foreground">You haven&apos;t created any concept maps. Click the button above to get started!</p>
+            <Button asChild className="mt-4">
+              <Link href="/application/concept-maps/editor/new">
+                <PlusCircle className="mr-2 h-4 w-4" /> Create New Map
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       )}
