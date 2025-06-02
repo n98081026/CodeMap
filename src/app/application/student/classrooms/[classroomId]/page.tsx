@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, use } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Classroom, ConceptMap } from "@/types";
@@ -12,7 +12,8 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 
-export default function StudentClassroomDetailPage({ params }: { params: { classroomId: string } }) {
+export default function StudentClassroomDetailPage({ params: paramsPromise }: { params: Promise<{ classroomId: string }> }) {
+  const actualParams = use(paramsPromise);
   const { user } = useAuth();
   const { toast } = useToast();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
@@ -27,11 +28,11 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
                              : "/application/student/dashboard";
 
   const fetchClassroomDetails = useCallback(async () => {
-    if (!params.classroomId) return;
+    if (!actualParams.classroomId) return;
     setIsLoadingClassroom(true);
     setErrorClassroom(null);
     try {
-      const response = await fetch(`/api/classrooms/${params.classroomId}`);
+      const response = await fetch(`/api/classrooms/${actualParams.classroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom details");
@@ -45,14 +46,14 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
     } finally {
       setIsLoadingClassroom(false);
     }
-  }, [params.classroomId, toast]);
+  }, [actualParams.classroomId, toast]);
 
   const fetchSharedMaps = useCallback(async () => {
-    if (!params.classroomId) return;
+    if (!actualParams.classroomId) return;
     setIsLoadingMaps(true);
     setErrorMaps(null);
     try {
-      const response = await fetch(`/api/concept-maps?classroomId=${params.classroomId}`);
+      const response = await fetch(`/api/concept-maps?classroomId=${actualParams.classroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch shared concept maps");
@@ -66,7 +67,7 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
     } finally {
       setIsLoadingMaps(false);
     }
-  }, [params.classroomId, toast]);
+  }, [actualParams.classroomId, toast]);
 
   useEffect(() => {
     fetchClassroomDetails();
@@ -206,3 +207,4 @@ declare module "@/components/dashboard/dashboard-header" {
     iconClassName?: string;
   }
 }
+

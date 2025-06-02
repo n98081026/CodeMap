@@ -1,105 +1,202 @@
 
 "use client";
 
+import React, { useEffect, useState, useCallback, use } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types";
+import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types"; 
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye } from "lucide-react";
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock data
-const mockClassrooms: Classroom[] = [
-  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", studentIds: ["s1", "s2", "s3"], inviteCode: "PROG101", teacherName: "Dr. Code" },
-  { id: "class2", name: "Advanced Data Structures", teacherId: "teacher1", studentIds: ["s4", "s5"], inviteCode: "DATA202", teacherName: "Dr. Code" },
-  { 
-    id: "test-classroom-1", 
-    name: "Introduction to AI", 
-    teacherId: "teacher-test-id", 
-    teacherName: "Test Teacher",
-    studentIds: ["student-test-id", "s2"], 
-    inviteCode: "AI101TEST" 
-  },
-];
-const mockStudents: User[] = [
-  { id: "s1", name: "Alice Smith", email: "alice@example.com", role: UserRole.STUDENT },
-  { id: "s2", name: "Bob Johnson", email: "bob@example.com", role: UserRole.STUDENT },
-  { id: "s3", name: "Carol White", email: "carol@example.com", role: UserRole.STUDENT },
-  { id: "s4", name: "David Brown", email: "david@example.com", role: UserRole.STUDENT },
-  { id: "s5", name: "Eve Davis", email: "eve@example.com", role: UserRole.STUDENT },
-  { id: "student-test-id", name: "Test Student", email: "student-test@example.com", role: UserRole.STUDENT },
-];
-const mockConceptMaps: ConceptMap[] = [
-  { id: "map1", name: "Basic Algorithms", ownerId: "s1", sharedWithClassroomId: "class1", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: "2023-01-10", updatedAt: "2023-01-11" },
-  { id: "map2", name: "Sorting Techniques", ownerId: "s2", sharedWithClassroomId: "class1", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: "2023-01-12", updatedAt: "2023-01-12" },
-  { id: "map-test-student", name: "AI Intro Map", ownerId: "student-test-id", sharedWithClassroomId: "test-classroom-1", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: "2023-04-01", updatedAt: "2023-04-01" },
-];
-const mockProjectSubmissions: ProjectSubmission[] = [
-  { id: "sub1", studentId: "s1", classroomId: "class1", originalFileName: "project1.zip", fileSize: 1024, submissionTimestamp: "2023-01-15", analysisStatus: ProjectSubmissionStatus.COMPLETED, generatedConceptMapId: "genMap1" },
-  { id: "sub2", studentId: "s3", classroomId: "class1", originalFileName: "project_final.rar", fileSize: 2048, submissionTimestamp: "2023-01-18", analysisStatus: ProjectSubmissionStatus.PROCESSING },
-  { id: "sub-test-student", studentId: "student-test-id", classroomId: "test-classroom-1", originalFileName: "ai_project_draft.zip", fileSize: 1536, submissionTimestamp: "2023-04-02", analysisStatus: ProjectSubmissionStatus.COMPLETED, generatedConceptMapId: "map-ai-generated" },
-];
+import { useAuth } from "@/contexts/auth-context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
-export default function ClassroomDetailPage({ params }: { params: { classroomId: string } }) {
-  const classroom = mockClassrooms.find(c => c.id === params.classroomId);
+export default function ClassroomDetailPage({ params: paramsPromise }: { params: Promise<{ classroomId: string }> }) {
+  const actualParams = use(paramsPromise);
+  const { user } = useAuth();
+  const [classroom, setClassroom] = useState<Classroom | null>(null);
+  const [isLoadingClassroom, setIsLoadingClassroom] = useState(true);
+  const [errorClassroom, setErrorClassroom] = useState<string | null>(null);
   const { toast } = useToast();
 
-  if (!classroom) {
+  const [classroomMaps, setClassroomMaps] = useState<ConceptMap[]>([]);
+  const [isLoadingMaps, setIsLoadingMaps] = useState(false);
+  const [errorMaps, setErrorMaps] = useState<string | null>(null);
+
+  const [classroomSubmissions, setClassroomSubmissions] = useState<ProjectSubmission[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [errorSubmissions, setErrorSubmissions] = useState<string | null>(null);
+
+  let teacherDashboardLink = "/application/teacher/dashboard";
+  if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) {
+     teacherDashboardLink = "/application/admin/dashboard";
+  }
+
+  const fetchClassroomDetails = useCallback(async () => {
+    setIsLoadingClassroom(true);
+    setErrorClassroom(null);
+    try {
+      const response = await fetch(`/api/classrooms/${actualParams.classroomId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch classroom details");
+      }
+      const data: Classroom = await response.json();
+      setClassroom(data);
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      setErrorClassroom(errorMessage);
+      toast({ title: "Error Fetching Classroom", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoadingClassroom(false);
+    }
+  }, [actualParams.classroomId, toast]);
+
+  const fetchClassroomMaps = useCallback(async () => {
+    setIsLoadingMaps(true);
+    setErrorMaps(null);
+    try {
+      const response = await fetch(`/api/concept-maps?classroomId=${actualParams.classroomId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch classroom maps");
+      }
+      const data: ConceptMap[] = await response.json();
+      setClassroomMaps(data);
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      setErrorMaps(errorMessage);
+      toast({ title: "Error Fetching Maps", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoadingMaps(false);
+    }
+  }, [actualParams.classroomId, toast]);
+
+  const fetchClassroomSubmissions = useCallback(async () => {
+    setIsLoadingSubmissions(true);
+    setErrorSubmissions(null);
+    try {
+      const response = await fetch(`/api/projects/submissions?classroomId=${actualParams.classroomId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch classroom submissions");
+      }
+      const data: ProjectSubmission[] = await response.json();
+      setClassroomSubmissions(data);
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      setErrorSubmissions(errorMessage);
+      toast({ title: "Error Fetching Submissions", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoadingSubmissions(false);
+    }
+  }, [actualParams.classroomId, toast]);
+
+
+  useEffect(() => {
+    if (actualParams.classroomId) {
+      fetchClassroomDetails();
+      fetchClassroomMaps();
+      fetchClassroomSubmissions();
+    }
+  }, [actualParams.classroomId, fetchClassroomDetails, fetchClassroomMaps, fetchClassroomSubmissions]);
+
+  const handleRemoveStudent = async (studentId: string, studentName: string) => {
+    if (!classroom) return;
+    try {
+      const response = await fetch(`/api/classrooms/${classroom.id}/students/${studentId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to remove student");
+      }
+      toast({
+        title: "Student Removed",
+        description: `${studentName} has been removed from the classroom.`,
+      });
+      fetchClassroomDetails(); 
+    } catch (errorMsg) { 
+      toast({
+        title: "Error Removing Student",
+        description: (errorMsg as Error).message,
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleStudentActionCompleted = () => {
+    fetchClassroomDetails(); 
+  };
+
+  if (isLoadingClassroom && !classroom) { // Only show full page loader if classroom itself is loading for the first time
     return (
-      <div className="space-y-6">
-        <DashboardHeader title="Classroom Not Found" />
-        <p>The classroom you are looking for does not exist or you do not have permission to view it.</p>
-        <Button asChild variant="outline">
-          <Link href="/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
-        </Button>
+      <div className="space-y-6 p-4">
+        <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={teacherDashboardLink}/>
+        <div className="flex justify-center items-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
 
-  const enrolledStudents = mockStudents.filter(s => classroom.studentIds.includes(s.id));
-  const classroomMaps = mockConceptMaps.filter(m => m.sharedWithClassroomId === classroom.id);
-  const classroomSubmissions = mockProjectSubmissions.filter(s => s.classroomId === classroom.id);
+  if (errorClassroom || !classroom) {
+    return (
+      <div className="space-y-6 p-4">
+        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={teacherDashboardLink} />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-destructive">Could not load classroom</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{errorClassroom || "The classroom data could not be found."}</p>
+            <Button asChild variant="outline" className="mt-4">
+              <Link href="/application/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  const handleRemoveStudent = (studentId: string, studentName: string) => {
-    // Mock removal
-    console.log(`Removing student ${studentId} from classroom ${classroom.id}`);
-    toast({
-      title: "Student Removed (Mock)",
-      description: `${studentName} has been removed from the classroom.`,
-    });
-    // Here you would re-fetch or update local state
-  };
-  
-  const handleInviteSent = () => {
-    // Potentially refresh student list or show a more persistent success message
-    console.log("Invite sent, potential refresh logic here.");
-  };
+  const enrolledStudents = classroom.students || [];
 
   return (
     <div className="space-y-6">
       <DashboardHeader 
         title={classroom.name}
         description={`Teacher: ${classroom.teacherName || 'N/A'} | Invite Code: ${classroom.inviteCode} | Manage students, maps, and submissions.`}
-        icon={Users}
+        icon={isLoadingClassroom ? Loader2 : Users}
+        iconClassName={isLoadingClassroom ? "animate-spin" : ""}
+        iconLinkHref={teacherDashboardLink}
       >
          <Button asChild variant="outline">
-          <Link href="/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
+          <Link href="/application/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
         </Button>
-        <InviteStudentDialog classroomId={classroom.id} onInviteSent={handleInviteSent} />
+        <InviteStudentDialog classroomId={classroom.id} onActionCompleted={handleStudentActionCompleted} />
       </DashboardHeader>
 
       <Tabs defaultValue="students" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="students"><Users className="mr-2 h-4 w-4 sm:inline hidden" />Students ({enrolledStudents.length})</TabsTrigger>
-          <TabsTrigger value="maps"><Share2 className="mr-2 h-4 w-4 sm:inline hidden" />Concept Maps ({classroomMaps.length})</TabsTrigger>
-          <TabsTrigger value="submissions"><FolderKanban className="mr-2 h-4 w-4 sm:inline hidden" />Submissions ({classroomSubmissions.length})</TabsTrigger>
+          <TabsTrigger value="students"><Users className="mr-2 h-4 w-4 sm:inline hidden" />Students ({isLoadingClassroom ? '...' : enrolledStudents.length})</TabsTrigger>
+          <TabsTrigger value="maps"><Share2 className="mr-2 h-4 w-4 sm:inline hidden" />Concept Maps ({isLoadingMaps ? '...' : classroomMaps.length})</TabsTrigger>
+          <TabsTrigger value="submissions"><FolderKanban className="mr-2 h-4 w-4 sm:inline hidden" />Submissions ({isLoadingSubmissions ? '...' : classroomSubmissions.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="students">
@@ -109,7 +206,10 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
               <CardDescription>List of students currently enrolled in this classroom.</CardDescription>
             </CardHeader>
             <CardContent>
-              {enrolledStudents.length > 0 ? (
+              {isLoadingClassroom && !errorClassroom && <div className="flex items-center justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading students...</p></div>}
+              {!isLoadingClassroom && errorClassroom && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>Error loading students. <Button onClick={fetchClassroomDetails} variant="link">Try Again</Button></div>}
+              {!isLoadingClassroom && !errorClassroom && enrolledStudents.length === 0 && <p className="text-muted-foreground">No students enrolled yet. Use the "Invite/Add Students" button to add students.</p>}
+              {!isLoadingClassroom && !errorClassroom && enrolledStudents.length > 0 && (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -124,16 +224,32 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                         <TableCell className="font-medium">{student.name}</TableCell>
                         <TableCell>{student.email}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleRemoveStudent(student.id, student.name)} title="Remove student">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                           <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" title="Remove student">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action will remove {student.name} from the classroom. They will lose access to classroom materials.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleRemoveStudent(student.id, student.name)}>
+                                  Remove Student
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              ) : (
-                <p className="text-muted-foreground">No students enrolled yet. Use the "Invite Students" button to add students.</p>
               )}
             </CardContent>
           </Card>
@@ -146,37 +262,38 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
               <CardDescription>Concept maps created by students and shared with this classroom.</CardDescription>
             </CardHeader>
             <CardContent>
-               {classroomMaps.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Map Name</TableHead>
-                      <TableHead>Owner</TableHead>
-                      <TableHead>Last Updated</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {classroomMaps.map((map) => {
-                      const owner = mockStudents.find(s => s.id === map.ownerId);
-                      return (
-                        <TableRow key={map.id}>
-                          <TableCell className="font-medium">{map.name}</TableCell>
-                          <TableCell>{owner?.name || 'Unknown'}</TableCell>
-                          <TableCell>{new Date(map.updatedAt).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" asChild title="View map">
-                              <Link href={`/concept-maps/editor/${map.id}?viewOnly=true`}><Eye className="h-4 w-4" /></Link>
-                            </Button>
-                          </TableCell>
+                {isLoadingMaps && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading maps...</p></div>}
+                {errorMaps && !isLoadingMaps && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorMaps} <Button onClick={fetchClassroomMaps} variant="link">Try Again</Button></div>}
+                {!isLoadingMaps && !errorMaps && classroomMaps.length === 0 && <p className="text-muted-foreground">No concept maps have been shared with this classroom yet.</p>}
+                {!isLoadingMaps && !errorMaps && classroomMaps.length > 0 && (
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Map Name</TableHead>
+                        <TableHead>Owner</TableHead>
+                        <TableHead>Last Updated</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              ) : (
-                 <p className="text-muted-foreground">No concept maps have been shared with this classroom yet.</p>
-              )}
+                    </TableHeader>
+                    <TableBody>
+                        {classroomMaps.map((map) => {
+                        const owner = enrolledStudents.find(s => s.id === map.ownerId); 
+                        return (
+                            <TableRow key={map.id}>
+                            <TableCell className="font-medium">{map.name}</TableCell>
+                            <TableCell>{owner?.name || map.ownerId}</TableCell>
+                            <TableCell>{new Date(map.updatedAt).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" asChild title="View map">
+                                <Link href={`/application/concept-maps/editor/${map.id}?viewOnly=true`}><Eye className="h-4 w-4" /></Link>
+                                </Button>
+                            </TableCell>
+                            </TableRow>
+                        );
+                        })}
+                    </TableBody>
+                    </Table>
+                )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -188,7 +305,10 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
               <CardDescription>Projects submitted by students in this classroom.</CardDescription>
             </CardHeader>
             <CardContent>
-            {classroomSubmissions.length > 0 ? (
+            {isLoadingSubmissions && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading submissions...</p></div>}
+            {errorSubmissions && !isLoadingSubmissions && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorSubmissions} <Button onClick={fetchClassroomSubmissions} variant="link">Try Again</Button></div>}
+            {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && <p className="text-muted-foreground">No projects have been submitted for this classroom yet.</p>}
+            {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length > 0 && (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -201,10 +321,10 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                 </TableHeader>
                 <TableBody>
                   {classroomSubmissions.map((submission) => {
-                    const student = mockStudents.find(s => s.id === submission.studentId);
+                    const student = enrolledStudents.find(s => s.id === submission.studentId); 
                     return (
                       <TableRow key={submission.id}>
-                        <TableCell className="font-medium">{student?.name || 'Unknown'}</TableCell>
+                        <TableCell className="font-medium">{student?.name || submission.studentId}</TableCell>
                         <TableCell>{submission.originalFileName}</TableCell>
                         <TableCell>
                           <Badge 
@@ -221,10 +341,10 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                         <TableCell className="text-right">
                           {submission.generatedConceptMapId ? (
                             <Button variant="ghost" size="icon" asChild title="View generated map">
-                               <Link href={`/concept-maps/editor/${submission.generatedConceptMapId}?viewOnly=true`}><Eye className="h-4 w-4" /></Link>
+                               <Link href={`/application/concept-maps/editor/${submission.generatedConceptMapId}?viewOnly=true`}><Eye className="h-4 w-4" /></Link>
                             </Button>
                           ) : (
-                            <Button variant="ghost" size="sm" disabled>No map</Button>
+                            <Button variant="ghost" size="icon" disabled><Eye className="h-4 w-4 opacity-50" /></Button>
                           )}
                         </TableCell>
                       </TableRow>
@@ -232,8 +352,6 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                   })}
                 </TableBody>
               </Table>
-            ) : (
-              <p className="text-muted-foreground">No projects have been submitted for this classroom yet.</p>
             )}
             </CardContent>
           </Card>
@@ -241,5 +359,11 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
       </Tabs>
     </div>
   );
+}
+// Helper for DashboardHeader to allow className on icon
+declare module "@/components/dashboard/dashboard-header" {
+  interface DashboardHeaderProps {
+    iconClassName?: string;
+  }
 }
 
