@@ -1,19 +1,18 @@
 
 "use client";
 
-import React, { useEffect, useState, useCallback, use } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Classroom, ConceptMap } from "@/types";
 import { UserRole } from "@/types";
-import { ArrowLeft, BookOpen, Users, Share2, Loader2, AlertTriangle, Eye, FileText, Info } from "lucide-react";
+import { ArrowLeft, BookOpen, Share2, Loader2, AlertTriangle, Eye, FileText, Info } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 
-export default function StudentClassroomDetailPage({ params: paramsPromise }: { params: Promise<{ classroomId: string }> }) {
-  const actualParams = use(paramsPromise);
+export default function StudentClassroomDetailPage({ params }: { params: { classroomId: string } }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
@@ -23,16 +22,22 @@ export default function StudentClassroomDetailPage({ params: paramsPromise }: { 
   const [errorClassroom, setErrorClassroom] = useState<string | null>(null);
   const [errorMaps, setErrorMaps] = useState<string | null>(null);
 
-  const studentDashboardLink = user?.role === UserRole.ADMIN ? "/application/admin/dashboard" 
-                             : user?.role === UserRole.TEACHER ? "/application/teacher/dashboard" 
-                             : "/application/student/dashboard";
+  const getDashboardLink = useCallback(() => {
+    if (!user) return "/application/login"; // Should not happen if page is protected
+    switch (user.role) {
+      case UserRole.ADMIN: return "/application/admin/dashboard";
+      case UserRole.TEACHER: return "/application/teacher/dashboard";
+      case UserRole.STUDENT: return "/application/student/dashboard";
+      default: return "/application/student/dashboard"; // Default for safety
+    }
+  }, [user]);
 
   const fetchClassroomDetails = useCallback(async () => {
-    if (!actualParams.classroomId) return;
+    if (!params.classroomId) return;
     setIsLoadingClassroom(true);
     setErrorClassroom(null);
     try {
-      const response = await fetch(`/api/classrooms/${actualParams.classroomId}`);
+      const response = await fetch(`/api/classrooms/${params.classroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom details");
@@ -46,14 +51,14 @@ export default function StudentClassroomDetailPage({ params: paramsPromise }: { 
     } finally {
       setIsLoadingClassroom(false);
     }
-  }, [actualParams.classroomId, toast]);
+  }, [params.classroomId, toast]);
 
   const fetchSharedMaps = useCallback(async () => {
-    if (!actualParams.classroomId) return;
+    if (!params.classroomId) return;
     setIsLoadingMaps(true);
     setErrorMaps(null);
     try {
-      const response = await fetch(`/api/concept-maps?classroomId=${actualParams.classroomId}`);
+      const response = await fetch(`/api/concept-maps?classroomId=${params.classroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch shared concept maps");
@@ -67,7 +72,7 @@ export default function StudentClassroomDetailPage({ params: paramsPromise }: { 
     } finally {
       setIsLoadingMaps(false);
     }
-  }, [actualParams.classroomId, toast]);
+  }, [params.classroomId, toast]);
 
   useEffect(() => {
     fetchClassroomDetails();
@@ -81,7 +86,7 @@ export default function StudentClassroomDetailPage({ params: paramsPromise }: { 
             title="Loading Classroom..." 
             icon={Loader2} 
             iconClassName="animate-spin" 
-            iconLinkHref={studentDashboardLink} 
+            iconLinkHref={getDashboardLink()} 
         />
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -93,7 +98,7 @@ export default function StudentClassroomDetailPage({ params: paramsPromise }: { 
   if (errorClassroom || !classroom) {
     return (
       <div className="space-y-6 p-4">
-        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={studentDashboardLink} />
+        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={getDashboardLink()} />
         <Card>
           <CardHeader>
             <CardTitle className="text-destructive">Could not load classroom</CardTitle>
@@ -115,7 +120,7 @@ export default function StudentClassroomDetailPage({ params: paramsPromise }: { 
         title={classroom.name}
         description={`Teacher: ${classroom.teacherName || "N/A"}`}
         icon={BookOpen}
-        iconLinkHref={studentDashboardLink}
+        iconLinkHref={getDashboardLink()}
       >
         <Button asChild variant="outline">
           <Link href="/application/student/classrooms">
@@ -185,7 +190,6 @@ export default function StudentClassroomDetailPage({ params: paramsPromise }: { 
                   </CardContent>
                   <CardFooter>
                     <Button asChild variant="outline" size="sm" className="w-full">
-                      {/* Students should typically view maps, potentially with viewOnly if not their own */}
                       <Link href={`/application/concept-maps/editor/${map.id}?viewOnly=${map.ownerId !== user?.id}`}>
                         <Eye className="mr-2 h-4 w-4" /> View Map
                       </Link>
@@ -200,11 +204,3 @@ export default function StudentClassroomDetailPage({ params: paramsPromise }: { 
     </div>
   );
 }
-
-// Helper for DashboardHeader to allow className on icon
-declare module "@/components/dashboard/dashboard-header" {
-  interface DashboardHeaderProps {
-    iconClassName?: string;
-  }
-}
-
