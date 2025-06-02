@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState, useCallback, use } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types"; 
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, Inbox, FileText } from "lucide-react";
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -27,8 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 
-export default function ClassroomDetailPage({ params: paramsPromise }: { params: Promise<{ classroomId: string }> }) {
-  const actualParams = use(paramsPromise);
+export default function ClassroomDetailPage({ params }: { params: { classroomId: string } }) {
   const { user } = useAuth();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
   const [isLoadingClassroom, setIsLoadingClassroom] = useState(true);
@@ -52,7 +51,7 @@ export default function ClassroomDetailPage({ params: paramsPromise }: { params:
     setIsLoadingClassroom(true);
     setErrorClassroom(null);
     try {
-      const response = await fetch(`/api/classrooms/${actualParams.classroomId}`);
+      const response = await fetch(`/api/classrooms/${params.classroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom details");
@@ -66,13 +65,13 @@ export default function ClassroomDetailPage({ params: paramsPromise }: { params:
     } finally {
       setIsLoadingClassroom(false);
     }
-  }, [actualParams.classroomId, toast]);
+  }, [params.classroomId, toast]);
 
   const fetchClassroomMaps = useCallback(async () => {
     setIsLoadingMaps(true);
     setErrorMaps(null);
     try {
-      const response = await fetch(`/api/concept-maps?classroomId=${actualParams.classroomId}`);
+      const response = await fetch(`/api/concept-maps?classroomId=${params.classroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom maps");
@@ -86,13 +85,13 @@ export default function ClassroomDetailPage({ params: paramsPromise }: { params:
     } finally {
       setIsLoadingMaps(false);
     }
-  }, [actualParams.classroomId, toast]);
+  }, [params.classroomId, toast]);
 
   const fetchClassroomSubmissions = useCallback(async () => {
     setIsLoadingSubmissions(true);
     setErrorSubmissions(null);
     try {
-      const response = await fetch(`/api/projects/submissions?classroomId=${actualParams.classroomId}`);
+      const response = await fetch(`/api/projects/submissions?classroomId=${params.classroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom submissions");
@@ -106,16 +105,16 @@ export default function ClassroomDetailPage({ params: paramsPromise }: { params:
     } finally {
       setIsLoadingSubmissions(false);
     }
-  }, [actualParams.classroomId, toast]);
+  }, [params.classroomId, toast]);
 
 
   useEffect(() => {
-    if (actualParams.classroomId) {
+    if (params.classroomId) {
       fetchClassroomDetails();
       fetchClassroomMaps();
       fetchClassroomSubmissions();
     }
-  }, [actualParams.classroomId, fetchClassroomDetails, fetchClassroomMaps, fetchClassroomSubmissions]);
+  }, [params.classroomId, fetchClassroomDetails, fetchClassroomMaps, fetchClassroomSubmissions]);
 
   const handleRemoveStudent = async (studentId: string, studentName: string) => {
     if (!classroom) return;
@@ -264,7 +263,13 @@ export default function ClassroomDetailPage({ params: paramsPromise }: { params:
             <CardContent>
                 {isLoadingMaps && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading maps...</p></div>}
                 {errorMaps && !isLoadingMaps && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorMaps} <Button onClick={fetchClassroomMaps} variant="link">Try Again</Button></div>}
-                {!isLoadingMaps && !errorMaps && classroomMaps.length === 0 && <p className="text-muted-foreground">No concept maps have been shared with this classroom yet.</p>}
+                {!isLoadingMaps && !errorMaps && classroomMaps.length === 0 && (
+                    <div className="text-center py-10">
+                        <FileText className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
+                        <h3 className="text-xl font-semibold text-muted-foreground">No Shared Maps</h3>
+                        <p className="text-sm text-muted-foreground">No concept maps have been shared with this classroom yet.</p>
+                    </div>
+                )}
                 {!isLoadingMaps && !errorMaps && classroomMaps.length > 0 && (
                     <Table>
                     <TableHeader>
@@ -307,7 +312,13 @@ export default function ClassroomDetailPage({ params: paramsPromise }: { params:
             <CardContent>
             {isLoadingSubmissions && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading submissions...</p></div>}
             {errorSubmissions && !isLoadingSubmissions && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorSubmissions} <Button onClick={fetchClassroomSubmissions} variant="link">Try Again</Button></div>}
-            {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && <p className="text-muted-foreground">No projects have been submitted for this classroom yet.</p>}
+            {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && (
+                 <div className="text-center py-10">
+                    <Inbox className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
+                    <h3 className="text-xl font-semibold text-muted-foreground">No Submissions Yet</h3>
+                    <p className="text-sm text-muted-foreground">Students in this classroom haven&apos;t submitted any projects for analysis.</p>
+                </div>
+            )}
             {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length > 0 && (
               <Table>
                 <TableHeader>
