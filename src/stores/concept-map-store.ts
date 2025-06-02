@@ -2,6 +2,12 @@
 import { create } from 'zustand';
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 
+// --- Unique ID Generation ---
+// Moved from ConceptMapEditorPage to be co-located with store actions that use them.
+constrzezUniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+constrzezUniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+
 interface ConceptMapState {
   // Map Identification & Core Properties
   mapId: string | null;
@@ -20,11 +26,9 @@ interface ConceptMapState {
   isSaving: boolean;
   error: string | null;
   
-  // Selected Element (to be expanded later)
   selectedElementId: string | null;
   selectedElementType: 'node' | 'edge' | null;
 
-  // AI Suggestions (to be expanded later)
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
   aiExpandedConcepts: string[];
@@ -38,8 +42,7 @@ interface ConceptMapState {
   setSharedWithClassroomId: (classroomId: string | null) => void;
   setIsNewMapMode: (isNew: boolean) => void;
   
-  setMapData: (data: ConceptMapData) => void;
-  // More granular mapData actions (addNode, addEdge, etc.) will be added later
+  // setMapData: (data: ConceptMapData) => void; // Replaced by granular actions
 
   setIsLoading: (loading: boolean) => void;
   setIsSaving: (saving: boolean) => void;
@@ -52,10 +55,18 @@ interface ConceptMapState {
   setAiExpandedConcepts: (concepts: string[]) => void;
   resetAiSuggestions: () => void;
   
-  // Composite actions
   initializeNewMap: (userId: string) => void;
   setLoadedMap: (map: ConceptMap) => void;
   resetStore: () => void;
+
+  // Granular actions for map data
+  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string }) => void;
+  updateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
+  deleteNode: (nodeId: string) => void;
+  
+  addEdge: (options: { source: string; target: string; label?: string }) => void;
+  updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
+  deleteEdge: (edgeId: string) => void;
 }
 
 const initialState = {
@@ -80,7 +91,6 @@ const initialState = {
 export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
   ...initialState,
 
-  // Simple Setters
   setMapId: (id) => set({ mapId: id }),
   setMapName: (name) => set({ mapName: name }),
   setCurrentMapOwnerId: (ownerId) => set({ currentMapOwnerId: ownerId }),
@@ -89,8 +99,6 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
   setSharedWithClassroomId: (id) => set({ sharedWithClassroomId: id }),
   setIsNewMapMode: (isNew) => set({ isNewMapMode: isNew }),
   
-  setMapData: (data) => set({ mapData: data }),
-
   setIsLoading: (loading) => set({ isLoading: loading }),
   setIsSaving: (saving) => set({ isSaving: saving }),
   setError: (errorMsg) => set({ error: errorMsg }),
@@ -102,16 +110,15 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
   setAiExpandedConcepts: (concepts) => set({ aiExpandedConcepts: concepts }),
   resetAiSuggestions: () => set({ aiExtractedConcepts: [], aiSuggestedRelations: [], aiExpandedConcepts: [] }),
 
-  // Composite Actions
   initializeNewMap: (userId) => {
     set({
-      ...initialState, // Reset most things
-      mapId: 'new', // Special ID for new maps before saving
+      ...initialState,
+      mapId: 'new',
       mapName: 'Untitled Concept Map',
       currentMapOwnerId: userId,
       currentMapCreatedAt: new Date().toISOString(),
       isNewMapMode: true,
-      isLoading: false, // Explicitly set loading to false
+      isLoading: false,
     });
   },
   setLoadedMap: (map) => {
@@ -126,16 +133,71 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
       isNewMapMode: false,
       isLoading: false,
       error: null,
-      aiExtractedConcepts: [], // Reset AI suggestions when a new map is loaded
+      aiExtractedConcepts: [],
       aiSuggestedRelations: [],
       aiExpandedConcepts: [],
     });
   },
   resetStore: () => set(initialState),
-}));
 
-// Node and Edge specific actions will be added in a subsequent step
-// e.g., addNode, updateNodePosition, addEdge, deleteNode, deleteEdge etc.
-// These will manipulate the `mapData` state.
+  // --- Granular Map Data Actions ---
+  addNode: (options) => set((state) => {
+    const newNode: ConceptMapNode = {
+      id: rzezUniqueNodeId(),
+      text: options.text,
+      type: options.type,
+      x: options.position.x,
+      y: options.position.y,
+      details: options.details || '',
+    };
+    return { mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } };
+  }),
+
+  updateNode: (nodeId, updates) => set((state) => ({
+    mapData: {
+      ...state.mapData,
+      nodes: state.mapData.nodes.map((node) =>
+        node.id === nodeId ? { ...node, ...updates } : node
+      ),
+    },
+  })),
+
+  deleteNode: (nodeId) => set((state) => {
+    const newNodes = state.mapData.nodes.filter((node) => node.id !== nodeId);
+    const newEdges = state.mapData.edges.filter(
+      (edge) => edge.source !== nodeId && edge.target !== nodeId
+    );
+    return { mapData: { nodes: newNodes, edges: newEdges } };
+  }),
+
+  addEdge: (options) => set((state) => {
+    const newEdge: ConceptMapEdge = {
+      id: rzezUniqueEdgeId(),
+      source: options.source,
+      target: options.target,
+      label: options.label || 'connects',
+    };
+    return { mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } };
+  }),
+
+  updateEdge: (edgeId, updates) => set((state) => ({
+    mapData: {
+      ...state.mapData,
+      edges: state.mapData.edges.map((edge) =>
+        edge.id === edgeId ? { ...edge, ...updates } : edge
+      ),
+    },
+  })),
+
+  deleteEdge: (edgeId) => set((state) => ({
+    mapData: {
+      ...state.mapData,
+      edges: state.mapData.edges.filter((edge) => edge.id !== edgeId),
+    },
+  })),
+
+}));
     
 export default useConceptMapStore;
+
+    
