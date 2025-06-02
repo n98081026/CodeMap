@@ -49,6 +49,9 @@ export default function TeacherDashboardPage() {
       setErrorStudents(null);
 
       try {
+        // For managedClassroomsCount, we use the paginated endpoint but only need totalCount from it
+        // or fetch all if the non-paginated version is simpler for just a count.
+        // Assuming the service returns Classroom[] if not paginated for teacherId query
         const response = await fetch(`/api/classrooms?teacherId=${user.id}`);
         if (!response.ok) {
           let errorMsg = `Classrooms API Error (${response.status})`;
@@ -73,14 +76,14 @@ export default function TeacherDashboardPage() {
           totalStudentsCount: totalStudents,
         });
         setErrorClassrooms(null); 
-        setErrorStudents(null);
+        setErrorStudents(null); // If classrooms fetch is successful, student count calculation is also successful
 
       } catch (err) {
         const errorMessage = (err as Error).message;
         console.error("Error fetching teacher dashboard data:", errorMessage);
         toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
         setErrorClassrooms(errorMessage); 
-        setErrorStudents(errorMessage); 
+        setErrorStudents(errorMessage); // Both are affected if classroom fetch fails
         setDashboardData(prev => prev || { managedClassroomsCount: 0, totalStudentsCount: 0 }); // Preserve old data on error or set to 0
       } finally {
         setIsLoadingClassrooms(false);
@@ -91,16 +94,19 @@ export default function TeacherDashboardPage() {
     if (user) {
       fetchTeacherClassroomsAndStudentCount();
     }
-  }, [user, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Removed toast from deps as it's stable
 
   if (!user && (isLoadingClassrooms || isLoadingStudents)) return <LoadingSpinner />;
-  if (!user) return null;
+  if (!user) return null; // Or redirect to login if preferred
 
   const displayCountOrError = (count: number | undefined, isLoading: boolean, error: string | null, itemName: string) => {
     if (isLoading) {
       return <div className="flex items-center space-x-2"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (error && (count === 0 || count === undefined)) { // Show error if it occurred and count is 0/undefined
+    // If there's an error AND the count is 0 or undefined, show error.
+    // This prevents showing error if count is >0 but a subsequent refresh failed.
+    if (error && (count === 0 || count === undefined)) { 
         return <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
