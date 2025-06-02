@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
 import { UserRole } from "@/types";
-import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle, Inbox } from "lucide-react";
+import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle } from "lucide-react"; // Removed Inbox
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -86,7 +86,7 @@ export default function StudentClassroomsPage() {
       {!isLoading && !error && enrolledClassrooms.length === 0 && (
         <Card className="shadow-md w-full max-w-lg mx-auto">
           <CardHeader className="items-center text-center">
-            <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
+            <BookOpen className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
             <CardTitle>No Classrooms Yet</CardTitle>
             <CardDescription>You are not currently enrolled in any classrooms.</CardDescription>
           </CardHeader>

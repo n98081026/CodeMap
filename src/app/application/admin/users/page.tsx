@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react"; // Changed Inbox to Users here
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -223,7 +223,7 @@ export default function AdminUsersPage() {
         users.length === 0 && totalUsers === 0 ? (
            <Card className="shadow-md w-full max-w-lg mx-auto">
             <CardHeader className="items-center text-center">
-              <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
+              <Users className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
               <CardTitle>No Users Found</CardTitle>
               <CardDescription>There are no users in the system yet.</CardDescription>
             </CardHeader>

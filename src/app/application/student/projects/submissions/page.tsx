@@ -7,7 +7,7 @@ import { UserRole } from "@/types";
 import { SubmissionListItem } from "@/components/projects/submission-list-item";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { FolderKanban, PlusCircle, Loader2, AlertTriangle, Inbox } from "lucide-react";
+import { FolderKanban, PlusCircle, Loader2, AlertTriangle } from "lucide-react"; // Removed Inbox
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
@@ -82,7 +82,7 @@ export default function MySubmissionsPage() {
       {!isLoading && !error && userSubmissions.length === 0 && (
         <Card className="shadow-md w-full max-w-lg mx-auto">
           <CardHeader className="items-center text-center">
-            <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
+            <FolderKanban className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
             <CardTitle>No Submissions Yet</CardTitle>
             <CardDescription>You haven&apos;t submitted any projects for analysis.</CardDescription>
           </CardHeader>

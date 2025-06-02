@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { ConceptMap } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle, Inbox } from "lucide-react";
+import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle } from "lucide-react"; // Removed Inbox
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -133,7 +133,7 @@ export default function StudentConceptMapsPage() {
       {!isLoading && !error && studentMaps.length === 0 && (
          <Card className="shadow-md w-full max-w-lg mx-auto">
             <CardHeader className="items-center text-center">
-              <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
+              <Share2 className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
               <CardTitle>No Concept Maps Yet</CardTitle>
               <CardDescription>You haven&apos;t created any concept maps.</CardDescription>
             </CardHeader>

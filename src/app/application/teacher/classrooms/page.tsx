@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2, Inbox, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react"; // Removed Inbox
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -205,7 +205,7 @@ export default function TeacherClassroomsPage() {
       {!isLoading && !error && teacherClassrooms.length === 0 && totalClassrooms === 0 && (
         <Card className="shadow-md w-full max-w-lg mx-auto">
           <CardHeader className="items-center text-center">
-            <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
+            <BookOpen className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
             <CardTitle>No Classrooms Yet</CardTitle>
             <CardDescription>You haven&apos;t created or been assigned to any classrooms.</CardDescription>
           </CardHeader>
