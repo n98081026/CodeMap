@@ -72,8 +72,8 @@
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination).
     - [x] Add loading spinner to Login/Register pages during auth state check.
 - [x] **Admin Panel:** (In Progress)
-    - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow).
-    - [x] Develop system settings interface (Placeholder page created and linked).
+    - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow - Add button tooltip added).
+    - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard).
 
 ## GenAI & AI Features
 - [ ] **Refine GenAI Prompts:**
@@ -106,6 +106,7 @@
 - `next-themes` for theme toggling is integrated.
 - App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
-- Admin "Add User" typically handled by registration.
+- Admin "Add User" typically handled by registration. Tooltip added to button.
 - Change password functionality on profile page is a placeholder.
 
+```

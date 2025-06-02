@@ -1,4 +1,3 @@
-
 // src/app/application/admin/users/page.tsx
 "use client";
 
@@ -35,6 +34,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from '@/contexts/auth-context';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 const USERS_PER_PAGE = 7;
 
@@ -162,9 +163,21 @@ export default function AdminUsersPage() {
         icon={Users}
         iconLinkHref={adminDashboardLink}
       >
-        <Button disabled>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add New User
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Wrap the button in a span for Tooltip to work correctly with disabled buttons */}
+              <span tabIndex={0}> 
+                <Button disabled>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add New User
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>New users should be created via the public registration page.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </DashboardHeader>
 
       {isLoading && (

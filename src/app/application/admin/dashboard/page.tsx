@@ -1,4 +1,3 @@
-
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +46,7 @@ export default function AdminDashboardPage() {
           throw new Error(`Failed to fetch users: ${errData.message || usersResponse.statusText}`);
         }
         const usersData = await usersResponse.json();
-        const totalUsersCount = usersData.length;
+        const totalUsersCount = usersData.totalCount; // Use totalCount from paginated response
 
         // Fetch all classrooms for count (admin scope)
         const classroomsResponse = await fetch('/api/classrooms'); // No query params implies fetch all for admin
@@ -107,7 +106,7 @@ export default function AdminDashboardPage() {
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-6 w-6 animate-spin" /> <span>Loading users...</span>
               </div>
-            ) : error && dashboardData?.totalUsersCount === 0 ? ( // Show error if specific fetch failed or general error
+            ) : error && dashboardData?.totalUsersCount === 0 ? ( 
               <div className="text-destructive"><AlertTriangle className="inline mr-1 h-4 w-4" />Error</div>
             ) : (
               <div className="text-3xl font-bold">{dashboardData?.totalUsersCount ?? 0}</div>
