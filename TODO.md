@@ -23,8 +23,9 @@
     - [x] API endpoints for updating, deleting classrooms (`PUT /api/classrooms/[classroomId]`, `DELETE /api/classrooms/[classroomId]`).
     - [x] Connect frontend classroom creation and listing UI (teacher) to live API (with mock service).
     - [x] Connect frontend classroom listing UI (student) to live API (with mock service).
-    - [x] Connect frontend classroom detail UI to live API for details and student management (student list, map list, submission list connected. Add/remove student by ID working, list refreshes).
     - [x] Connect frontend classroom list UI for edit/delete actions (Teacher).
+    - [ ] Connect frontend classroom detail UI (teacher) to live API for details and student management (student list, map list, submission list connected. Add/remove student by ID working, list refreshes).
+    - [x] Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.
 - [x] **Concept Map Service (Backend & Frontend Integration):** (Core API & Service Done)
     - [x] Create `conceptMapService.ts` with mock data management.
     - [x] API endpoints for CRUD operations on concept maps (`/api/concept-maps`, `/api/concept-maps/[mapId]`).
@@ -74,7 +75,7 @@
     - [x] Make header icons link to main dashboards for easier navigation.
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow - Add button tooltip added).
-    - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard).
+    - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard, Admin Dashboard link to it enabled).
 
 ## GenAI & AI Features
 - [ ] **Refine GenAI Prompts:**
