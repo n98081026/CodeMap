@@ -34,10 +34,8 @@ export function EditorToolbar({
   const { toast } = useToast();
 
   const handlePlaceholderClick = (action: string) => {
-    if (isViewOnlyMode) {
-      toast({ title: "View Only Mode", description: "This action is disabled in view-only mode.", variant: "default" });
-      return;
-    }
+    // This toast is for actions that are enabled but not yet fully implemented.
+    // View-only checks for modifiable actions are handled by disabling the button itself or in handleGenAIClick.
     toast({
       title: "Action Clicked (Placeholder)",
       description: `${action} functionality is not yet implemented.`,
@@ -59,11 +57,12 @@ export function EditorToolbar({
         {/* File Operations */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("New Map")} disabled={isViewOnlyMode}>
+            {/* "New Map" should generally be available regardless of current map's view-only status */}
+            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("New Map")} >
               <FilePlus className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>New Map (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>New Map</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -71,7 +70,7 @@ export function EditorToolbar({
               {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Save Map (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Save Map (Disabled in View Mode)" : "Save Map"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -83,11 +82,12 @@ export function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Export Map")} disabled={isViewOnlyMode}>
+            {/* "Export Map" should be available in view-only mode */}
+            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Export Map")}>
               <Download className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Export (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>Export</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />
