@@ -33,7 +33,7 @@ export default function TeacherDashboardPage() {
   const [errorStudents, setErrorStudents] = useState<string | null>(null);
   
   const adminDashboardLink = "/application/admin/dashboard";
-  const pageSpecificDashboardLink = "/"; 
+ 
 
 
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function TeacherDashboardPage() {
         title={`Welcome, ${user.name}!`}
         description="Manage your classrooms and student activities."
         icon={LayoutDashboard}
-        iconLinkHref={pageSpecificDashboardLink}
+        iconLinkHref="/application/teacher/dashboard"
       >
         {user.role === UserRole.ADMIN && (
           <Button asChild variant="outline">
@@ -171,4 +171,3 @@ export default function TeacherDashboardPage() {
     </div>
   );
 }
-
