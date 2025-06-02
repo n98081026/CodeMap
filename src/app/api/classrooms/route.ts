@@ -25,13 +25,31 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const teacherId = searchParams.get('teacherId');
     const studentId = searchParams.get('studentId');
+    const pageParam = searchParams.get('page');
+    const limitParam = searchParams.get('limit');
 
     if (teacherId) {
-      const classrooms = await getClassroomsByTeacherId(teacherId);
-      return NextResponse.json(classrooms);
+      const page = pageParam ? parseInt(pageParam, 10) : undefined;
+      const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+
+      if ((page && (isNaN(page) || page < 1)) || (limit && (isNaN(limit) || limit < 1))) {
+        return NextResponse.json({ message: "Invalid page or limit parameters" }, { status: 400 });
+      }
+      
+      const result = await getClassroomsByTeacherId(teacherId, page, limit);
+      // The service function now returns either Classroom[] or { classrooms: Classroom[], totalCount: number }
+      // The API should consistently return the latter structure if pagination is used.
+      if (page && limit) {
+        return NextResponse.json(result); // result is { classrooms, totalCount }
+      } else {
+        // If not paginating, wrap array in expected structure for consistency, or adjust client
+        // For now, assuming client will adapt if it receives just an array vs object
+        return NextResponse.json(result); // result is Classroom[]
+      }
     }
     
     if (studentId) {
+      // Student classroom list is typically not paginated in this app's context for simplicity
       const classrooms = await getClassroomsByStudentId(studentId);
       return NextResponse.json(classrooms);
     }
@@ -48,5 +66,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: `Failed to fetch classrooms: ${errorMessage}` }, { status: 500 });
   }
 }
-
-    

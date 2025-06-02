@@ -25,6 +25,13 @@ let mockClassroomsData: Classroom[] = [
     students: [],
     description: "An introductory course to Artificial Intelligence concepts."
   },
+  { id: "class4-teacher1", name: "Python for Data Science", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["s1", "s5"], inviteCode: "PYDS303", students: [], description: "Using Python for data analysis and visualization." },
+  { id: "class5-teacher1", name: "Java Fundamentals", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["s3", "s4", "student-test-id"], inviteCode: "JAVA101", students: [], description: "Core concepts of Java programming." },
+  { id: "class6-teacher1", name: "Software Engineering Principles", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["s2"], inviteCode: "SWE200", students: [], description: "Best practices in software development lifecycle." },
+  { id: "class7-teacher-test", name: "Machine Learning Basics", teacherId: "teacher-test-id", teacherName: "Test Teacher", studentIds: ["student-test-id"], inviteCode: "MLBASICS", students: [], description: "Fundamentals of machine learning algorithms." },
+  { id: "class8-teacher-test", name: "Advanced Algorithms", teacherId: "teacher-test-id", teacherName: "Test Teacher", studentIds: ["s2"], inviteCode: "ALGADV", students: [], description: "Exploring complex algorithm design and analysis." },
+  { id: "class9-teacher-test", name: "Cloud Computing with AWS", teacherId: "teacher-test-id", teacherName: "Test Teacher", studentIds: [], inviteCode: "AWSCLOUD", students: [], description: "Introduction to cloud services using AWS." },
+  { id: "class10-teacher-test", name: "Cybersecurity Essentials", teacherId: "teacher-test-id", teacherName: "Test Teacher", studentIds: ["student-test-id", "s2"], inviteCode: "CYBERSEC", students: [], description: "Basic principles of cybersecurity." },
 ];
 
 // Helper to populate student details - in real app, this would be an efficient DB query
@@ -75,17 +82,37 @@ export async function createClassroom(name: string, description: string | undefi
 }
 
 /**
- * Retrieves all classrooms taught by a specific teacher.
+ * Retrieves classrooms taught by a specific teacher, with optional pagination.
  * @param teacherId The ID of the teacher.
- * @returns A list of classrooms.
+ * @param page Optional page number for pagination (1-indexed).
+ * @param limit Optional number of items per page for pagination.
+ * @returns A list of classrooms, or a paginated result if page and limit are provided.
  */
-export async function getClassroomsByTeacherId(teacherId: string): Promise<Classroom[]> {
-  const classrooms = mockClassroomsData.filter(c => c.teacherId === teacherId);
-  for (const classroom of classrooms) {
+export async function getClassroomsByTeacherId(
+  teacherId: string,
+  page?: number,
+  limit?: number
+): Promise<Classroom[] | { classrooms: Classroom[]; totalCount: number }> {
+  const allTeacherClassrooms = mockClassroomsData.filter(c => c.teacherId === teacherId);
+
+  for (const classroom of allTeacherClassrooms) {
      await populateTeacherName(classroom);
   }
-  return classrooms;
+  
+  allTeacherClassrooms.sort((a, b) => a.name.localeCompare(b.name));
+
+
+  if (page && limit) {
+    const totalCount = allTeacherClassrooms.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedClassrooms = allTeacherClassrooms.slice(startIndex, endIndex);
+    return { classrooms: paginatedClassrooms, totalCount };
+  }
+
+  return allTeacherClassrooms;
 }
+
 
 /**
  * Retrieves all classrooms a specific student is enrolled in.
@@ -214,5 +241,3 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
   }
   return classrooms;
 }
-
-    

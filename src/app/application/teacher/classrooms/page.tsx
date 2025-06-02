@@ -2,13 +2,13 @@
 // src/app/application/teacher/classrooms/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2, Inbox } from "lucide-react";
+import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2, Inbox, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+const CLASSROOMS_PER_PAGE = 6;
 
 export default function TeacherClassroomsPage() {
   const { user } = useAuth();
@@ -49,6 +50,10 @@ export default function TeacherClassroomsPage() {
   const [editFormData, setEditFormData] = useState({ name: "", description: "" });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalClassrooms, setTotalClassrooms] = useState(0);
+  const totalPages = Math.ceil(totalClassrooms / CLASSROOMS_PER_PAGE);
+
 
   let teacherDashboardLink = "/application/teacher/dashboard";
   if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) { // Admin only, not teacher
@@ -56,7 +61,7 @@ export default function TeacherClassroomsPage() {
   }
 
 
-  const fetchTeacherClassrooms = async () => {
+  const fetchTeacherClassrooms = useCallback(async (page: number) => {
     if (!user || !user.id) {
       setIsLoading(false);
       setError("User not authenticated.");
@@ -65,13 +70,14 @@ export default function TeacherClassroomsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/classrooms?teacherId=${user.id}`);
+      const response = await fetch(`/api/classrooms?teacherId=${user.id}&page=${page}&limit=${CLASSROOMS_PER_PAGE}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classrooms");
       }
-      const data: Classroom[] = await response.json();
-      setTeacherClassrooms(data);
+      const data = await response.json() as { classrooms: Classroom[], totalCount: number };
+      setTeacherClassrooms(data.classrooms);
+      setTotalClassrooms(data.totalCount);
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
@@ -83,12 +89,11 @@ export default function TeacherClassroomsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
 
   useEffect(() => {
-    fetchTeacherClassrooms();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    fetchTeacherClassrooms(currentPage);
+  }, [currentPage, fetchTeacherClassrooms]);
 
   const handleDeleteClassroom = async (classroomId: string, classroomName: string) => {
     try {
@@ -98,7 +103,12 @@ export default function TeacherClassroomsPage() {
         throw new Error(errorData.message || "Failed to delete classroom");
       }
       toast({ title: "Classroom Deleted", description: `Classroom "${classroomName}" has been deleted.` });
-      fetchTeacherClassrooms(); 
+      // Refresh: if last item on page, go to prev page
+      if (teacherClassrooms.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        fetchTeacherClassrooms(currentPage);
+      }
     } catch (err) {
       toast({ title: "Error Deleting Classroom", description: (err as Error).message, variant: "destructive" });
     }
@@ -135,11 +145,23 @@ export default function TeacherClassroomsPage() {
       toast({ title: "Classroom Updated", description: `Classroom "${editFormData.name}" has been updated.` });
       setIsEditModalOpen(false);
       setEditingClassroom(null);
-      fetchTeacherClassrooms(); 
+      fetchTeacherClassrooms(currentPage); 
     } catch (err) {
       toast({ title: "Error Updating Classroom", description: (err as Error).message, variant: "destructive" });
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+  
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
     }
   };
 
@@ -175,12 +197,12 @@ export default function TeacherClassroomsPage() {
           </CardHeader>
           <CardContent>
             <p>{error}</p>
-            <Button onClick={fetchTeacherClassrooms} className="mt-4">Try Again</Button>
+            <Button onClick={() => fetchTeacherClassrooms(currentPage)} className="mt-4">Try Again</Button>
           </CardContent>
         </Card>
       )}
 
-      {!isLoading && !error && teacherClassrooms.length === 0 && (
+      {!isLoading && !error && teacherClassrooms.length === 0 && totalClassrooms === 0 && (
         <Card className="shadow-md w-full max-w-lg mx-auto">
           <CardHeader className="items-center text-center">
             <Inbox className="h-16 w-16 text-muted-foreground/70 mb-4" />
@@ -198,6 +220,7 @@ export default function TeacherClassroomsPage() {
       )}
 
       {!isLoading && !error && teacherClassrooms.length > 0 && (
+        <>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {teacherClassrooms.map((classroom) => (
             <Card key={classroom.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -246,6 +269,34 @@ export default function TeacherClassroomsPage() {
             </Card>
           ))}
         </div>
+        {totalPages > 1 && (
+            <CardFooter className="flex items-center justify-between border-t pt-4 mt-6">
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages} ({totalClassrooms} classrooms)
+                </span>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1 || isLoading}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages || isLoading}
+                >
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardFooter>
+          )}
+        </>
       )}
       
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
