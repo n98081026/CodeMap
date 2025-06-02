@@ -34,9 +34,9 @@ export default function CreateClassroomPage() {
   const router = useRouter();
   const { user } = useAuth(); 
 
-  let teacherDashboardLink = "/application/teacher/dashboard";
-  if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) {
-     teacherDashboardLink = "/application/admin/dashboard";
+  let headerIconLink = "/application/teacher/dashboard"; // Default for teachers
+  if (user && user.role === UserRole.ADMIN) {
+     headerIconLink = "/application/admin/dashboard"; // Admins go to admin dashboard
   }
 
   const form = useForm<z.infer<typeof classroomFormSchema>>({
@@ -56,8 +56,6 @@ export default function CreateClassroomPage() {
       });
       return;
     }
-
-    // form.formState.isSubmitting; // This line doesn't do anything, form.formState.isSubmitting is read in button
 
     try {
       const response = await fetch('/api/classrooms', {
@@ -92,7 +90,7 @@ export default function CreateClassroomPage() {
         title="Create New Classroom"
         description="Set up a new classroom for your students."
         icon={BookOpen}
-        iconLinkHref={teacherDashboardLink}
+        iconLinkHref={headerIconLink}
       />
       <Card className="shadow-lg">
         <CardHeader>
@@ -149,3 +147,4 @@ export default function CreateClassroomPage() {
     </div>
   );
 }
+

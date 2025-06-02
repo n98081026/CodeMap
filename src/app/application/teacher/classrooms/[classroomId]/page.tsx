@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -42,9 +43,9 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [errorSubmissions, setErrorSubmissions] = useState<string | null>(null);
 
-  let teacherDashboardLink = "/application/teacher/dashboard";
-  if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) {
-     teacherDashboardLink = "/application/admin/dashboard";
+  let headerIconLink = "/application/teacher/dashboard"; // Default for teachers
+  if (user && user.role === UserRole.ADMIN) {
+     headerIconLink = "/application/admin/dashboard"; // Admins go to admin dashboard
   }
 
   const fetchClassroomDetails = useCallback(async () => {
@@ -147,7 +148,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
   if (isLoadingClassroom && !classroom) { // Only show full page loader if classroom itself is loading for the first time
     return (
       <div className="space-y-6 p-4">
-        <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={teacherDashboardLink}/>
+        <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={headerIconLink}/>
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -158,7 +159,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
   if (errorClassroom || !classroom) {
     return (
       <div className="space-y-6 p-4">
-        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={teacherDashboardLink} />
+        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={headerIconLink} />
         <Card>
           <CardHeader>
             <CardTitle className="text-destructive">Could not load classroom</CardTitle>
@@ -183,7 +184,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
         description={`Teacher: ${classroom.teacherName || 'N/A'} | Invite Code: ${classroom.inviteCode} | Manage students, maps, and submissions.`}
         icon={isLoadingClassroom ? Loader2 : Users}
         iconClassName={isLoadingClassroom ? "animate-spin" : ""}
-        iconLinkHref={teacherDashboardLink}
+        iconLinkHref={headerIconLink}
       >
          <Button asChild variant="outline">
           <Link href="/application/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
@@ -387,4 +388,5 @@ declare module "@/components/dashboard/dashboard-header" {
     iconClassName?: string;
   }
 }
+
 

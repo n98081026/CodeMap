@@ -55,9 +55,9 @@ export default function TeacherClassroomsPage() {
   const totalPages = Math.ceil(totalClassrooms / CLASSROOMS_PER_PAGE);
 
 
-  let teacherDashboardLink = "/application/teacher/dashboard";
-  if (user && user.role === UserRole.ADMIN && !user.roles.includes(UserRole.TEACHER as any) ) { // Admin only, not teacher
-     teacherDashboardLink = "/application/admin/dashboard";
+  let headerIconLink = "/application/teacher/dashboard"; // Default for teachers
+  if (user && user.role === UserRole.ADMIN) {
+     headerIconLink = "/application/admin/dashboard"; // Admins go to admin dashboard
   }
 
 
@@ -172,7 +172,7 @@ export default function TeacherClassroomsPage() {
         title="Manage Classrooms"
         description="View, edit, and manage your classrooms."
         icon={BookOpen}
-        iconLinkHref={teacherDashboardLink}
+        iconLinkHref={headerIconLink}
       >
         <Button asChild>
           <Link href="/application/teacher/classrooms/new">
