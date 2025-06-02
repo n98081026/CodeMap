@@ -46,12 +46,13 @@ export default function AdminSettingsPage() {
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsFormSchema),
     values: currentSettings, // Use 'values' to make it controlled by 'currentSettings'
-    mode: "onChange",
+    mode: "onChange", // Enable isDirty state
   });
 
   useEffect(() => {
     // When currentSettings changes (e.g., after a "save"), reset the form to reflect these new values
-    form.reset(currentSettings);
+    // and mark it as not dirty.
+    form.reset(currentSettings, { keepValues: true, keepDirty: false, keepDefaultValues: false });
   }, [currentSettings, form]);
 
 
