@@ -68,7 +68,7 @@
     - [ ] Consider real-time collaboration on concept maps (e.g., using WebSockets) - (High Complexity - Deferred).
     - [x] Real-time updates for project submission status (Basic polling implemented in SubmissionListItem).
 - [x] **User Interface & User Experience (Desktop Focus):**
-    - [x] Refine UI details for some pages, ensure consistency and professional design. (Largely addressed, ongoing process)
+    - [x] Refine UI details for some pages, ensure consistency and professional design. (Largely addressed, ongoing process, including empty state icon refinements and navigation path consistency)
     - [x] Add more comprehensive loading states and error handling. (Done for many list pages and dashboards)
     - [x] Enhance empty states for lists (e.g., no classrooms, no maps, no students in classroom). (Done for many list pages, including teacher classroom student list & empty state icon refinements)
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
@@ -77,6 +77,7 @@
     - [x] Make header icons link to main dashboards for easier navigation (Role-based for Concept Map Editor and Teacher pages).
     - [x] Implement "View Only" mode for Concept Map Editor.
     - [x] Refine `PropertiesInspector` in "View Only" mode (muted labels, inputs disabled).
+    - [x] Implement change password functionality on profile page (mocked backend).
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow - Add button tooltip added).
     - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard, Admin Dashboard link to it enabled. Settings form implemented with mock save).
@@ -103,13 +104,10 @@
 
 ## Known Issues / Current Mocked Areas
 - Backend services are currently mocked (in-memory data).
-- AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage. This behavior is enhanced to auto-login based on URL structure (e.g., /admin path logs in admin, /teacher logs in teacher, else student).
+- AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage. This behavior is enhanced to auto-login based on URL structure (e.g., /application/admin path logs in admin, /application/teacher logs in teacher, else student).
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
 - Concept map canvas is now implemented using React Flow. Project Analysis now generates a real ConceptMap record from AI output.
 - `next-themes` for theme toggling is integrated.
 - App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
-- [x] Implement change password functionality on profile page (mocked backend).
-
-```
