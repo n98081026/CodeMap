@@ -43,14 +43,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (pathname.startsWith('/application/teacher')) {
         autoLoginUser = testTeacher;
       }
-      // Only auto-login if we are on a path that suggests a role, excluding root auth pages
-      if (pathname.startsWith('/application/')) {
+      // Only auto-login if we are on an app path that suggests a role,
+      // EXCLUDING the actual login/register pages themselves.
+      if (pathname.startsWith('/application/') && !pathname.startsWith('/application/login') && !pathname.startsWith('/application/register')) {
         setUser(autoLoginUser);
         localStorage.setItem('codemapUser', JSON.stringify(autoLoginUser));
       }
     }
     setIsLoading(false);
-  }, [pathname]); 
+  }, [pathname]);
 
   const login = async (email: string, password: string, role: UserRole) => {
     setIsLoading(true);

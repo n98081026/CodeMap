@@ -54,11 +54,7 @@ export default function TeacherClassroomsPage() {
   const [totalClassrooms, setTotalClassrooms] = useState(0);
   const totalPages = Math.ceil(totalClassrooms / CLASSROOMS_PER_PAGE);
 
-
-  let headerIconLink = "/application/teacher/dashboard"; // Default for teachers
-  if (user && user.role === UserRole.ADMIN) {
-     headerIconLink = "/application/admin/dashboard"; // Admins go to admin dashboard
-  }
+  const headerIconLink = "/application/teacher/dashboard";
 
 
   const fetchTeacherClassrooms = useCallback(async (page: number) => {
@@ -351,5 +347,4 @@ export default function TeacherClassroomsPage() {
     </div>
   );
 }
-
     

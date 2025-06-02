@@ -34,10 +34,7 @@ export default function CreateClassroomPage() {
   const router = useRouter();
   const { user } = useAuth(); 
 
-  let headerIconLink = "/application/teacher/dashboard"; // Default for teachers
-  if (user && user.role === UserRole.ADMIN) {
-     headerIconLink = "/application/admin/dashboard"; // Admins go to admin dashboard
-  }
+  const headerIconLink = "/application/teacher/dashboard";
 
   const form = useForm<z.infer<typeof classroomFormSchema>>({
     resolver: zodResolver(classroomFormSchema),
@@ -147,4 +144,3 @@ export default function CreateClassroomPage() {
     </div>
   );
 }
-

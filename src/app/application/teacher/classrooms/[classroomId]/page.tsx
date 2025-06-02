@@ -42,10 +42,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [errorSubmissions, setErrorSubmissions] = useState<string | null>(null);
 
-  let headerIconLink = "/application/teacher/dashboard"; 
-  if (user && user.role === UserRole.ADMIN) {
-     headerIconLink = "/application/admin/dashboard"; 
-  }
+  const headerIconLink = "/application/teacher/dashboard"; 
 
   const fetchClassroomDetails = useCallback(async () => {
     setIsLoadingClassroom(true);
@@ -381,4 +378,3 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     </div>
   );
 }
-// Removed declare module for DashboardHeaderProps as it's defined in its own file now
