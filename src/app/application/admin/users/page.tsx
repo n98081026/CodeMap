@@ -29,6 +29,7 @@ import {
   DialogFooter as FormDialogFooter,
   DialogHeader as FormDialogHeader,
   DialogTitle as FormDialogTitle,
+  DialogClose
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,7 @@ export default function AdminUsersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editFormData, setEditFormData] = useState({ name: "", email: "", role: UserRole.STUDENT });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -86,8 +88,8 @@ export default function AdminUsersPage() {
   }, [currentPage, fetchUsers]);
 
   const handleDeleteUser = async (userId: string, userName: string) => {
-     if (userId === "student-test-id" || userId === "teacher-test-id") {
-      toast({ title: "Operation Denied", description: "Pre-defined test users cannot be deleted.", variant: "destructive" });
+     if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin1") {
+      toast({ title: "Operation Denied", description: "Pre-defined test users and the main admin cannot be deleted.", variant: "destructive" });
       return;
     }
     try {
@@ -108,6 +110,10 @@ export default function AdminUsersPage() {
   };
   
   const openEditModal = (userToEdit: User) => {
+    if (userToEdit.id === "student-test-id" || userToEdit.id === "teacher-test-id" || userToEdit.id === "admin1") {
+       toast({ title: "Operation Denied", description: "Pre-defined test users and the main admin cannot be edited.", variant: "destructive" });
+       return;
+    }
     setEditingUser(userToEdit);
     setEditFormData({ name: userToEdit.name, email: userToEdit.email, role: userToEdit.role });
     setIsEditModalOpen(true);
@@ -124,6 +130,16 @@ export default function AdminUsersPage() {
 
   const handleUpdateUser = async () => {
     if (!editingUser) return;
+    if (!editFormData.name.trim()) {
+      toast({ title: "Name Required", description: "User name cannot be empty.", variant: "destructive" });
+      return;
+    }
+    if (!editFormData.email.trim() || !editFormData.email.includes('@')) {
+      toast({ title: "Valid Email Required", description: "Please provide a valid email address.", variant: "destructive" });
+      return;
+    }
+
+    setIsSavingEdit(true);
     try {
       const response = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
@@ -140,6 +156,8 @@ export default function AdminUsersPage() {
       fetchUsers(currentPage); 
     } catch (err) {
       toast({ title: "Error Updating User", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -151,7 +169,7 @@ export default function AdminUsersPage() {
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+      setCurrentPage(currentPage - 1);
     }
   };
 
@@ -217,7 +235,7 @@ export default function AdminUsersPage() {
          <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>All Users ({totalUsers})</CardTitle>
-            <CardDescription>A list of all registered users. Test users cannot be edited or deleted.</CardDescription>
+            <CardDescription>A list of all registered users. Test users and the main admin cannot be edited or deleted.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -240,12 +258,24 @@ export default function AdminUsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="mr-2" title="Edit user" onClick={() => openEditModal(userRow)} disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id"}>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="mr-2" 
+                        title="Edit user" 
+                        onClick={() => openEditModal(userRow)} 
+                        disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin1"}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" title="Delete user" disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id"}>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            title="Delete user" 
+                            disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin1"}
+                          >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </AlertDialogTrigger>
@@ -273,7 +303,7 @@ export default function AdminUsersPage() {
           {totalPages > 1 && (
             <CardFooter className="flex items-center justify-between border-t pt-4">
                 <span className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages}
+                  Page {currentPage} of {totalPages} ({totalUsers} users)
                 </span>
               <div className="flex space-x-2">
                 <Button
@@ -302,7 +332,7 @@ export default function AdminUsersPage() {
       )}
       
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <FormDialogHeader>
             <FormDialogTitle>Edit User: {editingUser?.name}</FormDialogTitle>
             <FormDialogDescription>Modify the user's details below.</FormDialogDescription>
@@ -310,15 +340,15 @@ export default function AdminUsersPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">Name</Label>
-              <Input id="name" name="name" value={editFormData.name} onChange={handleEditFormChange} className="col-span-3" />
+              <Input id="name" name="name" value={editFormData.name} onChange={handleEditFormChange} className="col-span-3" disabled={isSavingEdit} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">Email</Label>
-              <Input id="email" name="email" type="email" value={editFormData.email} onChange={handleEditFormChange} className="col-span-3" />
+              <Input id="email" name="email" type="email" value={editFormData.email} onChange={handleEditFormChange} className="col-span-3" disabled={isSavingEdit} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="role" className="text-right">Role</Label>
-              <Select name="role" value={editFormData.role} onValueChange={(value) => handleEditFormChange(value, "role")}>
+              <Select name="role" value={editFormData.role} onValueChange={(value) => handleEditFormChange(value, "role")} disabled={isSavingEdit}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
@@ -331,8 +361,13 @@ export default function AdminUsersPage() {
             </div>
           </div>
           <FormDialogFooter>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleUpdateUser}>Save Changes</Button>
+            <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={isSavingEdit}>Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleUpdateUser} disabled={isSavingEdit}>
+                {isSavingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSavingEdit ? "Saving..." : "Save Changes"}
+            </Button>
           </FormDialogFooter>
         </DialogContent>
       </Dialog>
@@ -340,3 +375,4 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+

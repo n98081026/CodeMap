@@ -68,7 +68,7 @@ export async function createUser(name: string, email: string, password: string, 
     // password: password // We don't store actual passwords in this mock service
   };
 
-  mockUserDatabase[email] = newUser;
+  mockUserDatabase[email] = newUser; // Key by email for direct lookup
   return newUser;
 }
 
@@ -92,10 +92,15 @@ export async function getAllUsers(page: number = 1, limit: number = 10): Promise
 }
 
 export async function updateUser(userId: string, updates: Partial<Omit<User, 'id' | 'password'>>): Promise<User | null> {
-  const user = findUserByIdInternal(userId);
-  if (!user) {
+  const userIndex = Object.values(mockUserDatabase).findIndex(u => u.id === userId);
+  if (userIndex === -1) {
     return null; // User not found
   }
+  
+  const userEmailKey = Object.keys(mockUserDatabase).find(key => mockUserDatabase[key].id === userId);
+  if (!userEmailKey) return null; // Should not happen if userIndex was found
+
+  const user = mockUserDatabase[userEmailKey];
 
   // If email is being updated, we need to handle the key change in mockUserDatabase
   let oldEmailKey: string | null = null;
@@ -111,7 +116,7 @@ export async function updateUser(userId: string, updates: Partial<Omit<User, 'id
   const updatedUser = { ...user, ...updates };
 
   // Update mockUserDatabase
-  if (oldEmailKey) {
+  if (oldEmailKey && oldEmailKey !== updatedUser.email) { // Check if email actually changed
     delete mockUserDatabase[oldEmailKey];
   }
   mockUserDatabase[updatedUser.email] = updatedUser; // Use new email as key if changed, or old one if not
@@ -126,13 +131,14 @@ export async function deleteUser(userId: string): Promise<boolean> {
   }
 
   // Cannot delete the pre-defined test student or test teacher for dev stability
-  if (userId === "student-test-id" || userId === "teacher-test-id") {
-      throw new Error("Cannot delete pre-defined test users.");
+  if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin1") {
+      throw new Error("Pre-defined test users and the main admin user cannot be deleted.");
   }
 
   // Remove user from mockUserDatabase (which is keyed by email)
   if (mockUserDatabase[userToDelete.email] && mockUserDatabase[userToDelete.email].id === userId) {
     delete mockUserDatabase[userToDelete.email];
+    // Also remove any user keyed by ID if we were doing that, but we are not for this mock.
     return true;
   }
   return false; // Should not happen if user was found by ID
@@ -165,3 +171,4 @@ export async function changeUserPassword(userId: string, currentPassword: string
   console.log(`Mock password change for user ${userId}. New password would be: ${newPassword} (not stored).`);
   return Promise.resolve();
 }
+

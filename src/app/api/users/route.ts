@@ -7,15 +7,19 @@ export async function GET(request: Request) {
     // TODO: Add authentication and authorization checks here to ensure only admins can access this.
     
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const pageParam = searchParams.get('page');
+    const limitParam = searchParams.get('limit');
+
+    const page = pageParam ? parseInt(pageParam, 10) : 1;
+    const limit = limitParam ? parseInt(limitParam, 10) : 10;
+
 
     if (isNaN(page) || page < 1 || isNaN(limit) || limit < 1) {
       return NextResponse.json({ message: "Invalid page or limit parameters" }, { status: 400 });
     }
 
     const { users, totalCount } = await getAllUsers(page, limit);
-    return NextResponse.json({ users, totalCount });
+    return NextResponse.json({ users, totalCount, page, limit, totalPages: Math.ceil(totalCount / limit) });
 
   } catch (error) {
     console.error("Get All Users API error:", error);
@@ -23,4 +27,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "Failed to fetch users: " + errorMessage }, { status: 500 });
   }
 }
-```
