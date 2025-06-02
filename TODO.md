@@ -5,8 +5,8 @@
 - [x] **User Authentication (Backend):**
     - [x] Refactor API routes (`/login`, `/register`) to use `userService`.
     - [x] Connect frontend `AuthContext` to live API (with mock service).
-    - [ ] Implement actual API endpoints for JWT generation. (Pending real auth)
-    - [ ] Secure password hashing and storage. (Pending real auth)
+    - [ ] Implement actual API endpoints for JWT generation. (Pending real auth - Out of Scope for Agent)
+    - [ ] Secure password hashing and storage. (Pending real auth - Out of Scope for Agent)
 - [x] **Database & Models:** (Services use in-memory mock data)
     - [x] Set up database (PostgreSQL/MongoDB as per final decision). (Mocked)
     - [x] Define and implement database schemas for Users, Classrooms, ConceptMaps, ProjectSubmissions, etc. (Mocked)
@@ -62,19 +62,19 @@
     - [x] Connect `PropertiesInspector` to selected elements on canvas (for element-specific properties, including node type).
     - [x] Visualize GenAI results (textually) on `CanvasPlaceholder` and allow adding to map.
     - [x] Simplify `PropertiesInspector` for map-level changes (remove local Apply/Cancel, changes directly update parent).
-- [ ] **State Management:**
-    - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching.
+- [x] **State Management:**
+    - [x] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching. (Zustand implemented for Concept Map Editor)
 - [x] **Real-time Features (Optional - Future Consideration):**
     - [ ] Consider real-time collaboration on concept maps (e.g., using WebSockets) - (High Complexity - Deferred).
     - [x] Real-time updates for project submission status (Basic polling implemented in SubmissionListItem).
 - [x] **User Interface & User Experience (Desktop Focus):**
-    - [x] Refine UI details for some pages, ensure consistency and professional design. (Ongoing)
+    - [x] Refine UI details for some pages, ensure consistency and professional design. (Largely addressed, ongoing process)
     - [x] Add more comprehensive loading states and error handling. (Done for many list pages and dashboards)
-    - [x] Enhance empty states for lists (e.g., no classrooms, no maps, no students in classroom). (Done for many list pages, including teacher classroom student list)
+    - [x] Enhance empty states for lists (e.g., no classrooms, no maps, no students in classroom). (Done for many list pages, including teacher classroom student list & empty state icon refinements)
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination, Teacher classrooms page has pagination).
     - [x] Add loading spinner to Login/Register pages during auth state check. (Current implementation prevents form flash, considered complete)
-    - [x] Make header icons link to main dashboards for easier navigation (Role-based for Concept Map Editor).
+    - [x] Make header icons link to main dashboards for easier navigation (Role-based for Concept Map Editor and Teacher pages).
     - [x] Implement "View Only" mode for Concept Map Editor.
     - [x] Refine `PropertiesInspector` in "View Only" mode (muted labels, inputs disabled).
 - [x] **Admin Panel:**
@@ -112,6 +112,4 @@
 - Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
 - [x] Implement change password functionality on profile page (mocked backend).
 
-    
-
-    
+```
