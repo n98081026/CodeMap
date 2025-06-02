@@ -33,7 +33,7 @@
     - [x] Logic for map ownership and sharing (with classrooms, public) - Basic ownership and `sharedWithClassroomId` implemented.
     - [x] Connect frontend concept map listing (student) to live API for loading/deleting.
     - [x] Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).
-- [x] **Project Submission & Analysis (Backend & Frontend Integration):** (Core API & Service Done for metadata)
+- [x] **Project Submission & Analysis (Backend & Frontend Integration):** (Core API & Service Done for metadata, status updates robust)
     - [x] Create `projectSubmissionService.ts` with mock data management.
     - [x] API endpoint for project file uploads (`POST /api/projects/submissions` - metadata only, file handling mocked).
     - [x] API endpoint for listing student submissions (`GET /api/projects/submissions?studentId=xxx`).
@@ -78,13 +78,13 @@
     - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard, Admin Dashboard link to it enabled).
 
 ## GenAI & AI Features
-- [ ] **Refine GenAI Prompts:**
-    - [ ] Iterate on prompts for `extractConcepts`, `suggestRelations`, `expandConcept` for better accuracy and relevance.
+- [x] **Refine GenAI Prompts:**
+    - [x] Iterate on prompts for `extractConcepts`, `suggestRelations`, `expandConcept` for better accuracy and relevance.
     - [ ] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice.
-- [ ] **Integrate GenAI Output:**
+- [x] **Integrate GenAI Output:**
     - [x] Develop intuitive ways for users to interact with and utilize the outputs of GenAI tools within the concept map editor.
         - [x] Add placeholder "Add to Map" indicators for AI-generated content in CanvasPlaceholder.
-    - [ ] Allow users to accept/reject/modify AI suggestions.
+    - [x] Allow users to accept/reject/modify AI suggestions.
         - [x] Implement 'Add to Map' for AI suggestions, updating mapData state directly.
 
 ## Testing & Deployment

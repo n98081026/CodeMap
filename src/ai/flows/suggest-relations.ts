@@ -35,14 +35,19 @@ const prompt = ai.definePrompt({
   name: 'suggestRelationsPrompt',
   input: {schema: SuggestRelationsInputSchema},
   output: {schema: SuggestRelationsOutputSchema},
-  prompt: `You are an expert in identifying relationships between concepts.
+  prompt: `You are an expert in conceptual analysis and identifying meaningful relationships between ideas.
 
-  Given the following concepts, suggest relations between them.  The output should be a JSON array where each element is an object containing a source concept, a target concept, and a relation describing the relationship between them.
+  Given the following list of concepts, your task is to suggest plausible relationships between pairs of these concepts.
+  For each suggested relationship, identify a source concept, a target concept, and a descriptive label for the relation (e.g., "causes", "is a type of", "part of", "influences", "leads to", "related to").
+  Focus on the most direct and significant relationships.
 
   Concepts:
   {{#each concepts}}
   - {{this}}
   {{/each}}
+
+  Return your output as a JSON array. Each element in the array should be an object with three keys: "source" (string), "target" (string), and "relation" (string).
+  Example: [{"source": "Concept A", "target": "Concept B", "relation": "is a part of"}]
   `,
 });
 

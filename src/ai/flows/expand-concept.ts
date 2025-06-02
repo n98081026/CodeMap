@@ -36,16 +36,16 @@ const expandConceptPrompt = ai.definePrompt({
   name: 'expandConceptPrompt',
   input: {schema: ExpandConceptInputSchema},
   output: {schema: ExpandConceptOutputSchema},
-  prompt: `You are an expert in concept mapping and knowledge expansion.
+  prompt: `You are an expert in concept mapping and knowledge expansion. Your goal is to help users explore ideas related to a central concept.
 
   Given the concept: "{{concept}}"
   {{#if context}}
   And the context: "{{context}}"
   {{/if}}
 
-  Generate a list of new concepts that are closely related to the input concept.
-  These concepts should help to expand the understanding and scope of the original concept.
-  Return the concepts as a JSON array of strings.
+  Please generate a list of 5 to 7 new, concise concepts that are closely related to the input concept.
+  These new concepts should broaden the understanding and scope of the original concept, offering diverse yet relevant avenues for further exploration.
+  Ensure your output is a JSON object containing a single key "newConcepts" whose value is an array of strings. For example: {"newConcepts": ["related idea 1", "related idea 2"]}.
   `,
 });
 

@@ -29,9 +29,11 @@ const prompt = ai.definePrompt({
   name: 'extractConceptsPrompt',
   input: {schema: ExtractConceptsInputSchema},
   output: {schema: ExtractConceptsOutputSchema},
-  prompt: `You are an expert at identifying key concepts in text.
+  prompt: `You are an expert at identifying key concepts and entities from text. Your task is to extract the most significant nouns or noun phrases that represent the core ideas.
 
-  Please read the following text and identify the key concepts. Return them as a JSON array of strings.
+  Please analyze the following text and identify the 5-10 most important key concepts.
+  Avoid overly granular or trivial concepts. Focus on terms that are central to understanding the text's main themes.
+  Return your output as a JSON object with a single key "concepts" whose value is an array of strings. For example: {"concepts": ["main idea A", "significant entity B"]}.
 
   Text: {{{text}}}`,
 });
