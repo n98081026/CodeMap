@@ -181,7 +181,7 @@ export default function StudentClassroomDetailPage({ params: paramsPromise }: { 
                     <CardDescription>Last updated: {new Date(map.updatedAt).toLocaleDateString()}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-xs text-muted-foreground">Created by: {map.ownerId === user?.id ? "You" : `User ID ${map.ownerId}`}</p>
+                    <p className="text-xs text-muted-foreground">Created by: {map.ownerId === user?.id ? "You" : (classroom.students?.find(s => s.id === map.ownerId)?.name || `User ID ${map.ownerId}`)}</p>
                   </CardContent>
                   <CardFooter>
                     <Button asChild variant="outline" size="sm" className="w-full">

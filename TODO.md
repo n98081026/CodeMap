@@ -22,16 +22,16 @@
         - [x] API endpoint for removing a student from a classroom (`DELETE /api/classrooms/[classroomId]/students/[studentId]`).
     - [x] API endpoints for updating, deleting classrooms (`PUT /api/classrooms/[classroomId]`, `DELETE /api/classrooms/[classroomId]`).
     - [x] Connect frontend classroom creation and listing UI (teacher) to live API (with mock service).
-    - [ ] Connect frontend classroom listing UI (student) to live API (with mock service).
+    - [x] Connect frontend classroom listing UI (student) to live API (with mock service).
     - [x] Connect frontend classroom list UI for edit/delete actions (Teacher).
     - [x] Connect frontend classroom detail UI (teacher) to live API for details and student management (student list, map list, submission list connected. Add/remove student by ID working, list refreshes).
-    - [ ] Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.
+    - [x] Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.
 - [x] **Concept Map Service (Backend & Frontend Integration):** (Core API & Service Done)
     - [x] Create `conceptMapService.ts` with mock data management.
     - [x] API endpoints for CRUD operations on concept maps (`/api/concept-maps`, `/api/concept-maps/[mapId]`).
     - [x] API endpoint for listing concept maps by classroom (`GET /api/concept-maps?classroomId=xxx`).
     - [x] Logic for map ownership and sharing (with classrooms, public) - Basic ownership and `sharedWithClassroomId` implemented.
-    - [ ] Connect frontend concept map listing (student) to live API for loading/deleting.
+    - [x] Connect frontend concept map listing (student) to live API for loading/deleting.
     - [x] Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).
 - [x] **Project Submission & Analysis (Backend & Frontend Integration):** (Core API & Service Done for metadata, status updates robust, AI map gen saves real map)
     - [x] Create `projectSubmissionService.ts` with mock data management.
@@ -71,7 +71,7 @@
     - [x] Refine UI details for some pages, ensure consistency and professional design. (Ongoing)
     - [x] Add more comprehensive loading states and error handling. (Done for many list pages and dashboards)
     - [x] Enhance empty states for lists (e.g., no classrooms, no maps, no students in classroom). (Done for many list pages, including teacher classroom student list)
-    - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
+    - [x_] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination, Teacher classrooms page has pagination).
     - [x] Add loading spinner to Login/Register pages during auth state check. (Current implementation prevents form flash, considered complete)
     - [x] Make header icons link to main dashboards for easier navigation (Role-based for Concept Map Editor).
