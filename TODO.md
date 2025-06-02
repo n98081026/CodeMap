@@ -71,7 +71,7 @@
     - [x] Enhance empty states for lists (e.g., no classrooms, no maps). (Done for many list pages)
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management page now has pagination, Teacher classrooms page has pagination).
-    - [ ] Add loading spinner to Login/Register pages during auth state check.
+    - [x] Add loading spinner to Login/Register pages during auth state check. (Current implementation prevents form flash, considered complete)
     - [x] Make header icons link to main dashboards for easier navigation.
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow - Add button tooltip added).
@@ -103,7 +103,7 @@
 
 ## Known Issues / Current Mocked Areas
 - Backend services are currently mocked (in-memory data).
-- AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage. This is primarily a development convenience.
+- AuthContext provides automatic login for test users (`student-test-id`, `teacher-test-id`, `admin1`) based on initial path for development convenience if no user is in localStorage. This behavior is enhanced to auto-login based on URL structure (e.g., /admin path logs in admin).
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
 - Concept map canvas is a placeholder. Project analysis pipeline is mocked at the UI level (AI map gen call updates status).
 - `next-themes` for theme toggling is integrated.
@@ -113,4 +113,5 @@
 - [x] Implement change password functionality on profile page (mocked backend).
 
     
+
 

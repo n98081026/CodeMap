@@ -20,7 +20,8 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, user, router, isLoading]);
   
-  if (isLoading || isAuthenticated) { // Prevent flash of login form if already logged in or loading
+  // Show loader if auth state is loading OR if user is authenticated (to prevent form flash before redirect)
+  if (isLoading || isAuthenticated) { 
     return (
       <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-background to-accent/10">
          <Loader2 className="h-12 w-12 animate-spin text-primary" />
