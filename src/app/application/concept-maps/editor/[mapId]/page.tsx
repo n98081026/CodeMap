@@ -17,7 +17,7 @@ import {
   ExpandConceptModal,
 } from "@/components/concept-map/genai-modals";
 import { useToast } from "@/hooks/use-toast";
-import type { ConceptMap, ConceptMapData } from "@/types";
+import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -288,18 +288,36 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     });
   };
 
-  const handleMockAddNode = () => {
+  const handleAddNodeToData = () => {
     if (isViewOnlyMode) return;
-    const newNodeLabel = `New Node ${mockCanvasItems.filter(item => item.type === 'node').length + 1}`;
-    setMockCanvasItems(prev => [...prev, { id: uniqueMockItemId(), type: 'node', label: newNodeLabel }]);
-    toast({ title: "Mock Node Added", description: `"${newNodeLabel}" added to canvas placeholder. This is a visual mock.`});
+    const newNode: ConceptMapNode = {
+      id: uniqueNodeId(),
+      text: `Node ${mapData.nodes.length + 1}`,
+      type: 'manual-node', // Example type
+      // x: Math.random() * 500, // Placeholder for positioning
+      // y: Math.random() * 300,
+    };
+    setMapData(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }));
+    toast({ title: "Node Added to Map", description: `"${newNode.text}" added. Save the map to persist changes.`});
   };
 
-  const handleMockAddEdge = () => {
+  const handleAddEdgeToData = () => {
     if (isViewOnlyMode) return;
-    const newEdgeLabel = `New Edge ${mockCanvasItems.filter(item => item.type === 'edge').length + 1}`;
-    setMockCanvasItems(prev => [...prev, { id: uniqueMockItemId(), type: 'edge', label: newEdgeLabel }]);
-    toast({ title: "Mock Edge Added", description: `"${newEdgeLabel}" added to canvas placeholder. This is a visual mock.`});
+    if (mapData.nodes.length < 2) {
+      // Fallback to visual mock if not enough nodes
+      const newEdgeLabel = `Mock Edge ${mockCanvasItems.filter(item => item.type === 'edge').length + 1}`;
+      setMockCanvasItems(prev => [...prev, { id: uniqueMockItemId(), type: 'edge', label: newEdgeLabel }]);
+      toast({ title: "Mock Edge Added", description: `"${newEdgeLabel}" added to canvas placeholder. Not enough nodes for a real edge.`});
+      return;
+    }
+    const newEdge: ConceptMapEdge = {
+      id: uniqueEdgeId(),
+      source: mapData.nodes[mapData.nodes.length - 2].id, // Connects last two nodes for simplicity
+      target: mapData.nodes[mapData.nodes.length - 1].id,
+      label: 'connects',
+    };
+    setMapData(prev => ({ ...prev, edges: [...prev.edges, newEdge] }));
+    toast({ title: "Edge Added to Map", description: `Edge connecting "${mapData.nodes[mapData.nodes.length - 2].text}" and "${mapData.nodes[mapData.nodes.length - 1].text}" added. Save to persist.`});
   };
 
 
@@ -377,13 +395,14 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
         onSuggestRelations={() => setIsSuggestRelationsModalOpen(true)}
         onExpandConcept={() => setIsExpandConceptModalOpen(true)}
         isViewOnlyMode={isViewOnlyMode}
-        onMockAddNode={handleMockAddNode}
-        onMockAddEdge={handleMockAddEdge}
+        onAddNodeToData={handleAddNodeToData}
+        onAddEdgeToData={handleAddEdgeToData}
       />
 
       <div className="flex flex-1 gap-4 overflow-hidden">
         <div className="flex-grow">
           <CanvasPlaceholder 
+            mapData={mapData}
             extractedConcepts={aiExtractedConcepts}
             suggestedRelations={aiSuggestedRelations}
             expandedConcepts={aiExpandedConcepts}
@@ -438,6 +457,7 @@ declare module "@/components/concept-map/properties-inspector" {
 }
 declare module "@/components/concept-map/canvas-placeholder" {
   interface CanvasPlaceholderProps {
+    mapData?: ConceptMapData; // Added to display actual map data
     extractedConcepts?: string[];
     suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
     expandedConcepts?: string[];
@@ -451,8 +471,10 @@ declare module "@/components/concept-map/canvas-placeholder" {
 declare module "@/components/concept-map/editor-toolbar" {
   interface EditorToolbarProps {
     isViewOnlyMode?: boolean;
-    onMockAddNode?: () => void;
-    onMockAddEdge?: () => void;
+    onAddNodeToData?: () => void; // Renamed from onMockAddNode
+    onAddEdgeToData?: () => void; // Renamed from onMockAddEdge
   }
 }
+    
+
     

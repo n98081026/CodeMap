@@ -14,8 +14,8 @@ interface EditorToolbarProps {
   onSuggestRelations: () => void;
   onExpandConcept: () => void;
   isViewOnlyMode?: boolean;
-  onMockAddNode?: () => void;
-  onMockAddEdge?: () => void;
+  onAddNodeToData?: () => void;
+  onAddEdgeToData?: () => void;
 }
 
 
@@ -26,8 +26,8 @@ export function EditorToolbar({
   onSuggestRelations, 
   onExpandConcept,
   isViewOnlyMode,
-  onMockAddNode,
-  onMockAddEdge,
+  onAddNodeToData,
+  onAddEdgeToData,
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -113,19 +113,19 @@ export function EditorToolbar({
         {/* Insert Elements */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onMockAddNode} disabled={isViewOnlyMode}>
+            <Button variant="ghost" size="icon" onClick={onAddNodeToData} disabled={isViewOnlyMode}>
               <PlusSquare className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Add Node (Mock)</TooltipContent>
+          <TooltipContent>Add Node</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onMockAddEdge} disabled={isViewOnlyMode}>
+            <Button variant="ghost" size="icon" onClick={onAddEdgeToData} disabled={isViewOnlyMode}>
               <Spline className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Add Edge (Mock)</TooltipContent>
+          <TooltipContent>Add Edge</TooltipContent>
         </Tooltip>
         
         <Separator orientation="vertical" className="mx-1 h-full" />
@@ -164,3 +164,5 @@ export function EditorToolbar({
     </TooltipProvider>
   );
 }
+
+    

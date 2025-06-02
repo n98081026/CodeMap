@@ -1,12 +1,15 @@
 
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2 } from "lucide-react";
+import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { ConceptMapData } from "@/types";
+
 
 interface CanvasPlaceholderProps {
+  mapData?: ConceptMapData;
   extractedConcepts?: string[];
   suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
   expandedConcepts?: string[];
@@ -18,6 +21,7 @@ interface CanvasPlaceholderProps {
 }
 
 export function CanvasPlaceholder({
+  mapData,
   extractedConcepts,
   suggestedRelations,
   expandedConcepts,
@@ -33,11 +37,14 @@ export function CanvasPlaceholder({
     (expandedConcepts && expandedConcepts.length > 0);
 
   const hasMockItems = mockCanvasItems && mockCanvasItems.length > 0;
+  const hasMapDataNodes = mapData && mapData.nodes && mapData.nodes.length > 0;
+  const hasMapDataEdges = mapData && mapData.edges && mapData.edges.length > 0;
+  const hasAnyContent = hasAiOutput || hasMockItems || hasMapDataNodes || hasMapDataEdges;
 
   return (
     <Card className="h-[calc(100vh-200px)] w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
       <CardContent className="flex h-full flex-col items-center justify-center text-center p-4">
-        {!hasAiOutput && !hasMockItems ? (
+        {!hasAnyContent ? (
           <>
             <GitFork className="h-16 w-16 text-muted-foreground/50 mb-4" />
             <h3 className="text-xl font-semibold text-muted-foreground">Concept Map Canvas</h3>
@@ -48,22 +55,65 @@ export function CanvasPlaceholder({
               }
             </p>
             <p className="text-xs text-muted-foreground/70 mt-2">
-              (Canvas interaction is a placeholder. AI suggestions or mock items will appear below if used.)
+              (Canvas interaction is a placeholder. Map data, AI suggestions, or mock items will appear below if used.)
             </p>
           </>
         ) : (
           <ScrollArea className="h-full w-full">
             <div className="p-4 space-y-4 text-left">
-              {(hasAiOutput || hasMockItems) && (
-                 <h3 className="text-xl font-semibold text-muted-foreground mb-4 text-center">
-                   {isViewOnlyMode ? "Viewing Map Content" : "Current Map Content (Mock & AI)"}
-                 </h3>
-              )}
+               <h3 className="text-xl font-semibold text-muted-foreground mb-4 text-center">
+                 {isViewOnlyMode ? "Viewing Map Content" : "Current Map Content"}
+               </h3>
 
-              {hasMockItems && (
+              {/* Display Nodes from mapData */}
+              {hasMapDataNodes && (
                 <Card className="mb-4 bg-primary/5">
                   <CardHeader>
-                    <CardTitle className="text-base font-semibold text-primary flex items-center"><Layers className="mr-2 h-5 w-5"/>Mock Canvas Items</CardTitle>
+                    <CardTitle className="text-base font-semibold text-primary flex items-center"><Box className="mr-2 h-5 w-5"/>Nodes in Map ({mapData?.nodes.length})</CardTitle>
+                    <CardDescription className="text-xs">These nodes are part of the current map data. Save the map to persist.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="list-none text-sm space-y-1">
+                      {mapData?.nodes.map((node) => (
+                        <li key={node.id} className="flex items-center">
+                          <Layers className="mr-2 h-4 w-4 text-blue-500"/>
+                          {node.text} <span className="text-xs text-muted-foreground ml-1">({node.type || 'node'})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Display Edges from mapData */}
+              {hasMapDataEdges && (
+                 <Card className="mb-4 bg-green-500/5">
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold text-green-600 flex items-center"><Waypoints className="mr-2 h-5 w-5"/>Edges in Map ({mapData?.edges.length})</CardTitle>
+                     <CardDescription className="text-xs">These edges are part of the current map data. Save the map to persist.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="list-none text-sm space-y-1">
+                      {mapData?.edges.map((edge) => (
+                        <li key={edge.id} className="flex items-center">
+                           <Link2 className="mr-2 h-4 w-4 text-green-500"/>
+                           Source: {mapData.nodes.find(n=>n.id === edge.source)?.text || edge.source.substring(0,6)+'...'} 
+                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-1"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                           Target: {mapData.nodes.find(n=>n.id === edge.target)?.text || edge.target.substring(0,6)+'...'} 
+                           <span className="text-xs text-muted-foreground ml-1">({edge.label})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display Mock Visual Items (e.g., for edges that couldn't be formed) */}
+              {hasMockItems && (
+                <Card className="mb-4 bg-amber-500/10">
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold text-amber-600 flex items-center"><Layers className="mr-2 h-5 w-5"/>Mock Visual Items</CardTitle>
+                     <CardDescription className="text-xs">These are temporary visual placeholders and not part of savable map data.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ul className="list-none text-sm space-y-1">
@@ -74,11 +124,11 @@ export function CanvasPlaceholder({
                         </li>
                       ))}
                     </ul>
-                    <p className="text-xs text-muted-foreground mt-2 text-center">(These are visual placeholders only and not part of savable map data.)</p>
                   </CardContent>
                 </Card>
               )}
 
+              {/* AI Suggestions Sections */}
               {extractedConcepts && extractedConcepts.length > 0 && onAddExtractedConcepts && (
                 <div className="p-3 border rounded-md bg-background/50">
                   <h4 className="font-semibold text-primary mb-2 flex items-center"><SearchCode className="mr-2 h-5 w-5"/>Extracted Concepts:</h4>
@@ -92,7 +142,6 @@ export function CanvasPlaceholder({
                       <Button size="sm" variant="outline" className="w-full" onClick={() => onAddExtractedConcepts(extractedConcepts)} disabled={isViewOnlyMode}>
                         <PlusCircle className="mr-2 h-4 w-4"/> Add All Extracted Concepts to Map Data
                       </Button>
-                      <p className="text-xs text-muted-foreground mt-1 text-center">(Modifies local map data. Save the map to persist.)</p>
                     </div>
                   )}
                 </div>
@@ -111,7 +160,6 @@ export function CanvasPlaceholder({
                       <Button size="sm" variant="outline" className="w-full" onClick={() => onAddSuggestedRelations(suggestedRelations)} disabled={isViewOnlyMode}>
                         <PlusCircle className="mr-2 h-4 w-4"/> Add All Suggested Relations to Map Data
                       </Button>
-                       <p className="text-xs text-muted-foreground mt-1 text-center">(Modifies local map data. Save the map to persist.)</p>
                     </div>
                   )}
                 </div>
@@ -130,12 +178,11 @@ export function CanvasPlaceholder({
                       <Button size="sm" variant="outline" className="w-full" onClick={() => onAddExpandedConcepts(expandedConcepts)} disabled={isViewOnlyMode}>
                         <PlusCircle className="mr-2 h-4 w-4"/> Add All Expanded Ideas to Map Data
                       </Button>
-                      <p className="text-xs text-muted-foreground mt-1 text-center">(Modifies local map data. Save the map to persist.)</p>
                     </div>
                   )}
                 </div>
               )}
-              {(hasAiOutput || hasMockItems) && (
+              {hasAnyContent && (
                  <p className="text-xs text-muted-foreground/70 mt-6 text-center">
                    (This is a textual representation. Full canvas visualization is pending.)
                  </p>
@@ -147,3 +194,5 @@ export function CanvasPlaceholder({
     </Card>
   );
 }
+
+    
