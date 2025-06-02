@@ -521,10 +521,49 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   };
 
 
+  const getRoleBasedDashboardLink = useCallback(() => {
+    if (!user) return "/";
+    switch (user.role) {
+      case UserRole.STUDENT: return "/application/student/dashboard";
+      case UserRole.TEACHER: return "/application/teacher/dashboard";
+      case UserRole.ADMIN: return "/application/admin/dashboard";
+      default: return "/";
+    }
+  }, [user]);
+
+  const getBackLink = useCallback(() => {
+    if (!user) return "/";
+    switch (user.role) {
+      case UserRole.STUDENT: return "/application/student/concept-maps";
+      case UserRole.TEACHER: 
+        if (sharedWithClassroomId && !isNewMapMode) {
+          return `/application/teacher/classrooms/${sharedWithClassroomId}`;
+        }
+        return "/application/teacher/dashboard"; // Fallback for teacher if no specific classroom context or new map
+      case UserRole.ADMIN: return "/application/admin/dashboard";
+      default: return "/";
+    }
+  }, [user, sharedWithClassroomId, isNewMapMode]);
+
+  const getBackButtonText = useCallback(() => {
+    if (!user) return "Back";
+    switch (user.role) {
+      case UserRole.STUDENT: return "Back to My Maps";
+      case UserRole.TEACHER: 
+        if (sharedWithClassroomId && !isNewMapMode) {
+          return "Back to Classroom";
+        }
+        return "Back to Dashboard";
+      case UserRole.ADMIN: return "Back to Dashboard";
+      default: return "Back";
+    }
+  }, [user, sharedWithClassroomId, isNewMapMode]);
+
+
   if (isLoading) {
     return (
       <div className="flex h-full flex-col space-y-4 p-4">
-        <DashboardHeader title="Loading Map..." icon={Loader2} iconClassName="animate-spin" iconLinkHref="/application/student/concept-maps" />
+        <DashboardHeader title="Loading Map..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={getRoleBasedDashboardLink()} />
         <div className="flex justify-center items-center py-10 flex-grow">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
@@ -535,7 +574,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   if (error && !isNewMapMode) { 
      return (
       <div className="flex h-full flex-col space-y-4 p-4">
-        <DashboardHeader title="Error Loading Map" icon={AlertTriangle} iconLinkHref="/application/student/concept-maps" />
+        <DashboardHeader title="Error Loading Map" icon={AlertTriangle} iconLinkHref={getRoleBasedDashboardLink()} />
         <Card className="flex-grow">
           <CardHeader>
             <CardTitle className="text-destructive">Could not load map</CardTitle>
@@ -543,8 +582,8 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
           <CardContent>
             <p>{error}</p>
             <Button asChild variant="outline" className="mt-4">
-              <Link href="/application/student/concept-maps">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to My Maps
+              <Link href={getBackLink()}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}
               </Link>
             </Button>
           </CardContent>
@@ -572,37 +611,6 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       actualSelectedElementForInspector = mapData.edges.find(e => e.id === selectedElementId) || null;
     }
   }
-
-  const getRoleBasedDashboardLink = () => {
-    if (!user) return "/";
-    switch (user.role) {
-      case UserRole.STUDENT: return "/application/student/dashboard";
-      case UserRole.TEACHER: return "/application/teacher/dashboard";
-      case UserRole.ADMIN: return "/application/admin/dashboard";
-      default: return "/";
-    }
-  };
-
-  const getBackLink = () => {
-    if (!user) return "/";
-    switch (user.role) {
-      case UserRole.STUDENT: return "/application/student/concept-maps";
-      case UserRole.TEACHER: return "/application/teacher/classrooms";
-      case UserRole.ADMIN: return "/application/admin/dashboard";
-      default: return "/";
-    }
-  };
-
-  const getBackButtonText = () => {
-    if (!user) return "Back";
-    switch (user.role) {
-      case UserRole.STUDENT: return "Back to My Maps";
-      case UserRole.TEACHER: return "Back to Classrooms";
-      case UserRole.ADMIN: return "Back to Dashboard";
-      default: return "Back";
-    }
-  };
-
 
   return (
     <div className="flex h-full flex-col space-y-4">
