@@ -134,4 +134,3 @@ export async function deleteUser(userId: string): Promise<boolean> {
   }
   return false; // Should not happen if user was found by ID
 }
-```

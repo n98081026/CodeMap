@@ -8,7 +8,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, use } from "react"; // Added 'use'
 import { useRouter } from 'next/navigation';
 
 import {
@@ -21,12 +21,13 @@ import type { ConceptMap, ConceptMapData } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 
 
-export default function ConceptMapEditorPage({ params }: { params: { mapId: string } }) {
+export default function ConceptMapEditorPage({ params: paramsPromise }: { params: Promise<{ mapId: string }> }) {
+  const actualParams = use(paramsPromise); // Unwrap the params Promise
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
   
-  const isNewMap = params.mapId === "new";
+  const isNewMap = actualParams.mapId === "new";
   const [currentMap, setCurrentMap] = useState<ConceptMap | null>(null); // Store loaded map details
   
   // State for map properties, managed by this page, updated by PropertiesInspector
@@ -70,8 +71,8 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   }, [toast]);
 
   useEffect(() => {
-    if (!isNewMap && params.mapId) {
-      loadMapData(params.mapId);
+    if (!isNewMap && actualParams.mapId) {
+      loadMapData(actualParams.mapId);
     } else {
       // Initialize for a new map
       setCurrentMap(null);
@@ -81,7 +82,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       setSharedWithClassroomId(null);
       setIsLoading(false);
     }
-  }, [params.mapId, isNewMap, loadMapData]);
+  }, [actualParams.mapId, isNewMap, loadMapData]);
 
   const handleMapPropertiesChange = useCallback((properties: {
     name: string;
