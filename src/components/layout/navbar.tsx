@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -11,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
-import { useTheme } from 'next-themes'; // Assuming next-themes is or will be installed
+import { useTheme } from 'next-themes'; 
 import { useEffect, useState } from 'react';
 import { UserRole } from '@/types';
 
@@ -25,22 +26,36 @@ export function Navbar() {
   }, []);
   
   const getDashboardLink = () => {
-    if (!user) return "/login";
+    if (!user) return "/application/login";
     switch (user.role) {
       case UserRole.ADMIN:
-        return "/admin/dashboard";
+        return "/application/admin/dashboard";
       case UserRole.TEACHER:
-        return "/teacher/dashboard";
+        return "/application/teacher/dashboard";
       case UserRole.STUDENT:
-        return "/student/dashboard";
+        return "/application/student/dashboard";
       default:
-        return "/login";
+        return "/application/login";
     }
   };
 
 
   if (!mounted) {
-    return null; // Avoid rendering mismatch during hydration
+    // Avoid rendering mismatch during hydration for theme toggle
+    return (
+      <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-6">
+        <Link href={isAuthenticated ? getDashboardLink() : "/"} className="flex items-center space-x-2">
+          <CodeXml className="h-7 w-7 text-primary" />
+          <span className="font-headline text-xl font-semibold">CodeMap</span>
+        </Link>
+        <div className="flex items-center space-x-3">
+            <div className="h-9 w-9"></div> {/* Placeholder for theme toggle to prevent layout shift */}
+            {isAuthenticated && user ? <div className="h-9 w-9"></div> : <div className="h-10 w-[78px]"></div>}
+        </div>
+      </div>
+    </nav>
+    );
   }
 
   return (
@@ -84,9 +99,11 @@ export function Navbar() {
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                <DropdownMenuItem asChild>
+                  <Link href="/application/profile">
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
@@ -97,7 +114,7 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <Button asChild>
-              <Link href="/login">
+              <Link href="/application/login">
                 <LogIn className="mr-2 h-4 w-4" /> Login
               </Link>
             </Button>

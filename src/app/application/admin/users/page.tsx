@@ -1,3 +1,4 @@
+
 // src/app/application/admin/users/page.tsx
 "use client";
 
@@ -8,9 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
+import Link from "next/link";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,7 +70,8 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, [toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Toast dependency removed as it's stable
 
   const handleDeleteUser = async (userId: string, userName: string) => {
      if (userId === "student-test-id" || userId === "teacher-test-id") {
@@ -132,6 +135,11 @@ export default function AdminUsersPage() {
         description="View, edit, and manage all users in the system."
         icon={Users}
       >
+        <Button asChild variant="outline">
+          <Link href="/application/admin/dashboard">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Admin Dashboard
+          </Link>
+        </Button>
         <Button disabled>
           <PlusCircle className="mr-2 h-4 w-4" /> Add New User
         </Button>
@@ -162,7 +170,7 @@ export default function AdminUsersPage() {
          <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>All Users</CardTitle>
-            <CardDescription>A list of all registered users.</CardDescription>
+            <CardDescription>A list of all registered users. Test users cannot be edited or deleted.</CardDescription>
           </CardHeader>
           <CardContent>
             {users.length === 0 ? (

@@ -3,11 +3,11 @@
 
 ## Core Functionality & Backend Integration
 - [x] **User Authentication (Backend):**
-    - [x] Refactor API routes (`/login`, `/register`) to use `userService`. (Mock service implemented)
+    - [x] Refactor API routes (`/login`, `/register`) to use `userService`.
     - [x] Connect frontend `AuthContext` to live API (with mock service).
-    - [ ] Implement actual API endpoints for register, login, JWT generation. (JWT part pending real auth)
+    - [ ] Implement actual API endpoints for JWT generation. (JWT part pending real auth)
     - [ ] Secure password hashing and storage. (Pending real auth)
-- [x] **Database & Models:** (Services use in-memory mock data)
+- [ ] **Database & Models:** (Services use in-memory mock data)
     - [ ] Set up database (PostgreSQL/MongoDB as per final decision).
     - [ ] Define and implement database schemas for Users, Classrooms, ConceptMaps, ProjectSubmissions, etc.
     - [ ] Create ORM/ODM layer (Prisma, Sequelize, etc.).
@@ -67,9 +67,9 @@
 - [x] **User Interface & User Experience (Desktop Focus):**
     - [x] Refine UI details for some pages, ensure consistency and professional design.
     - [x] Add more comprehensive loading states and error handling.
-    - [x] Enhance empty states for lists (e.g., no classrooms, no maps).
-    - [ ] Implement user profile page and settings.
-    - [x] Add pagination and filtering for lists (users - basic list, classrooms, maps, submissions).
+    - [ ] Enhance empty states for lists (e.g., no classrooms, no maps).
+    - [x] Implement user profile page and settings (Placeholder page created, linked from Navbar and Sidebar).
+    - [ ] Add pagination and filtering for lists (users - basic list, classrooms, maps, submissions).
 - [x] **Admin Panel:** (In Progress)
     - [x] Implement CRUD operations for user management (view, delete, edit connected to backend service; add user via register flow).
     - [x] Develop system settings interface (Placeholder page created and linked).
