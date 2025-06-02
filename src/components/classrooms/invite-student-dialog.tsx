@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -19,10 +18,10 @@ import { useState } from "react";
 
 interface InviteStudentDialogProps {
   classroomId: string;
-  onInviteSent?: (studentEmail?: string, studentId?: string) => void; 
+  onActionCompleted?: () => void; // Renamed for clarity, as it now handles add and mock invite
 }
 
-export function InviteStudentDialog({ classroomId, onInviteSent }: InviteStudentDialogProps) {
+export function InviteStudentDialog({ classroomId, onActionCompleted }: InviteStudentDialogProps) {
   const [identifier, setIdentifier] = useState(""); // Can be email or student ID
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -39,18 +38,19 @@ export function InviteStudentDialog({ classroomId, onInviteSent }: InviteStudent
     }
     setIsLoading(true);
 
-    // Basic check: if it looks like an email, treat as mock invite. Otherwise, try as student ID.
     const isEmail = identifier.includes('@');
 
     if (isEmail) {
       // Mock email invite
       console.log(`Mock inviting student with email ${identifier} to classroom ${classroomId}`);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
       toast({
         title: "Invite Sent (Mock)",
-        description: `An invitation has been 'sent' to ${identifier}.`,
+        description: `An invitation has been 'sent' to ${identifier}. They will need to accept it.`,
       });
-      onInviteSent?.(identifier, undefined);
+      // For mock invites, we might not trigger a list refresh immediately, 
+      // as the student hasn't actually joined yet.
+      onActionCompleted?.(); 
     } else {
       // Attempt to add by student ID
       try {
@@ -67,7 +67,7 @@ export function InviteStudentDialog({ classroomId, onInviteSent }: InviteStudent
           title: "Student Added",
           description: `Student with ID "${identifier}" has been added to the classroom.`,
         });
-        onInviteSent?.(undefined, identifier);
+        onActionCompleted?.(); // Trigger list refresh
       } catch (error) {
          toast({
           title: "Error Adding Student",
@@ -93,7 +93,7 @@ export function InviteStudentDialog({ classroomId, onInviteSent }: InviteStudent
         <DialogHeader>
           <DialogTitle>Invite or Add Student</DialogTitle>
           <DialogDescription>
-            Enter student's email to send an invite (mock), or their existing Student ID to add them directly.
+            Enter student's email to send an invite (mock), or their existing Student ID to add them directly to the classroom.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

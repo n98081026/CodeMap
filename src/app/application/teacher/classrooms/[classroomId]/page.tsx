@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -124,22 +123,19 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
         description: `${studentName} has been removed from the classroom.`,
       });
       fetchClassroomDetails(); // Refresh classroom details (student list)
-    } catch (error) {
+    } catch (errorMsg) { // Renamed to avoid conflict with outer scope error
       toast({
         title: "Error Removing Student",
-        description: (error as Error).message,
+        description: (errorMsg as Error).message,
         variant: "destructive",
       });
     }
   };
   
-  const handleInviteSent = (studentEmail?: string, studentId?: string) => {
-    if (studentId && classroom) {
-        console.log(`Student ID ${studentId} potentially added to classroom ${classroom.id}`);
-        fetchClassroomDetails(); // Refresh to see if direct add worked
-    } else if (studentEmail) {
-        console.log(`Invite sent to ${studentEmail}, (mocked).`);
-    }
+  const handleStudentAddedOrInviteSent = () => {
+    // This callback is triggered by InviteStudentDialog after an attempt to add a student by ID or mock invite.
+    // If a student was added by ID and it was successful, we should refresh the student list.
+    fetchClassroomDetails(); 
   };
 
   if (isLoading) {
@@ -184,7 +180,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
          <Button asChild variant="outline">
           <Link href="/application/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
         </Button>
-        <InviteStudentDialog classroomId={classroom.id} onInviteSent={handleInviteSent} />
+        <InviteStudentDialog classroomId={classroom.id} onActionCompleted={handleStudentAddedOrInviteSent} />
       </DashboardHeader>
 
       <Tabs defaultValue="students" className="w-full">
@@ -201,7 +197,10 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
               <CardDescription>List of students currently enrolled in this classroom.</CardDescription>
             </CardHeader>
             <CardContent>
-              {enrolledStudents.length > 0 ? (
+              {isLoading && !error && <div className="flex items-center justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading students...</p></div>}
+              {!isLoading && error && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>Error loading students. <Button onClick={fetchClassroomDetails} variant="link">Try Again</Button></div>}
+              {!isLoading && !error && enrolledStudents.length === 0 && <p className="text-muted-foreground">No students enrolled yet. Use the "Invite/Add Students" button to add students.</p>}
+              {!isLoading && !error && enrolledStudents.length > 0 && (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -242,8 +241,6 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                     ))}
                   </TableBody>
                 </Table>
-              ) : (
-                <p className="text-muted-foreground">No students enrolled yet. Use the "Invite Students" button to add students.</p>
               )}
             </CardContent>
           </Card>
@@ -271,7 +268,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                     </TableHeader>
                     <TableBody>
                         {classroomMaps.map((map) => {
-                        const owner = enrolledStudents.find(s => s.id === map.ownerId);
+                        const owner = enrolledStudents.find(s => s.id === map.ownerId); // Check against currently loaded students
                         return (
                             <TableRow key={map.id}>
                             <TableCell className="font-medium">{map.name}</TableCell>
@@ -361,4 +358,3 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
 //     iconClassName?: string;
 //   }
 // }
-```
