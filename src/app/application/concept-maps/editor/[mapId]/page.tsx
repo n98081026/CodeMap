@@ -326,7 +326,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   };
 
 
-  const addConceptsToMapData = (conceptsToAdd: string[], type: string) => {
+  const addConceptsToMapData = (conceptsToAdd: string[], type: 'ai-extracted-concept' | 'ai-expanded-concept') => {
     if (isViewOnlyMode) return;
     const existingNodeTexts = new Set(store.mapData.nodes.map(n => n.text));
     let addedCount = 0;
@@ -334,7 +334,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       if (!existingNodeTexts.has(conceptText)) {
         store.addNode({
           text: conceptText,
-          type: type,
+          type: type, // Use the provided type
           position: { x: Math.random() * 400, y: Math.random() * 300 },
         });
         addedCount++;
@@ -346,8 +346,13 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     } else {
       toast({ title: "No New Concepts Added", description: "All suggested concepts may already exist in the map.", variant: "default" });
     }
-    if (type === 'ai-extracted-concept') store.setAiExtractedConcepts([]);
-    if (type === 'ai-expanded-concept') store.setAiExpandedConcepts([]);
+    
+    // Clear the specific suggestions from the store
+    if (type === 'ai-extracted-concept') {
+        store.setAiExtractedConcepts([]);
+    } else if (type === 'ai-expanded-concept') {
+        store.setAiExpandedConcepts([]);
+    }
   };
 
   const handleAddSuggestedRelationsToMap = (relations: Array<{ source: string; target: string; relation: string }>) => {
@@ -387,7 +392,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     } else {
        toast({ title: "No New Relations Added", description: "All suggested relations/concepts may already exist.", variant: "default" });
     }
-    store.setAiSuggestedRelations([]);
+    store.setAiSuggestedRelations([]); // Clear suggested relations from store
   };
 
   const handleAddNodeToData = () => {
