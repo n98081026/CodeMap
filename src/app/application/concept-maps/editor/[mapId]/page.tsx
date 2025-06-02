@@ -1,8 +1,7 @@
 
 "use client";
 
-// import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder"; // Replaced
-import { InteractiveCanvas } from "@/components/concept-map/interactive-canvas"; // Added
+import { InteractiveCanvas } from "@/components/concept-map/interactive-canvas"; 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -11,6 +10,8 @@ import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
 import React, { useEffect, useState, useCallback, use } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, MarkerType, type OnNodesChange, type OnEdgesChange } from 'reactflow';
+
 
 import {
   ExtractConceptsModal,
@@ -25,14 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-// const uniqueMockItemId = () => `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`; // No longer adding mock items
 
-// Interface for visual mock items - no longer used for canvas display
-// interface MockCanvasItem {
-//   id: string;
-//   type: 'node' | 'edge';
-//   label: string;
-// }
 
 export default function ConceptMapEditorPage({ params: paramsPromise }: { params: Promise<{ mapId: string }> }) {
   const actualParams = use(paramsPromise);
@@ -59,11 +53,11 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
   
-  const [aiExtractedConcepts, setAiExtractedConcepts] = useState<string[]>([]); // Kept for modals, not canvas display
-  // const [aiSuggestedRelations, setAiSuggestedRelations] = useState<Array<{ source: string; target: string; relation: string }>>([]); // Kept for modals
-  // const [aiExpandedConcepts, setAiExpandedConcepts] = useState<string[]>([]); // Kept for modals
+  const [aiExtractedConcepts, setAiExtractedConcepts] = useState<string[]>([]);
 
-  // const [mockCanvasItems, setMockCanvasItems] = useState<MockCanvasItem[]>([]); // No longer used for canvas display
+  // React Flow state
+  const [rfNodes, setRfNodes, onNodesChange] = useNodesState<ConceptMapNode[]>([]);
+  const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState<ConceptMapEdge[]>([]);
 
 
   const loadMapData = useCallback(async (id: string) => {
@@ -72,12 +66,9 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       setCurrentMap(null);
       setMapName("New Concept Map");
       setMapData({ nodes: [], edges: [] }); 
-      // setMockCanvasItems([]); // No longer needed
       setIsPublic(false);
       setSharedWithClassroomId(null);
       setAiExtractedConcepts([]);
-      // setAiSuggestedRelations([]); // No longer needed for canvas display
-      // setAiExpandedConcepts([]); // No longer needed for canvas display
       setIsLoading(false);
       setError(null);
       return;
@@ -87,9 +78,6 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     setIsLoading(true);
     setError(null);
     setAiExtractedConcepts([]);
-    // setAiSuggestedRelations([]); // No longer needed for canvas display
-    // setAiExpandedConcepts([]); // No longer needed for canvas display
-    // setMockCanvasItems([]); // No longer needed
     try {
       const response = await fetch(`/api/concept-maps/${id}`);
       if (!response.ok) {
@@ -117,6 +105,47 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     }
   }, [actualParams.mapId, loadMapData]);
 
+  // Sync mapData (our app's source of truth) to React Flow's internal state (rfNodes, rfEdges)
+  useEffect(() => {
+    const transformedNodes = (mapData.nodes || []).map((appNode, index) => {
+      const existingRfNode = rfNodes.find(n => n.id === appNode.id);
+      return {
+        id: appNode.id,
+        type: appNode.type || 'default', // Use appNode.type or default
+        data: { label: appNode.text, details: appNode.details },
+        position: existingRfNode?.position || { // Preserve existing position if node already in rfNodes
+          x: appNode.x ?? (index % 5) * 200 + 50,
+          y: appNode.y ?? Math.floor(index / 5) * 120 + 50,
+        },
+        style: {
+          border: '1px solid hsl(var(--border))',
+          padding: '10px 15px',
+          borderRadius: '8px',
+          background: 'hsl(var(--card))',
+          color: 'hsl(var(--foreground))',
+          boxShadow: '0 2px 4px hsla(var(--foreground), 0.1)',
+          minWidth: 150,
+          textAlign: 'center',
+        }
+      };
+    });
+    setRfNodes(transformedNodes as RFNode<ConceptMapNode>[]); // Cast needed if data type is more specific
+
+    const transformedEdges = (mapData.edges || []).map(appEdge => ({
+      id: appEdge.id,
+      source: appEdge.source,
+      target: appEdge.target,
+      label: appEdge.label,
+      type: 'smoothstep',
+      animated: false,
+      style: { strokeWidth: 2, stroke: 'hsl(var(--primary))' },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+    }));
+    setRfEdges(transformedEdges as RFEdge<ConceptMapEdge>[]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapData.nodes, mapData.edges, setRfNodes, setRfEdges]); // Do not add rfNodes here to avoid loop
+
   const handleMapPropertiesChange = useCallback((properties: {
     name: string;
     isPublic: boolean;
@@ -143,11 +172,35 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     }
 
     setIsSaving(true);
-    // TODO: Later, capture node positions from React Flow and include in mapData before saving
+    
+    // Create nodes to save by taking current rfNodes and mapping them back to AppNode format
+    const nodesToSave: ConceptMapNode[] = rfNodes.map(rfNode => ({
+      id: rfNode.id,
+      text: rfNode.data.label,
+      type: rfNode.type || 'default',
+      details: rfNode.data.details,
+      x: rfNode.position.x,
+      y: rfNode.position.y,
+    }));
+
+    // Edges are simpler for now as they don't have UI-modifiable positions in this step
+    const edgesToSave: ConceptMapEdge[] = (mapData.edges || []).map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        label: edge.label,
+    }));
+
+
+    const mapDataToSave: ConceptMapData = {
+      nodes: nodesToSave,
+      edges: edgesToSave, 
+    };
+
     const payload = {
       name: mapName,
       ownerId: user.id, 
-      mapData: mapData, // This mapData might not have updated x/y from ReactFlow yet
+      mapData: mapDataToSave,
       isPublic: isPublic,
       sharedWithClassroomId: sharedWithClassroomId,
     };
@@ -164,7 +217,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       } else { 
         const updatePayload = { 
             name: mapName,
-            mapData: mapData, // This mapData might not have updated x/y from ReactFlow yet
+            mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
             ownerId: currentMap.ownerId, 
@@ -183,15 +236,17 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       const savedMap: ConceptMap = await response.json();
       
       setCurrentMap(savedMap);
+      // Update local state to reflect saved data, including potentially new ID for new maps
       setMapName(savedMap.name); 
-      setMapData(savedMap.mapData || { nodes: [], edges: [] });
+      setMapData(savedMap.mapData || { nodes: [], edges: [] }); // This will trigger useEffect to update rfNodes/rfEdges
       setIsPublic(savedMap.isPublic);
       setSharedWithClassroomId(savedMap.sharedWithClassroomId);
       setIsNewMapMode(false); 
       
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
       
-      if ((isNewMapMode || !currentMap?.id) && savedMap.id) {
+      // If it was a new map, URL needs to change to the new ID
+      if ((isNewMapMode || !currentMap?.id || actualParams.mapId === 'new') && savedMap.id) {
          router.replace(`/application/concept-maps/editor/${savedMap.id}${isViewOnlyMode ? '?viewOnly=true' : ''}`, { scroll: false });
       }
     } catch (err) {
@@ -203,20 +258,17 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
 
   const handleConceptsExtracted = (concepts: string[]) => {
-    setAiExtractedConcepts(concepts); // Store for potential use (e.g., modal prefill)
+    setAiExtractedConcepts(concepts); 
     toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts. You can add them to the map.` });
-    // Optionally auto-add to mapData here or provide a button as before
     addConceptsToMapData(concepts, 'ai-extracted-concept');
   };
 
   const handleRelationsSuggested = (relations: Array<{ source: string; target: string; relation: string }>) => {
-    // setAiSuggestedRelations(relations); // Store for potential use
     toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations. You can add them to the map.` });
     handleAddSuggestedRelationsToMap(relations);
   };
 
   const handleConceptExpanded = (newConcepts: string[]) => {
-    // setAiExpandedConcepts(newConcepts); // Store for potential use
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map.` });
     addConceptsToMapData(newConcepts, 'ai-expanded-concept');
   };
@@ -228,7 +280,8 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       let conceptsActuallyAddedCount = 0;
       conceptsToAdd.forEach(conceptText => {
         if (!newNodes.some(node => node.text === conceptText)) {
-          newNodes.push({ id: uniqueNodeId(), text: conceptText, type }); // x, y will be default in React Flow
+          // For new nodes added by AI, x and y will be set by the useEffect syncing to rfNodes
+          newNodes.push({ id: uniqueNodeId(), text: conceptText, type }); 
           conceptsActuallyAddedCount++;
         }
       });
@@ -241,39 +294,32 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     });
   };
 
-  // No longer separate functions for adding AI results, directly add to mapData
-  // const handleAddExtractedConceptsToMap = (concepts: string[]) => {
-  //   addConceptsToMapData(concepts, 'ai-extracted-concept');
-  // };
-
-  // const handleAddExpandedConceptsToMap = (concepts: string[]) => {
-  //   addConceptsToMapData(concepts, 'ai-expanded-concept');
-  // };
-
   const handleAddSuggestedRelationsToMap = (relations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) return;
     setMapData(prevMapData => {
-      const newNodes = [...(prevMapData.nodes || [])];
-      const newEdges = [...(prevMapData.edges || [])];
+      const currentNodes = [...(prevMapData.nodes || [])];
+      const currentEdges = [...(prevMapData.edges || [])];
       let relationsActuallyAddedCount = 0;
       let conceptsAddedFromRelationsCount = 0;
 
+      const updatedNodes = [...currentNodes];
+
       relations.forEach(rel => {
-        let sourceNode = newNodes.find(node => node.text === rel.source);
+        let sourceNode = updatedNodes.find(node => node.text === rel.source);
         if (!sourceNode) {
-          sourceNode = { id: uniqueNodeId(), text: rel.source, type: 'ai-concept' }; // x,y default in RF
-          newNodes.push(sourceNode);
+          sourceNode = { id: uniqueNodeId(), text: rel.source, type: 'ai-concept' }; 
+          updatedNodes.push(sourceNode);
           conceptsAddedFromRelationsCount++;
         }
-        let targetNode = newNodes.find(node => node.text === rel.target);
+        let targetNode = updatedNodes.find(node => node.text === rel.target);
         if (!targetNode) {
-          targetNode = { id: uniqueNodeId(), text: rel.target, type: 'ai-concept' }; // x,y default in RF
-          newNodes.push(targetNode);
+          targetNode = { id: uniqueNodeId(), text: rel.target, type: 'ai-concept' };
+          updatedNodes.push(targetNode);
           conceptsAddedFromRelationsCount++;
         }
 
-        if (!newEdges.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
-          newEdges.push({ id: uniqueEdgeId(), source: sourceNode.id, target: targetNode.id, label: rel.relation });
+        if (!currentEdges.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
+          currentEdges.push({ id: uniqueEdgeId(), source: sourceNode.id, target: targetNode.id, label: rel.relation });
           relationsActuallyAddedCount++;
         }
       });
@@ -292,7 +338,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
          toast({ title: "No New Relations Added", description: "All suggested relations/concepts may already exist.", variant: "default" });
       }
 
-      return { nodes: newNodes, edges: newEdges };
+      return { nodes: updatedNodes, edges: currentEdges };
     });
   };
 
@@ -302,8 +348,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
     const newNode: ConceptMapNode = {
       id: uniqueNodeId(),
       text: newNodeText,
-      type: 'manual-node', // Example type
-      // x, y will be defaulted by React Flow initially
+      type: 'manual-node', 
     };
     setMapData(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }));
     toast({ title: "Node Added to Map", description: `"${newNode.text}" added. Save the map to persist changes.`});
@@ -315,14 +360,18 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       toast({ title: "Cannot Add Edge", description: "Not enough nodes to create an edge. Add at least two nodes first.", variant: "default" });
       return;
     }
+    // Connect last two nodes for simplicity. In a real UI, user would select source/target.
+    const sourceNode = mapData.nodes[mapData.nodes.length - 2];
+    const targetNode = mapData.nodes[mapData.nodes.length - 1];
+
     const newEdge: ConceptMapEdge = {
       id: uniqueEdgeId(),
-      source: mapData.nodes[mapData.nodes.length - 2].id, // Connects last two nodes for simplicity
-      target: mapData.nodes[mapData.nodes.length - 1].id,
+      source: sourceNode.id, 
+      target: targetNode.id,
       label: 'connects',
     };
     setMapData(prev => ({ ...prev, edges: [...prev.edges, newEdge] }));
-    toast({ title: "Edge Added to Map", description: `Edge connecting "${mapData.nodes[mapData.nodes.length - 2].text}" and "${mapData.nodes[mapData.nodes.length - 1].text}" added. Save to persist.`});
+    toast({ title: "Edge Added to Map", description: `Edge connecting "${sourceNode.text}" and "${targetNode.text}" added. Save to persist.`});
   };
 
 
@@ -359,7 +408,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   }
   
   const mapForInspector = currentMap || {
-    id: actualParams.mapId,
+    id: actualParams.mapId, // Can be "new"
     name: mapName,
     ownerId: user?.id || "", 
     mapData: mapData,
@@ -406,7 +455,13 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
       <div className="flex flex-1 gap-4 overflow-hidden">
         <div className="flex-grow">
-          <InteractiveCanvas mapData={mapData} />
+          <InteractiveCanvas 
+            nodes={rfNodes}
+            edges={rfEdges}
+            onNodesChange={onNodesChange as OnNodesChange} // Cast for compatibility if types slightly differ
+            onEdgesChange={onEdgesChange as OnEdgesChange} // Cast for compatibility
+            isViewOnlyMode={isViewOnlyMode}
+          />
         </div>
         <aside className="hidden w-80 flex-shrink-0 lg:block">
           <PropertiesInspector 
@@ -424,14 +479,14 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       {isSuggestRelationsModalOpen && !isViewOnlyMode && (
         <SuggestRelationsModal 
           onRelationsSuggested={handleRelationsSuggested} 
-          initialConcepts={aiExtractedConcepts.slice(0,3)} // Use concepts from state
+          initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)} // Use concepts from current rfNodes
           onOpenChange={setIsSuggestRelationsModalOpen} 
         />
       )}
       {isExpandConceptModalOpen && !isViewOnlyMode && (
         <ExpandConceptModal 
           onConceptExpanded={handleConceptExpanded} 
-          initialConcept={aiExtractedConcepts.length > 0 ? aiExtractedConcepts[0] : ""} // Use concept from state
+          initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""} // Use concept from current rfNodes
           onOpenChange={setIsExpandConceptModalOpen} 
         />
       )}
@@ -439,8 +494,6 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   );
 }
 
-// Removed declare module for CanvasPlaceholder as it's no longer directly used here for props extension.
-// General global declarations if needed should be in a .d.ts file.
 
 declare module "@/components/dashboard/dashboard-header" {
   interface DashboardHeaderProps {
@@ -453,24 +506,15 @@ declare module "@/components/concept-map/properties-inspector" {
         isViewOnlyMode?: boolean;
     }
 }
-// No longer needed for CanvasPlaceholder
-// declare module "@/components/concept-map/canvas-placeholder" {
-//   interface CanvasPlaceholderProps {
-//     mapData?: ConceptMapData; 
-//     extractedConcepts?: string[];
-//     suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
-//     expandedConcepts?: string[];
-//     mockCanvasItems?: Array<{ id: string; type: 'node' | 'edge'; label: string }>;
-//     onAddExtractedConcepts?: (concepts: string[]) => void;
-//     onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
-//     onAddExpandedConcepts?: (concepts: string[]) => void;
-//     isViewOnlyMode?: boolean;
-//   }
-// }
 declare module "@/components/concept-map/editor-toolbar" {
   interface EditorToolbarProps {
     isViewOnlyMode?: boolean;
     onAddNodeToData?: () => void;
     onAddEdgeToData?: () => void;
+  }
+}
+declare module "@/components/concept-map/interactive-canvas" { // Added this
+  interface InteractiveCanvasProps {
+    isViewOnlyMode?: boolean;
   }
 }
