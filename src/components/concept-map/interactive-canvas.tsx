@@ -12,17 +12,22 @@ import ReactFlow, {
   type FitViewOptions,
   type OnNodesChange,
   type OnEdgesChange,
+  type OnNodesDelete,
+  type OnEdgesDelete,
+  type SelectionChanges,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-// No longer need AppNode/AppEdge here as props are already transformed
-// import type { ConceptMapNode as AppNode, ConceptMapEdge as AppEdge } from '@/types';
 import { Card } from '@/components/ui/card';
+import type { RFConceptMapNodeData, RFConceptMapEdgeData } from '@/app/application/concept-maps/editor/[mapId]/page'; // Import shared types
 
 interface InteractiveCanvasProps {
-  nodes: Node[]; // Expect React Flow Node type
-  edges: Edge[]; // Expect React Flow Edge type
+  nodes: Node<RFConceptMapNodeData>[]; 
+  edges: Edge<RFConceptMapEdgeData>[]; 
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
+  onNodesDelete?: OnNodesDelete;
+  onEdgesDelete?: OnEdgesDelete;
+  onSelectionChange?: (params: SelectionChanges) => void;
   isViewOnlyMode?: boolean;
 }
 
@@ -31,21 +36,27 @@ const fitViewOptions: FitViewOptions = {
 };
 
 const nodeColor = (node: Node) => {
-  // Example: color based on type, can be expanded
   switch (node.type) {
     case 'input':
-      return '#6ede87'; // A green color
+      return '#6ede87'; 
     case 'output':
-      return '#6865A5'; // A purple color
+      return '#6865A5'; 
     default:
-      // A fallback color for other node types
-      return 'hsl(var(--primary))'; // Use theme primary
+      return 'hsl(var(--primary))';
   }
 };
 
-export function InteractiveCanvas({ nodes, edges, onNodesChange, onEdgesChange, isViewOnlyMode }: InteractiveCanvasProps) {
+export function InteractiveCanvas({ 
+  nodes, 
+  edges, 
+  onNodesChange, 
+  onEdgesChange, 
+  onNodesDelete,
+  onEdgesDelete,
+  onSelectionChange,
+  isViewOnlyMode 
+}: InteractiveCanvasProps) {
   
-  // Key for ReactFlow component to help with re-renders if nodes/edges radically change
   const flowKey = `rf-${nodes.length}-${edges.length}`;
 
   return (
@@ -57,14 +68,17 @@ export function InteractiveCanvas({ nodes, edges, onNodesChange, onEdgesChange, 
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodesDelete={onNodesDelete}
+          onEdgesDelete={onEdgesDelete}
+          onSelectionChange={onSelectionChange}
           fitView
           fitViewOptions={fitViewOptions}
           nodesDraggable={!isViewOnlyMode}
-          nodesConnectable={!isViewOnlyMode} // For later: creating edges via UI
-          elementsSelectable={!isViewOnlyMode}
-          // onConnect={onConnect} // For later: creating edges via UI
+          nodesConnectable={!isViewOnlyMode} 
+          elementsSelectable={true} // Always allow selection for inspector
+          deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
           className="bg-background"
-          proOptions={{ hideAttribution: true }} // Hides "React Flow" attribution
+          proOptions={{ hideAttribution: true }} 
         >
           <Controls showInteractive={!isViewOnlyMode} />
           <MiniMap nodeColor={nodeColor} nodeStrokeWidth={3} zoomable pannable />
@@ -74,3 +88,4 @@ export function InteractiveCanvas({ nodes, edges, onNodesChange, onEdgesChange, 
     </Card>
   );
 }
+
