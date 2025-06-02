@@ -9,11 +9,12 @@ import type { ConceptMapData } from "@/types";
 
 
 interface CanvasPlaceholderProps {
-  mapData?: ConceptMapData;
+  mapData?: ConceptMapData; // Still here if we want to show textual alongside graphical, but primary display shifts
+  // The following props might be removed if this component is fully replaced or only shows AI suggestions textually
   extractedConcepts?: string[];
   suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
   expandedConcepts?: string[];
-  mockCanvasItems?: Array<{ id: string; type: 'node' | 'edge'; label: string }>;
+  // mockCanvasItems?: Array<{ id: string; type: 'node' | 'edge'; label: string }>; // mockCanvasItems are not used with ReactFlow
   onAddExtractedConcepts?: (concepts: string[]) => void;
   onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
   onAddExpandedConcepts?: (concepts: string[]) => void;
@@ -21,48 +22,52 @@ interface CanvasPlaceholderProps {
 }
 
 export function CanvasPlaceholder({
-  mapData,
+  mapData, // This component will likely be deprecated or repurposed for AI suggestion display only
   extractedConcepts,
   suggestedRelations,
   expandedConcepts,
-  mockCanvasItems,
+  // mockCanvasItems,
   onAddExtractedConcepts,
   onAddSuggestedRelations,
   onAddExpandedConcepts,
   isViewOnlyMode
 }: CanvasPlaceholderProps) {
+  
+  // This component's role changes. It might become a textual display for AI suggestions
+  // if the main canvas is now handled by InteractiveCanvas.
+  // For now, let's assume it might still show AI outputs textually.
+
   const hasAiOutput =
     (extractedConcepts && extractedConcepts.length > 0) ||
     (suggestedRelations && suggestedRelations.length > 0) ||
     (expandedConcepts && expandedConcepts.length > 0);
 
-  const hasMockItems = mockCanvasItems && mockCanvasItems.length > 0;
   const hasMapDataNodes = mapData && mapData.nodes && mapData.nodes.length > 0;
   const hasMapDataEdges = mapData && mapData.edges && mapData.edges.length > 0;
-  const hasAnyContent = hasAiOutput || hasMockItems || hasMapDataNodes || hasMapDataEdges;
+  const hasAnyContent = hasAiOutput || hasMapDataNodes || hasMapDataEdges;
 
+
+  // If InteractiveCanvas is used, this component might only show AI suggestions or be removed.
+  // The following rendering logic is kept but might become redundant or repurposed.
   return (
     <Card className="h-[calc(100vh-200px)] w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
       <CardContent className="flex h-full flex-col items-center justify-center text-center p-4">
         {!hasAnyContent ? (
           <>
             <GitFork className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-semibold text-muted-foreground">Concept Map Canvas</h3>
+            <h3 className="text-xl font-semibold text-muted-foreground">Concept Map Area</h3>
             <p className="text-sm text-muted-foreground">
-              {isViewOnlyMode 
-                ? "You are viewing this map in read-only mode." 
-                : "Create nodes and edges using the toolbar above, or use AI tools to generate content."
-              }
+              The interactive canvas is now active. Use the toolbar to add elements.
             </p>
             <p className="text-xs text-muted-foreground/70 mt-2">
-              (Canvas interaction is a placeholder. Map data, AI suggestions, or mock items will appear below if used.)
+              (This placeholder might be used for AI suggestions if needed.)
             </p>
           </>
         ) : (
           <ScrollArea className="h-full w-full">
             <div className="p-4 space-y-4 text-left">
                <h3 className="text-xl font-semibold text-muted-foreground mb-4 text-center">
-                 {isViewOnlyMode ? "Viewing Map Content" : "Current Map Content"}
+                 Textual Map & AI Suggestions
                </h3>
 
               {/* Display Nodes from mapData */}
@@ -70,7 +75,7 @@ export function CanvasPlaceholder({
                 <Card className="mb-4 bg-primary/5">
                   <CardHeader>
                     <CardTitle className="text-base font-semibold text-primary flex items-center"><Box className="mr-2 h-5 w-5"/>Nodes in Map ({mapData?.nodes.length})</CardTitle>
-                    <CardDescription className="text-xs">These nodes are part of the current map data. Save the map to persist.</CardDescription>
+                    <CardDescription className="text-xs">These nodes are part of the current map data. Rendered on canvas.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
@@ -94,7 +99,7 @@ export function CanvasPlaceholder({
                  <Card className="mb-4 bg-green-500/5">
                   <CardHeader>
                     <CardTitle className="text-base font-semibold text-green-600 flex items-center"><Waypoints className="mr-2 h-5 w-5"/>Edges in Map ({mapData?.edges.length})</CardTitle>
-                     <CardDescription className="text-xs">These edges are part of the current map data. Save the map to persist.</CardDescription>
+                     <CardDescription className="text-xs">These edges are part of the current map data. Rendered on canvas.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ul className="list-none text-sm space-y-1">
@@ -114,26 +119,6 @@ export function CanvasPlaceholder({
                 </Card>
               )}
               
-              {/* Display Mock Visual Items (e.g., for edges that couldn't be formed) */}
-              {hasMockItems && (
-                <Card className="mb-4 bg-amber-500/10">
-                  <CardHeader>
-                    <CardTitle className="text-base font-semibold text-amber-600 flex items-center"><Layers className="mr-2 h-5 w-5"/>Mock Visual Items</CardTitle>
-                     <CardDescription className="text-xs">These are temporary visual placeholders and not part of savable map data.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="list-none text-sm space-y-1">
-                      {mockCanvasItems?.map((item) => (
-                        <li key={item.id} className="flex items-center">
-                          {item.type === 'node' ? <Layers className="mr-2 h-4 w-4 text-blue-500"/> : <Link2 className="mr-2 h-4 w-4 text-green-500"/>}
-                          {item.label}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* AI Suggestions Sections */}
               {extractedConcepts && extractedConcepts.length > 0 && onAddExtractedConcepts && (
                 <div className="p-3 border rounded-md bg-background/50">
@@ -146,7 +131,7 @@ export function CanvasPlaceholder({
                   {!isViewOnlyMode && (
                     <div className="pt-2 border-t border-dashed">
                       <Button size="sm" variant="outline" className="w-full" onClick={() => onAddExtractedConcepts(extractedConcepts)} disabled={isViewOnlyMode}>
-                        <PlusCircle className="mr-2 h-4 w-4"/> Add All Extracted Concepts to Map Data
+                        <PlusCircle className="mr-2 h-4 w-4"/> Add All Extracted Concepts to Map
                       </Button>
                     </div>
                   )}
@@ -164,7 +149,7 @@ export function CanvasPlaceholder({
                   {!isViewOnlyMode && (
                     <div className="pt-2 border-t border-dashed">
                       <Button size="sm" variant="outline" className="w-full" onClick={() => onAddSuggestedRelations(suggestedRelations)} disabled={isViewOnlyMode}>
-                        <PlusCircle className="mr-2 h-4 w-4"/> Add All Suggested Relations to Map Data
+                        <PlusCircle className="mr-2 h-4 w-4"/> Add All Suggested Relations to Map
                       </Button>
                     </div>
                   )}
@@ -182,7 +167,7 @@ export function CanvasPlaceholder({
                   {!isViewOnlyMode && (
                     <div className="pt-2 border-t border-dashed">
                       <Button size="sm" variant="outline" className="w-full" onClick={() => onAddExpandedConcepts(expandedConcepts)} disabled={isViewOnlyMode}>
-                        <PlusCircle className="mr-2 h-4 w-4"/> Add All Expanded Ideas to Map Data
+                        <PlusCircle className="mr-2 h-4 w-4"/> Add All Expanded Ideas to Map
                       </Button>
                     </div>
                   )}
@@ -190,7 +175,7 @@ export function CanvasPlaceholder({
               )}
               {hasAnyContent && (
                  <p className="text-xs text-muted-foreground/70 mt-6 text-center">
-                   (This is a textual representation. Full canvas visualization is pending.)
+                   Map elements are now rendered on the interactive canvas.
                  </p>
               )}
             </div>
@@ -200,5 +185,3 @@ export function CanvasPlaceholder({
     </Card>
   );
 }
-
-    
