@@ -19,8 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types"; 
 import { ProjectSubmissionStatus } from "@/types";
-import { UploadCloud, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { UploadCloud, Loader2, AlertTriangle } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
 import { useAuth } from "@/contexts/auth-context"; 
 import {
@@ -33,12 +33,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-const mockClassroomsForSelection: Classroom[] = [
-  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", studentIds: [] },
-  { id: "test-classroom-1", name: "Introduction to AI", teacherId: "teacher-test-id", studentIds: [] },
-];
-
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/zip", "application/vnd.rar", "application/x-rar-compressed", "application/octet-stream", "application/x-zip-compressed"];
@@ -62,11 +56,41 @@ export function ProjectUploadForm() {
   const router = useRouter();
   const { user } = useAuth();
   const [isSubmittingMetadata, setIsSubmittingMetadata] = useState(false);
-  const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>(mockClassroomsForSelection);
+  const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>([]);
+  const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(false);
+  const [errorLoadingClassrooms, setErrorLoadingClassrooms] = useState<string | null>(null);
+
 
   const [isConfirmAIDialogOpen, setIsConfirmAIDialogOpen] = useState(false);
   const [currentSubmissionForAI, setCurrentSubmissionForAI] = useState<ProjectSubmission | null>(null);
   const [isProcessingAIInDialog, setIsProcessingAIInDialog] = useState(false);
+
+  const fetchAvailableClassrooms = useCallback(async () => {
+    if (!user) return;
+    setIsLoadingClassrooms(true);
+    setErrorLoadingClassrooms(null);
+    try {
+      const response = await fetch(`/api/classrooms?studentId=${user.id}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch student's classrooms");
+      }
+      const data: Classroom[] = await response.json();
+      setAvailableClassrooms(data);
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      setErrorLoadingClassrooms(errorMessage);
+      toast({ title: "Error Loading Classrooms", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoadingClassrooms(false);
+    }
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchAvailableClassrooms();
+    }
+  }, [user, fetchAvailableClassrooms]);
 
 
   const form = useForm<z.infer<typeof projectUploadSchema>>({
@@ -134,7 +158,7 @@ export function ProjectUploadForm() {
       });
       form.reset();
       setCurrentSubmissionForAI(newSubmission);
-      setIsConfirmAIDialogOpen(true); // Open dialog after successful metadata submission
+      setIsConfirmAIDialogOpen(true); 
       
     } catch (error) {
       toast({
@@ -159,7 +183,6 @@ export function ProjectUploadForm() {
       
       const projectDescription = `Project file: ${currentSubmissionForAI.originalFileName}. Submitted by ${user.name}. Project submitted for classroom: ${currentSubmissionForAI.classroomId || 'Personal Project'}. Focus on identifying main components and their interactions.`;
       
-      // Enhanced mock projectCodeStructure
       const projectCodeStructure = `
         Project Root: ${currentSubmissionForAI.originalFileName} (Size: ${(currentSubmissionForAI.fileSize / 1024).toFixed(2)} KB)
         
@@ -221,7 +244,7 @@ export function ProjectUploadForm() {
 
     } catch (aiError) {
       console.error("AI Map Generation or Saving Error:", aiError);
-      if (currentSubmissionForAI) { // Check if still valid
+      if (currentSubmissionForAI) { 
         await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing or map saving failed");
       }
       toast({
@@ -240,7 +263,6 @@ export function ProjectUploadForm() {
   const handleDeclineAIGeneration = () => {
     setIsConfirmAIDialogOpen(false);
     setCurrentSubmissionForAI(null);
-    // Submission status remains PENDING, which is correct.
     router.push("/application/student/projects/submissions");
   };
   
@@ -279,23 +301,44 @@ export function ProjectUploadForm() {
                 <Select 
                   onValueChange={field.onChange} 
                   value={field.value} 
-                  disabled={isBusy}
+                  disabled={isBusy || isLoadingClassrooms || !!errorLoadingClassrooms}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a classroom if this project is for a specific class" />
+                      <SelectValue placeholder={
+                        isLoadingClassrooms ? "Loading classrooms..." : 
+                        errorLoadingClassrooms ? "Error loading classrooms" : 
+                        "Select a classroom (optional)"
+                      } />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NONE_CLASSROOM_VALUE}>None</SelectItem>
-                    {availableClassrooms.map((classroom) => (
-                      <SelectItem key={classroom.id} value={classroom.id}>
-                        {classroom.name}
-                      </SelectItem>
-                    ))}
+                    {isLoadingClassrooms ? (
+                      <SelectItem value="loading" disabled>Loading...</SelectItem>
+                    ) : errorLoadingClassrooms ? (
+                      <SelectItem value="error" disabled>Error loading</SelectItem>
+                    ) : (
+                      <>
+                        <SelectItem value={NONE_CLASSROOM_VALUE}>None (Personal Project)</SelectItem>
+                        {availableClassrooms.length === 0 && (
+                           <SelectItem value="no_classrooms" disabled>No classrooms enrolled</SelectItem>
+                        )}
+                        {availableClassrooms.map((classroom) => (
+                          <SelectItem key={classroom.id} value={classroom.id}>
+                            {classroom.name}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
+                {errorLoadingClassrooms && !isLoadingClassrooms && (
+                    <p className="text-xs text-destructive flex items-center mt-1">
+                        <AlertTriangle className="mr-1 h-3 w-3" /> {errorLoadingClassrooms}. 
+                        <Button variant="link" size="sm" className="p-0 h-auto ml-1" onClick={fetchAvailableClassrooms}>Retry?</Button>
+                    </p>
+                )}
               </FormItem>
             )}
           />
@@ -332,4 +375,3 @@ export function ProjectUploadForm() {
     </>
   );
 }
-
