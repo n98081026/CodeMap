@@ -1,3 +1,4 @@
+
 "use client";
 import { RegisterForm } from "@/components/auth/register-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,9 +14,9 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      if (user.role === UserRole.ADMIN) router.replace('/admin/dashboard');
-      else if (user.role === UserRole.TEACHER) router.replace('/teacher/dashboard');
-      else router.replace('/student/dashboard');
+      if (user.role === UserRole.ADMIN) router.replace('/application/admin/dashboard');
+      else if (user.role === UserRole.TEACHER) router.replace('/application/teacher/dashboard');
+      else router.replace('/application/student/dashboard');
     }
   }, [isAuthenticated, user, router, isLoading]);
 

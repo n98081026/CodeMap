@@ -1,3 +1,4 @@
+
 "use client";
 import { MainLayout } from '@/components/layout/main-layout';
 import { useAuth } from '@/contexts/auth-context';
@@ -12,7 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/login');
+      router.replace('/application/login');
     }
   }, [isAuthenticated, isLoading, router]);
 

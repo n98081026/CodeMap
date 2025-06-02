@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ProjectSubmission } from "@/types";
@@ -65,7 +66,7 @@ export function SubmissionListItem({ submission }: SubmissionListItemProps) {
       <CardFooter>
         {submission.analysisStatus === ProjectSubmissionStatus.COMPLETED && submission.generatedConceptMapId ? (
           <Button asChild className="w-full">
-            <Link href={`/concept-maps/editor/${submission.generatedConceptMapId}`}>
+            <Link href={`/application/concept-maps/editor/${submission.generatedConceptMapId}`}>
               <Eye className="mr-2 h-4 w-4" /> View Generated Map
             </Link>
           </Button>

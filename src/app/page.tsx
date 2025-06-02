@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -15,19 +16,19 @@ export default function HomePage() {
       if (isAuthenticated && user) {
         switch (user.role) {
           case UserRole.ADMIN:
-            router.replace('/admin/dashboard');
+            router.replace('/application/admin/dashboard');
             break;
           case UserRole.TEACHER:
-            router.replace('/teacher/dashboard');
+            router.replace('/application/teacher/dashboard');
             break;
           case UserRole.STUDENT:
-            router.replace('/student/dashboard');
+            router.replace('/application/student/dashboard');
             break;
           default:
-            router.replace('/login');
+            router.replace('/application/login');
         }
       } else {
-        router.replace('/login');
+        router.replace('/application/login');
       }
     }
   }, [user, isAuthenticated, isLoading, router]);
