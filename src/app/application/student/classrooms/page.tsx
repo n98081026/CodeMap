@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
-import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle, Inbox } from "lucide-react";
+import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle, Inbox, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -55,7 +55,13 @@ export default function StudentClassroomsPage() {
         title="My Classrooms"
         description="Here are the classrooms you are currently enrolled in."
         icon={BookOpen}
-      />
+      >
+        <Button asChild variant="outline">
+          <Link href="/application/student/dashboard">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+          </Link>
+        </Button>
+      </DashboardHeader>
 
       {isLoading && (
         <div className="flex justify-center items-center py-10">

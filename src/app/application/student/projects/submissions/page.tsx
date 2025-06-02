@@ -6,7 +6,7 @@ import type { ProjectSubmission } from "@/types";
 import { SubmissionListItem } from "@/components/projects/submission-list-item";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { FolderKanban, PlusCircle, Loader2, AlertTriangle } from "lucide-react";
+import { FolderKanban, PlusCircle, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
@@ -41,7 +41,8 @@ export default function MySubmissionsPage() {
   };
 
   useEffect(() => {
-    fetchSubmissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (user) fetchSubmissions();
   }, [user]);
 
   return (
@@ -51,6 +52,11 @@ export default function MySubmissionsPage() {
         description="Track the status of your submitted projects and access generated concept maps."
         icon={FolderKanban}
       >
+        <Button asChild variant="outline">
+          <Link href="/application/student/dashboard">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+          </Link>
+        </Button>
         <Button asChild>
           <Link href="/application/student/projects/submit">
             <PlusCircle className="mr-2 h-4 w-4" /> Submit New Project
