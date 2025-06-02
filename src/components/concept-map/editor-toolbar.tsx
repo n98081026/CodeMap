@@ -16,6 +16,7 @@ interface EditorToolbarProps {
   isViewOnlyMode?: boolean;
   onAddNodeToData?: () => void;
   onAddEdgeToData?: () => void;
+  canAddEdge?: boolean;
 }
 
 
@@ -28,6 +29,7 @@ export function EditorToolbar({
   isViewOnlyMode,
   onAddNodeToData,
   onAddEdgeToData,
+  canAddEdge
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -121,11 +123,11 @@ export function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onAddEdgeToData} disabled={isViewOnlyMode}>
+            <Button variant="ghost" size="icon" onClick={onAddEdgeToData} disabled={isViewOnlyMode || !canAddEdge}>
               <Spline className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Add Edge (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Add Edge (Disabled in View Mode)" : !canAddEdge ? "Add Edge (Requires at least 2 nodes)" : "Add Edge"}</TooltipContent>
         </Tooltip>
         
         <Separator orientation="vertical" className="mx-1 h-full" />

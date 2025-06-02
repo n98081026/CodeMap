@@ -62,6 +62,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
         console.error("User data not available for initializing new map.");
         store.setError("User data not available for new map initialization.");
         toast({ title: "Authentication Error", description: "User data not available for new map.", variant: "destructive" });
+        // Potentially redirect or show a more permanent error
         return;
       }
       return;
@@ -244,9 +245,16 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       edges: store.mapData.edges, 
     };
 
+    const payloadOwnerId = (isNewMapMode || !currentMapOwnerId) ? user.id : currentMapOwnerId;
+    if (!payloadOwnerId) {
+        toast({ title: "Authentication Error", description: "Cannot determine map owner. Please ensure you are logged in.", variant: "destructive"});
+        store.setIsSaving(false);
+        return;
+    }
+
     const payload = {
       name: mapName,
-      ownerId: (isNewMapMode || !currentMapOwnerId) ? user.id : currentMapOwnerId,
+      ownerId: payloadOwnerId,
       mapData: mapDataToSave,
       isPublic: isPublic,
       sharedWithClassroomId: sharedWithClassroomId,
@@ -268,7 +276,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId, 
+            ownerId: currentMapOwnerId, // For auth check on PUT
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -503,6 +511,8 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     }
   }
 
+  const canAddEdge = store.mapData.nodes.length >= 2;
+
   return (
     <div className="flex h-full flex-col space-y-4">
       <DashboardHeader
@@ -533,6 +543,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
         isViewOnlyMode={isViewOnlyMode}
         onAddNodeToData={handleAddNodeToData}
         onAddEdgeToData={handleAddEdgeToData}
+        canAddEdge={canAddEdge}
       />
 
       <div className="flex flex-1 gap-4 overflow-hidden">
