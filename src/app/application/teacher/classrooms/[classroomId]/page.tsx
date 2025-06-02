@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types"; 
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, Inbox, FileText } from "lucide-react";
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -207,7 +207,17 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
             <CardContent>
               {isLoadingClassroom && !errorClassroom && <div className="flex items-center justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading students...</p></div>}
               {!isLoadingClassroom && errorClassroom && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>Error loading students. <Button onClick={fetchClassroomDetails} variant="link">Try Again</Button></div>}
-              {!isLoadingClassroom && !errorClassroom && enrolledStudents.length === 0 && <p className="text-muted-foreground">No students enrolled yet. Use the "Invite/Add Students" button to add students.</p>}
+              {!isLoadingClassroom && !errorClassroom && enrolledStudents.length === 0 && (
+                <div className="text-center py-10">
+                    <Users className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
+                    <h3 className="text-xl font-semibold text-muted-foreground">No Students Enrolled</h3>
+                    <p className="text-sm text-muted-foreground">
+                        No students are currently enrolled in this classroom.
+                        <br />
+                        Use the &quot;Invite/Add Student&quot; button above to add students.
+                    </p>
+                </div>
+              )}
               {!isLoadingClassroom && !errorClassroom && enrolledStudents.length > 0 && (
                 <Table>
                   <TableHeader>
@@ -263,7 +273,13 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
             <CardContent>
                 {isLoadingMaps && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading maps...</p></div>}
                 {errorMaps && !isLoadingMaps && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorMaps} <Button onClick={fetchClassroomMaps} variant="link">Try Again</Button></div>}
-                {!isLoadingMaps && !errorMaps && classroomMaps.length === 0 && <p className="text-muted-foreground">No concept maps have been shared with this classroom yet.</p>}
+                {!isLoadingMaps && !errorMaps && classroomMaps.length === 0 && (
+                    <div className="text-center py-10">
+                        <FileText className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
+                        <h3 className="text-xl font-semibold text-muted-foreground">No Shared Maps</h3>
+                        <p className="text-sm text-muted-foreground">No concept maps have been shared with this classroom yet.</p>
+                    </div>
+                )}
                 {!isLoadingMaps && !errorMaps && classroomMaps.length > 0 && (
                     <Table>
                     <TableHeader>
@@ -306,7 +322,13 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
             <CardContent>
             {isLoadingSubmissions && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading submissions...</p></div>}
             {errorSubmissions && !isLoadingSubmissions && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorSubmissions} <Button onClick={fetchClassroomSubmissions} variant="link">Try Again</Button></div>}
-            {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && <p className="text-muted-foreground">No projects have been submitted for this classroom yet.</p>}
+            {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && (
+                 <div className="text-center py-10">
+                    <Inbox className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
+                    <h3 className="text-xl font-semibold text-muted-foreground">No Submissions Yet</h3>
+                    <p className="text-sm text-muted-foreground">Students in this classroom haven&apos;t submitted any projects for analysis.</p>
+                </div>
+            )}
             {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length > 0 && (
               <Table>
                 <TableHeader>
@@ -365,3 +387,4 @@ declare module "@/components/dashboard/dashboard-header" {
     iconClassName?: string;
   }
 }
+
