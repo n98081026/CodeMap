@@ -1,3 +1,4 @@
+
 "use client";
 
 import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
@@ -21,6 +22,9 @@ import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 
+const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
 export default function ConceptMapEditorPage({ params: paramsPromise }: { params: Promise<{ mapId: string }> }) {
   const actualParams = use(paramsPromise);
   const { toast } = useToast();
@@ -43,9 +47,8 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
   
-  // State for GenAI results to be passed to CanvasPlaceholder
   const [aiExtractedConcepts, setAiExtractedConcepts] = useState<string[]>([]);
-  const [aiSuggestedRelations, setAiSuggestedRelations] = useState<any[]>([]);
+  const [aiSuggestedRelations, setAiSuggestedRelations] = useState<Array<{ source: string; target: string; relation: string }>>([]);
   const [aiExpandedConcepts, setAiExpandedConcepts] = useState<string[]>([]);
 
 
@@ -80,7 +83,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       const data: ConceptMap = await response.json();
       setCurrentMap(data);
       setMapName(data.name);
-      setMapData(data.mapData);
+      setMapData(data.mapData || { nodes: [], edges: [] }); // Ensure mapData is initialized
       setIsPublic(data.isPublic);
       setSharedWithClassroomId(data.sharedWithClassroomId || null);
     } catch (err) {
@@ -160,6 +163,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
       
       setCurrentMap(savedMap);
       setMapName(savedMap.name); 
+      setMapData(savedMap.mapData || { nodes: [], edges: [] });
       setIsPublic(savedMap.isPublic);
       setSharedWithClassroomId(savedMap.sharedWithClassroomId);
       setIsNewMapMode(false); 
@@ -178,22 +182,93 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
 
 
   const handleConceptsExtracted = (concepts: string[]) => {
-    console.log("Extracted Concepts:", concepts);
     setAiExtractedConcepts(concepts);
     toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts.` });
   };
 
-  const handleRelationsSuggested = (relations: any[]) => {
-    console.log("Suggested Relations:", relations);
+  const handleRelationsSuggested = (relations: Array<{ source: string; target: string; relation: string }>) => {
     setAiSuggestedRelations(relations);
     toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations.` });
   };
 
   const handleConceptExpanded = (newConcepts: string[]) => {
-    console.log("Expanded Concepts:", newConcepts);
     setAiExpandedConcepts(newConcepts);
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas.` });
   };
+
+  const addConceptsToMapData = (conceptsToAdd: string[], type: string) => {
+    setMapData(prevMapData => {
+      const newNodes = [...(prevMapData.nodes || [])];
+      let conceptsActuallyAddedCount = 0;
+      conceptsToAdd.forEach(conceptText => {
+        if (!newNodes.some(node => node.text === conceptText)) {
+          newNodes.push({ id: uniqueNodeId(), text: conceptText, type });
+          conceptsActuallyAddedCount++;
+        }
+      });
+      if (conceptsActuallyAddedCount > 0) {
+        toast({ title: "Concepts Added to Map Data", description: `${conceptsActuallyAddedCount} new concepts added. Save the map to persist.` });
+      } else {
+        toast({ title: "No New Concepts Added", description: "All suggested concepts may already exist in the map data.", variant: "default" });
+      }
+      return { ...prevMapData, nodes: newNodes };
+    });
+  };
+
+  const handleAddExtractedConceptsToMap = (concepts: string[]) => {
+    addConceptsToMapData(concepts, 'ai-extracted-concept');
+  };
+
+  const handleAddExpandedConceptsToMap = (concepts: string[]) => {
+    addConceptsToMapData(concepts, 'ai-expanded-concept');
+  };
+
+  const handleAddSuggestedRelationsToMap = (relations: Array<{ source: string; target: string; relation: string }>) => {
+    setMapData(prevMapData => {
+      const newNodes = [...(prevMapData.nodes || [])];
+      const newEdges = [...(prevMapData.edges || [])];
+      let relationsActuallyAddedCount = 0;
+      let conceptsAddedFromRelationsCount = 0;
+
+      relations.forEach(rel => {
+        let sourceNode = newNodes.find(node => node.text === rel.source);
+        if (!sourceNode) {
+          sourceNode = { id: uniqueNodeId(), text: rel.source, type: 'ai-concept' };
+          newNodes.push(sourceNode);
+          conceptsAddedFromRelationsCount++;
+        }
+        let targetNode = newNodes.find(node => node.text === rel.target);
+        if (!targetNode) {
+          targetNode = { id: uniqueNodeId(), text: rel.target, type: 'ai-concept' };
+          newNodes.push(targetNode);
+          conceptsAddedFromRelationsCount++;
+        }
+
+        // Check if edge already exists (simple check, could be more robust)
+        if (!newEdges.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
+          newEdges.push({ id: uniqueEdgeId(), source: sourceNode.id, target: targetNode.id, label: rel.relation });
+          relationsActuallyAddedCount++;
+        }
+      });
+      
+      let toastMessage = "";
+      if (relationsActuallyAddedCount > 0) {
+        toastMessage += `${relationsActuallyAddedCount} new relations added. `;
+      }
+      if (conceptsAddedFromRelationsCount > 0) {
+        toastMessage += `${conceptsAddedFromRelationsCount} new concepts (from relations) added. `;
+      }
+      
+      if (toastMessage) {
+        toast({ title: "Relations Added to Map Data", description: `${toastMessage.trim()} Save the map to persist.` });
+      } else {
+         toast({ title: "No New Relations Added", description: "All suggested relations/concepts may already exist.", variant: "default" });
+      }
+
+      return { nodes: newNodes, edges: newEdges };
+    });
+  };
+
 
   if (isLoading) {
     return (
@@ -228,7 +303,7 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
   }
   
   const mapForInspector = currentMap || {
-    id: "new", 
+    id: actualParams.mapId, // Use actualParams.mapId if currentMap is null (new map)
     name: mapName,
     ownerId: user?.id || "", 
     mapData: mapData,
@@ -274,6 +349,9 @@ export default function ConceptMapEditorPage({ params: paramsPromise }: { params
             extractedConcepts={aiExtractedConcepts}
             suggestedRelations={aiSuggestedRelations}
             expandedConcepts={aiExpandedConcepts}
+            onAddExtractedConcepts={handleAddExtractedConceptsToMap}
+            onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
+            onAddExpandedConcepts={handleAddExpandedConceptsToMap}
           /> 
         </div>
         <aside className="hidden w-80 flex-shrink-0 lg:block">
@@ -319,7 +397,12 @@ declare module "@/components/concept-map/properties-inspector" {
 declare module "@/components/concept-map/canvas-placeholder" {
   interface CanvasPlaceholderProps {
     extractedConcepts?: string[];
-    suggestedRelations?: any[]; // Replace 'any' with a more specific type if available
+    suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
     expandedConcepts?: string[];
+    onAddExtractedConcepts?: (concepts: string[]) => void;
+    onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
+    onAddExpandedConcepts?: (concepts: string[]) => void;
   }
 }
+
+    

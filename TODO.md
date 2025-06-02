@@ -59,8 +59,7 @@
     - [ ] Implement actual canvas interactions (node/edge creation, drag, edit, delete).
     - [ ] Zoom/pan functionality.
     - [x] Connect `PropertiesInspector` to selected elements on canvas (map-level properties connected and saved).
-    - [x] Visualize GenAI results (extracted concepts, suggested relations, expanded concepts) on the canvas or allow adding them.
-        - [x] Display GenAI results (textually) on `CanvasPlaceholder`.
+    - [x] Visualize GenAI results (textually) on `CanvasPlaceholder`.
 - [ ] **State Management:**
     - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching.
 - [ ] **Real-time Features (Optional):**
@@ -83,9 +82,10 @@
     - [ ] Iterate on prompts for `extractConcepts`, `suggestRelations`, `expandConcept` for better accuracy and relevance.
     - [ ] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice.
 - [ ] **Integrate GenAI Output:**
-    - [ ] Develop intuitive ways for users to interact with and utilize the outputs of GenAI tools within the concept map editor.
+    - [x] Develop intuitive ways for users to interact with and utilize the outputs of GenAI tools within the concept map editor.
         - [x] Add placeholder "Add to Map" indicators for AI-generated content in CanvasPlaceholder.
     - [ ] Allow users to accept/reject/modify AI suggestions.
+        - [x] Implement 'Add to Map' for AI suggestions, updating mapData state directly.
 
 ## Testing & Deployment
 - [ ] **Testing:**
@@ -111,4 +111,5 @@
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
 - Admin "Add User" typically handled by registration. Tooltip added to button.
 - Change password functionality on profile page is a placeholder.
-```
+
+    
