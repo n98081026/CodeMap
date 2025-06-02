@@ -56,13 +56,13 @@
     - [x] Ensure navigation paths are consistent (e.g. `/application/...` prefix).
 
 ## Frontend Enhancements
-- [x] **Concept Map Editor (Canvas):**
-    - [x] Implement actual canvas interactions (node/edge creation, drag, edit, delete) using React Flow.
-    - [x] Zoom/pan functionality (provided by React Flow Controls).
-    - [x] Connect `PropertiesInspector` for map-level properties (name, public, classroomId); changes directly update parent state (Zustand store) and are saved.
-    - [x] Connect `PropertiesInspector` to selected elements on canvas (for element-specific properties, including node type), updates Zustand store.
-    - [x] Visualize GenAI results (textually) on `CanvasPlaceholder` and allow adding to map (updates Zustand store).
-    - [x] Simplify `PropertiesInspector` for map-level changes (remove local Apply/Cancel, changes directly update store).
+- [x] **Key Concept Map Editor Components & Functionality:**
+    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals. Other file/edit operations are placeholders.
+    - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan.
+    - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented.
+    - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal` to interact with AI flows.
+    - [x] **`CanvasPlaceholder`**: Area below canvas displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality.
+    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor).
 - [ ] **Real-time Features (Optional - Future Consideration):**
@@ -115,5 +115,3 @@
 - Real file uploads for project analysis are not implemented; only metadata is processed and AI analysis is mocked based on file name/description.
 - Message queues and separate microservices for project analysis are not implemented; AI generation is done in-process for prototyping.
 
-```
-    
