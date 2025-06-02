@@ -23,6 +23,16 @@ import { UploadCloud, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
 import { useAuth } from "@/contexts/auth-context"; 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const mockClassroomsForSelection: Classroom[] = [
   { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", studentIds: [] },
@@ -52,8 +62,12 @@ export function ProjectUploadForm() {
   const router = useRouter();
   const { user } = useAuth();
   const [isSubmittingMetadata, setIsSubmittingMetadata] = useState(false);
-  const [isProcessingAI, setIsProcessingAI] = useState(false);
-  const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>(mockClassroomsForSelection); // In a real app, fetch this
+  const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>(mockClassroomsForSelection);
+
+  const [isConfirmAIDialogOpen, setIsConfirmAIDialogOpen] = useState(false);
+  const [currentSubmissionForAI, setCurrentSubmissionForAI] = useState<ProjectSubmission | null>(null);
+  const [isProcessingAIInDialog, setIsProcessingAIInDialog] = useState(false);
+
 
   const form = useForm<z.infer<typeof projectUploadSchema>>({
     resolver: zodResolver(projectUploadSchema),
@@ -81,8 +95,7 @@ export function ProjectUploadForm() {
       console.log(`Submission ${submissionId} status updated to ${status}`);
     } catch (error) {
       console.error(`Error updating submission status for ${submissionId}:`, error);
-      // Toasting here might be too much if called during a longer process, parent handles toasts.
-      throw error; // Re-throw to be caught by the main onSubmit handler
+      throw error; 
     }
   }
 
@@ -102,8 +115,6 @@ export function ProjectUploadForm() {
       classroomId: values.classroomId === NONE_CLASSROOM_VALUE ? null : (values.classroomId || null),
     };
 
-    let newSubmission: ProjectSubmission | null = null;
-
     try {
       const response = await fetch('/api/projects/submissions', {
         method: 'POST',
@@ -116,90 +127,15 @@ export function ProjectUploadForm() {
         throw new Error(errorData.message || "Failed to create submission record");
       }
       
-      newSubmission = await response.json();
+      const newSubmission: ProjectSubmission = await response.json();
       toast({
         title: "Project Submitted",
         description: `"${file.name}" record created. ID: ${newSubmission!.id}`,
       });
       form.reset();
+      setCurrentSubmissionForAI(newSubmission);
+      setIsConfirmAIDialogOpen(true); // Open dialog after successful metadata submission
       
-      if (confirm("Project record submitted. Do you want to attempt to generate a concept map now? This may take a moment.")) {
-        setIsProcessingAI(true);
-        toast({ title: "AI Processing Started", description: "AI map generation is now processing..." });
-        
-        await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.PROCESSING);
-
-        try {
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause before AI call
-          
-          const projectDescription = `Project file: ${file.name}. Submitted for classroom: ${values.classroomId === NONE_CLASSROOM_VALUE ? 'N/A' : values.classroomId || 'N/A'}`;
-          const projectCodeStructure = `File: ${file.name}, Size: ${file.size} bytes. (Mock structure for AI)`;
-          
-          const mapResult = await aiGenerateMapFromProject({ projectDescription, projectCodeStructure });
-          
-          let parsedMapData: ConceptMapData;
-          try {
-            parsedMapData = JSON.parse(mapResult.conceptMapData);
-            if (!parsedMapData.nodes || !parsedMapData.edges) {
-                throw new Error("AI output is not in the expected map data format (missing nodes/edges).");
-            }
-          } catch (parseError) {
-            throw new Error(`Failed to parse AI-generated map data: ${(parseError as Error).message}`);
-          }
-
-          const newMapPayload = {
-            name: `Generated Map for ${file.name}`,
-            ownerId: user.id,
-            mapData: parsedMapData,
-            isPublic: false,
-            sharedWithClassroomId: submissionPayload.classroomId,
-          };
-
-          const mapCreateResponse = await fetch('/api/concept-maps', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newMapPayload),
-          });
-
-          if (!mapCreateResponse.ok) {
-            const errorData = await mapCreateResponse.json();
-            throw new Error(errorData.message || "Failed to save the AI-generated concept map.");
-          }
-          const createdMap: ConceptMap = await mapCreateResponse.json();
-
-          await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.COMPLETED, createdMap.id);
-          
-          toast({
-            title: "AI Concept Map Generated",
-            description: `Map "${createdMap.name}" created and linked to your submission.`,
-          });
-          router.push("/application/student/projects/submissions");
-
-        } catch (aiError) {
-          console.error("AI Map Generation or Saving Error:", aiError);
-          await updateSubmissionStatusOnServer(newSubmission!.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing or map saving failed");
-          toast({
-            title: "AI Map Generation Failed",
-            description: (aiError as Error).message,
-            variant: "destructive",
-          });
-          // Don't redirect immediately on AI failure, user might want to see the error or retry if an option existed.
-          // For now, error is toasted.
-        } finally {
-          setIsProcessingAI(false);
-          // Only redirect if it wasn't an AI error that might need user attention before navigating away
-          if (!(newSubmission && newSubmission.analysisStatus === ProjectSubmissionStatus.FAILED)) {
-             router.push("/application/student/projects/submissions");
-          }
-        }
-      } else {
-         // User chose not to generate map, or submission creation failed before confirmation
-         // If newSubmission exists, it's PENDING. If not, an earlier error occurred.
-         if (newSubmission) {
-            router.push("/application/student/projects/submissions");
-         }
-      }
-
     } catch (error) {
       toast({
         title: "Submission Failed",
@@ -210,68 +146,170 @@ export function ProjectUploadForm() {
       setIsSubmittingMetadata(false);
     }
   }
+
+  const handleConfirmAIGeneration = async () => {
+    if (!currentSubmissionForAI || !user) return;
+
+    setIsProcessingAIInDialog(true);
+    toast({ title: "AI Processing Started", description: "AI map generation is now processing..." });
+    
+    try {
+      await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.PROCESSING);
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
+      
+      const projectDescription = `Project file: ${currentSubmissionForAI.originalFileName}. Submitted for classroom: ${currentSubmissionForAI.classroomId || 'N/A'}`;
+      const projectCodeStructure = `File: ${currentSubmissionForAI.originalFileName}, Size: ${currentSubmissionForAI.fileSize} bytes. (Mock structure for AI)`;
+      
+      const mapResult = await aiGenerateMapFromProject({ projectDescription, projectCodeStructure });
+      
+      let parsedMapData: ConceptMapData;
+      try {
+        parsedMapData = JSON.parse(mapResult.conceptMapData);
+        if (!parsedMapData.nodes || !parsedMapData.edges) {
+            throw new Error("AI output is not in the expected map data format (missing nodes/edges).");
+        }
+      } catch (parseError) {
+        throw new Error(`Failed to parse AI-generated map data: ${(parseError as Error).message}`);
+      }
+
+      const newMapPayload = {
+        name: `Generated Map for ${currentSubmissionForAI.originalFileName}`,
+        ownerId: user.id,
+        mapData: parsedMapData,
+        isPublic: false,
+        sharedWithClassroomId: currentSubmissionForAI.classroomId,
+      };
+
+      const mapCreateResponse = await fetch('/api/concept-maps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMapPayload),
+      });
+
+      if (!mapCreateResponse.ok) {
+        const errorData = await mapCreateResponse.json();
+        throw new Error(errorData.message || "Failed to save the AI-generated concept map.");
+      }
+      const createdMap: ConceptMap = await mapCreateResponse.json();
+
+      await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.COMPLETED, createdMap.id);
+      
+      toast({
+        title: "AI Concept Map Generated",
+        description: `Map "${createdMap.name}" created and linked to your submission.`,
+      });
+
+    } catch (aiError) {
+      console.error("AI Map Generation or Saving Error:", aiError);
+      if (currentSubmissionForAI) { // Check if still valid
+        await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing or map saving failed");
+      }
+      toast({
+        title: "AI Map Generation Failed",
+        description: (aiError as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingAIInDialog(false);
+      setIsConfirmAIDialogOpen(false);
+      setCurrentSubmissionForAI(null);
+      router.push("/application/student/projects/submissions");
+    }
+  };
+
+  const handleDeclineAIGeneration = () => {
+    setIsConfirmAIDialogOpen(false);
+    setCurrentSubmissionForAI(null);
+    // Submission status remains PENDING, which is correct.
+    router.push("/application/student/projects/submissions");
+  };
   
-  const isBusy = isSubmittingMetadata || isProcessingAI;
+  const isBusy = isSubmittingMetadata || isProcessingAIInDialog;
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="projectFile"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Project Archive (.rar or .zip)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="file" 
-                  accept=".zip,.rar,.ZIP,.RAR"
-                  onChange={(e) => field.onChange(e.target.files)}
-                  disabled={isBusy}
-                />
-              </FormControl>
-              <FormMessage />
-              <p className="text-sm text-muted-foreground">Max file size: 5MB.</p>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="classroomId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Classroom (Optional)</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value} 
-                disabled={isBusy}
-              >
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="projectFile"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Project Archive (.rar or .zip)</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a classroom if this project is for a specific class" />
-                  </SelectTrigger>
+                  <Input 
+                    type="file" 
+                    accept=".zip,.rar,.ZIP,.RAR"
+                    onChange={(e) => field.onChange(e.target.files)}
+                    disabled={isBusy}
+                  />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value={NONE_CLASSROOM_VALUE}>None</SelectItem>
-                  {availableClassrooms.map((classroom) => (
-                    <SelectItem key={classroom.id} value={classroom.id}>
-                      {classroom.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="w-full" disabled={isBusy || !form.formState.isValid}>
-          {isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-          {isSubmittingMetadata ? "Submitting Record..." : isProcessingAI ? "AI Processing..." : "Submit Project"}
-        </Button>
-        {isProcessingAI && <p className="text-sm text-center text-muted-foreground">AI is processing your project. Please wait...</p>}
-      </form>
-    </Form>
+                <FormMessage />
+                <p className="text-sm text-muted-foreground">Max file size: 5MB.</p>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="classroomId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Classroom (Optional)</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value} 
+                  disabled={isBusy}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a classroom if this project is for a specific class" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NONE_CLASSROOM_VALUE}>None</SelectItem>
+                    {availableClassrooms.map((classroom) => (
+                      <SelectItem key={classroom.id} value={classroom.id}>
+                        {classroom.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" className="w-full" disabled={isBusy || !form.formState.isValid}>
+            {isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+            {isSubmittingMetadata ? "Submitting Record..." : isProcessingAIInDialog ? "AI is Processing..." : "Submit Project"}
+          </Button>
+          {isProcessingAIInDialog && <p className="text-sm text-center text-muted-foreground">AI is processing your project through the dialog action. Please wait...</p>}
+        </form>
+      </Form>
+
+      {currentSubmissionForAI && (
+        <AlertDialog open={isConfirmAIDialogOpen} onOpenChange={setIsConfirmAIDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>AI Map Generation</AlertDialogTitle>
+              <AlertDialogDescription>
+                Project record for "{currentSubmissionForAI.originalFileName}" submitted successfully.
+                Do you want to attempt to generate a concept map for it now? This may take a moment.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleDeclineAIGeneration} disabled={isProcessingAIInDialog}>
+                Later
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmAIGeneration} disabled={isProcessingAIInDialog}>
+                {isProcessingAIInDialog && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isProcessingAIInDialog ? "Generating..." : "Generate Map"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </>
   );
 }
 
