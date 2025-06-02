@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import type { Classroom, ConceptMap } from "@/types";
 import { UserRole } from "@/types";
-import { ArrowLeft, BookOpen, Share2, Loader2, AlertTriangle, Eye, FileText, Info, Library } from "lucide-react";
+import { ArrowLeft, BookOpen, Share2, Loader2, AlertTriangle, Eye, FileText, Info, Library, Users as UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -113,7 +113,7 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
     <div className="space-y-6">
       <DashboardHeader
         title={classroom.name}
-        description={`Teacher: ${classroom.teacherName || "N/A"}. ${classroom.description || ""}`}
+        description={`Teacher: ${classroom.teacherName || "N/A"}.`}
         icon={BookOpen}
         iconLinkHref={studentDashboardLink}
       >
@@ -128,17 +128,25 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
         <CardHeader>
           <CardTitle className="flex items-center"><Info className="mr-2 h-5 w-5 text-primary"/>Classroom Information</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div>
-            <h3 className="font-semibold">Students Enrolled:</h3>
-            <p className="text-muted-foreground">{classroom.studentIds.length}</p>
-          </div>
-          {classroom.inviteCode && (
-            <div>
-                <h3 className="font-semibold">Invite Code (for reference):</h3>
-                <p className="text-muted-foreground font-mono">{classroom.inviteCode}</p>
+        <CardContent className="space-y-3">
+          {classroom.description && (
+             <div>
+                <h3 className="font-semibold text-base mb-1">Description:</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{classroom.description}</p>
             </div>
           )}
+          <div className="flex items-center space-x-4">
+            <div>
+              <h3 className="font-semibold text-base mb-1 flex items-center"><UsersIcon className="mr-2 h-4 w-4 text-muted-foreground" />Students Enrolled:</h3>
+              <p className="text-sm text-muted-foreground ml-6">{classroom.studentIds.length}</p>
+            </div>
+            {classroom.inviteCode && (
+              <div>
+                  <h3 className="font-semibold text-base mb-1">Invite Code:</h3>
+                  <p className="text-sm text-muted-foreground font-mono ml-6">{classroom.inviteCode}</p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -195,3 +203,4 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
     </div>
   );
 }
+
