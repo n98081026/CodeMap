@@ -1,3 +1,4 @@
+
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,44 +40,48 @@ export default function AdminDashboardPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const [usersResponse, classroomsResponse] = await Promise.all([
-          fetch('/api/users'),
-          fetch('/api/classrooms') // No query params fetches all, assuming admin context
-        ]);
-
+        // Fetch all users for count
+        const usersResponse = await fetch('/api/users');
         if (!usersResponse.ok) {
           const errData = await usersResponse.json();
           throw new Error(`Failed to fetch users: ${errData.message || usersResponse.statusText}`);
         }
         const usersData = await usersResponse.json();
+        const totalUsersCount = usersData.length;
 
+        // Fetch all classrooms for count (admin scope)
+        const classroomsResponse = await fetch('/api/classrooms'); // No query params implies fetch all for admin
         if (!classroomsResponse.ok) {
           const errData = await classroomsResponse.json();
           throw new Error(`Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`);
         }
         const classroomsData = await classroomsResponse.json();
+        const activeClassroomsCount = classroomsData.length;
         
         setDashboardData({
-          totalUsersCount: usersData.length,
-          activeClassroomsCount: classroomsData.length,
+          totalUsersCount: totalUsersCount,
+          activeClassroomsCount: activeClassroomsCount,
         });
 
       } catch (err) {
         const errorMessage = (err as Error).message;
+        console.error("Error fetching admin dashboard data:", errorMessage);
         setError(errorMessage);
         toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
-        setDashboardData({ totalUsersCount: 0, activeClassroomsCount: 0 }); // Set to default on error to avoid null access
+        setDashboardData({ totalUsersCount: 0, activeClassroomsCount: 0 }); // Set to default on error
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchDashboardData();
+    if (user && user.role === UserRole.ADMIN) {
+      fetchDashboardData();
+    }
   }, [user, toast]);
 
 
   if (!user || user.role !== UserRole.ADMIN) {
-    return ( // Full page loader/unauthorized for initial role check
+    return ( 
         <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
@@ -102,7 +107,7 @@ export default function AdminDashboardPage() {
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-6 w-6 animate-spin" /> <span>Loading users...</span>
               </div>
-            ) : error ? (
+            ) : error && dashboardData?.totalUsersCount === 0 ? ( // Show error if specific fetch failed or general error
               <div className="text-destructive"><AlertTriangle className="inline mr-1 h-4 w-4" />Error</div>
             ) : (
               <div className="text-3xl font-bold">{dashboardData?.totalUsersCount ?? 0}</div>
@@ -126,7 +131,7 @@ export default function AdminDashboardPage() {
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-6 w-6 animate-spin" /> <span>Loading classrooms...</span>
               </div>
-            ) : error ? (
+            ) : error && dashboardData?.activeClassroomsCount === 0 ? (
               <div className="text-destructive"><AlertTriangle className="inline mr-1 h-4 w-4" />Error</div>
             ) : (
               <div className="text-3xl font-bold">{dashboardData?.activeClassroomsCount ?? 0}</div>

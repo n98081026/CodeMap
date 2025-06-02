@@ -22,8 +22,8 @@
         - [x] API endpoint for removing a student from a classroom (`DELETE /api/classrooms/[classroomId]/students/[studentId]`).
     - [x] API endpoints for updating, deleting classrooms (`PUT /api/classrooms/[classroomId]`, `DELETE /api/classrooms/[classroomId]`).
     - [x] Connect frontend classroom creation and listing UI (teacher) to live API (with mock service).
-    - [x/partial] Connect frontend classroom listing UI (student) to live API (with mock service). (Done)
-    - [x/partial] Connect frontend classroom detail UI to live API for details and student management (with mock service). (Student list, map list, submission list connected. Add/remove student by ID working).
+    - [x] Connect frontend classroom listing UI (student) to live API (with mock service).
+    - [x] Connect frontend classroom detail UI to live API for details and student management (with mock service). (Student list, map list, submission list connected. Add/remove student by ID working, list refreshes).
     - [x] Connect frontend classroom list UI for edit/delete actions (Teacher).
 - [x] **Concept Map Service (Backend & Frontend Integration):** (In Progress - Core API & Service Done)
     - [x] Create `conceptMapService.ts` with mock data management.
@@ -49,12 +49,15 @@
         - [ ] Map Data Formatter & Persister (save generated map to DB, update submission status).
     - [x] Connect frontend project submission UI to live API (for metadata).
     - [x] Connect frontend student submissions list to live API.
+    - [x] Connect frontend Admin Dashboard to fetch user & classroom counts.
+    - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts.
+    - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts.
 
 ## Frontend Enhancements
 - [ ] **Concept Map Editor (Canvas):**
     - [ ] Implement actual canvas interactions (node/edge creation, drag, edit, delete).
     - [ ] Zoom/pan functionality.
-    - [x/partial] Connect `PropertiesInspector` to selected elements on canvas (map-level properties connected).
+    - [x] Connect `PropertiesInspector` to selected elements on canvas (map-level properties connected).
     - [ ] Visualize GenAI results (extracted concepts, suggested relations, expanded concepts) on the canvas or allow adding them.
 - [ ] **State Management:**
     - [ ] Implement a robust client-side state management solution (e.g., Zustand, Redux Toolkit) for managing complex app state beyond `AuthContext` and API data fetching.
@@ -66,7 +69,7 @@
     - [x] Add more comprehensive loading states and error handling.
     - [x] Enhance empty states for lists (e.g., no classrooms, no maps).
     - [ ] Implement user profile page and settings.
-    - [ ] Add pagination and filtering for lists (users - basic list, classrooms, maps, submissions).
+    - [x] Add pagination and filtering for lists (users - basic list, classrooms, maps, submissions).
 - [x] **Admin Panel:** (In Progress)
     - [x] Implement CRUD operations for user management (view, delete, edit connected to backend service; add user via register flow).
     - [x] Develop system settings interface (Placeholder page created and linked).

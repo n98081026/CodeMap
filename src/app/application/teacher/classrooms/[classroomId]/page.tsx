@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -27,8 +28,8 @@ import {
 
 export default function ClassroomDetailPage({ params }: { params: { classroomId: string } }) {
   const [classroom, setClassroom] = useState<Classroom | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoadingClassroom, setIsLoadingClassroom] = useState(true);
+  const [errorClassroom, setErrorClassroom] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [classroomMaps, setClassroomMaps] = useState<ConceptMap[]>([]);
@@ -40,8 +41,8 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
   const [errorSubmissions, setErrorSubmissions] = useState<string | null>(null);
 
   const fetchClassroomDetails = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+    setIsLoadingClassroom(true);
+    setErrorClassroom(null);
     try {
       const response = await fetch(`/api/classrooms/${params.classroomId}`);
       if (!response.ok) {
@@ -52,10 +53,10 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
       setClassroom(data);
     } catch (err) {
       const errorMessage = (err as Error).message;
-      setError(errorMessage);
+      setErrorClassroom(errorMessage);
       toast({ title: "Error Fetching Classroom", description: errorMessage, variant: "destructive" });
     } finally {
-      setIsLoading(false);
+      setIsLoadingClassroom(false);
     }
   }, [params.classroomId, toast]);
 
@@ -122,8 +123,8 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
         title: "Student Removed",
         description: `${studentName} has been removed from the classroom.`,
       });
-      fetchClassroomDetails(); // Refresh classroom details (student list)
-    } catch (errorMsg) { // Renamed to avoid conflict with outer scope error
+      fetchClassroomDetails(); 
+    } catch (errorMsg) { 
       toast({
         title: "Error Removing Student",
         description: (errorMsg as Error).message,
@@ -132,13 +133,11 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     }
   };
   
-  const handleStudentAddedOrInviteSent = () => {
-    // This callback is triggered by InviteStudentDialog after an attempt to add a student by ID or mock invite.
-    // If a student was added by ID and it was successful, we should refresh the student list.
+  const handleStudentActionCompleted = () => {
     fetchClassroomDetails(); 
   };
 
-  if (isLoading) {
+  if (isLoadingClassroom) {
     return (
       <div className="space-y-6 p-4">
         <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" />
@@ -149,7 +148,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     );
   }
 
-  if (error || !classroom) {
+  if (errorClassroom || !classroom) {
     return (
       <div className="space-y-6 p-4">
         <DashboardHeader title="Error" icon={AlertTriangle} />
@@ -158,7 +157,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
             <CardTitle className="text-destructive">Could not load classroom</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>{error || "The classroom data could not be found."}</p>
+            <p>{errorClassroom || "The classroom data could not be found."}</p>
             <Button asChild variant="outline" className="mt-4">
               <Link href="/application/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
             </Button>
@@ -180,7 +179,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
          <Button asChild variant="outline">
           <Link href="/application/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
         </Button>
-        <InviteStudentDialog classroomId={classroom.id} onActionCompleted={handleStudentAddedOrInviteSent} />
+        <InviteStudentDialog classroomId={classroom.id} onActionCompleted={handleStudentActionCompleted} />
       </DashboardHeader>
 
       <Tabs defaultValue="students" className="w-full">
@@ -197,10 +196,10 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
               <CardDescription>List of students currently enrolled in this classroom.</CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading && !error && <div className="flex items-center justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading students...</p></div>}
-              {!isLoading && error && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>Error loading students. <Button onClick={fetchClassroomDetails} variant="link">Try Again</Button></div>}
-              {!isLoading && !error && enrolledStudents.length === 0 && <p className="text-muted-foreground">No students enrolled yet. Use the "Invite/Add Students" button to add students.</p>}
-              {!isLoading && !error && enrolledStudents.length > 0 && (
+              {isLoadingClassroom && !errorClassroom && <div className="flex items-center justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading students...</p></div>}
+              {!isLoadingClassroom && errorClassroom && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>Error loading students. <Button onClick={fetchClassroomDetails} variant="link">Try Again</Button></div>}
+              {!isLoadingClassroom && !errorClassroom && enrolledStudents.length === 0 && <p className="text-muted-foreground">No students enrolled yet. Use the "Invite/Add Students" button to add students.</p>}
+              {!isLoadingClassroom && !errorClassroom && enrolledStudents.length > 0 && (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -268,7 +267,8 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
                     </TableHeader>
                     <TableBody>
                         {classroomMaps.map((map) => {
-                        const owner = enrolledStudents.find(s => s.id === map.ownerId); // Check against currently loaded students
+                        // Attempt to find owner in the main classroom student list, or show ID if not found (e.g. owner not a student in this class but shared it somehow)
+                        const owner = enrolledStudents.find(s => s.id === map.ownerId); 
                         return (
                             <TableRow key={map.id}>
                             <TableCell className="font-medium">{map.name}</TableCell>
