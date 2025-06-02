@@ -19,7 +19,8 @@ let mockSubmissionsData: ProjectSubmission[] = [
     fileSize: 2345678, 
     submissionTimestamp: new Date("2023-04-10T10:00:00Z").toISOString(), 
     analysisStatus: ProjectSubmissionStatus.COMPLETED, 
-    generatedConceptMapId: "mapA" // Assuming mapA is owned by student-test-id
+    generatedConceptMapId: "mapA", // Assuming mapA is owned by student-test-id
+    classroomId: "test-classroom-1",
   },
   { 
     id: "sub2", 
@@ -27,7 +28,8 @@ let mockSubmissionsData: ProjectSubmission[] = [
     originalFileName: "alpha-release.rar", 
     fileSize: 102400, 
     submissionTimestamp: new Date("2023-04-12T14:30:00Z").toISOString(), 
-    analysisStatus: ProjectSubmissionStatus.PROCESSING 
+    analysisStatus: ProjectSubmissionStatus.PROCESSING,
+    classroomId: "test-classroom-1",
   },
   { 
     id: "sub3", 
@@ -36,7 +38,8 @@ let mockSubmissionsData: ProjectSubmission[] = [
     fileSize: 50000, 
     submissionTimestamp: new Date("2023-04-13T09:15:00Z").toISOString(), 
     analysisStatus: ProjectSubmissionStatus.FAILED, 
-    analysisError: "Unsupported file structure in archive." 
+    analysisError: "Unsupported file structure in archive.",
+    classroomId: "class1",
   },
    { 
     id: "sub4", 
@@ -44,7 +47,18 @@ let mockSubmissionsData: ProjectSubmission[] = [
     originalFileName: "early-draft.zip", 
     fileSize: 50000, 
     submissionTimestamp: new Date("2023-04-01T09:15:00Z").toISOString(), 
-    analysisStatus: ProjectSubmissionStatus.PENDING
+    analysisStatus: ProjectSubmissionStatus.PENDING,
+    classroomId: "class1",
+  },
+  { 
+    id: "sub5_class3", 
+    studentId: "s6", 
+    originalFileName: "web_project.zip", 
+    fileSize: 78000, 
+    submissionTimestamp: new Date("2023-05-01T11:00:00Z").toISOString(), 
+    analysisStatus: ProjectSubmissionStatus.COMPLETED,
+    generatedConceptMapId: "map_web_proj", // Placeholder
+    classroomId: "class3",
   },
 ];
 
@@ -82,9 +96,6 @@ export async function createSubmission(
  */
 export async function getSubmissionById(submissionId: string): Promise<ProjectSubmission | null> {
   const submission = mockSubmissionsData.find(s => s.id === submissionId);
-  // if (submission && submission.generatedConceptMapId && !submission.generatedConceptMap) {
-  //   submission.generatedConceptMap = await getConceptMapById(submission.generatedConceptMapId);
-  // }
   return submission || null;
 }
 
@@ -92,14 +103,16 @@ export async function getSubmissionById(submissionId: string): Promise<ProjectSu
  * Retrieves all submissions for a specific student.
  */
 export async function getSubmissionsByStudentId(studentId: string): Promise<ProjectSubmission[]> {
-  const submissions = mockSubmissionsData.filter(s => s.studentId === studentId);
-  // for (const submission of submissions) {
-  //   if (submission.generatedConceptMapId && !submission.generatedConceptMap) {
-  //     submission.generatedConceptMap = await getConceptMapById(submission.generatedConceptMapId);
-  //   }
-  // }
-  return submissions;
+  return mockSubmissionsData.filter(s => s.studentId === studentId);
 }
+
+/**
+ * Retrieves all submissions for a specific classroom.
+ */
+export async function getSubmissionsByClassroomId(classroomId: string): Promise<ProjectSubmission[]> {
+    return mockSubmissionsData.filter(s => s.classroomId === classroomId);
+}
+
 
 /**
  * Updates the status of a project submission.
@@ -120,7 +133,6 @@ export async function updateSubmissionStatus(
   submission.analysisStatus = status;
   submission.analysisError = analysisError || null;
   submission.generatedConceptMapId = generatedConceptMapId || null;
-  // submission.generatedConceptMap = generatedConceptMapId ? (await getConceptMapById(generatedConceptMapId)) : null;
   
   mockSubmissionsData[submissionIndex] = submission;
   return submission;
@@ -130,3 +142,4 @@ export async function updateSubmissionStatus(
 export async function getAllSubmissions(): Promise<ProjectSubmission[]> {
     return mockSubmissionsData;
 }
+```

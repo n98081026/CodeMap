@@ -13,6 +13,8 @@ let mockConceptMapsData: ConceptMap[] = [
   { id: "mapA", name: "My First Project Overview", ownerId: "student-test-id", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: new Date("2023-03-01T10:00:00Z").toISOString(), updatedAt: new Date("2023-03-02T11:00:00Z").toISOString() },
   { id: "mapB", name: "Algorithm Study Notes", ownerId: "student-test-id", mapData: { nodes: [], edges: [] }, isPublic: true, sharedWithClassroomId: "class1", createdAt: new Date("2023-03-05T14:00:00Z").toISOString(), updatedAt: new Date("2023-03-08T15:00:00Z").toISOString() },
   { id: "mapC", name: "Database Design Ideas", ownerId: "student1", mapData: { nodes: [], edges: [] }, isPublic: false, createdAt: new Date("2023-03-10T09:00:00Z").toISOString(), updatedAt: new Date("2023-03-10T09:00:00Z").toISOString() },
+  { id: "mapD_class1", name: "Shared Prog Concepts", ownerId: "student1", mapData: { nodes: [], edges: [] }, isPublic: false, sharedWithClassroomId: "class1", createdAt: new Date("2023-04-01T09:00:00Z").toISOString(), updatedAt: new Date("2023-04-01T09:00:00Z").toISOString() },
+  { id: "mapE_test_classroom", name: "AI Basics for Test Class", ownerId: "student-test-id", mapData: { nodes: [], edges: [] }, isPublic: false, sharedWithClassroomId: "test-classroom-1", createdAt: new Date("2023-04-02T09:00:00Z").toISOString(), updatedAt: new Date("2023-04-02T09:00:00Z").toISOString() },
 ];
 
 /**
@@ -71,6 +73,16 @@ export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptM
 }
 
 /**
+ * Retrieves all concept maps shared with a specific classroom.
+ * @param classroomId The ID of the classroom.
+ * @returns A list of concept maps.
+ */
+export async function getConceptMapsByClassroomId(classroomId: string): Promise<ConceptMap[]> {
+    return mockConceptMapsData.filter(m => m.sharedWithClassroomId === classroomId);
+}
+
+
+/**
  * Updates an existing concept map.
  * @param mapId The ID of the concept map to update.
  * @param updates An object containing the fields to update.
@@ -112,8 +124,4 @@ export async function deleteConceptMap(mapId: string, ownerId: string): Promise<
   mockConceptMapsData.splice(mapIndex, 1);
   return true;
 }
-
-// For admin or classroom views (potentially)
-export async function getConceptMapsByClassroomId(classroomId: string): Promise<ConceptMap[]> {
-    return mockConceptMapsData.filter(m => m.sharedWithClassroomId === classroomId);
-}
+```

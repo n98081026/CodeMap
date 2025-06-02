@@ -1,0 +1,117 @@
+
+"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import type { Classroom } from "@/types";
+import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { useToast } from "@/hooks/use-toast";
+
+
+export default function StudentClassroomsPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [enrolledClassrooms, setEnrolledClassrooms] = useState<Classroom[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchEnrolledClassrooms = async () => {
+    if (!user) {
+        setIsLoading(false); // Stop loading if no user
+        return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/classrooms?studentId=${user.id}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch enrolled classrooms");
+      }
+      const data: Classroom[] = await response.json();
+      setEnrolledClassrooms(data);
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      setError(errorMessage);
+      toast({ title: "Error Fetching Classrooms", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEnrolledClassrooms();
+  }, [user]);
+
+
+  return (
+    <div className="space-y-6">
+      <DashboardHeader
+        title="My Classrooms"
+        description="Here are the classrooms you are currently enrolled in."
+        icon={BookOpen}
+      />
+
+      {isLoading && (
+        <div className="flex justify-center items-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-2">Loading your classrooms...</p>
+        </div>
+      )}
+
+      {error && !isLoading && (
+         <Card className="shadow-md border-destructive">
+          <CardHeader><CardTitle className="flex items-center text-destructive"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Classrooms</CardTitle></CardHeader>
+          <CardContent>
+            <p>{error}</p>
+            <Button onClick={fetchEnrolledClassrooms} className="mt-4">Try Again</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !error && enrolledClassrooms.length === 0 && (
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>Not Enrolled in Any Classrooms</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">You are not currently enrolled in any classrooms. If you have an invite code, your teacher can provide instructions on how to join.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !error && enrolledClassrooms.length > 0 && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {enrolledClassrooms.map((classroom) => (
+            <Card key={classroom.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <CardTitle className="text-xl">{classroom.name}</CardTitle>
+                <CardDescription className="flex items-center">
+                  <UserIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                  Teacher: {classroom.teacherName || 'N/A'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <p className="text-sm text-muted-foreground">
+                  {classroom.studentIds.length} students in this class.
+                </p>
+                {classroom.description && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{classroom.description}</p>}
+              </CardContent>
+              <CardFooter>
+                <Button asChild className="w-full" variant="outline" disabled>
+                  {/* Link to a student-specific view of classroom if needed, or just info display */}
+                  <span className="cursor-not-allowed">View Classroom <ArrowRight className="ml-2 h-4 w-4" /></span>
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+```

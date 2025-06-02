@@ -1,6 +1,6 @@
 // src/app/api/classrooms/route.ts
 import { NextResponse } from 'next/server';
-import { createClassroom, getClassroomsByTeacherId } from '@/services/classrooms/classroomService';
+import { createClassroom, getClassroomsByTeacherId, getClassroomsByStudentId } from '@/services/classrooms/classroomService';
 import { UserRole } from '@/types';
 // In a real app, you'd get the authenticated user's ID from the session/token
 // For now, we might need to pass teacherId for GET or rely on it being in POST body for creation context
@@ -31,14 +31,19 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const teacherId = searchParams.get('teacherId');
+    const studentId = searchParams.get('studentId');
 
-    if (!teacherId) {
-      return NextResponse.json({ message: "Teacher ID is required to fetch classrooms" }, { status: 400 });
+    if (teacherId) {
+      const classrooms = await getClassroomsByTeacherId(teacherId);
+      return NextResponse.json(classrooms);
+    }
+    
+    if (studentId) {
+      const classrooms = await getClassroomsByStudentId(studentId);
+      return NextResponse.json(classrooms);
     }
 
-    // Validate teacherId if necessary, or assume it's valid for now
-    const classrooms = await getClassroomsByTeacherId(teacherId);
-    return NextResponse.json(classrooms);
+    return NextResponse.json({ message: "Either teacherId or studentId query parameter is required" }, { status: 400 });
 
   } catch (error) {
     console.error("Get Classrooms API error:", error);
@@ -46,3 +51,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "Failed to fetch classrooms: " + errorMessage }, { status: 500 });
   }
 }
+```

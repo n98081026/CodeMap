@@ -1,6 +1,6 @@
 // src/app/api/projects/submissions/route.ts
 import { NextResponse } from 'next/server';
-import { createSubmission, getSubmissionsByStudentId } from '@/services/projectSubmissions/projectSubmissionService';
+import { createSubmission, getSubmissionsByStudentId, getSubmissionsByClassroomId } from '@/services/projectSubmissions/projectSubmissionService';
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder
 
 export async function POST(request: Request) {
@@ -39,6 +39,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
+    const classroomId = searchParams.get('classroomId');
     // const { userId: studentIdFromAuth } = getAuth(request as any); // Example
 
     // if (!studentIdFromAuth) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -47,15 +48,18 @@ export async function GET(request: Request) {
     //    return NextResponse.json({ message: "Forbidden: Cannot view submissions for another user" }, { status: 403 });
     // }
     
-    // const targetStudentId = studentId || studentIdFromAuth; // Use authenticated user if no specific studentId query
-    const targetStudentId = studentId; // For now, rely on query param
-
-    if (!targetStudentId) {
-      return NextResponse.json({ message: "Student ID is required to fetch submissions" }, { status: 400 });
+    if (classroomId) {
+        const submissions = await getSubmissionsByClassroomId(classroomId);
+        return NextResponse.json(submissions);
     }
 
-    const submissions = await getSubmissionsByStudentId(targetStudentId);
-    return NextResponse.json(submissions);
+    if (studentId) { // Use authenticated user if no specific studentId query
+        const submissions = await getSubmissionsByStudentId(studentId);
+        return NextResponse.json(submissions);
+    }
+    
+
+    return NextResponse.json({ message: "Query parameter 'studentId' or 'classroomId' is required" }, { status: 400 });
 
   } catch (error) {
     console.error("Get Project Submissions API error:", error);
@@ -63,3 +67,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: `Failed to fetch submissions: ${errorMessage}` }, { status: 500 });
   }
 }
+```

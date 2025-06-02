@@ -1,6 +1,6 @@
 // src/app/api/concept-maps/route.ts
 import { NextResponse } from 'next/server';
-import { createConceptMap, getConceptMapsByOwnerId } from '@/services/conceptMaps/conceptMapService';
+import { createConceptMap, getConceptMapsByOwnerId, getConceptMapsByClassroomId } from '@/services/conceptMaps/conceptMapService';
 import type { ConceptMapData } from '@/types';
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder for actual auth
 
@@ -37,18 +37,19 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const ownerId = searchParams.get('ownerId');
-    // const classroomId = searchParams.get('classroomId'); // Future use
+    const classroomId = searchParams.get('classroomId');
 
-    // In a real app, you might restrict this based on logged-in user or roles
-    // For now, if ownerId is provided, fetch by ownerId
+    if (classroomId) {
+      const maps = await getConceptMapsByClassroomId(classroomId);
+      return NextResponse.json(maps);
+    }
+    
     if (ownerId) {
       const maps = await getConceptMapsByOwnerId(ownerId);
       return NextResponse.json(maps);
     }
-    // Add more conditions, e.g., if (classroomId) { ... }
-    // Or require authentication to list maps for the logged-in user.
 
-    return NextResponse.json({ message: "Query parameter 'ownerId' is required for now." }, { status: 400 });
+    return NextResponse.json({ message: "Query parameter 'ownerId' or 'classroomId' is required." }, { status: 400 });
 
   } catch (error) {
     console.error("Get Concept Maps API error:", error);
@@ -56,3 +57,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: `Failed to fetch concept maps: ${errorMessage}` }, { status: 500 });
   }
 }
+```

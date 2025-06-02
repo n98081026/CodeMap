@@ -11,7 +11,7 @@ import { getUserById, mockUserDatabase } from '@/services/users/userService'; //
 
 // Mock data for classrooms - this will be replaced by database calls
 let mockClassroomsData: Classroom[] = [
-  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["student1", "s2", "s3"], inviteCode: "PROG101", students: [], description: "Learn the fundamentals of programming using Python." },
+  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["student1", "s2", "s3", "student-test-id"], inviteCode: "PROG101", students: [], description: "Learn the fundamentals of programming using Python." },
   { id: "class2", name: "Advanced Data Structures", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["s4", "s5"], inviteCode: "DATA202", students: [], description: "Deep dive into complex data structures and algorithms." },
   { id: "class3", name: "Web Development Basics", teacherId: "teacher2", studentIds: ["student1", "s6", "s7", "s8"], inviteCode: "WEBDEV", students: [], description: "Covers HTML, CSS, and basic JavaScript." },
   {
@@ -36,6 +36,13 @@ async function populateStudentDetails(studentIds: string[]): Promise<User[]> {
     }
   }
   return students;
+}
+
+async function populateTeacherName(classroom: Classroom): Promise<void> {
+  if (classroom.teacherId && !classroom.teacherName) {
+    const teacher = await getUserById(classroom.teacherId);
+    if (teacher) classroom.teacherName = teacher.name;
+  }
 }
 
 
@@ -74,13 +81,24 @@ export async function createClassroom(name: string, description: string | undefi
 export async function getClassroomsByTeacherId(teacherId: string): Promise<Classroom[]> {
   const classrooms = mockClassroomsData.filter(c => c.teacherId === teacherId);
   for (const classroom of classrooms) {
-     if (!classroom.teacherName && classroom.teacherId) {
-        const teacher = await getUserById(classroom.teacherId);
-        if (teacher) classroom.teacherName = teacher.name;
-     }
+     await populateTeacherName(classroom);
   }
   return classrooms;
 }
+
+/**
+ * Retrieves all classrooms a specific student is enrolled in.
+ * @param studentId The ID of the student.
+ * @returns A list of classrooms.
+ */
+export async function getClassroomsByStudentId(studentId: string): Promise<Classroom[]> {
+  const classrooms = mockClassroomsData.filter(c => c.studentIds.includes(studentId));
+  for (const classroom of classrooms) {
+    await populateTeacherName(classroom);
+  }
+  return classrooms;
+}
+
 
 /**
  * Retrieves a classroom by its ID, populating student details.
@@ -91,10 +109,7 @@ export async function getClassroomById(classroomId: string): Promise<Classroom |
   const classroom = mockClassroomsData.find(c => c.id === classroomId);
   if (!classroom) return null;
 
-  if (classroom.teacherId && !classroom.teacherName) {
-    const teacher = await getUserById(classroom.teacherId);
-    if (teacher) classroom.teacherName = teacher.name;
-  }
+  await populateTeacherName(classroom);
   classroom.students = await populateStudentDetails(classroom.studentIds);
   return classroom;
 }
@@ -123,6 +138,7 @@ export async function addStudentToClassroom(classroomId: string, studentId: stri
     mockClassroomsData[classroomIndex] = classroom; 
     return classroom;
   }
+  // If student already in classroom, just ensure details are fresh (though not strictly necessary here as it's just IDs)
   classroom.students = await populateStudentDetails(classroom.studentIds);
   return classroom;
 }
@@ -143,10 +159,10 @@ export async function removeStudentFromClassroom(classroomId: string, studentId:
    const initialStudentCount = classroom.studentIds.length;
    classroom.studentIds = classroom.studentIds.filter(id => id !== studentId);
 
-   if (classroom.studentIds.length < initialStudentCount) {
+   if (classroom.studentIds.length < initialStudentCount) { // If student was actually removed
      classroom.students = await populateStudentDetails(classroom.studentIds);
      mockClassroomsData[classroomIndex] = classroom; 
-   } else {
+   } else { // If student wasn't in the list, still refresh student details (could be argued not needed)
      classroom.students = await populateStudentDetails(classroom.studentIds);
    }
    return classroom;
@@ -162,8 +178,7 @@ export async function updateClassroom(classroomId: string, updates: { name?: str
   const classroomIndex = mockClassroomsData.findIndex(c => c.id === classroomId);
   if (classroomIndex === -1) return null;
 
-  // Only allow updating specific fields like name and description
-  const classroomToUpdate = mockClassroomsData[classroomIndex];
+  const classroomToUpdate = { ...mockClassroomsData[classroomIndex] };
   if (updates.name !== undefined) {
     classroomToUpdate.name = updates.name;
   }
@@ -172,6 +187,10 @@ export async function updateClassroom(classroomId: string, updates: { name?: str
   }
   
   mockClassroomsData[classroomIndex] = classroomToUpdate;
+  // Repopulate details, though for name/desc update it's not strictly needed for this mock
+  await populateTeacherName(mockClassroomsData[classroomIndex]);
+  mockClassroomsData[classroomIndex].students = await populateStudentDetails(mockClassroomsData[classroomIndex].studentIds);
+
   return mockClassroomsData[classroomIndex];
 }
 
@@ -189,10 +208,8 @@ export async function deleteClassroom(classroomId: string): Promise<boolean> {
 export async function getAllClassrooms(): Promise<Classroom[]> {
   const classrooms = mockClassroomsData;
   for (const classroom of classrooms) {
-     if (classroom.teacherId && !classroom.teacherName) {
-        const teacher = await getUserById(classroom.teacherId);
-        if (teacher) classroom.teacherName = teacher.name;
-     }
+     await populateTeacherName(classroom);
   }
   return classrooms;
 }
+```

@@ -14,17 +14,20 @@
     - [x] Create `classroomService.ts` with mock data management.
     - [x] API endpoint for creating classrooms (`POST /api/classrooms`).
     - [x] API endpoint for listing classrooms by teacher (`GET /api/classrooms?teacherId=xxx`).
+    - [x] API endpoint for listing classrooms by student (`GET /api/classrooms?studentId=xxx`). (Implemented)
     - [x] API endpoint for getting classroom details (`GET /api/classrooms/[classroomId]`).
     - [x] API endpoints for student enrollment (invites, joining with code - partially mocked with direct add/remove).
         - [x] API endpoint for adding a student to a classroom (`POST /api/classrooms/[classroomId]/students`). (Mocked: adds by ID)
         - [x] API endpoint for removing a student from a classroom (`DELETE /api/classrooms/[classroomId]/students/[studentId]`).
     - [x] API endpoints for updating, deleting classrooms (`PUT /api/classrooms/[classroomId]`, `DELETE /api/classrooms/[classroomId]`). (Service methods and API endpoints exist)
-    - [x] Connect frontend classroom creation and listing UI to live API (with mock service).
+    - [x] Connect frontend classroom creation and listing UI (teacher) to live API (with mock service).
+    - [x] Connect frontend classroom listing UI (student) to live API (with mock service). (Implemented)
     - [x] Connect frontend classroom detail UI to live API for details and student management (with mock service).
-    - [ ] Connect frontend classroom list UI for edit/delete actions.
+    - [x] Connect frontend classroom list UI for edit/delete actions.
 - [x] **Concept Map Service (Backend):** (In Progress)
     - [x] Create `conceptMapService.ts` with mock data management.
     - [x] API endpoints for CRUD operations on concept maps (`/api/concept-maps`, `/api/concept-maps/[mapId]`).
+    - [x] API endpoint for listing concept maps by classroom (`GET /api/concept-maps?classroomId=xxx`). (Implemented)
     - [x] Logic for map ownership and sharing (with classrooms, public) - Basic ownership and `sharedWithClassroomId` implemented.
     - [x] Connect frontend concept map listing (student) to live API for loading/deleting.
     - [x] Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).
@@ -32,6 +35,7 @@
     - [x] Create `projectSubmissionService.ts` with mock data management.
     - [x] API endpoint for project file uploads (`POST /api/projects/submissions` - metadata only, file handling mocked).
     - [x] API endpoint for listing student submissions (`GET /api/projects/submissions?studentId=xxx`).
+    - [x] API endpoint for listing submissions by classroom (`GET /api/projects/submissions?classroomId=xxx`). (Implemented)
     - [x] API endpoint for getting submission details (`GET /api/projects/submissions/[submissionId]`).
     - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`).
     - [ ] File storage integration (S3, GCS, or local).
@@ -56,12 +60,12 @@
 - [ ] **Real-time Features (Optional):**
     - [ ] Consider real-time collaboration on concept maps (e.g., using WebSockets).
     - [ ] Real-time updates for project submission status.
-- [ ] **User Interface & User Experience (Desktop Focus):**
+- [x] **User Interface & User Experience (Desktop Focus):**
     - [x] Refine UI details for some pages, ensure consistency and professional design.
-    - [x] Add more comprehensive loading states and error handling (partially done, more needed).
-    - [x] Enhance empty states for lists (e.g., no classrooms, no maps) (partially done).
+    - [x] Add more comprehensive loading states and error handling (partially done, more needed). (Improved for several list pages)
+    - [x] Enhance empty states for lists (e.g., no classrooms, no maps) (partially done). (Improved for several list pages)
     - [ ] Implement user profile page and settings.
-    - [x] Add pagination and filtering for lists (users - basic list, classrooms, maps, submissions). (Pagination/Filtering not yet implemented for lists).
+    - [ ] Add pagination and filtering for lists (users - basic list, classrooms, maps, submissions).
 - [x] **Admin Panel:** (In Progress)
     - [x] Implement CRUD operations for user management (view, delete, edit connected to backend service; add user via register flow).
     - [ ] Develop system settings interface.
@@ -90,12 +94,12 @@
 
 ## Known Issues / Current Mocked Areas
 - Backend services are currently mocked (in-memory data).
-- Default test student and teacher accounts with a pre-configured classroom are set up for easier development and testing (see `AuthContext` and mock data files).
+- Default test student and teacher accounts are set up for easier development and testing (see `AuthContext` and mock data files).
 - Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
 - Concept map canvas is a placeholder.
 - Project analysis pipeline is mocked at the UI level.
 - `next-themes` for theme toggling is integrated.
-- App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed.
+- App is focused on desktop experience; mobile-specific UI (like drawer navigation) has been removed based on user request.
 - Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
-- Classroom updates/deletes from list view are pending.
 - Admin "Add User" typically handled by registration, "System Settings" is UI shell.
+```
