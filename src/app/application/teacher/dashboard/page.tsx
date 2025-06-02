@@ -28,37 +28,37 @@ export default function TeacherDashboardPage() {
 
   const [dashboardData, setDashboardData] = useState<TeacherDashboardData | null>(null);
   const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(true);
-  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(true); // Student count depends on classroom data
   const [errorClassrooms, setErrorClassrooms] = useState<string | null>(null);
   const [errorStudents, setErrorStudents] = useState<string | null>(null);
   
-  let adminDashboardLink = "/application/admin/dashboard";
-  // let teacherDashboardLink = "/application/teacher/dashboard"; // Default for this page's header icon
-  // if (user && user.role === UserRole.ADMIN && !user.role.includes(UserRole.TEACHER as any) ) {
-  //    teacherDashboardLink = adminDashboardLink; // If admin only, main dashboard is admin's
-  // } else if (user && user.role === UserRole.ADMIN && user.role.includes(UserRole.TEACHER as any)) {
-  //   // teacher is also admin, keep teacherDashboardLink as is, Admin Panel button goes to adminDashboardLink
-  // }
-  const pageSpecificDashboardLink = "/"; // Link to root, which will redirect correctly
+  const adminDashboardLink = "/application/admin/dashboard";
+  const pageSpecificDashboardLink = "/"; 
 
 
   useEffect(() => {
-    const fetchTeacherClassrooms = async () => {
+    const fetchTeacherClassroomsAndStudentCount = async () => {
       if (!user) {
         setIsLoadingClassrooms(false);
         setIsLoadingStudents(false);
         return;
       }
       setIsLoadingClassrooms(true);
-      setIsLoadingStudents(true); // student count depends on classrooms
+      setIsLoadingStudents(true); 
       setErrorClassrooms(null);
       setErrorStudents(null);
 
       try {
         const response = await fetch(`/api/classrooms?teacherId=${user.id}`);
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch classrooms");
+          let errorMsg = `Classrooms API Error (${response.status})`;
+          try { 
+            const errData = await response.json(); 
+            errorMsg = `${errorMsg}: ${errData.message || response.statusText}`; 
+          } catch(e) { 
+            errorMsg = `${errorMsg}: ${response.statusText || "Failed to parse error"}`;
+          }
+          throw new Error(errorMsg);
         }
         const classrooms: Classroom[] = await response.json();
         
@@ -72,16 +72,16 @@ export default function TeacherDashboardPage() {
           managedClassroomsCount: managedClassroomsCount,
           totalStudentsCount: totalStudents,
         });
-        setErrorClassrooms(null); // Clear previous error if successful
+        setErrorClassrooms(null); 
         setErrorStudents(null);
 
       } catch (err) {
         const errorMessage = (err as Error).message;
         console.error("Error fetching teacher dashboard data:", errorMessage);
         toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
-        setErrorClassrooms(errorMessage); // Set error for classroom count
-        setErrorStudents(errorMessage); // Set error for student count as it depends on classrooms
-        setDashboardData(prev => prev || { managedClassroomsCount: 0, totalStudentsCount: 0 });
+        setErrorClassrooms(errorMessage); 
+        setErrorStudents(errorMessage); 
+        setDashboardData(prev => prev || { managedClassroomsCount: 0, totalStudentsCount: 0 }); // Preserve old data on error or set to 0
       } finally {
         setIsLoadingClassrooms(false);
         setIsLoadingStudents(false);
@@ -89,17 +89,18 @@ export default function TeacherDashboardPage() {
     };
 
     if (user) {
-      fetchTeacherClassrooms();
+      fetchTeacherClassroomsAndStudentCount();
     }
   }, [user, toast]);
 
-  if (!user) return <LoadingSpinner />;
+  if (!user && (isLoadingClassrooms || isLoadingStudents)) return <LoadingSpinner />;
+  if (!user) return null;
 
   const displayCountOrError = (count: number | undefined, isLoading: boolean, error: string | null, itemName: string) => {
     if (isLoading) {
       return <div className="flex items-center space-x-2"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (error && (count === 0 || count === undefined)) {
+    if (error && (count === 0 || count === undefined)) { // Show error if it occurred and count is 0/undefined
         return <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
@@ -170,3 +171,4 @@ export default function TeacherDashboardPage() {
     </div>
   );
 }
+
