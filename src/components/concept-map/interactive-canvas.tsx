@@ -70,13 +70,13 @@ export function InteractiveCanvas({
   isViewOnlyMode 
 }: InteractiveCanvasProps) {
   
-  const flowKey = `rf-${nodes.length}-${edges.length}-${isViewOnlyMode}`;
+  // const flowKey = `rf-${nodes.length}-${edges.length}-${isViewOnlyMode}`; // Removed dynamic key
 
   return (
     <Card className="h-[calc(100vh-200px)] w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden">
       <ReactFlowProvider>
         <ReactFlow
-          key={flowKey}
+          // key={flowKey} // Removed dynamic key
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
