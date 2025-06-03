@@ -1,3 +1,4 @@
+
 // src/app/api/users/[userId]/change-password/route.ts
 import { NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
@@ -30,6 +31,12 @@ export async function POST(request: Request, context: { params: { userId: string
 
     // Security check: Ensure the authenticated user is the one trying to change their password
     if (authUser.id !== pathUserId) {
+      // Deny if trying to change password for a different user, unless an admin with special logic
+      // For this app, only self-service password change is implemented.
+      if (authUser.id === "admin-mock-id") {
+        // Mock admin cannot change passwords for other users this way
+        return NextResponse.json({ message: "Forbidden: Mock admin cannot change other users' passwords via this endpoint." }, { status: 403 });
+      }
       return NextResponse.json({ message: "Forbidden: You can only change your own password." }, { status: 403 });
     }
     

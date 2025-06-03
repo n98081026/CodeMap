@@ -58,7 +58,7 @@
 
 ## Frontend Enhancements
 - [x] **Key Concept Map Editor Components & Functionality:**
-    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals. Other file/edit operations are placeholders. "New Map" and "Export Map" enabled in view-only. "Add Edge" disabled if <2 nodes.
+    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals. Other file/edit operations are placeholders. "New Map" and "Export Map" enabled in view-only. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added.
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles.
     - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented with disabled inputs and muted styling.
     - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal` to interact with AI flows. Context menu now correctly opens these.
@@ -155,7 +155,7 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done)
 
 **6. API Route Refactoring (General Review for Supabase)**
-- [x] Review all existing API routes in `src/app/api/`. (Done for users, classrooms, conceptmaps, submissions, admin settings).
+- [x] Review all existing API routes in `src/app/api/`. (Done for users, classrooms, conceptmaps, submissions, admin settings, user password change).
 - [x] Refactor each route to use Supabase-powered service functions. (Done)
 - [ ] Implement proper Supabase session/JWT authentication and authorization checks in API routes. (Partially done for password change and admin settings. Others rely on service logic or need explicit auth checks by user, RLS is primary).
 
@@ -184,3 +184,4 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 - API routes rely on Supabase-backed services. Further auth checks (JWT verification, role-based access) for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis now uploads to Supabase Storage (bucket 'project_archives', path `user-<user_id>/<timestamp>-<filename>`).
 - User needs to create the 'project_archives' bucket and add `file_storage_path TEXT NULLABLE` to `project_submissions` table, and set up RLS for the bucket.
+- Mock admin user cannot have their profile edited or password changed via the UI to prevent breaking the mock login flow. Real admin accounts created via Supabase registration can.

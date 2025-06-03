@@ -35,12 +35,12 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 function EditProfileDialog({
   currentUser,
-  onProfileUpdate,
+  onProfileUpdate, // This will call authContext.updateCurrentUserData
   isOpen,
   onOpenChange,
 }: {
   currentUser: User;
-  onProfileUpdate: (updatedUser: User) => void;
+  onProfileUpdate: (updatedFields: Partial<User>) => Promise<void>;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -58,18 +58,8 @@ function EditProfileDialog({
   const onSubmit = useCallback(async (data: ProfileFormValues) => {
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/users/${currentUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: data.name, email: data.email }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update profile.");
-      }
-      const updatedUserFromApi: User = await response.json(); 
-      onProfileUpdate(updatedUserFromApi); 
+      // Call the passed-in update function, which should link to authContext.updateCurrentUserData
+      await onProfileUpdate({ name: data.name, email: data.email });
       toast({ title: "Profile Updated", description: "Your profile has been successfully updated." });
       onOpenChange(false);
     } catch (error) {
@@ -81,16 +71,16 @@ function EditProfileDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [currentUser.id, onProfileUpdate, toast, onOpenChange]);
+  }, [onProfileUpdate, toast, onOpenChange]);
 
   React.useEffect(() => {
-    if (currentUser) {
+    if (currentUser && isOpen) { // Reset form when dialog opens with current user data
       form.reset({
         name: currentUser.name,
         email: currentUser.email,
       });
     }
-  }, [currentUser, form, isOpen]); 
+  }, [currentUser, form, isOpen]);
 
 
   return (
@@ -109,7 +99,7 @@ function EditProfileDialog({
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={isSaving} />
+                    <Input {...field} disabled={isSaving || currentUser.id === "admin-mock-id"} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,17 +112,20 @@ function EditProfileDialog({
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input type="email" {...field} disabled={isSaving} />
+                    <Input type="email" {...field} disabled={isSaving || currentUser.id === "admin-mock-id"} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {currentUser.id === "admin-mock-id" && (
+              <p className="text-xs text-muted-foreground">Mock admin profile cannot be edited here.</p>
+            )}
             <DialogFooter>
               <DialogClose asChild>
                  <Button type="button" variant="outline" disabled={isSaving}>Cancel</Button>
               </DialogClose>
-              <Button type="submit" disabled={isSaving}>
+              <Button type="submit" disabled={isSaving || currentUser.id === "admin-mock-id"}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
@@ -145,7 +138,7 @@ function EditProfileDialog({
 }
 
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, { message: "Current password is required." }),
+  // currentPassword: z.string().min(1, { message: "Current password is required." }), // Not strictly needed for Supabase updateUser for authenticated user
   newPassword: z.string().min(6, { message: "New password must be at least 6 characters." }),
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -157,10 +150,12 @@ type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
 
 function ChangePasswordDialog({
   userId,
+  isMockAdmin,
   isOpen,
   onOpenChange,
 }: {
   userId: string;
+  isMockAdmin: boolean;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -170,7 +165,7 @@ function ChangePasswordDialog({
   const form = useForm<ChangePasswordFormValues>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: {
-      currentPassword: "",
+      // currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -184,12 +179,16 @@ function ChangePasswordDialog({
   }, [form, onOpenChange]);
 
   const onSubmit = useCallback(async (data: ChangePasswordFormValues) => {
+    if (isMockAdmin) {
+      toast({ title: "Operation Denied", description: "Password for the mock admin cannot be changed here.", variant: "destructive"});
+      return;
+    }
     setIsSaving(true);
     try {
       const response = await fetch(`/api/users/${userId}/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword: data.currentPassword, newPassword: data.newPassword }),
+        body: JSON.stringify({ newPassword: data.newPassword }), // Only newPassword needed for API
       });
 
       const result = await response.json();
@@ -198,7 +197,7 @@ function ChangePasswordDialog({
         throw new Error(result.message || "Failed to change password.");
       }
       
-      toast({ title: "Password Changed", description: "Your password has been successfully updated (mock)." });
+      toast({ title: "Password Changed", description: "Your password has been successfully updated." });
       handleDialogStateChange(false); 
     } catch (error) {
       toast({
@@ -209,18 +208,21 @@ function ChangePasswordDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [userId, toast, handleDialogStateChange]);
+  }, [userId, toast, handleDialogStateChange, isMockAdmin]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogStateChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Change Password</DialogTitle>
-          <DialogDescription>Update your account password. (Mock: current password is 'password123')</DialogDescription>
+          <DialogDescription>Update your account password.</DialogDescription>
         </DialogHeader>
+        {isMockAdmin ? (
+           <p className="text-sm text-destructive py-4">Password for the mock admin account cannot be changed through this interface.</p>
+        ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
+            {/* <FormField
               control={form.control}
               name="currentPassword"
               render={({ field }) => (
@@ -232,7 +234,7 @@ function ChangePasswordDialog({
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
             <FormField
               control={form.control}
               name="newPassword"
@@ -270,6 +272,7 @@ function ChangePasswordDialog({
             </DialogFooter>
           </form>
         </Form>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -277,11 +280,11 @@ function ChangePasswordDialog({
 
 
 export default function ProfilePage() {
-  const { user, updateCurrentUserData } = useAuth();
+  const { user, updateCurrentUserData, isLoading: authIsLoading } = useAuth();
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
-  if (!user) {
+  if (authIsLoading || !user) { // Check authIsLoading as well
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -302,9 +305,12 @@ export default function ProfilePage() {
     }
   }, [user.role]);
 
-  const handleProfileUpdated = useCallback((updatedUserFromApi: User) => {
-    updateCurrentUserData(updatedUserFromApi); 
+  const handleProfileUpdated = useCallback(async (updatedFields: Partial<User>) => {
+    await updateCurrentUserData(updatedFields); 
   }, [updateCurrentUserData]);
+
+  const isUserMockAdmin = user.id === 'admin-mock-id';
+
 
   return (
     <div className="space-y-6">
@@ -347,7 +353,7 @@ export default function ProfilePage() {
               <h3 className="font-medium">Edit Profile</h3>
               <p className="text-sm text-muted-foreground">Update your name or email address.</p>
             </div>
-            <Button variant="outline" onClick={() => setIsEditProfileOpen(true)}>
+            <Button variant="outline" onClick={() => setIsEditProfileOpen(true)} disabled={isUserMockAdmin}>
               <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
             </Button>
           </div>
@@ -356,7 +362,7 @@ export default function ProfilePage() {
               <h3 className="font-medium">Change Password</h3>
               <p className="text-sm text-muted-foreground">Update your account password.</p>
             </div>
-            <Button variant="outline" onClick={() => setIsChangePasswordOpen(true)}>
+            <Button variant="outline" onClick={() => setIsChangePasswordOpen(true)} disabled={isUserMockAdmin}>
               <KeyRound className="mr-2 h-4 w-4" /> Change Password
             </Button>
           </div>
@@ -392,6 +398,7 @@ export default function ProfilePage() {
       {isChangePasswordOpen && user && (
         <ChangePasswordDialog
           userId={user.id}
+          isMockAdmin={isUserMockAdmin}
           isOpen={isChangePasswordOpen}
           onOpenChange={setIsChangePasswordOpen}
         />

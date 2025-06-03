@@ -87,8 +87,8 @@ export default function AdminUsersPage() {
   }, [currentPage, fetchUsers]);
 
   const handleDeleteUser = useCallback(async (userId: string, userName: string) => {
-     if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin1") {
-      toast({ title: "Operation Denied", description: "Pre-defined test users and the main admin cannot be deleted.", variant: "destructive" });
+     if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin-mock-id" || userId === adminUser?.id) {
+      toast({ title: "Operation Denied", description: "Pre-defined test users, the main mock admin, or your own account cannot be deleted.", variant: "destructive" });
       return;
     }
     try {
@@ -106,17 +106,17 @@ export default function AdminUsersPage() {
     } catch (err) {
       toast({ title: "Error Deleting User", description: (err as Error).message, variant: "destructive" });
     }
-  }, [toast, users.length, currentPage, fetchUsers]);
+  }, [toast, users.length, currentPage, fetchUsers, adminUser?.id]);
 
   const openEditModal = useCallback((userToEdit: User) => {
-    if (userToEdit.id === "student-test-id" || userToEdit.id === "teacher-test-id" || userToEdit.id === "admin1") {
-       toast({ title: "Operation Denied", description: "Pre-defined test users and the main admin cannot be edited.", variant: "destructive" });
+    if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin-mock-id" || userToEdit.id === adminUser?.id) {
+       toast({ title: "Operation Denied", description: "Pre-defined test users, the main mock admin, or your own account cannot be edited.", variant: "destructive" });
        return;
     }
     setEditingUser(userToEdit);
     setEditFormData({ name: userToEdit.name, email: userToEdit.email, role: userToEdit.role });
     setIsEditModalOpen(true);
-  }, [toast]);
+  }, [toast, adminUser?.id]);
 
   const handleEditFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement> | string, fieldName?: string) => {
     if (typeof e === "string" && fieldName) {
@@ -223,7 +223,7 @@ export default function AdminUsersPage() {
          <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>All Users ({totalUsers})</CardTitle>
-            <CardDescription>A list of all registered users. Test users and the main admin cannot be edited or deleted.</CardDescription>
+            <CardDescription>A list of all registered users. Test users, the main admin, and your own account cannot be edited or deleted directly here.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -252,7 +252,7 @@ export default function AdminUsersPage() {
                         className="mr-2"
                         title="Edit user"
                         onClick={() => openEditModal(userRow)}
-                        disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin1"}
+                        disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin-mock-id" || userRow.id === adminUser?.id}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -262,7 +262,7 @@ export default function AdminUsersPage() {
                             variant="ghost"
                             size="icon"
                             title="Delete user"
-                            disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin1"}
+                            disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin-mock-id" || userRow.id === adminUser?.id}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
