@@ -5,7 +5,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ReactFlowProvider } from 'reactflow'; 
 
-import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
+// import { EditorToolbar } from "@/components/concept-map/editor-toolbar"; // Temporarily comment out
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
@@ -428,14 +428,16 @@ export default function ConceptMapEditorPage() {
             </Card>
           ) : (
             <>
-              <EditorToolbar
+              {/* <EditorToolbar
                 onSaveMap={handleSaveMap} isSaving={isSaving}
                 onExtractConcepts={useCallback(() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [resetStoreAiSuggestions])}
                 onSuggestRelations={useCallback(() => { resetStoreAiSuggestions(); setIsSuggestRelationsModalOpen(true); }, [resetStoreAiSuggestions])}
                 onExpandConcept={useCallback(() => { resetStoreAiSuggestions(); setIsExpandConceptModalOpen(true); }, [resetStoreAiSuggestions])}
                 isViewOnlyMode={isViewOnlyMode}
                 onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
-              />
+              /> */}
+              <div className="mb-4 flex h-14 items-center gap-1 rounded-lg border bg-card p-2 shadow-sm">Editor Toolbar Placeholder</div>
+              
               <div className="flex flex-1 gap-4 overflow-hidden">
                 <div className="flex-grow">
                   <FlowCanvasCore
@@ -474,11 +476,11 @@ export default function ConceptMapEditorPage() {
                 />
               </div>
               
-              {/*
+              
               {isExtractConceptsModalOpen && !isViewOnlyMode && (<ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen}/>)}
               {isSuggestRelationsModalOpen && !isViewOnlyMode && (<SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={storeMapData.nodes.slice(0,5).map(n => n.text)} onOpenChange={setIsSuggestRelationsModalOpen}/>)}
               {isExpandConceptModalOpen && !isViewOnlyMode && (<ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={storeMapData.nodes.length > 0 ? storeMapData.nodes[0].text : ""} onOpenChange={setIsExpandConceptModalOpen}/>)}
-              */}
+              
             </>
           )}
         </div>
