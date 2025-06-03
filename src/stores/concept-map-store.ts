@@ -3,7 +3,6 @@ import { create } from 'zustand';
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 
 // --- Unique ID Generation ---
-// Moved from ConceptMapEditorPage to be co-located with store actions that use them.
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -42,8 +41,6 @@ interface ConceptMapState {
   setSharedWithClassroomId: (classroomId: string | null) => void;
   setIsNewMapMode: (isNew: boolean) => void;
   
-  // setMapData: (data: ConceptMapData) => void; // Replaced by granular actions
-
   setIsLoading: (loading: boolean) => void;
   setIsSaving: (saving: boolean) => void;
   setError: (error: string | null) => void;
@@ -57,6 +54,7 @@ interface ConceptMapState {
   
   initializeNewMap: (userId: string) => void;
   setLoadedMap: (map: ConceptMap) => void;
+  importMapData: (importedData: ConceptMapData, fileName?: string) => void; // New action for import
   resetStore: () => void;
 
   // Granular actions for map data
@@ -138,6 +136,29 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
       aiExpandedConcepts: [],
     });
   },
+  importMapData: (importedData, fileName) => {
+    const currentMapName = get().mapName;
+    const newName = fileName ? `Imported: ${fileName}` : `Imported: ${currentMapName}`;
+    
+    set((state) => ({
+      mapData: importedData,
+      mapName: newName, 
+      // If current map is 'new', keep it 'new' so save creates a new entry.
+      // If current map is existing, importing overwrites its content. The ID and owner remain.
+      // isNewMapMode: state.isNewMapMode, // No change, decided by current state
+      // mapId: state.mapId, // No change
+      // currentMapOwnerId: state.currentMapOwnerId, // No change
+      // currentMapCreatedAt: state.currentMapCreatedAt, // No change
+      selectedElementId: null,
+      selectedElementType: null,
+      aiExtractedConcepts: [],
+      aiSuggestedRelations: [],
+      aiExpandedConcepts: [],
+      isLoading: false,
+      isSaving: false,
+      error: null,
+    }));
+  },
   resetStore: () => set(initialState),
 
   // --- Granular Map Data Actions ---
@@ -167,7 +188,14 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
     const newEdges = state.mapData.edges.filter(
       (edge) => edge.source !== nodeId && edge.target !== nodeId
     );
-    return { mapData: { nodes: newNodes, edges: newEdges } };
+    // Also deselect if the deleted node was selected
+    const newSelectedElementId = state.selectedElementId === nodeId ? null : state.selectedElementId;
+    const newSelectedElementType = state.selectedElementId === nodeId ? null : state.selectedElementType;
+    return { 
+      mapData: { nodes: newNodes, edges: newEdges },
+      selectedElementId: newSelectedElementId,
+      selectedElementType: newSelectedElementType,
+    };
   }),
 
   addEdge: (options) => set((state) => {
@@ -189,15 +217,19 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
     },
   })),
 
-  deleteEdge: (edgeId) => set((state) => ({
-    mapData: {
-      ...state.mapData,
-      edges: state.mapData.edges.filter((edge) => edge.id !== edgeId),
-    },
-  })),
-
+  deleteEdge: (edgeId) => set((state) => {
+     // Also deselect if the deleted edge was selected
+    const newSelectedElementId = state.selectedElementId === edgeId ? null : state.selectedElementId;
+    const newSelectedElementType = state.selectedElementId === edgeId ? null : state.selectedElementType;
+    return {
+      mapData: {
+        ...state.mapData,
+        edges: state.mapData.edges.filter((edge) => edge.id !== edgeId),
+      },
+      selectedElementId: newSelectedElementId,
+      selectedElementType: newSelectedElementType,
+    };
+  })
 }));
     
 export default useConceptMapStore;
-
-    

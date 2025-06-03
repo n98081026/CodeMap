@@ -60,12 +60,12 @@
     - [x] **`EditorToolbar`**: 
         - [x] Provides UI for Save, Add Node, Add Edge. 
         - [x] GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals. 
-        - [x] Other file/edit operations are placeholders (Import, Undo/Redo). 
         - [x] "Add Edge" disabled if <2 nodes.
         - [x] Implement "New Map" button (navigates to new map route).
         - [x] Implement "Export Map" (JSON download of current map data).
         - [x] Add button to toggle Properties Inspector panel.
         - [x] Add button to toggle AI Suggestions / Map Info panel.
+        - [x] Implement "Import Map" (JSON file upload and parsing, placeholder Undo/Redo).
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Now takes up main editor area.
     - [x] **`PropertiesInspector`**: 
         - [x] Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. 
@@ -79,7 +79,6 @@
         - [x] Re-integrated as a toggleable bottom sheet/drawer.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states.
 - [ ] **Concept Map Editor - Further Enhancements (Future):**
-    - [ ] Implement "Import Map" (JSON file upload and parsing).
     - [ ] Implement Undo/Redo functionality in the editor (complex, requires history tracking in store).
     - [ ] Add custom node types with distinct visual styling on the canvas.
     - [ ] Implement a context menu (right-click) on canvas elements for quick actions.

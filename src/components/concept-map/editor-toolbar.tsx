@@ -17,6 +17,7 @@ interface EditorToolbarProps {
   onSaveMap: () => void;
   isSaving: boolean;
   onExportMap: () => void;
+  onTriggerImport: () => void; // New prop to trigger file input
   onExtractConcepts: () => void;
   onSuggestRelations: () => void;
   onExpandConcept: () => void;
@@ -35,6 +36,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onSaveMap, 
   isSaving, 
   onExportMap,
+  onTriggerImport, // Destructure new prop
   onExtractConcepts, 
   onSuggestRelations, 
   onExpandConcept,
@@ -91,11 +93,12 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Import Map")} disabled={isViewOnlyMode}>
+            {/* Updated Import button to use onTriggerImport */}
+            <Button variant="ghost" size="icon" onClick={onTriggerImport} disabled={isViewOnlyMode}>
               <Upload className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Import (Disabled)" : "Import Map (JSON) (Placeholder)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Import Map (Disabled)" : "Import Map (JSON)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
