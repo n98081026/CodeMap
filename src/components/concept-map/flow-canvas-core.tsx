@@ -73,12 +73,19 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const handleRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
     onNodesChangeReactFlow(changes);
-    changes.forEach(change => {
-      if (change.type === 'position' && change.position) { // Temporarily removed '&& change.dragging === false'
-        onNodesChangeInStore(change.id, { x: change.position.x, y: change.position.y });
-      }
-    });
-  }, [isViewOnlyMode, onNodesChangeReactFlow, onNodesChangeInStore]);
+    // Position updates are now handled by onNodeDragStop
+    // Other changes like selection or dimensions (if applicable) are handled by React Flow's internal state
+    // and our store syncs deletions via onNodesDelete.
+  }, [isViewOnlyMode, onNodesChangeReactFlow]);
+
+  const handleNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
+      if (isViewOnlyMode || !node.position) return;
+      // After dragging stops, update the position in our Zustand store
+      onNodesChangeInStore(node.id, { x: node.position.x, y: node.position.y });
+    },
+    [isViewOnlyMode, onNodesChangeInStore]
+  );
 
   const handleRfEdgesChange: OnEdgesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
@@ -130,6 +137,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       isViewOnlyMode={isViewOnlyMode}
       nodeTypes={nodeTypesConfig}
       onNodeContextMenu={onNodeContextMenu}
+      onNodeDragStop={handleNodeDragStop} // Pass the new handler
     />
   );
 };

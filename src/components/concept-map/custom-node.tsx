@@ -75,7 +75,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   return (
     <Card className={cn(baseStyle, selectedStyle, typeSpecificStyle, 'min-w-[160px] max-w-[280px] group nodrag')}>
       <CardHeader className={cn(
-        "p-2.5 border-b border-[inherit] cursor-move nodrag flex flex-row items-center space-x-2",
+        "p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2", // Removed 'nodrag' from CardHeader
         data.type && nodeTypeStyles[data.type] ? 'bg-opacity-20' : ''
       )}>
         <IconComponent className="h-4 w-4 text-[inherit] opacity-80 flex-shrink-0" />

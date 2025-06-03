@@ -33,7 +33,8 @@ interface InteractiveCanvasProps {
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
   nodeTypes?: NodeTypes;
-  onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void; // Added prop
+  onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
+  onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -65,7 +66,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onConnect,
   isViewOnlyMode,
   nodeTypes,
-  onNodeContextMenu, // Destructure new prop
+  onNodeContextMenu,
+  onNodeDragStop,
 }) => {
 
   return (
@@ -88,7 +90,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         className="bg-background"
         proOptions={{ hideAttribution: true }}
         nodeTypes={nodeTypes}
-        onNodeContextMenu={onNodeContextMenu} // Pass to ReactFlow
+        onNodeContextMenu={onNodeContextMenu}
+        onNodeDragStop={onNodeDragStop} // Pass to ReactFlow
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
