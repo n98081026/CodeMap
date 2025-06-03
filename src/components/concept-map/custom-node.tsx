@@ -70,6 +70,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     border: '1px solid hsl(var(--border))',
     borderRadius: '2px',
     transition: 'all 0.2s ease',
+    pointerEvents: 'all' as React.CSSProperties['pointerEvents'],
   };
 
   return (
@@ -90,7 +91,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
       )}
 
       <Handle
-        type="target"
+        type="target" // Top is target
         position={Position.Top}
         id={`${id}-top`}
         style={{ ...handleBaseStyle, top: '-5px' }}
@@ -98,7 +99,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         className="react-flow__handle-custom"
       />
       <Handle
-        type="source"
+        type="source" // Bottom is source
         position={Position.Bottom}
         id={`${id}-bottom`}
         style={{ ...handleBaseStyle, bottom: '-5px' }}
@@ -106,7 +107,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         className="react-flow__handle-custom"
       />
       <Handle
-        type="target"
+        type="target" // Left is target
         position={Position.Left}
         id={`${id}-left`}
         style={{ ...handleBaseStyle, left: '-5px' }}
@@ -114,7 +115,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         className="react-flow__handle-custom"
       />
       <Handle
-        type="source"
+        type="source" // Right is source
         position={Position.Right}
         id={`${id}-right`}
         style={{ ...handleBaseStyle, right: '-5px' }}
@@ -126,4 +127,3 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
-
