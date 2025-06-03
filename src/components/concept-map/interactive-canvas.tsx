@@ -6,7 +6,7 @@ import ReactFlow, {
   MiniMap,
   Controls,
   Background,
-  ReactFlowProvider,
+  // ReactFlowProvider, // Removed: Provider will be in the parent
   type Node,
   type Edge,
   type FitViewOptions,
@@ -70,35 +70,31 @@ export function InteractiveCanvas({
   isViewOnlyMode 
 }: InteractiveCanvasProps) {
   
-  // const flowKey = `rf-${nodes.length}-${edges.length}-${isViewOnlyMode}`; // Removed dynamic key
-
   return (
     <Card className="h-[calc(100vh-200px)] w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden">
-      <ReactFlowProvider>
-        <ReactFlow
-          // key={flowKey} // Removed dynamic key
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodesDelete={onNodesDelete}
-          onEdgesDelete={onEdgesDelete}
-          onSelectionChange={onSelectionChange}
-          onConnect={onConnect} 
-          fitView
-          fitViewOptions={fitViewOptions}
-          nodesDraggable={!isViewOnlyMode}
-          nodesConnectable={!isViewOnlyMode} 
-          elementsSelectable={true} 
-          deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
-          className="bg-background"
-          proOptions={{ hideAttribution: true }} 
-        >
-          <Controls showInteractive={!isViewOnlyMode} />
-          <MiniMap nodeColor={nodeColor} nodeStrokeWidth={3} zoomable pannable />
-          <Background gap={16} color="hsl(var(--border))" />
-        </ReactFlow>
-      </ReactFlowProvider>
+      {/* ReactFlowProvider removed from here */}
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodesDelete={onNodesDelete}
+        onEdgesDelete={onEdgesDelete}
+        onSelectionChange={onSelectionChange}
+        onConnect={onConnect} 
+        fitView
+        fitViewOptions={fitViewOptions}
+        nodesDraggable={!isViewOnlyMode}
+        nodesConnectable={!isViewOnlyMode} 
+        elementsSelectable={true} 
+        deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
+        className="bg-background"
+        proOptions={{ hideAttribution: true }} 
+      >
+        <Controls showInteractive={!isViewOnlyMode} />
+        <MiniMap nodeColor={nodeColor} nodeStrokeWidth={3} zoomable pannable />
+        <Background gap={16} color="hsl(var(--border))" />
+      </ReactFlow>
     </Card>
   );
 }

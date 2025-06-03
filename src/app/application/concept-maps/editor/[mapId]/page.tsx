@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
 import type { Node as RFNode, Edge as RFEdge, OnNodesChange, OnEdgesChange, OnNodesDelete, OnEdgesDelete, SelectionChanges, Connection } from 'reactflow';
-import { useNodesState, useEdgesState, MarkerType } from 'reactflow';
+import { useNodesState, useEdgesState, MarkerType, ReactFlowProvider } from 'reactflow'; // Added ReactFlowProvider
 
 import {
   ExtractConceptsModal,
@@ -42,12 +42,11 @@ export default function ConceptMapEditorPage() {
   const {
     mapId: storeMapId,
     mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
-    mapData: storeMapData, // Renamed to avoid conflict
-    isLoading: isStoreLoading, // Renamed
-    isSaving, error: storeError, // Renamed
+    mapData: storeMapData,
+    isLoading: isStoreLoading,
+    isSaving, error: storeError,
     selectedElementId, selectedElementType,
     aiExtractedConcepts, aiSuggestedRelations, aiExpandedConcepts,
-    // Store actions
     initializeNewMap, setLoadedMap, setIsLoading: setStoreIsLoading, setError: setStoreError,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
@@ -74,6 +73,12 @@ export default function ConceptMapEditorPage() {
 
   // Group 6: Callbacks (useCallback)
   const loadMapData = useCallback(async (id: string) => {
+    if (!id || id.trim() === '') {
+      console.warn("loadMapData called with invalid id:", id);
+      if (user && user.id) initializeNewMap(user.id);
+      else setStoreError("Cannot initialize new map: User not found.");
+      return;
+    }
     if (id === "new") {
       if (user && user.id) {
         initializeNewMap(user.id);
@@ -107,19 +112,21 @@ export default function ConceptMapEditorPage() {
 
   const onRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
-    setRfNodes((nds) => onNodesChangeReactFlow(changes, nds));
+    onNodesChangeReactFlow(changes); // Apply changes using the handler from useNodesState
     changes.forEach(change => {
         if (change.type === 'position' && change.position && change.dragging === false) {
             updateStoreNode(change.id, { x: change.position.x, y: change.position.y });
         }
     });
-  }, [setRfNodes, onNodesChangeReactFlow, isViewOnlyMode, updateStoreNode]);
+  }, [isViewOnlyMode, updateStoreNode, onNodesChangeReactFlow]);
 
 
   const onRfEdgesChange: OnEdgesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
-    setRfEdges((eds) => onEdgesChangeReactFlow(changes, eds));
-  }, [setRfEdges, onEdgesChangeReactFlow, isViewOnlyMode]);
+    onEdgesChangeReactFlow(changes); // Apply changes using the handler from useEdgesState
+    // If you need to react to edge changes beyond React Flow's state update (e.g., persist to store), add here.
+    // For now, this is typically less common for simple edge prop changes than node position changes.
+  }, [isViewOnlyMode, onEdgesChangeReactFlow]);
 
 
   const handleRfNodesDeleted: OnNodesDelete = useCallback((deletedRfNodes) => {
@@ -246,7 +253,7 @@ export default function ConceptMapEditorPage() {
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId,
+            ownerId: currentMapOwnerId, // Required by API for auth check
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -328,13 +335,13 @@ export default function ConceptMapEditorPage() {
     let relationsActuallyAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
 
-    let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Snapshot
+    let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
 
     relations.forEach(rel => {
       let sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
       if (!sourceNode) {
         addStoreNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Re-fetch after potential add
+        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
         sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
         if(sourceNode) conceptsAddedFromRelationsCount++; else return;
       }
@@ -342,7 +349,7 @@ export default function ConceptMapEditorPage() {
       let targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
       if (!targetNode) {
         addStoreNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Re-fetch
+        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
         targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
         if(targetNode) conceptsAddedFromRelationsCount++; else return;
       }
@@ -407,30 +414,30 @@ export default function ConceptMapEditorPage() {
 
   const getBackLink = useCallback(() => {
     if (!user) return "/";
-    if (isNewMapMode || storeMapId === 'new' || user.role === UserRole.ADMIN) {
+    if (isNewMapMode || storeMapId === 'new' || (user.role === UserRole.ADMIN && !sharedWithClassroomId)) {
         return getRoleBasedDashboardLink();
     }
     if (user.role === UserRole.STUDENT) {
         return "/application/student/concept-maps";
     }
-    if (user.role === UserRole.TEACHER) {
+    if (user.role === UserRole.TEACHER || (user.role === UserRole.ADMIN && sharedWithClassroomId)) {
         if (sharedWithClassroomId) {
             return `/application/teacher/classrooms/${sharedWithClassroomId}`;
         }
-        return "/application/teacher/dashboard";
+        return "/application/teacher/dashboard"; // Fallback for teacher if somehow no sharedClassroomId
     }
     return getRoleBasedDashboardLink();
   }, [user, isNewMapMode, storeMapId, sharedWithClassroomId, getRoleBasedDashboardLink]);
 
   const getBackButtonText = useCallback(() => {
     if (!user) return "Back";
-     if (isNewMapMode || storeMapId === 'new' || user.role === UserRole.ADMIN) {
+     if (isNewMapMode || storeMapId === 'new' || (user.role === UserRole.ADMIN && !sharedWithClassroomId)) {
         return "Back to Dashboard";
     }
     if (user.role === UserRole.STUDENT) {
         return "Back to My Maps";
     }
-    if (user.role === UserRole.TEACHER) {
+    if (user.role === UserRole.TEACHER || (user.role === UserRole.ADMIN && sharedWithClassroomId)) {
         if (sharedWithClassroomId) {
             return "Back to Classroom";
         }
@@ -484,38 +491,8 @@ export default function ConceptMapEditorPage() {
     setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
   }, [storeMapData, setRfNodes, setRfEdges]);
 
-  // ---- JSX for different states ----
-  const loadingUI = (
-    <div className="flex h-full flex-col space-y-4 p-4">
-      <DashboardHeader title="Loading Map..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={getRoleBasedDashboardLink()} />
-      <div className="flex justify-center items-center py-10 flex-grow">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    </div>
-  );
-
-  const mapIdForErrorCheck = (isNewMapMode || storeMapId === 'new') ? 'new' : routeMapId;
-  const errorUI = (
-    <div className="flex h-full flex-col space-y-4 p-4">
-      <DashboardHeader title="Error Loading Map" icon={AlertTriangle} iconLinkHref={getRoleBasedDashboardLink()} />
-      <Card className="flex-grow">
-        <CardHeader>
-          <CardTitle className="text-destructive">Could not load map: {mapName}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>{storeError}</p>
-          <Button asChild variant="outline" className="mt-4">
-            <Link href={getBackLink()}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const mapForInspector: ConceptMap = {
-    id: storeMapId || routeMapId,
+  const mapForInspector: ConceptMap | null = storeMapId && storeMapId !== 'new' ? {
+    id: storeMapId,
     name: mapName,
     ownerId: currentMapOwnerId || user?.id || "",
     mapData: storeMapData,
@@ -523,7 +500,21 @@ export default function ConceptMapEditorPage() {
     sharedWithClassroomId: sharedWithClassroomId,
     createdAt: currentMapCreatedAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  };
+  } : null;
+  
+  if (isNewMapMode && !mapForInspector && user) {
+      (mapForInspector as ConceptMap | null) = {
+        id: 'new',
+        name: mapName,
+        ownerId: user.id,
+        mapData: storeMapData,
+        isPublic: isPublic,
+        sharedWithClassroomId: sharedWithClassroomId,
+        createdAt: currentMapCreatedAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+  }
+
 
   let actualSelectedElementForInspector: ConceptMapNode | ConceptMapEdge | null = null;
   if (selectedElementId && selectedElementType) {
@@ -536,105 +527,124 @@ export default function ConceptMapEditorPage() {
 
   const canAddEdge = storeMapData.nodes.length >= 2;
 
-  // Main Content UI
-  const mainContentUI = (
-    <div className="flex h-full flex-col space-y-4">
-      <DashboardHeader
-        title={isViewOnlyMode ? `Viewing: ${mapName}` : mapName}
-        description={isViewOnlyMode ? "This map is in view-only mode. Interactions are disabled." : "Create, edit, and visualize your ideas. Nodes are draggable."}
-        icon={(isNewMapMode || storeMapId === 'new') ? Compass : Share2}
-        iconLinkHref={getRoleBasedDashboardLink()}
-      >
-        {!isViewOnlyMode && (
-          <Button onClick={handleSaveMap} disabled={isSaving}>
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {isSaving ? "Saving..." : "Save Map"}
+  // ---- MAIN RENDER ----
+  return (
+    <ReactFlowProvider>
+      <div className="flex h-full flex-col space-y-4">
+        <DashboardHeader
+          title={isStoreLoading ? "Loading Map..." : (isViewOnlyMode ? `Viewing: ${mapName}` : mapName)}
+          description={isStoreLoading ? "Please wait." : (isViewOnlyMode ? "This map is in view-only mode. Interactions are disabled." : "Create, edit, and visualize your ideas. Nodes are draggable.")}
+          icon={isStoreLoading ? Loader2 : (isNewMapMode || storeMapId === 'new') ? Compass : Share2}
+          iconClassName={isStoreLoading ? "animate-spin" : ""}
+          iconLinkHref={getRoleBasedDashboardLink()}
+        >
+          {!isStoreLoading && !storeError && !isViewOnlyMode && (
+            <Button onClick={handleSaveMap} disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {isSaving ? "Saving..." : "Save Map"}
+            </Button>
+          )}
+          <Button asChild variant="outline">
+            <Link href={getBackLink()}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}
+            </Link>
           </Button>
+        </DashboardHeader>
+
+        {isStoreLoading ? (
+          <div className="flex justify-center items-center py-10 flex-grow">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        ) : storeError ? (
+          <Card className="flex-grow">
+            <CardHeader>
+              <CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Map</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>{storeError}</p>
+              <Button onClick={() => routeMapId && loadMapData(routeMapId)} variant="outline" className="mt-4 mr-2">Try Again</Button>
+              <Button asChild variant="secondary" className="mt-4">
+                <Link href={getBackLink()}> <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()} </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <EditorToolbar
+              onSaveMap={handleSaveMap}
+              isSaving={isSaving}
+              onExtractConcepts={useCallback(() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [resetStoreAiSuggestions])}
+              onSuggestRelations={useCallback(() => { resetStoreAiSuggestions(); setIsSuggestRelationsModalOpen(true); }, [resetStoreAiSuggestions])}
+              onExpandConcept={useCallback(() => { resetStoreAiSuggestions(); setIsExpandConceptModalOpen(true); }, [resetStoreAiSuggestions])}
+              isViewOnlyMode={isViewOnlyMode}
+              onAddNodeToData={handleAddNodeToData}
+              onAddEdgeToData={handleAddEdgeToData}
+              canAddEdge={canAddEdge}
+            />
+
+            <div className="flex flex-1 gap-4 overflow-hidden">
+              <div className="flex-grow">
+                <InteractiveCanvas
+                  nodes={rfNodes}
+                  edges={rfEdges}
+                  onNodesChange={onRfNodesChange}
+                  onEdgesChange={onRfEdgesChange}
+                  onNodesDelete={handleRfNodesDeleted}
+                  onEdgesDelete={handleRfEdgesDeleted}
+                  onSelectionChange={handleSelectionChange}
+                  onConnect={handleRfConnect}
+                  isViewOnlyMode={isViewOnlyMode}
+                />
+              </div>
+              <aside className="hidden w-80 flex-shrink-0 lg:block">
+                <PropertiesInspector
+                  currentMap={mapForInspector}
+                  onMapPropertiesChange={handleMapPropertiesChange}
+                  selectedElement={actualSelectedElementForInspector}
+                  selectedElementType={selectedElementType}
+                  onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdate}
+                  isNewMapMode={(isNewMapMode || storeMapId === 'new')}
+                  isViewOnlyMode={isViewOnlyMode}
+                />
+              </aside>
+            </div>
+
+            <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
+              <CanvasPlaceholder
+                  mapData={storeMapData}
+                  extractedConcepts={aiExtractedConcepts}
+                  suggestedRelations={aiSuggestedRelations}
+                  expandedConcepts={aiExpandedConcepts}
+                  onAddExtractedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-extracted-concept')}
+                  onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
+                  onAddExpandedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-expanded-concept')}
+                  isViewOnlyMode={isViewOnlyMode}
+              />
+            </div>
+
+            {isExtractConceptsModalOpen && !isViewOnlyMode && (
+              <ExtractConceptsModal
+                  onConceptsExtracted={handleConceptsExtracted}
+                  onOpenChange={setIsExtractConceptsModalOpen}
+              />
+            )}
+            {isSuggestRelationsModalOpen && !isViewOnlyMode && (
+              <SuggestRelationsModal
+                onRelationsSuggested={handleRelationsSuggested}
+                initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)}
+                onOpenChange={setIsSuggestRelationsModalOpen}
+              />
+            )}
+            {isExpandConceptModalOpen && !isViewOnlyMode && (
+              <ExpandConceptModal
+                onConceptExpanded={handleConceptExpanded}
+                initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""}
+                onOpenChange={setIsExpandConceptModalOpen}
+              />
+            )}
+          </>
         )}
-        <Button asChild variant="outline">
-          <Link href={getBackLink()}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}
-          </Link>
-        </Button>
-      </DashboardHeader>
-
-      <EditorToolbar
-        onSaveMap={handleSaveMap}
-        isSaving={isSaving}
-        onExtractConcepts={useCallback(() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [resetStoreAiSuggestions])}
-        onSuggestRelations={useCallback(() => { resetStoreAiSuggestions(); setIsSuggestRelationsModalOpen(true); }, [resetStoreAiSuggestions])}
-        onExpandConcept={useCallback(() => { resetStoreAiSuggestions(); setIsExpandConceptModalOpen(true); }, [resetStoreAiSuggestions])}
-        isViewOnlyMode={isViewOnlyMode}
-        onAddNodeToData={handleAddNodeToData}
-        onAddEdgeToData={handleAddEdgeToData}
-        canAddEdge={canAddEdge}
-      />
-
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        <div className="flex-grow">
-          <InteractiveCanvas
-            nodes={rfNodes}
-            edges={rfEdges}
-            onNodesChange={onRfNodesChange}
-            onEdgesChange={onRfEdgesChange}
-            onNodesDelete={handleRfNodesDeleted}
-            onEdgesDelete={handleRfEdgesDeleted}
-            onSelectionChange={handleSelectionChange}
-            onConnect={handleRfConnect}
-            isViewOnlyMode={isViewOnlyMode}
-          />
-        </div>
-        <aside className="hidden w-80 flex-shrink-0 lg:block">
-          <PropertiesInspector
-            currentMap={mapForInspector}
-            onMapPropertiesChange={handleMapPropertiesChange}
-            selectedElement={actualSelectedElementForInspector}
-            selectedElementType={selectedElementType}
-            onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdate}
-            isNewMapMode={(isNewMapMode || storeMapId === 'new')}
-            isViewOnlyMode={isViewOnlyMode}
-          />
-        </aside>
       </div>
-
-      <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
-        <CanvasPlaceholder
-            mapData={storeMapData}
-            extractedConcepts={aiExtractedConcepts}
-            suggestedRelations={aiSuggestedRelations}
-            expandedConcepts={aiExpandedConcepts}
-            onAddExtractedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-extracted-concept')}
-            onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
-            onAddExpandedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-expanded-concept')}
-            isViewOnlyMode={isViewOnlyMode}
-        />
-      </div>
-
-      {isExtractConceptsModalOpen && !isViewOnlyMode && (
-        <ExtractConceptsModal
-            onConceptsExtracted={handleConceptsExtracted}
-            onOpenChange={setIsExtractConceptsModalOpen}
-        />
-      )}
-      {isSuggestRelationsModalOpen && !isViewOnlyMode && (
-        <SuggestRelationsModal
-          onRelationsSuggested={handleRelationsSuggested}
-          initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)}
-          onOpenChange={setIsSuggestRelationsModalOpen}
-        />
-      )}
-      {isExpandConceptModalOpen && !isViewOnlyMode && (
-        <ExpandConceptModal
-          onConceptExpanded={handleConceptExpanded}
-          initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""}
-          onOpenChange={setIsExpandConceptModalOpen}
-        />
-      )}
-    </div>
+    </ReactFlowProvider>
   );
-
-  // Final return based on state
-  if (isStoreLoading) return loadingUI;
-  if (storeError && mapIdForErrorCheck !== 'new') return errorUI;
-  return mainContentUI;
 }
