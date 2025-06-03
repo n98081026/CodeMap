@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { useParams, useRouter, useSearchParams } from 'next/navigation'; // Import useParams
 import { InteractiveCanvas } from "@/components/concept-map/interactive-canvas"; 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
@@ -9,7 +10,6 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
-import { useRouter, useSearchParams } from 'next/navigation';
 import type { Node as RFNode, Edge as RFEdge, OnNodesChange, OnEdgesChange, OnNodesDelete, OnEdgesDelete, SelectionChanges, Connection } from 'reactflow';
 import { useNodesState, useEdgesState, MarkerType } from 'reactflow';
 
@@ -29,8 +29,10 @@ import useConceptMapStore from '@/stores/concept-map-store';
 import type { RFConceptMapNodeData, RFConceptMapEdgeData } from "@/components/concept-map/interactive-canvas";
 
 
-export default function ConceptMapEditorPage({ params }: { params: { mapId: string } }) {
-  const { mapId: routeMapId } = params; // Destructure mapId
+export default function ConceptMapEditorPage() {
+  const paramsHook = useParams(); // Use hook
+  const routeMapId = paramsHook.mapId as string; // mapId from hook
+
   const searchParams = useSearchParams(); 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -88,10 +90,10 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   }, [toast, user, store]); 
 
   useEffect(() => {
-    if (routeMapId) { // Use destructured routeMapId
+    if (routeMapId) { 
       loadMapData(routeMapId);
     }
-  }, [routeMapId, loadMapData]); // Use destructured routeMapId
+  }, [routeMapId, loadMapData]); 
 
   useEffect(() => {
     const transformedNodes = (store.mapData.nodes || []).map(appNode => {
@@ -294,7 +296,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
       
-      if (routeMapId === 'new' && savedMap.id) { // Use destructured routeMapId
+      if (store.isNewMapMode && savedMap.id) { // Use store's isNewMapMode
          router.replace(`/application/concept-maps/editor/${savedMap.id}${isViewOnlyMode ? '?viewOnly=true' : ''}`, { scroll: false });
       }
     } catch (err) {
@@ -306,7 +308,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   }, [
     isViewOnlyMode, user, mapName, store, rfNodes, 
     isNewMapMode, currentMapOwnerId, isPublic, sharedWithClassroomId, 
-    routeMapId, router, toast // Use destructured routeMapId
+    router, toast 
   ]);
 
   const handleConceptsExtracted = useCallback((concepts: string[]) => {
@@ -473,7 +475,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     );
   }
 
-  if (error && !isNewMapMode && routeMapId !=='new') { // Use destructured routeMapId
+  if (store.error && !store.isNewMapMode && store.mapId !== 'new') {
      return (
       <div className="flex h-full flex-col space-y-4 p-4">
         <DashboardHeader title="Error Loading Map" icon={AlertTriangle} iconLinkHref={getRoleBasedDashboardLink()} />
@@ -482,7 +484,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
             <CardTitle className="text-destructive">Could not load map</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>{error}</p>
+            <p>{store.error}</p>
             <Button asChild variant="outline" className="mt-4">
               <Link href={getBackLink()}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}
@@ -495,7 +497,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   }
   
   const mapForInspector: ConceptMap = {
-    id: store.mapId || routeMapId, // Use destructured routeMapId
+    id: store.mapId || routeMapId, 
     name: mapName,
     ownerId: currentMapOwnerId || user?.id || "", 
     mapData: store.mapData, 
@@ -612,3 +614,5 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     </div>
   );
 }
+
+    

@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { useParams } from 'next/navigation'; // Import useParams
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Classroom, ConceptMap } from "@/types";
@@ -12,8 +13,10 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 
-export default function StudentClassroomDetailPage({ params }: { params: { classroomId: string } }) {
-  const { classroomId: routeClassroomId } = params; // Destructure classroomId
+export default function StudentClassroomDetailPage() {
+  const paramsHook = useParams(); // Use hook
+  const routeClassroomId = paramsHook.classroomId as string; // classroomId from hook
+
   const { user } = useAuth();
   const { toast } = useToast();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
@@ -26,11 +29,11 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
   const studentDashboardLink = "/application/student/dashboard";
 
   const fetchClassroomDetails = useCallback(async () => {
-    if (!routeClassroomId) return; // Use destructured classroomId
+    if (!routeClassroomId) return; 
     setIsLoadingClassroom(true);
     setErrorClassroom(null);
     try {
-      const response = await fetch(`/api/classrooms/${routeClassroomId}`); // Use destructured classroomId
+      const response = await fetch(`/api/classrooms/${routeClassroomId}`); 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom details");
@@ -44,14 +47,14 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
     } finally {
       setIsLoadingClassroom(false);
     }
-  }, [routeClassroomId, toast]); // Use destructured classroomId
+  }, [routeClassroomId, toast]); 
 
   const fetchSharedMaps = useCallback(async () => {
-    if (!routeClassroomId) return; // Use destructured classroomId
+    if (!routeClassroomId) return; 
     setIsLoadingMaps(true);
     setErrorMaps(null);
     try {
-      const response = await fetch(`/api/concept-maps?classroomId=${routeClassroomId}`); // Use destructured classroomId
+      const response = await fetch(`/api/concept-maps?classroomId=${routeClassroomId}`); 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch shared concept maps");
@@ -65,7 +68,7 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
     } finally {
       setIsLoadingMaps(false);
     }
-  }, [routeClassroomId, toast]); // Use destructured classroomId
+  }, [routeClassroomId, toast]); 
 
   useEffect(() => {
     fetchClassroomDetails();
@@ -205,3 +208,4 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
   );
 }
 
+    
