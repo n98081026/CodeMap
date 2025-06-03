@@ -68,7 +68,7 @@ export default function StudentConceptMapsPage() {
       const response = await fetch(`/api/concept-maps/${mapId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ownerId: user.id })
+        body: JSON.stringify({ ownerId: user.id }) // Send ownerId for backend authorization check
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -78,7 +78,7 @@ export default function StudentConceptMapsPage() {
         title: "Concept Map Deleted",
         description: `"${mapName}" has been deleted.`,
       });
-      fetchStudentMaps();
+      fetchStudentMaps(); // Re-fetch maps to update the list
     } catch (errorMsg) {
       toast({
         title: "Error Deleting Map",

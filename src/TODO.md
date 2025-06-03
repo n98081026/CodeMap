@@ -243,6 +243,7 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (Connected to mock service. Re-evaluate with Supabase).
     - [x] Develop system settings interface (Mock save. Re-evaluate with Supabase).
+- [x] **Connect frontend concept map listing (student) to live API for loading/deleting.**
 
 ## Testing & Deployment (Future - Out of Scope for AI Agent Implementation)
 - [ ] **Testing:**
