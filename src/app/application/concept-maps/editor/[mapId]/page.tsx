@@ -69,7 +69,6 @@ export default function ConceptMapEditorPage() {
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
   
-  // State for GenAI modal inputs
   const [conceptToExpand, setConceptToExpand] = useState("");
   const [mapContextForExpansion, setMapContextForExpansion] = useState<string[]>([]);
   const [conceptsForRelationSuggestion, setConceptsForRelationSuggestion] = useState<string[]>([]);
@@ -146,37 +145,6 @@ export default function ConceptMapEditorPage() {
     setStoreSelectedElement(elementId, elementType);
   }, [setStoreSelectedElement]);
 
-  const handleFlowElementUpdate = useCallback((
-    elementId: string,
-    elementType: 'node' | 'edge',
-    updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>
-  ) => {
-    if (isViewOnlyMode) return;
-    if (elementType === 'node') {
-      updateStoreNode(elementId, updates as Partial<ConceptMapNode>);
-    } else {
-      updateStoreEdge(elementId, updates as Partial<ConceptMapEdge>);
-    }
-  }, [isViewOnlyMode, updateStoreNode, updateStoreEdge]);
-
-  const handleSelectedElementPropertyUpdateInspector = useCallback((
-    inspectorUpdates: any
-  ) => {
-    if (isViewOnlyMode || !selectedElementId || !selectedElementType ) return;
-
-    if (selectedElementType === 'node') {
-      const nodeUpdates: Partial<ConceptMapNode> = {};
-      if (inspectorUpdates.text !== undefined) nodeUpdates.text = inspectorUpdates.text;
-      if (inspectorUpdates.details !== undefined) nodeUpdates.details = inspectorUpdates.details;
-      if (inspectorUpdates.type !== undefined) nodeUpdates.type = inspectorUpdates.type;
-      updateStoreNode(selectedElementId, nodeUpdates);
-    } else if (selectedElementType === 'edge') {
-      const edgeUpdates: Partial<ConceptMapEdge> = {};
-      if (inspectorUpdates.label !== undefined) edgeUpdates.label = inspectorUpdates.label;
-      updateStoreEdge(selectedElementId, edgeUpdates);
-    }
-  }, [isViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
-
 
   const handleSaveMap = useCallback(async () => {
     if (isViewOnlyMode) {
@@ -226,7 +194,7 @@ export default function ConceptMapEditorPage() {
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId,
+            ownerId: currentMapOwnerId, // For authorization check on backend
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -240,7 +208,7 @@ export default function ConceptMapEditorPage() {
         throw new Error(errorData.message || "Failed to save map");
       }
       const savedMap: ConceptMap = await response.json();
-      setLoadedMap(savedMap);
+      setLoadedMap(savedMap); // Update store with saved map, including new ID if it was a new map
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
 
       if ((isNewMapMode || storeMapId === 'new') && savedMap.id) {
@@ -260,92 +228,127 @@ export default function ConceptMapEditorPage() {
 
   const handleConceptsExtracted = useCallback((concepts: string[]) => {
     if (isViewOnlyMode) return;
-    setStoreAiExtractedConcepts(concepts);
+    setStoreAiExtractedConcepts(concepts); // Store all extracted concepts
     toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts. You can add them to the map via the suggestions panel.` });
-    setIsAiPanelOpen(true);
+    setIsAiPanelOpen(true); // Open panel to show suggestions
   }, [isViewOnlyMode, setStoreAiExtractedConcepts, toast]);
 
   const handleRelationsSuggested = useCallback((relations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) return;
-    setStoreAiSuggestedRelations(relations);
+    setStoreAiSuggestedRelations(relations); // Store all suggested relations
     toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations. You can add them to the map via the suggestions panel.` });
     setIsAiPanelOpen(true);
   }, [isViewOnlyMode, setStoreAiSuggestedRelations, toast]);
 
   const handleConceptExpanded = useCallback((newConcepts: string[]) => {
     if (isViewOnlyMode) return;
-    setStoreAiExpandedConcepts(newConcepts);
+    setStoreAiExpandedConcepts(newConcepts); // Store all expanded concepts
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map via the suggestions panel.` });
     setIsAiPanelOpen(true);
   }, [isViewOnlyMode, setStoreAiExpandedConcepts, toast]);
 
-  const get = useConceptMapStore.getState;
 
-  const addConceptsToMapData = useCallback((conceptsToAdd: string[], type: 'ai-extracted-concept' | 'ai-expanded-concept') => {
+  const addSelectedExtractedConceptsToMap = useCallback((selectedConcepts: string[]) => {
     if (isViewOnlyMode) {
         toast({ title: "View Only Mode", description: "Cannot add concepts in view-only mode.", variant: "default"});
         return;
     }
-    const existingNodeTexts = new Set(get().mapData.nodes.map(n => n.text));
+    if (selectedConcepts.length === 0) {
+        toast({ title: "No Concepts Selected", description: "Please select concepts to add.", variant: "default"});
+        return;
+    }
+    const existingNodeTexts = new Set(useConceptMapStore.getState().mapData.nodes.map(n => n.text));
     let addedCount = 0;
-    conceptsToAdd.forEach(conceptText => {
+    selectedConcepts.forEach(conceptText => {
       if (!existingNodeTexts.has(conceptText)) {
         addStoreNode({
           text: conceptText,
-          type: type === 'ai-extracted-concept' ? 'ai-concept' : 'ai-expanded', // More specific types
+          type: 'ai-concept',
           position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
         });
         addedCount++;
       }
     });
     if (addedCount > 0) toast({ title: "Concepts Added", description: `${addedCount} new concepts added to map. Remember to save.` });
-    else toast({ title: "No New Concepts", description: "All suggestions may already exist on the map.", variant: "default" });
+    else toast({ title: "No New Concepts", description: "All selected suggestions may already exist on the map.", variant: "default" });
 
-    if (type === 'ai-extracted-concept') setStoreAiExtractedConcepts([]);
-    else if (type === 'ai-expanded-concept') setStoreAiExpandedConcepts([]);
-  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts, setStoreAiExpandedConcepts, get]);
+    setStoreAiExtractedConcepts([]); // Clear suggestions after adding
+  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts]);
 
-  const handleAddSuggestedRelationsToMap = useCallback((relations: Array<{ source: string; target: string; relation: string }>) => {
+  const addSelectedSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) {
         toast({ title: "View Only Mode", description: "Cannot add relations in view-only mode.", variant: "default"});
         return;
     }
+    if (selectedRelations.length === 0) {
+        toast({ title: "No Relations Selected", description: "Please select relations to add.", variant: "default"});
+        return;
+    }
+
     let relationsAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
-    let currentNodesSnapshot = [...get().mapData.nodes]; // Get current nodes
-
-    relations.forEach(rel => {
+    
+    selectedRelations.forEach(rel => {
+      let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Get current nodes before potential additions
       let sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
       if (!sourceNode) {
         addStoreNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
-        currentNodesSnapshot = [...get().mapData.nodes]; // Refresh snapshot
+        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Refresh snapshot
         sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
-        if (sourceNode) conceptsAddedFromRelationsCount++; else return; // Skip if node still not found
+        if (sourceNode) conceptsAddedFromRelationsCount++; else return; 
       }
 
       let targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
       if (!targetNode) {
         addStoreNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
-        currentNodesSnapshot = [...get().mapData.nodes]; // Refresh snapshot
+        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Refresh snapshot
         targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
-        if (targetNode) conceptsAddedFromRelationsCount++; else return; // Skip
+        if (targetNode) conceptsAddedFromRelationsCount++; else return; 
       }
 
-      const currentEdgesSnapshot = get().mapData.edges;
+      const currentEdgesSnapshot = useConceptMapStore.getState().mapData.edges;
       if (sourceNode && targetNode && !currentEdgesSnapshot.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
         addStoreEdge({ source: sourceNode!.id, target: targetNode!.id, label: rel.relation });
         relationsAddedCount++;
       }
     });
+
     let toastMessage = "";
     if (relationsAddedCount > 0) toastMessage += `${relationsAddedCount} new relations added. `;
     if (conceptsAddedFromRelationsCount > 0) toastMessage += `${conceptsAddedFromRelationsCount} new concepts (from relations) added. `;
 
     if (toastMessage) toast({ title: "Relations Added", description: `${toastMessage.trim()} Remember to save the map.` });
-    else toast({ title: "No New Relations", description: "All suggestions may already exist on the map.", variant: "default" });
+    else toast({ title: "No New Relations", description: "All selected suggestions may already exist on the map.", variant: "default" });
 
-    setStoreAiSuggestedRelations([]);
-  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations, get]);
+    setStoreAiSuggestedRelations([]); // Clear suggestions after adding
+  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations]);
+
+  const addSelectedExpandedConceptsToMap = useCallback((selectedConcepts: string[]) => {
+     if (isViewOnlyMode) {
+        toast({ title: "View Only Mode", description: "Cannot add concepts in view-only mode.", variant: "default"});
+        return;
+    }
+    if (selectedConcepts.length === 0) {
+        toast({ title: "No Concepts Selected", description: "Please select concepts to add.", variant: "default"});
+        return;
+    }
+    const existingNodeTexts = new Set(useConceptMapStore.getState().mapData.nodes.map(n => n.text));
+    let addedCount = 0;
+    selectedConcepts.forEach(conceptText => {
+      if (!existingNodeTexts.has(conceptText)) {
+        addStoreNode({
+          text: conceptText,
+          type: 'ai-expanded', 
+          position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
+        });
+        addedCount++;
+      }
+    });
+    if (addedCount > 0) toast({ title: "Expanded Ideas Added", description: `${addedCount} new ideas added to map. Remember to save.` });
+    else toast({ title: "No New Ideas", description: "All selected suggestions may already exist on the map.", variant: "default" });
+
+    setStoreAiExpandedConcepts([]); // Clear suggestions after adding
+  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExpandedConcepts]);
 
 
   const handleAddNodeToData = useCallback(() => {
@@ -353,32 +356,31 @@ export default function ConceptMapEditorPage() {
         toast({ title: "View Only Mode", description: "Cannot add node in view-only mode.", variant: "default"});
         return;
     }
-    const newNodeText = `Node ${get().mapData.nodes.length + 1}`;
+    const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
     addStoreNode({ text: newNodeText, type: 'manual-node', position: {x: Math.random() * 200 + 50, y: Math.random() * 100 + 50} });
     toast({ title: "Node Added", description: `"${newNodeText}" added. Remember to save.`});
-  }, [isViewOnlyMode, toast, addStoreNode, get]);
+  }, [isViewOnlyMode, toast, addStoreNode]);
 
   const handleAddEdgeToData = useCallback(() => {
     if (isViewOnlyMode) {
         toast({ title: "View Only Mode", description: "Cannot add edge in view-only mode.", variant: "default"});
         return;
     }
-    const nodes = get().mapData.nodes;
+    const nodes = useConceptMapStore.getState().mapData.nodes;
     if (nodes.length < 2) {
       toast({ title: "Cannot Add Edge", description: "Add at least two nodes to create an edge.", variant: "default" });
       return;
     }
-    // Simplified: attempt to connect last two nodes. Real edge creation should be interactive.
     const sourceNode = nodes[nodes.length - 2];
     const targetNode = nodes[nodes.length - 1];
-    if (!sourceNode || !targetNode) { // Should not happen if nodes.length >= 2
+    if (!sourceNode || !targetNode) {
         toast({ title: "Error Adding Edge", description: "Could not find source/target nodes.", variant: "destructive" });
         return;
     }
 
     addStoreEdge({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
     toast({ title: "Edge Added", description: `Edge between "${sourceNode.text}" and "${targetNode.text}" added. Remember to save.`});
-  }, [isViewOnlyMode, toast, addStoreEdge, get]);
+  }, [isViewOnlyMode, toast, addStoreEdge]);
 
 
   const getRoleBasedDashboardLink = useCallback(() => {
@@ -422,20 +424,19 @@ export default function ConceptMapEditorPage() {
       initializeNewMap(user.id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeMapId, user?.id]); // Not adding loadMapData/initializeNewMap to deps to avoid re-runs on their definition change
+  }, [routeMapId, user?.id]); 
 
   const prepareAndOpenExpandConceptModal = useCallback(() => {
     resetStoreAiSuggestions();
     let concept = "";
     let context: string[] = [];
-    const currentNodes = get().mapData.nodes;
-    const currentEdges = get().mapData.edges;
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const currentEdges = useConceptMapStore.getState().mapData.edges;
 
     if (selectedElementId && selectedElementType === 'node' && currentNodes) {
       const selectedNode = currentNodes.find(n => n.id === selectedElementId);
       if (selectedNode) {
         concept = selectedNode.text;
-        // Gather neighbors for context
         const neighborIds = new Set<string>();
         currentEdges?.forEach(edge => {
           if (edge.source === selectedNode.id) neighborIds.add(edge.target);
@@ -444,22 +445,22 @@ export default function ConceptMapEditorPage() {
         context = Array.from(neighborIds)
           .map(id => currentNodes.find(n => n.id === id)?.text)
           .filter((text): text is string => !!text)
-          .slice(0, 5); // Max 5 context items
+          .slice(0, 5); 
       }
     } else if (currentNodes && currentNodes.length > 0) {
-      concept = currentNodes[0].text; // Default to first node if no selection
-      context = currentNodes.slice(1, 6).map(n => n.text); // Context from next few nodes
+      concept = currentNodes[0].text; 
+      context = currentNodes.slice(1, 6).map(n => n.text); 
     }
     setConceptToExpand(concept);
     setMapContextForExpansion(context);
     setIsExpandConceptModalOpen(true);
-  }, [selectedElementId, selectedElementType, get, resetStoreAiSuggestions]);
+  }, [selectedElementId, selectedElementType, resetStoreAiSuggestions]);
   
   const prepareAndOpenSuggestRelationsModal = useCallback(() => {
     resetStoreAiSuggestions();
     let concepts: string[] = [];
-    const currentNodes = get().mapData.nodes;
-    const currentEdges = get().mapData.edges;
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const currentEdges = useConceptMapStore.getState().mapData.edges;
 
     if (selectedElementId && selectedElementType === 'node' && currentNodes) {
         const selectedNode = currentNodes.find(n => n.id === selectedElementId);
@@ -473,15 +474,15 @@ export default function ConceptMapEditorPage() {
             concepts.push(...Array.from(neighborIds)
                 .map(id => currentNodes.find(n => n.id === id)?.text)
                 .filter((text): text is string => !!text)
-                .slice(0, 4)); // Max 4 neighbors + selected = 5 concepts
+                .slice(0, 4));
         }
     } else if (currentNodes && currentNodes.length > 0) {
-        concepts = currentNodes.slice(0, 5).map(n => n.text); // Default to first 5 nodes
+        concepts = currentNodes.slice(0, 5).map(n => n.text); 
     }
     
-    setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept 1", "Example Concept 2"]); // Ensure at least some example if empty
+    setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept 1", "Example Concept 2"]);
     setIsSuggestRelationsModalOpen(true);
-  }, [selectedElementId, selectedElementType, get, resetStoreAiSuggestions]);
+  }, [selectedElementId, selectedElementType, resetStoreAiSuggestions]);
 
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
@@ -515,8 +516,8 @@ export default function ConceptMapEditorPage() {
   }, [router]);
 
   const handleExportMap = useCallback(() => {
-    const currentMapData = get().mapData;
-    const currentMapName = get().mapName || 'concept-map';
+    const currentMapData = useConceptMapStore.getState().mapData;
+    const currentMapName = useConceptMapStore.getState().mapName || 'concept-map';
     const filename = `${currentMapName.replace(/\s+/g, '_').toLowerCase()}.json`;
     const jsonStr = JSON.stringify(currentMapData, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
@@ -529,7 +530,7 @@ export default function ConceptMapEditorPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast({ title: "Map Exported", description: `Saved as ${filename}` });
-  }, [toast, get]);
+  }, [toast]);
 
   const handleTriggerImport = useCallback(() => {
     if (isViewOnlyMode) {
@@ -606,6 +607,25 @@ export default function ConceptMapEditorPage() {
   }, [isViewOnlyMode, deleteStoreNode, toast, closeContextMenu]);
 
 
+  const handleSelectedElementPropertyUpdateInspector = useCallback((
+    inspectorUpdates: any
+  ) => {
+    if (isViewOnlyMode || !selectedElementId || !selectedElementType ) return;
+
+    if (selectedElementType === 'node') {
+      const nodeUpdates: Partial<ConceptMapNode> = {};
+      if (inspectorUpdates.text !== undefined) nodeUpdates.text = inspectorUpdates.text;
+      if (inspectorUpdates.details !== undefined) nodeUpdates.details = inspectorUpdates.details;
+      if (inspectorUpdates.type !== undefined) nodeUpdates.type = inspectorUpdates.type;
+      updateStoreNode(selectedElementId, nodeUpdates);
+    } else if (selectedElementType === 'edge') {
+      const edgeUpdates: Partial<ConceptMapEdge> = {};
+      if (inspectorUpdates.label !== undefined) edgeUpdates.label = inspectorUpdates.label;
+      updateStoreEdge(selectedElementId, edgeUpdates);
+    }
+  }, [isViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
+
+
   if (isStoreLoading && !storeError) {
     return (
       <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col items-center justify-center">
@@ -670,8 +690,8 @@ export default function ConceptMapEditorPage() {
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen}
           isAiPanelOpen={isAiPanelOpen}
-          onUndo={() => toast({title: "Undo Disabled", description: "Undo/Redo is temporarily disabled for diagnostics."})}
-          onRedo={() => toast({title: "Redo Disabled", description: "Undo/Redo is temporarily disabled for diagnostics."})}
+          onUndo={() => toast({title: "Undo Disabled", description: "Undo/Redo is temporarily disabled."})}
+          onRedo={() => toast({title: "Redo Disabled", description: "Undo/Redo is temporarily disabled."})}
           canUndo={false}
           canRedo={false}
         />
@@ -741,9 +761,9 @@ export default function ConceptMapEditorPage() {
                 extractedConcepts={aiExtractedConcepts}
                 suggestedRelations={aiSuggestedRelations}
                 expandedConcepts={aiExpandedConcepts}
-                onAddExtractedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-extracted-concept')}
-                onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
-                onAddExpandedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-expanded-concept')}
+                onAddExtractedConcepts={addSelectedExtractedConceptsToMap}
+                onAddSuggestedRelations={addSelectedSuggestedRelationsToMap}
+                onAddExpandedConcepts={addSelectedExpandedConceptsToMap}
                 isViewOnlyMode={isViewOnlyMode}
               />
             </div>
@@ -757,3 +777,5 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
+
+    
