@@ -60,7 +60,7 @@ This section outlines the tasks to migrate the application from mock backend ser
 - [x] **Connect frontend classroom creation and listing UI (teacher) to live API (with mock service).** -> Now connected to Supabase-backed API.
 - [x] **Connect frontend classroom list UI for edit/delete actions (Teacher).** -> Now connected to Supabase-backed API.
 - [x] **Connect frontend classroom detail UI (teacher) to live API for details and student management.** -> Now connected to Supabase-backed API for classroom details, student list, add/remove student. Maps and Submissions tabs are also connected to their respective Supabase-backed services.
-- [ ] **Connect frontend classroom listing UI (student) to live API (with mock service).**
+- [x] **Connect frontend classroom listing UI (student) to live API (with mock service).**
 - [ ] **Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.**
 
 **4. Concept Map Management with Supabase**
@@ -70,7 +70,7 @@ This section outlines the tasks to migrate the application from mock backend ser
 - [x] **`conceptMapService.ts` Refactor:** (Refactored to use Supabase client calls. Assumes tables & RLS set up by user).
     - [x] All CRUD operations to interact with the `concept_maps` table using `supabase-js`.
 - [x] **Connect frontend concept map listing (student) to live API for loading/deleting.** (Done)
-- [ ] **Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).**
+- [x] **Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).**
 
 **5. Project Submission & Analysis with Supabase**
 - [ ] **`project_submissions` Table:**
@@ -99,7 +99,7 @@ This section outlines the tasks to migrate the application from mock backend ser
 
 **7. Frontend Connection to Supabase Backend**
 - [x] For each page/component currently fetching data via API routes:
-    - [x] Ensure API routes are correctly calling Supabase services. (Done for dashboard counts, classroom lists, user lists, concept map list, submission list, etc. for Admin, Teacher. Student dashboards and lists still need connection.)
+    - [x] Ensure API routes are correctly calling Supabase services. (Done for dashboard counts, classroom lists, user lists, concept map list, submission list, etc. for Admin, Teacher. Student side next.)
     - [x] Update error handling and loading states to reflect real asynchronous operations.
     - [x] This is a broad task that touches most of the frontend. (Marked as complete now that services and most pages are using Supabase via API routes for Teacher/Admin. Student side next.)
 
