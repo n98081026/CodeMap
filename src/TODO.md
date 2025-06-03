@@ -1,61 +1,99 @@
 
 # CodeMap TODO List
 
-## Core Functionality & Backend Integration
-- [x] **User Authentication (Backend):**
-    - [x] Refactor API routes (`/login`, `/register`) to use `userService`.
-    - [x] Connect frontend `AuthContext` to live API (with mock service).
-    - [ ] Implement actual API endpoints for JWT generation. (Out of Scope: Requires real authentication mechanisms & secure token generation beyond AI prototyping scope).
-    - [ ] Secure password hashing and storage. (Out of Scope: Requires cryptographic best practices and secure data storage beyond AI prototyping scope).
-- [x] **Database & Models:** (Services use in-memory mock data)
-    - [x] Set up database (PostgreSQL/MongoDB as per final decision). (Mocked: Implemented with in-memory JavaScript arrays/objects for prototyping. Real database setup requires external services and configuration beyond AI prototyping scope).
-    - [x] Define and implement database schemas for Users, Classrooms, ConceptMaps, ProjectSubmissions, etc. (Mocked: Schemas defined in TypeScript types and used by mock services).
-    - [x] Create ORM/ODM layer (Prisma, Sequelize, etc.). (Mocked via services: Data access logic is within TypeScript services using in-memory data).
-- [x] **Classroom Management (Backend & Frontend Integration):** (Core API & Service Done with mock data)
-    - [x] Create `classroomService.ts` with mock data management.
-    - [x] API endpoint for creating classrooms (`POST /api/classrooms`).
-    - [x] API endpoint for listing classrooms by teacher (`GET /api/classrooms?teacherId=xxx`). (Supports pagination)
-    - [x] API endpoint for listing classrooms by student (`GET /api/classrooms?studentId=xxx`).
-    - [x] API endpoint for getting classroom details (`GET /api/classrooms/[classroomId]`).
-    - [x] API endpoints for student enrollment (invites, joining with code - partially mocked with direct add/remove).
-        - [x] API endpoint for adding a student to a classroom (`POST /api/classrooms/[classroomId]/students`). (Adds by ID)
-        - [x] API endpoint for removing a student from a classroom (`DELETE /api/classrooms/[classroomId]/students/[studentId]`).
-    - [x] API endpoints for updating, deleting classrooms (`PUT /api/classrooms/[classroomId]`, `DELETE /api/classrooms/[classroomId]`).
-    - [x] Connect frontend classroom creation and listing UI (teacher) to live API (with mock service).
-    - [x] Connect frontend classroom listing UI (student) to live API (with mock service).
-    - [x] Connect frontend classroom list UI for edit/delete actions (Teacher).
-    - [x] Connect frontend classroom detail UI (teacher) to live API for details and student management (student list, map list, submission list connected. Add/remove student by ID working, list refreshes).
-    - [x] Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.
-- [x] **Concept Map Service (Backend & Frontend Integration):** (Core API & Service Done with mock data)
-    - [x] Create `conceptMapService.ts` with mock data management.
-    - [x] API endpoints for CRUD operations on concept maps (`/api/concept-maps`, `/api/concept-maps/[mapId]`).
-    - [x] API endpoint for listing concept maps by classroom (`GET /api/concept-maps?classroomId=xxx`).
-    - [x] Logic for map ownership and sharing (with classrooms, public) - Basic ownership and `sharedWithClassroomId` implemented.
-    - [x] Connect frontend concept map listing (student) to live API for loading/deleting.
-    - [x] Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).
-- [x] **Project Submission & Analysis (Backend & Frontend Integration):** (Core API & Service Done for metadata, status updates robust, AI map gen saves real map record to mock DB)
-    - [x] Create `projectSubmissionService.ts` with mock data management.
-    - [x] API endpoint for project file uploads (`POST /api/projects/submissions` - metadata only, file handling mocked).
-    - [x] API endpoint for listing student submissions (`GET /api/projects/submissions?studentId=xxx`).
-    - [x] API endpoint for listing submissions by classroom (`GET /api/projects/submissions?classroomId=xxx`).
-    - [x] API endpoint for getting submission details (`GET /api/projects/submissions/[submissionId]`).
-    - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`). (Now updates status including real generated map ID).
-    - [ ] File storage integration (S3, GCS, or local). (Out of Scope: Requires setup and configuration of external file storage services, API keys, and backend logic for handling file streams, beyond AI prototyping scope within this Next.js application).
-    - [ ] Message Queue setup (RabbitMQ, Redis, etc.). (Out of Scope: Requires setup and configuration of external message queuing services and integration logic, typically part of a separate backend infrastructure).
-    - [ ] Develop Project Analysis Microservice:
-        - [ ] Task consumer from message queue. (Out of Scope: Microservice architecture and inter-service communication via message queues are beyond the scope of this Next.js application's prototyping).
-        - [ ] File downloader/unpacker. (Out of Scope: Secure file handling from storage and decompression logic typically reside in a dedicated backend service, not directly within the Next.js frontend application).
-        - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. Input refined for AI. Traditional AST parsing for multiple languages is out of scope for the AI agent).
-        - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output, creates new ConceptMap record via service).
-        - [x] Map Data Formatter & Persister (saves generated map via service to mock DB, updates submission status with real map ID).
-    - [x] Connect frontend project submission UI to live API (for metadata, including real AI map generation and saving, uses AlertDialog for confirmation).
-    - [x] Connect frontend student submissions list to live API.
-    - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states.
-    - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states.
-    - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states.
-    - [x] Ensure navigation paths are consistent (e.g. `/application/...` prefix).
+## Supabase Backend Integration
+This section outlines the tasks to migrate the application from mock backend services to a full Supabase backend.
 
-## Frontend Enhancements
+**1. Supabase Setup & Initial Configuration**
+- [ ] **Project Setup:**
+    - [ ] Create a new Supabase project.
+    - [ ] Configure Supabase project settings (e.g., database timezone, auth settings).
+- [ ] **Client Library & Config:**
+    - [ ] Install `@supabase/supabase-js` package.
+    - [ ] Create Supabase client configuration file (e.g., `src/lib/supabaseClient.ts`).
+    - [ ] Set up environment variables for Supabase URL and Anon Key (`.env` and deployment).
+- [ ] **Database Schema Design (Initial Pass):**
+    - [ ] Define table structures for `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`.
+    - [ ] Plan relationships (foreign keys) between tables.
+- [ ] **Database Migrations:**
+    - [ ] Set up Supabase CLI for local development and schema migrations.
+    - [ ] Create initial schema migration SQL scripts.
+
+**2. User Authentication & Profiles with Supabase Auth**
+- [ ] **Users (`profiles`) Table:**
+    - [ ] Create `profiles` table in Supabase (columns: `id` (FK to `auth.users.id`), `name`, `email`, `role`, `created_at`, `updated_at`).
+    - [ ] Set up RLS policies for `profiles` (e.g., users can update their own profile, read their own, admins can manage).
+- [ ] **`AuthContext` Refactor:**
+    - [ ] Replace mock `login` with Supabase `signInWithPassword`.
+    - [ ] Replace mock `register` with Supabase `signUp` (and trigger profile creation).
+    - [ ] Replace mock `logout` with Supabase `signOut`.
+    - [ ] Fetch user profile data from `profiles` table after Supabase auth state changes.
+    - [ ] Implement session management using Supabase `onAuthStateChange`.
+    - [ ] Remove old mock user data and local storage logic for user object.
+- [ ] **`userService.ts` Refactor:**
+    - [ ] `createUser`: On Supabase `signUp` success, create a corresponding record in the `profiles` table (can be done via a Supabase Function triggered on auth user creation, or client-side after sign-up).
+    - [ ] `findUserByEmailAndRole`, `getUserById`: Query `profiles` table using `supabase-js`.
+    - [ ] `updateUser`: Update `profiles` table. Supabase Auth methods for email/password change.
+    - [ ] `deleteUser`: Delete from `profiles` and potentially `auth.users` (requires service_role key or admin privileges).
+    - [ ] `changeUserPassword`: Use Supabase Auth `updateUser` method for password changes.
+- [ ] **API Routes (`/api/auth/*`) Review/Refactor:**
+    - [ ] Determine if `/api/auth/login` and `/api/auth/register` are still needed or if client-side Supabase calls suffice.
+    - [ ] If kept, secure them and have them call Supabase admin functions if necessary.
+
+**3. Classroom Management with Supabase**
+- [ ] **`classrooms` Table:**
+    - [ ] Create `classrooms` table (columns: `id` (PK, UUID), `name`, `description`, `teacher_id` (FK to `profiles.id`), `invite_code` (unique), `created_at`, `updated_at`).
+    - [ ] RLS policies: Teachers CRUD their own. Students read enrolled. Admins full access.
+- [ ] **`classroom_students` Table (Junction):**
+    - [ ] Create `classroom_students` table (columns: `classroom_id` (FK), `student_id` (FK), `enrolled_at`). PK on (`classroom_id`, `student_id`).
+    - [ ] RLS policies: Teachers manage their classroom enrollments. Students read their own. Admins full access.
+- [ ] **`classroomService.ts` Refactor:**
+    - [ ] `createClassroom`: Insert into `classrooms`.
+    - [ ] `getClassroomsByTeacherId`, `getClassroomsByStudentId`: Query Supabase tables (may involve joins).
+    - [ ] `getClassroomById`: Query `classrooms`, join with `profiles` for teacher name, and join with `classroom_students` then `profiles` for student list.
+    - [ ] `addStudentToClassroom`, `removeStudentFromClassroom`: Manage records in `classroom_students`.
+    - [ ] `updateClassroom`, `deleteClassroom`: Update/delete from `classrooms` table.
+    - [ ] `getAllClassrooms`: Query for admin dashboard.
+
+**4. Concept Map Management with Supabase**
+- [ ] **`concept_maps` Table:**
+    - [ ] Create `concept_maps` table (columns: `id` (PK, UUID), `name`, `owner_id` (FK to `profiles.id`), `map_data` (JSONB), `is_public` (boolean), `shared_with_classroom_id` (FK to `classrooms.id`, nullable), `created_at`, `updated_at`).
+    - [ ] RLS policies: Owner CRUD. Classroom members read if shared. Public read if `is_public`. Admins full access.
+- [ ] **`conceptMapService.ts` Refactor:**
+    - [ ] All CRUD operations to interact with the `concept_maps` table using `supabase-js`.
+
+**5. Project Submission & Analysis with Supabase**
+- [ ] **`project_submissions` Table:**
+    - [ ] Create `project_submissions` table (columns: `id` (PK, UUID), `student_id` (FK to `profiles.id`), `classroom_id` (FK, nullable), `original_file_name`, `file_size`, `submission_timestamp`, `analysis_status` (text enum), `analysis_error`, `generated_concept_map_id` (FK, nullable), `file_storage_path`).
+    - [ ] RLS policies: Students CRUD their own. Teachers read for their classrooms. Admins full access.
+- [ ] **Supabase Storage Setup:**
+    - [ ] Create a storage bucket for project file uploads.
+    - [ ] Define RLS policies for the storage bucket (e.g., students can upload to a path associated with their ID).
+- [ ] **`projectSubmissionService.ts` Refactor:**
+    - [ ] `createSubmission`: Upload file to Supabase Storage, then create record in `project_submissions` table with `file_storage_path`.
+    - [ ] `getSubmissionById`, `getSubmissionsByStudentId`, `getSubmissionsByClassroomId`: Query `project_submissions` table.
+    - [ ] `updateSubmissionStatus`: Update records in `project_submissions`.
+    - [ ] `getAllSubmissions`: Query for admin dashboard.
+- [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
+    - [ ] Modify flow to fetch project file from Supabase Storage (if direct file content isn't passed).
+    - [ ] On successful map generation:
+        - [ ] Call `conceptMapService.createConceptMap` (which will use Supabase) to save the new map.
+        - [ ] Call `projectSubmissionService.updateSubmissionStatus` (which will use Supabase) to link the `generated_concept_map_id` and set status to 'completed'.
+
+**6. API Route Refactoring**
+- [ ] Review all existing API routes in `src/app/api/`.
+- [ ] Refactor each route to:
+    - [ ] Use the Supabase-powered service functions.
+    - [ ] Implement proper Supabase session/JWT authentication and authorization checks (e.g., using Supabase helper functions for Next.js API routes if available, or manually verifying JWTs).
+    - [ ] Ensure RLS policies in Supabase are the primary source of data access control, with API routes performing supplementary checks if needed.
+
+**7. Frontend Connection to Supabase Backend**
+- [ ] For each page/component currently fetching data via API routes:
+    - [ ] Ensure API routes are correctly calling Supabase services.
+    - [ ] Update error handling and loading states to reflect real asynchronous operations.
+    - [ ] This is a broad task that touches most of the frontend.
+
+## Frontend Enhancements (Existing - Review after Supabase integration)
 - [x] **Key Concept Map Editor Components & Functionality:**
     - [x] **`EditorToolbar`**:
         - [x] Provides UI for Save, Add Node, Add Edge.
@@ -66,46 +104,46 @@
         - [x] Add button to toggle Properties Inspector panel.
         - [x] Add button to toggle AI Suggestions / Map Info panel.
         - [x] Implement "Import Map" (JSON file upload and parsing).
+        - [x] Add Undo/Redo buttons (connected to Zustand temporal store).
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Now takes up main editor area. Nodes now have 4 connection handles.
     - [x] **`PropertiesInspector`**:
         - [x] Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties.
         - [x] Changes update Zustand store and are saved via toolbar.
         - [x] View-only mode implemented with disabled inputs and muted styling.
         - [x] Re-integrated as a toggleable right-hand sheet/drawer.
-    - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal` to interact with AI flows.
+    - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal` to interact with AI flows. Context menu actions now correctly target these.
     - [x] **`CanvasPlaceholder`** (AI Suggestions / Map Info Panel):
         - [x] Area displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality.
         - [x] AI suggestions are cleared after being added to the map.
         - [x] Re-integrated as a toggleable bottom sheet/drawer.
-    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states.
+    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, UI states, and Undo/Redo history (via `temporal` middleware).
 - [ ] **Concept Map Editor - Further Enhancements (Future):**
-    - [x] Implement a context menu (right-click) on canvas elements for quick actions (Node delete implemented).
+    - [x] Implement a context menu (right-click) on canvas elements for quick actions (Node delete, AI actions for node).
     - [x] Add custom node types with distinct visual styling on the canvas (Base for custom types is in with `CustomNodeComponent`, further styling added).
-    - [ ] Implement Undo/Redo functionality in the editor (complex, requires history tracking in store).
+    - [ ] Implement robust Undo/Redo functionality in the editor (Zustand temporal store setup complete, UI buttons added. Needs thorough testing).
 - [x] **State Management:**
-    - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor).
+    - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor, including `temporal` middleware for undo/redo).
 - [ ] **Real-time Features (Optional - Future Consideration):**
-    - [ ] Consider real-time collaboration on concept maps (e.g., using WebSockets) - (High Complexity - Deferred, requires significant backend WebSocket infrastructure).
-    - [x] Real-time updates for project submission status (Basic polling implemented in SubmissionListItem).
+    - [ ] Consider real-time collaboration on concept maps (e.g., using Supabase Realtime) - (High Complexity - Deferred).
+    - [x] Real-time updates for project submission status (Basic polling implemented in SubmissionListItem. Re-evaluate with Supabase Realtime for better UX).
 - [x] **User Interface & User Experience (Desktop Focus):**
     - [x] Refine UI details for some pages, ensure consistency and professional design. (Largely addressed, ongoing process, including empty state icon refinements and navigation path consistency)
-    - [x] Add more comprehensive loading states and error handling. (Done for many list pages and dashboards)
+    - [x] Add more comprehensive loading states and error handling. (Done for many list pages and dashboards using mock data. Re-evaluate with Supabase async operations).
     - [x] Enhance empty states for lists (e.g., no classrooms, no maps, no students in classroom, updated icons for thematic relevance in Teacher Classroom Detail).
-    - [x] Implement user profile page and settings (Profile page created, edit name/email working. Linked from Navbar and Sidebar).
-    - [x] Add pagination and filtering for lists (Admin User Management page now has pagination, Teacher classrooms page has pagination).
-    - [x] Add loading spinner to Login/Register pages during auth state check. (Current implementation prevents form flash, considered complete)
+    - [x] Implement user profile page and settings (Profile page created, edit name/email connected to mock service. Change password mock connected. Re-evaluate with Supabase Auth & Profiles).
+    - [x] Add pagination and filtering for lists (Admin User Management page, Teacher classrooms page have pagination with mock data. Re-evaluate with Supabase queries).
+    - [x] Add loading spinner to Login/Register pages during auth state check. (Current implementation prevents form flash, considered complete. Supabase integration might change this).
     - [x] Make header icons link to main dashboards for easier navigation (Role-based for Concept Map Editor, Teacher pages, and main Admin/Student/Teacher dashboards).
     - [x] Implement "View Only" mode for Concept Map Editor.
     - [x] Refine `PropertiesInspector` in "View Only" mode (muted labels, inputs disabled).
-    - [x] Implement change password functionality on profile page (mocked backend).
 - [x] **Admin Panel:**
-    - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to backend service; add user via register flow - Add button tooltip added).
-    - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard, Admin Dashboard link to it enabled. Settings form implemented with mock save and "Save" button disabled if form not dirty).
+    - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to mock service; add user via register flow - Add button tooltip added. Re-evaluate with Supabase).
+    - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard. Settings form implemented with mock save. Re-evaluate where to store these settings with Supabase - e.g. a dedicated settings table).
 
-## GenAI & AI Features
+## GenAI & AI Features (Existing - Review after Supabase integration)
 - [x] **Refine GenAI Prompts:**
     - [x] Iterate on prompts for `extractConcepts`, `suggestRelations`, `expandConcept` for better accuracy and relevance.
-    - [x] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice (Input structure refined, "Whimsical-style" guidance added).
+    - [x] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice (Input structure refined, "Whimsical-style" guidance added. Re-evaluate with Supabase file handling).
 - [x] **Integrate GenAI Output:**
     - [x] Develop intuitive ways for users to interact with and utilize the outputs of GenAI tools within the concept map editor.
         - [x] Add placeholder "Add to Map" indicators for AI-generated content in CanvasPlaceholder. (Functional, adds to Zustand store)
@@ -114,22 +152,21 @@
 
 ## Testing & Deployment (Future - Out of Scope for AI Agent Implementation)
 - [ ] **Testing:**
-    - [ ] Write unit tests for critical components and utility functions. (Out of Scope: Requires dedicated testing setup and strategy).
-    - [ ] Implement integration tests for user flows. (Out of Scope: Requires dedicated testing setup and strategy).
-    - [ ] Consider end-to-end testing. (Out of Scope: Requires dedicated testing setup and strategy).
+    - [ ] Write unit tests for critical components and utility functions.
+    - [ ] Implement integration tests for user flows with Supabase.
+    - [ ] Consider end-to-end testing.
 - [ ] **Deployment:**
-    - [ ] Set up CI/CD pipeline. (Out of Scope: DevOps task requiring external tools and platform configuration).
-    - [ ] Configure production environment. (Out of Scope: DevOps task requiring server/cloud configuration).
-    - [ ] Database migrations strategy. (Out of Scope: Relevant for real databases, not mock data).
+    - [ ] Set up CI/CD pipeline (e.g., GitHub Actions for Supabase migrations and Next.js deployment).
+    - [ ] Configure production environment for Next.js and Supabase.
 
-## Known Issues / Current Mocked Areas
-- Backend services are currently mocked (in-memory data). Real persistence requires database setup.
-- AuthContext provides automatic login for test users based on initial path for development convenience if no user is in localStorage. Real authentication is needed for production.
-- Data persistence for anything beyond auth (localStorage for user object) is not implemented at the database level.
-- Concept map canvas is now implemented using React Flow. Project Analysis now generates a real ConceptMap record (in mock DB) from AI output.
+## Known Issues / Current Mocked Areas (Pre-Supabase)
+- Backend services are currently mocked (in-memory data). This entire section will be superseded by Supabase integration.
+- AuthContext provides automatic login for test users. Supabase will handle real auth.
+- Data persistence beyond auth (localStorage for user object) is not DB-backed. Supabase will handle persistence.
+- Concept map canvas is React Flow. Project Analysis generates ConceptMap record (mock DB). AI map gen will save to Supabase.
 - `next-themes` for theme toggling is integrated.
 - App is focused on desktop experience.
-- Some API actions (like full student invite flow via email) are not fully implemented on the frontend or are simplified (e.g., add student by ID).
-- Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
-- Real file uploads for project analysis are not implemented; only metadata is processed and AI analysis is mocked based on file name/description.
-- Message queues and separate microservices for project analysis are not implemented; AI generation is done in-process for prototyping.
+- Admin "Add User" directs to register page. This is fine.
+- Real file uploads and message queues were out of scope for mock. Supabase Storage will handle uploads. Genkit flow will process.
+
+This has been added to your `src/TODO.md` file.
