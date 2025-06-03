@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams } from 'next/navigation'; // Import useParams
+import { useParams } from 'next/navigation'; 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types"; 
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, FileText } from "lucide-react"; 
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react"; 
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -29,8 +29,8 @@ import {
 
 
 export default function ClassroomDetailPage() {
-  const paramsHook = useParams(); // Use hook
-  const routeClassroomId = paramsHook.classroomId as string; // classroomId from hook
+  const paramsHook = useParams(); 
+  const routeClassroomId = paramsHook.classroomId as string; 
 
   const { user } = useAuth();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
@@ -388,6 +388,4 @@ declare module "@/components/dashboard/dashboard-header" {
     iconClassName?: string;
   }
 }
-    
-
     

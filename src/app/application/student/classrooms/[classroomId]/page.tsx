@@ -2,20 +2,20 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams } from 'next/navigation'; // Import useParams
+import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Classroom, ConceptMap } from "@/types";
 import { UserRole } from "@/types";
-import { ArrowLeft, BookOpen, Share2, Loader2, AlertTriangle, Eye, FileText, Info, Library, Users as UsersIcon } from "lucide-react";
+import { ArrowLeft, BookOpen, Share2, Loader2, AlertTriangle, Eye, Info, Library, Users as UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function StudentClassroomDetailPage() {
-  const paramsHook = useParams(); // Use hook
-  const routeClassroomId = paramsHook.classroomId as string; // classroomId from hook
+  const paramsHook = useParams(); 
+  const routeClassroomId = paramsHook.classroomId as string;
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -139,7 +139,7 @@ export default function StudentClassroomDetailPage() {
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{classroom.description}</p>
             </div>
           )}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 pt-2">
             <div>
               <h3 className="font-semibold text-base mb-1 flex items-center"><UsersIcon className="mr-2 h-4 w-4 text-muted-foreground" />Students Enrolled:</h3>
               <p className="text-sm text-muted-foreground ml-6">{classroom.studentIds.length}</p>
@@ -207,5 +207,3 @@ export default function StudentClassroomDetailPage() {
     </div>
   );
 }
-
-    
