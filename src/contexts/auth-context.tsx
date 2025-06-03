@@ -7,17 +7,17 @@ import { useRouter, usePathname } from 'next/navigation';
 import type { User } from '@/types';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
-import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
-import { getUserById } from '@/services/users/userService'; // Assuming this now fetches from Supabase 'profiles' table
+import type { AuthChangeEvent, Session, User as SupabaseUser, Subscription } from '@supabase/supabase-js';
+import { getUserById } from '@/services/users/userService';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string /* Removed role, as it's fetched from profile */) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
-  updateCurrentUserData: (updatedFields: Partial<User>) => void; // Needs to be re-evaluated for Supabase
+  updateCurrentUserData: (updatedFields: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,54 +33,69 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const profile = await getUserById(supabaseUser.id);
       if (profile) {
         setUser(profile);
-        // Optionally, cache the fetched profile in localStorage if needed for quick UI updates
-        // localStorage.setItem('codemapUserProfile', JSON.stringify(profile));
       } else {
-        // Profile not found in 'profiles' table (e.g., new user, trigger hasn't run)
-        // Set a basic user object from Supabase auth data; role/name might be missing/default
-        console.warn(`Profile not found for user ${supabaseUser.id}. Setting basic user object.`);
+        console.warn(`Profile not found for user ${supabaseUser.id} in 'profiles' table. Setting basic user object. Ensure a profile is created for new users (e.g., via Supabase Function trigger).`);
         setUser({
           id: supabaseUser.id,
           email: supabaseUser.email || '',
-          name: supabaseUser.email?.split('@')[0] || 'New User', // Placeholder name
-          role: UserRole.STUDENT, // Default role, or handle as 'unknown'
+          name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'New User',
+          role: (supabaseUser.user_metadata?.user_role as UserRole) || UserRole.STUDENT,
         });
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      // If profile fetch fails, sign out the user to prevent inconsistent state
-      await supabase.auth.signOut();
-      setUser(null);
+      // Consider signing out if profile fetch fails critically, to prevent inconsistent state
+      // await supabase.auth.signOut(); // Uncomment if strict profile requirement
+      // setUser(null);
+      // For now, allow basic user object from auth as fallback
+       setUser({
+          id: supabaseUser.id,
+          email: supabaseUser.email || '',
+          name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'New User (Profile Error)',
+          role: (supabaseUser.user_metadata?.user_role as UserRole) || UserRole.STUDENT,
+        });
     }
   }, []);
 
   useEffect(() => {
     setIsLoading(true);
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        setIsLoading(true);
+        setIsLoading(true); // Set loading true at the start of handling an auth event
         if (event === 'SIGNED_IN' && session?.user) {
           await fetchAndSetUserProfile(session.user);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
-          // localStorage.removeItem('codemapUserProfile');
-          if (!pathname.startsWith('/login') && !pathname.startsWith('/register')) {
+          // No need to clear localStorage manually for Supabase session items
+          if (!pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
             router.push('/login');
           }
         } else if (event === 'INITIAL_SESSION' && session?.user) {
-          // Handle initial session (e.g., user already logged in from previous visit)
           await fetchAndSetUserProfile(session.user);
         } else if (event === 'INITIAL_SESSION' && !session) {
-           // No active session on initial load
            setUser(null);
+        } else if (event === 'USER_UPDATED' && session?.user) {
+          // If user metadata or email/phone changes, re-fetch profile
+          await fetchAndSetUserProfile(session.user);
         }
+        // Set loading false after the specific event has been processed
         setIsLoading(false);
       }
     );
-    // setIsLoading(false); // Moved inside listener to cover INITIAL_SESSION
+    
+    // Check initial session state once listener is set up
+    // This handles the case where the user is already logged in when the app loads
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        await fetchAndSetUserProfile(session.user);
+      }
+      setIsLoading(false); // Ensure loading is set to false after initial check
+    }).catch(() => {
+      setIsLoading(false); // Also set loading false on error during getSession
+    });
 
     return () => {
-      authListener?.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [fetchAndSetUserProfile, router, pathname]);
 
@@ -90,50 +105,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      if (data.user) {
-        await fetchAndSetUserProfile(data.user); // Profile fetched by onAuthStateChange or here
-        // Redirect logic is now primarily handled by pages based on user role from context
-      } else {
-        throw new Error("Login successful but no user data returned from Supabase.");
-      }
+      // onAuthStateChange will handle setting user and profile
     } catch (error) {
       console.error("Login failed:", error);
       setUser(null);
-      // localStorage.removeItem('codemapUserProfile');
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [fetchAndSetUserProfile]);
+  }, []);
 
   const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
     setIsLoading(true);
     try {
-      // Supabase signUp handles user creation in auth.users
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        // options: { data: { full_name: name, user_role: role } } // metadata for trigger
+        options: {
+          data: { 
+            full_name: name, // Pass name and role in options.data
+            user_role: role  // These can be used by a Supabase Function trigger
+          }
+        }
       });
 
       if (signUpError) throw signUpError;
       if (!signUpData.user) throw new Error("Registration successful but no user data returned.");
       
-      // IMPORTANT: Profile creation in 'profiles' table is NOT handled here.
-      // It should be handled by a Supabase Function (trigger on auth.users insert)
-      // or a subsequent API call from the client after successful signUp.
-      // The onAuthStateChange listener will pick up the SIGNED_IN event and attempt to fetch the profile.
-      // For now, the user might see a basic profile until the 'profiles' record is created and fetched.
-      
-      // The user will be in a "pending confirmation" state if email confirmation is enabled.
-      // `onAuthStateChange` will handle setting the user state once confirmed or if auto-confirmed.
-      
-      alert("Registration successful! Please check your email to confirm your account."); // Or use a toast
-      router.push('/login'); // Redirect to login after showing confirmation message
+      // For users with email confirmation enabled, Supabase sends a confirmation email.
+      // The user state will update via onAuthStateChange once confirmed (or immediately if auto-confirmed).
+      // If your Supabase project auto-confirms users, they will be logged in.
+      // If email confirmation is required, they will need to confirm before logging in.
+      alert("Registration successful! Please check your email to confirm your account if required by your setup.");
+      // Redirect to login, or to a "check your email" page.
+      router.push('/login');
 
     } catch (error) {
       console.error("Registration failed:", error);
-      throw error; // Re-throw to be caught by form
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -144,27 +153,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Logout error:", error);
-      // Don't necessarily clear user state if Supabase fails, let onAuthStateChange handle
     }
     // setUser(null) and router.push will be handled by onAuthStateChange 'SIGNED_OUT' event
     setIsLoading(false);
   }, []);
   
-  const updateCurrentUserData = useCallback((updatedFields: Partial<User>) => {
-    // This function now needs to update the 'profiles' table via userService
-    // and then potentially re-fetch or rely on onAuthStateChange if user metadata changes trigger it.
-    // For now, let's assume a simple local update, but this needs to be connected to Supabase.
-    setUser(currentUser => {
-      if (currentUser) {
-        const newUser = { ...currentUser, ...updatedFields };
-        // localStorage.setItem('codemapUserProfile', JSON.stringify(newUser)); // If using localStorage for profile cache
-        return newUser;
-      }
-      return null;
-    });
-    // TODO: Add API call to userService to persist these changes to Supabase 'profiles' table.
-    console.warn("updateCurrentUserData only updated local state. TODO: Persist to Supabase.");
-  }, []);
+  const updateCurrentUserData = useCallback(async (updatedFields: Partial<User>) => {
+    if (!user) return;
+    // This function should update the 'profiles' table in Supabase
+    // and then update the local user state.
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .update({ 
+                name: updatedFields.name, 
+                email: updatedFields.email, 
+                // role: updatedFields.role, // Role updates might be restricted
+                updated_at: new Date().toISOString() 
+            })
+            .eq('id', user.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        if (data) {
+            setUser(data as User); // Update local state with the new profile data
+        }
+    } catch (error) {
+        console.error("Failed to update user profile in Supabase:", error);
+        // Optionally, revert local state or show error to user
+    }
+    console.warn("updateCurrentUserData updated. Ensure RLS policies allow profile updates.");
+  }, [user]);
 
   const isAuthenticated = !!user;
 
