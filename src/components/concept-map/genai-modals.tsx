@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"; // DialogTrigger removed as modals are controlled by parent
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ import { suggestRelations as aiSuggestRelations } from "@/ai/flows/suggest-relat
 import { expandConcept as aiExpandConcept } from "@/ai/flows/expand-concept";
 
 interface ModalProps {
-  onOpenChange: (isOpen: boolean) => void; // To control visibility from parent
+  onOpenChange: (isOpen: boolean) => void; 
 }
 
 interface ExtractConceptsModalProps extends ModalProps {
@@ -44,7 +44,7 @@ export function ExtractConceptsModal({ onConceptsExtracted, onOpenChange }: Extr
       const result = await aiExtractConcepts({ text });
       toast({ title: "Concepts Extracted", description: `${result.concepts.length} concepts found.` });
       onConceptsExtracted?.(result.concepts);
-      onOpenChange(false); // Close dialog
+      onOpenChange(false); 
     } catch (error) {
       toast({ title: "Error Extracting Concepts", description: (error as Error).message, variant: "destructive" });
     } finally {
@@ -53,7 +53,6 @@ export function ExtractConceptsModal({ onConceptsExtracted, onOpenChange }: Extr
   };
 
   return (
-    // Dialog open state is controlled by parent via isExtractConceptsModalOpen prop passed to ConceptMapEditorPage
     <Dialog open={true} onOpenChange={onOpenChange}> 
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
@@ -69,6 +68,7 @@ export function ExtractConceptsModal({ onConceptsExtracted, onOpenChange }: Extr
             onChange={(e) => setText(e.target.value)}
             rows={10}
             className="resize-none"
+            disabled={isLoading}
           />
         </div>
         <DialogFooter>
@@ -84,7 +84,7 @@ export function ExtractConceptsModal({ onConceptsExtracted, onOpenChange }: Extr
 }
 
 interface SuggestRelationsModalProps extends ModalProps {
-  onRelationsSuggested?: (relations: any[]) => void;
+  onRelationsSuggested?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
   initialConcepts?: string[];
 }
 
@@ -93,18 +93,26 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    setConceptsInput(initialConcepts.join(", "));
+  }, [initialConcepts]);
+
   const handleSuggest = async () => {
     const concepts = conceptsInput.split(",").map(c => c.trim()).filter(Boolean);
-    if (concepts.length < 2) {
-      toast({ title: "Input Required", description: "Please provide at least two concepts (comma-separated).", variant: "destructive" });
+    if (concepts.length === 0) {
+      toast({ title: "Input Required", description: "Please provide at least one concept.", variant: "destructive" });
       return;
+    }
+    if (concepts.length < 2) {
+      toast({ title: "More Concepts Recommended", description: "For best results, provide at least two concepts.", variant: "default" });
+      // We allow the AI to handle <2 concepts as per the updated prompt.
     }
     setIsLoading(true);
     try {
       const result = await aiSuggestRelations({ concepts });
       toast({ title: "Relations Suggested", description: `${result.length} relations found.` });
       onRelationsSuggested?.(result);
-      onOpenChange(false); // Close dialog
+      onOpenChange(false);
     } catch (error) {
       toast({ title: "Error Suggesting Relations", description: (error as Error).message, variant: "destructive" });
     } finally {
@@ -118,18 +126,21 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
         <DialogHeader>
           <DialogTitle>Suggest Relations with AI</DialogTitle>
           <DialogDescription>
-            Enter concepts (comma-separated) or use selected concepts from the map.
+            Enter concepts (comma-separated). The AI will suggest relationships between them based on the provided list.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <Label htmlFor="concepts-sr">Concepts</Label>
-          <Input 
+          <Textarea 
             id="concepts-sr" 
             value={conceptsInput} 
             onChange={(e) => setConceptsInput(e.target.value)}
-            placeholder="e.g., User Authentication, JWT, Database" 
+            placeholder="e.g., User Authentication, JWT, Database Security" 
+            rows={3}
+            className="resize-none"
+            disabled={isLoading}
           />
-           <p className="text-xs text-muted-foreground">Provide a comma-separated list of concepts.</p>
+           <p className="text-xs text-muted-foreground">Provide a comma-separated list of concepts. At least two are recommended for meaningful suggestions.</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
@@ -146,14 +157,18 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
 interface ExpandConceptModalProps extends ModalProps {
   onConceptExpanded?: (newConcepts: string[]) => void;
   initialConcept?: string;
-  initialContext?: string;
+  existingMapContext?: string[]; // Changed from initialContext
 }
 
-export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", initialContext = "", onOpenChange }: ExpandConceptModalProps) {
+export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", existingMapContext = [], onOpenChange }: ExpandConceptModalProps) {
   const [concept, setConcept] = useState(initialConcept);
-  const [context, setContext] = useState(initialContext);
+  // Context is now passed directly, not editable in this modal to simplify
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setConcept(initialConcept);
+  }, [initialConcept]);
 
   const handleExpand = async () => {
     if (!concept.trim()) {
@@ -162,10 +177,10 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", ini
     }
     setIsLoading(true);
     try {
-      const result = await aiExpandConcept({ concept, context });
+      const result = await aiExpandConcept({ concept, existingMapContext });
       toast({ title: "Concept Expanded", description: `${result.newConcepts.length} new ideas generated.` });
       onConceptExpanded?.(result.newConcepts);
-      onOpenChange(false); // Close dialog
+      onOpenChange(false);
     } catch (error) {
       toast({ title: "Error Expanding Concept", description: (error as Error).message, variant: "destructive" });
     } finally {
@@ -179,30 +194,25 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", ini
         <DialogHeader>
           <DialogTitle>Expand Concept with AI</DialogTitle>
           <DialogDescription>
-            Enter a concept and optional context. The AI will suggest related ideas.
+            Enter a concept. The AI will suggest related ideas, considering existing map context if available.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div>
-            <Label htmlFor="concept-ec">Concept</Label>
+            <Label htmlFor="concept-ec">Concept to Expand</Label>
             <Input 
               id="concept-ec" 
               value={concept} 
               onChange={(e) => setConcept(e.target.value)} 
               placeholder="e.g., Microservices" 
+              disabled={isLoading}
             />
           </div>
-          <div>
-            <Label htmlFor="context-ec">Context (Optional)</Label>
-            <Textarea 
-              id="context-ec" 
-              value={context} 
-              onChange={(e) => setContext(e.target.value)} 
-              placeholder="e.g., Related to e-commerce platform scalability"
-              rows={3}
-              className="resize-none"
-            />
-          </div>
+          {existingMapContext.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              Using context from {existingMapContext.length} existing map node(s) like: "{existingMapContext[0]}"...
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>

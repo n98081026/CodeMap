@@ -29,10 +29,10 @@ interface EditorToolbarProps {
   onToggleAiPanel: () => void;
   isPropertiesPanelOpen?: boolean;
   isAiPanelOpen?: boolean;
-  onUndo: () => void; // Added for undo
-  onRedo: () => void; // Added for redo
-  canUndo: boolean;   // Added for undo
-  canRedo: boolean;   // Added for redo
+  onUndo: () => void; 
+  onRedo: () => void; 
+  canUndo: boolean;   
+  canRedo: boolean;   
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({ 
@@ -58,17 +58,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   canRedo,
 }: EditorToolbarProps) {
   const { toast } = useToast();
-
-  // const handlePlaceholderClick = React.useCallback((action: string) => {
-  //   if (isViewOnlyMode) {
-  //     toast({ title: "View Only Mode", description: `Cannot perform "${action}" in view-only mode.`, variant: "default" });
-  //     return;
-  //   }
-  //   toast({
-  //     title: "Action Clicked (Placeholder)",
-  //     description: `${action} functionality is not yet implemented.`,
-  //   });
-  // }, [isViewOnlyMode, toast]);
 
   const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
     if (isViewOnlyMode) {
@@ -118,7 +107,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
         <Separator orientation="vertical" className="mx-1 h-full" />
 
-        {/* Edit Operations - Temporarily disable for diagnostics */}
+        {/* Edit Operations */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={onUndo} disabled={isViewOnlyMode || !canUndo}>
@@ -165,7 +154,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <SearchCode className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Extract Concepts (AI) (Disabled)" : "Extract Concepts (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Extract Concepts from Text (AI) (Disabled)" : "Extract Concepts from Text (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -173,7 +162,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Lightbulb className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Suggest Relations (AI) (Disabled)" : "Suggest Relations (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Suggest Relations (AI) (Disabled)" : "Suggest Relations between map concepts (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -181,7 +170,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Brain className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Expand Concept (AI) (Disabled)" : "Expand Concept (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Expand Concept (AI) (Disabled)" : "Expand selected/primary map concept (AI)"}</TooltipContent>
         </Tooltip>
 
         {/* Spacer */}

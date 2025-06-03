@@ -28,7 +28,7 @@ import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import type { CustomNodeData } from '@/components/concept-map/custom-node'; 
 
 import useConceptMapStore from '@/stores/concept-map-store';
-// import FlowCanvasCore from "@/components/concept-map/flow-canvas-core"; // Dynamically import
+
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
   ssr: false,
@@ -64,36 +64,16 @@ export default function ConceptMapEditorPage() {
     importMapData,
   } = useConceptMapStore();
 
-  // Temporarily remove undo/redo related state and functions
-  // const [canUndo, setCanUndo] = useState(false);
-  // const [canRedo, setCanRedo] = useState(false);
-
-  // const temporalStoreAPI = useConceptMapStore.temporal;
-  // let storeUndo = () => console.warn("Undo/Redo is temporarily disabled.");
-  // let storeRedo = () => console.warn("Undo/Redo is temporarily disabled.");
-  // let temporalClear = () => console.warn("Undo/Redo history clear is temporarily disabled.");
-  // let pastStatesCount = 0;
-  // let futureStatesCount = 0;
-
-  // if (temporalStoreAPI) {
-  //   storeUndo = temporalStoreAPI.undo;
-  //   storeRedo = temporalStoreAPI.redo;
-  //   temporalClear = temporalStoreAPI.clear;
-  //   pastStatesCount = temporalStoreAPI.getState().pastStates.length;
-  //   futureStatesCount = temporalStoreAPI.getState().futureStates.length;
-  // } else {
-  //   console.warn("Zustand temporal middleware API not available. Undo/Redo functionality will be disabled.");
-  // }
-
-  // useEffect(() => {
-  //   setCanUndo(pastStatesCount > 0);
-  //   setCanRedo(futureStatesCount > 0);
-  // }, [pastStatesCount, futureStatesCount]);
-
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
+  
+  // State for GenAI modal inputs
+  const [conceptToExpand, setConceptToExpand] = useState("");
+  const [mapContextForExpansion, setMapContextForExpansion] = useState<string[]>([]);
+  const [conceptsForRelationSuggestion, setConceptsForRelationSuggestion] = useState<string[]>([]);
+
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
@@ -120,7 +100,6 @@ export default function ConceptMapEditorPage() {
     if (idToLoad === "new") {
       if (user && user.id) {
         initializeNewMap(user.id);
-        // if (temporalStoreAPI) temporalClear(); // Clear history for new map
       } else {
         setStoreError("User data not available for new map initialization.");
         toast({ title: "Authentication Error", description: "User data not available for new map.", variant: "destructive" });
@@ -139,7 +118,6 @@ export default function ConceptMapEditorPage() {
       }
       const data: ConceptMap = await response.json();
       setLoadedMap(data);
-      // if (temporalStoreAPI) temporalClear(); // Clear history after loading a map
     } catch (err) {
       setStoreError((err as Error).message);
       toast({ title: "Error Loading Map", description: (err as Error).message, variant: "destructive" });
@@ -147,8 +125,7 @@ export default function ConceptMapEditorPage() {
     } finally {
       setStoreIsLoading(false);
     }
-  // }, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, resetStoreAiSuggestions, setStoreMapName, temporalClear, temporalStoreAPI]);
-}, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, resetStoreAiSuggestions, setStoreMapName]);
+  }, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, resetStoreAiSuggestions, setStoreMapName]);
 
 
   const handleMapPropertiesChange = useCallback((properties: {
@@ -264,7 +241,6 @@ export default function ConceptMapEditorPage() {
       }
       const savedMap: ConceptMap = await response.json();
       setLoadedMap(savedMap);
-      // if (temporalStoreAPI) temporalClear(); // Clear history after successful save
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
 
       if ((isNewMapMode || storeMapId === 'new') && savedMap.id) {
@@ -279,7 +255,6 @@ export default function ConceptMapEditorPage() {
   }, [
     isViewOnlyMode, user, mapName, storeMapData,
     isNewMapMode, currentMapOwnerId, isPublic, sharedWithClassroomId,
-    // router, toast, storeMapId, setStoreIsSaving, setLoadedMap, setStoreError, temporalClear, temporalStoreAPI
     router, toast, storeMapId, setStoreIsSaving, setLoadedMap, setStoreError
   ]);
 
@@ -317,7 +292,7 @@ export default function ConceptMapEditorPage() {
       if (!existingNodeTexts.has(conceptText)) {
         addStoreNode({
           text: conceptText,
-          type: type,
+          type: type === 'ai-extracted-concept' ? 'ai-concept' : 'ai-expanded', // More specific types
           position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
         });
         addedCount++;
@@ -337,23 +312,23 @@ export default function ConceptMapEditorPage() {
     }
     let relationsAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
-    let currentNodesSnapshot = [...get().mapData.nodes];
+    let currentNodesSnapshot = [...get().mapData.nodes]; // Get current nodes
 
     relations.forEach(rel => {
       let sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
       if (!sourceNode) {
         addStoreNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
-        currentNodesSnapshot = [...get().mapData.nodes];
+        currentNodesSnapshot = [...get().mapData.nodes]; // Refresh snapshot
         sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
-        if (sourceNode) conceptsAddedFromRelationsCount++; else return;
+        if (sourceNode) conceptsAddedFromRelationsCount++; else return; // Skip if node still not found
       }
 
       let targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
       if (!targetNode) {
         addStoreNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
-        currentNodesSnapshot = [...get().mapData.nodes];
+        currentNodesSnapshot = [...get().mapData.nodes]; // Refresh snapshot
         targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
-        if (targetNode) conceptsAddedFromRelationsCount++; else return;
+        if (targetNode) conceptsAddedFromRelationsCount++; else return; // Skip
       }
 
       const currentEdgesSnapshot = get().mapData.edges;
@@ -393,9 +368,10 @@ export default function ConceptMapEditorPage() {
       toast({ title: "Cannot Add Edge", description: "Add at least two nodes to create an edge.", variant: "default" });
       return;
     }
+    // Simplified: attempt to connect last two nodes. Real edge creation should be interactive.
     const sourceNode = nodes[nodes.length - 2];
     const targetNode = nodes[nodes.length - 1];
-    if (!sourceNode || !targetNode) {
+    if (!sourceNode || !targetNode) { // Should not happen if nodes.length >= 2
         toast({ title: "Error Adding Edge", description: "Could not find source/target nodes.", variant: "destructive" });
         return;
     }
@@ -446,12 +422,67 @@ export default function ConceptMapEditorPage() {
       initializeNewMap(user.id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeMapId, user?.id]);
+  }, [routeMapId, user?.id]); // Not adding loadMapData/initializeNewMap to deps to avoid re-runs on their definition change
 
+  const prepareAndOpenExpandConceptModal = useCallback(() => {
+    resetStoreAiSuggestions();
+    let concept = "";
+    let context: string[] = [];
+    const currentNodes = get().mapData.nodes;
+    const currentEdges = get().mapData.edges;
 
-  const onExtractConceptsOpen = useCallback(() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [resetStoreAiSuggestions]);
-  const onSuggestRelationsOpen = useCallback(() => { resetStoreAiSuggestions(); setIsSuggestRelationsModalOpen(true); }, [resetStoreAiSuggestions]);
-  const onExpandConceptOpen = useCallback(() => { resetStoreAiSuggestions(); setIsExpandConceptModalOpen(true); }, [resetStoreAiSuggestions]);
+    if (selectedElementId && selectedElementType === 'node' && currentNodes) {
+      const selectedNode = currentNodes.find(n => n.id === selectedElementId);
+      if (selectedNode) {
+        concept = selectedNode.text;
+        // Gather neighbors for context
+        const neighborIds = new Set<string>();
+        currentEdges?.forEach(edge => {
+          if (edge.source === selectedNode.id) neighborIds.add(edge.target);
+          if (edge.target === selectedNode.id) neighborIds.add(edge.source);
+        });
+        context = Array.from(neighborIds)
+          .map(id => currentNodes.find(n => n.id === id)?.text)
+          .filter((text): text is string => !!text)
+          .slice(0, 5); // Max 5 context items
+      }
+    } else if (currentNodes && currentNodes.length > 0) {
+      concept = currentNodes[0].text; // Default to first node if no selection
+      context = currentNodes.slice(1, 6).map(n => n.text); // Context from next few nodes
+    }
+    setConceptToExpand(concept);
+    setMapContextForExpansion(context);
+    setIsExpandConceptModalOpen(true);
+  }, [selectedElementId, selectedElementType, get, resetStoreAiSuggestions]);
+  
+  const prepareAndOpenSuggestRelationsModal = useCallback(() => {
+    resetStoreAiSuggestions();
+    let concepts: string[] = [];
+    const currentNodes = get().mapData.nodes;
+    const currentEdges = get().mapData.edges;
+
+    if (selectedElementId && selectedElementType === 'node' && currentNodes) {
+        const selectedNode = currentNodes.find(n => n.id === selectedElementId);
+        if (selectedNode) {
+            concepts.push(selectedNode.text);
+            const neighborIds = new Set<string>();
+            currentEdges?.forEach(edge => {
+                if (edge.source === selectedNode.id) neighborIds.add(edge.target);
+                if (edge.target === selectedNode.id) neighborIds.add(edge.source);
+            });
+            concepts.push(...Array.from(neighborIds)
+                .map(id => currentNodes.find(n => n.id === id)?.text)
+                .filter((text): text is string => !!text)
+                .slice(0, 4)); // Max 4 neighbors + selected = 5 concepts
+        }
+    } else if (currentNodes && currentNodes.length > 0) {
+        concepts = currentNodes.slice(0, 5).map(n => n.text); // Default to first 5 nodes
+    }
+    
+    setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept 1", "Example Concept 2"]); // Ensure at least some example if empty
+    setIsSuggestRelationsModalOpen(true);
+  }, [selectedElementId, selectedElementType, get, resetStoreAiSuggestions]);
+
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
   const onToggleAiPanel = useCallback(() => setIsAiPanelOpen(prev => !prev), []);
@@ -532,7 +563,6 @@ export default function ConceptMapEditorPage() {
           const importedMapData = importedJson as ConceptMapData;
           const mapNameFromFileName = file.name.replace(/\.json$/i, '');
           importMapData(importedMapData, `Imported: ${mapNameFromFileName}`);
-          // if (temporalStoreAPI) temporalClear(); // Clear history after import
           toast({ title: "Map Imported", description: `"${file.name}" loaded successfully. Remember to save if you want to keep it.` });
         } else {
           throw new Error("Invalid JSON structure. Expected 'nodes' and 'edges' arrays.");
@@ -548,8 +578,7 @@ export default function ConceptMapEditorPage() {
       if(fileInputRef.current) fileInputRef.current.value = "";
     };
     reader.readAsText(file);
-  // }, [isViewOnlyMode, toast, importMapData, temporalClear, temporalStoreAPI]);
-}, [isViewOnlyMode, toast, importMapData]);
+  }, [isViewOnlyMode, toast, importMapData]);
 
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
     event.preventDefault();
@@ -632,16 +661,15 @@ export default function ConceptMapEditorPage() {
           onSaveMap={handleSaveMap} isSaving={isSaving}
           onExportMap={handleExportMap}
           onTriggerImport={handleTriggerImport}
-          onExtractConcepts={onExtractConceptsOpen}
-          onSuggestRelations={onSuggestRelationsOpen}
-          onExpandConcept={onExpandConceptOpen}
+          onExtractConcepts={() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }}
+          onSuggestRelations={prepareAndOpenSuggestRelationsModal}
+          onExpandConcept={prepareAndOpenExpandConceptModal}
           isViewOnlyMode={isViewOnlyMode}
           onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
           onToggleProperties={onTogglePropertiesInspector}
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen}
           isAiPanelOpen={isAiPanelOpen}
-          // Temporarily disable undo/redo buttons
           onUndo={() => toast({title: "Undo Disabled", description: "Undo/Redo is temporarily disabled for diagnostics."})}
           onRedo={() => toast({title: "Redo Disabled", description: "Undo/Redo is temporarily disabled for diagnostics."})}
           canUndo={false}
@@ -652,11 +680,17 @@ export default function ConceptMapEditorPage() {
               mapDataFromStore={storeMapData}
               isViewOnlyMode={isViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange}
-              onNodesChangeInStore={updateStoreNode}
+              onNodesChangeInStore={updateStoreNode} 
               onNodesDeleteInStore={deleteStoreNode}
               onEdgesDeleteInStore={deleteEdge}
               onConnectInStore={addStoreEdge}
               onNodeContextMenu={handleNodeContextMenu} 
+              onNodeDragStop={ (event, node) => {
+                  if (!isViewOnlyMode && node.position) {
+                      updateStoreNode(node.id, { x: node.position.x, y: node.position.y });
+                  }
+                }
+              }
             />
         </div>
 
@@ -707,9 +741,9 @@ export default function ConceptMapEditorPage() {
                 extractedConcepts={aiExtractedConcepts}
                 suggestedRelations={aiSuggestedRelations}
                 expandedConcepts={aiExpandedConcepts}
-                onAddExtractedConcepts={addConceptsToMapData}
+                onAddExtractedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-extracted-concept')}
                 onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
-                onAddExpandedConcepts={addConceptsToMapData}
+                onAddExpandedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-expanded-concept')}
                 isViewOnlyMode={isViewOnlyMode}
               />
             </div>
@@ -717,8 +751,8 @@ export default function ConceptMapEditorPage() {
         </Sheet>
 
         {isExtractConceptsModalOpen && !isViewOnlyMode && (<ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen}/>)}
-        {isSuggestRelationsModalOpen && !isViewOnlyMode && (<SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={storeMapData.nodes.slice(0,5).map(n => n.text)} onOpenChange={setIsSuggestRelationsModalOpen}/>)}
-        {isExpandConceptModalOpen && !isViewOnlyMode && (<ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={storeMapData.nodes.length > 0 ? storeMapData.nodes[0].text : ""} onOpenChange={setIsExpandConceptModalOpen}/>)}
+        {isSuggestRelationsModalOpen && !isViewOnlyMode && (<SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={conceptsForRelationSuggestion} onOpenChange={setIsSuggestRelationsModalOpen}/>)}
+        {isExpandConceptModalOpen && !isViewOnlyMode && (<ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={conceptToExpand} existingMapContext={mapContextForExpansion} onOpenChange={setIsExpandConceptModalOpen}/>)}
       </ReactFlowProvider>
     </div>
   );
