@@ -30,6 +30,7 @@ import type { RFConceptMapNodeData, RFConceptMapEdgeData } from "@/components/co
 
 
 export default function ConceptMapEditorPage({ params }: { params: { mapId: string } }) {
+  const { mapId: routeMapId } = params; // Destructure mapId
   const searchParams = useSearchParams(); 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -87,10 +88,10 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   }, [toast, user, store]); 
 
   useEffect(() => {
-    if (params.mapId) {
-      loadMapData(params.mapId);
+    if (routeMapId) { // Use destructured routeMapId
+      loadMapData(routeMapId);
     }
-  }, [params.mapId, loadMapData]);
+  }, [routeMapId, loadMapData]); // Use destructured routeMapId
 
   useEffect(() => {
     const transformedNodes = (store.mapData.nodes || []).map(appNode => {
@@ -293,7 +294,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
       
-      if (params.mapId === 'new' && savedMap.id) {
+      if (routeMapId === 'new' && savedMap.id) { // Use destructured routeMapId
          router.replace(`/application/concept-maps/editor/${savedMap.id}${isViewOnlyMode ? '?viewOnly=true' : ''}`, { scroll: false });
       }
     } catch (err) {
@@ -305,7 +306,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   }, [
     isViewOnlyMode, user, mapName, store, rfNodes, 
     isNewMapMode, currentMapOwnerId, isPublic, sharedWithClassroomId, 
-    params.mapId, router, toast 
+    routeMapId, router, toast // Use destructured routeMapId
   ]);
 
   const handleConceptsExtracted = useCallback((concepts: string[]) => {
@@ -472,7 +473,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     );
   }
 
-  if (error && !isNewMapMode && params.mapId !=='new') { 
+  if (error && !isNewMapMode && routeMapId !=='new') { // Use destructured routeMapId
      return (
       <div className="flex h-full flex-col space-y-4 p-4">
         <DashboardHeader title="Error Loading Map" icon={AlertTriangle} iconLinkHref={getRoleBasedDashboardLink()} />
@@ -494,7 +495,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   }
   
   const mapForInspector: ConceptMap = {
-    id: store.mapId || params.mapId, 
+    id: store.mapId || routeMapId, // Use destructured routeMapId
     name: mapName,
     ownerId: currentMapOwnerId || user?.id || "", 
     mapData: store.mapData, 

@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function StudentClassroomDetailPage({ params }: { params: { classroomId: string } }) {
+  const { classroomId: routeClassroomId } = params; // Destructure classroomId
   const { user } = useAuth();
   const { toast } = useToast();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
@@ -25,11 +26,11 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
   const studentDashboardLink = "/application/student/dashboard";
 
   const fetchClassroomDetails = useCallback(async () => {
-    if (!params.classroomId) return;
+    if (!routeClassroomId) return; // Use destructured classroomId
     setIsLoadingClassroom(true);
     setErrorClassroom(null);
     try {
-      const response = await fetch(`/api/classrooms/${params.classroomId}`);
+      const response = await fetch(`/api/classrooms/${routeClassroomId}`); // Use destructured classroomId
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom details");
@@ -43,14 +44,14 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
     } finally {
       setIsLoadingClassroom(false);
     }
-  }, [params.classroomId, toast]);
+  }, [routeClassroomId, toast]); // Use destructured classroomId
 
   const fetchSharedMaps = useCallback(async () => {
-    if (!params.classroomId) return;
+    if (!routeClassroomId) return; // Use destructured classroomId
     setIsLoadingMaps(true);
     setErrorMaps(null);
     try {
-      const response = await fetch(`/api/concept-maps?classroomId=${params.classroomId}`);
+      const response = await fetch(`/api/concept-maps?classroomId=${routeClassroomId}`); // Use destructured classroomId
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch shared concept maps");
@@ -64,7 +65,7 @@ export default function StudentClassroomDetailPage({ params }: { params: { class
     } finally {
       setIsLoadingMaps(false);
     }
-  }, [params.classroomId, toast]);
+  }, [routeClassroomId, toast]); // Use destructured classroomId
 
   useEffect(() => {
     fetchClassroomDetails();

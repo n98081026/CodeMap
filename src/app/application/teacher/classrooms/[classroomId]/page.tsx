@@ -28,6 +28,7 @@ import {
 
 
 export default function ClassroomDetailPage({ params }: { params: { classroomId: string } }) {
+  const { classroomId: routeClassroomId } = params; // Destructure classroomId
   const { user } = useAuth();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
   const [isLoadingClassroom, setIsLoadingClassroom] = useState(true);
@@ -48,7 +49,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     setIsLoadingClassroom(true);
     setErrorClassroom(null);
     try {
-      const response = await fetch(`/api/classrooms/${params.classroomId}`);
+      const response = await fetch(`/api/classrooms/${routeClassroomId}`); // Use destructured classroomId
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom details");
@@ -62,13 +63,13 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     } finally {
       setIsLoadingClassroom(false);
     }
-  }, [params.classroomId, toast]);
+  }, [routeClassroomId, toast]); // Use destructured classroomId
 
   const fetchClassroomMaps = useCallback(async () => {
     setIsLoadingMaps(true);
     setErrorMaps(null);
     try {
-      const response = await fetch(`/api/concept-maps?classroomId=${params.classroomId}`);
+      const response = await fetch(`/api/concept-maps?classroomId=${routeClassroomId}`); // Use destructured classroomId
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom maps");
@@ -82,13 +83,13 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     } finally {
       setIsLoadingMaps(false);
     }
-  }, [params.classroomId, toast]);
+  }, [routeClassroomId, toast]); // Use destructured classroomId
 
   const fetchClassroomSubmissions = useCallback(async () => {
     setIsLoadingSubmissions(true);
     setErrorSubmissions(null);
     try {
-      const response = await fetch(`/api/projects/submissions?classroomId=${params.classroomId}`);
+      const response = await fetch(`/api/projects/submissions?classroomId=${routeClassroomId}`); // Use destructured classroomId
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom submissions");
@@ -102,16 +103,16 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     } finally {
       setIsLoadingSubmissions(false);
     }
-  }, [params.classroomId, toast]);
+  }, [routeClassroomId, toast]); // Use destructured classroomId
 
 
   useEffect(() => {
-    if (params.classroomId) {
+    if (routeClassroomId) { // Use destructured classroomId
       fetchClassroomDetails();
       fetchClassroomMaps();
       fetchClassroomSubmissions();
     }
-  }, [params.classroomId, fetchClassroomDetails, fetchClassroomMaps, fetchClassroomSubmissions]);
+  }, [routeClassroomId, fetchClassroomDetails, fetchClassroomMaps, fetchClassroomSubmissions]); // Use destructured classroomId
 
   const handleRemoveStudent = useCallback(async (studentId: string, studentName: string) => {
     if (!classroom) return;
