@@ -37,7 +37,7 @@ export default function AdminDashboardPage() {
       setIsLoadingUsers(true);
       setErrorUsers(null);
       try {
-        const usersResponse = await fetch('/api/users?page=1&limit=1');
+        const usersResponse = await fetch('/api/users?page=1&limit=1'); // Fetching 1 to get totalCount
         if (!usersResponse.ok) {
           const errData = await usersResponse.json();
           throw new Error(`Failed to fetch users: ${errData.message || usersResponse.statusText}`);
@@ -59,7 +59,8 @@ export default function AdminDashboardPage() {
       setIsLoadingClassrooms(true);
       setErrorClassrooms(null);
       try {
-        const classroomsResponse = await fetch('/api/classrooms');
+        // Admin fetches all classrooms
+        const classroomsResponse = await fetch('/api/classrooms'); 
         if (!classroomsResponse.ok) {
           const errData = await classroomsResponse.json();
           throw new Error(`Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`);

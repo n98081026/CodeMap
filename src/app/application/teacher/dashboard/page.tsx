@@ -29,9 +29,9 @@ export default function TeacherDashboardPage() {
 
   const [dashboardData, setDashboardData] = useState<TeacherDashboardData | null>(null);
   const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(true);
-  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(true); // Combined for simplicity in this case
   const [errorClassrooms, setErrorClassrooms] = useState<string | null>(null);
-  const [errorStudents, setErrorStudents] = useState<string | null>(null);
+  const [errorStudents, setErrorStudents] = useState<string | null>(null); // Combined
 
   const adminDashboardLink = "/application/admin/dashboard";
 
@@ -48,6 +48,8 @@ export default function TeacherDashboardPage() {
       setErrorStudents(null);
 
       try {
+        // Teacher fetches their own classrooms. The API route for teacherId does not support totalCount directly for all classrooms,
+        // so we fetch all and count, then sum studentIds.
         const response = await fetch(`/api/classrooms?teacherId=${user.id}`);
         if (!response.ok) {
           let errorMsg = `Classrooms API Error (${response.status})`;
@@ -59,11 +61,12 @@ export default function TeacherDashboardPage() {
           }
           throw new Error(errorMsg);
         }
-        const classrooms: Classroom[] = await response.json();
+        const classrooms: Classroom[] = await response.json(); // API returns Classroom[] directly when not paginating
 
         const managedClassroomsCount = classrooms.length;
         let totalStudents = 0;
         classrooms.forEach(c => {
+          // The service now populates studentIds as an array representing count
           totalStudents += c.studentIds?.length || 0;
         });
 
@@ -78,7 +81,7 @@ export default function TeacherDashboardPage() {
         const errorMessage = (err as Error).message;
         console.error("Error fetching teacher dashboard data:", errorMessage);
         toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
-        setErrorClassrooms(errorMessage);
+        setErrorClassrooms(errorMessage); // Set error for both as they depend on the same call
         setErrorStudents(errorMessage);
         setDashboardData(prev => prev || { managedClassroomsCount: 0, totalStudentsCount: 0 });
       } finally {
@@ -91,7 +94,7 @@ export default function TeacherDashboardPage() {
       fetchTeacherClassroomsAndStudentCount();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user]); // Removed toast from dependency array
 
   if (!user && (isLoadingClassrooms || isLoadingStudents)) return <LoadingSpinner />;
   if (!user) return null;
@@ -135,7 +138,7 @@ export default function TeacherDashboardPage() {
           description="Students across all your classrooms."
           count={renderCount(dashboardData?.totalStudentsCount, isLoadingStudents, errorStudents, "students")}
           icon={Users}
-          href="/application/teacher/classrooms"
+          href="/application/teacher/classrooms" // Link to classrooms page to view student lists per classroom
           linkText="View Student Lists"
         />
       </div>
