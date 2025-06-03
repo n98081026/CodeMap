@@ -47,7 +47,7 @@ export default function ConceptMapEditorPage() {
     initializeNewMap, setLoadedMap, setIsLoading: setStoreIsLoading, setError: setStoreError,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
-    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge: deleteStoreEdge,
+    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge, // <--- CORRECTED: Added deleteEdge here
     setSelectedElement: setStoreSelectedElement, setIsSaving: setStoreIsSaving,
     setAiExtractedConcepts: setStoreAiExtractedConcepts,
     setAiSuggestedRelations: setStoreAiSuggestedRelations,
@@ -361,10 +361,14 @@ export default function ConceptMapEditorPage() {
 
   // GROUP 8: Effects
   useEffect(() => {
+    // Only call loadMapData if routeMapId is defined and is a string.
+    // This avoids issues if paramsHook.mapId is undefined or not a string during initial renders.
     if (typeof routeMapId === 'string' && routeMapId.trim() !== '') {
       loadMapData(routeMapId);
+    } else if (user && user.id && !storeMapId && isNewMapMode) { // Auto-initialize for new map if user is available and not already initialized
+      initializeNewMap(user.id);
     }
-  }, [routeMapId, loadMapData]);
+  }, [routeMapId, loadMapData, user, storeMapId, isNewMapMode, initializeNewMap]);
 
 
   // Data for Inspector
@@ -375,7 +379,7 @@ export default function ConceptMapEditorPage() {
   } : null;
   
   if ((isNewMapMode || storeMapId === 'new') && !mapForInspector && user) {
-      (mapForInspector as ConceptMap | null) = {
+      mapForInspector = { // Changed from const to let above
         id: 'new', name: mapName, ownerId: user.id,
         mapData: storeMapData, isPublic: isPublic, sharedWithClassroomId: sharedWithClassroomId,
         createdAt: currentMapCreatedAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
