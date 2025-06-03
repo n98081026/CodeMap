@@ -23,6 +23,7 @@ interface FlowCanvasCoreProps {
   onNodesDeleteInStore: (nodeId: string) => void;
   onEdgesDeleteInStore: (edgeId: string) => void;
   onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
+  onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void; // Added prop
 }
 
 const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
@@ -33,6 +34,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   onNodesDeleteInStore,
   onEdgesDeleteInStore,
   onConnectInStore,
+  onNodeContextMenu, // Destructure new prop
 }) => {
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
@@ -45,8 +47,8 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       position: { x: appNode.x ?? Math.random() * 400, y: appNode.y ?? Math.random() * 300 },
       draggable: !isViewOnlyMode,
       selectable: true,
-      connectable: !isViewOnlyMode, // Ensures handles on this node are generally connectable
-      dragHandle: '.cursor-move', // Specify drag handle for custom node
+      connectable: !isViewOnlyMode,
+      dragHandle: '.cursor-move',
     }));
     setRfNodes(transformedNodes as RFNode<CustomNodeData>[]);
 
@@ -54,7 +56,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       id: appEdge.id,
       source: appEdge.source,
       target: appEdge.target,
-      sourceHandle: appEdge.sourceHandle || null, // Ensure sourceHandle and targetHandle are passed
+      sourceHandle: appEdge.sourceHandle || null,
       targetHandle: appEdge.targetHandle || null,
       label: appEdge.label,
       type: 'smoothstep',
@@ -95,12 +97,12 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   const handleRfConnect = useCallback((params: Connection) => {
     if (isViewOnlyMode) return;
-    onConnectInStore({ 
-      source: params.source!, 
-      target: params.target!, 
+    onConnectInStore({
+      source: params.source!,
+      target: params.target!,
       sourceHandle: params.sourceHandle,
       targetHandle: params.targetHandle,
-      label: "connects" 
+      label: "connects"
     });
   }, [isViewOnlyMode, onConnectInStore]);
 
@@ -127,6 +129,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onConnect={handleRfConnect}
       isViewOnlyMode={isViewOnlyMode}
       nodeTypes={nodeTypesConfig}
+      onNodeContextMenu={onNodeContextMenu} // Pass prop
     />
   );
 };

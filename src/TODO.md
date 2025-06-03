@@ -57,31 +57,31 @@
 
 ## Frontend Enhancements
 - [x] **Key Concept Map Editor Components & Functionality:**
-    - [x] **`EditorToolbar`**: 
-        - [x] Provides UI for Save, Add Node, Add Edge. 
-        - [x] GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals. 
+    - [x] **`EditorToolbar`**:
+        - [x] Provides UI for Save, Add Node, Add Edge.
+        - [x] GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals.
         - [x] "Add Edge" disabled if <2 nodes.
         - [x] Implement "New Map" button (navigates to new map route).
         - [x] Implement "Export Map" (JSON download of current map data).
         - [x] Add button to toggle Properties Inspector panel.
         - [x] Add button to toggle AI Suggestions / Map Info panel.
-        - [x] Implement "Import Map" (JSON file upload and parsing, placeholder Undo/Redo).
-    - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Now takes up main editor area.
-    - [x] **`PropertiesInspector`**: 
-        - [x] Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. 
-        - [x] Changes update Zustand store and are saved via toolbar. 
+        - [x] Implement "Import Map" (JSON file upload and parsing).
+    - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Now takes up main editor area. Nodes now have 4 connection handles.
+    - [x] **`PropertiesInspector`**:
+        - [x] Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties.
+        - [x] Changes update Zustand store and are saved via toolbar.
         - [x] View-only mode implemented with disabled inputs and muted styling.
         - [x] Re-integrated as a toggleable right-hand sheet/drawer.
     - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal` to interact with AI flows.
-    - [x] **`CanvasPlaceholder`** (AI Suggestions / Map Info Panel): 
-        - [x] Area displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. 
+    - [x] **`CanvasPlaceholder`** (AI Suggestions / Map Info Panel):
+        - [x] Area displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality.
         - [x] AI suggestions are cleared after being added to the map.
         - [x] Re-integrated as a toggleable bottom sheet/drawer.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states.
 - [ ] **Concept Map Editor - Further Enhancements (Future):**
+    - [x] Implement a context menu (right-click) on canvas elements for quick actions (Node delete implemented).
     - [ ] Implement Undo/Redo functionality in the editor (complex, requires history tracking in store).
-    - [ ] Add custom node types with distinct visual styling on the canvas.
-    - [ ] Implement a context menu (right-click) on canvas elements for quick actions.
+    - [ ] Add custom node types with distinct visual styling on the canvas (Base for custom types is in with `CustomNodeComponent`, further styling needed).
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor).
 - [ ] **Real-time Features (Optional - Future Consideration):**

@@ -1,8 +1,9 @@
 
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react"; // Added useRef
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import type { Node as RFNode } from 'reactflow'; // Import RFNode for type hint
 import { ReactFlowProvider } from 'reactflow';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
@@ -22,6 +23,8 @@ import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from 
 import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { NodeContextMenu } from '@/components/concept-map/node-context-menu'; // Import Context Menu
+import type { CustomNodeData } from '@/components/concept-map/custom-node'; // Import CustomNodeData
 
 import useConceptMapStore from '@/stores/concept-map-store';
 import FlowCanvasCore from "@/components/concept-map/flow-canvas-core";
@@ -51,7 +54,7 @@ export default function ConceptMapEditorPage() {
     setAiSuggestedRelations: setStoreAiSuggestedRelations,
     setAiExpandedConcepts: setStoreAiExpandedConcepts,
     resetAiSuggestions: resetStoreAiSuggestions,
-    importMapData, // Added importMapData action from store
+    importMapData,
   } = useConceptMapStore();
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
@@ -61,11 +64,19 @@ export default function ConceptMapEditorPage() {
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for hidden file input
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   const routeMapId = paramsHook.mapId as string;
   const isViewOnlyMode = searchParams.get('viewOnly') === 'true';
+
+  // Context Menu State
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+    nodeId: string | null;
+  } | null>(null);
 
   const loadMapData = useCallback(async (idToLoad: string) => {
     if (!idToLoad || idToLoad.trim() === '') {
@@ -197,12 +208,12 @@ export default function ConceptMapEditorPage() {
           body: JSON.stringify(payload),
         });
       } else {
-        const updatePayload = { 
+        const updatePayload = {
             name: mapName,
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId, 
+            ownerId: currentMapOwnerId,
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -216,7 +227,7 @@ export default function ConceptMapEditorPage() {
         throw new Error(errorData.message || "Failed to save map");
       }
       const savedMap: ConceptMap = await response.json();
-      setLoadedMap(savedMap); 
+      setLoadedMap(savedMap);
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
 
       if ((isNewMapMode || storeMapId === 'new') && savedMap.id) {
@@ -238,7 +249,7 @@ export default function ConceptMapEditorPage() {
     if (isViewOnlyMode) return;
     setStoreAiExtractedConcepts(concepts);
     toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts. You can add them to the map via the suggestions panel.` });
-    setIsAiPanelOpen(true); 
+    setIsAiPanelOpen(true);
   }, [isViewOnlyMode, setStoreAiExtractedConcepts, toast]);
 
   const handleRelationsSuggested = useCallback((relations: Array<{ source: string; target: string; relation: string }>) => {
@@ -268,15 +279,15 @@ export default function ConceptMapEditorPage() {
       if (!existingNodeTexts.has(conceptText)) {
         addStoreNode({
           text: conceptText,
-          type: type, 
-          position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 }, 
+          type: type,
+          position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
         });
         addedCount++;
       }
     });
     if (addedCount > 0) toast({ title: "Concepts Added", description: `${addedCount} new concepts added to map. Remember to save.` });
     else toast({ title: "No New Concepts", description: "All suggestions may already exist on the map.", variant: "default" });
-    
+
     if (type === 'ai-extracted-concept') setStoreAiExtractedConcepts([]);
     else if (type === 'ai-expanded-concept') setStoreAiExpandedConcepts([]);
   }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts, setStoreAiExpandedConcepts, get]);
@@ -288,26 +299,26 @@ export default function ConceptMapEditorPage() {
     }
     let relationsAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
-    let currentNodesSnapshot = [...get().mapData.nodes]; 
+    let currentNodesSnapshot = [...get().mapData.nodes];
 
     relations.forEach(rel => {
       let sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
       if (!sourceNode) {
         addStoreNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
-        currentNodesSnapshot = [...get().mapData.nodes]; 
+        currentNodesSnapshot = [...get().mapData.nodes];
         sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
-        if (sourceNode) conceptsAddedFromRelationsCount++; else return; 
+        if (sourceNode) conceptsAddedFromRelationsCount++; else return;
       }
 
       let targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
       if (!targetNode) {
         addStoreNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
-        currentNodesSnapshot = [...get().mapData.nodes]; 
+        currentNodesSnapshot = [...get().mapData.nodes];
         targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
-        if (targetNode) conceptsAddedFromRelationsCount++; else return; 
+        if (targetNode) conceptsAddedFromRelationsCount++; else return;
       }
 
-      const currentEdgesSnapshot = get().mapData.edges; 
+      const currentEdgesSnapshot = get().mapData.edges;
       if (sourceNode && targetNode && !currentEdgesSnapshot.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
         addStoreEdge({ source: sourceNode!.id, target: targetNode!.id, label: rel.relation });
         relationsAddedCount++;
@@ -316,11 +327,11 @@ export default function ConceptMapEditorPage() {
     let toastMessage = "";
     if (relationsAddedCount > 0) toastMessage += `${relationsAddedCount} new relations added. `;
     if (conceptsAddedFromRelationsCount > 0) toastMessage += `${conceptsAddedFromRelationsCount} new concepts (from relations) added. `;
-    
+
     if (toastMessage) toast({ title: "Relations Added", description: `${toastMessage.trim()} Remember to save the map.` });
     else toast({ title: "No New Relations", description: "All suggestions may already exist on the map.", variant: "default" });
-    
-    setStoreAiSuggestedRelations([]); 
+
+    setStoreAiSuggestedRelations([]);
   }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations, get]);
 
 
@@ -346,7 +357,7 @@ export default function ConceptMapEditorPage() {
     }
     const sourceNode = nodes[nodes.length - 2];
     const targetNode = nodes[nodes.length - 1];
-    if (!sourceNode || !targetNode) { 
+    if (!sourceNode || !targetNode) {
         toast({ title: "Error Adding Edge", description: "Could not find source/target nodes.", variant: "destructive" });
         return;
     }
@@ -357,12 +368,12 @@ export default function ConceptMapEditorPage() {
 
 
   const getRoleBasedDashboardLink = useCallback(() => {
-    if (!user) return "/application/login"; 
+    if (!user) return "/application/login";
     switch (user.role) {
       case UserRole.STUDENT: return "/application/student/dashboard";
       case UserRole.TEACHER: return "/application/teacher/dashboard";
       case UserRole.ADMIN: return "/application/admin/dashboard";
-      default: return "/application/login"; 
+      default: return "/application/login";
     }
   }, [user]);
 
@@ -374,9 +385,9 @@ export default function ConceptMapEditorPage() {
     if (user.role === UserRole.STUDENT) return "/application/student/concept-maps";
     if (user.role === UserRole.TEACHER || (user.role === UserRole.ADMIN && sharedWithClassroomId)) {
         if (sharedWithClassroomId) return `/application/teacher/classrooms/${sharedWithClassroomId}`;
-        return "/application/teacher/dashboard"; 
+        return "/application/teacher/dashboard";
     }
-    return getRoleBasedDashboardLink(); 
+    return getRoleBasedDashboardLink();
   }, [user, isNewMapMode, storeMapId, sharedWithClassroomId, getRoleBasedDashboardLink]);
 
   const getBackButtonText = useCallback(() => {
@@ -393,11 +404,11 @@ export default function ConceptMapEditorPage() {
   useEffect(() => {
     if (typeof routeMapId === 'string') {
       loadMapData(routeMapId);
-    } else if (user && user.id && !storeMapId && isNewMapMode) { 
+    } else if (user && user.id && !storeMapId && isNewMapMode) {
       initializeNewMap(user.id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeMapId, user?.id]); 
+  }, [routeMapId, user?.id]);
 
 
   const onExtractConceptsOpen = useCallback(() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [resetStoreAiSuggestions]);
@@ -413,9 +424,9 @@ export default function ConceptMapEditorPage() {
     createdAt: currentMapCreatedAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
   } : null;
 
-  if ((isNewMapMode || storeMapId === 'new') && !mapForInspector && user) { 
+  if ((isNewMapMode || storeMapId === 'new') && !mapForInspector && user) {
       mapForInspector = {
-        id: 'new', name: mapName, ownerId: user.id, 
+        id: 'new', name: mapName, ownerId: user.id,
         mapData: storeMapData, isPublic: isPublic, sharedWithClassroomId: sharedWithClassroomId,
         createdAt: currentMapCreatedAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
       };
@@ -429,7 +440,7 @@ export default function ConceptMapEditorPage() {
   }
 
   const canAddEdge = storeMapData.nodes.length >= 2;
-  
+
   const handleNewMap = useCallback(() => {
     router.push('/application/concept-maps/editor/new');
   }, [router]);
@@ -451,7 +462,6 @@ export default function ConceptMapEditorPage() {
     toast({ title: "Map Exported", description: `Saved as ${filename}` });
   }, [toast, get]);
 
-  // Import functionality
   const handleTriggerImport = useCallback(() => {
     if (isViewOnlyMode) {
       toast({ title: "View Only Mode", description: "Cannot import map in view-only mode.", variant: "default"});
@@ -467,7 +477,7 @@ export default function ConceptMapEditorPage() {
 
     if (file.type !== "application/json") {
       toast({ title: "Import Error", description: "Invalid file type. Please select a JSON file.", variant: "destructive" });
-      if(fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+      if(fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -479,11 +489,9 @@ export default function ConceptMapEditorPage() {
           throw new Error("Failed to read file content.");
         }
         const importedJson = JSON.parse(text);
-        
-        // Basic validation for ConceptMapData structure
+
         if (typeof importedJson === 'object' && importedJson !== null && Array.isArray(importedJson.nodes) && Array.isArray(importedJson.edges)) {
           const importedMapData = importedJson as ConceptMapData;
-          // Further validation for node/edge properties can be added here if needed
           const mapNameFromFileName = file.name.replace(/\.json$/i, '');
           importMapData(importedMapData, `Imported: ${mapNameFromFileName}`);
           toast({ title: "Map Imported", description: `"${file.name}" loaded successfully. Remember to save if you want to keep it.` });
@@ -493,15 +501,41 @@ export default function ConceptMapEditorPage() {
       } catch (error) {
         toast({ title: "Import Failed", description: `Error parsing JSON file: ${(error as Error).message}`, variant: "destructive" });
       } finally {
-        if(fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+        if(fileInputRef.current) fileInputRef.current.value = "";
       }
     };
     reader.onerror = () => {
       toast({ title: "Import Error", description: "Failed to read the file.", variant: "destructive" });
-      if(fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+      if(fileInputRef.current) fileInputRef.current.value = "";
     };
     reader.readAsText(file);
   }, [isViewOnlyMode, toast, importMapData]);
+
+  // Context Menu Handlers
+  const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
+    event.preventDefault();
+    if (isViewOnlyMode) {
+        toast({ title: "View Only Mode", description: "Context menu actions are disabled.", variant: "default" });
+        return;
+    }
+    setContextMenu({
+      isOpen: true,
+      x: event.clientX,
+      y: event.clientY,
+      nodeId: node.id,
+    });
+  }, [isViewOnlyMode, toast]);
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => {
+    if (isViewOnlyMode) return;
+    deleteStoreNode(nodeId);
+    toast({ title: "Node Deleted", description: "The node has been removed from the map." });
+    closeContextMenu();
+  }, [isViewOnlyMode, deleteStoreNode, toast, closeContextMenu]);
 
 
   // UI Rendering
@@ -529,13 +563,12 @@ export default function ConceptMapEditorPage() {
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col">
-      {/* Hidden file input for import */}
-      <input 
-        type="file" 
-        accept=".json" 
-        ref={fileInputRef} 
-        onChange={handleFileSelectedForImport} 
-        style={{ display: 'none' }} 
+      <input
+        type="file"
+        accept=".json"
+        ref={fileInputRef}
+        onChange={handleFileSelectedForImport}
+        style={{ display: 'none' }}
         disabled={isViewOnlyMode}
       />
       <DashboardHeader
@@ -555,12 +588,12 @@ export default function ConceptMapEditorPage() {
         </Button>
       </DashboardHeader>
 
-      <ReactFlowProvider> 
+      <ReactFlowProvider>
         <EditorToolbar
           onNewMap={handleNewMap}
           onSaveMap={handleSaveMap} isSaving={isSaving}
           onExportMap={handleExportMap}
-          onTriggerImport={handleTriggerImport} // Pass new handler
+          onTriggerImport={handleTriggerImport}
           onExtractConcepts={onExtractConceptsOpen}
           onSuggestRelations={onSuggestRelationsOpen}
           onExpandConcept={onExpandConceptOpen}
@@ -571,17 +604,29 @@ export default function ConceptMapEditorPage() {
           isPropertiesPanelOpen={isPropertiesInspectorOpen}
           isAiPanelOpen={isAiPanelOpen}
         />
-        <div className="flex-grow relative overflow-hidden"> 
+        <div className="flex-grow relative overflow-hidden">
             <FlowCanvasCore
               mapDataFromStore={storeMapData}
               isViewOnlyMode={isViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange}
-              onNodesChangeInStore={updateStoreNode} 
+              onNodesChangeInStore={updateStoreNode}
               onNodesDeleteInStore={deleteStoreNode}
               onEdgesDeleteInStore={deleteEdge}
               onConnectInStore={addStoreEdge}
+              onNodeContextMenu={handleNodeContextMenu} // Pass context menu handler
             />
         </div>
+
+        {contextMenu && contextMenu.isOpen && contextMenu.nodeId && (
+          <NodeContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            nodeId={contextMenu.nodeId}
+            onClose={closeContextMenu}
+            onDeleteNode={handleDeleteNodeFromContextMenu}
+            isViewOnlyMode={isViewOnlyMode}
+          />
+        )}
 
         <Sheet open={isPropertiesInspectorOpen} onOpenChange={setIsPropertiesInspectorOpen}>
           <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
@@ -606,14 +651,14 @@ export default function ConceptMapEditorPage() {
         </Sheet>
 
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
-          <SheetContent side="bottom" className="h-[40vh] sm:h-1/3"> 
+          <SheetContent side="bottom" className="h-[40vh] sm:h-1/3">
             <SheetHeader>
               <SheetTitle>AI Suggestions & Map Data</SheetTitle>
               <SheetDescription>
                 View AI-generated suggestions or textual representation of your map.
               </SheetDescription>
             </SheetHeader>
-            <div className="py-4 h-[calc(100%-4rem)]"> 
+            <div className="py-4 h-[calc(100%-4rem)]">
               <CanvasPlaceholder
                 mapData={storeMapData}
                 extractedConcepts={aiExtractedConcepts}

@@ -33,6 +33,7 @@ interface InteractiveCanvasProps {
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
   nodeTypes?: NodeTypes;
+  onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void; // Added prop
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -42,14 +43,13 @@ const fitViewOptions: FitViewOptions = {
 
 const nodeColor = (node: Node<CustomNodeData>) => {
   const type = node.data?.type || 'default';
-  // Simplified logic for MiniMap, can be expanded
   const nodeTypeColors: { [key: string]: string } = {
-    key_feature: 'hsl(210 70% 50%)', // primary
-    service_component: 'hsl(145 63% 42%)', // green-ish
-    ui_view: 'hsl(262 80% 58%)', // purple-ish
-    data_model: 'hsl(48 96% 53%)', // yellow-ish
-    'ai-extracted-concept': 'hsl(210 20% 85%)', // muted
-    default: 'hsl(210 20% 90%)', // secondary
+    key_feature: 'hsl(210 70% 50%)',
+    service_component: 'hsl(145 63% 42%)',
+    ui_view: 'hsl(262 80% 58%)',
+    data_model: 'hsl(48 96% 53%)',
+    'ai-extracted-concept': 'hsl(210 20% 85%)',
+    default: 'hsl(210 20% 90%)',
   };
   return nodeTypeColors[type] || nodeTypeColors.default;
 };
@@ -65,8 +65,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onConnect,
   isViewOnlyMode,
   nodeTypes,
+  onNodeContextMenu, // Destructure new prop
 }) => {
-  
+
   return (
     <Card className="h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden">
       <ReactFlow
@@ -87,7 +88,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         className="bg-background"
         proOptions={{ hideAttribution: true }}
         nodeTypes={nodeTypes}
-        // connectionMode={ConnectionMode.Loose} // Might improve UX by allowing connection to node body
+        onNodeContextMenu={onNodeContextMenu} // Pass to ReactFlow
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
