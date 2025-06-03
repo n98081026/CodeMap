@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { UserRole } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogIn } from "lucide-react";
+import { LogIn, Loader2 } from "lucide-react"; // Added Loader2
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -28,8 +28,9 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading: authIsLoading } = useAuth(); // Renamed isLoading to authIsLoading
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false); // Local loading state for form
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -41,21 +42,26 @@ export function LoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
     try {
-      await login(values.email, values.password, values.role);
+      await login(values.email, values.password, values.role); // Pass role to login
       toast({
         title: "Login Successful",
         description: "Welcome back!",
       });
-      // Redirect handled by AuthContext or page
+      // Redirect handled by AuthContext or page effect
     } catch (error) {
       toast({
         title: "Login Failed",
         description: (error as Error).message || "An unexpected error occurred.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
+  
+  const currentLoadingState = authIsLoading || isSubmitting;
 
   return (
     <Form {...form}>
@@ -67,7 +73,7 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="you@example.com" {...field} />
+                <Input placeholder="you@example.com" {...field} disabled={currentLoadingState} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -80,7 +86,7 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
+                <Input type="password" placeholder="••••••••" {...field} disabled={currentLoadingState} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -92,7 +98,7 @@ export function LoginForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={currentLoadingState}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your role" />
@@ -108,8 +114,9 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Logging in..." : <> <LogIn className="mr-2 h-4 w-4" /> Login</>}
+        <Button type="submit" className="w-full" disabled={currentLoadingState}>
+          {currentLoadingState ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+          {currentLoadingState ? "Logging in..." : "Login"}
         </Button>
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
