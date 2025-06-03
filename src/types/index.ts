@@ -99,3 +99,14 @@ export interface DashboardLinkCardProps {
   href: string;
   linkText: string;
 }
+
+export interface SystemSettings {
+  enable_ai_project_analysis: boolean;
+  default_concept_map_visibility: "public" | "private";
+  max_project_file_size_mb: number;
+  // No 'id' or 'updated_at' here, as they are DB implementation details
+  // or handled by the service/API layer for the single settings row.
+}
+
+export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>;
+

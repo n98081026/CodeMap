@@ -10,18 +10,18 @@ import { Form, FormControl, FormDescription as FormDesc, FormField, FormItem, Fo
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, Save, Loader2 } from "lucide-react";
+import { Settings, Save, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import Link from "next/link";
-import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import type { SystemSettings } from "@/types";
 
 const settingsFormSchema = z.object({
-  enableAiProjectAnalysis: z.boolean().default(true),
-  defaultConceptMapVisibility: z.enum(["public", "private"]).default("private"),
-  maxProjectFileSizeMb: z.coerce // Coerce to number
+  enable_ai_project_analysis: z.boolean().default(true),
+  default_concept_map_visibility: z.enum(["public", "private"]).default("private"),
+  max_project_file_size_mb: z.coerce
     .number({ invalid_type_error: "Must be a number" })
     .min(1, { message: "Must be at least 1MB" })
     .max(100, { message: "Cannot exceed 100MB" })
@@ -30,46 +30,95 @@ const settingsFormSchema = z.object({
 
 type SettingsFormValues = z.infer<typeof settingsFormSchema>;
 
-// Simulate fetching and storing settings
-const initialSettings: SettingsFormValues = {
-  enableAiProjectAnalysis: true,
-  defaultConceptMapVisibility: "private",
-  maxProjectFileSizeMb: 10,
+const defaultFormValues: SettingsFormValues = {
+  enable_ai_project_analysis: true,
+  default_concept_map_visibility: "private",
+  max_project_file_size_mb: 10,
 };
-
 
 export default function AdminSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [currentSettings, setCurrentSettings] = useState<SettingsFormValues>(initialSettings);
+  
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [errorLoadingSettings, setErrorLoadingSettings] = useState<string | null>(null);
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsFormSchema),
-    values: currentSettings, // Use 'values' to make it controlled by 'currentSettings'
-    mode: "onChange", // Enable isDirty state
+    defaultValues: defaultFormValues, // Initialize with defaults, will be overwritten by fetched data
+    mode: "onChange",
   });
 
-  useEffect(() => {
-    // When currentSettings changes (e.g., after a "save"), reset the form to reflect these new values
-    // and mark it as not dirty.
-    form.reset(currentSettings, { keepValues: true, keepDirty: false, keepDefaultValues: false });
-  }, [currentSettings, form]);
+  const fetchSettings = useCallback(async () => {
+    setIsLoadingSettings(true);
+    setErrorLoadingSettings(null);
+    try {
+      const response = await fetch('/api/admin/settings');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch settings");
+      }
+      const fetchedSettings: SystemSettings = await response.json();
+      form.reset(fetchedSettings); // Reset form with fetched values
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      setErrorLoadingSettings(errorMessage);
+      toast({ title: "Error Loading Settings", description: `${errorMessage}. Using default values.`, variant: "destructive" });
+      form.reset(defaultFormValues); // Fallback to defaults on error
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  }, [form, toast]);
 
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const onSubmit = async (data: SettingsFormValues) => {
-    console.log("Saving settings (mock):", data);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setCurrentSettings(data); // Update "persisted" settings
-    toast({
-      title: "Settings Saved (Mock)",
-      description: "Your configuration has been updated.",
-    });
-    // Form will re-initialize due to useEffect on currentSettings
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save settings");
+      }
+      await response.json(); // Contains updated settings, can use if needed
+      toast({
+        title: "Settings Saved",
+        description: "Your configuration has been successfully updated.",
+      });
+      form.reset(data, { keepValues: true, keepDirty: false, keepDefaultValues: false }); // Resets dirty state
+    } catch (error) {
+      toast({
+        title: "Error Saving Settings",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    }
   };
   
   const adminDashboardLink = "/application/admin/dashboard";
   
+  if (isLoadingSettings) {
+    return (
+      <div className="space-y-6">
+        <DashboardHeader
+            title="System Settings"
+            description="Configure global application settings and parameters."
+            icon={Settings}
+            iconLinkHref={adminDashboardLink}
+        />
+        <div className="flex justify-center items-center py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-2">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <DashboardHeader
@@ -78,6 +127,17 @@ export default function AdminSettingsPage() {
         icon={Settings}
         iconLinkHref={adminDashboardLink}
       />
+      {errorLoadingSettings && !isLoadingSettings && (
+        <Card className="border-destructive bg-destructive/10">
+            <CardHeader>
+                <CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-destructive/90">{errorLoadingSettings}</p>
+                <p className="text-sm text-destructive/80 mt-1">Displaying default values. Please try saving or reloading.</p>
+            </CardContent>
+        </Card>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -91,7 +151,7 @@ export default function AdminSettingsPage() {
             <CardContent className="space-y-6">
               <FormField
                 control={form.control}
-                name="enableAiProjectAnalysis"
+                name="enable_ai_project_analysis"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
@@ -123,13 +183,13 @@ export default function AdminSettingsPage() {
             <CardContent className="space-y-6">
               <FormField
                 control={form.control}
-                name="defaultConceptMapVisibility"
+                name="default_concept_map_visibility"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Default New Map Visibility</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      value={field.value} // Ensure value prop is used for controlled component
                       disabled={form.formState.isSubmitting}
                     >
                       <FormControl>
@@ -162,7 +222,7 @@ export default function AdminSettingsPage() {
             <CardContent className="space-y-6">
                <FormField
                 control={form.control}
-                name="maxProjectFileSizeMb"
+                name="max_project_file_size_mb"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Maximum Project File Size (MB)</FormLabel>
@@ -171,7 +231,7 @@ export default function AdminSettingsPage() {
                         type="number" 
                         placeholder="e.g., 10" 
                         {...field} 
-                        onChange={event => field.onChange(+event.target.value)} // Ensure value is number
+                        onChange={event => field.onChange(+event.target.value)}
                         disabled={form.formState.isSubmitting}
                       />
                     </FormControl>

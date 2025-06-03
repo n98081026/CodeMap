@@ -82,7 +82,7 @@
     - [x] Implement change password functionality on profile page (uses Supabase Auth via API).
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to Supabase-backed service; add user via register flow - Add button tooltip added).
-    - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard. Settings form implemented with mock save, "Save" button disabled if form not dirty. This is still using mock save and should be connected to a persistence mechanism if actual settings are to be saved beyond session).
+    - [x] Develop system settings interface (Admin Settings page now fetches and saves settings to Supabase via API. Linked from Admin Dashboard).
 
 ## GenAI & AI Features (Enhanced)
 - [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending by user. Flow now takes `projectStoragePath`. Simulated end-to-end flow for submission status and map record creation is more robust).
@@ -125,7 +125,7 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 **1. Supabase Setup & Initial Configuration**
 - [x] **Project Setup:** (Assumed user has done)
 - [x] **Client Library & Config:** (`src/lib/supabaseClient.ts` and `.env` setup done).
-- [ ] **Database Schema Design (User Task):** (User needs to implement in Supabase: `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`, and RLS policies).
+- [ ] **Database Schema Design (User Task):** (User needs to implement in Supabase: `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`, `system_settings` and RLS policies).
 - [x] **Database Migrations:** (User to handle CLI setup and SQL scripts. `src/types/supabase.ts` placeholder created; user must run typegen).
 
 **2. User Authentication & Profiles with Supabase Auth**
@@ -155,13 +155,13 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done)
 
 **6. API Route Refactoring (General Review for Supabase)**
-- [x] Review all existing API routes in `src/app/api/`. (Done for users, classrooms, conceptmaps, submissions).
+- [x] Review all existing API routes in `src/app/api/`. (Done for users, classrooms, conceptmaps, submissions, admin settings).
 - [x] Refactor each route to use Supabase-powered service functions. (Done)
-- [ ] Implement proper Supabase session/JWT authentication and authorization checks in API routes. (Partially done for password change. Others rely on service logic or need explicit auth checks by user, RLS is primary).
+- [ ] Implement proper Supabase session/JWT authentication and authorization checks in API routes. (Partially done for password change and admin settings. Others rely on service logic or need explicit auth checks by user, RLS is primary).
 
 **7. Frontend Connection to Supabase Backend (General Review)**
 - [x] For each page/component currently fetching data via API routes:
-    - [x] Ensure API routes are correctly calling Supabase services. (Done for dashboard counts, classroom lists, user lists, concept map list, submission list for Admin, Teacher, Student.)
+    - [x] Ensure API routes are correctly calling Supabase services. (Done for dashboard counts, classroom lists, user lists, concept map list, submission list, admin settings page for Admin, Teacher, Student.)
     - [x] Update error handling and loading states to reflect real asynchronous operations. (Largely done.)
 
 ## Testing & Deployment (Future - Out of Scope for AI Agent Implementation)
@@ -174,7 +174,7 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
     - [ ] Configure production environment for Next.js and Supabase.
 
 ## Known Issues / Current State
-- Backend services largely migrated from mock to Supabase (users, classrooms, concept_maps, project_submissions).
+- Backend services largely migrated from mock to Supabase (users, classrooms, concept_maps, project_submissions, system_settings).
 - AuthContext migrated to Supabase Auth. User profile data fetched from Supabase `profiles` table. Mock admin login via form preserved.
 - Data persistence for all entities handled by Supabase (requires user to set up tables & RLS).
 - Concept map canvas is React Flow. Undo/Redo implemented.
@@ -182,5 +182,5 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a Supabase Function trigger (or similar mechanism) is needed by the user to create the corresponding `profiles` table entry automatically.
 - API routes rely on Supabase-backed services. Further auth checks (JWT verification, role-based access) for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
-- Admin System Settings page still uses mock save.
 - File upload for project analysis not yet connected to Supabase Storage.
+
