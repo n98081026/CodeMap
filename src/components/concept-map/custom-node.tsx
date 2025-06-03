@@ -90,7 +90,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
       )}
 
       <Handle
-        type="target" // Top is target
+        type="source" 
         position={Position.Top}
         id={`${id}-top`}
         style={{ ...handleBaseStyle, top: '-5px' }}
@@ -98,7 +98,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         className="react-flow__handle-custom"
       />
       <Handle
-        type="source" // Bottom is source
+        type="source" 
         position={Position.Bottom}
         id={`${id}-bottom`}
         style={{ ...handleBaseStyle, bottom: '-5px' }}
@@ -106,7 +106,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         className="react-flow__handle-custom"
       />
       <Handle
-        type="target" // Left is target
+        type="source" 
         position={Position.Left}
         id={`${id}-left`}
         style={{ ...handleBaseStyle, left: '-5px' }}
@@ -114,7 +114,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         className="react-flow__handle-custom"
       />
       <Handle
-        type="source" // Right is source
+        type="source" 
         position={Position.Right}
         id={`${id}-right`}
         style={{ ...handleBaseStyle, right: '-5px' }}
