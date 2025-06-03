@@ -260,29 +260,6 @@ export async function deleteUserProfile(userId: string): Promise<boolean> {
   return true;
 }
 
-
-/**
- * Changes a user's password using Supabase Auth.
- * This function must be called by an authenticated user for themselves.
- * @param newPassword The new password.
- * @throws Error if password change fails.
- */
-export async function changeUserPassword(newPassword: string): Promise<void> {
-  // This call is client-side, Supabase handles current user context
-  const { data, error } = await supabase.auth.updateUser({
-    password: newPassword,
-  });
-
-  if (error) {
-    console.error('Supabase changeUserPassword error:', error);
-    // Provide more specific error messages based on Supabase error codes if needed
-    if (error.message.includes("same as the old password")) {
-        throw new Error("New password must be different from the old password.");
-    }
-    if (error.message.includes("weak password")) {
-        throw new Error("Password is too weak. Please choose a stronger password.");
-    }
-    throw new Error(`Failed to change password: ${error.message}`);
-  }
-  // Password changed successfully. `data.user` contains the updated user object from auth.
-}
+// Removed the mocked changeUserPassword(userId, currentPassword, newPassword) function.
+// Password changes for the authenticated user are handled by API route using supabase.auth.updateUser()
+// or client-side via AuthContext.

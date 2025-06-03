@@ -31,12 +31,13 @@ This section outlines the tasks to migrate the application from mock backend ser
     - [x] Fetch user profile data from `profiles` table after Supabase auth state changes (Logic added to `AuthContext` to call `userService.getUserById`).
     - [x] Implement session management using Supabase `onAuthStateChange`.
     - [x] Remove old mock user data and local storage logic for user object session (Supabase handles its own session).
+    - [x] Remove initial pathname-based mock user auto-login (except mock admin).
 - [x] **`userService.ts` Refactor:**
     - [x] `createUserProfile`: New function to create a corresponding record in the `profiles` table after Supabase `signUp` (to be called by a trigger or separate API - User responsibility for trigger/API).
     - [x] `findUserByEmail`, `getUserById`: Query `profiles` table using `supabase-js`.
     - [x] `updateUser`: Update `profiles` table. Supabase Auth methods for email/password change handled separately.
     - [x] `deleteUserProfile`: Delete from `profiles`. Actual `auth.users` deletion needs service_role (User responsibility).
-    - [x] `changeUserPassword`: Use Supabase Auth `updateUser` method for password changes (client-side context, needs user to be logged in).
+    - [x] `changeUserPassword`: Implemented in API route using Supabase Auth `updateUser` method for password changes by authenticated user.
 - [x] **API Routes (`/api/auth/*`) Review/Refactor:**
     - [x] `/api/auth/login` and `/api/auth/register` are no longer needed; client-side Supabase calls in `AuthContext` suffice. Marked as deprecated. (User can delete these files).
     - [ ] Secure other API routes and have them call Supabase admin functions if necessary.
@@ -91,7 +92,7 @@ This section outlines the tasks to migrate the application from mock backend ser
 **7. Frontend Connection to Supabase Backend**
 - [ ] For each page/component currently fetching data via API routes:
     - [x] Ensure API routes are correctly calling Supabase services. (Partially done for dashboard counts, classroom lists, user lists, etc.)
-    - [x] Update error handling and loading states to reflect real asynchronous operations.
+    - [ ] Update error handling and loading states to reflect real asynchronous operations.
     - [ ] This is a broad task that touches most of the frontend.
 
 ## GenAI & AI Features (Comprehensive Enhancement Plan) - Enhanced
@@ -234,7 +235,7 @@ This enhanced plan should provide a significantly more robust and user-friendly 
     - [x] Refine UI details, ensure consistency.
     - [x] Add more comprehensive loading states and error handling (Done for many list pages and dashboards using mock data. Re-evaluate with Supabase async operations).
     - [x] Enhance empty states.
-    - [x] Implement user profile page and settings (Connected to mock service. Re-evaluate with Supabase Auth &amp; Profiles).
+    - [x] Implement user profile page and settings (Profile page created, edit name/email working. Change password functionality using Supabase Auth implemented. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management, Teacher classrooms have pagination with mock data. Re-evaluate with Supabase queries).
     - [x] Add loading spinner to Login/Register pages.
     - [x] Make header icons link to main dashboards.
@@ -256,13 +257,13 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 
 ## Known Issues / Current State
 - Backend services are being migrated from mock to Supabase.
-- AuthContext is being migrated to Supabase Auth. User profile data now fetched from Supabase `profiles` table if available. Old pathname-based mock student/teacher auto-login removed.
+- AuthContext is being migrated to Supabase Auth. User profile data now fetched from Supabase `profiles` table if available. Old pathname-based mock student/teacher auto-login removed. Mock admin login via form preserved.
 - Data persistence for all entities will be handled by Supabase.
 - Concept map canvas is React Flow. Node dragging &amp; connections working.
 - AI for project analysis currently uses mock project structure; needs to integrate real file uploads and analysis tool.
 - Zustand `temporal` middleware for undo/redo has been integrated. Needs thorough testing.
 - Supabase client library installed and basic config file created. `.env` updated with user-provided values. `src/types/supabase.ts` created; user needs to run typegen.
-- `userService.ts` refactored for Supabase profile operations. Old `/api/auth/*` routes marked deprecated.
+- `userService.ts` refactored for Supabase profile operations. Old `/api/auth/*` routes marked deprecated. Password change on profile page now uses Supabase Auth via API.
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a mechanism to create the corresponding `profiles` table entry (e.g., Supabase Function trigger) is still needed by the user.
 - `projectStructureAnalyzerTool` is defined with MOCK logic. The `generateMapFromProject` flow is updated to use it.
 - `classroomService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).

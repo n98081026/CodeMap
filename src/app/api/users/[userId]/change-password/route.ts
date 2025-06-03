@@ -1,39 +1,60 @@
 // src/app/api/users/[userId]/change-password/route.ts
 import { NextResponse } from 'next/server';
-import { changeUserPassword } from '@/services/users/userService';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import type { Database } from '@/types/supabase';
 
 export async function POST(request: Request, context: { params: { userId: string } }) {
   try {
-    const { userId } = context.params;
-    if (!userId) {
-      return NextResponse.json({ message: "User ID is required" }, { status: 400 });
+    const { userId: pathUserId } = context.params;
+    const { newPassword } = await request.json() as { newPassword: string };
+
+    if (!pathUserId) {
+      return NextResponse.json({ message: "User ID is required in path" }, { status: 400 });
+    }
+    if (!newPassword) {
+      return NextResponse.json({ message: "New password is required" }, { status: 400 });
+    }
+    if (newPassword.length < 6) {
+        return NextResponse.json({ message: "New password must be at least 6 characters." }, { status: 400 });
     }
 
-    const { currentPassword, newPassword } = await request.json() as { currentPassword: string; newPassword: string };
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
 
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ message: "Current password and new password are required" }, { status: 400 });
+    const { data: { user: authUser }, error: sessionError } = await supabase.auth.getUser();
+
+    if (sessionError || !authUser) {
+      return NextResponse.json({ message: "Unauthorized: Could not retrieve authenticated user." }, { status: 401 });
+    }
+
+    // Security check: Ensure the authenticated user is the one trying to change their password
+    if (authUser.id !== pathUserId) {
+      return NextResponse.json({ message: "Forbidden: You can only change your own password." }, { status: 403 });
     }
     
-    // In a real app, ensure the authenticated user matches userId or is an admin
-    // For this mock, we'll proceed directly based on userId from path
+    // The client-side form already asks for currentPassword and confirmPassword for UX.
+    // Supabase's updateUser for an authenticated session does not require currentPassword.
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
 
-    await changeUserPassword(userId, currentPassword, newPassword);
-    // changeUserPassword will throw an error if something is wrong (e.g., user not found, current password incorrect)
+    if (updateError) {
+      console.error(`Change Password API error (User ID: ${authUser.id}):`, updateError);
+      let errorMessage = `Failed to change password: ${updateError.message}`;
+      if (updateError.message.includes("same as the old password")) {
+        errorMessage = "New password must be different from the old password.";
+      } else if (updateError.message.includes("weak password")) {
+        errorMessage = "Password is too weak. Please choose a stronger password.";
+      }
+      return NextResponse.json({ message: errorMessage }, { status: 400 }); // Using 400 for user input related errors
+    }
     
-    return NextResponse.json({ message: "Password changed successfully (mock)" });
+    return NextResponse.json({ message: "Password changed successfully." });
 
   } catch (error) {
-    console.error(`Change Password API error (User ID: ${context.params.userId}):`, error);
-    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-    
-    if (errorMessage.includes("User not found")) {
-        return NextResponse.json({ message: errorMessage }, { status: 404 });
-    }
-    if (errorMessage.includes("Incorrect current password")) {
-        return NextResponse.json({ message: errorMessage }, { status: 401 }); // Or 400 Bad Request
-    }
-    
+    console.error(`Change Password API - unexpected error:`, error);
+    const errorMessage = error instanceof Error ? error.message : "An unexpected server error occurred.";
     return NextResponse.json({ message: `Failed to change password: ${errorMessage}` }, { status: 500 });
   }
 }
