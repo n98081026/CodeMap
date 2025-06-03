@@ -42,7 +42,7 @@ export function ExtractConceptsModal({ onConceptsExtracted, onOpenChange }: Extr
     setIsLoading(true);
     try {
       const result = await aiExtractConcepts({ text });
-      toast({ title: "Concepts Extracted", description: `${result.concepts.length} concepts found.` });
+      toast({ title: "AI: Concepts Ready", description: `${result.concepts.length} concepts found. View them in the AI Suggestions panel.` });
       onConceptsExtracted?.(result.concepts);
       onOpenChange(false); 
     } catch (error) {
@@ -58,12 +58,12 @@ export function ExtractConceptsModal({ onConceptsExtracted, onOpenChange }: Extr
         <DialogHeader>
           <DialogTitle>Extract Concepts with AI</DialogTitle>
           <DialogDescription>
-            Paste text below. The AI will identify and extract key concepts.
+            Paste text below. The AI will identify and extract key concepts. These will appear in the AI Suggestions panel.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <Textarea
-            placeholder="Paste your text here..."
+            placeholder="Paste your text here (e.g., a project description, requirements document, or a technical article)..."
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={10}
@@ -73,7 +73,7 @@ export function ExtractConceptsModal({ onConceptsExtracted, onOpenChange }: Extr
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
-          <Button onClick={handleExtract} disabled={isLoading}>
+          <Button onClick={handleExtract} disabled={isLoading || !text.trim()}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Extract Concepts
           </Button>
@@ -105,12 +105,11 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
     }
     if (concepts.length < 2) {
       toast({ title: "More Concepts Recommended", description: "For best results, provide at least two concepts.", variant: "default" });
-      // We allow the AI to handle <2 concepts as per the updated prompt.
     }
     setIsLoading(true);
     try {
       const result = await aiSuggestRelations({ concepts });
-      toast({ title: "Relations Suggested", description: `${result.length} relations found.` });
+      toast({ title: "AI: Relations Ready", description: `${result.length} relations suggested. View them in the AI Suggestions panel.` });
       onRelationsSuggested?.(result);
       onOpenChange(false);
     } catch (error) {
@@ -126,7 +125,7 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
         <DialogHeader>
           <DialogTitle>Suggest Relations with AI</DialogTitle>
           <DialogDescription>
-            Enter concepts (comma-separated). The AI will suggest relationships between them based on the provided list.
+            Enter concepts (comma-separated) or use concepts from your map. The AI will suggest relationships.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -135,7 +134,7 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
             id="concepts-sr" 
             value={conceptsInput} 
             onChange={(e) => setConceptsInput(e.target.value)}
-            placeholder="e.g., User Authentication, JWT, Database Security" 
+            placeholder="e.g., User Authentication, JWT, Database Security. These are often based on selected map nodes." 
             rows={3}
             className="resize-none"
             disabled={isLoading}
@@ -144,7 +143,7 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
-          <Button onClick={handleSuggest} disabled={isLoading}>
+          <Button onClick={handleSuggest} disabled={isLoading || conceptsInput.trim().length === 0}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Suggest Relations
           </Button>
@@ -157,12 +156,11 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
 interface ExpandConceptModalProps extends ModalProps {
   onConceptExpanded?: (newConcepts: string[]) => void;
   initialConcept?: string;
-  existingMapContext?: string[]; // Changed from initialContext
+  existingMapContext?: string[];
 }
 
 export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", existingMapContext = [], onOpenChange }: ExpandConceptModalProps) {
   const [concept, setConcept] = useState(initialConcept);
-  // Context is now passed directly, not editable in this modal to simplify
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -178,7 +176,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
     setIsLoading(true);
     try {
       const result = await aiExpandConcept({ concept, existingMapContext });
-      toast({ title: "Concept Expanded", description: `${result.newConcepts.length} new ideas generated.` });
+      toast({ title: "AI: Expansion Ready", description: `${result.newConcepts.length} new ideas generated. View them in the AI Suggestions panel.` });
       onConceptExpanded?.(result.newConcepts);
       onOpenChange(false);
     } catch (error) {
@@ -204,19 +202,19 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
               id="concept-ec" 
               value={concept} 
               onChange={(e) => setConcept(e.target.value)} 
-              placeholder="e.g., Microservices" 
+              placeholder="e.g., Microservices, Machine Learning. Often based on a selected map node." 
               disabled={isLoading}
             />
           </div>
           {existingMapContext.length > 0 && (
-            <div className="text-xs text-muted-foreground">
-              Using context from {existingMapContext.length} existing map node(s) like: "{existingMapContext[0]}"...
+            <div className="text-xs text-muted-foreground p-2 border rounded-md bg-muted/50">
+              <strong>Context from map:</strong> {existingMapContext.length} node(s) like "{existingMapContext[0]}"{existingMapContext.length > 1 ? ` and ${existingMapContext.length-1} other(s)` : ''}.
             </div>
           )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
-          <Button onClick={handleExpand} disabled={isLoading}>
+          <Button onClick={handleExpand} disabled={isLoading || !concept.trim()}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Expand Concept
           </Button>

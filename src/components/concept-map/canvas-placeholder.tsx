@@ -6,29 +6,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2, RotateCcw, Info } from "lucide-react";
+import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2, Info, MessageSquareDashed } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
 
 interface CanvasPlaceholderProps {
   mapData?: ConceptMapData;
-  currentMapNodes?: ConceptMapNode[]; // Added prop
+  currentMapNodes?: ConceptMapNode[];
   extractedConcepts?: string[];
   suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
   expandedConcepts?: string[];
   onAddExtractedConcepts?: (concepts: string[]) => void;
   onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
   onAddExpandedConcepts?: (concepts: string[]) => void;
-  onClearExtractedConcepts?: () => void; // Added prop
-  onClearSuggestedRelations?: () => void; // Added prop
-  onClearExpandedConcepts?: () => void; // Added prop
+  onClearExtractedConcepts?: () => void;
+  onClearSuggestedRelations?: () => void;
+  onClearExpandedConcepts?: () => void;
   isViewOnlyMode?: boolean;
 }
 
 export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   mapData,
-  currentMapNodes = [], // Default to empty array
+  currentMapNodes = [],
   extractedConcepts = [],
   suggestedRelations = [],
   expandedConcepts = [],
@@ -93,18 +93,43 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     items: any[],
     selectedSet: Set<any>,
     itemKeyPrefix: string,
-    renderItemLabel: (item: any, isExisting: boolean) => React.ReactNode,
-    checkIfItemExists: (item: any) => boolean,
+    renderItemLabel: (item: any, isExistingOnMap: boolean, isExistingInRelation?: {source?: boolean, target?: boolean}) => React.ReactNode,
+    checkIfItemExistsOnMap: (item: any) => boolean,
+    checkIfRelationNodesExistOnMap: (relation: { source: string; target: string }) => { source?: boolean, target?: boolean },
     onAddSelected: (selectedItems: any[]) => void,
-    onAddAll: () => void,
-    onClearCategory?: () => void
+    onClearCategory?: () => void,
+    cardClassName?: string
   ) => {
-    if (!items || items.length === 0) return null;
+    if (!onAddSelected && items.length === 0 && !mapData) return null; // Don't render if no action and no items
+    if (!items || items.length === 0) {
+      return (
+        <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)}>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-muted-foreground flex items-center">
+              <IconComponent className="mr-2 h-5 w-5" /> {title} (0)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-muted-foreground text-center py-4">
+              <MessageSquareDashed className="mx-auto h-8 w-8 mb-2 opacity-50" />
+              No new {title.toLowerCase()} to display.
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+    
+    const selectableItems = items.filter(item => {
+      if(itemKeyPrefix.startsWith('relation-')) return true; // Relations are always selectable, node existence handled visually
+      return !checkIfItemExistsOnMap(item);
+    });
 
     const handleAddSelected = () => {
       const toAdd = items.filter((item, index) => {
         const key = itemKeyPrefix === 'relation-' ? index : item;
-        return selectedSet.has(key) && !checkIfItemExists(item); // Only add if selected and not already existing
+        // For relations, we add even if nodes exist, as the relation itself might be new
+        // For concepts, only add if not existing
+        return selectedSet.has(key) && (itemKeyPrefix.startsWith('relation-') ? true : !checkIfItemExistsOnMap(item));
       });
       if (toAdd.length > 0) {
         onAddSelected(toAdd);
@@ -115,7 +140,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
         const newSelectedSet = new Set<any>();
         if(checked) {
             items.forEach((item, index) => {
-              if (!checkIfItemExists(item)) { // Only allow selecting items that don't already exist
+              if (itemKeyPrefix.startsWith('relation-') || !checkIfItemExistsOnMap(item)) {
                 newSelectedSet.add(itemKeyPrefix === 'relation-' ? index : item);
               }
             });
@@ -125,23 +150,28 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
         else if (itemKeyPrefix.startsWith('expanded-')) setSelectedExpanded(newSelectedSet as Set<string>);
     };
     
-    const allSelectableItems = items.filter(item => !checkIfItemExists(item));
-    const allSelected = allSelectableItems.length > 0 && selectedSet.size === allSelectableItems.length && allSelectableItems.every(item => selectedSet.has(itemKeyPrefix === 'relation-' ? items.indexOf(item) : item));
+    const allSelectableAreChecked = selectableItems.length > 0 && selectedSet.size >= selectableItems.length && selectableItems.every(item => selectedSet.has(itemKeyPrefix === 'relation-' ? items.indexOf(item) : item));
+    const countOfSelectedAndNew = items.filter((item, index) => {
+        const key = itemKeyPrefix === 'relation-' ? index : item;
+        return selectedSet.has(key) && (itemKeyPrefix.startsWith('relation-') ? true : !checkIfItemExistsOnMap(item));
+      }).length;
+
+    const countOfAllNew = selectableItems.length;
 
 
     return (
-      <Card className="mb-4 bg-background/80 shadow-md">
+      <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)}>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="text-base font-semibold text-primary flex items-center">
               <IconComponent className="mr-2 h-5 w-5" /> {title} ({items.length})
             </CardTitle>
             <div className="flex items-center space-x-2">
-                {!isViewOnlyMode && items.length > 0 && allSelectableItems.length > 0 && (
+                {!isViewOnlyMode && items.length > 0 && selectableItems.length > 0 && (
                      <>
                         <Checkbox 
                             id={`${itemKeyPrefix}-select-all`} 
-                            checked={allSelected}
+                            checked={allSelectableAreChecked}
                             onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
                         />
                         <Label htmlFor={`${itemKeyPrefix}-select-all`} className="text-xs">Select New</Label>
@@ -156,13 +186,15 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
           </div>
         </CardHeader>
         <CardContent className="max-h-48 overflow-y-auto">
-          <div className="space-y-2">
+          <div className="space-y-1">
             {items.map((item, index) => {
               const key = itemKeyPrefix === 'relation-' ? index : item;
               const displayId = `${itemKeyPrefix}-${index}`;
-              const isExisting = checkIfItemExists(item);
+              const isExistingOnMap = itemKeyPrefix.startsWith('relation-') ? false : checkIfItemExistsOnMap(item);
+              const relationNodeExistence = itemKeyPrefix.startsWith('relation-') ? checkIfRelationNodesExistOnMap(item) : undefined;
+              
               return (
-                <div key={displayId} className={cn("flex items-center space-x-2 p-2 border-b border-dashed last:border-b-0", isExisting && "opacity-60")}>
+                <div key={displayId} className={cn("flex items-center space-x-3 p-2 border-b last:border-b-0", isExistingOnMap && "opacity-60")}>
                   {!isViewOnlyMode && (
                     <Checkbox
                       id={displayId}
@@ -171,39 +203,38 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
                         itemKeyPrefix.startsWith('extracted-') ? 'extracted' :
                         itemKeyPrefix.startsWith('relation-') ? 'relation' : 'expanded'
                       )(key, Boolean(checked))}
-                      disabled={isExisting}
+                      disabled={isExistingOnMap && !itemKeyPrefix.startsWith('relation-')}
                     />
                   )}
-                  <Label htmlFor={displayId} className={cn("text-sm font-normal flex-grow", !isExisting && "cursor-pointer")}>
-                    {renderItemLabel(item, isExisting)}
+                  <Label htmlFor={displayId} className={cn("text-sm font-normal flex-grow", (!isExistingOnMap || itemKeyPrefix.startsWith('relation-')) && "cursor-pointer")}>
+                    {renderItemLabel(item, isExistingOnMap, relationNodeExistence)}
                   </Label>
                 </div>
               );
             })}
           </div>
         </CardContent>
-        {!isViewOnlyMode && items.length > 0 && (
+        {!isViewOnlyMode && items.length > 0 && onAddSelected && (
           <CardFooter className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
             <Button
               size="sm"
               variant="outline"
               onClick={handleAddSelected}
-              disabled={isViewOnlyMode || selectedSet.size === 0 || allSelectableItems.filter(item => selectedSet.has(itemKeyPrefix === 'relation-' ? items.indexOf(item) : item)).length === 0}
+              disabled={isViewOnlyMode || countOfSelectedAndNew === 0}
               className="w-full sm:w-auto"
             >
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Selected ({selectedSet.size})
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Selected ({countOfSelectedAndNew})
             </Button>
             <Button 
               size="sm" 
               variant="default" 
               onClick={() => {
-                const nonExistingItems = items.filter(item => !checkIfItemExists(item));
-                if (nonExistingItems.length > 0) onAddSelected(nonExistingItems);
+                if (selectableItems.length > 0) onAddSelected(selectableItems);
               }} 
-              disabled={isViewOnlyMode || allSelectableItems.length === 0} 
+              disabled={isViewOnlyMode || countOfAllNew === 0} 
               className="w-full sm:w-auto"
             >
-              <PlusCircle className="mr-2 h-4 w-4" /> Add All New ({allSelectableItems.length})
+              <PlusCircle className="mr-2 h-4 w-4" /> Add All New ({countOfAllNew})
             </Button>
           </CardFooter>
         )}
@@ -211,39 +242,29 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     );
   };
 
-  const renderConceptLabel = (concept: string, isExisting: boolean) => (
+  const renderConceptLabel = (concept: string, isExistingOnMap: boolean) => (
     <>
       {concept}
-      {isExisting && <span className="ml-2 text-xs text-muted-foreground italic">(already on map)</span>}
+      {isExistingOnMap && <span className="ml-2 text-xs text-muted-foreground italic">(already on map)</span>}
     </>
   );
   
-  const checkConceptExists = (concept: string) => existingNodeTexts.has(concept.toLowerCase().trim());
+  const checkConceptExistsOnMap = (concept: string) => existingNodeTexts.has(concept.toLowerCase().trim());
 
-  const renderRelationLabel = (relation: { source: string; target: string; relation: string }, isExisting: boolean) => {
-    const sourceExists = existingNodeTexts.has(relation.source.toLowerCase().trim());
-    const targetExists = existingNodeTexts.has(relation.target.toLowerCase().trim());
-    let label = `${relation.source} → ${relation.target} (${relation.relation})`;
-    if (isExisting) { // isExisting for relations means the relation itself (source-target-label) exists. Not implemented yet.
-         // For now, let's focus on nodes. For relations, isExisting prop isn't used in its full sense yet.
-    }
-    const nodeStatus = [];
-    if (sourceExists) nodeStatus.push(`${relation.source} (exists)`);
-    if (targetExists) nodeStatus.push(`${relation.target} (exists)`);
-    if (nodeStatus.length > 0) {
-        label += ` - Nodes: ${nodeStatus.join(', ')}`;
-    }
-
+  const renderRelationLabel = (relation: { source: string; target: string; relation: string }, _isExistingOnMap: boolean, relationNodeExistence?: {source?: boolean, target?: boolean}) => {
+    let label = "";
+    label += relationNodeExistence?.source ? `${relation.source} (exists)` : relation.source;
+    label += ` → `;
+    label += relationNodeExistence?.target ? `${relation.target} (exists)` : relation.target;
+    label += ` (${relation.relation})`;
     return label;
   };
-
-  // For relations, "existing" means the source AND target nodes of the relation already exist.
-  // A more advanced check would be if the specific edge label between those two also exists.
-  const checkRelationNodesExist = (relation: { source: string; target: string; relation: string }) => {
-    // For now, let's simplify: if a relation is suggested, its nodes might or might not exist.
-    // The "Add Selected/All" logic in ConceptMapEditorPage already handles creating nodes if they don't exist.
-    // So, for the purpose of disabling checkbox, we don't disable relation checkboxes based on node existence.
-    return false; // Let users always select relations.
+  
+  const checkRelationNodesExistOnMap = (relation: { source: string; target: string }) => {
+    return {
+      source: existingNodeTexts.has(relation.source.toLowerCase().trim()),
+      target: existingNodeTexts.has(relation.target.toLowerCase().trim())
+    };
   };
 
 
@@ -269,7 +290,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
               </h3>
 
               {hasMapDataNodes && (
-                <Card className="mb-4 bg-primary/5">
+                <Card className="mb-4 bg-primary/5 border-primary/20">
                   <CardHeader>
                     <CardTitle className="text-base font-semibold text-primary flex items-center">
                       <Box className="mr-2 h-5 w-5" />Nodes in Map ({mapData?.nodes.length})
@@ -294,9 +315,9 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
               )}
 
               {hasMapDataEdges && (
-                <Card className="mb-4 bg-green-500/5">
+                <Card className="mb-4 bg-green-500/5 border-green-500/20">
                   <CardHeader>
-                    <CardTitle className="text-base font-semibold text-green-600 flex items-center">
+                    <CardTitle className="text-base font-semibold text-green-700 dark:text-green-400 flex items-center">
                       <Waypoints className="mr-2 h-5 w-5" />Edges in Map ({mapData?.edges.length})
                     </CardTitle>
                      <CardDescription className="text-xs">Current connections on the canvas.</CardDescription>
@@ -305,7 +326,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
                     <ul className="list-none text-sm space-y-1">
                       {mapData?.edges.map((edge) => (
                         <li key={edge.id} className="flex items-center p-2 border-b border-dashed border-green-500/20">
-                          <Link2 className="mr-2 h-4 w-4 text-green-500 flex-shrink-0" />
+                          <Link2 className="mr-2 h-4 w-4 text-green-600 dark:text-green-500 flex-shrink-0" />
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1">
                             <span><span className="font-medium">From:</span> {mapData.nodes.find(n => n.id === edge.source)?.text || edge.source.substring(0, 8) + '...'}</span>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-1 hidden sm:inline-block transform rotate-0 sm:rotate-0"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
@@ -321,23 +342,20 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
 
               {onAddExtractedConcepts && renderSuggestionSection(
                 "Extracted Concepts", SearchCode, extractedConcepts, selectedExtracted, "extracted-concept",
-                renderConceptLabel, checkConceptExists,
-                onAddExtractedConcepts, () => onAddExtractedConcepts && onAddExtractedConcepts(extractedConcepts.filter(c => !checkConceptExists(c))),
-                onClearExtractedConcepts
+                renderConceptLabel, checkConceptExistsOnMap, checkRelationNodesExistOnMap, // last one not used for concepts
+                onAddExtractedConcepts, onClearExtractedConcepts, "bg-blue-500/5 border-blue-500/20"
               )}
 
               {onAddSuggestedRelations && renderSuggestionSection(
                 "Suggested Relations", Lightbulb, suggestedRelations, selectedRelations, "relation-",
-                renderRelationLabel, checkRelationNodesExist, // checkRelationNodesExist currently always returns false for relations themselves
-                onAddSuggestedRelations, () => onAddSuggestedRelations && onAddSuggestedRelations(suggestedRelations),
-                onClearSuggestedRelations
+                renderRelationLabel, checkConceptExistsOnMap, checkRelationNodesExistOnMap, // checkConceptExistsOnMap not directly for relations, but for nodes within them
+                onAddSuggestedRelations, onClearSuggestedRelations, "bg-yellow-500/5 border-yellow-500/20"
               )}
 
               {onAddExpandedConcepts && renderSuggestionSection(
                 "Expanded Ideas", Brain, expandedConcepts, selectedExpanded, "expanded-concept",
-                renderConceptLabel, checkConceptExists,
-                onAddExpandedConcepts, () => onAddExpandedConcepts && onAddExpandedConcepts(expandedConcepts.filter(c => !checkConceptExists(c))),
-                onClearExpandedConcepts
+                renderConceptLabel, checkConceptExistsOnMap, checkRelationNodesExistOnMap, // last one not used for concepts
+                onAddExpandedConcepts, onClearExpandedConcepts, "bg-purple-500/5 border-purple-500/20"
               )}
 
               {hasAnyContent && (
