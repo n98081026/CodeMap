@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -160,6 +161,7 @@ export function ProjectUploadForm() {
       originalFileName: file.name,
       fileSize: file.size,
       classroomId: values.classroomId === NONE_CLASSROOM_VALUE ? null : (values.classroomId || null),
+      // file_storage_path: "placeholder/path/to/file.zip" // This will be replaced by actual upload path
     };
 
     try {
@@ -167,7 +169,7 @@ export function ProjectUploadForm() {
       // In a real app:
       // 1. Upload file to Supabase Storage (or other)
       // 2. Get storagePath
-      // 3. Include storagePath in submissionPayload
+      // 3. Include storagePath in submissionPayload and set it on newSubmission below.
 
       const response = await fetch('/api/projects/submissions', {
         method: 'POST',
@@ -181,6 +183,10 @@ export function ProjectUploadForm() {
       }
 
       const newSubmission: ProjectSubmission = await response.json();
+      // In a real scenario, newSubmission would have file_storage_path if upload was done before this call.
+      // For mock, we'll use a placeholder path for the AI flow.
+      // newSubmission.fileStoragePath = `mock-storage/${file.name}`; 
+
       toast({
         title: "Project Archive Submitted",
         description: `Record for "${file.name}" created. Next, confirm AI analysis.`,
@@ -208,28 +214,15 @@ export function ProjectUploadForm() {
 
     try {
       await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.PROCESSING);
-      // Simulate backend processing time for file analysis before AI call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // This should be the actual path from Supabase Storage after file upload.
+      // For now, it's a mock path. The tool itself is also mocked.
+      const projectStoragePath = `mock-storage/user-${user.id}/${currentSubmissionForAI.originalFileName}`;
+      
+      // User goals can be derived from project name, description, or a dedicated UI field later.
+      const userGoals = `Analyze the project named: ${currentSubmissionForAI.originalFileName}. Focus on key components and their interactions.`;
 
-      // For now, projectCodeStructure is still a mock.
-      // In the future, this structure would come from a Genkit tool that analyzes the uploaded file.
-      const projectDescription = `Project archive: ${currentSubmissionForAI.originalFileName}. Submitted by ${user.name}. This analysis is based on a conceptual understanding of the project. Classroom: ${currentSubmissionForAI.classroomId || 'Personal Project'}.`;
-      const projectCodeStructure = `
-        File: ${currentSubmissionForAI.originalFileName} (Size: ${(currentSubmissionForAI.fileSize / (1024*1024)).toFixed(2)} MB)
-        (Mocked Structure - Full analysis from archive content is pending implementation)
-        /src
-          /components
-            - ExampleComponent.tsx (UI element)
-            - AnotherComponent.tsx
-          /services
-            - apiService.ts (Handles external calls)
-          /utils
-            - formatters.ts
-          - App.tsx (Main application component)
-        package.json (dependencies: react, typescript)
-      `;
-
-      const mapResult = await aiGenerateMapFromProject({ projectDescription, projectCodeStructure });
+      const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals });
 
       let parsedMapData: ConceptMapData;
       try {
@@ -242,7 +235,7 @@ export function ProjectUploadForm() {
       }
 
       const newMapPayload = {
-        name: `AI Map for ${currentSubmissionForAI.originalFileName.split('.')[0]}`, // Use filename without extension
+        name: `AI Map for ${currentSubmissionForAI.originalFileName.split('.')[0]}`,
         ownerId: user.id,
         mapData: parsedMapData,
         isPublic: false,
@@ -288,9 +281,6 @@ export function ProjectUploadForm() {
 
   const handleDeclineAIGeneration = useCallback(() => {
     setIsConfirmAIDialogOpen(false);
-    // Update status to PENDING if it was set to PROCESSING optimistically before dialog,
-    // or leave as is if the server already knows it's PENDING from creation.
-    // For this flow, it's PENDING from creation.
     setCurrentSubmissionForAI(null);
     router.push("/application/student/projects/submissions");
   }, [router]);
@@ -387,6 +377,7 @@ export function ProjectUploadForm() {
               <AlertDialogDescription>
                 Project archive record for "{currentSubmissionForAI.originalFileName}" created.
                 Do you want to attempt to generate a concept map from this project? This may take a moment.
+                (Note: Analysis tool is currently mocked).
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
