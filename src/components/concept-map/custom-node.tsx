@@ -73,10 +73,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   };
 
   return (
-    // Removed 'nodrag' class from Card to make the whole node draggable by default when dragHandle is not specified for the node in FlowCanvasCore
     <Card className={cn(baseStyle, selectedStyle, typeSpecificStyle, 'min-w-[160px] max-w-[280px] group')}>
       <CardHeader className={cn(
-        "p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2", // Still has cursor-move for visual feedback
+        "p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2",
         data.type && nodeTypeStyles[data.type] ? 'bg-opacity-20' : ''
       )}>
         <IconComponent className="h-4 w-4 text-[inherit] opacity-80 flex-shrink-0" />
@@ -91,7 +90,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
       )}
 
       <Handle
-        type="target" // Changed from "source" to "target"
+        type="target"
         position={Position.Top}
         id={`${id}-top`}
         style={{ ...handleBaseStyle, top: '-5px' }}
@@ -99,7 +98,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         className="react-flow__handle-custom"
       />
       <Handle
-        type="target" // Changed from "source" to "target"
+        type="source"
         position={Position.Bottom}
         id={`${id}-bottom`}
         style={{ ...handleBaseStyle, bottom: '-5px' }}
@@ -107,7 +106,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         className="react-flow__handle-custom"
       />
       <Handle
-        type="target" // Changed from "source" to "target"
+        type="target"
         position={Position.Left}
         id={`${id}-left`}
         style={{ ...handleBaseStyle, left: '-5px' }}
@@ -115,7 +114,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         className="react-flow__handle-custom"
       />
       <Handle
-        type="target" // Changed from "source" to "target"
+        type="source"
         position={Position.Right}
         id={`${id}-right`}
         style={{ ...handleBaseStyle, right: '-5px' }}
