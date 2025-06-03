@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2, Info, MessageSquareDashed, CheckSquare, Edit3, BotMessageSquare } from "lucide-react";
+import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2, Info, MessageSquareDashed, CheckSquare, Edit3, BotMessageSquare, Zap } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
@@ -40,6 +40,8 @@ interface EditableRelationSuggestion {
   editingField: 'source' | 'target' | 'relation' | null;
 }
 
+type ItemStatus = 'new' | 'exact-match' | 'similar-match';
+
 
 export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   mapData,
@@ -68,7 +70,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     return new Set(currentMapNodes.map(n => n.text.toLowerCase().trim()));
   }, [currentMapNodes]);
 
-  const mapToEditable = useCallback((items: string[]): EditableSuggestion[] => 
+  const mapToEditable = useCallback((items: string[]): EditableSuggestion[] =>
     items.map(item => ({ original: item, current: item, isEditing: false })),
   []);
 
@@ -133,11 +135,11 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
 
 
   const handleSelectionToggleFactory = (type: 'extracted' | 'relation' | 'expanded') => (index: number, checked: boolean) => {
-    const setIndices = 
+    const setIndices =
         type === 'extracted' ? setSelectedExtractedIndices :
         type === 'relation' ? setSelectedRelationIndices :
         setSelectedExpandedIndices;
-    
+
     setIndices(prev => {
         const next = new Set(prev);
         if(checked) next.add(index);
@@ -159,8 +161,8 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     items: (EditableSuggestion | EditableRelationSuggestion)[],
     selectedIndicesSet: Set<number>,
     itemKeyPrefix: string,
-    renderItemContent: (item: any, index: number, isExistingOnMap: boolean, relationNodeExistence?: { source?: boolean, target?: boolean }) => React.ReactNode,
-    checkIfItemExistsOnMap: (itemValue: string | { source: string, target: string }) => boolean,
+    renderItemContent: (item: any, index: number, itemStatus: ItemStatus, relationNodeExistence?: { source?: boolean, target?: boolean }) => React.ReactNode,
+    getItemStatus: (itemValue: string | { source: string, target: string }) => ItemStatus,
     checkIfRelationNodesExistOnMap: (relation: { source: string; target: string }) => { source?: boolean, target?: boolean },
     onAddSelectedItems: (selectedItems: any[]) => void,
     onClearCategory?: () => void,
@@ -188,11 +190,11 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     const getComparableItemValue = (item: EditableSuggestion | EditableRelationSuggestion) => {
       return 'current' in item && typeof item.current !== 'string' ? item.current : (item as EditableSuggestion).current;
     };
-    
+
     const selectableItems = items.filter((item) => {
       const value = getComparableItemValue(item);
-      if(itemKeyPrefix.startsWith('relation-')) return true; 
-      return !checkIfItemExistsOnMap(value as string);
+      const status = getItemStatus(value as string); // Relations will always be 'new' for selectability
+      return status !== 'exact-match';
     });
 
     const handleAddSelected = () => {
@@ -200,21 +202,22 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
         .filter((_item, index) => selectedIndicesSet.has(index))
         .map(item => (item as EditableRelationSuggestion).original ? (item as EditableRelationSuggestion).current : (item as EditableSuggestion).current)
         .filter(itemValue => {
-             if(itemKeyPrefix.startsWith('relation-')) return true; 
-             return !checkIfItemExistsOnMap(itemValue as string);
+             const status = getItemStatus(itemValue as string);
+             return status !== 'exact-match';
         });
 
       if (toAdd.length > 0) {
         onAddSelectedItems(toAdd);
       }
     };
-    
+
     const handleSelectAllNew = (checked: boolean) => {
         const newSelectedIndices = new Set<number>();
         if (checked) {
             items.forEach((item, index) => {
                 const value = getComparableItemValue(item);
-                if (itemKeyPrefix.startsWith('relation-') || !checkIfItemExistsOnMap(value as string)) {
+                const status = getItemStatus(value as string);
+                if (status !== 'exact-match') {
                     newSelectedIndices.add(index);
                 }
             });
@@ -223,11 +226,12 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
         else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(newSelectedIndices);
         else if (itemKeyPrefix.startsWith('expanded-')) setSelectedExpandedIndices(newSelectedIndices);
     };
-    
-    const allSelectableAreChecked = selectableItems.length > 0 && selectedIndicesSet.size >= selectableItems.length && 
+
+    const allSelectableAreChecked = selectableItems.length > 0 && selectedIndicesSet.size >= selectableItems.length &&
         items.every((item, index) => {
             const value = getComparableItemValue(item);
-            if (itemKeyPrefix.startsWith('relation-') || !checkIfItemExistsOnMap(value as string)) { // Is selectable
+            const status = getItemStatus(value as string);
+            if (status !== 'exact-match') { // Is selectable
                 return selectedIndicesSet.has(index);
             }
             return true; // Non-selectable items don't break "all selected"
@@ -235,10 +239,12 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
 
     const countOfSelectedAndNew = items.filter((item, index) => {
         const value = getComparableItemValue(item);
-        return selectedIndicesSet.has(index) && (itemKeyPrefix.startsWith('relation-') ? true : !checkIfItemExistsOnMap(value as string));
+        const status = getItemStatus(value as string);
+        return selectedIndicesSet.has(index) && status !== 'exact-match';
       }).length;
 
-    const countOfAllNew = selectableItems.length;
+    const countOfAllNewOrSimilar = selectableItems.length;
+
 
     return (
       <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)}>
@@ -250,12 +256,12 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
             <div className="flex items-center space-x-2">
                 {!isViewOnlyMode && items.length > 0 && selectableItems.length > 0 && (
                      <>
-                        <Checkbox 
-                            id={`${itemKeyPrefix}-select-all`} 
+                        <Checkbox
+                            id={`${itemKeyPrefix}-select-all`}
                             checked={allSelectableAreChecked}
                             onCheckedChange={(checkedState) => handleSelectAllNew(Boolean(checkedState))}
                         />
-                        <Label htmlFor={`${itemKeyPrefix}-select-all`} className="text-xs">Select New</Label>
+                        <Label htmlFor={`${itemKeyPrefix}-select-all`} className="text-xs">Select New/Similar</Label>
                      </>
                 )}
                 {onClearCategory && !isViewOnlyMode && items.length > 0 && (
@@ -271,11 +277,15 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
             {items.map((item, index) => {
               const displayId = `${itemKeyPrefix}-${index}`;
               const itemValue = getComparableItemValue(item);
-              const isExistingOnMap = itemKeyPrefix.startsWith('relation-') ? false : checkIfItemExistsOnMap(itemValue as string);
+              const itemStatus = getItemStatus(itemValue as string);
               const relationNodeExistence = itemKeyPrefix.startsWith('relation-') ? checkIfRelationNodesExistOnMap(itemValue as { source: string; target: string }) : undefined;
-              
+
               return (
-                <div key={displayId} className={cn("flex items-start space-x-3 p-2 border-b last:border-b-0", isExistingOnMap && !itemKeyPrefix.startsWith('relation-') && "opacity-60")}>
+                <div key={displayId} className={cn(
+                    "flex items-start space-x-3 p-2 border-b last:border-b-0",
+                    itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-') && "opacity-60 bg-muted/30",
+                    itemStatus === 'similar-match' && !itemKeyPrefix.startsWith('relation-') && "bg-yellow-500/10 border-yellow-500/20"
+                )}>
                   {!isViewOnlyMode && (
                     <Checkbox
                       id={displayId}
@@ -284,11 +294,11 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
                         itemKeyPrefix.startsWith('extracted-') ? 'extracted' :
                         itemKeyPrefix.startsWith('relation-') ? 'relation' : 'expanded'
                       )(index, Boolean(checked))}
-                      disabled={(isExistingOnMap && !itemKeyPrefix.startsWith('relation-')) || item.isEditing}
+                      disabled={(itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-')) || item.isEditing}
                     />
                   )}
                   <div className="flex-grow">
-                    {renderItemContent(item, index, isExistingOnMap, relationNodeExistence)}
+                    {renderItemContent(item, index, itemStatus, relationNodeExistence)}
                   </div>
                 </div>
               );
@@ -306,18 +316,18 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Add Selected ({countOfSelectedAndNew})
             </Button>
-            <Button 
-              size="sm" 
-              variant="default" 
+            <Button
+              size="sm"
+              variant="default"
               onClick={() => {
                 if (selectableItems.length > 0) {
                    onAddSelectedItems(selectableItems.map(item => getComparableItemValue(item as EditableSuggestion | EditableRelationSuggestion)));
                 }
-              }} 
-              disabled={isViewOnlyMode || countOfAllNew === 0} 
+              }}
+              disabled={isViewOnlyMode || countOfAllNewOrSimilar === 0}
               className="w-full sm:w-auto"
             >
-              <PlusCircle className="mr-2 h-4 w-4" /> Add All New ({countOfAllNew})
+              <PlusCircle className="mr-2 h-4 w-4" /> Add All New/Similar ({countOfAllNewOrSimilar})
             </Button>
           </CardFooter>
         )}
@@ -325,14 +335,16 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     );
   };
 
-  // Render functions for concept/relation labels and edit inputs
-  const renderEditableConceptLabel = (item: EditableSuggestion, index: number, type: 'extracted' | 'expanded', isExistingOnMap: boolean) => {
+  const renderEditableConceptLabel = (item: EditableSuggestion, index: number, type: 'extracted' | 'expanded', itemStatus: ItemStatus) => {
+    const isExactMatch = itemStatus === 'exact-match';
+    const isSimilarMatch = itemStatus === 'similar-match';
+
     if (item.isEditing) {
       return (
         <div className="flex items-center space-x-2 w-full">
-          <Input 
-            value={item.current} 
-            onChange={(e) => handleInputChange(type, index, e.target.value)} 
+          <Input
+            value={item.current}
+            onChange={(e) => handleInputChange(type, index, e.target.value)}
             className="h-8 text-sm flex-grow"
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleConfirmEdit(type, index)}
@@ -346,11 +358,12 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     }
     return (
       <div className="flex items-center justify-between w-full group">
-        <Label htmlFor={`${type}-${index}`} className={cn("text-sm font-normal flex-grow cursor-pointer", isExistingOnMap && "cursor-default")}>
+        <Label htmlFor={`${type}-${index}`} className={cn("text-sm font-normal flex-grow cursor-pointer", isExactMatch && "cursor-default")}>
           {item.current}
-          {isExistingOnMap && <span className="ml-2 text-xs text-muted-foreground italic">(already on map)</span>}
+          {isExactMatch && <span className="ml-2 text-xs text-muted-foreground italic">(already on map)</span>}
+          {isSimilarMatch && <span className="ml-2 text-xs text-yellow-700 dark:text-yellow-400 italic flex items-center"><Zap className="h-3 w-3 mr-1"/>(similar to existing)</span>}
         </Label>
-        {!isViewOnlyMode && !isExistingOnMap && (
+        {!isViewOnlyMode && !isExactMatch && (
           <Button size="icon" variant="ghost" onClick={() => handleToggleEdit(type, index)} className="h-6 w-6 opacity-0 group-hover:opacity-100">
             <Edit3 className="h-3 w-3" />
           </Button>
@@ -359,7 +372,8 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     );
   };
 
-  const renderEditableRelationLabel = (item: EditableRelationSuggestion, index: number, _isExistingOnMap: boolean, relationNodeExistence?: { source?: boolean, target?: boolean }) => {
+  const renderEditableRelationLabel = (item: EditableRelationSuggestion, index: number, _itemStatus: ItemStatus, relationNodeExistence?: { source?: boolean, target?: boolean }) => {
+    // For relations, itemStatus isn't used for styling the label itself, only node existence.
     const renderField = (field: 'source' | 'target' | 'relation') => {
       if (item.isEditing && item.editingField === field) {
         return (
@@ -374,8 +388,8 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
         );
       }
       return (
-        <span 
-          onClick={isViewOnlyMode ? undefined : () => handleToggleEdit('relation', index, field)} 
+        <span
+          onClick={isViewOnlyMode ? undefined : () => handleToggleEdit('relation', index, field)}
           className={cn("hover:bg-muted/50 px-1 rounded", !isViewOnlyMode && "cursor-pointer")}
         >
           {item.current[field]}
@@ -394,18 +408,32 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
       </div>
     );
   };
-  
-  const checkConceptExistsOnMap = (conceptValue: string | {source: string, target: string}): boolean => {
-      if (typeof conceptValue !== 'string') return false; // This function is for simple concepts
-      return existingNodeTexts.has(conceptValue.toLowerCase().trim());
-  };
-  
-  const checkRelationNodesExistOnMap = (relationValue: { source: string; target: string }) => {
+
+  const getConceptStatus = useCallback((conceptValue: string | {source: string, target: string}): ItemStatus => {
+      if (typeof conceptValue !== 'string') return 'new'; // Relations are handled differently
+
+      const normalizedConcept = conceptValue.toLowerCase().trim();
+      if (existingNodeTexts.has(normalizedConcept)) {
+        return 'exact-match';
+      }
+
+      for (const existingNode of existingNodeTexts) {
+        if (existingNode.includes(normalizedConcept) || normalizedConcept.includes(existingNode)) {
+          if (existingNode.length !== normalizedConcept.length) { // Avoid re-flagging if only case/space diff
+             return 'similar-match';
+          }
+        }
+      }
+      return 'new';
+  }, [existingNodeTexts]);
+
+  const checkRelationNodesExistOnMap = useCallback((relationValue: { source: string; target: string }) => {
     return {
       source: existingNodeTexts.has(relationValue.source.toLowerCase().trim()),
       target: existingNodeTexts.has(relationValue.target.toLowerCase().trim())
     };
-  };
+  }, [existingNodeTexts]);
+
 
   return (
     <Card className="h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
@@ -510,22 +538,23 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
 
               {onAddExtractedConcepts && renderSuggestionSection(
                 "Extracted Concepts", SearchCode, editableExtracted, selectedExtractedIndices, "extracted-concept",
-                (item, index, isExisting) => renderEditableConceptLabel(item as EditableSuggestion, index, 'extracted', isExisting),
-                checkConceptExistsOnMap, checkRelationNodesExistOnMap,
+                (item, index, itemStatus) => renderEditableConceptLabel(item as EditableSuggestion, index, 'extracted', itemStatus),
+                getConceptStatus, checkRelationNodesExistOnMap,
                 onAddExtractedConcepts, onClearExtractedConcepts, "bg-blue-500/5 border-blue-500/20"
               )}
 
               {onAddSuggestedRelations && renderSuggestionSection(
                 "Suggested Relations", Lightbulb, editableRelations, selectedRelationIndices, "relation-",
-                 (item, index, _isExisting, relationNodeExist) => renderEditableRelationLabel(item as EditableRelationSuggestion, index, _isExisting, relationNodeExist),
-                checkConceptExistsOnMap, checkRelationNodesExistOnMap,
+                 (item, index, itemStatus, relationNodeExist) => renderEditableRelationLabel(item as EditableRelationSuggestion, index, itemStatus, relationNodeExist),
+                getConceptStatus, // For relations, source/target text against existing nodes
+                checkRelationNodesExistOnMap,
                 onAddSuggestedRelations, onClearSuggestedRelations, "bg-yellow-500/5 border-yellow-500/20"
               )}
 
               {onAddExpandedConcepts && renderSuggestionSection(
                 "Expanded Ideas", Brain, editableExpanded, selectedExpandedIndices, "expanded-concept",
-                 (item, index, isExisting) => renderEditableConceptLabel(item as EditableSuggestion, index, 'expanded', isExisting),
-                checkConceptExistsOnMap, checkRelationNodesExistOnMap,
+                 (item, index, itemStatus) => renderEditableConceptLabel(item as EditableSuggestion, index, 'expanded', itemStatus),
+                getConceptStatus, checkRelationNodesExistOnMap,
                 onAddExpandedConcepts, onClearExpandedConcepts, "bg-purple-500/5 border-purple-500/20"
               )}
 
