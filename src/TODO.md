@@ -104,8 +104,8 @@ This section outlines the tasks to migrate the application from mock backend ser
         - [x] Add button to toggle Properties Inspector panel.
         - [x] Add button to toggle AI Suggestions / Map Info panel.
         - [x] Implement "Import Map" (JSON file upload and parsing).
-        - [x] Add Undo/Redo buttons (connected to Zustand temporal store).
-    - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Now takes up main editor area. Nodes now have 4 connection handles.
+        - [x] Add Undo/Redo buttons (connected to Zustand temporal store - temporarily disabled for diagnostics).
+    - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Now takes up main editor area. Nodes now have 4 connection handles. Node movement fixed. Connection logic being refined.
     - [x] **`PropertiesInspector`**:
         - [x] Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties.
         - [x] Changes update Zustand store and are saved via toolbar.
@@ -116,13 +116,13 @@ This section outlines the tasks to migrate the application from mock backend ser
         - [x] Area displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality.
         - [x] AI suggestions are cleared after being added to the map.
         - [x] Re-integrated as a toggleable bottom sheet/drawer.
-    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, UI states, and Undo/Redo history (via `temporal` middleware).
+    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, UI states. Undo/Redo history (via `temporal` middleware) temporarily disabled for diagnostics.
 - [ ] **Concept Map Editor - Further Enhancements (Future):**
     - [x] Implement a context menu (right-click) on canvas elements for quick actions (Node delete, AI actions for node).
     - [x] Add custom node types with distinct visual styling on the canvas (Base for custom types is in with `CustomNodeComponent`, further styling added).
-    - [ ] Implement robust Undo/Redo functionality in the editor (Zustand temporal store setup complete, UI buttons added. Needs thorough testing).
+    - [ ] Implement robust Undo/Redo functionality in the editor (Zustand temporal store setup was problematic. Re-evaluate or simplify).
 - [x] **State Management:**
-    - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor, including `temporal` middleware for undo/redo).
+    - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor. `temporal` middleware was causing issues and is temporarily removed).
 - [ ] **Real-time Features (Optional - Future Consideration):**
     - [ ] Consider real-time collaboration on concept maps (e.g., using Supabase Realtime) - (High Complexity - Deferred).
     - [x] Real-time updates for project submission status (Basic polling implemented in SubmissionListItem. Re-evaluate with Supabase Realtime for better UX).
@@ -140,15 +140,78 @@ This section outlines the tasks to migrate the application from mock backend ser
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to mock service; add user via register flow - Add button tooltip added. Re-evaluate with Supabase).
     - [x] Develop system settings interface (Placeholder page created and linked from Admin Dashboard. Settings form implemented with mock save. Re-evaluate where to store these settings with Supabase - e.g. a dedicated settings table).
 
-## GenAI & AI Features (Existing - Review after Supabase integration)
-- [x] **Refine GenAI Prompts:**
-    - [x] Iterate on prompts for `extractConcepts`, `suggestRelations`, `expandConcept` for better accuracy and relevance.
-    - [x] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice (Input structure refined, "Whimsical-style" guidance added. Re-evaluate with Supabase file handling).
-- [x] **Integrate GenAI Output:**
-    - [x] Develop intuitive ways for users to interact with and utilize the outputs of GenAI tools within the concept map editor.
-        - [x] Add placeholder "Add to Map" indicators for AI-generated content in CanvasPlaceholder. (Functional, adds to Zustand store)
-    - [x] Allow users to accept/reject/modify AI suggestions.
-        - [x] Implement 'Add to Map' for AI suggestions, updating mapData state directly in Zustand store. (Suggestions cleared after adding)
+## GenAI & AI Features (Comprehensive Enhancement Plan)
+
+This section outlines improvements to make the GenAI Concept Map features more robust, useful, and "sensible".
+
+**I. Enhance `generateMapFromProject` (Make it Practical & Insightful)**
+- [ ] **File Upload & Backend Processing Pipeline:**
+    - [ ] **Frontend**: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar) uploads.
+    - [ ] **API Endpoint**: Create a new API route (e.g., `/api/projects/analyze-upload`) to handle file reception.
+        - This endpoint will be responsible for passing the file (or its reference) to a Genkit flow/tool for analysis. Direct processing in API route might be too slow; consider background jobs if platform supports, or make it a synchronous Genkit flow call for simplicity initially.
+- [ ] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`):**
+    - [ ] **Tool Definition**: Define a new Genkit Tool.
+    - [ ] **Input**: File data (e.g., data URI for smaller files, or path if accessible by Genkit environment).
+    - [ ] **Tool Logic - Phase 1 (Structure & Dependencies)**:
+        - [ ] Unpack archive.
+        - [ ] Traverse directory structure.
+        - [ ] Identify key manifest files (e.g., `package.json`, `pom.xml`, `requirements.txt`).
+        - [ ] Extract basic project metadata: name, primary language/framework, main dependencies.
+        - [ ] List major directories and significant files within them.
+    - [ ] **Tool Logic - Phase 2 (Basic Code Insights - Ambitious, Iterative)**:
+        - [ ] (Optional) For identified primary language, attempt to find main entry points or core modules.
+        - [ ] (Optional) Extract names of primary classes/functions/exports from key files.
+    - [ ] **Output**: Structured text or JSON detailing:
+        - Project name, primary language/framework.
+        - Key dependencies.
+        - Directory tree summary.
+        - List of important files/modules and their apparent roles (e.g., "Auth Service", "UI Component").
+- [ ] **Modify `generateMapFromProject` Genkit Flow:**
+    - [ ] **Input**: Update input schema to potentially accept user goals or focus areas for the map. The primary input will be the project context (e.g., file name, user description, classroom context if any).
+    - [ ] **Tool Integration**: Instruct the LLM (prompt) to utilize the `projectStructureAnalyzerTool` by providing it with the necessary file reference/data.
+    - [ ] **Refined Prompt**: Update the prompt to guide the LLM on how to interpret the output from `projectStructureAnalyzerTool`. The prompt should emphasize:
+        - Identifying high-level architectural components (services, modules, UI views, data models).
+        - Inferring primary relationships (e.g., "uses", "depends on", "interacts with").
+        - Adhering to the specified node types (e.g., 'service_component', 'ui_view').
+        - Generating a conceptually organized and understandable map, not just a file listing.
+- [ ] **Output Handling & User Interaction:**
+    - [ ] **Update `ProjectUploadForm`**:
+        - [ ] When "Generate Map" is confirmed, call the enhanced `generateMapFromProject` flow (potentially via the new API endpoint).
+        - [ ] Provide better loading/progress feedback to the user during analysis.
+    - [ ] **Preview & Merge**:
+        - [ ] Display the AI-generated map (nodes and edges from the flow's JSON output) in a preview area (perhaps a modal or a dedicated section in the `CanvasPlaceholder` or editor).
+        - [ ] Allow users to "Accept" the AI map, which would then:
+            - Create a *new* concept map record in the database using the AI-generated data.
+            - Update the `ProjectSubmission` record with the ID of this new concept map.
+            - Redirect the user to the newly created map in the editor.
+        - [ ] (Advanced) Allow selective merging/importing of parts of the AI-generated map into an *existing* map.
+
+**II. Improve In-Editor AI Tool Interactions & Contextual Awareness**
+- [ ] **Contextual Input for AI Tools:**
+    - [ ] **`expandConcept`**:
+        - [ ] Modify flow input to optionally accept IDs/text of currently selected map nodes or the entire existing map's node texts.
+        - [ ] Update prompt: "Given the concept '{{concept}}' *within the context of this existing map data/these selected concepts*: {{{map_context}}}, generate related ideas..."
+    - [ ] **`suggestRelations`**:
+        - [ ] Modify flow input to primarily operate on a *selection* of 2+ nodes from the current map, or all nodes if no specific selection.
+        - [ ] Update prompt: "For the following concepts already present in the map: [list selected/all nodes], suggest meaningful relationships *between them*..."
+    - [ ] **`extractConcepts`**:
+        - [ ] If text is extracted from a document upload (future feature), pass document name/context to the AI.
+- [ ] **Interactive AI Suggestions in `CanvasPlaceholder` / UI:**
+    - [ ] **Selective Addition**:
+        - [ ] For "Extracted Concepts": Display as a list with checkboxes; allow user to select which ones to add as new nodes.
+        - [ ] For "Suggested Relations": Display as a list of "Source -> Relation -> Target" with checkboxes; adding should create the edge (and nodes if they don't exist).
+        - [ ] For "Expanded Concepts": Display as a list with checkboxes.
+    - [ ] **Edit Before Adding**: Allow users to edit the text of a suggested concept or relation label before adding it to the map.
+    - [ ] **Clearer Visual Cues**: Make it more obvious which suggestions have already been added to the map.
+
+**III. General AI User Experience (UX)**
+- [ ] **Tooltips & Guidance**: Enhance tooltips in `EditorToolbar` for AI buttons to clarify their function, expected input, and potential output.
+- [ ] **Loading & Feedback**:
+    - [ ] Consistent and more specific loading indicators for each AI modal/operation.
+    - [ ] Clearer error messages from AI flows, propagated to the user via toasts.
+- [ ] **AI Suggestion Panel (`CanvasPlaceholder`)**:
+    - [ ] Improve layout and clarity of how AI suggestions are displayed.
+    - [ ] Ensure panel is easily accessible and understandable.
 
 ## Testing & Deployment (Future - Out of Scope for AI Agent Implementation)
 - [ ] **Testing:**
@@ -168,5 +231,9 @@ This section outlines the tasks to migrate the application from mock backend ser
 - App is focused on desktop experience.
 - Admin "Add User" directs to register page. This is fine.
 - Real file uploads and message queues were out of scope for mock. Supabase Storage will handle uploads. Genkit flow will process.
+- Zustand `temporal` middleware for undo/redo was causing issues and is temporarily disabled. Needs re-evaluation.
+- Node dragging is now working. Connection logic for handles is being finalized.
 
 This has been added to your `src/TODO.md` file.
+
+    
