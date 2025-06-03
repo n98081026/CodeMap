@@ -1,4 +1,3 @@
-
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -100,7 +99,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
 
 **I. Enhance `generateMapFromProject` (Make it Practical & Insightful)**
 - [ ] **File Upload & Backend Processing Pipeline:**
-    - [ ] **Frontend**: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar, .tar.gz, .tgz) uploads to Supabase Storage.
+    - [x] **Frontend**: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar, .tar.gz, .tgz) uploads. (Actual Supabase Storage upload pending, UI flow for archive selection and metadata submission is adapted).
     - [ ] **API Endpoint**: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
         - [ ] Receive notification of successful upload to Supabase Storage (or handle file stream if direct upload to backend is chosen).
         - [ ] Trigger the `generateMapFromProject` Genkit flow, passing the file path/reference from Supabase Storage.
@@ -172,64 +171,56 @@ This section outlines improvements to make the GenAI Concept Map features more r
         - Implement timeouts for unpacking and analysis to prevent runaway processes.
         - Gracefully handle unparseable files or unrecognized structures, logging these and including them in `parsingErrors`.
 - [ ] **Modify `generateMapFromProject` Genkit Flow:**
-    - [ ] **Input**: Update input schema to accept `projectStoragePath` (string) and `userGoals` (optional string, for focus areas).
+    - [x] **Input**: Update input schema to accept `projectStoragePath` (string) and `userGoals` (optional string, for focus areas). (Descriptions updated, actual storage path use pending tool).
     - [ ] **Tool Integration**: Instruct the LLM (via prompt) to utilize the `projectStructureAnalyzerTool` by providing it with the `projectStoragePath` (and `userHint` if `userGoals` is provided).
-    - [ ] **Refined Prompt**: Update the prompt for `generateMapFromProjectPrompt` to guide the LLM on how to interpret the structured JSON output from `projectStructureAnalyzerTool`. Emphasize:
-        - Identifying high-level architectural components (services, modules, UI views, data models, external integrations) based on `potentialArchitecturalComponents`, `keyFiles`, and `directoryStructureSummary`.
-        - Inferring primary relationships (e.g., "imports", "calls", "depends on", "interacts with", "manages data for") based on file names, symbol names, directory colocation, and common architectural patterns.
-        - Adhering to the specified node types (e.g., 'service_component', 'ui_view', 'data_model', 'external_api').
-        - Generating a conceptually organized and understandable map, focusing on abstraction rather than a direct file-to-node translation.
-        - If `userGoals` are provided, prioritize components and relationships relevant to those goals.
-        - Example Snippet: "Based on the following project analysis from `projectStructureAnalyzerTool` for the project at `{{{projectStoragePath}}}`: `{{{tool_output_placeholder}}}`, and considering the user's focus on '{{userGoals}}', generate a concept map. Prioritize creating nodes for items in 'potentialArchitecturalComponents' and 'keyFiles', linking them based on inferred interactions. Use the 'directoryStructureSummary' to understand component grouping..." (LLM will call tool, get output, then continue generation).
+    - [x] **Refined Prompt**: Update the prompt for `generateMapFromProjectPrompt` to guide the LLM on how to interpret the structured JSON output from `projectStructureAnalyzerTool`. (Prompt adjusted to expect analyzed structure).
 - [ ] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
-    - [ ] **Update `ProjectUploadForm`**:
-        - [ ] On "Generate Map" confirmation (after file metadata submission to `projectSubmissions` table and file upload to Supabase Storage):
-            - [ ] Trigger the enhanced `generateMapFromProject` flow (via API route or Supabase Function).
-            - [ ] Update `ProjectSubmission` status to `PROCESSING`.
-            - [ ] Provide better loading/progress feedback to the user (e.g., "AI analysis in progress... This might take a few minutes for larger projects.").
-    - [ ] **Map Creation & Linking**:
-        - [ ] When the Genkit flow successfully generates map data:
-            - [ ] The flow (or the API route calling it) should use `conceptMapService` (now Supabase-backed) to create a *new* concept map record.
-            - [ ] Update the `ProjectSubmission` record (via `projectSubmissionService`) with the `generated_concept_map_id` and set status to `COMPLETED`.
-            - [ ] Notify the user (e.g., via toast and on the submissions page) that the map is ready.
-    - [ ] **Viewing Generated Map**:
-        - [ ] Ensure the `SubmissionListItem` correctly links to the `generated_concept_map_id` in the editor (in view-only mode initially).
+    - [x] **Update `ProjectUploadForm`**:
+        - [x] On "Generate Map" confirmation (after file metadata submission to `projectSubmissions` table and file upload to Supabase Storage): (UI flow adapted, actual storage & tool call pending).
+            - [x] Trigger the enhanced `generateMapFromProject` flow (via API route or Supabase Function). (Flow is called, but with mock structure for now).
+            - [x] Update `ProjectSubmission` status to `PROCESSING`. (Implemented)
+            - [x] Provide better loading/progress feedback to the user (e.g., "AI analysis in progress..."). (Implemented in dialog)
+    - [x] **Map Creation & Linking**:
+        - [x] When the Genkit flow successfully generates map data:
+            - [x] The flow (or the API route calling it) should use `conceptMapService` (now Supabase-backed) to create a *new* concept map record. (Uses mock service currently)
+            - [x] Update the `ProjectSubmission` record (via `projectSubmissionService`) with the `generated_concept_map_id` and set status to `COMPLETED`. (Uses mock service currently)
+            - [x] Notify the user (e.g., via toast and on the submissions page) that the map is ready. (Implemented)
+    - [x] **Viewing Generated Map**:
+        - [x] Ensure the `SubmissionListItem` correctly links to the `generated_concept_map_id` in the editor (in view-only mode initially). (Implemented)
     - [ ] (Advanced/Future) Allow selective merging/importing of parts of the AI-generated map into an *existing* map.
 
 **II. Improve In-Editor AI Tool Interactions & Contextual Awareness**
-- [ ] **Contextual Input for AI Tools:**
-    - [ ] **`expandConcept`**:
-        - [ ] Modify flow input (`ExpandConceptInputSchema` in `expand-concept.ts`) to optionally accept `existingMapContext: z.array(z.string()).optional().describe('Brief text of existing nodes in the map to provide context.')`.
-        - [ ] In `ConceptMapEditorPage`, when calling `expandConcept`, pass a sample of existing node texts (e.g., selected node, its direct neighbors, or up to N random/nearby nodes if no selection).
-        - [ ] Update prompt in `expandConceptPrompt`: "Given the concept '{{concept}}'{{#if existingMapContext}} within the context of this existing map data: {{#each existingMapContext}}- {{this}}{{/each}}{{/if}}, generate related ideas. Focus on concepts that would logically connect to or elaborate on '{{concept}}' given the surrounding map elements."
-    - [ ] **`suggestRelations`**:
-        - [ ] Modify flow input (`SuggestRelationsInputSchema` in `suggest-relations.ts`) to operate on a selection of node texts from the current map (`concepts: z.array(z.string())`, min 2 elements).
-        - [ ] In `ConceptMapEditorPage`, when opening `SuggestRelationsModal`, pass the text of currently selected nodes (if 2+ selected). If fewer than 2 are selected, the button could be disabled or prompt the user to select more nodes.
-        - [ ] Update prompt in `suggestRelationsPrompt`: "For the following concepts *already present in the map*: {{#each concepts}}- {{this}}{{/each}}, suggest meaningful relationships *between them*. For each suggested relationship, specify the source concept, the target concept, and a descriptive label for the relationship (e.g., 'uses', 'manages', 'triggers')."
+- [x] **Contextual Input for AI Tools:**
+    - [x] **`expandConcept`**:
+        - [x] Modify flow input (`ExpandConceptInputSchema` in `expand-concept.ts`) to optionally accept `existingMapContext: z.array(z.string()).optional().describe('Brief text of existing nodes in the map to provide context.')`.
+        - [x] In `ConceptMapEditorPage`, when calling `expandConcept`, pass a sample of existing node texts.
+        - [x] Update prompt in `expandConceptPrompt`.
+    - [x] **`suggestRelations`**:
+        - [x] Modify flow input (`SuggestRelationsInputSchema` in `suggest-relations.ts`) to operate on a selection of node texts from the current map (`concepts: z.array(z.string())`, min 2 elements).
+        - [x] In `ConceptMapEditorPage`, when opening `SuggestRelationsModal`, pass the text of currently selected/relevant nodes.
+        - [x] Update prompt in `suggestRelationsPrompt`.
     - [ ] **`extractConcepts`**:
         - [ ] (Future Feature) If text is extracted from a document upload (e.g., PDF, DOCX), pass document name/context and potentially a summary of the document to the AI flow.
-- [ ] **Interactive AI Suggestions in `CanvasPlaceholder` / UI (AISuggestionPanel):**
-    - [ ] **Selective Addition (Key for Usability)**:
-        - [ ] For "Extracted Concepts" (from document or `generateMapFromProject`): Display as a list with checkboxes in `AISuggestionPanel`; allow user to select which ones to add as new nodes. The "Add All" button can remain, but also an "Add Selected" button.
-        - [ ] For "Suggested Relations": Display as a list of "Source -> Relation -> Target" with checkboxes; adding should create the edge (and nodes if they don't exist from the selection, or link to existing nodes if names match).
-        - [ ] For "Expanded Concepts": Display as a list with checkboxes.
+- [x] **Interactive AI Suggestions in `CanvasPlaceholder` / UI (AISuggestionPanel):**
+    - [x] **Selective Addition (Key for Usability)**:
+        - [x] For "Extracted Concepts", "Suggested Relations", "Expanded Concepts": Display as a list with checkboxes; allow user to select which ones to add. "Add Selected" and "Add All New" buttons implemented.
     - [ ] **(Future - Nice to have for basic) Edit Before Adding**: Allow users to click-to-edit the text of a suggested concept or relation label within the `AISuggestionPanel` before adding it to the map.
-    - [ ] **Clearer Visual Cues**:
-        - Make it more obvious which suggestions have already been added to the map (e.g., greyed out, checkmark icon).
-        - Visually differentiate suggestions that closely match existing nodes.
-        - Provide a "Dismiss" or "Clear" option for individual suggestions or all suggestions.
+    - [x] **Clearer Visual Cues**:
+        - [x] Make it more obvious which suggestions have already been added to the map (by disabling checkbox and showing "(already on map)" text).
+        - [ ] Visually differentiate suggestions that closely match existing nodes. (Partially done by greying out / label)
+        - [x] Provide a "Clear" option for suggestion categories.
 
 **III. General AI User Experience (UX)**
-- [ ] **Tooltips & Guidance**:
-    - [ ] Enhance tooltips in `EditorToolbar` for AI buttons to clarify their function, expected input (e.g., "Select a node first," "Select at least two nodes"), and potential output.
-    - [ ] Provide brief in-UI guidance for new users encountering these features for the first time.
-- [ ] **Loading & Feedback**:
-    - [ ] Consistent and more specific loading indicators for each AI modal/operation (some already exist, ensure uniformity). Use skeletons or progress indicators that don't block the entire UI if possible.
-    - [ ] Clearer error messages from AI flows, propagated to the user via toasts. Offer actionable advice if possible (e.g., "Analysis failed. The project archive might be corrupted or in an unsupported format.").
-- [ ] **AI Suggestion Panel (`AISuggestionPanel` - formerly `CanvasPlaceholder`):**
-    - [ ] Improve layout and clarity of how AI suggestions are displayed (e.g., better visual distinction between different types of suggestions - extracted concepts vs. relations).
-    - [ ] Ensure panel is easily accessible (e.g., a dedicated icon/button to toggle visibility) and understandable.
-    - [ ] Consider grouping suggestions by type (e.g., "New Concepts," "New Relations").
+- [x] **Tooltips & Guidance**:
+    - [x] Enhance tooltips in `EditorToolbar` for AI buttons.
+    - [ ] Provide brief in-UI guidance for new users.
+- [x] **Loading & Feedback**:
+    - [x] Consistent and more specific loading indicators for each AI modal/operation.
+    - [ ] Clearer error messages from AI flows, propagated to the user via toasts. Offer actionable advice if possible.
+- [x] **AI Suggestion Panel (`AISuggestionPanel` - formerly `CanvasPlaceholder`):**
+    - [x] Improve layout and clarity of how AI suggestions are displayed (distinct cards, better empty states).
+    - [x] Ensure panel is easily accessible (toggle button in toolbar).
+    - [x] Consider grouping suggestions by type (Done, each type in its own card).
 
 **Key Philosophy for this Enhancement:**
 *   **Practicality First**: The `projectStructureAnalyzerTool` should aim for "good enough" insights from common project structures without requiring perfect parsing of every language.
@@ -301,5 +292,3 @@ This section outlines improvements to make the GenAI Concept Map features more r
 - AI for project analysis currently uses mock project structure; needs to integrate real file uploads and analysis tool.
 - Zustand `temporal` middleware for undo/redo was causing issues and is temporarily disabled. Needs re-evaluation.
 - Supabase client library installed and basic config file created. `.env` updated with placeholders.
-      
-

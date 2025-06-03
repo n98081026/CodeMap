@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -18,11 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types"; 
+import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types";
 import { ProjectSubmissionStatus } from "@/types";
 import { UploadCloud, Loader2, AlertTriangle } from "lucide-react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
-import { useAuth } from "@/contexts/auth-context"; 
+import { useAuth } from "@/contexts/auth-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,19 +33,43 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_FILE_TYPES = ["application/zip", "application/vnd.rar", "application/x-rar-compressed", "application/octet-stream", "application/x-zip-compressed"];
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const ACCEPTED_FILE_TYPES_MIME = [
+  "application/zip", // .zip
+  "application/vnd.rar", // .rar (official)
+  "application/x-rar-compressed", // .rar (common)
+  "application/x-zip-compressed", // .zip (common)
+  "application/gzip", // .gz, .tar.gz (for tar.gz, file name check is better)
+  "application/x-tar", // .tar (often part of .tar.gz)
+  "application/octet-stream", // Fallback for some archives
+];
+// For display and more lenient client-side check
+const ACCEPTED_FILE_EXTENSIONS_STRING = ".zip, .rar, .tar.gz, .tgz";
+
 
 const NONE_CLASSROOM_VALUE = "_NONE_";
 
 const projectUploadSchema = z.object({
   projectFile: z
     .custom<FileList>()
-    .refine((files) => files && files.length === 1, "Project file is required.")
-    .refine((files) => files && files[0].size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine((files) => files && files.length === 1, "Project archive file is required.")
+    .refine((files) => files && files[0].size <= MAX_FILE_SIZE, `Max file size is ${MAX_FILE_SIZE / (1024*1024)}MB.`)
     .refine(
-      (files) => files && ACCEPTED_FILE_TYPES.includes(files[0].type),
-      ".zip and .rar files are accepted."
+      (files) => {
+        if (!files || files.length === 0) return false;
+        const file = files[0];
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        const acceptedExtensions = ['zip', 'rar', 'gz', 'tgz', 'tar']; // tar.gz and tgz are variants
+        
+        // Check MIME type first, then extension as fallback
+        if (ACCEPTED_FILE_TYPES_MIME.includes(file.type)) return true;
+        if (fileExtension && acceptedExtensions.includes(fileExtension)) return true;
+        // Special case for .tar.gz where MIME might be application/gzip but name indicates .tar.gz
+        if (file.name.endsWith('.tar.gz') && file.type === 'application/gzip') return true;
+
+        return false;
+      },
+      `Accepted file types: ${ACCEPTED_FILE_EXTENSIONS_STRING}. If your .tar.gz or .tgz is not accepted, please try zipping it.`
     ),
   classroomId: z.string().optional(),
 });
@@ -97,7 +120,7 @@ export function ProjectUploadForm() {
     resolver: zodResolver(projectUploadSchema),
     defaultValues: {
       projectFile: undefined,
-      classroomId: "", 
+      classroomId: "",
     },
   });
 
@@ -119,7 +142,7 @@ export function ProjectUploadForm() {
       console.log(`Submission ${submissionId} status updated to ${status}`);
     } catch (error) {
       console.error(`Error updating submission status for ${submissionId}:`, error);
-      throw error; 
+      throw error;
     }
   }, []);
 
@@ -131,7 +154,7 @@ export function ProjectUploadForm() {
 
     setIsSubmittingMetadata(true);
     const file = values.projectFile[0];
-    
+
     const submissionPayload = {
       studentId: user.id,
       originalFileName: file.name,
@@ -140,6 +163,12 @@ export function ProjectUploadForm() {
     };
 
     try {
+      // Simulate file upload to storage here if needed - for now, we proceed to metadata creation
+      // In a real app:
+      // 1. Upload file to Supabase Storage (or other)
+      // 2. Get storagePath
+      // 3. Include storagePath in submissionPayload
+
       const response = await fetch('/api/projects/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,16 +179,16 @@ export function ProjectUploadForm() {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create submission record");
       }
-      
+
       const newSubmission: ProjectSubmission = await response.json();
       toast({
-        title: "Project Submitted",
-        description: `"${file.name}" record created. ID: ${newSubmission!.id}`,
+        title: "Project Archive Submitted",
+        description: `Record for "${file.name}" created. Next, confirm AI analysis.`,
       });
       form.reset();
       setCurrentSubmissionForAI(newSubmission);
-      setIsConfirmAIDialogOpen(true); 
-      
+      setIsConfirmAIDialogOpen(true);
+
     } catch (error) {
       toast({
         title: "Submission Failed",
@@ -175,36 +204,33 @@ export function ProjectUploadForm() {
     if (!currentSubmissionForAI || !user) return;
 
     setIsProcessingAIInDialog(true);
-    toast({ title: "AI Processing Started", description: "AI map generation is now processing..." });
-    
+    toast({ title: "AI Processing Started", description: `Analysis of "${currentSubmissionForAI.originalFileName}" is now processing...` });
+
     try {
       await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.PROCESSING);
-      await new Promise(resolve => setTimeout(resolve, 1000)); 
-      
-      const projectDescription = `Project file: ${currentSubmissionForAI.originalFileName}. Submitted by ${user.name}. Project submitted for classroom: ${currentSubmissionForAI.classroomId || 'Personal Project'}. Focus on identifying main components and their interactions.`;
-      
+      // Simulate backend processing time for file analysis before AI call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // For now, projectCodeStructure is still a mock.
+      // In the future, this structure would come from a Genkit tool that analyzes the uploaded file.
+      const projectDescription = `Project archive: ${currentSubmissionForAI.originalFileName}. Submitted by ${user.name}. This analysis is based on a conceptual understanding of the project. Classroom: ${currentSubmissionForAI.classroomId || 'Personal Project'}.`;
       const projectCodeStructure = `
-        Project Root: ${currentSubmissionForAI.originalFileName} (Size: ${(currentSubmissionForAI.fileSize / 1024).toFixed(2)} KB)
-        
-        Key Directories & Files (Example):
+        File: ${currentSubmissionForAI.originalFileName} (Size: ${(currentSubmissionForAI.fileSize / (1024*1024)).toFixed(2)} MB)
+        (Mocked Structure - Full analysis from archive content is pending implementation)
         /src
           /components
-            - Button.tsx (exports: ButtonComponent; details: Reusable UI button)
-            - UserProfile.tsx (exports: UserProfileDisplay; uses: AvatarComponent)
+            - ExampleComponent.tsx (UI element)
+            - AnotherComponent.tsx
           /services
-            - authService.ts (exports: loginUser, logoutUser; depends_on: apiHelper)
-            - dataService.ts (exports: fetchData, saveData; details: Handles API calls for core data)
-          /pages
-            - HomePage.tsx (uses: ButtonComponent, dataService)
-            - SettingsPage.tsx (uses: UserProfileDisplay)
-          - app.ts (main entry; imports: authService, dataService, HomePage)
-        /utils
-          - helpers.ts (exports: formatUtility, validationUtility)
-        package.json (dependencies: react, nextjs, zod, lucide-react)
+            - apiService.ts (Handles external calls)
+          /utils
+            - formatters.ts
+          - App.tsx (Main application component)
+        package.json (dependencies: react, typescript)
       `;
-      
+
       const mapResult = await aiGenerateMapFromProject({ projectDescription, projectCodeStructure });
-      
+
       let parsedMapData: ConceptMapData;
       try {
         parsedMapData = JSON.parse(mapResult.conceptMapData);
@@ -216,7 +242,7 @@ export function ProjectUploadForm() {
       }
 
       const newMapPayload = {
-        name: `AI Map for ${currentSubmissionForAI.originalFileName}`,
+        name: `AI Map for ${currentSubmissionForAI.originalFileName.split('.')[0]}`, // Use filename without extension
         ownerId: user.id,
         mapData: parsedMapData,
         isPublic: false,
@@ -236,15 +262,15 @@ export function ProjectUploadForm() {
       const createdMap: ConceptMap = await mapCreateResponse.json();
 
       await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.COMPLETED, createdMap.id);
-      
+
       toast({
         title: "AI Concept Map Generated",
-        description: `Map "${createdMap.name}" created and linked to your submission.`,
+        description: `Map "${createdMap.name}" created from "${currentSubmissionForAI.originalFileName}" and linked.`,
       });
 
     } catch (aiError) {
       console.error("AI Map Generation or Saving Error:", aiError);
-      if (currentSubmissionForAI) { 
+      if (currentSubmissionForAI) {
         await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing or map saving failed");
       }
       toast({
@@ -262,10 +288,13 @@ export function ProjectUploadForm() {
 
   const handleDeclineAIGeneration = useCallback(() => {
     setIsConfirmAIDialogOpen(false);
+    // Update status to PENDING if it was set to PROCESSING optimistically before dialog,
+    // or leave as is if the server already knows it's PENDING from creation.
+    // For this flow, it's PENDING from creation.
     setCurrentSubmissionForAI(null);
     router.push("/application/student/projects/submissions");
   }, [router]);
-  
+
   const isBusy = isSubmittingMetadata || isProcessingAIInDialog;
 
   return (
@@ -277,17 +306,17 @@ export function ProjectUploadForm() {
             name="projectFile"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Project Archive (.rar or .zip)</FormLabel>
+                <FormLabel>Project Archive File</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="file" 
-                    accept=".zip,.rar,.ZIP,.RAR"
+                  <Input
+                    type="file"
+                    accept={ACCEPTED_FILE_EXTENSIONS_STRING}
                     onChange={(e) => field.onChange(e.target.files)}
                     disabled={isBusy}
                   />
                 </FormControl>
                 <FormMessage />
-                <p className="text-sm text-muted-foreground">Max file size: 5MB.</p>
+                <p className="text-sm text-muted-foreground">Accepted: {ACCEPTED_FILE_EXTENSIONS_STRING}. Max size: {MAX_FILE_SIZE / (1024*1024)}MB.</p>
               </FormItem>
             )}
           />
@@ -298,16 +327,16 @@ export function ProjectUploadForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Classroom (Optional)</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={field.value} 
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
                   disabled={isBusy || isLoadingClassrooms || !!errorLoadingClassrooms}
                 >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={
-                        isLoadingClassrooms ? "Loading classrooms..." : 
-                        errorLoadingClassrooms ? "Error loading classrooms" : 
+                        isLoadingClassrooms ? "Loading classrooms..." :
+                        errorLoadingClassrooms ? "Error loading classrooms" :
                         "Select a classroom (optional)"
                       } />
                     </SelectTrigger>
@@ -335,7 +364,7 @@ export function ProjectUploadForm() {
                 <FormMessage />
                 {errorLoadingClassrooms && !isLoadingClassrooms && (
                     <p className="text-xs text-destructive flex items-center mt-1">
-                        <AlertTriangle className="mr-1 h-3 w-3" /> {errorLoadingClassrooms}. 
+                        <AlertTriangle className="mr-1 h-3 w-3" /> {errorLoadingClassrooms}.
                         <Button variant="link" size="sm" className="p-0 h-auto ml-1" onClick={fetchAvailableClassrooms}>Retry?</Button>
                     </p>
                 )}
@@ -344,9 +373,9 @@ export function ProjectUploadForm() {
           />
           <Button type="submit" className="w-full" disabled={isBusy || !form.formState.isValid}>
             {isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-            {isSubmittingMetadata ? "Submitting Record..." : isProcessingAIInDialog ? "AI is Processing..." : "Submit Project"}
+            {isSubmittingMetadata ? "Submitting Record..." : isProcessingAIInDialog ? "AI is Processing..." : "Submit Project Archive"}
           </Button>
-          {isProcessingAIInDialog && <p className="text-sm text-center text-muted-foreground">AI is processing your project through the dialog action. Please wait...</p>}
+          {isProcessingAIInDialog && <p className="text-sm text-center text-muted-foreground">AI analysis is processing via the dialog action. Please wait...</p>}
         </form>
       </Form>
 
@@ -356,8 +385,8 @@ export function ProjectUploadForm() {
             <AlertDialogHeader>
               <AlertDialogTitle>AI Map Generation</AlertDialogTitle>
               <AlertDialogDescription>
-                Project record for "{currentSubmissionForAI.originalFileName}" submitted successfully.
-                Do you want to attempt to generate a concept map for it now? This may take a moment.
+                Project archive record for "{currentSubmissionForAI.originalFileName}" created.
+                Do you want to attempt to generate a concept map from this project? This may take a moment.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
