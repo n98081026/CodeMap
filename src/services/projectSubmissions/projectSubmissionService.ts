@@ -36,6 +36,7 @@ export async function createSubmission(
       classroom_id: classroomId || null,
       submission_timestamp: now,
       analysis_status: ProjectSubmissionStatus.PENDING,
+      updated_at: now, // Also set updated_at on creation
       // file_storage_path will be updated later by the actual file upload mechanism
     })
     .select()
@@ -155,9 +156,9 @@ export async function updateSubmissionStatus(
 ): Promise<ProjectSubmission | null> {
   const updates: any = {
     analysis_status: status,
-    analysis_error: analysisError === undefined ? null : analysisError, // Ensure null if undefined
-    generated_concept_map_id: generatedConceptMapId === undefined ? null : generatedConceptMapId, // Ensure null if undefined
-    updated_at: new Date().toISOString(), // Assuming an updated_at column
+    analysis_error: analysisError === undefined ? null : analysisError,
+    generated_concept_map_id: generatedConceptMapId === undefined ? null : generatedConceptMapId,
+    updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await supabase
@@ -171,7 +172,7 @@ export async function updateSubmissionStatus(
     console.error('Supabase updateSubmissionStatus error:', error);
     throw new Error(`Failed to update submission status: ${error.message}`);
   }
-  if (!data) return null; // Or throw "Submission not found"
+  if (!data) return null; 
 
   return {
     id: data.id,

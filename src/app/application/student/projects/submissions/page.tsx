@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { ProjectSubmission } from "@/types";
 import { UserRole } from "@/types";
 import { SubmissionListItem } from "@/components/projects/submission-list-item";
@@ -25,8 +25,11 @@ export default function MySubmissionsPage() {
     studentDashboardLink = user.role === UserRole.ADMIN ? "/application/admin/dashboard" : "/application/teacher/dashboard";
   }
 
-  const fetchSubmissions = async () => {
-    if (!user) return;
+  const fetchSubmissions = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false); // Stop loading if no user
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -44,12 +47,11 @@ export default function MySubmissionsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
 
   useEffect(() => {
-    if (user) fetchSubmissions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    fetchSubmissions();
+  }, [fetchSubmissions]);
 
   return (
     <div className="space-y-6">

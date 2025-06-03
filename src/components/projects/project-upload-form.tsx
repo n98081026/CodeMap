@@ -36,15 +36,14 @@ import {
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const ACCEPTED_FILE_TYPES_MIME = [
-  "application/zip", // .zip
-  "application/vnd.rar", // .rar (official)
-  "application/x-rar-compressed", // .rar (common)
-  "application/x-zip-compressed", // .zip (common)
-  "application/gzip", // .gz, .tar.gz (for tar.gz, file name check is better)
-  "application/x-tar", // .tar (often part of .tar.gz)
-  "application/octet-stream", // Fallback for some archives
+  "application/zip", 
+  "application/vnd.rar", 
+  "application/x-rar-compressed", 
+  "application/x-zip-compressed", 
+  "application/gzip", 
+  "application/x-tar", 
+  "application/octet-stream", 
 ];
-// For display and more lenient client-side check
 const ACCEPTED_FILE_EXTENSIONS_STRING = ".zip, .rar, .tar.gz, .tgz";
 
 
@@ -60,12 +59,10 @@ const projectUploadSchema = z.object({
         if (!files || files.length === 0) return false;
         const file = files[0];
         const fileExtension = file.name.split('.').pop()?.toLowerCase();
-        const acceptedExtensions = ['zip', 'rar', 'gz', 'tgz', 'tar']; // tar.gz and tgz are variants
+        const acceptedExtensions = ['zip', 'rar', 'gz', 'tgz', 'tar']; 
         
-        // Check MIME type first, then extension as fallback
         if (ACCEPTED_FILE_TYPES_MIME.includes(file.type)) return true;
         if (fileExtension && acceptedExtensions.includes(fileExtension)) return true;
-        // Special case for .tar.gz where MIME might be application/gzip but name indicates .tar.gz
         if (file.name.endsWith('.tar.gz') && file.type === 'application/gzip') return true;
 
         return false;
@@ -128,8 +125,8 @@ export function ProjectUploadForm() {
   const updateSubmissionStatusOnServer = useCallback(async (submissionId: string, status: ProjectSubmissionStatus, generatedConceptMapId?: string | null, analysisError?: string | null) => {
     try {
       const payload: any = { status };
-      if (generatedConceptMapId) payload.generatedConceptMapId = generatedConceptMapId;
-      if (analysisError) payload.analysisError = analysisError;
+      if (generatedConceptMapId !== undefined) payload.generatedConceptMapId = generatedConceptMapId;
+      if (analysisError !== undefined) payload.analysisError = analysisError;
 
       const response = await fetch(`/api/projects/submissions/${submissionId}`, {
         method: 'PUT',
@@ -143,7 +140,7 @@ export function ProjectUploadForm() {
       console.log(`Submission ${submissionId} status updated to ${status}`);
     } catch (error) {
       console.error(`Error updating submission status for ${submissionId}:`, error);
-      throw error;
+      throw error; 
     }
   }, []);
 
@@ -161,16 +158,9 @@ export function ProjectUploadForm() {
       originalFileName: file.name,
       fileSize: file.size,
       classroomId: values.classroomId === NONE_CLASSROOM_VALUE ? null : (values.classroomId || null),
-      // file_storage_path: "placeholder/path/to/file.zip" // This will be replaced by actual upload path
     };
 
     try {
-      // Simulate file upload to storage here if needed - for now, we proceed to metadata creation
-      // In a real app:
-      // 1. Upload file to Supabase Storage (or other)
-      // 2. Get storagePath
-      // 3. Include storagePath in submissionPayload and set it on newSubmission below.
-
       const response = await fetch('/api/projects/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,10 +173,7 @@ export function ProjectUploadForm() {
       }
 
       const newSubmission: ProjectSubmission = await response.json();
-      // In a real scenario, newSubmission would have file_storage_path if upload was done before this call.
-      // For mock, we'll use a placeholder path for the AI flow.
-      // newSubmission.fileStoragePath = `mock-storage/${file.name}`; 
-
+      
       toast({
         title: "Project Archive Submitted",
         description: `Record for "${file.name}" created. Next, confirm AI analysis.`,
@@ -215,11 +202,7 @@ export function ProjectUploadForm() {
     try {
       await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.PROCESSING);
       
-      // This should be the actual path from Supabase Storage after file upload.
-      // For now, it's a mock path. The tool itself is also mocked.
       const projectStoragePath = `mock-storage/user-${user.id}/${currentSubmissionForAI.originalFileName}`;
-      
-      // User goals can be derived from project name, description, or a dedicated UI field later.
       const userGoals = `Analyze the project named: ${currentSubmissionForAI.originalFileName}. Focus on key components and their interactions.`;
 
       const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals });

@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Eye, FileArchive, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { Eye, FileArchive, AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface SubmissionListItemProps {
   submission: ProjectSubmission;
@@ -18,10 +19,32 @@ const POLLING_INTERVAL = 7000; // Poll every 7 seconds
 
 export const SubmissionListItem = React.memo(function SubmissionListItem({ submission: initialSubmission }: SubmissionListItemProps) {
   const [currentSubmission, setCurrentSubmission] = useState<ProjectSubmission>(initialSubmission);
+  const [isPolling, setIsPolling] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setCurrentSubmission(initialSubmission); 
   }, [initialSubmission]);
+
+  const fetchLatestStatus = useCallback(async () => {
+    setIsPolling(true);
+    try {
+      const response = await fetch(`/api/projects/submissions/${currentSubmission.id}`);
+      if (!response.ok) {
+        console.error(`Polling failed for submission ${currentSubmission.id}: ${response.statusText}`);
+        // Optionally show a toast for fetch error during polling
+        // toast({ title: "Status Update Failed", description: "Could not fetch latest status.", variant: "destructive" });
+        return;
+      }
+      const updatedSubmission: ProjectSubmission = await response.json();
+      setCurrentSubmission(updatedSubmission);
+    } catch (error) {
+      console.error(`Error polling for submission ${currentSubmission.id}:`, error);
+      // toast({ title: "Status Update Error", description: "An error occurred while fetching status.", variant: "destructive" });
+    } finally {
+      setIsPolling(false);
+    }
+  }, [currentSubmission.id]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
@@ -32,38 +55,15 @@ export const SubmissionListItem = React.memo(function SubmissionListItem({ submi
       ProjectSubmissionStatus.PROCESSING,
     ];
 
-    const fetchStatus = async () => {
-      if (!activeStatuses.includes(currentSubmission.analysisStatus)) {
-        if (intervalId) clearInterval(intervalId);
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/projects/submissions/${currentSubmission.id}`);
-        if (!response.ok) {
-          console.error(`Polling failed for submission ${currentSubmission.id}: ${response.statusText}`);
-          return;
-        }
-        const updatedSubmission: ProjectSubmission = await response.json();
-        setCurrentSubmission(updatedSubmission);
-
-        if (!activeStatuses.includes(updatedSubmission.analysisStatus)) {
-          if (intervalId) clearInterval(intervalId);
-        }
-      } catch (error) {
-        console.error(`Error polling for submission ${currentSubmission.id}:`, error);
-      }
-    };
-
     if (activeStatuses.includes(currentSubmission.analysisStatus)) {
-      fetchStatus(); 
-      intervalId = setInterval(fetchStatus, POLLING_INTERVAL);
+      fetchLatestStatus(); // Initial fetch if active
+      intervalId = setInterval(fetchLatestStatus, POLLING_INTERVAL);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [currentSubmission.id, currentSubmission.analysisStatus]); 
+  }, [currentSubmission.analysisStatus, fetchLatestStatus]); 
 
   const getStatusIconAndColor = () => {
     switch (currentSubmission.analysisStatus) {
@@ -107,6 +107,13 @@ export const SubmissionListItem = React.memo(function SubmissionListItem({ submi
           >
             {currentSubmission.analysisStatus}
           </Badge>
+          {(currentSubmission.analysisStatus === ProjectSubmissionStatus.PENDING || 
+            currentSubmission.analysisStatus === ProjectSubmissionStatus.QUEUED || 
+            currentSubmission.analysisStatus === ProjectSubmissionStatus.PROCESSING) && (
+            <Button variant="ghost" size="icon" onClick={fetchLatestStatus} disabled={isPolling} className="h-6 w-6 ml-auto">
+              <RefreshCw className={`h-4 w-4 ${isPolling ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
         </div>
         {currentSubmission.analysisStatus === ProjectSubmissionStatus.FAILED && currentSubmission.analysisError && (
           <p className="text-xs text-destructive">Error: {currentSubmission.analysisError}</p>
@@ -117,7 +124,7 @@ export const SubmissionListItem = React.memo(function SubmissionListItem({ submi
       <CardFooter>
         {currentSubmission.analysisStatus === ProjectSubmissionStatus.COMPLETED && currentSubmission.generatedConceptMapId ? (
           <Button asChild className="w-full">
-            <Link href={`/application/concept-maps/editor/${currentSubmission.generatedConceptMapId}`}>
+            <Link href={`/application/concept-maps/editor/${currentSubmission.generatedConceptMapId}?viewOnly=true`}>
               <Eye className="mr-2 h-4 w-4" /> View Generated Map
             </Link>
           </Button>

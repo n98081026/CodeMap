@@ -57,11 +57,11 @@ This section outlines the tasks to migrate the application from mock backend ser
     - [x] `addStudentToClassroom`, `removeStudentFromClassroom`: Manage records in `classroom_students`.
     - [x] `updateClassroom`, `deleteClassroom`: Update/delete from `classrooms` table (delete cascades to `classroom_students` via service logic).
     - [x] `getAllClassrooms`: Query for admin dashboard.
-- [x] **Connect frontend classroom creation and listing UI (teacher) to live API (with mock service).** -> Now connected to Supabase-backed API.
-- [x] **Connect frontend classroom list UI for edit/delete actions (Teacher).** -> Now connected to Supabase-backed API.
-- [x] **Connect frontend classroom detail UI (teacher) to live API for details and student management.** -> Now connected to Supabase-backed API for classroom details, student list, add/remove student. Maps and Submissions tabs are also connected to their respective Supabase-backed services.
-- [x] **Connect frontend classroom listing UI (student) to live API (with mock service).**
-- [x] **Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.**
+- [x] **Connect frontend classroom creation and listing UI (teacher) to live API (with Supabase service).**
+- [x] **Connect frontend classroom list UI for edit/delete actions (Teacher) to live API (with Supabase service).**
+- [x] **Connect frontend classroom detail UI (teacher) to live API for details and student management (with Supabase service).**
+- [x] **Connect frontend classroom listing UI (student) to live API (with Supabase service).**
+- [x] **Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps (with Supabase service).**
 
 **4. Concept Map Management with Supabase**
 - [ ] **`concept_maps` Table:**
@@ -69,8 +69,8 @@ This section outlines the tasks to migrate the application from mock backend ser
     - [ ] RLS policies: Owner CRUD. Classroom members read if shared. Public read if `is_public`. Admins full access. (User needs to implement RLS).
 - [x] **`conceptMapService.ts` Refactor:** (Refactored to use Supabase client calls. Assumes tables & RLS set up by user).
     - [x] All CRUD operations to interact with the `concept_maps` table using `supabase-js`.
-- [x] **Connect frontend concept map listing (student) to live API for loading/deleting.** (Done)
-- [x] **Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).**
+- [x] **Connect frontend concept map listing (student) to live API for loading/deleting (with Supabase service).**
+- [x] **Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector, using Supabase service).**
 
 **5. Project Submission & Analysis with Supabase**
 - [ ] **`project_submissions` Table:**
@@ -84,24 +84,25 @@ This section outlines the tasks to migrate the application from mock backend ser
     - [x] `getSubmissionById`, `getSubmissionsByStudentId`, `getSubmissionsByClassroomId`: Query `project_submissions` table.
     - [x] `updateSubmissionStatus`: Update records in `project_submissions`.
     - [x] `getAllSubmissions`: Query for admin dashboard.
+- [x] **Connect frontend project submission UI (`ProjectUploadForm`) to live API (for metadata, triggering AI map generation via flow, linking generated map to submission in Supabase service).**
+- [x] **Connect frontend student submissions list (`MySubmissionsPage`, `SubmissionListItem`) to live API (with Supabase service, including polling for status updates).**
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
-    - [ ] Modify flow to fetch project file from Supabase Storage (if direct file content isn't passed by the tool).
+    - [ ] Modify flow to fetch project file from Supabase Storage (if direct file content isn't passed by the tool). (User to implement when `projectStructureAnalyzerTool` is made real)
     - [x] On successful map generation:
-        - [x] Call `conceptMapService.createConceptMap` (which will use Supabase) to save the new map. (Done via frontend/API integration)
-        - [x] Call `projectSubmissionService.updateSubmissionStatus` (which will use Supabase) to link the `generated_concept_map_id` and set status to 'completed'. (Done via frontend/API integration)
+        - [x] Call `conceptMapService.createConceptMap` (which will use Supabase) to save the new map. (Done via frontend/API integration with Supabase-backed `conceptMapService`)
+        - [x] Call `projectSubmissionService.updateSubmissionStatus` (which will use Supabase) to link the `generated_concept_map_id` and set status to 'completed'. (Done via frontend/API integration with Supabase-backed `projectSubmissionService`)
 
-**6. API Route Refactoring**
+**6. API Route Refactoring (General Review for Supabase)**
 - [x] Review all existing API routes in `src/app/api/` (excluding `/auth/*` which are deprecated).
 - [x] Refactor each route to:
     - [x] Use the Supabase-powered service functions. (Done for users, classrooms, conceptmaps, submissions)
-    - [x] Implement proper Supabase session/JWT authentication and authorization checks (e.g., using Supabase helper functions for Next.js API routes if available, or manually verifying JWTs). (Partially done for password change API, others rely on service logic for now or need explicit auth checks).
+    - [x] Implement proper Supabase session/JWT authentication and authorization checks (e.g., using Supabase helper functions for Next.js API routes if available, or manually verifying JWTs). (Partially done for password change API, others rely on service logic for now or need explicit auth checks by user).
     - [x] Ensure RLS policies in Supabase are the primary source of data access control, with API routes performing supplementary checks if needed.
 
-**7. Frontend Connection to Supabase Backend**
+**7. Frontend Connection to Supabase Backend (General Review)**
 - [x] For each page/component currently fetching data via API routes:
-    - [x] Ensure API routes are correctly calling Supabase services. (Done for dashboard counts, classroom lists, user lists, concept map list, submission list, etc. for Admin, Teacher. Student side next.)
-    - [x] Update error handling and loading states to reflect real asynchronous operations.
-    - [x] This is a broad task that touches most of the frontend. (Marked as complete now that services and most pages are using Supabase via API routes for Teacher/Admin. Student side next.)
+    - [x] Ensure API routes are correctly calling Supabase services. (Done for dashboard counts, classroom lists, user lists, concept map list, submission list for Admin, Teacher, Student.)
+    - [x] Update error handling and loading states to reflect real asynchronous operations. (Largely done.)
 
 ## GenAI & AI Features (Comprehensive Enhancement Plan) - Enhanced
 
