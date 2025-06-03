@@ -3,16 +3,10 @@ import { NextResponse } from 'next/server';
 import { getUserById, updateUser, deleteUser } from '@/services/users/userService';
 import type { User, UserRole } from '@/types';
 
-interface UserRouteParams {
-  params: {
-    userId: string;
-  };
-}
-
-export async function GET(request: Request, { params }: UserRouteParams) {
+export async function GET(request: Request, context: { params: { userId: string } }) {
   try {
     // TODO: Add admin authorization check
-    const { userId } = params;
+    const { userId } = context.params;
     const user = await getUserById(userId);
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
@@ -24,10 +18,10 @@ export async function GET(request: Request, { params }: UserRouteParams) {
   }
 }
 
-export async function PUT(request: Request, { params }: UserRouteParams) {
+export async function PUT(request: Request, context: { params: { userId: string } }) {
   try {
     // TODO: Add admin authorization check
-    const { userId } = params;
+    const { userId } = context.params;
     const updates = await request.json() as { name?: string; email?: string; role?: UserRole };
 
     if (Object.keys(updates).length === 0) {
@@ -51,10 +45,10 @@ export async function PUT(request: Request, { params }: UserRouteParams) {
   }
 }
 
-export async function DELETE(request: Request, { params }: UserRouteParams) {
+export async function DELETE(request: Request, context: { params: { userId: string } }) {
   try {
     // TODO: Add admin authorization check
-    const { userId } = params;
+    const { userId } = context.params;
 
     // Basic protection against deleting critical test users directly via API
     if (userId === "student-test-id" || userId === "teacher-test-id") {

@@ -4,15 +4,9 @@ import { getConceptMapById, updateConceptMap, deleteConceptMap } from '@/service
 import type { ConceptMapData } from '@/types';
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder for actual auth
 
-interface ConceptMapRouteParams {
-  params: {
-    mapId: string;
-  };
-}
-
-export async function GET(request: Request, { params }: ConceptMapRouteParams) {
+export async function GET(request: Request, context: { params: { mapId: string } }) {
   try {
-    const { mapId } = params;
+    const { mapId } = context.params;
     if (!mapId) {
       return NextResponse.json({ message: "Map ID is required" }, { status: 400 });
     }
@@ -25,15 +19,15 @@ export async function GET(request: Request, { params }: ConceptMapRouteParams) {
     return NextResponse.json(map);
 
   } catch (error) {
-    console.error(`Get Concept Map API error (ID: ${params.mapId}):`, error);
+    console.error(`Get Concept Map API error (ID: ${context.params.mapId}):`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     return NextResponse.json({ message: `Failed to fetch concept map: ${errorMessage}` }, { status: 500 });
   }
 }
 
-export async function PUT(request: Request, { params }: ConceptMapRouteParams) {
+export async function PUT(request: Request, context: { params: { mapId: string } }) {
   try {
-    const { mapId } = params;
+    const { mapId } = context.params;
     // const { userId } = getAuth(request as any); // Example
     // if (!userId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
@@ -64,16 +58,16 @@ export async function PUT(request: Request, { params }: ConceptMapRouteParams) {
     return NextResponse.json(updatedMap);
 
   } catch (error) {
-    console.error(`Update Concept Map API error (ID: ${params.mapId}):`, error);
+    console.error(`Update Concept Map API error (ID: ${context.params.mapId}):`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     if (errorMessage.includes("User not authorized")) return NextResponse.json({ message: errorMessage }, { status: 403 });
     return NextResponse.json({ message: `Failed to update concept map: ${errorMessage}` }, { status: 500 });
   }
 }
 
-export async function DELETE(request: Request, { params }: ConceptMapRouteParams) {
+export async function DELETE(request: Request, context: { params: { mapId: string } }) {
   try {
-    const { mapId } = params;
+    const { mapId } = context.params;
     // const { userId } = getAuth(request as any); // Example
     // if (!userId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     const { ownerId } = await request.json() as { ownerId: string }; // Client must send ownerId for auth check
@@ -91,7 +85,7 @@ export async function DELETE(request: Request, { params }: ConceptMapRouteParams
     return NextResponse.json({ message: "Concept map deleted successfully" }, { status: 200 });
 
   } catch (error) {
-    console.error(`Delete Concept Map API error (ID: ${params.mapId}):`, error);
+    console.error(`Delete Concept Map API error (ID: ${context.params.mapId}):`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     if (errorMessage.includes("User not authorized")) return NextResponse.json({ message: errorMessage }, { status: 403 });
     return NextResponse.json({ message: `Failed to delete concept map: ${errorMessage}` }, { status: 500 });

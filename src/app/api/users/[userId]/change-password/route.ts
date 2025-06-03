@@ -1,17 +1,10 @@
-
 // src/app/api/users/[userId]/change-password/route.ts
 import { NextResponse } from 'next/server';
 import { changeUserPassword } from '@/services/users/userService';
 
-interface ChangePasswordRouteParams {
-  params: {
-    userId: string;
-  };
-}
-
-export async function POST(request: Request, { params }: ChangePasswordRouteParams) {
+export async function POST(request: Request, context: { params: { userId: string } }) {
   try {
-    const { userId } = params;
+    const { userId } = context.params;
     if (!userId) {
       return NextResponse.json({ message: "User ID is required" }, { status: 400 });
     }
@@ -31,7 +24,7 @@ export async function POST(request: Request, { params }: ChangePasswordRoutePara
     return NextResponse.json({ message: "Password changed successfully (mock)" });
 
   } catch (error) {
-    console.error(`Change Password API error (User ID: ${params.userId}):`, error);
+    console.error(`Change Password API error (User ID: ${context.params.userId}):`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     
     if (errorMessage.includes("User not found")) {

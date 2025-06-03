@@ -3,15 +3,9 @@ import { NextResponse } from 'next/server';
 import { getClassroomById, updateClassroom, deleteClassroom } from '@/services/classrooms/classroomService';
 import type { Classroom } from '@/types';
 
-interface ClassroomRouteParams {
-  params: {
-    classroomId: string;
-  };
-}
-
-export async function GET(request: Request, { params }: ClassroomRouteParams) {
+export async function GET(request: Request, context: { params: { classroomId: string } }) {
   try {
-    const { classroomId } = params;
+    const { classroomId } = context.params;
     if (!classroomId) {
       return NextResponse.json({ message: "Classroom ID is required" }, { status: 400 });
     }
@@ -23,15 +17,15 @@ export async function GET(request: Request, { params }: ClassroomRouteParams) {
     return NextResponse.json(classroom);
 
   } catch (error) {
-    console.error(`Get Classroom API error (ID: ${params.classroomId}):`, error);
+    console.error(`Get Classroom API error (ID: ${context.params.classroomId}):`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     return NextResponse.json({ message: `Failed to fetch classroom: ${errorMessage}` }, { status: 500 });
   }
 }
 
-export async function PUT(request: Request, { params }: ClassroomRouteParams) {
+export async function PUT(request: Request, context: { params: { classroomId: string } }) {
   try {
-    const { classroomId } = params;
+    const { classroomId } = context.params;
     if (!classroomId) {
       return NextResponse.json({ message: "Classroom ID is required" }, { status: 400 });
     }
@@ -44,15 +38,15 @@ export async function PUT(request: Request, { params }: ClassroomRouteParams) {
     return NextResponse.json(updatedClassroom);
 
   } catch (error) {
-    console.error(`Update Classroom API error (ID: ${params.classroomId}):`, error);
+    console.error(`Update Classroom API error (ID: ${context.params.classroomId}):`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     return NextResponse.json({ message: `Failed to update classroom: ${errorMessage}` }, { status: 500 });
   }
 }
 
-export async function DELETE(request: Request, { params }: ClassroomRouteParams) {
+export async function DELETE(request: Request, context: { params: { classroomId: string } }) {
   try {
-    const { classroomId } = params;
+    const { classroomId } = context.params;
     if (!classroomId) {
       return NextResponse.json({ message: "Classroom ID is required" }, { status: 400 });
     }
@@ -64,7 +58,7 @@ export async function DELETE(request: Request, { params }: ClassroomRouteParams)
     return NextResponse.json({ message: "Classroom deleted successfully" }, { status: 200 });
 
   } catch (error) {
-    console.error(`Delete Classroom API error (ID: ${params.classroomId}):`, error);
+    console.error(`Delete Classroom API error (ID: ${context.params.classroomId}):`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     return NextResponse.json({ message: `Failed to delete classroom: ${errorMessage}` }, { status: 500 });
   }

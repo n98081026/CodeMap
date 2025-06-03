@@ -4,15 +4,9 @@ import { getSubmissionById, updateSubmissionStatus } from '@/services/projectSub
 import type { ProjectSubmissionStatus } from '@/types';
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder
 
-interface SubmissionRouteParams {
-  params: {
-    submissionId: string;
-  };
-}
-
-export async function GET(request: Request, { params }: SubmissionRouteParams) {
+export async function GET(request: Request, context: { params: { submissionId: string } }) {
   try {
-    const { submissionId } = params;
+    const { submissionId } = context.params;
     // const { userId } = getAuth(request as any); // Example
 
     if (!submissionId) {
@@ -33,16 +27,16 @@ export async function GET(request: Request, { params }: SubmissionRouteParams) {
     return NextResponse.json(submission);
 
   } catch (error) {
-    console.error(`Get Submission API error (ID: ${params.submissionId}):`, error);
+    console.error(`Get Submission API error (ID: ${context.params.submissionId}):`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     return NextResponse.json({ message: `Failed to fetch submission: ${errorMessage}` }, { status: 500 });
   }
 }
 
 // PUT might be used by an analysis worker to update status
-export async function PUT(request: Request, { params }: SubmissionRouteParams) {
+export async function PUT(request: Request, context: { params: { submissionId: string } }) {
     try {
-        const { submissionId } = params;
+        const { submissionId } = context.params;
         if (!submissionId) {
             return NextResponse.json({ message: "Submission ID is required" }, { status: 400 });
         }
@@ -64,7 +58,7 @@ export async function PUT(request: Request, { params }: SubmissionRouteParams) {
         return NextResponse.json(updatedSubmission);
 
     } catch (error) {
-        console.error(`Update Submission API error (ID: ${params.submissionId}):`, error);
+        console.error(`Update Submission API error (ID: ${context.params.submissionId}):`, error);
         const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
         return NextResponse.json({ message: `Failed to update submission: ${errorMessage}` }, { status: 500 });
     }

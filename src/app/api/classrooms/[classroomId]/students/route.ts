@@ -2,15 +2,9 @@
 import { NextResponse } from 'next/server';
 import { addStudentToClassroom } from '@/services/classrooms/classroomService';
 
-interface ClassroomStudentsRouteParams {
-  params: {
-    classroomId: string;
-  };
-}
-
-export async function POST(request: Request, { params }: ClassroomStudentsRouteParams) {
+export async function POST(request: Request, context: { params: { classroomId: string } }) {
   try {
-    const { classroomId } = params;
+    const { classroomId } = context.params;
     const { studentId } = await request.json() as { studentId: string };
 
     if (!classroomId || !studentId) {
@@ -25,7 +19,7 @@ export async function POST(request: Request, { params }: ClassroomStudentsRouteP
     return NextResponse.json(updatedClassroom, { status: 200 });
 
   } catch (error) {
-    console.error(`Add Student to Classroom API error (Classroom ID: ${params.classroomId}):`, error);
+    console.error(`Add Student to Classroom API error (Classroom ID: ${context.params.classroomId}):`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     // More specific error codes based on service error
     if (errorMessage.includes("Classroom not found")) return NextResponse.json({ message: errorMessage }, { status: 404 });
