@@ -170,28 +170,22 @@ export async function updateConceptMap(
     throw new Error("Concept map not found.");
   }
 
-  // Authorization check (basic, RLS is better)
+  // Authorization check (basic, RLS is better for production)
+  // This check assumes client sends current user's ID as `updates.ownerId` if they are the owner.
   if (updates.ownerId && mapToUpdate.ownerId !== updates.ownerId) {
     throw new Error("User not authorized to update this concept map.");
   }
-  // Remove ownerId from the actual database update payload if it was only for auth check
-  const { ownerId, ...dbUpdates } = updates;
-
-
-  const supabaseUpdates: any = { ...dbUpdates };
-  if (dbUpdates.mapData) supabaseUpdates.map_data = dbUpdates.mapData;
-  if (dbUpdates.isPublic !== undefined) supabaseUpdates.is_public = dbUpdates.isPublic;
-  if (dbUpdates.sharedWithClassroomId !== undefined) supabaseUpdates.shared_with_classroom_id = dbUpdates.sharedWithClassroomId;
   
-  // Remove fields that shouldn't be directly updated in this object if they were passed
-  delete supabaseUpdates.mapData; // use map_data
-  delete supabaseUpdates.isPublic; // use is_public
-  delete supabaseUpdates.sharedWithClassroomId; // use shared_with_classroom_id
+  // Prepare the object for Supabase, mapping camelCase to snake_case for DB columns
+  const supabaseUpdates: any = {};
+  if (updates.name !== undefined) supabaseUpdates.name = updates.name;
+  if (updates.mapData !== undefined) supabaseUpdates.map_data = updates.mapData;
+  if (updates.isPublic !== undefined) supabaseUpdates.is_public = updates.isPublic;
+  // Handle sharedWithClassroomId explicitly to allow setting it to null
+  if (updates.hasOwnProperty('sharedWithClassroomId')) {
+    supabaseUpdates.shared_with_classroom_id = updates.sharedWithClassroomId;
+  }
   
-  // Add name if it's part of dbUpdates
-  if (dbUpdates.name) supabaseUpdates.name = dbUpdates.name;
-
-
   if (Object.keys(supabaseUpdates).length === 0) {
     return mapToUpdate; // No actual changes to map properties
   }
@@ -202,7 +196,9 @@ export async function updateConceptMap(
     .from('concept_maps')
     .update(supabaseUpdates)
     .eq('id', mapId)
-    .eq('owner_id', mapToUpdate.ownerId) // Ensure only owner can update through this explicit check
+    // RLS should primarily handle ownership, but an additional check here is fine for belt-and-suspenders
+    // if not relying solely on RLS during this development phase.
+    .eq('owner_id', mapToUpdate.ownerId) 
     .select()
     .single();
 
@@ -210,7 +206,7 @@ export async function updateConceptMap(
     console.error('Supabase updateConceptMap error:', error);
     throw new Error(`Failed to update concept map: ${error.message}`);
   }
-  if (!data) return null;
+  if (!data) return null; // Should not happen if update was successful and id/ownerId is correct
 
   return {
     id: data.id,
@@ -236,19 +232,26 @@ export async function deleteConceptMap(mapId: string, currentUserId: string): Pr
   if (!mapToDelete) {
     throw new Error("Concept map not found.");
   }
+  // Basic ownership check. RLS is the primary mechanism for security.
   if (mapToDelete.ownerId !== currentUserId) {
     throw new Error("User not authorized to delete this concept map.");
   }
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from('concept_maps')
-    .delete()
+    .delete({ count: 'exact' }) // Request count to verify deletion
     .eq('id', mapId)
-    .eq('owner_id', currentUserId); // Double-check ownership at DB level
+    .eq('owner_id', currentUserId); // Double-check ownership at DB level for safety
 
   if (error) {
     console.error('Supabase deleteConceptMap error:', error);
     throw new Error(`Failed to delete concept map: ${error.message}`);
   }
+  if (count === 0) {
+    // This could mean the map was already deleted, or RLS prevented deletion,
+    // or the owner_id check failed (if RLS didn't already block).
+    throw new Error("Failed to delete concept map: Map not found or not authorized for deletion (record count 0).");
+  }
   return true;
 }
+

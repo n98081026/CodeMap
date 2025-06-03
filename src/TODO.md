@@ -70,7 +70,7 @@ This section outlines the tasks to migrate the application from mock backend ser
 - [x] **`conceptMapService.ts` Refactor:** (Refactored to use Supabase client calls. Assumes tables & RLS set up by user).
     - [x] All CRUD operations to interact with the `concept_maps` table using `supabase-js`.
 - [x] **Connect frontend concept map listing (student) to live API for loading/deleting.** (Done)
-- [x] **Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).** (Done)
+- [ ] **Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector).**
 
 **5. Project Submission & Analysis with Supabase**
 - [ ] **`project_submissions` Table:**
