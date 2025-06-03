@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { ReactFlowProvider } from 'reactflow'; // Only Provider here
+import { ReactFlowProvider } from 'reactflow'; 
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
@@ -23,10 +23,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
 import useConceptMapStore from '@/stores/concept-map-store';
-import FlowCanvasCore from "@/components/concept-map/flow-canvas-core"; // New component
-
-// RFConceptMapNodeData and RFConceptMapEdgeData types might be needed by FlowCanvasCore or InteractiveCanvas
-// For now, assume they are defined where InteractiveCanvas is, or pass them if FlowCanvasCore needs them.
+import FlowCanvasCore from "@/components/concept-map/flow-canvas-core"; 
 
 export default function ConceptMapEditorPage() {
   // GROUP 1: Next.js Router Hooks
@@ -39,11 +36,10 @@ export default function ConceptMapEditorPage() {
   const { user } = useAuth();
 
   // GROUP 3: Zustand Store Hook
-  // Destructure all necessary state and actions from the store
   const {
     mapId: storeMapId,
     mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
-    mapData: storeMapData, // This will be passed to FlowCanvasCore
+    mapData: storeMapData, 
     isLoading: isStoreLoading,
     isSaving, error: storeError,
     selectedElementId, selectedElementType,
@@ -59,26 +55,24 @@ export default function ConceptMapEditorPage() {
     resetAiSuggestions: resetStoreAiSuggestions
   } = useConceptMapStore();
 
-  // GROUP 4: React Flow state hooks MOVED to FlowCanvasCore
-
-  // GROUP 5: Local state for modals
+  // GROUP 4: Local state for modals (no React Flow state here anymore)
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
 
-  // DERIVED STATE (after all hooks)
+  // GROUP 5: DERIVED STATE (after all hooks)
   const routeMapId = paramsHook.mapId as string;
   const isViewOnlyMode = searchParams.get('viewOnly') === 'true';
 
   // GROUP 6: Callbacks
-  const loadMapData = useCallback(async (id: string) => {
-    if (!id || id.trim() === '') {
-      console.warn("loadMapData called with invalid id:", id);
+  const loadMapData = useCallback(async (idToLoad: string) => {
+    if (!idToLoad || idToLoad.trim() === '') {
+      console.warn("loadMapData called with invalid id:", idToLoad);
       if (user && user.id) initializeNewMap(user.id);
       else setStoreError("Cannot initialize new map: User not found.");
       return;
     }
-    if (id === "new") {
+    if (idToLoad === "new") {
       if (user && user.id) {
         initializeNewMap(user.id);
       } else {
@@ -93,7 +87,7 @@ export default function ConceptMapEditorPage() {
     setStoreError(null);
     resetStoreAiSuggestions();
     try {
-      const response = await fetch(`/api/concept-maps/${id}`);
+      const response = await fetch(`/api/concept-maps/${idToLoad}`);
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.message || "Failed to load map");
@@ -103,11 +97,12 @@ export default function ConceptMapEditorPage() {
     } catch (err) {
       setStoreError((err as Error).message);
       toast({ title: "Error Loading Map", description: (err as Error).message, variant: "destructive" });
-      setStoreMapName("Error Loading Map");
+      setStoreMapName("Error Loading Map"); // Explicitly set name on error as well
     } finally {
       setStoreIsLoading(false);
     }
   }, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, resetStoreAiSuggestions, setStoreMapName]);
+
 
   const handleMapPropertiesChange = useCallback((properties: {
     name: string;
@@ -119,12 +114,10 @@ export default function ConceptMapEditorPage() {
     setStoreSharedWithClassroomId(properties.sharedWithClassroomId);
   }, [setStoreMapName, setStoreIsPublic, setStoreSharedWithClassroomId]);
 
-  // Callback for FlowCanvasCore to update selected element in parent/store
   const handleFlowSelectionChange = useCallback((elementId: string | null, elementType: 'node' | 'edge' | null) => {
     setStoreSelectedElement(elementId, elementType);
   }, [setStoreSelectedElement]);
 
-  // Callback for FlowCanvasCore to update element properties in store
   const handleFlowElementUpdate = useCallback((
     elementId: string,
     elementType: 'node' | 'edge',
@@ -138,7 +131,7 @@ export default function ConceptMapEditorPage() {
   }, [updateStoreNode, updateStoreEdge]);
 
   const handleSelectedElementPropertyUpdateInspector = useCallback((
-    inspectorUpdates: any // This type needs to be more specific if it's just label/details/type
+    inspectorUpdates: any 
   ) => {
     if (!selectedElementId || !selectedElementType || isViewOnlyMode) return;
 
@@ -171,7 +164,6 @@ export default function ConceptMapEditorPage() {
     }
     setStoreIsSaving(true);
     
-    // storeMapData already contains node positions if FlowCanvasCore updates them back to the store
     const mapDataToSave: ConceptMapData = storeMapData;
 
     const payloadOwnerId = (isNewMapMode || !currentMapOwnerId) ? user.id : currentMapOwnerId;
@@ -200,12 +192,12 @@ export default function ConceptMapEditorPage() {
           body: JSON.stringify(payload),
         });
       } else {
-        const updatePayload = { // API expects ownerId for auth check on PUT
+        const updatePayload = { 
             name: mapName,
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId,
+            ownerId: currentMapOwnerId, 
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -219,7 +211,7 @@ export default function ConceptMapEditorPage() {
         throw new Error(errorData.message || "Failed to save map");
       }
       const savedMap: ConceptMap = await response.json();
-      setLoadedMap(savedMap);
+      setLoadedMap(savedMap); 
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
 
       if ((isNewMapMode || storeMapId === 'new') && savedMap.id) {
@@ -252,6 +244,8 @@ export default function ConceptMapEditorPage() {
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map via the suggestions panel.` });
   }, [setStoreAiExpandedConcepts, toast]);
 
+  const get = useConceptMapStore.getState; 
+
   const addConceptsToMapData = useCallback((conceptsToAdd: string[], type: 'ai-extracted-concept' | 'ai-expanded-concept') => {
     if (isViewOnlyMode) return;
     const existingNodeTexts = new Set(get().mapData.nodes.map(n => n.text));
@@ -270,28 +264,28 @@ export default function ConceptMapEditorPage() {
     else toast({ title: "No New Concepts", description: "All suggestions may already exist.", variant: "default" });
     if (type === 'ai-extracted-concept') setStoreAiExtractedConcepts([]);
     else if (type === 'ai-expanded-concept') setStoreAiExpandedConcepts([]);
-  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts, setStoreAiExpandedConcepts]);
+  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts, setStoreAiExpandedConcepts, get]);
 
   const handleAddSuggestedRelationsToMap = useCallback((relations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) return;
     let relationsAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
-    let currentNodesSnapshot = [...get().mapData.nodes];
+    let currentNodesSnapshot = [...get().mapData.nodes]; 
 
     relations.forEach(rel => {
       let sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
       if (!sourceNode) {
         addStoreNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        currentNodesSnapshot = [...get().mapData.nodes];
+        currentNodesSnapshot = [...get().mapData.nodes]; 
         sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
-        if (sourceNode) conceptsAddedFromRelationsCount++; else return;
+        if (sourceNode) conceptsAddedFromRelationsCount++; else return; 
       }
       let targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
       if (!targetNode) {
         addStoreNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        currentNodesSnapshot = [...get().mapData.nodes];
+        currentNodesSnapshot = [...get().mapData.nodes]; 
         targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
-        if (targetNode) conceptsAddedFromRelationsCount++; else return;
+        if (targetNode) conceptsAddedFromRelationsCount++; else return; 
       }
       const currentEdgesSnapshot = get().mapData.edges;
       if (sourceNode && targetNode && !currentEdgesSnapshot.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
@@ -305,14 +299,14 @@ export default function ConceptMapEditorPage() {
     if (toastMessage) toast({ title: "Relations Added", description: `${toastMessage.trim()} Save the map.` });
     else toast({ title: "No New Relations", description: "All suggestions may already exist.", variant: "default" });
     setStoreAiSuggestedRelations([]);
-  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations]);
+  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations, get]);
 
   const handleAddNodeToData = useCallback(() => {
     if (isViewOnlyMode) return;
     const newNodeText = `Node ${get().mapData.nodes.length + 1}`;
     addStoreNode({ text: newNodeText, type: 'manual-node', position: {x: Math.random() * 200 + 50, y: Math.random() * 100 + 50} });
     toast({ title: "Node Added", description: `"${newNodeText}" added. Save the map.`});
-  }, [isViewOnlyMode, toast, addStoreNode]);
+  }, [isViewOnlyMode, toast, addStoreNode, get]);
 
   const handleAddEdgeToData = useCallback(() => {
     if (isViewOnlyMode) return;
@@ -329,7 +323,7 @@ export default function ConceptMapEditorPage() {
     }
     addStoreEdge({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
     toast({ title: "Edge Added", description: `Edge between "${sourceNode.text}" and "${targetNode.text}" added. Save map.`});
-  }, [isViewOnlyMode, toast, addStoreEdge]);
+  }, [isViewOnlyMode, toast, addStoreEdge, get]);
 
   const getRoleBasedDashboardLink = useCallback(() => {
     if (!user) return "/application/login";
@@ -372,7 +366,6 @@ export default function ConceptMapEditorPage() {
     }
   }, [routeMapId, loadMapData]);
 
-  // Effect to transform storeMapData to rfNodes/rfEdges MOVED to FlowCanvasCore
 
   // Data for Inspector
   let mapForInspector: ConceptMap | null = (storeMapId && storeMapId !== 'new' && currentMapOwnerId) ? {
@@ -382,7 +375,7 @@ export default function ConceptMapEditorPage() {
   } : null;
   
   if ((isNewMapMode || storeMapId === 'new') && !mapForInspector && user) {
-      mapForInspector = {
+      (mapForInspector as ConceptMap | null) = {
         id: 'new', name: mapName, ownerId: user.id,
         mapData: storeMapData, isPublic: isPublic, sharedWithClassroomId: sharedWithClassroomId,
         createdAt: currentMapCreatedAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -396,32 +389,33 @@ export default function ConceptMapEditorPage() {
   }
 
   const canAddEdge = storeMapData.nodes.length >= 2;
-  const get = useConceptMapStore.getState; // For callbacks needing latest store state
 
   return (
-    <ReactFlowProvider>
-      <div className="flex h-full flex-col space-y-4">
-        <DashboardHeader
-          title={isStoreLoading ? "Loading Map..." : (isViewOnlyMode ? `Viewing: ${mapName}` : mapName)}
-          description={isStoreLoading ? "Please wait." : (isViewOnlyMode ? "This map is in view-only mode." : "Create, edit, and visualize your ideas.")}
-          icon={isStoreLoading ? Loader2 : (isNewMapMode || storeMapId === 'new') ? Compass : Share2}
-          iconClassName={isStoreLoading ? "animate-spin" : ""}
-          iconLinkHref={getRoleBasedDashboardLink()}
-        >
-          {!isStoreLoading && !storeError && !isViewOnlyMode && (
-            <Button onClick={handleSaveMap} disabled={isSaving}>
-              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              {isSaving ? "Saving..." : "Save Map"}
-            </Button>
-          )}
-          <Button asChild variant="outline">
-            <Link href={getBackLink()}> <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()} </Link>
+    <div className="flex h-full flex-col space-y-4">
+      <DashboardHeader
+        title={isStoreLoading ? "Loading Map..." : (isViewOnlyMode ? `Viewing: ${mapName}` : mapName)}
+        description={isStoreLoading ? "Please wait." : (isViewOnlyMode ? "This map is in view-only mode." : "Create, edit, and visualize your ideas.")}
+        icon={isStoreLoading ? Loader2 : (isNewMapMode || storeMapId === 'new') ? Compass : Share2}
+        iconClassName={isStoreLoading ? "animate-spin" : ""}
+        iconLinkHref={getRoleBasedDashboardLink()}
+      >
+        {!isStoreLoading && !storeError && !isViewOnlyMode && (
+          <Button onClick={handleSaveMap} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {isSaving ? "Saving..." : "Save Map"}
           </Button>
-        </DashboardHeader>
+        )}
+        <Button asChild variant="outline">
+          <Link href={getBackLink()}> <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()} </Link>
+        </Button>
+      </DashboardHeader>
 
+      <ReactFlowProvider> 
         <div className="flex flex-1 flex-col gap-4 overflow-hidden">
           {isStoreLoading ? (
-            <div className="flex flex-grow justify-center items-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
+            <div className="flex flex-grow justify-center items-center py-10">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
           ) : storeError ? (
             <Card className="flex-grow">
               <CardHeader><CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2 h-5 w-5"/>Error</CardTitle></CardHeader>
@@ -447,14 +441,14 @@ export default function ConceptMapEditorPage() {
                     mapDataFromStore={storeMapData}
                     isViewOnlyMode={isViewOnlyMode}
                     onSelectionChange={handleFlowSelectionChange}
-                    onNodesChangeInStore={updateStoreNode} // For position updates
+                    onNodesChangeInStore={updateStoreNode} 
                     onNodesDeleteInStore={deleteStoreNode}
-                    onEdgesDeleteInStore={deleteStoreEdge}
+                    onEdgesDeleteInStore={deleteStoreNode} 
                     onConnectInStore={addStoreEdge}
-                    // rfNodes and rfEdges are managed internally by FlowCanvasCore now
                   />
                 </div>
-                <aside className="hidden w-80 flex-shrink-0 lg:block">
+                {/*
+                <aside className="hidden w-80 flex-shrink-0 lg:block"> 
                   <PropertiesInspector
                     currentMap={mapForInspector}
                     onMapPropertiesChange={handleMapPropertiesChange}
@@ -465,6 +459,7 @@ export default function ConceptMapEditorPage() {
                     isViewOnlyMode={isViewOnlyMode}
                   />
                 </aside>
+                */}
               </div>
               <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
                 <CanvasPlaceholder
@@ -482,8 +477,8 @@ export default function ConceptMapEditorPage() {
             </>
           )}
         </div>
-      </div>
-    </ReactFlowProvider>
+      </ReactFlowProvider>
+    </div>
   );
 }
 
