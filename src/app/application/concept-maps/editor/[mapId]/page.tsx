@@ -9,7 +9,7 @@ import dynamic from 'next/dynamic';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
-import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
+import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"; // Updated import
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -785,7 +785,7 @@ export default function ConceptMapEditorPage() {
               </SheetDescription>
             </SheetHeader>
             <div className="py-4 h-[calc(100%-4rem)]"> {/* Adjust height to account for header */}
-              <CanvasPlaceholder
+              <AISuggestionPanel
                 mapData={storeMapData}
                 currentMapNodes={storeMapData.nodes}
                 extractedConcepts={aiExtractedConcepts}
@@ -810,5 +810,3 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
-
-    

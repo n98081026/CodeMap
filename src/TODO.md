@@ -62,7 +62,7 @@
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles.
     - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented with disabled inputs and muted styling.
     - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal` to interact with AI flows. Context menu now correctly opens these.
-    - [x] **`CanvasPlaceholder` (AI Suggestions Panel)**: Area below canvas displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions are cleared after being added to the map. Suggestions can be edited before adding.
+    - [x] **`AISuggestionPanel` (formerly `CanvasPlaceholder`)**: Area below canvas displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions are cleared after being added to the map. Suggestions can be edited before adding.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor, including `temporal` middleware).
@@ -113,12 +113,12 @@
 - [x] **Interactive AI Suggestions in `AISuggestionPanel` (formerly `CanvasPlaceholder`):**
     - [x] **Selective Addition**: "Add Selected" and "Add All New" implemented for suggestions.
     - [x] **Edit Before Adding**: Suggestions can be edited in the panel.
-    - [x] **Clearer Visual Cues**: Differentiates existing/similar suggestions, clear option for each category.
-    - [x] **Panel Styling and Usability**: Improved layout, distinct cards, better empty states.
+    - [x] **Clearer Visual Cues**: Differentiates existing/similar suggestions, clear option for each category. (Theming and status indicators added)
+    - [x] **Panel Styling and Usability**: Improved layout, distinct cards, better empty states. (Category-specific empty states added)
 - [x] **General AI User Experience (UX)**
-    - [x] **Tooltips & Guidance**: Enhanced tooltips, in-UI guidance.
+    - [x] **Tooltips & Guidance**: Enhanced tooltips, in-UI guidance. (Initial guide in AI panel)
     - [x] **Loading & Feedback**: Consistent loading indicators, clearer error messages.
-    - [x] **AI Suggestion Panel (`AISuggestionPanel`)**: Improved layout, accessibility via toggle.
+    - [x] **AI Suggestion Panel (`AISuggestionPanel`)**: Improved layout, accessibility via toggle. (Renamed, themed, improved)
 
 ## Supabase Backend Integration (Remaining from previous master TODO)
 This section outlines tasks to fully migrate to Supabase. Many are now complete.
@@ -184,4 +184,3 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 - API routes rely on Supabase-backed services. Further auth checks (JWT verification, role-based access) for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
 - Admin System Settings page still uses mock save.
 - File upload for project analysis not yet connected to Supabase Storage.
-

@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
 
-interface CanvasPlaceholderProps {
+interface AISuggestionPanelProps {
   mapData?: ConceptMapData;
   currentMapNodes?: ConceptMapNode[];
   extractedConcepts?: string[];
@@ -43,7 +43,7 @@ interface EditableRelationSuggestion {
 type ItemStatus = 'new' | 'exact-match' | 'similar-match';
 
 
-export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
+export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   mapData,
   currentMapNodes = [],
   extractedConcepts = [],
@@ -56,7 +56,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   onClearSuggestedRelations,
   onClearExpandedConcepts,
   isViewOnlyMode
-}: CanvasPlaceholderProps) {
+}: AISuggestionPanelProps) {
 
   const [editableExtracted, setEditableExtracted] = useState<EditableSuggestion[]>([]);
   const [editableRelations, setEditableRelations] = useState<EditableRelationSuggestion[]>([]);
@@ -167,7 +167,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     onAddSelectedItems: (selectedItems: any[]) => void,
     onClearCategory?: () => void,
     cardClassName?: string,
-    titleClassName?: string // New prop for title text color
+    titleClassName?: string
   ) => {
     if (!onAddSelectedItems && items.length === 0 && !mapData) return null;
     if (!items || items.length === 0) {
@@ -194,7 +194,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
 
     const selectableItems = items.filter((item) => {
       const value = getComparableItemValue(item);
-      const status = getItemStatus(value as string); // Relations will always be 'new' for selectability
+      const status = getItemStatus(value as string); 
       return status !== 'exact-match';
     });
 
@@ -232,10 +232,10 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
         items.every((item, index) => {
             const value = getComparableItemValue(item);
             const status = getItemStatus(value as string);
-            if (status !== 'exact-match') { // Is selectable
+            if (status !== 'exact-match') { 
                 return selectedIndicesSet.has(index);
             }
-            return true; // Non-selectable items don't break "all selected"
+            return true; 
         });
 
     const countOfSelectedAndNew = items.filter((item, index) => {
@@ -374,7 +374,6 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   };
 
   const renderEditableRelationLabel = (item: EditableRelationSuggestion, index: number, _itemStatus: ItemStatus, relationNodeExistence?: { source?: boolean, target?: boolean }) => {
-    // For relations, itemStatus isn't used for styling the label itself, only node existence.
     const renderField = (field: 'source' | 'target' | 'relation') => {
       if (item.isEditing && item.editingField === field) {
         return (
@@ -411,7 +410,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   };
 
   const getConceptStatus = useCallback((conceptValue: string | {source: string, target: string}): ItemStatus => {
-      if (typeof conceptValue !== 'string') return 'new'; // Relations are handled differently
+      if (typeof conceptValue !== 'string') return 'new'; 
 
       const normalizedConcept = conceptValue.toLowerCase().trim();
       if (existingNodeTexts.has(normalizedConcept)) {
@@ -419,10 +418,9 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
       }
 
       for (const existingNode of existingNodeTexts) {
-        if (existingNode.includes(normalizedConcept) || normalizedConcept.includes(existingNode)) {
-          if (existingNode.length !== normalizedConcept.length) { // Avoid re-flagging if only case/space diff
+        // Check for similarity only if not an exact match (case/space differences are handled by normalization for exact match)
+        if (existingNode.length !== normalizedConcept.length && (existingNode.includes(normalizedConcept) || normalizedConcept.includes(existingNode))) {
              return 'similar-match';
-          }
         }
       }
       return 'new';
@@ -548,7 +546,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
               {onAddSuggestedRelations && renderSuggestionSection(
                 "Suggested Relations", Lightbulb, editableRelations, selectedRelationIndices, "relation-",
                  (item, index, itemStatus, relationNodeExist) => renderEditableRelationLabel(item as EditableRelationSuggestion, index, itemStatus, relationNodeExist),
-                getConceptStatus, // For relations, source/target text against existing nodes
+                getConceptStatus, 
                 checkRelationNodesExistOnMap,
                 onAddSuggestedRelations, onClearSuggestedRelations, 
                 "bg-yellow-500/5 border-yellow-500/20", "text-yellow-700 dark:text-yellow-400"
@@ -575,5 +573,4 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     </Card>
   );
 });
-CanvasPlaceholder.displayName = "CanvasPlaceholder";
-
+AISuggestionPanel.displayName = "AISuggestionPanel";
