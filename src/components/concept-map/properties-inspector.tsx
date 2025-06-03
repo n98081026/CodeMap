@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Settings2, Box, Waypoints } from "lucide-react";
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
-import type { RFConceptMapNodeData, RFConceptMapEdgeData } from "@/components/concept-map/interactive-canvas";
+// RFConceptMapNodeData, RFConceptMapEdgeData are not directly used here for updates, using ConceptMapNode/Edge types from store
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +22,7 @@ interface PropertiesInspectorProps {
   
   selectedElement?: ConceptMapNode | ConceptMapEdge | null; 
   selectedElementType?: 'node' | 'edge' | null;
-  onSelectedElementPropertyUpdate?: (updates: Partial<RFConceptMapNodeData> | Partial<RFConceptMapEdgeData>) => void;
+  onSelectedElementPropertyUpdate?: (updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>) => void;
 
   isNewMapMode?: boolean; 
   isViewOnlyMode?: boolean;
@@ -78,18 +78,22 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
 
   const handleElementLabelChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || !selectedElement) return;
-    onSelectedElementPropertyUpdate({ label: e.target.value });
-  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElement]);
+    if (selectedElementType === 'node') {
+      onSelectedElementPropertyUpdate({ text: e.target.value });
+    } else if (selectedElementType === 'edge') {
+      onSelectedElementPropertyUpdate({ label: e.target.value });
+    }
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElement, selectedElementType]);
 
   const handleElementDetailsChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node') return;
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
     onSelectedElementPropertyUpdate({ details: e.target.value });
-  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]);
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
 
   const handleElementNodeTypeChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node') return;
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
     onSelectedElementPropertyUpdate({ type: e.target.value });
-  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]);
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
 
 
   const renderMapProperties = () => (
@@ -229,6 +233,11 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         {!isViewOnlyMode && (currentMap || selectedElement) && (
             <p className="text-xs text-muted-foreground pt-4 border-t mt-4">
             Changes are applied to the map state directly. Use the main &quot;Save Map&quot; button in the toolbar to persist them.
+            </p>
+        )}
+         {isViewOnlyMode && (currentMap || selectedElement) && (
+            <p className="text-xs text-muted-foreground pt-4 border-t mt-4">
+                This map is in view-only mode. Editing features are disabled.
             </p>
         )}
       </CardContent>

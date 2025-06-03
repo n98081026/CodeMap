@@ -28,7 +28,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   onAddExtractedConcepts,
   onAddSuggestedRelations,
   onAddExpandedConcepts,
-  isViewOnlyMode
+  isViewOnlyMode // Added prop
 }: CanvasPlaceholderProps) {
   
   const hasAiOutput =
@@ -41,24 +41,24 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   const hasAnyContent = hasAiOutput || hasMapDataNodes || hasMapDataEdges;
 
   return (
-    <Card className="h-[calc(100vh-200px)] w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
+    <Card className="h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
       <CardContent className="flex h-full flex-col items-center justify-center text-center p-4">
         {!hasAnyContent ? (
           <>
             <GitFork className="h-16 w-16 text-muted-foreground/50 mb-4" />
             <h3 className="text-xl font-semibold text-muted-foreground">Concept Map Area</h3>
             <p className="text-sm text-muted-foreground">
-              The interactive canvas is now active. Use the toolbar to add elements.
+              The interactive canvas is active above. Use the toolbar to add elements.
             </p>
             <p className="text-xs text-muted-foreground/70 mt-2">
-              This area shows AI suggestions textually below the canvas.
+              This panel shows AI suggestions and textual map data.
             </p>
           </>
         ) : (
           <ScrollArea className="h-full w-full">
             <div className="p-4 space-y-4 text-left">
                <h3 className="text-xl font-semibold text-muted-foreground mb-4 text-center">
-                 Textual Map & AI Suggestions
+                 AI Suggestions & Map Data
                </h3>
 
               {hasMapDataNodes && (

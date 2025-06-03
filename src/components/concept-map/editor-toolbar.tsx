@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, 
-  SearchCode, Lightbulb, Brain, Loader2, PanelRightOpen, LayoutPanelBottom, Settings2, BotMessageSquare 
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -50,11 +50,15 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const { toast } = useToast();
 
   const handlePlaceholderClick = React.useCallback((action: string) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: `Cannot perform "${action}" in view-only mode.`, variant: "default" });
+      return;
+    }
     toast({
       title: "Action Clicked (Placeholder)",
       description: `${action} functionality is not yet implemented.`,
     });
-  }, [toast]);
+  }, [isViewOnlyMode, toast]);
 
   const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
     if (isViewOnlyMode) {
@@ -91,7 +95,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Upload className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Import (Disabled in View Mode)" : "Import Map (JSON)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Import (Disabled)" : "Import Map (JSON) (Placeholder)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
