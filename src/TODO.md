@@ -1,4 +1,5 @@
 
+
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -60,8 +61,8 @@ This section outlines the tasks to migrate the application from mock backend ser
 - [ ] **`concept_maps` Table:**
     - [ ] Create `concept_maps` table (columns: `id` (PK, UUID), `name`, `owner_id` (FK to `profiles.id`), `map_data` (JSONB), `is_public` (boolean), `shared_with_classroom_id` (FK to `classrooms.id`, nullable), `created_at`, `updated_at`). (User needs to create this in their Supabase project).
     - [ ] RLS policies: Owner CRUD. Classroom members read if shared. Public read if `is_public`. Admins full access. (User needs to implement RLS).
-- [ ] **`conceptMapService.ts` Refactor:**
-    - [ ] All CRUD operations to interact with the `concept_maps` table using `supabase-js`.
+- [x] **`conceptMapService.ts` Refactor:** (Refactored to use Supabase client calls. Assumes tables & RLS set up by user).
+    - [x] All CRUD operations to interact with the `concept_maps` table using `supabase-js`.
 
 **5. Project Submission & Analysis with Supabase**
 - [ ] **`project_submissions` Table:**
@@ -266,3 +267,5 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a mechanism to create the corresponding `profiles` table entry (e.g., Supabase Function trigger) is still needed by the user.
 - `projectStructureAnalyzerTool` is defined with MOCK logic. The `generateMapFromProject` flow is updated to use it.
 - `classroomService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
+- `conceptMapService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
+

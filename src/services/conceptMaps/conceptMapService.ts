@@ -3,18 +3,12 @@
 'use server';
 
 /**
- * @fileOverview Concept Map service for handling concept map-related operations.
+ * @fileOverview Concept Map service for handling concept map-related operations using Supabase.
  */
 
 import type { ConceptMap, ConceptMapData } from '@/types';
+import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService'; // To validate ownerId
-
-// Mock data for concept maps - reduced to a few key entries
-let mockConceptMapsData: ConceptMap[] = [
-  { id: "mapA", name: "My First Project Overview", ownerId: "student-test-id", mapData: { nodes: [{id: "n1", text: "Main Feature", type: "feature", x: 50, y: 50}, {id: "n2", text: "User Login", type: "auth", x: 250, y: 150}], edges: [{id:"e1", source: "n1", target: "n2", label: "requires"}] }, isPublic: false, createdAt: new Date("2023-03-01T10:00:00Z").toISOString(), updatedAt: new Date("2023-03-02T11:00:00Z").toISOString() },
-  { id: "mapD_class1", name: "Shared Prog Concepts", ownerId: "student1", mapData: { nodes: [{id: "n1", text: "Loops", type: "concept"}], edges: [] }, isPublic: false, sharedWithClassroomId: "class1", createdAt: new Date("2023-04-01T09:00:00Z").toISOString(), updatedAt: new Date("2023-04-01T09:00:00Z").toISOString() },
-  { id: "mapE_test_classroom", name: "AI Basics for Test Class", ownerId: "student-test-id", mapData: { nodes: [{id:"n1", text:"Neural Network", type:"model"}], edges: [] }, isPublic: false, sharedWithClassroomId: "test-classroom-1", createdAt: new Date("2023-04-02T09:00:00Z").toISOString(), updatedAt: new Date("2023-04-02T09:00:00Z").toISOString() },
-];
 
 /**
  * Creates a new concept map.
@@ -38,18 +32,36 @@ export async function createConceptMap(
   }
 
   const now = new Date().toISOString();
-  const newMap: ConceptMap = {
-    id: `map-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-    name,
-    ownerId,
-    mapData: mapData || { nodes: [], edges: [] }, // Ensure mapData is initialized
-    isPublic,
-    sharedWithClassroomId: sharedWithClassroomId || null,
-    createdAt: now,
-    updatedAt: now,
+  const { data, error } = await supabase
+    .from('concept_maps')
+    .insert({
+      name,
+      owner_id: ownerId,
+      map_data: mapData || { nodes: [], edges: [] }, // Ensure mapData is initialized
+      is_public: isPublic,
+      shared_with_classroom_id: sharedWithClassroomId || null,
+      created_at: now,
+      updated_at: now,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase createConceptMap error:', error);
+    throw new Error(`Failed to create concept map: ${error.message}`);
+  }
+  if (!data) throw new Error("Failed to create concept map: No data returned.");
+
+  return {
+    id: data.id,
+    name: data.name,
+    ownerId: data.owner_id,
+    mapData: data.map_data as ConceptMapData,
+    isPublic: data.is_public,
+    sharedWithClassroomId: data.shared_with_classroom_id,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
   };
-  mockConceptMapsData.push(newMap);
-  return newMap;
 }
 
 /**
@@ -58,8 +70,29 @@ export async function createConceptMap(
  * @returns The concept map object if found, otherwise null.
  */
 export async function getConceptMapById(mapId: string): Promise<ConceptMap | null> {
-  const map = mockConceptMapsData.find(m => m.id === mapId);
-  return map || null;
+  const { data, error } = await supabase
+    .from('concept_maps')
+    .select('*')
+    .eq('id', mapId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // PGRST116: "Query returned no rows"
+    console.error('Supabase getConceptMapById error:', error);
+    throw new Error(`Error fetching concept map: ${error.message}`);
+  }
+  if (!data) {
+    return null;
+  }
+  return {
+    id: data.id,
+    name: data.name,
+    ownerId: data.owner_id,
+    mapData: data.map_data as ConceptMapData,
+    isPublic: data.is_public,
+    sharedWithClassroomId: data.shared_with_classroom_id,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
 }
 
 /**
@@ -68,7 +101,26 @@ export async function getConceptMapById(mapId: string): Promise<ConceptMap | nul
  * @returns A list of concept maps.
  */
 export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptMap[]> {
-  return mockConceptMapsData.filter(m => m.ownerId === ownerId);
+  const { data, error } = await supabase
+    .from('concept_maps')
+    .select('*')
+    .eq('owner_id', ownerId)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error('Supabase getConceptMapsByOwnerId error:', error);
+    throw new Error(`Failed to fetch concept maps for owner: ${error.message}`);
+  }
+  return (data || []).map(m => ({
+    id: m.id,
+    name: m.name,
+    ownerId: m.owner_id,
+    mapData: m.map_data as ConceptMapData,
+    isPublic: m.is_public,
+    sharedWithClassroomId: m.shared_with_classroom_id,
+    createdAt: m.created_at,
+    updatedAt: m.updated_at,
+  }));
 }
 
 /**
@@ -77,58 +129,126 @@ export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptM
  * @returns A list of concept maps.
  */
 export async function getConceptMapsByClassroomId(classroomId: string): Promise<ConceptMap[]> {
-    return mockConceptMapsData.filter(m => m.sharedWithClassroomId === classroomId);
+  const { data, error } = await supabase
+    .from('concept_maps')
+    .select('*')
+    .eq('shared_with_classroom_id', classroomId)
+    .order('updated_at', { ascending: false });
+  
+  if (error) {
+    console.error('Supabase getConceptMapsByClassroomId error:', error);
+    throw new Error(`Failed to fetch concept maps for classroom: ${error.message}`);
+  }
+  return (data || []).map(m => ({
+    id: m.id,
+    name: m.name,
+    ownerId: m.owner_id,
+    mapData: m.map_data as ConceptMapData,
+    isPublic: m.is_public,
+    sharedWithClassroomId: m.shared_with_classroom_id,
+    createdAt: m.created_at,
+    updatedAt: m.updated_at,
+  }));
 }
 
 
 /**
  * Updates an existing concept map.
+ * The 'ownerId' in updates is used for authorization check here, but RLS is preferred.
  * @param mapId The ID of the concept map to update.
- * @param updates An object containing the fields to update.
- * @returns The updated concept map object or null if not found.
+ * @param updates An object containing the fields to update, and optionally ownerId for auth.
+ * @returns The updated concept map object or null if not found or not authorized.
+ * @throws Error if the user is not authorized or update fails.
  */
-export async function updateConceptMap(mapId: string, updates: Partial<Omit<ConceptMap, 'id' | 'ownerId' | 'createdAt'>>): Promise<ConceptMap | null> {
-  const mapIndex = mockConceptMapsData.findIndex(m => m.id === mapId);
-  if (mapIndex === -1) {
-    return null;
-  }
+export async function updateConceptMap(
+  mapId: string, 
+  updates: Partial<Omit<ConceptMap, 'id' | 'createdAt' | 'updatedAt'>> & { ownerId?: string }
+): Promise<ConceptMap | null> {
   
-  const currentMap = mockConceptMapsData[mapIndex];
-  
-  // Ensure ownerId is not part of 'updates' to prevent changing ownership this way
-  const { ownerId: newOwnerId, ...validUpdates } = updates as any;
-  if (newOwnerId && newOwnerId !== currentMap.ownerId) {
-    // This check should ideally be more robust or handled by auth layer
-    console.warn("Attempt to change map ownerId via updateConceptMap was ignored.");
+  const mapToUpdate = await getConceptMapById(mapId);
+  if (!mapToUpdate) {
+    throw new Error("Concept map not found.");
   }
 
+  // Authorization check (basic, RLS is better)
+  if (updates.ownerId && mapToUpdate.ownerId !== updates.ownerId) {
+    throw new Error("User not authorized to update this concept map.");
+  }
+  // Remove ownerId from the actual database update payload if it was only for auth check
+  const { ownerId, ...dbUpdates } = updates;
 
-  mockConceptMapsData[mapIndex] = {
-    ...currentMap,
-    ...validUpdates, // Apply only valid updates
-    mapData: validUpdates.mapData || currentMap.mapData, // Ensure mapData is preserved or updated
-    updatedAt: new Date().toISOString(),
+
+  const supabaseUpdates: any = { ...dbUpdates };
+  if (dbUpdates.mapData) supabaseUpdates.map_data = dbUpdates.mapData;
+  if (dbUpdates.isPublic !== undefined) supabaseUpdates.is_public = dbUpdates.isPublic;
+  if (dbUpdates.sharedWithClassroomId !== undefined) supabaseUpdates.shared_with_classroom_id = dbUpdates.sharedWithClassroomId;
+  
+  // Remove fields that shouldn't be directly updated in this object if they were passed
+  delete supabaseUpdates.mapData; // use map_data
+  delete supabaseUpdates.isPublic; // use is_public
+  delete supabaseUpdates.sharedWithClassroomId; // use shared_with_classroom_id
+  
+  // Add name if it's part of dbUpdates
+  if (dbUpdates.name) supabaseUpdates.name = dbUpdates.name;
+
+
+  if (Object.keys(supabaseUpdates).length === 0) {
+    return mapToUpdate; // No actual changes to map properties
+  }
+  supabaseUpdates.updated_at = new Date().toISOString();
+
+
+  const { data, error } = await supabase
+    .from('concept_maps')
+    .update(supabaseUpdates)
+    .eq('id', mapId)
+    .eq('owner_id', mapToUpdate.ownerId) // Ensure only owner can update through this explicit check
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase updateConceptMap error:', error);
+    throw new Error(`Failed to update concept map: ${error.message}`);
+  }
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    ownerId: data.owner_id,
+    mapData: data.map_data as ConceptMapData,
+    isPublic: data.is_public,
+    sharedWithClassroomId: data.shared_with_classroom_id,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
   };
-  return mockConceptMapsData[mapIndex];
 }
 
 /**
  * Deletes a concept map.
  * @param mapId The ID of the concept map to delete.
- * @param ownerId The ID of the user attempting to delete, for ownership verification.
- * @returns True if deleted successfully, false otherwise.
- * @throws Error if user is not authorized to delete.
+ * @param currentUserId The ID of the user attempting to delete, for ownership verification.
+ * @returns True if deleted successfully.
+ * @throws Error if map not found or user is not authorized to delete.
  */
-export async function deleteConceptMap(mapId: string, ownerId: string): Promise<boolean> {
-  const mapIndex = mockConceptMapsData.findIndex(m => m.id === mapId);
-  if (mapIndex === -1) {
-    return false; // Map not found
+export async function deleteConceptMap(mapId: string, currentUserId: string): Promise<boolean> {
+  const mapToDelete = await getConceptMapById(mapId);
+  if (!mapToDelete) {
+    throw new Error("Concept map not found.");
   }
-  if (mockConceptMapsData[mapIndex].ownerId !== ownerId) {
+  if (mapToDelete.ownerId !== currentUserId) {
     throw new Error("User not authorized to delete this concept map.");
   }
-  mockConceptMapsData.splice(mapIndex, 1);
+
+  const { error } = await supabase
+    .from('concept_maps')
+    .delete()
+    .eq('id', mapId)
+    .eq('owner_id', currentUserId); // Double-check ownership at DB level
+
+  if (error) {
+    console.error('Supabase deleteConceptMap error:', error);
+    throw new Error(`Failed to delete concept map: ${error.message}`);
+  }
   return true;
 }
-
-    
