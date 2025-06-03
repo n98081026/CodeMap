@@ -6,7 +6,6 @@ import ReactFlow, {
   MiniMap,
   Controls,
   Background,
-  // ReactFlowProvider, // Removed: Provider will be in the parent
   type Node,
   type Edge,
   type FitViewOptions,
@@ -19,17 +18,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
-
-// Moved these type definitions here to be self-contained or imported from a central types file if shared more widely
-export interface RFConceptMapNodeData {
-  label: string;
-  details?: string;
-  type?: string; 
-}
-
-export interface RFConceptMapEdgeData {
-  label?: string;
-}
+import type { RFConceptMapNodeData, RFConceptMapEdgeData } from './flow-canvas-core'; // Import from new core
 
 interface InteractiveCanvasProps {
   nodes: Node<RFConceptMapNodeData>[]; 
@@ -47,18 +36,19 @@ const fitViewOptions: FitViewOptions = {
   padding: 0.2,
 };
 
-const nodeColor = (node: Node) => {
-  switch (node.type) {
-    case 'input':
-      return '#6ede87'; 
-    case 'output':
-      return '#6865A5'; 
-    default:
+const nodeColor = (node: Node<RFConceptMapNodeData>) => {
+  // Example: customize node colors based on type
+  switch (node.data?.type) { // Check node.data.type
+    case 'ai-extracted-concept':
+      return 'hsl(var(--accent))';
+    case 'manual-node':
       return 'hsl(var(--primary))';
+    default: // Includes 'ai-concept', 'directory', 'file', etc.
+      return 'hsl(var(--secondary))'; 
   }
 };
 
-export function InteractiveCanvas({ 
+const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({ 
   nodes, 
   edges, 
   onNodesChange, 
@@ -68,11 +58,10 @@ export function InteractiveCanvas({
   onSelectionChange,
   onConnect, 
   isViewOnlyMode 
-}: InteractiveCanvasProps) {
+}) => {
   
   return (
-    <Card className="h-[calc(100vh-200px)] w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden">
-      {/* ReactFlowProvider removed from here */}
+    <Card className="h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -97,4 +86,9 @@ export function InteractiveCanvas({
       </ReactFlow>
     </Card>
   );
-}
+};
+
+export const InteractiveCanvas = React.memo(InteractiveCanvasComponent);
+InteractiveCanvas.displayName = 'InteractiveCanvas';
+
+    
