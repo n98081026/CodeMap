@@ -75,6 +75,7 @@ export interface ProjectSubmission {
   classroomId?: string | null;
   originalFileName: string;
   fileSize: number;
+  fileStoragePath?: string | null; // Added field for Supabase Storage path
   submissionTimestamp: string;
   analysisStatus: ProjectSubmissionStatus;
   analysisError?: string | null;

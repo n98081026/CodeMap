@@ -20,9 +20,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types";
 import { ProjectSubmissionStatus } from "@/types";
-import { UploadCloud, Loader2, AlertTriangle } from "lucide-react";
+import { UploadCloud, Loader2, AlertTriangle, FileUp } from "lucide-react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
 import { useAuth } from "@/contexts/auth-context";
+import { supabase } from "@/lib/supabaseClient"; // Import Supabase client
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +49,7 @@ const ACCEPTED_FILE_EXTENSIONS_STRING = ".zip, .rar, .tar.gz, .tgz";
 
 
 const NONE_CLASSROOM_VALUE = "_NONE_";
+const SUPABASE_PROJECT_ARCHIVES_BUCKET = 'project_archives'; // Define bucket name
 
 const projectUploadSchema = z.object({
   projectFile: z
@@ -76,6 +78,7 @@ export function ProjectUploadForm() {
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isSubmittingMetadata, setIsSubmittingMetadata] = useState(false);
   const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>([]);
   const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(false);
@@ -150,14 +153,45 @@ export function ProjectUploadForm() {
       return;
     }
 
-    setIsSubmittingMetadata(true);
     const file = values.projectFile[0];
+    let uploadedFilePath: string | null = null;
 
+    // 1. Upload file to Supabase Storage
+    setIsUploadingFile(true);
+    toast({ title: "Uploading File...", description: `Starting upload of "${file.name}".` });
+    try {
+      const filePathInBucket = `user-${user.id}/${Date.now()}-${file.name}`; // Unique path
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(SUPABASE_PROJECT_ARCHIVES_BUCKET)
+        .upload(filePathInBucket, file);
+
+      if (uploadError) {
+        throw new Error(`Supabase Storage Error: ${uploadError.message}`);
+      }
+      if (!uploadData || !uploadData.path) {
+        throw new Error("File uploaded but no path returned from Supabase Storage.");
+      }
+      uploadedFilePath = uploadData.path;
+      toast({ title: "File Upload Successful", description: `"${file.name}" uploaded to storage.` });
+    } catch (uploadError) {
+      toast({
+        title: "File Upload Failed",
+        description: (uploadError as Error).message,
+        variant: "destructive",
+      });
+      setIsUploadingFile(false);
+      return;
+    }
+    setIsUploadingFile(false);
+
+    // 2. Create submission record with fileStoragePath
+    setIsSubmittingMetadata(true);
     const submissionPayload = {
       studentId: user.id,
       originalFileName: file.name,
       fileSize: file.size,
       classroomId: values.classroomId === NONE_CLASSROOM_VALUE ? null : (values.classroomId || null),
+      fileStoragePath: uploadedFilePath, // Use the actual path from Supabase Storage
     };
 
     try {
@@ -175,7 +209,7 @@ export function ProjectUploadForm() {
       const newSubmission: ProjectSubmission = await response.json();
       
       toast({
-        title: "Project Archive Submitted",
+        title: "Project Submission Record Created",
         description: `Record for "${file.name}" created. Next, confirm AI analysis.`,
       });
       form.reset();
@@ -184,7 +218,7 @@ export function ProjectUploadForm() {
 
     } catch (error) {
       toast({
-        title: "Submission Failed",
+        title: "Submission Record Creation Failed",
         description: (error as Error).message,
         variant: "destructive",
       });
@@ -202,7 +236,11 @@ export function ProjectUploadForm() {
     try {
       await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.PROCESSING);
       
-      const projectStoragePath = `mock-storage/user-${user.id}/${currentSubmissionForAI.originalFileName}`;
+      // Use the real fileStoragePath from the submission record
+      const projectStoragePath = currentSubmissionForAI.fileStoragePath;
+      if (!projectStoragePath) {
+          throw new Error("File storage path is missing from the submission record. Cannot proceed with AI analysis.");
+      }
       const userGoals = `Analyze the project named: ${currentSubmissionForAI.originalFileName}. Focus on key components and their interactions.`;
 
       const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals });
@@ -268,7 +306,7 @@ export function ProjectUploadForm() {
     router.push("/application/student/projects/submissions");
   }, [router]);
 
-  const isBusy = isSubmittingMetadata || isProcessingAIInDialog;
+  const isBusy = isUploadingFile || isSubmittingMetadata || isProcessingAIInDialog;
 
   return (
     <>
@@ -345,8 +383,8 @@ export function ProjectUploadForm() {
             )}
           />
           <Button type="submit" className="w-full" disabled={isBusy || !form.formState.isValid}>
-            {isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-            {isSubmittingMetadata ? "Submitting Record..." : isProcessingAIInDialog ? "AI is Processing..." : "Submit Project Archive"}
+            {isUploadingFile ? <FileUp className="mr-2 h-4 w-4 animate-pulse" /> : isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+            {isUploadingFile ? "Uploading File..." : isSubmittingMetadata ? "Submitting Record..." : isProcessingAIInDialog ? "AI is Processing..." : "Submit Project Archive"}
           </Button>
           {isProcessingAIInDialog && <p className="text-sm text-center text-muted-foreground">AI analysis is processing via the dialog action. Please wait...</p>}
         </form>
@@ -358,9 +396,9 @@ export function ProjectUploadForm() {
             <AlertDialogHeader>
               <AlertDialogTitle>AI Map Generation</AlertDialogTitle>
               <AlertDialogDescription>
-                Project archive record for "{currentSubmissionForAI.originalFileName}" created.
+                Project archive record for "{currentSubmissionForAI.originalFileName}" created (and file uploaded).
                 Do you want to attempt to generate a concept map from this project? This may take a moment.
-                (Note: Analysis tool is currently mocked).
+                (Note: Analysis tool is currently mocked, but receives the real storage path).
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -378,3 +416,4 @@ export function ProjectUploadForm() {
     </>
   );
 }
+

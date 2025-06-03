@@ -35,13 +35,13 @@
     - [x] Connect frontend concept map listing (student) to live API for loading/deleting (with Supabase service).
     - [x] Connect frontend concept map editor to live API for saving/loading new and existing maps (including properties like name, isPublic, sharedWithClassroomId from inspector, using Supabase service).
 - [x] **Project Submission & Analysis (Backend & Frontend Integration):** (Core API & Service Done for metadata with Supabase, status updates robust, AI map gen saves real map record to Supabase via service)
-    - [x] Create `projectSubmissionService.ts` with Supabase data management.
-    - [x] API endpoint for project file uploads (`POST /api/projects/submissions` - metadata only, file handling and storage path not yet implemented by this API).
+    - [x] Create `projectSubmissionService.ts` with Supabase data management (now includes `fileStoragePath`).
+    - [x] API endpoint for project file uploads (`POST /api/projects/submissions` - now handles `fileStoragePath` for metadata).
     - [x] API endpoint for listing student submissions (`GET /api/projects/submissions?studentId=xxx`).
     - [x] API endpoint for listing submissions by classroom (`GET /api/projects/submissions?classroomId=xxx`).
     - [x] API endpoint for getting submission details (`GET /api/projects/submissions/[submissionId]`).
     - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`). (Now updates status including real generated map ID via Supabase service).
-    - [ ] File storage integration (S3, GCS, or local - Supabase Storage). (Out of Scope: User needs to implement actual file upload to Supabase Storage in `ProjectUploadForm` and related backend logic).
+    - [ ] File storage integration (S3, GCS, or local - Supabase Storage). (User needs to create 'project_archives' bucket in Supabase Storage and `file_storage_path` column in `project_submissions` table, and configure RLS policies).
     - [ ] Message Queue setup (RabbitMQ, Redis, etc.). (Out of Scope: Requires setup and configuration of external message queuing services and integration logic, typically part of a separate backend infrastructure).
     - [ ] Develop Project Analysis Microservice:
         - [ ] Task consumer from message queue. (Out of Scope: Microservice architecture and inter-service communication via message queues are beyond the scope of this Next.js application's prototyping).
@@ -49,7 +49,7 @@
         - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. Input refined for AI. `projectStructureAnalyzerTool` has mock logic; real parsing is user's responsibility).
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output, creates new ConceptMap record via Supabase service).
         - [x] Map Data Formatter & Persister (saves generated map via Supabase service, updates submission status with real map ID).
-    - [x] Connect frontend project submission UI to live API (for metadata, including real AI map generation and saving to Supabase, uses AlertDialog for confirmation).
+    - [x] Connect frontend project submission UI to live API (for metadata, including client-side upload to Supabase Storage and passing real storage path to AI trigger; AI map generation and saving to Supabase, uses AlertDialog for confirmation).
     - [x] Connect frontend student submissions list to live API (with Supabase service and polling).
     - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states (using Supabase-backed services).
     - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states (using Supabase-backed services).
@@ -85,7 +85,7 @@
     - [x] Develop system settings interface (Admin Settings page now fetches and saves settings to Supabase via API. Linked from Admin Dashboard).
 
 ## GenAI & AI Features (Enhanced)
-- [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending by user. Flow now takes `projectStoragePath`. Simulated end-to-end flow for submission status and map record creation is more robust).
+- [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Client-side upload to Supabase Storage implemented. Flow now takes actual `projectStoragePath`. Simulated end-to-end flow for submission status and map record creation is more robust).
 - [ ] **API Endpoint & Backend Processing Pipeline (Post-Supabase Storage Setup):** (User to implement)
     - [ ] API Endpoint: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
         - [ ] Receive notification of successful upload to Supabase Storage (or handle file stream if direct upload to backend is chosen).
@@ -102,7 +102,7 @@
     - [x] **Tool Integration**: Instructs the LLM (via prompt) to utilize `projectStructureAnalyzerTool`.
     - [x] **Refined Prompt**: Updated prompt in `generateMapFromProjectPrompt` to guide LLM on interpreting tool output.
 - [x] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
-    - [x] **Update `ProjectUploadForm`**: (File metadata submission to Supabase-backed service via API, triggers Genkit flow with mock storage path. Map creation and linking uses Supabase-backed services via API).
+    - [x] **Update `ProjectUploadForm`**: (File upload to Supabase Storage, metadata submission to Supabase-backed service via API, triggers Genkit flow with actual storage path. Map creation and linking uses Supabase-backed services via API).
     - [x] **Map Creation & Linking**: (Concept Map & Submission linking via API to Supabase-backed services)
     - [x] **Viewing Generated Map**: (SubmissionListItem links to generated map in view-only mode).
     - [ ] (Advanced/Future) Allow selective merging/importing of parts of the AI-generated map into an existing map.
@@ -125,7 +125,7 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 **1. Supabase Setup & Initial Configuration**
 - [x] **Project Setup:** (Assumed user has done)
 - [x] **Client Library & Config:** (`src/lib/supabaseClient.ts` and `.env` setup done).
-- [ ] **Database Schema Design (User Task):** (User needs to implement in Supabase: `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`, `system_settings` and RLS policies).
+- [ ] **Database Schema Design (User Task):** (User needs to implement in Supabase: `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions` (add `file_storage_path TEXT NULLABLE`), `system_settings` and RLS policies).
 - [x] **Database Migrations:** (User to handle CLI setup and SQL scripts. `src/types/supabase.ts` placeholder created; user must run typegen).
 
 **2. User Authentication & Profiles with Supabase Auth**
@@ -146,10 +146,10 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 - [x] **Connect frontend concept map UI (student, editor) to live API (with Supabase service).** (Complete)
 
 **5. Project Submission & Analysis with Supabase**
-- [ ] **`project_submissions` Table:** (User needs to create + RLS).
-- [ ] **Supabase Storage Setup:** (User needs to create bucket + RLS).
-- [x] **`projectSubmissionService.ts` Refactor:** (Complete: All submission service functions use Supabase. File path not yet handled).
-- [x] **Connect frontend project submission UI to live API (for metadata, AI trigger, linking map using Supabase service).** (Complete)
+- [ ] **`project_submissions` Table:** (User needs to create + RLS, and add `file_storage_path TEXT NULLABLE` column).
+- [ ] **Supabase Storage Setup:** (User needs to create bucket `project_archives` + RLS that allows authenticated users to upload to path `user-<user_id>/*`).
+- [x] **`projectSubmissionService.ts` Refactor:** (Complete: All submission service functions use Supabase, including `fileStoragePath`).
+- [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path, linking map using Supabase service).** (Complete)
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
     - [ ] Modify flow to fetch project file from Supabase Storage (User to implement when `projectStructureAnalyzerTool` is made real).
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done)
@@ -182,5 +182,6 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a Supabase Function trigger (or similar mechanism) is needed by the user to create the corresponding `profiles` table entry automatically.
 - API routes rely on Supabase-backed services. Further auth checks (JWT verification, role-based access) for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
-- File upload for project analysis not yet connected to Supabase Storage.
+- Client-side file upload for project analysis now uploads to Supabase Storage (bucket 'project_archives', path `user-<user_id>/<timestamp>-<filename>`).
+- User needs to create the 'project_archives' bucket and add `file_storage_path TEXT NULLABLE` to `project_submissions` table, and set up RLS for the bucket.
 

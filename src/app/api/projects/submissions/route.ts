@@ -5,18 +5,20 @@ import { createSubmission, getSubmissionsByStudentId, getSubmissionsByClassroomI
 
 export async function POST(request: Request) {
   try {
-    const { studentId, originalFileName, fileSize, classroomId } = await request.json() as {
+    const { studentId, originalFileName, fileSize, classroomId, fileStoragePath } = await request.json() as {
       studentId: string; 
       originalFileName: string;
       fileSize: number;
       classroomId?: string | null;
+      fileStoragePath?: string | null; // Added fileStoragePath
     };
 
     if (!studentId || !originalFileName || fileSize === undefined) {
       return NextResponse.json({ message: "Student ID, original file name, and file size are required" }, { status: 400 });
     }
 
-    const newSubmission = await createSubmission(studentId, originalFileName, fileSize, classroomId);
+    // Pass fileStoragePath to createSubmission
+    const newSubmission = await createSubmission(studentId, originalFileName, fileSize, classroomId, fileStoragePath);
     return NextResponse.json(newSubmission, { status: 201 });
 
   } catch (error) {

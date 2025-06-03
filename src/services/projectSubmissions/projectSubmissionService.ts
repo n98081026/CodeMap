@@ -1,3 +1,4 @@
+
 // src/services/projectSubmissions/projectSubmissionService.ts
 'use server';
 
@@ -12,14 +13,14 @@ import { getUserById } from '@/services/users/userService';
 
 /**
  * Creates a new project submission record.
- * Note: Actual file upload to Supabase Storage is handled separately.
- * This function only creates the metadata record.
+ * Includes the path to the file in Supabase Storage.
  */
 export async function createSubmission(
   studentId: string,
   originalFileName: string,
   fileSize: number,
-  classroomId?: string | null
+  classroomId?: string | null,
+  fileStoragePath?: string | null // Added fileStoragePath parameter
 ): Promise<ProjectSubmission> {
   const student = await getUserById(studentId);
   if (!student || student.role !== UserRole.STUDENT) {
@@ -34,10 +35,10 @@ export async function createSubmission(
       original_file_name: originalFileName,
       file_size: fileSize,
       classroom_id: classroomId || null,
+      file_storage_path: fileStoragePath || null, // Store the file path
       submission_timestamp: now,
       analysis_status: ProjectSubmissionStatus.PENDING,
-      updated_at: now, // Also set updated_at on creation
-      // file_storage_path will be updated later by the actual file upload mechanism
+      updated_at: now,
     })
     .select()
     .single();
@@ -54,11 +55,11 @@ export async function createSubmission(
     originalFileName: data.original_file_name,
     fileSize: data.file_size,
     classroomId: data.classroom_id,
+    fileStoragePath: data.file_storage_path,
     submissionTimestamp: data.submission_timestamp,
     analysisStatus: data.analysis_status as ProjectSubmissionStatus,
     analysisError: data.analysis_error,
     generatedConceptMapId: data.generated_concept_map_id,
-    // fileStoragePath: data.file_storage_path, // Add if column exists and is selected
   };
 }
 
@@ -84,6 +85,7 @@ export async function getSubmissionById(submissionId: string): Promise<ProjectSu
     originalFileName: data.original_file_name,
     fileSize: data.file_size,
     classroomId: data.classroom_id,
+    fileStoragePath: data.file_storage_path,
     submissionTimestamp: data.submission_timestamp,
     analysisStatus: data.analysis_status as ProjectSubmissionStatus,
     analysisError: data.analysis_error,
@@ -111,6 +113,7 @@ export async function getSubmissionsByStudentId(studentId: string): Promise<Proj
     originalFileName: s.original_file_name,
     fileSize: s.file_size,
     classroomId: s.classroom_id,
+    fileStoragePath: s.file_storage_path,
     submissionTimestamp: s.submission_timestamp,
     analysisStatus: s.analysis_status as ProjectSubmissionStatus,
     analysisError: s.analysis_error,
@@ -138,6 +141,7 @@ export async function getSubmissionsByClassroomId(classroomId: string): Promise<
     originalFileName: s.original_file_name,
     fileSize: s.file_size,
     classroomId: s.classroom_id,
+    fileStoragePath: s.file_storage_path,
     submissionTimestamp: s.submission_timestamp,
     analysisStatus: s.analysis_status as ProjectSubmissionStatus,
     analysisError: s.analysis_error,
@@ -153,6 +157,7 @@ export async function updateSubmissionStatus(
   status: ProjectSubmissionStatus,
   analysisError?: string | null,
   generatedConceptMapId?: string | null
+  // fileStoragePath could also be updated here if needed, e.g., after a retry or move
 ): Promise<ProjectSubmission | null> {
   const updates: any = {
     analysis_status: status,
@@ -180,6 +185,7 @@ export async function updateSubmissionStatus(
     originalFileName: data.original_file_name,
     fileSize: data.file_size,
     classroomId: data.classroom_id,
+    fileStoragePath: data.file_storage_path,
     submissionTimestamp: data.submission_timestamp,
     analysisStatus: data.analysis_status as ProjectSubmissionStatus,
     analysisError: data.analysis_error,
@@ -206,9 +212,11 @@ export async function getAllSubmissions(): Promise<ProjectSubmission[]> {
     originalFileName: s.original_file_name,
     fileSize: s.file_size,
     classroomId: s.classroom_id,
+    fileStoragePath: s.file_storage_path,
     submissionTimestamp: s.submission_timestamp,
     analysisStatus: s.analysis_status as ProjectSubmissionStatus,
     analysisError: s.analysis_error,
     generatedConceptMapId: s.generated_concept_map_id,
   }));
 }
+
