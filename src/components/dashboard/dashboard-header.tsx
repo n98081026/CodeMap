@@ -9,7 +9,7 @@ interface DashboardHeaderProps {
   title: string;
   description?: string;
   icon?: LucideIcon;
-  iconClassName?: string;
+  iconClassName?: string; // Added directly here
   iconLinkHref?: string; 
   children?: React.ReactNode; 
 }

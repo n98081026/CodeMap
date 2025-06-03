@@ -379,10 +379,3 @@ export default function ClassroomDetailPage() {
     </div>
   );
 }
-
-declare module "@/components/dashboard/dashboard-header" {
-  interface DashboardHeaderProps {
-    iconClassName?: string;
-  }
-}
-
