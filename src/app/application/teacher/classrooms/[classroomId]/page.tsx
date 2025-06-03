@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -113,7 +113,7 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     }
   }, [params.classroomId, fetchClassroomDetails, fetchClassroomMaps, fetchClassroomSubmissions]);
 
-  const handleRemoveStudent = async (studentId: string, studentName: string) => {
+  const handleRemoveStudent = useCallback(async (studentId: string, studentName: string) => {
     if (!classroom) return;
     try {
       const response = await fetch(`/api/classrooms/${classroom.id}/students/${studentId}`, {
@@ -135,11 +135,11 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
         variant: "destructive",
       });
     }
-  };
+  }, [classroom, toast, fetchClassroomDetails]);
   
-  const handleStudentActionCompleted = () => {
+  const handleStudentActionCompleted = useCallback(() => {
     fetchClassroomDetails(); 
-  };
+  }, [fetchClassroomDetails]);
 
   if (isLoadingClassroom && !classroom) { 
     return (
@@ -378,12 +378,10 @@ export default function ClassroomDetailPage({ params }: { params: { classroomId:
     </div>
   );
 }
-// Helper for DashboardHeader to allow className on icon
+
 declare module "@/components/dashboard/dashboard-header" {
   interface DashboardHeaderProps {
     iconClassName?: string;
   }
 }
-
-
     

@@ -3,17 +3,26 @@
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface DashboardHeaderProps {
   title: string;
   description?: string;
   icon?: LucideIcon;
   iconClassName?: string;
-  iconLinkHref?: string; // New prop: If provided, makes the icon a link
+  iconLinkHref?: string; 
   children?: React.ReactNode; 
 }
 
-export function DashboardHeader({ title, description, icon: Icon, iconClassName, iconLinkHref, children }: DashboardHeaderProps) {
+// Helper function to make aria-label more descriptive (optional, but good for accessibility)
+function userRoleFromPath(path: string): string {
+  if (path.includes('/student/')) return 'Student';
+  if (path.includes('/teacher/')) return 'Teacher';
+  if (path.includes('/admin/')) return 'Admin';
+  return 'Main';
+}
+
+export const DashboardHeader = React.memo(function DashboardHeader({ title, description, icon: Icon, iconClassName, iconLinkHref, children }: DashboardHeaderProps) {
   return (
     <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
       <div>
@@ -32,12 +41,6 @@ export function DashboardHeader({ title, description, icon: Icon, iconClassName,
       {children && <div className="flex gap-2">{children}</div>}
     </div>
   );
-}
+});
+DashboardHeader.displayName = "DashboardHeader";
 
-// Helper function to make aria-label more descriptive (optional, but good for accessibility)
-function userRoleFromPath(path: string): string {
-  if (path.includes('/student/')) return 'Student';
-  if (path.includes('/teacher/')) return 'Teacher';
-  if (path.includes('/admin/')) return 'Admin';
-  return 'Main';
-}

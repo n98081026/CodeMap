@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -19,8 +20,7 @@ interface EditorToolbarProps {
   canAddEdge?: boolean;
 }
 
-
-export function EditorToolbar({ 
+export const EditorToolbar = React.memo(function EditorToolbar({ 
   onSaveMap, 
   isSaving, 
   onExtractConcepts, 
@@ -33,22 +33,20 @@ export function EditorToolbar({
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
-  const handlePlaceholderClick = (action: string) => {
-    // This toast is for actions that are enabled but not yet fully implemented.
-    // View-only checks for modifiable actions are handled by disabling the button itself or in handleGenAIClick.
+  const handlePlaceholderClick = React.useCallback((action: string) => {
     toast({
       title: "Action Clicked (Placeholder)",
       description: `${action} functionality is not yet implemented.`,
     });
-  };
+  }, [toast]);
 
-  const handleGenAIClick = (actionCallback: () => void, toolName: string) => {
+  const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
     if (isViewOnlyMode) {
        toast({ title: "View Only Mode", description: `Cannot use ${toolName} in view-only mode.`, variant: "default" });
       return;
     }
     actionCallback();
-  }
+  }, [isViewOnlyMode, toast]);
 
 
   return (
@@ -57,7 +55,6 @@ export function EditorToolbar({
         {/* File Operations */}
         <Tooltip>
           <TooltipTrigger asChild>
-            {/* "New Map" should generally be available regardless of current map's view-only status */}
             <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("New Map")} >
               <FilePlus className="h-5 w-5" />
             </Button>
@@ -78,11 +75,10 @@ export function EditorToolbar({
               <Upload className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Import (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Import (Disabled in View Mode)" : "Import Map"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            {/* "Export Map" should be available in view-only mode */}
             <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Export Map")}>
               <Download className="h-5 w-5" />
             </Button>
@@ -99,7 +95,7 @@ export function EditorToolbar({
               <Undo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Undo (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Undo (Disabled in View Mode)" : "Undo"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -107,7 +103,7 @@ export function EditorToolbar({
               <Redo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Redo (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Redo (Disabled in View Mode)" : "Redo"}</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />
@@ -119,7 +115,7 @@ export function EditorToolbar({
               <PlusSquare className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Add Node (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Add Node (Disabled in View Mode)" : "Add Node"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -139,7 +135,7 @@ export function EditorToolbar({
               <SearchCode className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Extract Concepts (AI) (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Extract Concepts (AI) (Disabled in View Mode)" : "Extract Concepts (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -147,7 +143,7 @@ export function EditorToolbar({
               <Lightbulb className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Suggest Relations (AI) (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Suggest Relations (AI) (Disabled in View Mode)" : "Suggest Relations (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -155,16 +151,15 @@ export function EditorToolbar({
               <Brain className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Expand Concept (AI) (Disabled in View Mode)</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Expand Concept (AI) (Disabled in View Mode)" : "Expand Concept (AI)"}</TooltipContent>
         </Tooltip>
 
         {/* Spacer */}
         <div className="flex-grow" />
 
-        {/* Zoom/Pan could go here or be part of canvas */}
       </div>
     </TooltipProvider>
   );
-}
-
+});
+EditorToolbar.displayName = "EditorToolbar";
     

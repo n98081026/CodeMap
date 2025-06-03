@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ProjectSubmission } from "@/types";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Eye, FileArchive, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 interface SubmissionListItemProps {
   submission: ProjectSubmission;
@@ -15,11 +16,11 @@ interface SubmissionListItemProps {
 
 const POLLING_INTERVAL = 7000; // Poll every 7 seconds
 
-export function SubmissionListItem({ submission: initialSubmission }: SubmissionListItemProps) {
+export const SubmissionListItem = React.memo(function SubmissionListItem({ submission: initialSubmission }: SubmissionListItemProps) {
   const [currentSubmission, setCurrentSubmission] = useState<ProjectSubmission>(initialSubmission);
 
   useEffect(() => {
-    setCurrentSubmission(initialSubmission); // Ensure state updates if prop changes
+    setCurrentSubmission(initialSubmission); 
   }, [initialSubmission]);
 
   useEffect(() => {
@@ -40,7 +41,6 @@ export function SubmissionListItem({ submission: initialSubmission }: Submission
       try {
         const response = await fetch(`/api/projects/submissions/${currentSubmission.id}`);
         if (!response.ok) {
-          // Silently fail for polling, or add minimal logging. Avoid spamming toasts.
           console.error(`Polling failed for submission ${currentSubmission.id}: ${response.statusText}`);
           return;
         }
@@ -56,7 +56,6 @@ export function SubmissionListItem({ submission: initialSubmission }: Submission
     };
 
     if (activeStatuses.includes(currentSubmission.analysisStatus)) {
-      // Initial fetch in case status changed since page load
       fetchStatus(); 
       intervalId = setInterval(fetchStatus, POLLING_INTERVAL);
     }
@@ -64,7 +63,7 @@ export function SubmissionListItem({ submission: initialSubmission }: Submission
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [currentSubmission.id, currentSubmission.analysisStatus]); // Re-run effect if ID or status changes
+  }, [currentSubmission.id, currentSubmission.analysisStatus]); 
 
   const getStatusIconAndColor = () => {
     switch (currentSubmission.analysisStatus) {
@@ -130,4 +129,5 @@ export function SubmissionListItem({ submission: initialSubmission }: Submission
       </CardFooter>
     </Card>
   );
-}
+});
+SubmissionListItem.displayName = "SubmissionListItem";

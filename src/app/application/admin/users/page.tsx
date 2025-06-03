@@ -2,14 +2,14 @@
 // src/app/application/admin/users/page.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react"; // Changed Inbox to Users here
+import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react"; 
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -87,7 +87,7 @@ export default function AdminUsersPage() {
     fetchUsers(currentPage);
   }, [currentPage, fetchUsers]);
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
+  const handleDeleteUser = useCallback(async (userId: string, userName: string) => {
      if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin1") {
       toast({ title: "Operation Denied", description: "Pre-defined test users and the main admin cannot be deleted.", variant: "destructive" });
       return;
@@ -107,9 +107,9 @@ export default function AdminUsersPage() {
     } catch (err) {
       toast({ title: "Error Deleting User", description: (err as Error).message, variant: "destructive" });
     }
-  };
+  }, [toast, users.length, currentPage, fetchUsers]);
   
-  const openEditModal = (userToEdit: User) => {
+  const openEditModal = useCallback((userToEdit: User) => {
     if (userToEdit.id === "student-test-id" || userToEdit.id === "teacher-test-id" || userToEdit.id === "admin1") {
        toast({ title: "Operation Denied", description: "Pre-defined test users and the main admin cannot be edited.", variant: "destructive" });
        return;
@@ -117,18 +117,18 @@ export default function AdminUsersPage() {
     setEditingUser(userToEdit);
     setEditFormData({ name: userToEdit.name, email: userToEdit.email, role: userToEdit.role });
     setIsEditModalOpen(true);
-  };
+  }, [toast]);
 
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement> | string, fieldName?: string) => {
+  const handleEditFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement> | string, fieldName?: string) => {
     if (typeof e === "string" && fieldName) { 
       setEditFormData(prev => ({ ...prev, [fieldName]: e as UserRole }));
     } else if (typeof e !== "string") { 
       const { name, value } = e.target as HTMLInputElement;
       setEditFormData(prev => ({ ...prev, [name]: value }));
     }
-  };
+  }, []);
 
-  const handleUpdateUser = async () => {
+  const handleUpdateUser = useCallback(async () => {
     if (!editingUser) return;
     if (!editFormData.name.trim()) {
       toast({ title: "Name Required", description: "User name cannot be empty.", variant: "destructive" });
@@ -159,19 +159,19 @@ export default function AdminUsersPage() {
     } finally {
       setIsSavingEdit(false);
     }
-  };
+  }, [editingUser, editFormData, toast, fetchUsers, currentPage]);
 
-  const handlePreviousPage = () => {
+  const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
-  };
+  }, [currentPage]);
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
-  };
+  }, [currentPage, totalPages]);
 
   return (
     <div className="space-y-6">
@@ -184,7 +184,6 @@ export default function AdminUsersPage() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              {/* Wrap the button in a span for Tooltip to work correctly with disabled buttons */}
               <span tabIndex={0}> 
                 <Button disabled>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add New User
@@ -223,7 +222,7 @@ export default function AdminUsersPage() {
         users.length === 0 && totalUsers === 0 ? (
            <Card className="shadow-md w-full max-w-lg mx-auto">
             <CardHeader className="items-center text-center">
-              <Users className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
+              <Users className="h-16 w-16 text-muted-foreground/70 mb-4" /> 
               <CardTitle>No Users Found</CardTitle>
               <CardDescription>There are no users in the system yet.</CardDescription>
             </CardHeader>
@@ -375,4 +374,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-

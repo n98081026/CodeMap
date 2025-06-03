@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { ConceptMap } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle } from "lucide-react"; // Removed Inbox
+import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle } from "lucide-react"; 
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -73,7 +73,7 @@ export default function StudentConceptMapsPage() {
     }
   }, [user, fetchStudentMaps]);
 
-  const handleDeleteMap = async (mapId: string, mapName: string) => {
+  const handleDeleteMap = useCallback(async (mapId: string, mapName: string) => {
     if (!user) return;
     try {
       const response = await fetch(`/api/concept-maps/${mapId}`, {
@@ -90,14 +90,14 @@ export default function StudentConceptMapsPage() {
         description: `"${mapName}" has been deleted.`,
       });
       fetchStudentMaps(); 
-    } catch (error) {
+    } catch (errorMsg) {
       toast({
         title: "Error Deleting Map",
-        description: (error as Error).message,
+        description: (errorMsg as Error).message,
         variant: "destructive",
       });
     }
-  };
+  }, [user, toast, fetchStudentMaps]);
 
   return (
     <div className="space-y-6">
@@ -133,7 +133,7 @@ export default function StudentConceptMapsPage() {
       {!isLoading && !error && studentMaps.length === 0 && (
          <Card className="shadow-md w-full max-w-lg mx-auto">
             <CardHeader className="items-center text-center">
-              <Share2 className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
+              <Share2 className="h-16 w-16 text-muted-foreground/70 mb-4" /> 
               <CardTitle>No Concept Maps Yet</CardTitle>
               <CardDescription>You haven&apos;t created any concept maps.</CardDescription>
             </CardHeader>
@@ -203,4 +203,3 @@ export default function StudentConceptMapsPage() {
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useEffect, useState, useCallback } from "react";
 import { InteractiveCanvas } from "@/components/concept-map/interactive-canvas"; 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
@@ -8,7 +9,6 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
-import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Node as RFNode, Edge as RFEdge, OnNodesChange, OnEdgesChange, OnNodesDelete, OnEdgesDelete, SelectionChanges, Connection } from 'reactflow';
 import { useNodesState, useEdgesState, MarkerType } from 'reactflow';
@@ -48,7 +48,6 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<RFConceptMapNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
 
-  // Local state for modal visibility
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
@@ -62,7 +61,6 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
         console.error("User data not available for initializing new map.");
         store.setError("User data not available for new map initialization.");
         toast({ title: "Authentication Error", description: "User data not available for new map.", variant: "destructive" });
-        // Potentially redirect or show a more permanent error
         return;
       }
       return;
@@ -130,7 +128,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     }));
     setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.mapData, setRfNodes, setRfEdges]); 
+  }, [store.mapData]); 
 
 
   const onRfNodesChange: OnNodesChange = useCallback((changes) => {
@@ -276,7 +274,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId, // For auth check on PUT
+            ownerId: currentMapOwnerId, 
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -310,23 +308,23 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     params.mapId, router, toast 
   ]);
 
-  const handleConceptsExtracted = (concepts: string[]) => {
+  const handleConceptsExtracted = useCallback((concepts: string[]) => {
     store.setAiExtractedConcepts(concepts); 
     toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts. You can add them to the map via the suggestions panel.` });
-  };
+  }, [store, toast]);
 
-  const handleRelationsSuggested = (relations: Array<{ source: string; target: string; relation: string }>) => {
+  const handleRelationsSuggested = useCallback((relations: Array<{ source: string; target: string; relation: string }>) => {
     store.setAiSuggestedRelations(relations);
     toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations. You can add them to the map via the suggestions panel.` });
-  };
+  }, [store, toast]);
 
-  const handleConceptExpanded = (newConcepts: string[]) => {
+  const handleConceptExpanded = useCallback((newConcepts: string[]) => {
     store.setAiExpandedConcepts(newConcepts);
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map via the suggestions panel.` });
-  };
+  }, [store, toast]);
 
 
-  const addConceptsToMapData = (conceptsToAdd: string[], type: 'ai-extracted-concept' | 'ai-expanded-concept') => {
+  const addConceptsToMapData = useCallback((conceptsToAdd: string[], type: 'ai-extracted-concept' | 'ai-expanded-concept') => {
     if (isViewOnlyMode) return;
     const existingNodeTexts = new Set(store.mapData.nodes.map(n => n.text));
     let addedCount = 0;
@@ -334,7 +332,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       if (!existingNodeTexts.has(conceptText)) {
         store.addNode({
           text: conceptText,
-          type: type, // Use the provided type
+          type: type, 
           position: { x: Math.random() * 400, y: Math.random() * 300 },
         });
         addedCount++;
@@ -347,15 +345,14 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       toast({ title: "No New Concepts Added", description: "All suggested concepts may already exist in the map.", variant: "default" });
     }
     
-    // Clear the specific suggestions from the store
     if (type === 'ai-extracted-concept') {
         store.setAiExtractedConcepts([]);
     } else if (type === 'ai-expanded-concept') {
         store.setAiExpandedConcepts([]);
     }
-  };
+  }, [isViewOnlyMode, store, toast]);
 
-  const handleAddSuggestedRelationsToMap = (relations: Array<{ source: string; target: string; relation: string }>) => {
+  const handleAddSuggestedRelationsToMap = useCallback((relations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) return;
     let relationsActuallyAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
@@ -392,10 +389,10 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     } else {
        toast({ title: "No New Relations Added", description: "All suggested relations/concepts may already exist.", variant: "default" });
     }
-    store.setAiSuggestedRelations([]); // Clear suggested relations from store
-  };
+    store.setAiSuggestedRelations([]); 
+  }, [isViewOnlyMode, store, toast]);
 
-  const handleAddNodeToData = () => {
+  const handleAddNodeToData = useCallback(() => {
     if (isViewOnlyMode) return;
     const newNodeText = `Node ${store.mapData.nodes.length + 1}`;
     store.addNode({
@@ -404,9 +401,9 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       position: {x: Math.random() * 200 + 50, y: Math.random() * 100 + 50},
     });
     toast({ title: "Node Added to Map", description: `"${newNodeText}" added. Save the map to persist changes.`});
-  };
+  }, [isViewOnlyMode, store, toast]);
 
-  const handleAddEdgeToData = () => {
+  const handleAddEdgeToData = useCallback(() => {
     if (isViewOnlyMode) return;
     const nodes = store.mapData.nodes;
     if (nodes.length < 2) {
@@ -422,7 +419,7 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     }
     store.addEdge({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
     toast({ title: "Edge Added to Map", description: `Edge connecting "${sourceNode.text}" and "${targetNode.text}" added. Save to persist.`});
-  };
+  }, [isViewOnlyMode, store, toast]);
 
 
   const getRoleBasedDashboardLink = useCallback(() => {
@@ -542,9 +539,9 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
       <EditorToolbar
         onSaveMap={handleSaveMap}
         isSaving={isSaving}
-        onExtractConcepts={() => { store.resetAiSuggestions(); setIsExtractConceptsModalOpen(true); }}
-        onSuggestRelations={() => { store.resetAiSuggestions(); setIsSuggestRelationsModalOpen(true); }}
-        onExpandConcept={() => { store.resetAiSuggestions(); setIsExpandConceptModalOpen(true); }}
+        onExtractConcepts={useCallback(() => { store.resetAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [store])}
+        onSuggestRelations={useCallback(() => { store.resetAiSuggestions(); setIsSuggestRelationsModalOpen(true); }, [store])}
+        onExpandConcept={useCallback(() => { store.resetAiSuggestions(); setIsExpandConceptModalOpen(true); }, [store])}
         isViewOnlyMode={isViewOnlyMode}
         onAddNodeToData={handleAddNodeToData}
         onAddEdgeToData={handleAddEdgeToData}
@@ -584,9 +581,9 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
             extractedConcepts={aiExtractedConcepts}
             suggestedRelations={aiSuggestedRelations}
             expandedConcepts={aiExpandedConcepts}
-            onAddExtractedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-extracted-concept')}
+            onAddExtractedConcepts={addConceptsToMapData}
             onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
-            onAddExpandedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-expanded-concept')}
+            onAddExpandedConcepts={addConceptsToMapData}
             isViewOnlyMode={isViewOnlyMode}
         />
       </div>
@@ -614,4 +611,3 @@ export default function ConceptMapEditorPage({ params }: { params: { mapId: stri
     </div>
   );
 }
-

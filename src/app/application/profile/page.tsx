@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { UserCircle, Shield, Edit3, KeyRound, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { UserRole, type User } from "@/types";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -55,7 +55,7 @@ function EditProfileDialog({
     },
   });
 
-  const onSubmit = async (data: ProfileFormValues) => {
+  const onSubmit = useCallback(async (data: ProfileFormValues) => {
     setIsSaving(true);
     try {
       const response = await fetch(`/api/users/${currentUser.id}`, {
@@ -68,8 +68,8 @@ function EditProfileDialog({
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to update profile.");
       }
-      const updatedUserFromApi: User = await response.json(); // Ensure we get the full user object
-      onProfileUpdate(updatedUserFromApi); // Pass the full object to context updater
+      const updatedUserFromApi: User = await response.json(); 
+      onProfileUpdate(updatedUserFromApi); 
       toast({ title: "Profile Updated", description: "Your profile has been successfully updated." });
       onOpenChange(false);
     } catch (error) {
@@ -81,7 +81,7 @@ function EditProfileDialog({
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [currentUser.id, onProfileUpdate, toast, onOpenChange]);
 
   React.useEffect(() => {
     if (currentUser) {
@@ -90,7 +90,7 @@ function EditProfileDialog({
         email: currentUser.email,
       });
     }
-  }, [currentUser, form, isOpen]); // Reset form if currentUser changes or dialog is re-opened
+  }, [currentUser, form, isOpen]); 
 
 
   return (
@@ -176,14 +176,14 @@ function ChangePasswordDialog({
     },
   });
 
-  const handleDialogStateChange = (open: boolean) => {
-    if (!open) { // If dialog is closing
-      form.reset(); // Reset form fields
+  const handleDialogStateChange = useCallback((open: boolean) => {
+    if (!open) { 
+      form.reset(); 
     }
     onOpenChange(open);
-  };
+  }, [form, onOpenChange]);
 
-  const onSubmit = async (data: ChangePasswordFormValues) => {
+  const onSubmit = useCallback(async (data: ChangePasswordFormValues) => {
     setIsSaving(true);
     try {
       const response = await fetch(`/api/users/${userId}/change-password`, {
@@ -199,7 +199,7 @@ function ChangePasswordDialog({
       }
       
       toast({ title: "Password Changed", description: "Your password has been successfully updated (mock)." });
-      handleDialogStateChange(false); // This will reset form and close dialog
+      handleDialogStateChange(false); 
     } catch (error) {
       toast({
         title: "Change Password Failed",
@@ -209,7 +209,7 @@ function ChangePasswordDialog({
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [userId, toast, handleDialogStateChange]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogStateChange}>
@@ -282,8 +282,6 @@ export default function ProfilePage() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   if (!user) {
-    // Render loading state or redirect if user is not available.
-    // This should ideally be handled by the AppLayout's auth check.
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -291,7 +289,7 @@ export default function ProfilePage() {
     );
   }
 
-  const getDashboardLink = () => {
+  const getDashboardLink = useCallback(() => {
     switch (user.role) {
       case UserRole.ADMIN:
         return "/application/admin/dashboard";
@@ -300,13 +298,13 @@ export default function ProfilePage() {
       case UserRole.STUDENT:
         return "/application/student/dashboard";
       default:
-        return "/application/login"; // Fallback, though AuthContext should prevent this
+        return "/application/login"; 
     }
-  };
+  }, [user.role]);
 
-  const handleProfileUpdated = (updatedUserFromApi: User) => {
-    updateCurrentUserData(updatedUserFromApi); // Pass the full user object from API
-  };
+  const handleProfileUpdated = useCallback((updatedUserFromApi: User) => {
+    updateCurrentUserData(updatedUserFromApi); 
+  }, [updateCurrentUserData]);
 
   return (
     <div className="space-y-6">
@@ -401,5 +399,4 @@ export default function ProfilePage() {
     </div>
   );
 }
-
     

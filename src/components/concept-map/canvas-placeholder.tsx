@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints } from "lucide-react";
@@ -19,7 +20,7 @@ interface CanvasPlaceholderProps {
   isViewOnlyMode?: boolean;
 }
 
-export function CanvasPlaceholder({
+export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   mapData, 
   extractedConcepts,
   suggestedRelations,
@@ -171,5 +172,5 @@ export function CanvasPlaceholder({
       </CardContent>
     </Card>
   );
-}
-
+});
+CanvasPlaceholder.displayName = "CanvasPlaceholder";

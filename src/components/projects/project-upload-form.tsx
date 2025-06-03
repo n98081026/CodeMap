@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useEffect, useState, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -20,7 +21,6 @@ import { useRouter } from "next/navigation";
 import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types"; 
 import { ProjectSubmissionStatus } from "@/types";
 import { UploadCloud, Loader2, AlertTriangle } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
 import { useAuth } from "@/contexts/auth-context"; 
 import {
@@ -101,7 +101,7 @@ export function ProjectUploadForm() {
     },
   });
 
-  async function updateSubmissionStatusOnServer(submissionId: string, status: ProjectSubmissionStatus, generatedConceptMapId?: string | null, analysisError?: string | null) {
+  const updateSubmissionStatusOnServer = useCallback(async (submissionId: string, status: ProjectSubmissionStatus, generatedConceptMapId?: string | null, analysisError?: string | null) => {
     try {
       const payload: any = { status };
       if (generatedConceptMapId) payload.generatedConceptMapId = generatedConceptMapId;
@@ -121,9 +121,9 @@ export function ProjectUploadForm() {
       console.error(`Error updating submission status for ${submissionId}:`, error);
       throw error; 
     }
-  }
+  }, []);
 
-  async function onSubmit(values: z.infer<typeof projectUploadSchema>) {
+  const onSubmit = useCallback(async (values: z.infer<typeof projectUploadSchema>) => {
     if (!user) {
       toast({ title: "Authentication Error", description: "You must be logged in to submit a project.", variant: "destructive" });
       return;
@@ -169,9 +169,9 @@ export function ProjectUploadForm() {
     } finally {
       setIsSubmittingMetadata(false);
     }
-  }
+  }, [user, toast, form]);
 
-  const handleConfirmAIGeneration = async () => {
+  const handleConfirmAIGeneration = useCallback(async () => {
     if (!currentSubmissionForAI || !user) return;
 
     setIsProcessingAIInDialog(true);
@@ -258,13 +258,13 @@ export function ProjectUploadForm() {
       setCurrentSubmissionForAI(null);
       router.push("/application/student/projects/submissions");
     }
-  };
+  }, [currentSubmissionForAI, user, toast, router, updateSubmissionStatusOnServer]);
 
-  const handleDeclineAIGeneration = () => {
+  const handleDeclineAIGeneration = useCallback(() => {
     setIsConfirmAIDialogOpen(false);
     setCurrentSubmissionForAI(null);
     router.push("/application/student/projects/submissions");
-  };
+  }, [router]);
   
   const isBusy = isSubmittingMetadata || isProcessingAIInDialog;
 

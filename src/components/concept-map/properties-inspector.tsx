@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ interface PropertiesInspectorProps {
   isViewOnlyMode?: boolean;
 }
 
-export function PropertiesInspector({ 
+export const PropertiesInspector = React.memo(function PropertiesInspector({ 
   currentMap, 
   onMapPropertiesChange,
   selectedElement,
@@ -48,47 +49,47 @@ export function PropertiesInspector({
   const elementNodeTypeValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.type : "") || "default";
 
 
-  const handleMapNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMapNameChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode || !currentMap) return;
     onMapPropertiesChange({ 
       name: e.target.value, 
       isPublic: isPublicValue, 
       sharedWithClassroomId: sharedWithClassroomIdValue 
     });
-  };
+  }, [isViewOnlyMode, currentMap, onMapPropertiesChange, isPublicValue, sharedWithClassroomIdValue]);
 
-  const handleIsPublicChange = (checked: boolean) => {
+  const handleIsPublicChange = React.useCallback((checked: boolean) => {
     if (isViewOnlyMode || !currentMap) return;
     onMapPropertiesChange({ 
       name: mapNameValue, 
       isPublic: checked, 
       sharedWithClassroomId: sharedWithClassroomIdValue 
     });
-  };
+  }, [isViewOnlyMode, currentMap, onMapPropertiesChange, mapNameValue, sharedWithClassroomIdValue]);
 
-  const handleSharedIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSharedIdChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode || !currentMap) return;
     onMapPropertiesChange({ 
       name: mapNameValue, 
       isPublic: isPublicValue, 
       sharedWithClassroomId: e.target.value.trim() || null 
     });
-  };
+  }, [isViewOnlyMode, currentMap, onMapPropertiesChange, mapNameValue, isPublicValue]);
 
-  const handleElementLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleElementLabelChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || !selectedElement) return;
     onSelectedElementPropertyUpdate({ label: e.target.value });
-  };
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElement]);
 
-  const handleElementDetailsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleElementDetailsChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node') return;
     onSelectedElementPropertyUpdate({ details: e.target.value });
-  };
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]);
 
-  const handleElementNodeTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleElementNodeTypeChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node') return;
     onSelectedElementPropertyUpdate({ type: e.target.value });
-  };
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]);
 
 
   const renderMapProperties = () => (
@@ -233,6 +234,6 @@ export function PropertiesInspector({
       </CardContent>
     </Card>
   );
-}
-
+});
+PropertiesInspector.displayName = "PropertiesInspector";
   

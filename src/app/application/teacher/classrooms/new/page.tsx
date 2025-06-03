@@ -2,6 +2,7 @@
 // src/app/application/teacher/classrooms/new/page.tsx
 "use client";
 
+import React, { useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -44,7 +45,7 @@ export default function CreateClassroomPage() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof classroomFormSchema>) {
+  const onSubmit = useCallback(async (values: z.infer<typeof classroomFormSchema>) => {
     if (!user || !user.id) {
       toast({
         title: "Authentication Error",
@@ -79,7 +80,7 @@ export default function CreateClassroomPage() {
         variant: "destructive",
       });
     }
-  }
+  }, [user, toast, router]);
 
   return (
     <div className="space-y-6">

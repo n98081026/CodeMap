@@ -2,13 +2,13 @@
 // src/app/application/teacher/classrooms/page.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react"; // Removed Inbox
+import { PlusCircle, Users, ArrowRight, BookOpen, Loader2, AlertTriangle, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react"; 
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -91,7 +91,7 @@ export default function TeacherClassroomsPage() {
     fetchTeacherClassrooms(currentPage);
   }, [currentPage, fetchTeacherClassrooms]);
 
-  const handleDeleteClassroom = async (classroomId: string, classroomName: string) => {
+  const handleDeleteClassroom = useCallback(async (classroomId: string, classroomName: string) => {
     try {
       const response = await fetch(`/api/classrooms/${classroomId}`, { method: 'DELETE' });
       if (!response.ok) {
@@ -99,7 +99,6 @@ export default function TeacherClassroomsPage() {
         throw new Error(errorData.message || "Failed to delete classroom");
       }
       toast({ title: "Classroom Deleted", description: `Classroom "${classroomName}" has been deleted.` });
-      // Refresh: if last item on page, go to prev page
       if (teacherClassrooms.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
@@ -108,20 +107,20 @@ export default function TeacherClassroomsPage() {
     } catch (err) {
       toast({ title: "Error Deleting Classroom", description: (err as Error).message, variant: "destructive" });
     }
-  };
+  }, [toast, teacherClassrooms.length, currentPage, fetchTeacherClassrooms]);
 
-  const openEditModal = (classroom: Classroom) => {
+  const openEditModal = useCallback((classroom: Classroom) => {
     setEditingClassroom(classroom);
     setEditFormData({ name: classroom.name, description: classroom.description || "" });
     setIsEditModalOpen(true);
-  };
+  }, []);
 
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleEditFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setEditFormData(prev => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
-  const handleUpdateClassroom = async () => {
+  const handleUpdateClassroom = useCallback(async () => {
     if (!editingClassroom) return;
     if (!editFormData.name.trim()) {
       toast({ title: "Validation Error", description: "Classroom name cannot be empty.", variant: "destructive" });
@@ -147,19 +146,19 @@ export default function TeacherClassroomsPage() {
     } finally {
       setIsSavingEdit(false);
     }
-  };
+  }, [editingClassroom, editFormData, toast, fetchTeacherClassrooms, currentPage]);
   
-  const handlePreviousPage = () => {
+  const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
-  };
+  }, [currentPage]);
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
-  };
+  }, [currentPage, totalPages]);
 
 
   return (
@@ -201,7 +200,7 @@ export default function TeacherClassroomsPage() {
       {!isLoading && !error && teacherClassrooms.length === 0 && totalClassrooms === 0 && (
         <Card className="shadow-md w-full max-w-lg mx-auto">
           <CardHeader className="items-center text-center">
-            <BookOpen className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
+            <BookOpen className="h-16 w-16 text-muted-foreground/70 mb-4" /> 
             <CardTitle>No Classrooms Yet</CardTitle>
             <CardDescription>You haven&apos;t created or been assigned to any classrooms.</CardDescription>
           </CardHeader>

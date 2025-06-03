@@ -1,5 +1,7 @@
+
 "use client";
 
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,20 +16,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Loader2 } from "lucide-react";
-import { useState } from "react";
 
 interface InviteStudentDialogProps {
   classroomId: string;
-  onActionCompleted?: () => void; // Renamed for clarity, as it now handles add and mock invite
+  onActionCompleted?: () => void; 
 }
 
 export function InviteStudentDialog({ classroomId, onActionCompleted }: InviteStudentDialogProps) {
-  const [identifier, setIdentifier] = useState(""); // Can be email or student ID
+  const [identifier, setIdentifier] = useState(""); 
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleInviteOrAdd = async () => {
+  const handleInviteOrAdd = useCallback(async () => {
     if (!identifier.trim()) {
       toast({
         title: "Input Required",
@@ -41,18 +42,14 @@ export function InviteStudentDialog({ classroomId, onActionCompleted }: InviteSt
     const isEmail = identifier.includes('@');
 
     if (isEmail) {
-      // Mock email invite
       console.log(`Mock inviting student with email ${identifier} to classroom ${classroomId}`);
       await new Promise(resolve => setTimeout(resolve, 1000)); 
       toast({
         title: "Invite Sent (Mock)",
         description: `An invitation has been 'sent' to ${identifier}. They will need to accept it.`,
       });
-      // For mock invites, we might not trigger a list refresh immediately, 
-      // as the student hasn't actually joined yet.
       onActionCompleted?.(); 
     } else {
-      // Attempt to add by student ID
       try {
         const response = await fetch(`/api/classrooms/${classroomId}/students`, {
           method: 'POST',
@@ -67,7 +64,7 @@ export function InviteStudentDialog({ classroomId, onActionCompleted }: InviteSt
           title: "Student Added",
           description: `Student with ID "${identifier}" has been added to the classroom.`,
         });
-        onActionCompleted?.(); // Trigger list refresh
+        onActionCompleted?.(); 
       } catch (error) {
          toast({
           title: "Error Adding Student",
@@ -80,7 +77,7 @@ export function InviteStudentDialog({ classroomId, onActionCompleted }: InviteSt
     setIsLoading(false);
     setIdentifier(""); 
     setIsOpen(false); 
-  };
+  }, [identifier, classroomId, toast, onActionCompleted]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
