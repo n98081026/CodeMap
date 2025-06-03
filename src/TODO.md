@@ -36,7 +36,7 @@ This section outlines the tasks to migrate the application from mock backend ser
     - [x] `findUserByEmail`, `getUserById`: Query `profiles` table using `supabase-js`.
     - [x] `updateUser`: Update `profiles` table. Supabase Auth methods for email/password change handled separately.
     - [x] `deleteUserProfile`: Delete from `profiles`. Actual `auth.users` deletion needs service_role.
-    - [x] `changeUserPassword`: Use Supabase Auth `updateUser` method for password changes (client-side context).
+    - [x] `changeUserPassword`: Use Supabase Auth `updateUser` method for password changes (client-side context). (Implemented in userService to use Supabase Auth, UI needs wiring if not done).
 - [x] **API Routes (`/api/auth/*`) Review/Refactor:**
     - [x] `/api/auth/login` and `/api/auth/register` are no longer needed; client-side Supabase calls in `AuthContext` suffice. Marked for deletion. (Files updated to reflect deprecation, user can delete them).
     - [ ] Secure other API routes and have them call Supabase admin functions if necessary.
@@ -76,7 +76,7 @@ This section outlines the tasks to migrate the application from mock backend ser
     - [ ] `updateSubmissionStatus`: Update records in `project_submissions`.
     - [ ] `getAllSubmissions`: Query for admin dashboard.
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
-    - [ ] Modify flow to fetch project file from Supabase Storage (if direct file content isn't passed).
+    - [ ] Modify flow to fetch project file from Supabase Storage (if direct file content isn't passed by the tool).
     - [ ] On successful map generation:
         - [ ] Call `conceptMapService.createConceptMap` (which will use Supabase) to save the new map.
         - [ ] Call `projectSubmissionService.updateSubmissionStatus` (which will use Supabase) to link the `generated_concept_map_id` and set status to 'completed'.
@@ -99,34 +99,20 @@ This section outlines the tasks to migrate the application from mock backend ser
 This section outlines improvements to make the GenAI Concept Map features more robust, useful, and "sensible". The focus is on delivering a practical and user-friendly initial version, especially for the project analysis tool.
 
 **I. Enhance `generateMapFromProject` (Make it Practical & Insightful)**
-- [x] **File Upload UI Adaptation**:
-    - [x] Frontend: UI in `ProjectUploadForm` adapted for project archive (.zip, .rar, .tar.gz, .tgz) uploads. Validation for archives done. (Actual Supabase Storage upload pending).
-    - [x] Flow: `generateMapFromProject` input schema descriptions updated for archive context. AI prompt updated.
+
+- [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending).
+    - [ ] Frontend: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar, .tar.gz, .tgz) uploads to Supabase Storage.
 - [ ] **API Endpoint & Backend Processing Pipeline (Post-Supabase Storage Setup):**
     - [ ] API Endpoint: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
-        - [ ] Receive notification of successful upload to Supabase Storage.
+        - [ ] Receive notification of successful upload to Supabase Storage (or handle file stream if direct upload to backend is chosen).
         - [ ] Trigger the `generateMapFromProject` Genkit flow, passing the file path/reference from Supabase Storage.
     - [ ] Consider using Supabase Functions for asynchronous processing triggered by file uploads to avoid long-running API requests.
 - [ ] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`):**
-    - [ ] **Tool Definition**: Define a new Genkit Tool (`ai.defineTool`).
-    - [ ] **Input**:
-        - `projectStoragePath`: string (File path/reference from Supabase Storage).
-        - `userHint` (optional string): User-provided hint about the project's nature or focus area.
-    - [ ] **Tool Logic - Phase 1 (Structure & Dependencies - Core Functionality)**:
-        - [ ] Securely download/access the file from Supabase Storage.
-        - [ ] Unpack archive (handle .zip, .rar if library available, .tar.gz, .tgz). Robust error handling.
-        - [ ] Traverse directory structure (with exclusion patterns: `node_modules`, `.git`, `dist/`, `build/`, `target/`, `venv/`, `__pycache__`).
-        - [ ] Identify and parse README files for project description hints.
-        - [ ] Identify key manifest/config files (e.g., `package.json`, `pom.xml`, `requirements.txt`, `Dockerfile`).
-        - [ ] Extract basic project metadata (name, primary language/framework, main dependencies).
-        - [ ] List major directories and count of significant file types.
-        - [ ] Identify potential entry points or core modules.
-    - [ ] **Tool Logic - Phase 2 (Basic Code & Structural Insights - Iterative & Simplified)**:
-        - [ ] For identified primary language(s) and key files/directories:
-            - Extract names of primary declarations (classes, functions, components) using regex/basic parsing.
-            - Infer module/file purpose from names and directory structure.
-            - (Optional Basic) Extract high-level comments/docstrings.
-    - [ ] **Output (Structured JSON for LLM)**:
+    - [x] **Tool Definition**: Define a new Genkit Tool (`ai.defineTool`). (`src/ai/tools/project-analyzer-tool.ts` created)
+    - [x] **Input**: (`ProjectAnalysisInputSchema` defined in tool file)
+        - projectStoragePath: string (File path/reference from Supabase Storage).
+        - userHint (optional string): User-provided hint about the project's nature or focus area (e.g., "e-commerce backend," "data processing pipeline").
+    - [x] **Output (Structured JSON for LLM)**: (`ProjectAnalysisOutputSchema` defined in tool file)
         ```json
         {
           "projectName": "string | null",
@@ -134,9 +120,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
             { "name": "string (e.g., TypeScript, Spring Boot)", "confidence": "high | medium | low" }
           ],
           "projectSummary": "string | null (from README or userHint)",
-          "dependencies": {
-            "npm": ["string"], "maven": ["string"], "pip": ["string"]
-          },
+          "dependencies": { "npm": ["string"], "maven": ["string"], "pip": ["string"] },
           "directoryStructureSummary": [
             { "path": "string", "fileCounts": { ".ts": 10 }, "inferredPurpose": "string | null" }
           ],
@@ -146,26 +130,50 @@ This section outlines improvements to make the GenAI Concept Map features more r
           "potentialArchitecturalComponents": [
             { "name": "string", "type": "string", "relatedFiles": ["string"] }
           ],
-          "parsingErrors": ["string"]
+          "parsingErrors": ["string"] 
         }
         ```
-    - [ ] **Error Handling & Resource Limits**: Implement timeouts, graceful error handling for unparseable files.
-- [ ] **Modify `generateMapFromProject` Genkit Flow (Post-Tool):**
-    - [ ] **Tool Integration**: Instruct LLM (via prompt) to use `projectStructureAnalyzerTool`.
-    - [ ] **Refined Prompt**: Update prompt to guide LLM on interpreting structured JSON output from the tool, emphasizing high-level components, relationships, and adherence to specified node types.
+    - [ ] **Tool Logic - Phase 1 (Structure & Dependencies - Core Functionality)**: (Tool currently has MOCK logic)
+        - [ ] Securely download/access the file from Supabase Storage.
+        - [ ] Unpack archive (handle .zip, .rar if library available, .tar.gz, .tgz). Implement robust error handling for corrupted archives.
+        - [ ] Traverse directory structure.
+            - Implement exclusion patterns (e.g., node_modules, .git, dist/, build/, target/, venv/, __pycache__).
+            - Identify and parse README files (e.g., README.md, README.txt) at various levels for project description hints.
+        - [ ] Identify key manifest files and configuration files (e.g., package.json, pom.xml, requirements.txt, Cargo.toml, go.mod, composer.json, .csproj, build.gradle, setup.py, Dockerfile, docker-compose.yml, serverless.yml, common CI/CD config files like .gitlab-ci.yml, Jenkinsfile).
+        - [ ] Extract basic project metadata:
+            - Project name (from manifest or directory).
+            - Primary language(s)/framework(s) (infer from manifest, file extensions, and known file structures; assign confidence scores if possible).
+            - Main dependencies (grouped by type, e.g., "npm packages", "maven dependencies").
+        - [ ] List major directories and count of significant file types within them (e.g., .ts, .py, .java, .go, .cs, .rb, .php, .html, .css, .sql).
+        - [ ] Identify potential entry points or core modules:
+            - Look for common entry files (e.g., main.ts, App.tsx, main.py, Program.cs, index.js, cmd/.../main.go).
+            - Identify files in directories often containing core logic (e.g., src/, app/, lib/, pkg/).
+    - [ ] **Tool Logic - Phase 2 (Basic Code & Structural Insights - Iterative & Simplified)**:
+        - [ ] For identified primary language(s) and key files/directories:
+            - Extract names of primary declarations (e.g., top-level classes, functions, interfaces, components, services, controllers, models) using regex or very basic parsing (avoid full AST for simplicity initially). Focus on exported symbols if easily identifiable.
+            - Infer module/file purpose from names and directory structure (e.g., authController.ts likely handles authentication; userModel.java likely defines a user data structure).
+            - (Optional Basic) Extract high-level comments/docstrings from key files/modules if easily parsable.
+    - [ ] **Error Handling & Resource Limits**:
+        - [ ] Implement timeouts for unpacking and analysis to prevent runaway processes.
+        - [ ] Gracefully handle unparseable files or unrecognized structures, logging these and including them in parsingErrors.
+- [x] **Modify `generateMapFromProject` Genkit Flow:**
+    - [x] **Input**: Update input schema to accept `projectStoragePath` (string) and `userGoals` (optional string, for focus areas).
+    - [x] **Tool Integration**: Instruct the LLM (via prompt) to utilize the `projectStructureAnalyzerTool`.
+    - [x] **Refined Prompt**: Update the prompt for `generateMapFromProjectPrompt` to guide the LLM on how to interpret the structured JSON output from `projectStructureAnalyzerTool`.
 - [ ] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
     - [ ] **Update `ProjectUploadForm`**:
-        - [ ] On "Generate Map" confirmation (after file upload to Supabase Storage & metadata submission):
-            - [ ] Trigger enhanced `generateMapFromProject` flow (via API/Supabase Function).
+        - [ ] On "Generate Map" confirmation (after file metadata submission to `projectSubmissions` table and file upload to Supabase Storage):
+            - [ ] Trigger the enhanced `generateMapFromProject` flow (via API route or Supabase Function).
             - [ ] Update `ProjectSubmission` status to `PROCESSING`.
-            - [ ] Provide better loading/progress feedback.
+            - [ ] Provide better loading/progress feedback to the user (e.g., "AI analysis in progress... This might take a few minutes for larger projects.").
     - [ ] **Map Creation & Linking**:
-        - [ ] Flow/API uses `conceptMapService` (Supabase-backed) to create a *new* concept map.
-        - [ ] Update `ProjectSubmission` record (via `projectSubmissionService`) with `generated_concept_map_id` and set status to `COMPLETED`.
-        - [ ] Notify user (toast, submissions page).
+        - [ ] When the Genkit flow successfully generates map data:
+            - [ ] The flow (or the API route calling it) should use `conceptMapService` (now Supabase-backed) to create a new concept map record.
+            - [ ] Update the `ProjectSubmission` record (via `projectSubmissionService`) with the `generated_concept_map_id` and set status to `COMPLETED`.
+            - [ ] Notify the user (e.g., via toast and on the submissions page) that the map is ready.
     - [ ] **Viewing Generated Map**:
-        - [ ] Ensure `SubmissionListItem` links to `generated_concept_map_id` in editor (view-only).
-    - [ ] (Advanced/Future) Allow selective merging/importing of AI-generated map into an *existing* map.
+        - [ ] Ensure the `SubmissionListItem` correctly links to the `generated_concept_map_id` in the editor (in view-only mode initially).
+    - [ ] (Advanced/Future) Allow selective merging/importing of parts of the AI-generated map into an existing map.
 
 **II. Improve In-Editor AI Tool Interactions & Contextual Awareness**
 - [x] **Contextual Input for AI Tools:**
@@ -185,7 +193,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
     - [ ] **(Future - Nice to have for basic) Edit Before Adding**: Allow click-to-edit suggested text in `AISuggestionPanel`.
     - [x] **Clearer Visual Cues**:
         - [x] More obvious which suggestions already exist on map (disabled checkbox, "(already on map)" text).
-        - [ ] Visually differentiate suggestions closely matching existing nodes (partially done by greying out / label).
+        - [x] Visually differentiate suggestions closely matching existing nodes (partially done by greying out / label).
         - [x] Provide a "Clear" option for suggestion categories (Trash icon in header for each category).
     - [x] **Panel Styling and Usability**:
         - [x] Distinct section styling for each AI suggestion type using card backgrounds/borders.
@@ -199,7 +207,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
 - [x] **Loading & Feedback**:
     - [x] Consistent and more specific loading indicators for GenAI modals; buttons show loading state.
     - [ ] Clearer error messages from AI flows, propagated to user via toasts. Offer actionable advice if possible.
-- [ ] **AI Suggestion Panel (`AISuggestionPanel` - formerly `CanvasPlaceholder`):**
+- [x] **AI Suggestion Panel (`AISuggestionPanel` - formerly `CanvasPlaceholder`):**
     - [x] Improved layout and clarity (distinct cards, better empty states for each category).
     - [x] Ensure panel is easily accessible (toggle button in toolbar).
     - [x] Suggestions grouped by type in styled cards.
@@ -278,6 +286,5 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - Supabase client library installed and basic config file created. `.env` updated with user-provided values. `src/types/supabase.ts` created; user needs to run typegen.
 - `userService.ts` refactored for Supabase profile operations. Old `/api/auth/*` routes marked deprecated.
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a mechanism to create the corresponding `profiles` table entry (e.g., Supabase Function trigger) is still needed by the user.
-
+- `projectStructureAnalyzerTool` is defined with MOCK logic. The `generateMapFromProject` flow is updated to use it.
 ```
-  
