@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
 import type { Node as RFNode, Edge as RFEdge, OnNodesChange, OnEdgesChange, OnNodesDelete, OnEdgesDelete, SelectionChanges, Connection } from 'reactflow';
-import { useNodesState, useEdgesState, MarkerType, ReactFlowProvider } from 'reactflow'; // Added ReactFlowProvider
+import { useNodesState, useEdgesState, MarkerType, ReactFlowProvider } from 'reactflow';
 
 import {
   ExtractConceptsModal,
@@ -449,6 +449,7 @@ export default function ConceptMapEditorPage() {
 
   // Group 7: Effects (useEffect)
   useEffect(() => {
+    // Ensure routeMapId is a valid string before calling loadMapData
     if (typeof routeMapId === 'string' && routeMapId.trim() !== '') {
       loadMapData(routeMapId);
     }
@@ -491,10 +492,11 @@ export default function ConceptMapEditorPage() {
     setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
   }, [storeMapData, setRfNodes, setRfEdges]);
 
-  const mapForInspector: ConceptMap | null = storeMapId && storeMapId !== 'new' ? {
+  // This variable is for passing to PropertiesInspector. It's constructed based on current store state.
+  let mapForInspector: ConceptMap | null = storeMapId && storeMapId !== 'new' ? {
     id: storeMapId,
     name: mapName,
-    ownerId: currentMapOwnerId || user?.id || "",
+    ownerId: currentMapOwnerId || user?.id || "", // Provide a fallback string for ownerId if null/undefined
     mapData: storeMapData,
     isPublic: isPublic,
     sharedWithClassroomId: sharedWithClassroomId,
@@ -503,7 +505,7 @@ export default function ConceptMapEditorPage() {
   } : null;
   
   if (isNewMapMode && !mapForInspector && user) {
-      (mapForInspector as ConceptMap | null) = {
+      mapForInspector = { // Assign to the 'let' declared variable
         id: 'new',
         name: mapName,
         ownerId: user.id,
@@ -528,6 +530,7 @@ export default function ConceptMapEditorPage() {
   const canAddEdge = storeMapData.nodes.length >= 2;
 
   // ---- MAIN RENDER ----
+  // Single return structure; content inside changes based on state
   return (
     <ReactFlowProvider>
       <div className="flex h-full flex-col space-y-4">
@@ -551,99 +554,101 @@ export default function ConceptMapEditorPage() {
           </Button>
         </DashboardHeader>
 
-        {isStoreLoading ? (
-          <div className="flex justify-center items-center py-10 flex-grow">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-        ) : storeError ? (
-          <Card className="flex-grow">
-            <CardHeader>
-              <CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Map</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{storeError}</p>
-              <Button onClick={() => routeMapId && loadMapData(routeMapId)} variant="outline" className="mt-4 mr-2">Try Again</Button>
-              <Button asChild variant="secondary" className="mt-4">
-                <Link href={getBackLink()}> <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()} </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            <EditorToolbar
-              onSaveMap={handleSaveMap}
-              isSaving={isSaving}
-              onExtractConcepts={useCallback(() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [resetStoreAiSuggestions])}
-              onSuggestRelations={useCallback(() => { resetStoreAiSuggestions(); setIsSuggestRelationsModalOpen(true); }, [resetStoreAiSuggestions])}
-              onExpandConcept={useCallback(() => { resetStoreAiSuggestions(); setIsExpandConceptModalOpen(true); }, [resetStoreAiSuggestions])}
-              isViewOnlyMode={isViewOnlyMode}
-              onAddNodeToData={handleAddNodeToData}
-              onAddEdgeToData={handleAddEdgeToData}
-              canAddEdge={canAddEdge}
-            />
+        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
+          {isStoreLoading ? (
+            <div className="flex flex-grow justify-center items-center py-10">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+          ) : storeError ? (
+            <Card className="flex-grow">
+              <CardHeader>
+                <CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Map</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>{storeError}</p>
+                <Button onClick={() => routeMapId && loadMapData(routeMapId)} variant="outline" className="mt-4 mr-2">Try Again</Button>
+                <Button asChild variant="secondary" className="mt-4">
+                  <Link href={getBackLink()}> <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()} </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <EditorToolbar
+                onSaveMap={handleSaveMap}
+                isSaving={isSaving}
+                onExtractConcepts={useCallback(() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [resetStoreAiSuggestions])}
+                onSuggestRelations={useCallback(() => { resetStoreAiSuggestions(); setIsSuggestRelationsModalOpen(true); }, [resetStoreAiSuggestions])}
+                onExpandConcept={useCallback(() => { resetStoreAiSuggestions(); setIsExpandConceptModalOpen(true); }, [resetStoreAiSuggestions])}
+                isViewOnlyMode={isViewOnlyMode}
+                onAddNodeToData={handleAddNodeToData}
+                onAddEdgeToData={handleAddEdgeToData}
+                canAddEdge={canAddEdge}
+              />
 
-            <div className="flex flex-1 gap-4 overflow-hidden">
-              <div className="flex-grow">
-                <InteractiveCanvas
-                  nodes={rfNodes}
-                  edges={rfEdges}
-                  onNodesChange={onRfNodesChange}
-                  onEdgesChange={onRfEdgesChange}
-                  onNodesDelete={handleRfNodesDeleted}
-                  onEdgesDelete={handleRfEdgesDeleted}
-                  onSelectionChange={handleSelectionChange}
-                  onConnect={handleRfConnect}
-                  isViewOnlyMode={isViewOnlyMode}
+              <div className="flex flex-1 gap-4 overflow-hidden">
+                <div className="flex-grow">
+                  <InteractiveCanvas
+                    nodes={rfNodes}
+                    edges={rfEdges}
+                    onNodesChange={onRfNodesChange}
+                    onEdgesChange={onRfEdgesChange}
+                    onNodesDelete={handleRfNodesDeleted}
+                    onEdgesDelete={handleRfEdgesDeleted}
+                    onSelectionChange={handleSelectionChange}
+                    onConnect={handleRfConnect}
+                    isViewOnlyMode={isViewOnlyMode}
+                  />
+                </div>
+                <aside className="hidden w-80 flex-shrink-0 lg:block">
+                  <PropertiesInspector
+                    currentMap={mapForInspector}
+                    onMapPropertiesChange={handleMapPropertiesChange}
+                    selectedElement={actualSelectedElementForInspector}
+                    selectedElementType={selectedElementType}
+                    onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdate}
+                    isNewMapMode={(isNewMapMode || storeMapId === 'new')}
+                    isViewOnlyMode={isViewOnlyMode}
+                  />
+                </aside>
+              </div>
+
+              <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
+                <CanvasPlaceholder
+                    mapData={storeMapData}
+                    extractedConcepts={aiExtractedConcepts}
+                    suggestedRelations={aiSuggestedRelations}
+                    expandedConcepts={aiExpandedConcepts}
+                    onAddExtractedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-extracted-concept')}
+                    onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
+                    onAddExpandedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-expanded-concept')}
+                    isViewOnlyMode={isViewOnlyMode}
                 />
               </div>
-              <aside className="hidden w-80 flex-shrink-0 lg:block">
-                <PropertiesInspector
-                  currentMap={mapForInspector}
-                  onMapPropertiesChange={handleMapPropertiesChange}
-                  selectedElement={actualSelectedElementForInspector}
-                  selectedElementType={selectedElementType}
-                  onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdate}
-                  isNewMapMode={(isNewMapMode || storeMapId === 'new')}
-                  isViewOnlyMode={isViewOnlyMode}
+
+              {isExtractConceptsModalOpen && !isViewOnlyMode && (
+                <ExtractConceptsModal
+                    onConceptsExtracted={handleConceptsExtracted}
+                    onOpenChange={setIsExtractConceptsModalOpen}
                 />
-              </aside>
-            </div>
-
-            <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
-              <CanvasPlaceholder
-                  mapData={storeMapData}
-                  extractedConcepts={aiExtractedConcepts}
-                  suggestedRelations={aiSuggestedRelations}
-                  expandedConcepts={aiExpandedConcepts}
-                  onAddExtractedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-extracted-concept')}
-                  onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
-                  onAddExpandedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-expanded-concept')}
-                  isViewOnlyMode={isViewOnlyMode}
-              />
-            </div>
-
-            {isExtractConceptsModalOpen && !isViewOnlyMode && (
-              <ExtractConceptsModal
-                  onConceptsExtracted={handleConceptsExtracted}
-                  onOpenChange={setIsExtractConceptsModalOpen}
-              />
-            )}
-            {isSuggestRelationsModalOpen && !isViewOnlyMode && (
-              <SuggestRelationsModal
-                onRelationsSuggested={handleRelationsSuggested}
-                initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)}
-                onOpenChange={setIsSuggestRelationsModalOpen}
-              />
-            )}
-            {isExpandConceptModalOpen && !isViewOnlyMode && (
-              <ExpandConceptModal
-                onConceptExpanded={handleConceptExpanded}
-                initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""}
-                onOpenChange={setIsExpandConceptModalOpen}
-              />
-            )}
-          </>
-        )}
+              )}
+              {isSuggestRelationsModalOpen && !isViewOnlyMode && (
+                <SuggestRelationsModal
+                  onRelationsSuggested={handleRelationsSuggested}
+                  initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)}
+                  onOpenChange={setIsSuggestRelationsModalOpen}
+                />
+              )}
+              {isExpandConceptModalOpen && !isViewOnlyMode && (
+                <ExpandConceptModal
+                  onConceptExpanded={handleConceptExpanded}
+                  initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""}
+                  onOpenChange={setIsExpandConceptModalOpen}
+                />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </ReactFlowProvider>
   );
