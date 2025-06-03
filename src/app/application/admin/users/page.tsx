@@ -56,10 +56,8 @@ export default function AdminUsersPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
-  let adminDashboardLink = "/application/admin/dashboard";
-   if (adminUser && adminUser.role !== UserRole.ADMIN) {
-     adminDashboardLink = adminUser.role === UserRole.TEACHER ? "/application/teacher/dashboard" : "/application/student/dashboard";
-  }
+  const adminDashboardLink = "/application/admin/dashboard";
+
 
   const fetchUsers = useCallback(async (page: number) => {
     setIsLoading(true);
@@ -109,7 +107,7 @@ export default function AdminUsersPage() {
   }, [toast, users.length, currentPage, fetchUsers, adminUser?.id]);
 
   const openEditModal = useCallback((userToEdit: User) => {
-    if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin-mock-id" || userToEdit.id === adminUser?.id) {
+    if (userToEdit.id === "student-test-id" || userToEdit.id === "teacher-test-id" || userToEdit.id === "admin-mock-id" || userToEdit.id === adminUser?.id) {
        toast({ title: "Operation Denied", description: "Pre-defined test users, the main mock admin, or your own account cannot be edited.", variant: "destructive" });
        return;
     }

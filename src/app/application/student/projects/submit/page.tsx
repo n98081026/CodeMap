@@ -10,11 +10,7 @@ import { useAuth } from "@/contexts/auth-context";
 
 
 export default function SubmitProjectPage() {
-  const { user } = useAuth();
-  let studentDashboardLink = "/application/student/dashboard";
-  if (user && user.role !== UserRole.STUDENT) {
-    studentDashboardLink = user.role === UserRole.ADMIN ? "/application/admin/dashboard" : "/application/teacher/dashboard";
-  }
+  const studentDashboardLink = "/application/student/dashboard";
 
   return (
     <div className="space-y-6">

@@ -20,10 +20,8 @@ export default function StudentConceptMapsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  let studentDashboardLink = "/application/student/dashboard";
-  if (user && user.role !== UserRole.STUDENT) {
-    studentDashboardLink = user.role === UserRole.ADMIN ? "/application/admin/dashboard" : "/application/teacher/dashboard";
-  }
+  const studentDashboardLink = "/application/student/dashboard";
+
 
   const fetchStudentMaps = useCallback(async () => {
     if (!user) {
