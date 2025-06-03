@@ -1,3 +1,4 @@
+
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -10,26 +11,26 @@ This section outlines the tasks to migrate the application from mock backend ser
 - [x] **Client Library & Config:**
     - [x] Install `@supabase/supabase-js` package.
     - [x] Create Supabase client configuration file (`src/lib/supabaseClient.ts`).
-    - [x] Set up environment variables for Supabase URL and Anon Key (`.env` and deployment). (User needs to fill in values)
-- [x] **Database Schema Design (Initial Pass):**
-    - [x] Define table structures for `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`. (Assumed conceptual definition, user needs to implement in Supabase)
-    - [x] Plan relationships (foreign keys) between tables. (Assumed conceptual definition)
+    - [x] Set up environment variables for Supabase URL and Anon Key (`.env` and deployment). (User needs to fill in values - **DONE, user provided values**)
+- [ ] **Database Schema Design (Initial Pass):**
+    - [ ] Define table structures for `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`. (Assumed conceptual definition, user needs to implement in Supabase)
+    - [ ] Plan relationships (foreign keys) between tables. (Assumed conceptual definition)
 - [x] **Database Migrations:**
     - [x] Set up Supabase CLI for local development and schema migrations. (Assumed user will do)
     - [x] Create initial schema migration SQL scripts. (Assumed user will do)
-    - [x] Generate TypeScript types from your Supabase schema using `supabase gen types typescript --project-id <your-project-id> --schema public > src/types/supabase.ts` and update `supabaseClient.ts`. **(User has run this command).** Placeholder file `src/types/supabase.ts` created and client updated.
+    - [x] Generate TypeScript types from your Supabase schema using `supabase gen types typescript --project-id <your-project-id> --schema public > src/types/supabase.ts` and update `supabaseClient.ts`. **(User has run this command).** Placeholder file `src/types/supabase.ts` created and client updated. User needs to run command to populate it.
 
 **2. User Authentication & Profiles with Supabase Auth**
 - [ ] **Users (`profiles`) Table:**
-    - [x] Create `profiles` table in Supabase (columns: `id` (FK to `auth.users.id`), `name`, `email`, `role` (e.g., using a `user_role_enum`), `created_at`, `updated_at`). (User needs to create this in their Supabase project)
+    - [ ] Create `profiles` table in Supabase (columns: `id` (FK to `auth.users.id`), `name`, `email`, `role` (e.g., using a `user_role_enum`), `created_at`, `updated_at`). (User needs to create this in their Supabase project)
     - [ ] Set up RLS policies for `profiles` (e.g., users can update their own profile, read their own, admins can manage). (User needs to implement RLS)
 - [x] **`AuthContext` Refactor:**
     - [x] Replace mock `login` with Supabase `signInWithPassword`.
     - [x] Replace mock `register` with Supabase `signUp`. (Profile creation post-signup is a separate step).
     - [x] Replace mock `logout` with Supabase `signOut`.
-    - [x] Fetch user profile data from `profiles` table after Supabase auth state changes (Initial implementation, user to complete actual fetch).
+    - [x] Fetch user profile data from `profiles` table after Supabase auth state changes. (Logic added to `AuthContext` to call `userService.getUserById`).
     - [x] Implement session management using Supabase `onAuthStateChange`.
-    - [x] Remove old mock user data and local storage logic for user object session.
+    - [x] Remove old mock user data and local storage logic for user object session (Supabase handles its own session).
 - [x] **`userService.ts` Refactor:**
     - [x] `createUserProfile`: New function to create a corresponding record in the `profiles` table after Supabase `signUp` (to be called by a trigger or separate API). Original `createUser` concept adapted.
     - [x] `findUserByEmail`, `getUserById`: Query `profiles` table using `supabase-js`.
@@ -98,38 +99,34 @@ This section outlines the tasks to migrate the application from mock backend ser
 This section outlines improvements to make the GenAI Concept Map features more robust, useful, and "sensible". The focus is on delivering a practical and user-friendly initial version, especially for the project analysis tool.
 
 **I. Enhance `generateMapFromProject` (Make it Practical & Insightful)**
-- [x] **File Upload & Backend Processing Pipeline:**
-    - [x] **Frontend**: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar, .tar.gz, .tgz) uploads. (Actual Supabase Storage upload pending, UI flow for archive selection and metadata submission is adapted. Validation for archives done).
-    - [ ] **API Endpoint**: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
-        - [ ] Receive notification of successful upload to Supabase Storage (or handle file stream if direct upload to backend is chosen).
+- [x] **File Upload UI Adaptation**:
+    - [x] Frontend: UI in `ProjectUploadForm` adapted for project archive (.zip, .rar, .tar.gz, .tgz) uploads. Validation for archives done. (Actual Supabase Storage upload pending).
+    - [x] Flow: `generateMapFromProject` input schema descriptions updated for archive context. AI prompt updated.
+- [ ] **API Endpoint & Backend Processing Pipeline (Post-Supabase Storage Setup):**
+    - [ ] API Endpoint: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
+        - [ ] Receive notification of successful upload to Supabase Storage.
         - [ ] Trigger the `generateMapFromProject` Genkit flow, passing the file path/reference from Supabase Storage.
-        - [ ] Consider using Supabase Functions for asynchronous processing triggered by file uploads to avoid long-running API requests.
+    - [ ] Consider using Supabase Functions for asynchronous processing triggered by file uploads to avoid long-running API requests.
 - [ ] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`):**
     - [ ] **Tool Definition**: Define a new Genkit Tool (`ai.defineTool`).
     - [ ] **Input**:
         - `projectStoragePath`: string (File path/reference from Supabase Storage).
-        - `userHint` (optional string): User-provided hint about the project's nature or focus area (e.g., "e-commerce backend," "data processing pipeline").
+        - `userHint` (optional string): User-provided hint about the project's nature or focus area.
     - [ ] **Tool Logic - Phase 1 (Structure & Dependencies - Core Functionality)**:
         - [ ] Securely download/access the file from Supabase Storage.
-        - [ ] Unpack archive (handle .zip, .rar if library available, .tar.gz, .tgz). Implement robust error handling for corrupted archives.
-        - [ ] Traverse directory structure.
-            - Implement exclusion patterns (e.g., `node_modules`, `.git`, `dist/`, `build/`, `target/`, `venv/`, `__pycache__`).
-            - Identify and parse README files (e.g., `README.md`, `README.txt`) at various levels for project description hints.
-        - [ ] Identify key manifest files and configuration files (e.g., `package.json`, `pom.xml`, `requirements.txt`, `Cargo.toml`, `go.mod`, `composer.json`, `.csproj`, `build.gradle`, `setup.py`, `Dockerfile`, `docker-compose.yml`, `serverless.yml`, common CI/CD config files like `.gitlab-ci.yml`, `Jenkinsfile`).
-        - [ ] Extract basic project metadata:
-            - Project name (from manifest or directory).
-            - Primary language(s)/framework(s) (infer from manifest, file extensions, and known file structures; assign confidence scores if possible).
-            - Main dependencies (grouped by type, e.g., "npm packages", "maven dependencies").
-        - [ ] List major directories and count of significant file types within them (e.g., `.ts`, `.py`, `.java`, `.go`, `.cs`, `.rb`, `.php`, `.html`, `.css`, `.sql`).
-        - [ ] Identify potential entry points or core modules:
-            - Look for common entry files (e.g., `main.ts`, `App.tsx`, `main.py`, `Program.cs`, `index.js`, `cmd/.../main.go`).
-            - Identify files in directories often containing core logic (e.g., `src/`, `app/`, `lib/`, `pkg/`).
+        - [ ] Unpack archive (handle .zip, .rar if library available, .tar.gz, .tgz). Robust error handling.
+        - [ ] Traverse directory structure (with exclusion patterns: `node_modules`, `.git`, `dist/`, `build/`, `target/`, `venv/`, `__pycache__`).
+        - [ ] Identify and parse README files for project description hints.
+        - [ ] Identify key manifest/config files (e.g., `package.json`, `pom.xml`, `requirements.txt`, `Dockerfile`).
+        - [ ] Extract basic project metadata (name, primary language/framework, main dependencies).
+        - [ ] List major directories and count of significant file types.
+        - [ ] Identify potential entry points or core modules.
     - [ ] **Tool Logic - Phase 2 (Basic Code & Structural Insights - Iterative & Simplified)**:
         - [ ] For identified primary language(s) and key files/directories:
-            - Extract names of primary declarations (e.g., top-level classes, functions, interfaces, components, services, controllers, models) using regex or very basic parsing (avoid full AST for simplicity initially). Focus on exported symbols if easily identifiable.
-            - Infer module/file purpose from names and directory structure (e.g., `authController.ts` likely handles authentication; `userModel.java` likely defines a user data structure).
-            - (Optional Basic) Extract high-level comments/docstrings from key files/modules if easily parsable.
-    - [ ] **Output (Structured JSON for LLM)**: This structured output is key for the LLM to effectively generate a sensible map.
+            - Extract names of primary declarations (classes, functions, components) using regex/basic parsing.
+            - Infer module/file purpose from names and directory structure.
+            - (Optional Basic) Extract high-level comments/docstrings.
+    - [ ] **Output (Structured JSON for LLM)**:
         ```json
         {
           "projectName": "string | null",
@@ -138,95 +135,80 @@ This section outlines improvements to make the GenAI Concept Map features more r
           ],
           "projectSummary": "string | null (from README or userHint)",
           "dependencies": {
-            "npm": ["string"],
-            "maven": ["string"],
-            "pip": ["string"]
+            "npm": ["string"], "maven": ["string"], "pip": ["string"]
           },
           "directoryStructureSummary": [
-            {
-              "path": "string (e.g., src/services)",
-              "fileCounts": { ".ts": 10, ".js": 2 },
-              "inferredPurpose": "string | null (e.g., Business Logic Services)"
-            }
+            { "path": "string", "fileCounts": { ".ts": 10 }, "inferredPurpose": "string | null" }
           ],
           "keyFiles": [
-            {
-              "filePath": "string",
-              "type": "entry_point | configuration | service_definition | ui_component | model | utility | unknown",
-              "extractedSymbols": ["string (e.g., AuthController, processOrderFunction)"],
-              "briefDescription": "string | null (e.g., Handles user authentication endpoints)"
-            }
+            { "filePath": "string", "type": "string", "extractedSymbols": ["string"], "briefDescription": "string | null" }
           ],
           "potentialArchitecturalComponents": [
-            {
-              "name": "string (e.g., User Service, Payment Gateway)",
-              "type": "service | module | ui_area | data_store_interface",
-              "relatedFiles": ["string (paths)"]
-            }
+            { "name": "string", "type": "string", "relatedFiles": ["string"] }
           ],
-          "parsingErrors": ["string (e.g., Could not parse requirements.txt)"]
+          "parsingErrors": ["string"]
         }
         ```
-    - [ ] **Error Handling & Resource Limits**:
-        - Implement timeouts for unpacking and analysis to prevent runaway processes.
-        - Gracefully handle unparseable files or unrecognized structures, logging these and including them in `parsingErrors`.
-- [x] **Modify `generateMapFromProject` Genkit Flow:**
-    - [x] **Input**: Update input schema to accept `projectStoragePath` (string) and `userGoals` (optional string, for focus areas). (Descriptions updated, actual storage path use pending tool).
-    - [ ] **Tool Integration**: Instruct the LLM (via prompt) to utilize the `projectStructureAnalyzerTool` by providing it with the `projectStoragePath` (and `userHint` if `userGoals` is provided).
-    - [x] **Refined Prompt**: Update the prompt for `generateMapFromProjectPrompt` to guide the LLM on how to interpret the structured JSON output from `projectStructureAnalyzerTool`. (Prompt adjusted to expect analyzed structure).
-- [x] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
-    - [x] **Update `ProjectUploadForm`**:
-        - [x] On "Generate Map" confirmation (after file metadata submission to `projectSubmissions` table and file upload to Supabase Storage): (UI flow adapted, actual storage & tool call pending).
-            - [x] Trigger the enhanced `generateMapFromProject` flow (via API route or Supabase Function). (Flow is called, but with mock structure for now).
-            - [x] Update `ProjectSubmission` status to `PROCESSING`. (Implemented)
-            - [x] Provide better loading/progress feedback to the user (e.g., "AI analysis in progress..."). (Implemented in dialog)
-    - [x] **Map Creation & Linking**:
-        - [x] When the Genkit flow successfully generates map data:
-            - [x] The flow (or the API route calling it) should use `conceptMapService` (now Supabase-backed) to create a *new* concept map record. (Uses mock service currently)
-            - [x] Update the `ProjectSubmission` record (via `projectSubmissionService`) with the `generated_concept_map_id` and set status to `COMPLETED`. (Uses mock service currently)
-            - [x] Notify the user (e.g., via toast and on the submissions page) that the map is ready. (Implemented)
-    - [x] **Viewing Generated Map**:
-        - [x] Ensure the `SubmissionListItem` correctly links to the `generated_concept_map_id` in the editor (in view-only mode initially). (Implemented)
-    - [ ] (Advanced/Future) Allow selective merging/importing of parts of the AI-generated map into an *existing* map.
+    - [ ] **Error Handling & Resource Limits**: Implement timeouts, graceful error handling for unparseable files.
+- [ ] **Modify `generateMapFromProject` Genkit Flow (Post-Tool):**
+    - [ ] **Tool Integration**: Instruct LLM (via prompt) to use `projectStructureAnalyzerTool`.
+    - [ ] **Refined Prompt**: Update prompt to guide LLM on interpreting structured JSON output from the tool, emphasizing high-level components, relationships, and adherence to specified node types.
+- [ ] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
+    - [ ] **Update `ProjectUploadForm`**:
+        - [ ] On "Generate Map" confirmation (after file upload to Supabase Storage & metadata submission):
+            - [ ] Trigger enhanced `generateMapFromProject` flow (via API/Supabase Function).
+            - [ ] Update `ProjectSubmission` status to `PROCESSING`.
+            - [ ] Provide better loading/progress feedback.
+    - [ ] **Map Creation & Linking**:
+        - [ ] Flow/API uses `conceptMapService` (Supabase-backed) to create a *new* concept map.
+        - [ ] Update `ProjectSubmission` record (via `projectSubmissionService`) with `generated_concept_map_id` and set status to `COMPLETED`.
+        - [ ] Notify user (toast, submissions page).
+    - [ ] **Viewing Generated Map**:
+        - [ ] Ensure `SubmissionListItem` links to `generated_concept_map_id` in editor (view-only).
+    - [ ] (Advanced/Future) Allow selective merging/importing of AI-generated map into an *existing* map.
 
 **II. Improve In-Editor AI Tool Interactions & Contextual Awareness**
 - [x] **Contextual Input for AI Tools:**
     - [x] **`expandConcept`**:
-        - [x] Modify flow input (`ExpandConceptInputSchema` in `expand-concept.ts`) to optionally accept `existingMapContext: z.array(z.string()).optional().describe('Brief text of existing nodes in the map to provide context.')`.
-        - [x] In `ConceptMapEditorPage`, when calling `expandConcept`, pass a sample of existing node texts (e.g., selected node, its direct neighbors).
-        - [x] Update prompt in `expandConceptPrompt`.
+        - [x] Modified flow input (`ExpandConceptInputSchema`) to accept `existingMapContext: z.array(z.string())`.
+        - [x] `ConceptMapEditorPage` passes selected node & neighbors as context.
+        - [x] Updated prompt in `expandConceptPrompt` to use context.
     - [x] **`suggestRelations`**:
-        - [x] Modify flow input (`SuggestRelationsInputSchema` in `suggest-relations.ts`) to operate on a selection of node texts from the current map (`concepts: z.array(z.string())`, min 1 element - updated from min 2 based on modal use).
-        - [x] In `ConceptMapEditorPage`, when opening `SuggestRelationsModal`, pass the text of currently selected/relevant nodes.
-        - [x] Update prompt in `suggestRelationsPrompt`.
+        - [x] Modified flow input (`SuggestRelationsInputSchema`) to operate on `concepts: z.array(z.string())` from map.
+        - [x] `ConceptMapEditorPage` passes selected/relevant node texts.
+        - [x] Updated prompt in `suggestRelationsPrompt` to use map concepts.
     - [ ] **`extractConcepts`**:
-        - [ ] (Future Feature) If text is extracted from a document upload (e.g., PDF, DOCX), pass document name/context and potentially a summary of the document to the AI flow.
+        - [ ] (Future Feature) If text is from document upload, pass document name/context.
 - [x] **Interactive AI Suggestions in `CanvasPlaceholder` / UI (AISuggestionPanel):**
-    - [x] **Selective Addition (Key for Usability)**:
-        - [x] For "Extracted Concepts", "Suggested Relations", "Expanded Concepts": Display as a list with checkboxes; allow user to select which ones to add. "Add Selected" and "Add All New" buttons implemented.
-    - [ ] **(Future - Nice to have for basic) Edit Before Adding**: Allow users to click-to-edit the text of a suggested concept or relation label within the `AISuggestionPanel` before adding it to the map.
+    - [x] **Selective Addition**:
+        - [x] "Extracted Concepts", "Suggested Relations", "Expanded Concepts" displayed with checkboxes. "Add Selected" and "Add All New" buttons implemented.
+    - [ ] **(Future - Nice to have for basic) Edit Before Adding**: Allow click-to-edit suggested text in `AISuggestionPanel`.
     - [x] **Clearer Visual Cues**:
-        - [x] Make it more obvious which suggestions have already been added to the map (by disabling checkbox and showing "(already on map)" text or similar visual cue like "(exists)" for relation nodes).
-        - [ ] Visually differentiate suggestions that closely match existing nodes. (Partially done by greying out / label)
-        - [x] Provide a "Clear" option for suggestion categories. (Implemented for each category via trash icon in header)
+        - [x] More obvious which suggestions already exist on map (disabled checkbox, "(already on map)" text).
+        - [ ] Visually differentiate suggestions closely matching existing nodes (partially done by greying out / label).
+        - [x] Provide a "Clear" option for suggestion categories (Trash icon in header for each category).
+    - [x] **Panel Styling and Usability**:
+        - [x] Distinct section styling for each AI suggestion type using card backgrounds/borders.
+        - [x] Clearer "No Suggestions" state within each card.
+        - [x] Refined "Add All New" and "Add Selected" button labels with counts.
 
 **III. General AI User Experience (UX)**
 - [x] **Tooltips & Guidance**:
-    - [x] Enhance tooltips in `EditorToolbar` for AI buttons to clarify function, expected input, and output.
+    - [x] Enhanced tooltips in `EditorToolbar` for AI buttons (clarify function, expected input, output).
     - [ ] Provide brief in-UI guidance for new users.
 - [x] **Loading & Feedback**:
-    - [x] Consistent and more specific loading indicators for each AI modal/operation. (Modals reviewed, buttons show loading state).
-    - [ ] Clearer error messages from AI flows, propagated to the user via toasts. Offer actionable advice if possible.
-- [x] **AI Suggestion Panel (`AISuggestionPanel` - formerly `CanvasPlaceholder`):**
-    - [x] Improve layout and clarity of how AI suggestions are displayed (distinct cards, better empty states for each category).
+    - [x] Consistent and more specific loading indicators for GenAI modals; buttons show loading state.
+    - [ ] Clearer error messages from AI flows, propagated to user via toasts. Offer actionable advice if possible.
+- [ ] **AI Suggestion Panel (`AISuggestionPanel` - formerly `CanvasPlaceholder`):**
+    - [x] Improved layout and clarity (distinct cards, better empty states for each category).
     - [x] Ensure panel is easily accessible (toggle button in toolbar).
-    - [x] Suggestions grouped by type (Extracted, Relations, Expanded) in their own styled cards.
+    - [x] Suggestions grouped by type in styled cards.
 
 Key Philosophy for this Enhancement:
-*   **Practicality First**: The `projectStructureAnalyzerTool` should aim for "good enough" insights from common project structures without requiring perfect parsing of every language.
-*   **User Control**: Give users clear choices about what AI suggestions to incorporate.
-*   **Iterative Improvement**: This plan lays a solid foundation. More advanced parsing, deeper code analysis, and more sophisticated AI interactions can be built on top of this.
-*   **LLM-Friendly Output**: The structure of the `projectStructureAnalyzerTool` output is crucial for the LLM to generate useful maps.
+*   **Practicality First**: `projectStructureAnalyzerTool` aims for "good enough" insights from common project structures.
+*   **User Control**: Give users clear choices about incorporating AI suggestions.
+*   **Iterative Improvement**: This plan is a foundation. More advanced parsing and AI interactions can follow.
+*   **LLM-Friendly Output**: `projectStructureAnalyzerTool` output structure is key for LLM's map generation.
 
 This enhanced plan should provide a significantly more robust and user-friendly experience for the GenAI features, especially making the generateMapFromProject feature truly practical.
 
@@ -288,11 +270,14 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 
 ## Known Issues / Current State
 - Backend services are being migrated from mock to Supabase.
-- AuthContext is being migrated to Supabase Auth.
+- AuthContext is being migrated to Supabase Auth. User profile data now fetched from Supabase `profiles` table if available.
 - Data persistence for all entities will be handled by Supabase.
 - Concept map canvas is React Flow. Node dragging &amp; connections working.
 - AI for project analysis currently uses mock project structure; needs to integrate real file uploads and analysis tool.
 - Zustand `temporal` middleware for undo/redo was causing issues and is temporarily disabled. Needs re-evaluation.
-- Supabase client library installed and basic config file created. `.env` updated with placeholders. `src/types/supabase.ts` created with placeholder and instructions for user. User has run typegen.
+- Supabase client library installed and basic config file created. `.env` updated with user-provided values. `src/types/supabase.ts` created; user needs to run typegen.
 - `userService.ts` refactored for Supabase profile operations. Old `/api/auth/*` routes marked deprecated.
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a mechanism to create the corresponding `profiles` table entry (e.g., Supabase Function trigger) is still needed by the user.
+
+```
+  
