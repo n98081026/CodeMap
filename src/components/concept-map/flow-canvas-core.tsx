@@ -23,7 +23,7 @@ interface FlowCanvasCoreProps {
   onNodesDeleteInStore: (nodeId: string) => void;
   onEdgesDeleteInStore: (edgeId: string) => void;
   onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
-  onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void; // Added prop
+  onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
 }
 
 const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
@@ -34,7 +34,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   onNodesDeleteInStore,
   onEdgesDeleteInStore,
   onConnectInStore,
-  onNodeContextMenu, // Destructure new prop
+  onNodeContextMenu,
 }) => {
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
@@ -74,7 +74,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     if (isViewOnlyMode) return;
     onNodesChangeReactFlow(changes);
     changes.forEach(change => {
-      if (change.type === 'position' && change.position && change.dragging === false) {
+      if (change.type === 'position' && change.position) { // Temporarily removed '&& change.dragging === false'
         onNodesChangeInStore(change.id, { x: change.position.x, y: change.position.y });
       }
     });
@@ -129,7 +129,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onConnect={handleRfConnect}
       isViewOnlyMode={isViewOnlyMode}
       nodeTypes={nodeTypesConfig}
-      onNodeContextMenu={onNodeContextMenu} // Pass prop
+      onNodeContextMenu={onNodeContextMenu}
     />
   );
 };
