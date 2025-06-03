@@ -2,7 +2,7 @@
 "use client";
 
 import type { ReactNode } from 'react';
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import type { User } from '@/types';
 import { UserRole } from '@/types';
@@ -19,12 +19,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Predefined test users for login convenience during development
-// const testStudent: User = { id: "student-test-id", email: "student-test@example.com", name: "Test Student", role: UserRole.STUDENT };
-// const testTeacher: User = { id: "teacher-test-id", email: "teacher-test@example.com", name: "Test Teacher", role: UserRole.TEACHER };
-// const testAdmin: User = { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN };
-
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +26,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    // This effect runs once on mount to check for a stored user.
     const storedUser = localStorage.getItem('codemapUser');
     if (storedUser) {
       try {
@@ -44,10 +37,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
     setIsLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []); // Runs once on mount
 
-  const login = async (email: string, password: string, role: UserRole) => {
+  const login = useCallback(async (email: string, password: string, role: UserRole) => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/auth/login', {
@@ -78,9 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
 
-  const register = async (name: string, email: string, password: string, role: UserRole) => {
+  const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/auth/register', {
@@ -109,18 +101,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('codemapUser');
-    router.push('/login'); // Auth pages are at root
-  };
+    router.push('/login');
+  }, [router]);
   
+  const updateCurrentUserData = useCallback((updatedFields: Partial<User>) => {
+    setUser(currentUser => {
+      if (currentUser) {
+        const newUser = { ...currentUser, ...updatedFields };
+        localStorage.setItem('codemapUser', JSON.stringify(newUser));
+        return newUser;
+      }
+      return null;
+    });
+  }, []);
+
   const isAuthenticated = !!user;
 
    useEffect(() => {
-    // This effect handles redirection if not authenticated after initial loading and for protected routes.
     if (!isLoading && !isAuthenticated && !['/login', '/register', '/'].includes(pathname) && !pathname.startsWith("/_next/")) {
       if (pathname.startsWith('/application/')) {
         router.push('/login');
@@ -128,17 +130,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
-  const updateCurrentUserData = (updatedFields: Partial<User>) => {
-    if (user) {
-      const newUser = { ...user, ...updatedFields };
-      setUser(newUser);
-      localStorage.setItem('codemapUser', JSON.stringify(newUser));
-    }
-  };
-
+  const contextValue = useMemo(() => ({
+    user,
+    isAuthenticated,
+    isLoading,
+    login,
+    logout,
+    register,
+    updateCurrentUserData
+  }), [user, isAuthenticated, isLoading, login, logout, register, updateCurrentUserData]);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, register, updateCurrentUserData }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
