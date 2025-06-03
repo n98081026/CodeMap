@@ -1,49 +1,55 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2 } from "lucide-react";
+import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2, RotateCcw, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { ConceptMapData } from "@/types";
+import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
 
 interface CanvasPlaceholderProps {
   mapData?: ConceptMapData;
+  currentMapNodes?: ConceptMapNode[]; // Added prop
   extractedConcepts?: string[];
   suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
   expandedConcepts?: string[];
   onAddExtractedConcepts?: (concepts: string[]) => void;
   onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
   onAddExpandedConcepts?: (concepts: string[]) => void;
+  onClearExtractedConcepts?: () => void; // Added prop
+  onClearSuggestedRelations?: () => void; // Added prop
+  onClearExpandedConcepts?: () => void; // Added prop
   isViewOnlyMode?: boolean;
-}
-
-interface SelectableListItem {
-  id: string; // For concepts, this is the concept text. For relations, a generated unique ID.
-  label: string; // Display label
-  originalData: any;
 }
 
 export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   mapData,
+  currentMapNodes = [], // Default to empty array
   extractedConcepts = [],
   suggestedRelations = [],
   expandedConcepts = [],
   onAddExtractedConcepts,
   onAddSuggestedRelations,
   onAddExpandedConcepts,
+  onClearExtractedConcepts,
+  onClearSuggestedRelations,
+  onClearExpandedConcepts,
   isViewOnlyMode
 }: CanvasPlaceholderProps) {
 
   const [selectedExtracted, setSelectedExtracted] = useState<Set<string>>(new Set());
-  const [selectedRelations, setSelectedRelations] = useState<Set<number>>(new Set()); // Use index for relations
+  const [selectedRelations, setSelectedRelations] = useState<Set<number>>(new Set());
   const [selectedExpanded, setSelectedExpanded] = useState<Set<string>>(new Set());
 
-  useEffect(() => { // Reset selections when suggestions change
+  const existingNodeTexts = useMemo(() => {
+    return new Set(currentMapNodes.map(n => n.text.toLowerCase().trim()));
+  }, [currentMapNodes]);
+
+  useEffect(() => {
     setSelectedExtracted(new Set());
     setSelectedRelations(new Set());
     setSelectedExpanded(new Set());
@@ -81,21 +87,25 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   const hasMapDataEdges = mapData && mapData.edges && mapData.edges.length > 0;
   const hasAnyContent = hasAiOutput || hasMapDataNodes || hasMapDataEdges;
 
-
   const renderSuggestionSection = (
     title: string,
     IconComponent: React.ElementType,
     items: any[],
     selectedSet: Set<any>,
     itemKeyPrefix: string,
-    renderItemLabel: (item: any) => string,
+    renderItemLabel: (item: any, isExisting: boolean) => React.ReactNode,
+    checkIfItemExists: (item: any) => boolean,
     onAddSelected: (selectedItems: any[]) => void,
-    onAddAll: () => void
+    onAddAll: () => void,
+    onClearCategory?: () => void
   ) => {
     if (!items || items.length === 0) return null;
 
     const handleAddSelected = () => {
-      const toAdd = items.filter((item, index) => selectedSet.has(itemKeyPrefix === 'relation-' ? index : item));
+      const toAdd = items.filter((item, index) => {
+        const key = itemKeyPrefix === 'relation-' ? index : item;
+        return selectedSet.has(key) && !checkIfItemExists(item); // Only add if selected and not already existing
+      });
       if (toAdd.length > 0) {
         onAddSelected(toAdd);
       }
@@ -104,14 +114,19 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     const handleSelectAll = (checked: boolean) => {
         const newSelectedSet = new Set<any>();
         if(checked) {
-            items.forEach((item, index) => newSelectedSet.add(itemKeyPrefix === 'relation-' ? index : item));
+            items.forEach((item, index) => {
+              if (!checkIfItemExists(item)) { // Only allow selecting items that don't already exist
+                newSelectedSet.add(itemKeyPrefix === 'relation-' ? index : item);
+              }
+            });
         }
         if (itemKeyPrefix.startsWith('extracted-')) setSelectedExtracted(newSelectedSet as Set<string>);
         else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelations(newSelectedSet as Set<number>);
         else if (itemKeyPrefix.startsWith('expanded-')) setSelectedExpanded(newSelectedSet as Set<string>);
     };
     
-    const allSelected = items.length > 0 && selectedSet.size === items.length;
+    const allSelectableItems = items.filter(item => !checkIfItemExists(item));
+    const allSelected = allSelectableItems.length > 0 && selectedSet.size === allSelectableItems.length && allSelectableItems.every(item => selectedSet.has(itemKeyPrefix === 'relation-' ? items.indexOf(item) : item));
 
 
     return (
@@ -121,16 +136,23 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
             <CardTitle className="text-base font-semibold text-primary flex items-center">
               <IconComponent className="mr-2 h-5 w-5" /> {title} ({items.length})
             </CardTitle>
-            {!isViewOnlyMode && items.length > 0 && (
-                 <div className="flex items-center space-x-2">
-                    <Checkbox 
-                        id={`${itemKeyPrefix}-select-all`} 
-                        checked={allSelected}
-                        onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
-                    />
-                    <Label htmlFor={`${itemKeyPrefix}-select-all`} className="text-xs">Select All</Label>
-                </div>
-            )}
+            <div className="flex items-center space-x-2">
+                {!isViewOnlyMode && items.length > 0 && allSelectableItems.length > 0 && (
+                     <>
+                        <Checkbox 
+                            id={`${itemKeyPrefix}-select-all`} 
+                            checked={allSelected}
+                            onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
+                        />
+                        <Label htmlFor={`${itemKeyPrefix}-select-all`} className="text-xs">Select New</Label>
+                     </>
+                )}
+                {onClearCategory && !isViewOnlyMode && items.length > 0 && (
+                  <Button variant="ghost" size="icon" onClick={onClearCategory} title={`Clear all ${title} suggestions`}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="max-h-48 overflow-y-auto">
@@ -138,8 +160,9 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
             {items.map((item, index) => {
               const key = itemKeyPrefix === 'relation-' ? index : item;
               const displayId = `${itemKeyPrefix}-${index}`;
+              const isExisting = checkIfItemExists(item);
               return (
-                <div key={displayId} className="flex items-center space-x-2 p-2 border-b border-dashed last:border-b-0">
+                <div key={displayId} className={cn("flex items-center space-x-2 p-2 border-b border-dashed last:border-b-0", isExisting && "opacity-60")}>
                   {!isViewOnlyMode && (
                     <Checkbox
                       id={displayId}
@@ -148,10 +171,11 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
                         itemKeyPrefix.startsWith('extracted-') ? 'extracted' :
                         itemKeyPrefix.startsWith('relation-') ? 'relation' : 'expanded'
                       )(key, Boolean(checked))}
+                      disabled={isExisting}
                     />
                   )}
-                  <Label htmlFor={displayId} className="text-sm font-normal cursor-pointer flex-grow">
-                    {renderItemLabel(item)}
+                  <Label htmlFor={displayId} className={cn("text-sm font-normal flex-grow", !isExisting && "cursor-pointer")}>
+                    {renderItemLabel(item, isExisting)}
                   </Label>
                 </div>
               );
@@ -164,19 +188,64 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
               size="sm"
               variant="outline"
               onClick={handleAddSelected}
-              disabled={isViewOnlyMode || selectedSet.size === 0}
+              disabled={isViewOnlyMode || selectedSet.size === 0 || allSelectableItems.filter(item => selectedSet.has(itemKeyPrefix === 'relation-' ? items.indexOf(item) : item)).length === 0}
               className="w-full sm:w-auto"
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Add Selected ({selectedSet.size})
             </Button>
-            <Button size="sm" variant="default" onClick={onAddAll} disabled={isViewOnlyMode} className="w-full sm:w-auto">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add All Visible ({items.length})
+            <Button 
+              size="sm" 
+              variant="default" 
+              onClick={() => {
+                const nonExistingItems = items.filter(item => !checkIfItemExists(item));
+                if (nonExistingItems.length > 0) onAddSelected(nonExistingItems);
+              }} 
+              disabled={isViewOnlyMode || allSelectableItems.length === 0} 
+              className="w-full sm:w-auto"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> Add All New ({allSelectableItems.length})
             </Button>
           </CardFooter>
         )}
       </Card>
     );
   };
+
+  const renderConceptLabel = (concept: string, isExisting: boolean) => (
+    <>
+      {concept}
+      {isExisting && <span className="ml-2 text-xs text-muted-foreground italic">(already on map)</span>}
+    </>
+  );
+  
+  const checkConceptExists = (concept: string) => existingNodeTexts.has(concept.toLowerCase().trim());
+
+  const renderRelationLabel = (relation: { source: string; target: string; relation: string }, isExisting: boolean) => {
+    const sourceExists = existingNodeTexts.has(relation.source.toLowerCase().trim());
+    const targetExists = existingNodeTexts.has(relation.target.toLowerCase().trim());
+    let label = `${relation.source} → ${relation.target} (${relation.relation})`;
+    if (isExisting) { // isExisting for relations means the relation itself (source-target-label) exists. Not implemented yet.
+         // For now, let's focus on nodes. For relations, isExisting prop isn't used in its full sense yet.
+    }
+    const nodeStatus = [];
+    if (sourceExists) nodeStatus.push(`${relation.source} (exists)`);
+    if (targetExists) nodeStatus.push(`${relation.target} (exists)`);
+    if (nodeStatus.length > 0) {
+        label += ` - Nodes: ${nodeStatus.join(', ')}`;
+    }
+
+    return label;
+  };
+
+  // For relations, "existing" means the source AND target nodes of the relation already exist.
+  // A more advanced check would be if the specific edge label between those two also exists.
+  const checkRelationNodesExist = (relation: { source: string; target: string; relation: string }) => {
+    // For now, let's simplify: if a relation is suggested, its nodes might or might not exist.
+    // The "Add Selected/All" logic in ConceptMapEditorPage already handles creating nodes if they don't exist.
+    // So, for the purpose of disabling checkbox, we don't disable relation checkboxes based on node existence.
+    return false; // Let users always select relations.
+  };
+
 
   return (
     <Card className="h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
@@ -251,36 +320,24 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
               )}
 
               {onAddExtractedConcepts && renderSuggestionSection(
-                "Extracted Concepts",
-                SearchCode,
-                extractedConcepts,
-                selectedExtracted,
-                "extracted-concept",
-                (item) => item,
-                onAddExtractedConcepts,
-                () => onAddExtractedConcepts(extractedConcepts)
+                "Extracted Concepts", SearchCode, extractedConcepts, selectedExtracted, "extracted-concept",
+                renderConceptLabel, checkConceptExists,
+                onAddExtractedConcepts, () => onAddExtractedConcepts && onAddExtractedConcepts(extractedConcepts.filter(c => !checkConceptExists(c))),
+                onClearExtractedConcepts
               )}
 
               {onAddSuggestedRelations && renderSuggestionSection(
-                "Suggested Relations",
-                Lightbulb,
-                suggestedRelations,
-                selectedRelations,
-                "relation-",
-                (item) => `${item.source} → ${item.target} (${item.relation})`,
-                (selectedItems) => onAddSuggestedRelations(selectedItems),
-                () => onAddSuggestedRelations(suggestedRelations)
+                "Suggested Relations", Lightbulb, suggestedRelations, selectedRelations, "relation-",
+                renderRelationLabel, checkRelationNodesExist, // checkRelationNodesExist currently always returns false for relations themselves
+                onAddSuggestedRelations, () => onAddSuggestedRelations && onAddSuggestedRelations(suggestedRelations),
+                onClearSuggestedRelations
               )}
 
               {onAddExpandedConcepts && renderSuggestionSection(
-                "Expanded Ideas",
-                Brain,
-                expandedConcepts,
-                selectedExpanded,
-                "expanded-concept",
-                (item) => item,
-                onAddExpandedConcepts,
-                () => onAddExpandedConcepts(expandedConcepts)
+                "Expanded Ideas", Brain, expandedConcepts, selectedExpanded, "expanded-concept",
+                renderConceptLabel, checkConceptExists,
+                onAddExpandedConcepts, () => onAddExpandedConcepts && onAddExpandedConcepts(expandedConcepts.filter(c => !checkConceptExists(c))),
+                onClearExpandedConcepts
               )}
 
               {hasAnyContent && (
@@ -297,5 +354,3 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
   );
 });
 CanvasPlaceholder.displayName = "CanvasPlaceholder";
-
-    

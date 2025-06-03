@@ -228,21 +228,21 @@ export default function ConceptMapEditorPage() {
 
   const handleConceptsExtracted = useCallback((concepts: string[]) => {
     if (isViewOnlyMode) return;
-    setStoreAiExtractedConcepts(concepts); // Store all extracted concepts
+    setStoreAiExtractedConcepts(concepts); 
     toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts. You can add them to the map via the suggestions panel.` });
-    setIsAiPanelOpen(true); // Open panel to show suggestions
+    setIsAiPanelOpen(true); 
   }, [isViewOnlyMode, setStoreAiExtractedConcepts, toast]);
 
   const handleRelationsSuggested = useCallback((relations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) return;
-    setStoreAiSuggestedRelations(relations); // Store all suggested relations
+    setStoreAiSuggestedRelations(relations); 
     toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations. You can add them to the map via the suggestions panel.` });
     setIsAiPanelOpen(true);
   }, [isViewOnlyMode, setStoreAiSuggestedRelations, toast]);
 
   const handleConceptExpanded = useCallback((newConcepts: string[]) => {
     if (isViewOnlyMode) return;
-    setStoreAiExpandedConcepts(newConcepts); // Store all expanded concepts
+    setStoreAiExpandedConcepts(newConcepts); 
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map via the suggestions panel.` });
     setIsAiPanelOpen(true);
   }, [isViewOnlyMode, setStoreAiExpandedConcepts, toast]);
@@ -257,10 +257,10 @@ export default function ConceptMapEditorPage() {
         toast({ title: "No Concepts Selected", description: "Please select concepts to add.", variant: "default"});
         return;
     }
-    const existingNodeTexts = new Set(useConceptMapStore.getState().mapData.nodes.map(n => n.text));
+    const existingNodeTexts = new Set(useConceptMapStore.getState().mapData.nodes.map(n => n.text.toLowerCase().trim()));
     let addedCount = 0;
     selectedConcepts.forEach(conceptText => {
-      if (!existingNodeTexts.has(conceptText)) {
+      if (!existingNodeTexts.has(conceptText.toLowerCase().trim())) {
         addStoreNode({
           text: conceptText,
           type: 'ai-concept',
@@ -270,9 +270,9 @@ export default function ConceptMapEditorPage() {
       }
     });
     if (addedCount > 0) toast({ title: "Concepts Added", description: `${addedCount} new concepts added to map. Remember to save.` });
-    else toast({ title: "No New Concepts", description: "All selected suggestions may already exist on the map.", variant: "default" });
+    else toast({ title: "No New Concepts", description: "All selected new suggestions may already exist on the map or were not selected.", variant: "default" });
 
-    setStoreAiExtractedConcepts([]); // Clear suggestions after adding
+    setStoreAiExtractedConcepts([]); 
   }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts]);
 
   const addSelectedSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
@@ -289,20 +289,20 @@ export default function ConceptMapEditorPage() {
     let conceptsAddedFromRelationsCount = 0;
     
     selectedRelations.forEach(rel => {
-      let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Get current nodes before potential additions
-      let sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
+      let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
+      let sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
       if (!sourceNode) {
         addStoreNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
-        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Refresh snapshot
-        sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
+        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
+        sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
         if (sourceNode) conceptsAddedFromRelationsCount++; else return; 
       }
 
-      let targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
+      let targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
       if (!targetNode) {
         addStoreNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
-        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Refresh snapshot
-        targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
+        currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
+        targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
         if (targetNode) conceptsAddedFromRelationsCount++; else return; 
       }
 
@@ -318,9 +318,9 @@ export default function ConceptMapEditorPage() {
     if (conceptsAddedFromRelationsCount > 0) toastMessage += `${conceptsAddedFromRelationsCount} new concepts (from relations) added. `;
 
     if (toastMessage) toast({ title: "Relations Added", description: `${toastMessage.trim()} Remember to save the map.` });
-    else toast({ title: "No New Relations", description: "All selected suggestions may already exist on the map.", variant: "default" });
+    else toast({ title: "No New Relations", description: "All selected suggestions may already exist on the map or were not selected.", variant: "default" });
 
-    setStoreAiSuggestedRelations([]); // Clear suggestions after adding
+    setStoreAiSuggestedRelations([]); 
   }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations]);
 
   const addSelectedExpandedConceptsToMap = useCallback((selectedConcepts: string[]) => {
@@ -332,10 +332,10 @@ export default function ConceptMapEditorPage() {
         toast({ title: "No Concepts Selected", description: "Please select concepts to add.", variant: "default"});
         return;
     }
-    const existingNodeTexts = new Set(useConceptMapStore.getState().mapData.nodes.map(n => n.text));
+    const existingNodeTexts = new Set(useConceptMapStore.getState().mapData.nodes.map(n => n.text.toLowerCase().trim()));
     let addedCount = 0;
     selectedConcepts.forEach(conceptText => {
-      if (!existingNodeTexts.has(conceptText)) {
+      if (!existingNodeTexts.has(conceptText.toLowerCase().trim())) {
         addStoreNode({
           text: conceptText,
           type: 'ai-expanded', 
@@ -345,9 +345,9 @@ export default function ConceptMapEditorPage() {
       }
     });
     if (addedCount > 0) toast({ title: "Expanded Ideas Added", description: `${addedCount} new ideas added to map. Remember to save.` });
-    else toast({ title: "No New Ideas", description: "All selected suggestions may already exist on the map.", variant: "default" });
+    else toast({ title: "No New Ideas", description: "All selected new suggestions may already exist on the map or were not selected.", variant: "default" });
 
-    setStoreAiExpandedConcepts([]); // Clear suggestions after adding
+    setStoreAiExpandedConcepts([]); 
   }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExpandedConcepts]);
 
 
@@ -758,12 +758,16 @@ export default function ConceptMapEditorPage() {
             <div className="py-4 h-[calc(100%-4rem)]">
               <CanvasPlaceholder
                 mapData={storeMapData}
+                currentMapNodes={storeMapData.nodes}
                 extractedConcepts={aiExtractedConcepts}
                 suggestedRelations={aiSuggestedRelations}
                 expandedConcepts={aiExpandedConcepts}
                 onAddExtractedConcepts={addSelectedExtractedConceptsToMap}
                 onAddSuggestedRelations={addSelectedSuggestedRelationsToMap}
                 onAddExpandedConcepts={addSelectedExpandedConceptsToMap}
+                onClearExtractedConcepts={() => setStoreAiExtractedConcepts([])}
+                onClearSuggestedRelations={() => setStoreAiSuggestedRelations([])}
+                onClearExpandedConcepts={() => setStoreAiExpandedConcepts([])}
                 isViewOnlyMode={isViewOnlyMode}
               />
             </div>
