@@ -21,7 +21,8 @@ import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
 
 /**
  * Creates a profile for an existing authenticated user.
- * This function should be called after a user is created in `auth.users` via Supabase Auth.
+ * This function should be called after a user is created in `auth.users` via Supabase Auth,
+ * typically by a Supabase Database Function (trigger on auth.users insert).
  * @param userId The ID from `auth.users.id`.
  * @param name The user's full name.
  * @param email The user's email.
@@ -33,11 +34,11 @@ export async function createUserProfile(userId: string, name: string, email: str
   // Check if a profile for this auth user ID already exists
   const { data: existingById, error: errorById } = await supabase
     .from('profiles')
-    .select('*')
+    .select('id')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
-  if (errorById && errorById.code !== 'PGRST116') { // PGRST116: "Query returned no rows" - this is OK
+  if (errorById) { 
     console.error('Error checking existing profile by ID:', errorById);
     throw new Error(`Failed to check existing profile: ${errorById.message}`);
   }
@@ -45,15 +46,14 @@ export async function createUserProfile(userId: string, name: string, email: str
     throw new Error("A profile for this user ID already exists.");
   }
   
-  // Check if a profile with this email already exists (should ideally be caught by auth.users unique email constraint too)
-  // but good to double check if creating profiles separately.
+  // Check if a profile with this email already exists
   const { data: existingByEmail, error: errorByEmail } = await supabase
     .from('profiles')
-    .select('*')
+    .select('id')
     .eq('email', email)
-    .single();
+    .maybeSingle();
   
-  if (errorByEmail && errorByEmail.code !== 'PGRST116') {
+  if (errorByEmail) {
     console.error('Error checking existing profile by email:', errorByEmail);
     throw new Error(`Failed to check existing profile by email: ${errorByEmail.message}`);
   }
@@ -61,11 +61,10 @@ export async function createUserProfile(userId: string, name: string, email: str
      throw new Error("A profile with this email address already exists.");
   }
 
-
   const { data, error } = await supabase
     .from('profiles')
     .insert({
-      id: userId, // This is the FK to auth.users.id
+      id: userId, 
       name,
       email,
       role,
@@ -82,14 +81,11 @@ export async function createUserProfile(userId: string, name: string, email: str
     throw new Error("Failed to create user profile: No data returned.");
   }
   
-  // Supabase returns the row from the 'profiles' table.
-  // We need to ensure it matches our User type.
-  // The 'id' from profiles is the auth user id.
   return {
     id: data.id,
     email: data.email,
     name: data.name,
-    role: data.role as UserRole, // Assuming 'role' column in profiles matches UserRole enum
+    role: data.role as UserRole, 
   };
 }
 
@@ -102,18 +98,18 @@ export async function createUserProfile(userId: string, name: string, email: str
 export async function findUserByEmail(email: string): Promise<User | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select('id, name, email, role')
     .eq('email', email)
-    .single(); // Use single() if email is unique in profiles
+    .maybeSingle(); 
 
-  if (error && error.code !== 'PGRST116') { // PGRST116: "Query returned no rows"
+  if (error) { 
     console.error('Supabase findUserByEmail error:', error);
     throw new Error(`Error fetching user by email: ${error.message}`);
   }
   if (!data) {
     return null;
   }
-  return data as User; // Assuming columns match User type
+  return data as User;
 }
 
 /**
@@ -124,13 +120,12 @@ export async function findUserByEmail(email: string): Promise<User | null> {
 export async function getUserById(userId: string): Promise<User | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
-    .eq('id', userId) // 'id' in profiles table is the FK to auth.users.id
-    .single();
+    .select('id, name, email, role')
+    .eq('id', userId) 
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') {
+  if (error) {
     console.error('Supabase getUserById error:', error);
-    // Don't throw, just return null as per original mock behavior if not found
   }
   if (!data) {
     return null;
@@ -147,7 +142,7 @@ export async function getUserById(userId: string): Promise<User | null> {
 export async function getAllUsers(page: number = 1, limit: number = 10): Promise<{ users: User[]; totalCount: number }> {
   const { data, error, count } = await supabase
     .from('profiles')
-    .select('*', { count: 'exact' })
+    .select('id, name, email, role', { count: 'exact' })
     .order('name', { ascending: true })
     .range((page - 1) * limit, page * limit - 1);
 
@@ -160,7 +155,8 @@ export async function getAllUsers(page: number = 1, limit: number = 10): Promise
 }
 
 /**
- * Updates a user's profile details.
+ * Updates a user's profile details in the 'profiles' table.
+ * Note: Updating email in 'auth.users' requires supabase.auth.updateUser() and is handled separately.
  * @param userId The ID of the user to update.
  * @param updates Partial user data (name, email, role).
  * @returns The updated user profile object or null if not found.
@@ -171,32 +167,20 @@ export async function updateUser(userId: string, updates: { name?: string; email
   if (!userToUpdate) {
     return null; // User not found
   }
-
-  // If email is being updated, it's more complex with Supabase Auth.
-  // 1. Update in Supabase Auth: supabase.auth.updateUser({ email: newEmail })
-  // 2. Then update in 'profiles' table.
-  // This service currently only handles 'profiles' table update for name/role.
-  // Email change via this service without coordinating with Supabase Auth is risky.
-  // For now, we'll focus on name/role updates in profiles.
   
   const profileUpdates: any = {};
-  if (updates.name !== undefined) profileUpdates.name = updates.name;
-  if (updates.role !== undefined) profileUpdates.role = updates.role;
+  if (updates.name !== undefined && updates.name !== userToUpdate.name) profileUpdates.name = updates.name;
+  if (updates.role !== undefined && updates.role !== userToUpdate.role) profileUpdates.role = updates.role;
 
-  // If email update is attempted here, it should also be updated in auth.users
-  // This example only updates the profiles table directly for name/role.
-  // A full email update would involve `supabase.auth.updateUser({ email: updates.email })`
-  // and ensuring RLS allows the 'profiles.email' update or using a service_role key.
   if (updates.email && updates.email !== userToUpdate.email) {
-    // Check for email collision in profiles table if email is part of updates
     const { data: existingByEmail, error: emailCheckError } = await supabase
       .from('profiles')
       .select('id')
       .eq('email', updates.email)
-      .neq('id', userId) // Exclude the current user from the check
-      .single();
+      .neq('id', userId) 
+      .maybeSingle();
 
-    if (emailCheckError && emailCheckError.code !== 'PGRST116') {
+    if (emailCheckError) {
       console.error('Supabase email check error:', emailCheckError);
       throw new Error(`Error checking for existing email: ${emailCheckError.message}`);
     }
@@ -204,9 +188,7 @@ export async function updateUser(userId: string, updates: { name?: string; email
       throw new Error("Another user profile already exists with this email address.");
     }
     profileUpdates.email = updates.email;
-    // IMPORTANT: This only updates the profiles table email.
-    // The actual auth.users email MUST be updated via supabase.auth.updateUser()
-    // This is usually done client-side by the logged-in user for their own email.
+    // Reminder: This only updates profiles.email. auth.users.email must be updated via supabase.auth.updateUser().
   }
 
 
@@ -220,7 +202,7 @@ export async function updateUser(userId: string, updates: { name?: string; email
     .from('profiles')
     .update(profileUpdates)
     .eq('id', userId)
-    .select()
+    .select('id, name, email, role')
     .single();
 
   if (error) {
@@ -231,35 +213,32 @@ export async function updateUser(userId: string, updates: { name?: string; email
 }
 
 /**
- * Deletes a user's profile.
- * IMPORTANT: This only deletes from the 'profiles' table.
- * Deleting from `auth.users` requires admin privileges and `supabase.auth.admin.deleteUser()`.
+ * Deletes a user's profile from the 'profiles' table.
+ * IMPORTANT: This does NOT delete the user from `auth.users`.
+ * That requires `supabase.auth.admin.deleteUser()` with admin privileges.
  * @param userId The ID of the user whose profile to delete.
- * @returns True if profile deleted, false otherwise.
+ * @returns True if profile deleted.
+ * @throws Error if deletion fails or user is a predefined test user.
  */
-export async function deleteUserProfile(userId: string): Promise<boolean> {
-   // Basic protection against deleting critical test users
-  if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin1") {
+export async function deleteUser(userId: string): Promise<boolean> {
+  if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin-mock-id") {
       throw new Error("Pre-defined test user profiles cannot be deleted through this service.");
   }
   
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from('profiles')
-    .delete()
+    .delete({ count: 'exact' })
     .eq('id', userId);
 
   if (error) {
     console.error('Supabase deleteUserProfile error:', error);
-    // Don't throw if simply not found, mimic old behavior of returning false
-    if (error.code === 'PGRST116' || error.code === '22P02') { // No rows, or invalid input (user ID not UUID format)
-        return false;
-    }
     throw new Error(`Failed to delete user profile: ${error.message}`);
   }
-  // Supabase delete returns data if `select()` is used, but here error being null means success
+  if (count === 0) {
+    // Consider if this should be an error or just return false if profile didn't exist.
+    // For consistency with previous mock, returning false might be okay, or throw "Profile not found".
+    // Let's throw for clarity in a Supabase context.
+    throw new Error("Profile not found or already deleted.");
+  }
   return true;
 }
-
-// Removed the mocked changeUserPassword(userId, currentPassword, newPassword) function.
-// Password changes for the authenticated user are handled by API route using supabase.auth.updateUser()
-// or client-side via AuthContext.
