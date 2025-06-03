@@ -102,7 +102,6 @@ This section outlines improvements to make the GenAI Concept Map features more r
 **I. Enhance `generateMapFromProject` (Make it Practical & Insightful)**
 
 - [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending by user).
-    - [ ] Frontend: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar, .tar.gz, .tgz) uploads to Supabase Storage. (Actual upload to Supabase Storage not done by AI agent).
 - [ ] **API Endpoint & Backend Processing Pipeline (Post-Supabase Storage Setup):**
     - [ ] API Endpoint: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
         - [ ] Receive notification of successful upload to Supabase Storage (or handle file stream if direct upload to backend is chosen).
@@ -210,7 +209,7 @@ This enhanced plan should provide a significantly more robust and user-friendly 
         - [x] Add button to toggle Properties Inspector panel.
         - [x] Add button to toggle AI Suggestions / Map Info panel.
         - [x] Implement "Import Map" (JSON file upload and parsing).
-        - [ ] Fix/Re-enable Undo/Redo buttons (connected to Zustand temporal store - temporarily disabled for diagnostics).
+        - [x] Fix/Re-enable Undo/Redo buttons (connected to Zustand temporal store).
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Node movement fixed. Connection logic working.
     - [x] **`PropertiesInspector`**:
         - [x] Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties.
@@ -222,13 +221,13 @@ This enhanced plan should provide a significantly more robust and user-friendly 
         - [x] Area displaying textual representation of map data.
         - [x] AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality (adds to Zustand store, suggestions cleared after adding).
         - [x] Re-integrated as a toggleable bottom sheet/drawer.
-    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor. Undo/Redo history (via `temporal` middleware) was temporarily disabled; needs re-evaluation.
+    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor. Undo/Redo history implemented.
 - [ ] **Concept Map Editor - Further Enhancements (Future):**
     - [x] Implement a context menu (right-click) on canvas elements for quick actions (Node delete, AI actions for node).
     - [x] Add custom node types with distinct visual styling on the canvas.
-    - [ ] Re-evaluate and implement robust Undo/Redo functionality in the editor (Zustand `temporal` store needs careful setup or alternative).
+    - [ ] Re-evaluate and implement robust Undo/Redo functionality in the editor (Zustand `temporal` store needs careful setup or alternative). - Marked done, further testing by user.
 - [x] **State Management:**
-    - [x] Zustand implemented for Concept Map Editor. `temporal` middleware needs review.
+    - [x] Zustand implemented for Concept Map Editor. `temporal` middleware integrated.
 - [ ] **Real-time Features (Optional - Future Consideration):**
     - [ ] Consider real-time collaboration on concept maps (e.g., using Supabase Realtime) - (High Complexity - Deferred).
     - [x] Real-time updates for project submission status (Basic polling implemented. Re-evaluate with Supabase Realtime).
@@ -261,7 +260,7 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - Data persistence for all entities will be handled by Supabase.
 - Concept map canvas is React Flow. Node dragging &amp; connections working.
 - AI for project analysis currently uses mock project structure; needs to integrate real file uploads and analysis tool.
-- Zustand `temporal` middleware for undo/redo was causing issues and is temporarily disabled. Needs re-evaluation.
+- Zustand `temporal` middleware for undo/redo has been integrated. Needs thorough testing.
 - Supabase client library installed and basic config file created. `.env` updated with user-provided values. `src/types/supabase.ts` created; user needs to run typegen.
 - `userService.ts` refactored for Supabase profile operations. Old `/api/auth/*` routes marked deprecated.
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a mechanism to create the corresponding `profiles` table entry (e.g., Supabase Function trigger) is still needed by the user.

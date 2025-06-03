@@ -27,7 +27,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu'; 
 import type { CustomNodeData } from '@/components/concept-map/custom-node'; 
 
-import useConceptMapStore from '@/stores/concept-map-store';
+import useConceptMapStore, { type ConceptMapStoreWithTemporal } from '@/stores/concept-map-store';
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -63,6 +63,13 @@ export default function ConceptMapEditorPage() {
     resetAiSuggestions: resetStoreAiSuggestions,
     importMapData,
   } = useConceptMapStore();
+
+  const { undo, redo, pastStates, futureStates } = useConceptMapStore(
+    (state) => (state as ConceptMapStoreWithTemporal).temporal
+  );
+
+  const canUndo = pastStates.length > 0;
+  const canRedo = futureStates.length > 0;
 
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
@@ -208,7 +215,7 @@ export default function ConceptMapEditorPage() {
         throw new Error(errorData.message || "Failed to save map");
       }
       const savedMap: ConceptMap = await response.json();
-      setLoadedMap(savedMap); // Update store with saved map, including new ID if it was a new map
+      setLoadedMap(savedMap); 
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
 
       if ((isNewMapMode || storeMapId === 'new') && savedMap.id) {
@@ -690,10 +697,10 @@ export default function ConceptMapEditorPage() {
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen}
           isAiPanelOpen={isAiPanelOpen}
-          onUndo={() => toast({title: "Undo Disabled", description: "Undo/Redo is temporarily disabled."})}
-          onRedo={() => toast({title: "Redo Disabled", description: "Undo/Redo is temporarily disabled."})}
-          canUndo={false}
-          canRedo={false}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
         />
         <div className="flex-grow relative overflow-hidden">
             <FlowCanvasCore

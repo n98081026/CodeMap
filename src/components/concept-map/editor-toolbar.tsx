@@ -114,7 +114,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Undo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Undo (Disabled)" : !canUndo ? "Undo (Temporarily Disabled)" : "Undo"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Undo (Disabled)" : !canUndo ? "Nothing to Undo" : "Undo"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -122,7 +122,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Redo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Redo (Disabled)" : !canRedo ? "Redo (Temporarily Disabled)" : "Redo"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Redo (Disabled)" : !canRedo ? "Nothing to Redo" : "Redo"}</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />

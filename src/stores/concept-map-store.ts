@@ -1,5 +1,6 @@
 
-import { create, type StateCreator } from 'zustand';
+import { create } from 'zustand';
+import { temporal, type TemporalState } from 'zustand/middleware';
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 
 // --- Unique ID Generation ---
@@ -66,6 +67,9 @@ interface ConceptMapState {
   deleteEdge: (edgeId: string) => void;
 }
 
+// Define the part of the state that will be tracked by temporal middleware
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId'>;
+
 const initialStateBase: Omit<ConceptMapState, 
   'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 
   'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
@@ -92,143 +96,171 @@ const initialStateBase: Omit<ConceptMapState,
 };
 
 
-export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
-  ...initialStateBase,
-
-  setMapId: (id) => set({ mapId: id }),
-  setMapName: (name) => set({ mapName: name }),
-  setCurrentMapOwnerId: (ownerId) => set({ currentMapOwnerId: ownerId }),
-  setCurrentMapCreatedAt: (createdAt) => set({ currentMapCreatedAt: createdAt }),
-  setIsPublic: (isPublicStatus) => set({ isPublic: isPublicStatus }),
-  setSharedWithClassroomId: (id) => set({ sharedWithClassroomId: id }),
-  setIsNewMapMode: (isNew) => set({ isNewMapMode: isNew }),
-  
-  setIsLoading: (loading) => set({ isLoading: loading }),
-  setIsSaving: (saving) => set({ isSaving: saving }),
-  setError: (errorMsg) => set({ error: errorMsg }),
-
-  setSelectedElement: (id, type) => set({ selectedElementId: id, selectedElementType: type }),
-  
-  setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
-  setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
-  setAiExpandedConcepts: (concepts) => set({ aiExpandedConcepts: concepts }),
-  resetAiSuggestions: () => set({ aiExtractedConcepts: [], aiSuggestedRelations: [], aiExpandedConcepts: [] }),
-
-  initializeNewMap: (userId) => {
-    set({
+export const useConceptMapStore = create<ConceptMapState>()(
+  temporal(
+    (set, get) => ({
       ...initialStateBase,
-      mapId: 'new',
-      mapName: 'Untitled Concept Map',
-      currentMapOwnerId: userId,
-      currentMapCreatedAt: new Date().toISOString(),
-      isNewMapMode: true,
-      isLoading: false,
-    });
-  },
-  setLoadedMap: (map) => {
-    set({
-      mapId: map.id,
-      mapName: map.name,
-      currentMapOwnerId: map.ownerId,
-      currentMapCreatedAt: map.createdAt,
-      isPublic: map.isPublic,
-      sharedWithClassroomId: map.sharedWithClassroomId || null,
-      mapData: map.mapData || { nodes: [], edges: [] },
-      isNewMapMode: false,
-      isLoading: false,
-      error: null,
-      aiExtractedConcepts: [],
-      aiSuggestedRelations: [],
-      aiExpandedConcepts: [],
-    });
-  },
-  importMapData: (importedData, fileName) => {
-    const currentMapName = get().mapName;
-    const newName = fileName ? `Imported: ${fileName}` : `Imported: ${currentMapName}`;
-    
-    set((state) => ({
-      mapData: importedData,
-      mapName: newName, 
-      selectedElementId: null,
-      selectedElementType: null,
-      aiExtractedConcepts: [],
-      aiSuggestedRelations: [],
-      aiExpandedConcepts: [],
-      isLoading: false,
-      isSaving: false,
-      error: null,
-    }));
-  },
-  resetStore: () => set(initialStateBase),
 
-  addNode: (options) => set((state) => {
-    const newNode: ConceptMapNode = {
-      id: uniqueNodeId(),
-      text: options.text,
-      type: options.type,
-      x: options.position.x,
-      y: options.position.y,
-      details: options.details || '',
-    };
-    return { mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } };
-  }),
+      setMapId: (id) => set({ mapId: id }),
+      setMapName: (name) => set({ mapName: name }),
+      setCurrentMapOwnerId: (ownerId) => set({ currentMapOwnerId: ownerId }),
+      setCurrentMapCreatedAt: (createdAt) => set({ currentMapCreatedAt: createdAt }),
+      setIsPublic: (isPublicStatus) => set({ isPublic: isPublicStatus }),
+      setSharedWithClassroomId: (id) => set({ sharedWithClassroomId: id }),
+      setIsNewMapMode: (isNew) => set({ isNewMapMode: isNew }),
+      
+      setIsLoading: (loading) => set({ isLoading: loading }),
+      setIsSaving: (saving) => set({ isSaving: saving }),
+      setError: (errorMsg) => set({ error: errorMsg }),
 
-  updateNode: (nodeId, updates) => set((state) => ({
-    mapData: {
-      ...state.mapData,
-      nodes: state.mapData.nodes.map((node) =>
-        node.id === nodeId ? { ...node, ...updates } : node
-      ),
-    },
-  })),
+      setSelectedElement: (id, type) => set({ selectedElementId: id, selectedElementType: type }),
+      
+      setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
+      setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
+      setAiExpandedConcepts: (concepts) => set({ aiExpandedConcepts: concepts }),
+      resetAiSuggestions: () => set({ aiExtractedConcepts: [], aiSuggestedRelations: [], aiExpandedConcepts: [] }),
 
-  deleteNode: (nodeId) => set((state) => {
-    const newNodes = state.mapData.nodes.filter((node) => node.id !== nodeId);
-    const newEdges = state.mapData.edges.filter(
-      (edge) => edge.source !== nodeId && edge.target !== nodeId
-    );
-    const newSelectedElementId = state.selectedElementId === nodeId ? null : state.selectedElementId;
-    const newSelectedElementType = state.selectedElementId === nodeId ? null : state.selectedElementType;
-    return { 
-      mapData: { nodes: newNodes, edges: newEdges },
-      selectedElementId: newSelectedElementId,
-      selectedElementType: newSelectedElementType,
-    };
-  }),
-
-  addEdge: (options) => set((state) => {
-    const newEdge: ConceptMapEdge = {
-      id: uniqueEdgeId(),
-      source: options.source,
-      target: options.target,
-      sourceHandle: options.sourceHandle || null,
-      targetHandle: options.targetHandle || null,
-      label: options.label || 'connects',
-    };
-    return { mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } };
-  }),
-
-  updateEdge: (edgeId, updates) => set((state) => ({
-    mapData: {
-      ...state.mapData,
-      edges: state.mapData.edges.map((edge) =>
-        edge.id === edgeId ? { ...edge, ...updates } : edge
-      ),
-    },
-  })),
-
-  deleteEdge: (edgeId) => set((state) => {
-    const newSelectedElementId = state.selectedElementId === edgeId ? null : state.selectedElementId;
-    const newSelectedElementType = state.selectedElementId === edgeId ? null : state.selectedElementType;
-    return {
-      mapData: {
-        ...state.mapData,
-        edges: state.mapData.edges.filter((edge) => edge.id !== edgeId),
+      initializeNewMap: (userId) => {
+        const newMapState = {
+          ...initialStateBase,
+          mapId: 'new',
+          mapName: 'Untitled Concept Map',
+          currentMapOwnerId: userId,
+          currentMapCreatedAt: new Date().toISOString(),
+          isNewMapMode: true,
+          isLoading: false,
+        };
+        set(newMapState);
+        // Manually clear temporal history for a new map
+        (get() as any).temporal?.clear(); 
       },
-      selectedElementId: newSelectedElementId,
-      selectedElementType: newSelectedElementType,
-    };
-  })
-}));
+      setLoadedMap: (map) => {
+        set({
+          mapId: map.id,
+          mapName: map.name,
+          currentMapOwnerId: map.ownerId,
+          currentMapCreatedAt: map.createdAt,
+          isPublic: map.isPublic,
+          sharedWithClassroomId: map.sharedWithClassroomId || null,
+          mapData: map.mapData || { nodes: [], edges: [] },
+          isNewMapMode: false,
+          isLoading: false,
+          error: null,
+          aiExtractedConcepts: [],
+          aiSuggestedRelations: [],
+          aiExpandedConcepts: [],
+        });
+        // Manually clear temporal history when a map is loaded
+        (get() as any).temporal?.clear();
+      },
+      importMapData: (importedData, fileName) => {
+        const currentMapName = get().mapName;
+        const newName = fileName ? `Imported: ${fileName}` : `Imported: ${currentMapName}`;
+        
+        set((state) => ({
+          mapData: importedData,
+          mapName: newName, 
+          selectedElementId: null,
+          selectedElementType: null,
+          aiExtractedConcepts: [],
+          aiSuggestedRelations: [],
+          aiExpandedConcepts: [],
+          isLoading: false,
+          isSaving: false,
+          error: null,
+        }));
+        // Manually clear temporal history for an imported map
+         (get() as any).temporal?.clear();
+      },
+      resetStore: () => {
+        set(initialStateBase);
+        (get() as any).temporal?.clear();
+      },
+
+      addNode: (options) => set((state) => {
+        const newNode: ConceptMapNode = {
+          id: uniqueNodeId(),
+          text: options.text,
+          type: options.type,
+          x: options.position.x,
+          y: options.position.y,
+          details: options.details || '',
+        };
+        return { mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } };
+      }),
+
+      updateNode: (nodeId, updates) => set((state) => ({
+        mapData: {
+          ...state.mapData,
+          nodes: state.mapData.nodes.map((node) =>
+            node.id === nodeId ? { ...node, ...updates } : node
+          ),
+        },
+      })),
+
+      deleteNode: (nodeId) => set((state) => {
+        const newNodes = state.mapData.nodes.filter((node) => node.id !== nodeId);
+        const newEdges = state.mapData.edges.filter(
+          (edge) => edge.source !== nodeId && edge.target !== nodeId
+        );
+        const newSelectedElementId = state.selectedElementId === nodeId ? null : state.selectedElementId;
+        const newSelectedElementType = state.selectedElementId === nodeId ? null : state.selectedElementType;
+        return { 
+          mapData: { nodes: newNodes, edges: newEdges },
+          selectedElementId: newSelectedElementId,
+          selectedElementType: newSelectedElementType,
+        };
+      }),
+
+      addEdge: (options) => set((state) => {
+        const newEdge: ConceptMapEdge = {
+          id: uniqueEdgeId(),
+          source: options.source,
+          target: options.target,
+          sourceHandle: options.sourceHandle || null,
+          targetHandle: options.targetHandle || null,
+          label: options.label || 'connects',
+        };
+        return { mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } };
+      }),
+
+      updateEdge: (edgeId, updates) => set((state) => ({
+        mapData: {
+          ...state.mapData,
+          edges: state.mapData.edges.map((edge) =>
+            edge.id === edgeId ? { ...edge, ...updates } : edge
+          ),
+        },
+      })),
+
+      deleteEdge: (edgeId) => set((state) => {
+        const newSelectedElementId = state.selectedElementId === edgeId ? null : state.selectedElementId;
+        const newSelectedElementType = state.selectedElementId === edgeId ? null : state.selectedElementType;
+        return {
+          mapData: {
+            ...state.mapData,
+            edges: state.mapData.edges.filter((edge) => edge.id !== edgeId),
+          },
+          selectedElementId: newSelectedElementId,
+          selectedElementType: newSelectedElementType,
+        };
+      })
+    }),
+    {
+      // Temporal middleware configuration
+      limit: 50, // Max number of history states
+      partialize: (state): TrackedState => {
+        const { mapData, mapName, isPublic, sharedWithClassroomId } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId };
+      },
+      // equality: (currentState, pastState) => isEqual(currentState, pastState) // Optional: for deep equality checks if needed
+    }
+  )
+);
     
 export default useConceptMapStore;
+
+// Type assertion for the temporal store part, if direct type inference isn't enough
+export type ConceptMapStoreWithTemporal = ReturnType<typeof useConceptMapStore.getState> & {
+  temporal: TemporalState<TrackedState>;
+};
