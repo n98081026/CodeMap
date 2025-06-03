@@ -17,7 +17,7 @@ interface EditorToolbarProps {
   onSaveMap: () => void;
   isSaving: boolean;
   onExportMap: () => void;
-  onTriggerImport: () => void; // New prop to trigger file input
+  onTriggerImport: () => void; 
   onExtractConcepts: () => void;
   onSuggestRelations: () => void;
   onExpandConcept: () => void;
@@ -29,6 +29,10 @@ interface EditorToolbarProps {
   onToggleAiPanel: () => void;
   isPropertiesPanelOpen?: boolean;
   isAiPanelOpen?: boolean;
+  onUndo: () => void; // Added for undo
+  onRedo: () => void; // Added for redo
+  canUndo: boolean;   // Added for undo
+  canRedo: boolean;   // Added for redo
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({ 
@@ -36,7 +40,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onSaveMap, 
   isSaving, 
   onExportMap,
-  onTriggerImport, // Destructure new prop
+  onTriggerImport, 
   onExtractConcepts, 
   onSuggestRelations, 
   onExpandConcept,
@@ -48,19 +52,23 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onToggleAiPanel,
   isPropertiesPanelOpen,
   isAiPanelOpen,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
-  const handlePlaceholderClick = React.useCallback((action: string) => {
-    if (isViewOnlyMode) {
-      toast({ title: "View Only Mode", description: `Cannot perform "${action}" in view-only mode.`, variant: "default" });
-      return;
-    }
-    toast({
-      title: "Action Clicked (Placeholder)",
-      description: `${action} functionality is not yet implemented.`,
-    });
-  }, [isViewOnlyMode, toast]);
+  // const handlePlaceholderClick = React.useCallback((action: string) => {
+  //   if (isViewOnlyMode) {
+  //     toast({ title: "View Only Mode", description: `Cannot perform "${action}" in view-only mode.`, variant: "default" });
+  //     return;
+  //   }
+  //   toast({
+  //     title: "Action Clicked (Placeholder)",
+  //     description: `${action} functionality is not yet implemented.`,
+  //   });
+  // }, [isViewOnlyMode, toast]);
 
   const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
     if (isViewOnlyMode) {
@@ -93,7 +101,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            {/* Updated Import button to use onTriggerImport */}
             <Button variant="ghost" size="icon" onClick={onTriggerImport} disabled={isViewOnlyMode}>
               <Upload className="h-5 w-5" />
             </Button>
@@ -111,22 +118,22 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
         <Separator orientation="vertical" className="mx-1 h-full" />
 
-        {/* Edit Operations */}
+        {/* Edit Operations - Temporarily disable for diagnostics */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Undo")} disabled={isViewOnlyMode}>
+            <Button variant="ghost" size="icon" onClick={onUndo} disabled={isViewOnlyMode || !canUndo}>
               <Undo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Undo (Disabled)" : "Undo (Placeholder)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Undo (Disabled)" : !canUndo ? "Undo (Temporarily Disabled)" : "Undo"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Redo")} disabled={isViewOnlyMode}>
+            <Button variant="ghost" size="icon" onClick={onRedo} disabled={isViewOnlyMode || !canRedo}>
               <Redo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Redo (Disabled)" : "Redo (Placeholder)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Redo (Disabled)" : !canRedo ? "Redo (Temporarily Disabled)" : "Redo"}</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />

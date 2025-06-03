@@ -1,12 +1,10 @@
 
-import { create } from 'zustand';
+import { create, type StateCreator } from 'zustand';
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
-import type { Connection } from 'reactflow'; // For onConnect params
 
 // --- Unique ID Generation ---
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
 
 interface ConceptMapState {
   // Map Identification & Core Properties
@@ -68,7 +66,13 @@ interface ConceptMapState {
   deleteEdge: (edgeId: string) => void;
 }
 
-const initialState = {
+const initialStateBase: Omit<ConceptMapState, 
+  'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 
+  'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
+  'setSelectedElement' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 'setAiExpandedConcepts' | 
+  'resetAiSuggestions' | 'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' | 
+  'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
+> = {
   mapId: null,
   mapName: 'Untitled Concept Map',
   currentMapOwnerId: null,
@@ -87,8 +91,9 @@ const initialState = {
   aiExpandedConcepts: [],
 };
 
+
 export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
-  ...initialState,
+  ...initialStateBase,
 
   setMapId: (id) => set({ mapId: id }),
   setMapName: (name) => set({ mapName: name }),
@@ -111,7 +116,7 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
 
   initializeNewMap: (userId) => {
     set({
-      ...initialState,
+      ...initialStateBase,
       mapId: 'new',
       mapName: 'Untitled Concept Map',
       currentMapOwnerId: userId,
@@ -154,7 +159,7 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
       error: null,
     }));
   },
-  resetStore: () => set(initialState),
+  resetStore: () => set(initialStateBase),
 
   addNode: (options) => set((state) => {
     const newNode: ConceptMapNode = {

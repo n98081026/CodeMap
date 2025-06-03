@@ -3,8 +3,9 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import type { Node as RFNode } from 'reactflow'; // Import RFNode for type hint
+import type { Node as RFNode } from 'reactflow'; 
 import { ReactFlowProvider } from 'reactflow';
+import dynamic from 'next/dynamic';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
@@ -23,11 +24,17 @@ import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from 
 import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { NodeContextMenu } from '@/components/concept-map/node-context-menu'; // Import Context Menu
-import type { CustomNodeData } from '@/components/concept-map/custom-node'; // Import CustomNodeData
+import { NodeContextMenu } from '@/components/concept-map/node-context-menu'; 
+import type { CustomNodeData } from '@/components/concept-map/custom-node'; 
 
 import useConceptMapStore from '@/stores/concept-map-store';
-import FlowCanvasCore from "@/components/concept-map/flow-canvas-core";
+// import FlowCanvasCore from "@/components/concept-map/flow-canvas-core"; // Dynamically import
+
+const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
+  ssr: false,
+  loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
+});
+
 
 export default function ConceptMapEditorPage() {
   const paramsHook = useParams();
@@ -57,6 +64,33 @@ export default function ConceptMapEditorPage() {
     importMapData,
   } = useConceptMapStore();
 
+  // Temporarily remove undo/redo related state and functions
+  // const [canUndo, setCanUndo] = useState(false);
+  // const [canRedo, setCanRedo] = useState(false);
+
+  // const temporalStoreAPI = useConceptMapStore.temporal;
+  // let storeUndo = () => console.warn("Undo/Redo is temporarily disabled.");
+  // let storeRedo = () => console.warn("Undo/Redo is temporarily disabled.");
+  // let temporalClear = () => console.warn("Undo/Redo history clear is temporarily disabled.");
+  // let pastStatesCount = 0;
+  // let futureStatesCount = 0;
+
+  // if (temporalStoreAPI) {
+  //   storeUndo = temporalStoreAPI.undo;
+  //   storeRedo = temporalStoreAPI.redo;
+  //   temporalClear = temporalStoreAPI.clear;
+  //   pastStatesCount = temporalStoreAPI.getState().pastStates.length;
+  //   futureStatesCount = temporalStoreAPI.getState().futureStates.length;
+  // } else {
+  //   console.warn("Zustand temporal middleware API not available. Undo/Redo functionality will be disabled.");
+  // }
+
+  // useEffect(() => {
+  //   setCanUndo(pastStatesCount > 0);
+  //   setCanRedo(futureStatesCount > 0);
+  // }, [pastStatesCount, futureStatesCount]);
+
+
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
@@ -70,7 +104,6 @@ export default function ConceptMapEditorPage() {
   const routeMapId = paramsHook.mapId as string;
   const isViewOnlyMode = searchParams.get('viewOnly') === 'true';
 
-  // Context Menu State
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
     x: number;
@@ -87,6 +120,7 @@ export default function ConceptMapEditorPage() {
     if (idToLoad === "new") {
       if (user && user.id) {
         initializeNewMap(user.id);
+        // if (temporalStoreAPI) temporalClear(); // Clear history for new map
       } else {
         setStoreError("User data not available for new map initialization.");
         toast({ title: "Authentication Error", description: "User data not available for new map.", variant: "destructive" });
@@ -105,6 +139,7 @@ export default function ConceptMapEditorPage() {
       }
       const data: ConceptMap = await response.json();
       setLoadedMap(data);
+      // if (temporalStoreAPI) temporalClear(); // Clear history after loading a map
     } catch (err) {
       setStoreError((err as Error).message);
       toast({ title: "Error Loading Map", description: (err as Error).message, variant: "destructive" });
@@ -112,7 +147,8 @@ export default function ConceptMapEditorPage() {
     } finally {
       setStoreIsLoading(false);
     }
-  }, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, resetStoreAiSuggestions, setStoreMapName]);
+  // }, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, resetStoreAiSuggestions, setStoreMapName, temporalClear, temporalStoreAPI]);
+}, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, resetStoreAiSuggestions, setStoreMapName]);
 
 
   const handleMapPropertiesChange = useCallback((properties: {
@@ -228,6 +264,7 @@ export default function ConceptMapEditorPage() {
       }
       const savedMap: ConceptMap = await response.json();
       setLoadedMap(savedMap);
+      // if (temporalStoreAPI) temporalClear(); // Clear history after successful save
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
 
       if ((isNewMapMode || storeMapId === 'new') && savedMap.id) {
@@ -242,6 +279,7 @@ export default function ConceptMapEditorPage() {
   }, [
     isViewOnlyMode, user, mapName, storeMapData,
     isNewMapMode, currentMapOwnerId, isPublic, sharedWithClassroomId,
+    // router, toast, storeMapId, setStoreIsSaving, setLoadedMap, setStoreError, temporalClear, temporalStoreAPI
     router, toast, storeMapId, setStoreIsSaving, setLoadedMap, setStoreError
   ]);
 
@@ -494,6 +532,7 @@ export default function ConceptMapEditorPage() {
           const importedMapData = importedJson as ConceptMapData;
           const mapNameFromFileName = file.name.replace(/\.json$/i, '');
           importMapData(importedMapData, `Imported: ${mapNameFromFileName}`);
+          // if (temporalStoreAPI) temporalClear(); // Clear history after import
           toast({ title: "Map Imported", description: `"${file.name}" loaded successfully. Remember to save if you want to keep it.` });
         } else {
           throw new Error("Invalid JSON structure. Expected 'nodes' and 'edges' arrays.");
@@ -509,9 +548,9 @@ export default function ConceptMapEditorPage() {
       if(fileInputRef.current) fileInputRef.current.value = "";
     };
     reader.readAsText(file);
-  }, [isViewOnlyMode, toast, importMapData]);
+  // }, [isViewOnlyMode, toast, importMapData, temporalClear, temporalStoreAPI]);
+}, [isViewOnlyMode, toast, importMapData]);
 
-  // Context Menu Handlers
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
     event.preventDefault();
     if (isViewOnlyMode) {
@@ -538,7 +577,6 @@ export default function ConceptMapEditorPage() {
   }, [isViewOnlyMode, deleteStoreNode, toast, closeContextMenu]);
 
 
-  // UI Rendering
   if (isStoreLoading && !storeError) {
     return (
       <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col items-center justify-center">
@@ -603,6 +641,11 @@ export default function ConceptMapEditorPage() {
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen}
           isAiPanelOpen={isAiPanelOpen}
+          // Temporarily disable undo/redo buttons
+          onUndo={() => toast({title: "Undo Disabled", description: "Undo/Redo is temporarily disabled for diagnostics."})}
+          onRedo={() => toast({title: "Redo Disabled", description: "Undo/Redo is temporarily disabled for diagnostics."})}
+          canUndo={false}
+          canRedo={false}
         />
         <div className="flex-grow relative overflow-hidden">
             <FlowCanvasCore
@@ -613,7 +656,7 @@ export default function ConceptMapEditorPage() {
               onNodesDeleteInStore={deleteStoreNode}
               onEdgesDeleteInStore={deleteEdge}
               onConnectInStore={addStoreEdge}
-              onNodeContextMenu={handleNodeContextMenu} // Pass context menu handler
+              onNodeContextMenu={handleNodeContextMenu} 
             />
         </div>
 
