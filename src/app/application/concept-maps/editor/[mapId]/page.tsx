@@ -3,11 +3,11 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { ReactFlowProvider } from 'reactflow'; 
+import { ReactFlowProvider } from 'reactflow';
 
-import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
-// import { PropertiesInspector } from "@/components/concept-map/properties-inspector"; // Temporarily removed for layout change
-// import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder"; // Temporarily removed for layout change
+// import { EditorToolbar } from "@/components/concept-map/editor-toolbar"; // Toolbar replaced
+import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
+import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -24,7 +24,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import useConceptMapStore from '@/stores/concept-map-store';
-import FlowCanvasCore from "@/components/concept-map/flow-canvas-core"; 
+import FlowCanvasCore from "@/components/concept-map/flow-canvas-core";
 
 export default function ConceptMapEditorPage() {
   // GROUP 1: Next.js Router Hooks
@@ -40,7 +40,7 @@ export default function ConceptMapEditorPage() {
   const {
     mapId: storeMapId,
     mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
-    mapData: storeMapData, 
+    mapData: storeMapData,
     isLoading: isStoreLoading,
     isSaving, error: storeError,
     selectedElementId, selectedElementType,
@@ -48,7 +48,7 @@ export default function ConceptMapEditorPage() {
     initializeNewMap, setLoadedMap, setIsLoading: setStoreIsLoading, setError: setStoreError,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
-    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge, // Ensured deleteEdge is here
+    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge,
     setSelectedElement: setStoreSelectedElement, setIsSaving: setStoreIsSaving,
     setAiExtractedConcepts: setStoreAiExtractedConcepts,
     setAiSuggestedRelations: setStoreAiSuggestedRelations,
@@ -132,7 +132,7 @@ export default function ConceptMapEditorPage() {
   }, [updateStoreNode, updateStoreEdge]);
 
   const handleSelectedElementPropertyUpdateInspector = useCallback((
-    inspectorUpdates: any 
+    inspectorUpdates: any
   ) => {
     if (!selectedElementId || !selectedElementType || isViewOnlyMode) return;
 
@@ -164,7 +164,7 @@ export default function ConceptMapEditorPage() {
         return;
     }
     setStoreIsSaving(true);
-    
+
     const mapDataToSave: ConceptMapData = storeMapData;
 
     const payloadOwnerId = (isNewMapMode || !currentMapOwnerId) ? user.id : currentMapOwnerId;
@@ -193,12 +193,12 @@ export default function ConceptMapEditorPage() {
           body: JSON.stringify(payload),
         });
       } else {
-        const updatePayload = { 
+        const updatePayload = {
             name: mapName,
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId, 
+            ownerId: currentMapOwnerId, // Important for authorization on PUT
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -212,7 +212,7 @@ export default function ConceptMapEditorPage() {
         throw new Error(errorData.message || "Failed to save map");
       }
       const savedMap: ConceptMap = await response.json();
-      setLoadedMap(savedMap); 
+      setLoadedMap(savedMap);
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
 
       if ((isNewMapMode || storeMapId === 'new') && savedMap.id) {
@@ -245,7 +245,7 @@ export default function ConceptMapEditorPage() {
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map via the suggestions panel.` });
   }, [setStoreAiExpandedConcepts, toast]);
 
-  const get = useConceptMapStore.getState; 
+  const get = useConceptMapStore.getState;
 
   const addConceptsToMapData = useCallback((conceptsToAdd: string[], type: 'ai-extracted-concept' | 'ai-expanded-concept') => {
     if (isViewOnlyMode) return;
@@ -271,22 +271,22 @@ export default function ConceptMapEditorPage() {
     if (isViewOnlyMode) return;
     let relationsAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
-    let currentNodesSnapshot = [...get().mapData.nodes]; 
+    let currentNodesSnapshot = [...get().mapData.nodes];
 
     relations.forEach(rel => {
       let sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
       if (!sourceNode) {
         addStoreNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        currentNodesSnapshot = [...get().mapData.nodes]; 
+        currentNodesSnapshot = [...get().mapData.nodes];
         sourceNode = currentNodesSnapshot.find(node => node.text === rel.source);
-        if (sourceNode) conceptsAddedFromRelationsCount++; else return; 
+        if (sourceNode) conceptsAddedFromRelationsCount++; else return;
       }
       let targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
       if (!targetNode) {
         addStoreNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        currentNodesSnapshot = [...get().mapData.nodes]; 
+        currentNodesSnapshot = [...get().mapData.nodes];
         targetNode = currentNodesSnapshot.find(node => node.text === rel.target);
-        if (targetNode) conceptsAddedFromRelationsCount++; else return; 
+        if (targetNode) conceptsAddedFromRelationsCount++; else return;
       }
       const currentEdgesSnapshot = get().mapData.edges;
       if (sourceNode && targetNode && !currentEdgesSnapshot.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
@@ -362,13 +362,13 @@ export default function ConceptMapEditorPage() {
 
   // GROUP 8: Effects
   useEffect(() => {
-    if (typeof routeMapId === 'string') { // Ensure routeMapId is a string and not undefined/null.
+    if (typeof routeMapId === 'string') {
       loadMapData(routeMapId);
-    } else if (user && user.id && !storeMapId && isNewMapMode) { // For new map, if storeMapId is not yet set
+    } else if (user && user.id && !storeMapId && isNewMapMode) {
       initializeNewMap(user.id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeMapId, user?.id]); // Removed loadMapData, initializeNewMap from deps as they are stable now
+  }, [routeMapId, user?.id, loadMapData, initializeNewMap]);
 
 
   let mapForInspector: ConceptMap | null = (storeMapId && storeMapId !== 'new' && currentMapOwnerId) ? {
@@ -376,9 +376,9 @@ export default function ConceptMapEditorPage() {
     mapData: storeMapData, isPublic: isPublic, sharedWithClassroomId: sharedWithClassroomId,
     createdAt: currentMapCreatedAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
   } : null;
-  
+
   if ((isNewMapMode || storeMapId === 'new') && !mapForInspector && user) {
-      mapForInspector = { 
+      mapForInspector = { // Changed from const to let earlier to allow this assignment
         id: 'new', name: mapName, ownerId: user.id,
         mapData: storeMapData, isPublic: isPublic, sharedWithClassroomId: sharedWithClassroomId,
         createdAt: currentMapCreatedAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -413,8 +413,8 @@ export default function ConceptMapEditorPage() {
         </Button>
       </DashboardHeader>
 
-      <ReactFlowProvider> 
-        <div className="flex flex-1 flex-col gap-4 overflow-hidden"> {/* Main content area below header */}
+      <ReactFlowProvider>
+        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
           {isStoreLoading ? (
             <div className="flex flex-grow justify-center items-center py-10">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -430,36 +430,64 @@ export default function ConceptMapEditorPage() {
             </Card>
           ) : (
             <>
-              <EditorToolbar
+              {/* EditorToolbar placeholder as per the state we're reverting to */}
+              <div className="mb-4 flex h-14 items-center gap-1 rounded-lg border bg-card p-2 shadow-sm">
+                Placeholder for EditorToolbar (debugging hook error)
+              </div>
+              {/* <EditorToolbar
                 onSaveMap={handleSaveMap} isSaving={isSaving}
                 onExtractConcepts={useCallback(() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [resetStoreAiSuggestions])}
                 onSuggestRelations={useCallback(() => { resetStoreAiSuggestions(); setIsSuggestRelationsModalOpen(true); }, [resetStoreAiSuggestions])}
                 onExpandConcept={useCallback(() => { resetStoreAiSuggestions(); setIsExpandConceptModalOpen(true); }, [resetStoreAiSuggestions])}
                 isViewOnlyMode={isViewOnlyMode}
                 onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
-              />
-              
-              {/* This div will now primarily contain the canvas, expanding to fill space */}
-              <div className="flex-grow overflow-hidden"> 
+              /> */}
+
+              <div className="flex flex-1 gap-4 overflow-hidden">
+                <div className="flex-grow">
                   <FlowCanvasCore
                     mapDataFromStore={storeMapData}
                     isViewOnlyMode={isViewOnlyMode}
                     onSelectionChange={handleFlowSelectionChange}
-                    onNodesChangeInStore={updateStoreNode} 
+                    onNodesChangeInStore={updateStoreNode}
                     onNodesDeleteInStore={deleteStoreNode}
-                    onEdgesDeleteInStore={deleteEdge} 
+                    onEdgesDeleteInStore={deleteEdge}
                     onConnectInStore={addStoreEdge}
                   />
+                </div>
+                {/* PropertiesInspector is rendered in its aside block */}
+                <aside className="hidden w-80 flex-shrink-0 lg:block"> {/* Changed from md:block */}
+                  <PropertiesInspector
+                    currentMap={mapForInspector}
+                    onMapPropertiesChange={handleMapPropertiesChange}
+                    selectedElement={actualSelectedElementForInspector}
+                    selectedElementType={selectedElementType}
+                    onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
+                    isNewMapMode={isNewMapMode}
+                    isViewOnlyMode={isViewOnlyMode}
+                  />
+                </aside>
               </div>
-                
-              {/* PropertiesInspector and CanvasPlaceholder are temporarily removed from fixed layout for larger canvas */}
-              {/* We will re-integrate them, perhaps as overlays or toggleable panels later */}
 
-              {/* Modals are still rendered based on their state */}
+              {/* CanvasPlaceholder is rendered in its div block */}
+              <div className="flex-shrink-0 basis-1/3 overflow-y-auto p-1 border-t md:border-t-0 md:border-l">
+                <CanvasPlaceholder
+                  mapData={storeMapData}
+                  extractedConcepts={aiExtractedConcepts}
+                  suggestedRelations={aiSuggestedRelations}
+                  expandedConcepts={aiExpandedConcepts}
+                  onAddExtractedConcepts={addConceptsToMapData}
+                  onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
+                  onAddExpandedConcepts={addConceptsToMapData}
+                  isViewOnlyMode={isViewOnlyMode}
+                />
+              </div>
+
+              {/* GenAI Modals - rendering restored */}
               {isExtractConceptsModalOpen && !isViewOnlyMode && (<ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen}/>)}
               {isSuggestRelationsModalOpen && !isViewOnlyMode && (<SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={storeMapData.nodes.slice(0,5).map(n => n.text)} onOpenChange={setIsSuggestRelationsModalOpen}/>)}
               {isExpandConceptModalOpen && !isViewOnlyMode && (<ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={storeMapData.nodes.length > 0 ? storeMapData.nodes[0].text : ""} onOpenChange={setIsExpandConceptModalOpen}/>)}
-              
+
             </>
           )}
         </div>
@@ -467,4 +495,5 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
+
     
