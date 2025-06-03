@@ -72,6 +72,7 @@ const projectUploadSchema = z.object({
       `Accepted file types: ${ACCEPTED_FILE_EXTENSIONS_STRING}. If your .tar.gz or .tgz is not accepted, please try zipping it.`
     ),
   classroomId: z.string().optional(),
+  userGoals: z.string().optional().describe("Optional user goals for AI analysis"),
 });
 
 export function ProjectUploadForm() {
@@ -87,6 +88,7 @@ export function ProjectUploadForm() {
 
   const [isConfirmAIDialogOpen, setIsConfirmAIDialogOpen] = useState(false);
   const [currentSubmissionForAI, setCurrentSubmissionForAI] = useState<ProjectSubmission | null>(null);
+  const [currentUserGoalsForAI, setCurrentUserGoalsForAI] = useState<string | undefined>(undefined);
   const [isProcessingAIInDialog, setIsProcessingAIInDialog] = useState(false);
 
   const fetchAvailableClassrooms = useCallback(async () => {
@@ -122,6 +124,7 @@ export function ProjectUploadForm() {
     defaultValues: {
       projectFile: undefined,
       classroomId: "",
+      userGoals: "",
     },
   });
 
@@ -156,11 +159,10 @@ export function ProjectUploadForm() {
     const file = values.projectFile[0];
     let uploadedFilePath: string | null = null;
 
-    // 1. Upload file to Supabase Storage
     setIsUploadingFile(true);
     toast({ title: "Uploading File...", description: `Starting upload of "${file.name}".` });
     try {
-      const filePathInBucket = `user-${user.id}/${Date.now()}-${file.name}`; // Unique path
+      const filePathInBucket = `user-${user.id}/${Date.now()}-${file.name}`; 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(SUPABASE_PROJECT_ARCHIVES_BUCKET)
         .upload(filePathInBucket, file);
@@ -184,14 +186,13 @@ export function ProjectUploadForm() {
     }
     setIsUploadingFile(false);
 
-    // 2. Create submission record with fileStoragePath
     setIsSubmittingMetadata(true);
     const submissionPayload = {
       studentId: user.id,
       originalFileName: file.name,
       fileSize: file.size,
       classroomId: values.classroomId === NONE_CLASSROOM_VALUE ? null : (values.classroomId || null),
-      fileStoragePath: uploadedFilePath, // Use the actual path from Supabase Storage
+      fileStoragePath: uploadedFilePath, 
     };
 
     try {
@@ -214,6 +215,7 @@ export function ProjectUploadForm() {
       });
       form.reset();
       setCurrentSubmissionForAI(newSubmission);
+      setCurrentUserGoalsForAI(values.userGoals || undefined); // Store user goals for dialog
       setIsConfirmAIDialogOpen(true);
 
     } catch (error) {
@@ -236,14 +238,15 @@ export function ProjectUploadForm() {
     try {
       await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.PROCESSING);
       
-      // Use the real fileStoragePath from the submission record
       const projectStoragePath = currentSubmissionForAI.fileStoragePath;
       if (!projectStoragePath) {
           throw new Error("File storage path is missing from the submission record. Cannot proceed with AI analysis.");
       }
-      const userGoals = `Analyze the project named: ${currentSubmissionForAI.originalFileName}. Focus on key components and their interactions.`;
+      
+      // Use stored userGoals from the form, or a default if none were provided.
+      const aiInputUserGoals = currentUserGoalsForAI || `Analyze the project: ${currentSubmissionForAI.originalFileName}`;
 
-      const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals });
+      const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals: aiInputUserGoals });
 
       let parsedMapData: ConceptMapData;
       try {
@@ -296,13 +299,15 @@ export function ProjectUploadForm() {
       setIsProcessingAIInDialog(false);
       setIsConfirmAIDialogOpen(false);
       setCurrentSubmissionForAI(null);
+      setCurrentUserGoalsForAI(undefined);
       router.push("/application/student/projects/submissions");
     }
-  }, [currentSubmissionForAI, user, toast, router, updateSubmissionStatusOnServer]);
+  }, [currentSubmissionForAI, user, toast, router, updateSubmissionStatusOnServer, currentUserGoalsForAI]);
 
   const handleDeclineAIGeneration = useCallback(() => {
     setIsConfirmAIDialogOpen(false);
     setCurrentSubmissionForAI(null);
+    setCurrentUserGoalsForAI(undefined);
     router.push("/application/student/projects/submissions");
   }, [router]);
 
@@ -328,6 +333,25 @@ export function ProjectUploadForm() {
                 </FormControl>
                 <FormMessage />
                 <p className="text-sm text-muted-foreground">Accepted: {ACCEPTED_FILE_EXTENSIONS_STRING}. Max size: {MAX_FILE_SIZE / (1024*1024)}MB.</p>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="userGoals"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Analysis Goals/Hints (Optional)</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="e.g., Focus on API routes, or Main user authentication flow" 
+                    {...field} 
+                    disabled={isBusy}
+                  />
+                </FormControl>
+                <FormMessage />
+                <p className="text-sm text-muted-foreground">Provide any specific goals or hints for the AI to focus on during analysis.</p>
               </FormItem>
             )}
           />
@@ -397,8 +421,9 @@ export function ProjectUploadForm() {
               <AlertDialogTitle>AI Map Generation</AlertDialogTitle>
               <AlertDialogDescription>
                 Project archive record for "{currentSubmissionForAI.originalFileName}" created (and file uploaded).
+                {currentUserGoalsForAI && <span className="block mt-2 text-sm">Goals provided: "{currentUserGoalsForAI}"</span>}
                 Do you want to attempt to generate a concept map from this project? This may take a moment.
-                (Note: Analysis tool is currently mocked, but receives the real storage path).
+                (Note: Analysis tool is currently mocked, but receives the real storage path and user goals).
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

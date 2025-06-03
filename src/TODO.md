@@ -41,7 +41,7 @@
     - [x] API endpoint for listing submissions by classroom (`GET /api/projects/submissions?classroomId=xxx`).
     - [x] API endpoint for getting submission details (`GET /api/projects/submissions/[submissionId]`).
     - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`). (Now updates status including real generated map ID via Supabase service).
-    - [ ] File storage integration (S3, GCS, or local - Supabase Storage). (User needs to create 'project_archives' bucket in Supabase Storage and `file_storage_path` column in `project_submissions` table, and configure RLS policies).
+    - [x] File storage integration (S3, GCS, or local - Supabase Storage). (User needs to create 'project_archives' bucket in Supabase Storage and `file_storage_path` column in `project_submissions` table, and configure RLS policies). Client-side upload implemented.
     - [ ] Message Queue setup (RabbitMQ, Redis, etc.). (Out of Scope: Requires setup and configuration of external message queuing services and integration logic, typically part of a separate backend infrastructure).
     - [ ] Develop Project Analysis Microservice:
         - [ ] Task consumer from message queue. (Out of Scope: Microservice architecture and inter-service communication via message queues are beyond the scope of this Next.js application's prototyping).
@@ -102,7 +102,7 @@
     - [x] **Tool Integration**: Instructs the LLM (via prompt) to utilize `projectStructureAnalyzerTool`.
     - [x] **Refined Prompt**: Updated prompt in `generateMapFromProjectPrompt` to guide LLM on interpreting tool output.
 - [x] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
-    - [x] **Update `ProjectUploadForm`**: (File upload to Supabase Storage, metadata submission to Supabase-backed service via API, triggers Genkit flow with actual storage path. Map creation and linking uses Supabase-backed services via API).
+    - [x] **Update `ProjectUploadForm`**: (File upload to Supabase Storage, metadata submission to Supabase-backed service via API, triggers Genkit flow with actual storage path and user goals. Map creation and linking uses Supabase-backed services via API).
     - [x] **Map Creation & Linking**: (Concept Map & Submission linking via API to Supabase-backed services)
     - [x] **Viewing Generated Map**: (SubmissionListItem links to generated map in view-only mode).
     - [ ] (Advanced/Future) Allow selective merging/importing of parts of the AI-generated map into an existing map.
@@ -149,7 +149,7 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 - [ ] **`project_submissions` Table:** (User needs to create + RLS, and add `file_storage_path TEXT NULLABLE` column).
 - [ ] **Supabase Storage Setup:** (User needs to create bucket `project_archives` + RLS that allows authenticated users to upload to path `user-<user_id>/*`).
 - [x] **`projectSubmissionService.ts` Refactor:** (Complete: All submission service functions use Supabase, including `fileStoragePath`).
-- [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path, linking map using Supabase service).** (Complete)
+- [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete)
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
     - [ ] Modify flow to fetch project file from Supabase Storage (User to implement when `projectStructureAnalyzerTool` is made real).
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done)
@@ -184,4 +184,3 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 - API routes rely on Supabase-backed services. Further auth checks (JWT verification, role-based access) for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis now uploads to Supabase Storage (bucket 'project_archives', path `user-<user_id>/<timestamp>-<filename>`).
 - User needs to create the 'project_archives' bucket and add `file_storage_path TEXT NULLABLE` to `project_submissions` table, and set up RLS for the bucket.
-
