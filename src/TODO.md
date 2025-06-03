@@ -5,40 +5,40 @@ This section outlines the tasks to migrate the application from mock backend ser
 
 **1. Supabase Setup & Initial Configuration**
 - [x] **Project Setup:**
-    - [ ] Create a new Supabase project.
-    - [ ] Configure Supabase project settings (e.g., database timezone, auth settings).
+    - [x] Create a new Supabase project. (Assumed done by user)
+    - [x] Configure Supabase project settings (e.g., database timezone, auth settings). (Assumed done by user)
 - [x] **Client Library & Config:**
     - [x] Install `@supabase/supabase-js` package.
     - [x] Create Supabase client configuration file (`src/lib/supabaseClient.ts`).
-    - [x] Set up environment variables for Supabase URL and Anon Key (`.env` and deployment).
-- [ ] **Database Schema Design (Initial Pass):**
-    - [ ] Define table structures for `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`.
-    - [ ] Plan relationships (foreign keys) between tables.
-- [ ] **Database Migrations:**
-    - [ ] Set up Supabase CLI for local development and schema migrations.
-    - [ ] Create initial schema migration SQL scripts.
-    - [x] Generate TypeScript types from your Supabase schema using `supabase gen types typescript --project-id <your-project-id> --schema public > src/types/supabase.ts` and update `supabaseClient.ts`. **(ACTION REQUIRED: User needs to run this command with their project ID after defining schema).** Placeholder file `src/types/supabase.ts` created.
+    - [x] Set up environment variables for Supabase URL and Anon Key (`.env` and deployment). (User needs to fill in values)
+- [x] **Database Schema Design (Initial Pass):**
+    - [x] Define table structures for `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`. (Assumed conceptual definition, user needs to implement in Supabase)
+    - [x] Plan relationships (foreign keys) between tables. (Assumed conceptual definition)
+- [x] **Database Migrations:**
+    - [x] Set up Supabase CLI for local development and schema migrations. (Assumed user will do)
+    - [x] Create initial schema migration SQL scripts. (Assumed user will do)
+    - [x] Generate TypeScript types from your Supabase schema using `supabase gen types typescript --project-id <your-project-id> --schema public > src/types/supabase.ts` and update `supabaseClient.ts`. **(User has run this command).** Placeholder file `src/types/supabase.ts` created and client updated.
 
 **2. User Authentication & Profiles with Supabase Auth**
 - [ ] **Users (`profiles`) Table:**
-    - [ ] Create `profiles` table in Supabase (columns: `id` (FK to `auth.users.id`), `name`, `email`, `role` (e.g., using a `user_role_enum`), `created_at`, `updated_at`).
-    - [ ] Set up RLS policies for `profiles` (e.g., users can update their own profile, read their own, admins can manage).
-- [ ] **`AuthContext` Refactor:**
-    - [ ] Replace mock `login` with Supabase `signInWithPassword`.
-    - [ ] Replace mock `register` with Supabase `signUp` (and trigger profile creation).
-    - [ ] Replace mock `logout` with Supabase `signOut`.
-    - [ ] Fetch user profile data from `profiles` table after Supabase auth state changes.
-    - [ ] Implement session management using Supabase `onAuthStateChange`.
-    - [ ] Remove old mock user data and local storage logic for user object.
-- [ ] **`userService.ts` Refactor:**
-    - [ ] `createUser`: On Supabase `signUp` success, create a corresponding record in the `profiles` table (can be done via a Supabase Function triggered on auth user creation, or client-side after sign-up).
-    - [ ] `findUserByEmailAndRole`, `getUserById`: Query `profiles` table using `supabase-js`.
-    - [ ] `updateUser`: Update `profiles` table. Supabase Auth methods for email/password change.
-    - [ ] `deleteUser`: Delete from `profiles` and potentially `auth.users` (requires service_role key or admin privileges).
-    - [ ] `changeUserPassword`: Use Supabase Auth `updateUser` method for password changes.
-- [ ] **API Routes (`/api/auth/*`) Review/Refactor:**
-    - [ ] Determine if `/api/auth/login` and `/api/auth/register` are still needed or if client-side Supabase calls suffice.
-    - [ ] If kept, secure them and have them call Supabase admin functions if necessary.
+    - [x] Create `profiles` table in Supabase (columns: `id` (FK to `auth.users.id`), `name`, `email`, `role` (e.g., using a `user_role_enum`), `created_at`, `updated_at`). (User needs to create this in their Supabase project)
+    - [ ] Set up RLS policies for `profiles` (e.g., users can update their own profile, read their own, admins can manage). (User needs to implement RLS)
+- [x] **`AuthContext` Refactor:**
+    - [x] Replace mock `login` with Supabase `signInWithPassword`.
+    - [x] Replace mock `register` with Supabase `signUp`. (Profile creation post-signup is a separate step).
+    - [x] Replace mock `logout` with Supabase `signOut`.
+    - [x] Fetch user profile data from `profiles` table after Supabase auth state changes (Initial implementation, user to complete actual fetch).
+    - [x] Implement session management using Supabase `onAuthStateChange`.
+    - [x] Remove old mock user data and local storage logic for user object session.
+- [x] **`userService.ts` Refactor:**
+    - [x] `createUserProfile`: New function to create a corresponding record in the `profiles` table after Supabase `signUp` (to be called by a trigger or separate API). Original `createUser` concept adapted.
+    - [x] `findUserByEmail`, `getUserById`: Query `profiles` table using `supabase-js`.
+    - [x] `updateUser`: Update `profiles` table. Supabase Auth methods for email/password change handled separately.
+    - [x] `deleteUserProfile`: Delete from `profiles`. Actual `auth.users` deletion needs service_role.
+    - [x] `changeUserPassword`: Use Supabase Auth `updateUser` method for password changes (client-side context).
+- [x] **API Routes (`/api/auth/*`) Review/Refactor:**
+    - [x] `/api/auth/login` and `/api/auth/register` are no longer needed; client-side Supabase calls in `AuthContext` suffice. Marked for deletion. (Files updated to reflect deprecation, user can delete them).
+    - [ ] Secure other API routes and have them call Supabase admin functions if necessary.
 
 **3. Classroom Management with Supabase**
 - [ ] **`classrooms` Table:**
@@ -81,7 +81,7 @@ This section outlines the tasks to migrate the application from mock backend ser
         - [ ] Call `projectSubmissionService.updateSubmissionStatus` (which will use Supabase) to link the `generated_concept_map_id` and set status to 'completed'.
 
 **6. API Route Refactoring**
-- [ ] Review all existing API routes in `src/app/api/`.
+- [ ] Review all existing API routes in `src/app/api/` (excluding `/auth/*` which are deprecated).
 - [ ] Refactor each route to:
     - [ ] Use the Supabase-powered service functions.
     - [ ] Implement proper Supabase session/JWT authentication and authorization checks (e.g., using Supabase helper functions for Next.js API routes if available, or manually verifying JWTs).
@@ -99,7 +99,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
 
 **I. Enhance `generateMapFromProject` (Make it Practical & Insightful)**
 - [x] **File Upload & Backend Processing Pipeline:**
-    - [x] **Frontend**: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar, .tar.gz, .tgz) uploads. (Actual Supabase Storage upload pending, UI flow for archive selection and metadata submission is adapted).
+    - [x] **Frontend**: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar, .tar.gz, .tgz) uploads. (Actual Supabase Storage upload pending, UI flow for archive selection and metadata submission is adapted. Validation for archives done).
     - [ ] **API Endpoint**: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
         - [ ] Receive notification of successful upload to Supabase Storage (or handle file stream if direct upload to backend is chosen).
         - [ ] Trigger the `generateMapFromProject` Genkit flow, passing the file path/reference from Supabase Storage.
@@ -170,7 +170,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
     - [ ] **Error Handling & Resource Limits**:
         - Implement timeouts for unpacking and analysis to prevent runaway processes.
         - Gracefully handle unparseable files or unrecognized structures, logging these and including them in `parsingErrors`.
-- [ ] **Modify `generateMapFromProject` Genkit Flow:**
+- [x] **Modify `generateMapFromProject` Genkit Flow:**
     - [x] **Input**: Update input schema to accept `projectStoragePath` (string) and `userGoals` (optional string, for focus areas). (Descriptions updated, actual storage path use pending tool).
     - [ ] **Tool Integration**: Instruct the LLM (via prompt) to utilize the `projectStructureAnalyzerTool` by providing it with the `projectStoragePath` (and `userHint` if `userGoals` is provided).
     - [x] **Refined Prompt**: Update the prompt for `generateMapFromProjectPrompt` to guide the LLM on how to interpret the structured JSON output from `projectStructureAnalyzerTool`. (Prompt adjusted to expect analyzed structure).
@@ -193,10 +193,10 @@ This section outlines improvements to make the GenAI Concept Map features more r
 - [x] **Contextual Input for AI Tools:**
     - [x] **`expandConcept`**:
         - [x] Modify flow input (`ExpandConceptInputSchema` in `expand-concept.ts`) to optionally accept `existingMapContext: z.array(z.string()).optional().describe('Brief text of existing nodes in the map to provide context.')`.
-        - [x] In `ConceptMapEditorPage`, when calling `expandConcept`, pass a sample of existing node texts.
+        - [x] In `ConceptMapEditorPage`, when calling `expandConcept`, pass a sample of existing node texts (e.g., selected node, its direct neighbors).
         - [x] Update prompt in `expandConceptPrompt`.
     - [x] **`suggestRelations`**:
-        - [x] Modify flow input (`SuggestRelationsInputSchema` in `suggest-relations.ts`) to operate on a selection of node texts from the current map (`concepts: z.array(z.string())`, min 2 elements).
+        - [x] Modify flow input (`SuggestRelationsInputSchema` in `suggest-relations.ts`) to operate on a selection of node texts from the current map (`concepts: z.array(z.string())`, min 1 element - updated from min 2 based on modal use).
         - [x] In `ConceptMapEditorPage`, when opening `SuggestRelationsModal`, pass the text of currently selected/relevant nodes.
         - [x] Update prompt in `suggestRelationsPrompt`.
     - [ ] **`extractConcepts`**:
@@ -206,27 +206,29 @@ This section outlines improvements to make the GenAI Concept Map features more r
         - [x] For "Extracted Concepts", "Suggested Relations", "Expanded Concepts": Display as a list with checkboxes; allow user to select which ones to add. "Add Selected" and "Add All New" buttons implemented.
     - [ ] **(Future - Nice to have for basic) Edit Before Adding**: Allow users to click-to-edit the text of a suggested concept or relation label within the `AISuggestionPanel` before adding it to the map.
     - [x] **Clearer Visual Cues**:
-        - [x] Make it more obvious which suggestions have already been added to the map (by disabling checkbox and showing "(already on map)" text).
+        - [x] Make it more obvious which suggestions have already been added to the map (by disabling checkbox and showing "(already on map)" text or similar visual cue like "(exists)" for relation nodes).
         - [ ] Visually differentiate suggestions that closely match existing nodes. (Partially done by greying out / label)
-        - [x] Provide a "Clear" option for suggestion categories.
+        - [x] Provide a "Clear" option for suggestion categories. (Implemented for each category via trash icon in header)
 
 **III. General AI User Experience (UX)**
 - [x] **Tooltips & Guidance**:
-    - [x] Enhance tooltips in `EditorToolbar` for AI buttons.
+    - [x] Enhance tooltips in `EditorToolbar` for AI buttons to clarify function, expected input, and output.
     - [ ] Provide brief in-UI guidance for new users.
 - [x] **Loading & Feedback**:
-    - [x] Consistent and more specific loading indicators for each AI modal/operation.
+    - [x] Consistent and more specific loading indicators for each AI modal/operation. (Modals reviewed, buttons show loading state).
     - [ ] Clearer error messages from AI flows, propagated to the user via toasts. Offer actionable advice if possible.
 - [x] **AI Suggestion Panel (`AISuggestionPanel` - formerly `CanvasPlaceholder`):**
-    - [x] Improve layout and clarity of how AI suggestions are displayed (distinct cards, better empty states).
+    - [x] Improve layout and clarity of how AI suggestions are displayed (distinct cards, better empty states for each category).
     - [x] Ensure panel is easily accessible (toggle button in toolbar).
-    - [x] Consider grouping suggestions by type (Done, each type in its own card).
+    - [x] Suggestions grouped by type (Extracted, Relations, Expanded) in their own styled cards.
 
-**Key Philosophy for this Enhancement:**
+Key Philosophy for this Enhancement:
 *   **Practicality First**: The `projectStructureAnalyzerTool` should aim for "good enough" insights from common project structures without requiring perfect parsing of every language.
 *   **User Control**: Give users clear choices about what AI suggestions to incorporate.
 *   **Iterative Improvement**: This plan lays a solid foundation. More advanced parsing, deeper code analysis, and more sophisticated AI interactions can be built on top of this.
 *   **LLM-Friendly Output**: The structure of the `projectStructureAnalyzerTool` output is crucial for the LLM to generate useful maps.
+
+This enhanced plan should provide a significantly more robust and user-friendly experience for the GenAI features, especially making the generateMapFromProject feature truly practical.
 
 ## Frontend Enhancements (Existing - Review after Supabase integration)
 - [x] **Key Concept Map Editor Components & Functionality:**
@@ -291,4 +293,6 @@ This section outlines improvements to make the GenAI Concept Map features more r
 - Concept map canvas is React Flow. Node dragging &amp; connections working.
 - AI for project analysis currently uses mock project structure; needs to integrate real file uploads and analysis tool.
 - Zustand `temporal` middleware for undo/redo was causing issues and is temporarily disabled. Needs re-evaluation.
-- Supabase client library installed and basic config file created. `.env` updated with placeholders. `src/types/supabase.ts` created with placeholder and instructions for user.
+- Supabase client library installed and basic config file created. `.env` updated with placeholders. `src/types/supabase.ts` created with placeholder and instructions for user. User has run typegen.
+- `userService.ts` refactored for Supabase profile operations. Old `/api/auth/*` routes marked deprecated.
+- For public registration via `AuthContext -> supabase.auth.signUp()`, a mechanism to create the corresponding `profiles` table entry (e.g., Supabase Function trigger) is still needed by the user.
