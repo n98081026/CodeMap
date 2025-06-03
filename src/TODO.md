@@ -1,4 +1,3 @@
-
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -139,9 +138,9 @@ This section outlines improvements to make the GenAI Concept Map features more r
     - [x] **Tool Integration**: Instructs the LLM (via prompt) to utilize `projectStructureAnalyzerTool`.
     - [x] **Refined Prompt**: Updated prompt in `generateMapFromProjectPrompt` to guide LLM on interpreting tool output (Further refinement may be needed with real tool output).
 - [ ] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
-    - [x] **Update `ProjectUploadForm`**: (File metadata submission to Supabase-backed service via API)
+    - [x] **Update `ProjectUploadForm`**: (File metadata submission to Supabase-backed service via API, triggers Genkit flow with mock storage path)
         - [x] On "Generate Map" confirmation (after file metadata submission to `projectSubmissions` table):
-            - [x] Trigger the enhanced `generateMapFromProject` flow (via frontend client-side call, using mock project structure).
+            - [x] Trigger the enhanced `generateMapFromProject` flow (via frontend client-side call, using mock project structure that is passed to mocked tool).
             - [x] Update `ProjectSubmission` status to `PROCESSING` (via API).
             - [x] Provide better loading/progress feedback to the user.
     - [x] **Map Creation & Linking**: (Concept Map & Submission linking via API to Supabase-backed services)
@@ -168,7 +167,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
 - [x] **Interactive AI Suggestions in `CanvasPlaceholder` / UI (AISuggestionPanel):**
     - [x] **Selective Addition**:
         - [x] "Extracted Concepts", "Suggested Relations", "Expanded Concepts" displayed with checkboxes. "Add Selected" and "Add All New" buttons implemented.
-    - [ ] **(Future - Nice to have for basic) Edit Before Adding**: Allow click-to-edit suggested text in `AISuggestionPanel`.
+    - [x] **Edit Before Adding**: Allow click-to-edit suggested text in `AISuggestionPanel`.
     - [x] **Clearer Visual Cues**:
         - [x] More obvious which suggestions already exist on map (disabled checkbox, "(already on map)" text).
         - [x] Visually differentiate suggestions closely matching existing nodes (partially done by greying out / label).
