@@ -18,23 +18,16 @@ import type { User } from '@/types';
 import { UserRole } from '@/types';
 
 // This is a mock database for demonstration purposes.
-// Reduced to key users for leaner testing.
+// It includes the core test users needed for AuthContext and inter-service linking.
 const testTeacher: User = { id: "teacher-test-id", email: "teacher-test@example.com", name: "Test Teacher", role: UserRole.TEACHER };
 const testStudent: User = { id: "student-test-id", email: "student-test@example.com", name: "Test Student", role: UserRole.STUDENT };
 const adminUser: User = { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN };
-const regularTeacher: User = { id: "teacher1", email: "teacher@example.com", name: "Teacher User", role: UserRole.TEACHER };
-const regularStudent: User = { id: "student1", email: "student@example.com", name: "Student User", role: UserRole.STUDENT };
 
 
 let mockUserDatabase: Record<string, User> = { // Use 'let' if you plan to modify it
   [adminUser.email]: adminUser,
-  [regularTeacher.email]: regularTeacher,
-  [regularStudent.email]: regularStudent,
   [testTeacher.email]: testTeacher,
   [testStudent.email]: testStudent,
-  // Add one more unique student and teacher if needed for some classroom scenarios
-  "student2@example.com": { id: "s2", email: "student2@example.com", name: "Student Two", role: UserRole.STUDENT },
-  "teacher2@example.com": { id: "teacher2", email: "teacher2@example.com", name: "Ms. Script", role: UserRole.TEACHER },
 };
 
 // Helper to find user by ID for internal use, as mockUserDatabase is keyed by email
@@ -168,3 +161,4 @@ export async function changeUserPassword(userId: string, currentPassword: string
   console.log(`Mock password change for user ${userId}. New password would be: ${newPassword} (not stored).`);
   return Promise.resolve();
 }
+
