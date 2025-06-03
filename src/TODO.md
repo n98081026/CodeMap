@@ -1,5 +1,4 @@
 
-
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -224,7 +223,7 @@ This enhanced plan should provide a significantly more robust and user-friendly 
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor. Undo/Redo history implemented.
 - [ ] **Concept Map Editor - Further Enhancements (Future):**
     - [x] Implement a context menu (right-click) on canvas elements for quick actions (Node delete, AI actions for node).
-    - [x] Add custom node types with distinct visual styling on the canvas.
+    - [x] Add custom node types with distinct visual styling on the canvas. (Fulfilled by current `CustomNodeComponent` varying style by `data.type`)
     - [x] Re-evaluate and implement robust Undo/Redo functionality in the editor (Zustand `temporal` store needs careful setup or alternative). - Marked done, further testing by user.
 - [x] **State Management:**
     - [x] Zustand implemented for Concept Map Editor. `temporal` middleware integrated.
@@ -274,3 +273,6 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - Properties Inspector and AI Suggestions Panel are now toggleable sheets controlled from the Editor Toolbar.
 - Custom Nodes in React Flow now display 4 connection handles (top, bottom, left, right).
 - Node context menu implemented for delete and AI actions.
+- Custom node types are visually distinct based on `data.type` in `CustomNodeComponent`.
+
+    
