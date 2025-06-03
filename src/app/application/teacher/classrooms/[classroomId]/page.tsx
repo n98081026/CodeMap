@@ -2,15 +2,15 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams } from 'next/navigation'; 
+import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types"; 
+import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types";
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react"; 
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, FileText, Inbox } from "lucide-react";
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -26,11 +26,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { EmptyState } from "@/components/layout/empty-state";
 
 
 export default function ClassroomDetailPage() {
-  const paramsHook = useParams(); 
-  const routeClassroomId = paramsHook.classroomId as string; 
+  const paramsHook = useParams();
+  const routeClassroomId = paramsHook.classroomId as string;
 
   const { user } = useAuth();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
@@ -46,13 +47,13 @@ export default function ClassroomDetailPage() {
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [errorSubmissions, setErrorSubmissions] = useState<string | null>(null);
 
-  const headerIconLink = "/application/teacher/dashboard"; 
+  const headerIconLink = "/application/teacher/dashboard";
 
   const fetchClassroomDetails = useCallback(async () => {
     setIsLoadingClassroom(true);
     setErrorClassroom(null);
     try {
-      const response = await fetch(`/api/classrooms/${routeClassroomId}`); 
+      const response = await fetch(`/api/classrooms/${routeClassroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom details");
@@ -66,13 +67,13 @@ export default function ClassroomDetailPage() {
     } finally {
       setIsLoadingClassroom(false);
     }
-  }, [routeClassroomId, toast]); 
+  }, [routeClassroomId, toast]);
 
   const fetchClassroomMaps = useCallback(async () => {
     setIsLoadingMaps(true);
     setErrorMaps(null);
     try {
-      const response = await fetch(`/api/concept-maps?classroomId=${routeClassroomId}`); 
+      const response = await fetch(`/api/concept-maps?classroomId=${routeClassroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom maps");
@@ -86,13 +87,13 @@ export default function ClassroomDetailPage() {
     } finally {
       setIsLoadingMaps(false);
     }
-  }, [routeClassroomId, toast]); 
+  }, [routeClassroomId, toast]);
 
   const fetchClassroomSubmissions = useCallback(async () => {
     setIsLoadingSubmissions(true);
     setErrorSubmissions(null);
     try {
-      const response = await fetch(`/api/projects/submissions?classroomId=${routeClassroomId}`); 
+      const response = await fetch(`/api/projects/submissions?classroomId=${routeClassroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom submissions");
@@ -106,16 +107,16 @@ export default function ClassroomDetailPage() {
     } finally {
       setIsLoadingSubmissions(false);
     }
-  }, [routeClassroomId, toast]); 
+  }, [routeClassroomId, toast]);
 
 
   useEffect(() => {
-    if (routeClassroomId) { 
+    if (routeClassroomId) {
       fetchClassroomDetails();
       fetchClassroomMaps();
       fetchClassroomSubmissions();
     }
-  }, [routeClassroomId, fetchClassroomDetails, fetchClassroomMaps, fetchClassroomSubmissions]); 
+  }, [routeClassroomId, fetchClassroomDetails, fetchClassroomMaps, fetchClassroomSubmissions]);
 
   const handleRemoveStudent = useCallback(async (studentId: string, studentName: string) => {
     if (!classroom) return;
@@ -131,8 +132,8 @@ export default function ClassroomDetailPage() {
         title: "Student Removed",
         description: `${studentName} has been removed from the classroom.`,
       });
-      fetchClassroomDetails(); 
-    } catch (errorMsg) { 
+      fetchClassroomDetails();
+    } catch (errorMsg) {
       toast({
         title: "Error Removing Student",
         description: (errorMsg as Error).message,
@@ -140,12 +141,12 @@ export default function ClassroomDetailPage() {
       });
     }
   }, [classroom, toast, fetchClassroomDetails]);
-  
+
   const handleStudentActionCompleted = useCallback(() => {
-    fetchClassroomDetails(); 
+    fetchClassroomDetails();
   }, [fetchClassroomDetails]);
 
-  if (isLoadingClassroom && !classroom) { 
+  if (isLoadingClassroom && !classroom) {
     return (
       <div className="space-y-6 p-4">
         <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={headerIconLink}/>
@@ -179,7 +180,7 @@ export default function ClassroomDetailPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardHeader 
+      <DashboardHeader
         title={classroom.name}
         description={`Teacher: ${classroom.teacherName || 'N/A'} | Invite Code: ${classroom.inviteCode} | Manage students, maps, and submissions.`}
         icon={isLoadingClassroom ? Loader2 : Users}
@@ -207,17 +208,13 @@ export default function ClassroomDetailPage() {
             </CardHeader>
             <CardContent>
               {isLoadingClassroom && !errorClassroom && <div className="flex items-center justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading students...</p></div>}
-              {!isLoadingClassroom && errorClassroom && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>Error loading students. <Button onClick={fetchClassroomDetails} variant="link">Try Again</Button></div>}
+              {!isLoadingClassroom && errorClassroom && <EmptyState icon={AlertTriangle} title="Error loading students" description={errorClassroom} actionButton={<Button onClick={fetchClassroomDetails} variant="link">Try Again</Button>} />}
               {!isLoadingClassroom && !errorClassroom && enrolledStudents.length === 0 && (
-                <div className="text-center py-10">
-                    <Users className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
-                    <h3 className="text-xl font-semibold text-muted-foreground">No Students Enrolled</h3>
-                    <p className="text-sm text-muted-foreground">
-                        No students are currently enrolled in this classroom.
-                        <br />
-                        Use the &quot;Invite/Add Student&quot; button above to add students.
-                    </p>
-                </div>
+                <EmptyState
+                    icon={Users}
+                    title="No Students Enrolled"
+                    description='No students are currently enrolled. Use the "Invite/Add Student" button to add students.'
+                />
               )}
               {!isLoadingClassroom && !errorClassroom && enrolledStudents.length > 0 && (
                 <Table>
@@ -273,13 +270,13 @@ export default function ClassroomDetailPage() {
             </CardHeader>
             <CardContent>
                 {isLoadingMaps && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading maps...</p></div>}
-                {errorMaps && !isLoadingMaps && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorMaps} <Button onClick={fetchClassroomMaps} variant="link">Try Again</Button></div>}
+                {errorMaps && !isLoadingMaps && <EmptyState icon={AlertTriangle} title="Error loading maps" description={errorMaps} actionButton={<Button onClick={fetchClassroomMaps} variant="link">Try Again</Button>} />}
                 {!isLoadingMaps && !errorMaps && classroomMaps.length === 0 && (
-                    <div className="text-center py-10">
-                        <Share2 className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
-                        <h3 className="text-xl font-semibold text-muted-foreground">No Shared Maps</h3>
-                        <p className="text-sm text-muted-foreground">No concept maps have been shared with this classroom yet by students.</p>
-                    </div>
+                     <EmptyState
+                        icon={FileText}
+                        title="No Shared Maps"
+                        description="No concept maps have been shared with this classroom yet."
+                    />
                 )}
                 {!isLoadingMaps && !errorMaps && classroomMaps.length > 0 && (
                     <Table>
@@ -293,7 +290,7 @@ export default function ClassroomDetailPage() {
                     </TableHeader>
                     <TableBody>
                         {classroomMaps.map((map) => {
-                        const owner = enrolledStudents.find(s => s.id === map.ownerId); 
+                        const owner = enrolledStudents.find(s => s.id === map.ownerId);
                         return (
                             <TableRow key={map.id}>
                             <TableCell className="font-medium">{map.name}</TableCell>
@@ -322,13 +319,13 @@ export default function ClassroomDetailPage() {
             </CardHeader>
             <CardContent>
             {isLoadingSubmissions && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading submissions...</p></div>}
-            {errorSubmissions && !isLoadingSubmissions && <div className="text-destructive p-4 border border-destructive rounded-md"><AlertTriangle className="inline mr-2"/>{errorSubmissions} <Button onClick={fetchClassroomSubmissions} variant="link">Try Again</Button></div>}
+            {errorSubmissions && !isLoadingSubmissions && <EmptyState icon={AlertTriangle} title="Error loading submissions" description={errorSubmissions} actionButton={<Button onClick={fetchClassroomSubmissions} variant="link">Try Again</Button>} />}
             {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && (
-                 <div className="text-center py-10">
-                    <FolderKanban className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
-                    <h3 className="text-xl font-semibold text-muted-foreground">No Submissions Yet</h3>
-                    <p className="text-sm text-muted-foreground">Students in this classroom haven&apos;t submitted any projects for analysis.</p>
-                </div>
+                 <EmptyState
+                    icon={Inbox}
+                    title="No Submissions Yet"
+                    description="Students in this classroom haven't submitted any projects for analysis."
+                />
             )}
             {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length > 0 && (
               <Table>
@@ -343,16 +340,16 @@ export default function ClassroomDetailPage() {
                 </TableHeader>
                 <TableBody>
                   {classroomSubmissions.map((submission) => {
-                    const student = enrolledStudents.find(s => s.id === submission.studentId); 
+                    const student = enrolledStudents.find(s => s.id === submission.studentId);
                     return (
                       <TableRow key={submission.id}>
                         <TableCell className="font-medium">{student?.name || submission.studentId}</TableCell>
                         <TableCell>{submission.originalFileName}</TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             variant={
-                              submission.analysisStatus === ProjectSubmissionStatus.COMPLETED ? 'default' : 
-                              submission.analysisStatus === ProjectSubmissionStatus.FAILED ? 'destructive' : 
+                              submission.analysisStatus === ProjectSubmissionStatus.COMPLETED ? 'default' :
+                              submission.analysisStatus === ProjectSubmissionStatus.FAILED ? 'destructive' :
                               'secondary'
                             }
                           >
@@ -388,4 +385,3 @@ declare module "@/components/dashboard/dashboard-header" {
     iconClassName?: string;
   }
 }
-    

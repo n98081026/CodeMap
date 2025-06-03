@@ -2,15 +2,16 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Classroom } from "@/types";
-import { ArrowRight, BookOpen, User as UserIcon, Loader2, AlertTriangle, Library } from "lucide-react";
+import { UserRole } from "@/types";
+import { BookOpen, Loader2, AlertTriangle, Library } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
-
+import { EmptyState } from "@/components/layout/empty-state";
+import { ClassroomListItem } from "@/components/classrooms/classroom-list-item";
 
 export default function StudentClassroomsPage() {
   const { user } = useAuth();
@@ -21,10 +22,9 @@ export default function StudentClassroomsPage() {
 
   const studentDashboardLink = "/application/student/dashboard";
 
-
   const fetchEnrolledClassrooms = useCallback(async () => {
     if (!user) {
-        setIsLoading(false); 
+        setIsLoading(false);
         return;
     }
     setIsLoading(true);
@@ -50,7 +50,6 @@ export default function StudentClassroomsPage() {
     fetchEnrolledClassrooms();
   }, [user, fetchEnrolledClassrooms]);
 
-
   return (
     <div className="space-y-6">
       <DashboardHeader
@@ -68,51 +67,31 @@ export default function StudentClassroomsPage() {
       )}
 
       {error && !isLoading && (
-         <Card className="shadow-md border-destructive">
-          <CardHeader><CardTitle className="flex items-center text-destructive"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Classrooms</CardTitle></CardHeader>
-          <CardContent className="flex flex-col items-center text-center">
-            <p className="mb-3">{error}</p>
-            <Button onClick={fetchEnrolledClassrooms} variant="outline" size="sm">Try Again</Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+            icon={AlertTriangle}
+            title="Error Loading Classrooms"
+            description={error}
+            actionButton={<Button onClick={fetchEnrolledClassrooms} variant="outline" size="sm">Try Again</Button>}
+        />
       )}
 
       {!isLoading && !error && enrolledClassrooms.length === 0 && (
-        <Card className="shadow-md w-full max-w-lg mx-auto">
-          <CardHeader className="items-center text-center">
-            <Library className="h-16 w-16 text-muted-foreground/70 mb-4" />
-            <CardTitle>No Classrooms Yet</CardTitle>
-            <CardDescription>You are not currently enrolled in any classrooms.</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-sm text-muted-foreground">If you have an invite code from your teacher, they can provide instructions on how to join a classroom. Your teacher can add you using your student ID.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Library}
+          title="No Classrooms Yet"
+          description="You are not currently enrolled in any classrooms. If you have an invite code, your teacher can provide instructions on how to join."
+        />
       )}
 
       {!isLoading && !error && enrolledClassrooms.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {enrolledClassrooms.map((classroom) => (
-            <Card key={classroom.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="text-xl">{classroom.name}</CardTitle>
-                <CardDescription className="flex items-center">
-                  <UserIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                  Teacher: {classroom.teacherName || 'N/A'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground">
-                  {classroom.studentIds.length} students enrolled.
-                </p>
-                {classroom.description && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{classroom.description}</p>}
-              </CardContent>
-              <CardFooter>
-                <Button asChild className="w-full" variant="outline">
-                  <Link href={`/application/student/classrooms/${classroom.id}`}>View Classroom <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                </Button>
-              </CardFooter>
-            </Card>
+            <ClassroomListItem
+              key={classroom.id}
+              classroom={classroom}
+              userRole={UserRole.STUDENT}
+              detailLinkHref={`/application/student/classrooms/${classroom.id}`}
+            />
           ))}
         </div>
       )}

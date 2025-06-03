@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react"; 
+import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from '@/contexts/auth-context';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
+import { EmptyState } from "@/components/layout/empty-state";
 
 const USERS_PER_PAGE = 7;
 
@@ -60,7 +60,6 @@ export default function AdminUsersPage() {
    if (adminUser && adminUser.role !== UserRole.ADMIN) {
      adminDashboardLink = adminUser.role === UserRole.TEACHER ? "/application/teacher/dashboard" : "/application/student/dashboard";
   }
-
 
   const fetchUsers = useCallback(async (page: number) => {
     setIsLoading(true);
@@ -108,7 +107,7 @@ export default function AdminUsersPage() {
       toast({ title: "Error Deleting User", description: (err as Error).message, variant: "destructive" });
     }
   }, [toast, users.length, currentPage, fetchUsers]);
-  
+
   const openEditModal = useCallback((userToEdit: User) => {
     if (userToEdit.id === "student-test-id" || userToEdit.id === "teacher-test-id" || userToEdit.id === "admin1") {
        toast({ title: "Operation Denied", description: "Pre-defined test users and the main admin cannot be edited.", variant: "destructive" });
@@ -120,9 +119,9 @@ export default function AdminUsersPage() {
   }, [toast]);
 
   const handleEditFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement> | string, fieldName?: string) => {
-    if (typeof e === "string" && fieldName) { 
+    if (typeof e === "string" && fieldName) {
       setEditFormData(prev => ({ ...prev, [fieldName]: e as UserRole }));
-    } else if (typeof e !== "string") { 
+    } else if (typeof e !== "string") {
       const { name, value } = e.target as HTMLInputElement;
       setEditFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -153,7 +152,7 @@ export default function AdminUsersPage() {
       toast({ title: "User Updated", description: `User "${editFormData.name}" has been updated.` });
       setIsEditModalOpen(false);
       setEditingUser(null);
-      fetchUsers(currentPage); 
+      fetchUsers(currentPage);
     } catch (err) {
       toast({ title: "Error Updating User", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -184,7 +183,7 @@ export default function AdminUsersPage() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span tabIndex={0}> 
+              <span tabIndex={0}>
                 <Button disabled>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add New User
                 </Button>
@@ -205,31 +204,21 @@ export default function AdminUsersPage() {
       )}
 
       {error && !isLoading && (
-        <Card className="shadow-md border-destructive">
-          <CardHeader>
-            <CardTitle className="flex items-center text-destructive">
-              <AlertTriangle className="mr-2 h-5 w-5" /> Error Loading Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{error}</p>
-            <Button onClick={() => fetchUsers(currentPage)} className="mt-4">Try Again</Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+            icon={AlertTriangle}
+            title="Error Loading Users"
+            description={error}
+            actionButton={<Button onClick={() => fetchUsers(currentPage)} variant="outline" size="sm">Try Again</Button>}
+        />
       )}
-      
+
       {!isLoading && !error && (
         users.length === 0 && totalUsers === 0 ? (
-           <Card className="shadow-md w-full max-w-lg mx-auto">
-            <CardHeader className="items-center text-center">
-              <Users className="h-16 w-16 text-muted-foreground/70 mb-4" /> 
-              <CardTitle>No Users Found</CardTitle>
-              <CardDescription>There are no users in the system yet.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-sm text-muted-foreground">New users can register through the public registration page.</p>
-            </CardContent>
-          </Card>
+           <EmptyState
+             icon={Users}
+             title="No Users Found"
+             description="There are no users in the system yet. New users can register through the public registration page."
+           />
         ) : (
          <Card className="shadow-lg">
           <CardHeader>
@@ -257,22 +246,22 @@ export default function AdminUsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="mr-2" 
-                        title="Edit user" 
-                        onClick={() => openEditModal(userRow)} 
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="mr-2"
+                        title="Edit user"
+                        onClick={() => openEditModal(userRow)}
                         disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin1"}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            title="Delete user" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Delete user"
                             disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin1"}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -329,7 +318,7 @@ export default function AdminUsersPage() {
         </Card>
         )
       )}
-      
+
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <FormDialogHeader>
@@ -370,7 +359,6 @@ export default function AdminUsersPage() {
           </FormDialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

@@ -2,27 +2,16 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { ConceptMap } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Share2, Eye, Edit, Trash2, Loader2, AlertTriangle } from "lucide-react"; 
+import { PlusCircle, Share2, Loader2, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-
+import { EmptyState } from "@/components/layout/empty-state";
+import { ConceptMapListItem } from "@/components/concept-map/concept-map-list-item";
 
 export default function StudentConceptMapsPage() {
   const { user } = useAuth();
@@ -79,7 +68,7 @@ export default function StudentConceptMapsPage() {
       const response = await fetch(`/api/concept-maps/${mapId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ownerId: user.id }) 
+        body: JSON.stringify({ ownerId: user.id })
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -89,7 +78,7 @@ export default function StudentConceptMapsPage() {
         title: "Concept Map Deleted",
         description: `"${mapName}" has been deleted.`,
       });
-      fetchStudentMaps(); 
+      fetchStudentMaps();
     } catch (errorMsg) {
       toast({
         title: "Error Deleting Map",
@@ -121,82 +110,37 @@ export default function StudentConceptMapsPage() {
       )}
 
       {error && !isLoading && (
-         <Card className="shadow-md border-destructive">
-          <CardHeader><CardTitle className="flex items-center text-destructive"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Maps</CardTitle></CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap break-words">{error}</p>
-            <Button onClick={fetchStudentMaps} className="mt-4">Try Again</Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+            icon={AlertTriangle}
+            title="Error Loading Maps"
+            description={error}
+            actionButton={<Button onClick={fetchStudentMaps} variant="outline" size="sm">Try Again</Button>}
+        />
       )}
 
       {!isLoading && !error && studentMaps.length === 0 && (
-         <Card className="shadow-md w-full max-w-lg mx-auto">
-            <CardHeader className="items-center text-center">
-              <Share2 className="h-16 w-16 text-muted-foreground/70 mb-4" /> 
-              <CardTitle>No Concept Maps Yet</CardTitle>
-              <CardDescription>You haven&apos;t created any concept maps.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button asChild>
-                <Link href="/application/concept-maps/editor/new">
-                  <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Map
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+        <EmptyState
+          icon={Share2}
+          title="No Concept Maps Yet"
+          description="You haven't created any concept maps."
+          actionButton={
+            <Button asChild>
+              <Link href="/application/concept-maps/editor/new">
+                <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Map
+              </Link>
+            </Button>
+          }
+        />
       )}
 
       {!isLoading && !error && studentMaps.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {studentMaps.map((map) => (
-            <Card key={map.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="text-xl">{map.name}</CardTitle>
-                <CardDescription>
-                  {map.isPublic ? "Public" : "Private"}
-                  {map.sharedWithClassroomId && ` | Shared with: ${map.sharedWithClassroomId}`}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground">
-                  Last updated: {new Date(map.updatedAt).toLocaleDateString()}
-                </p>
-              </CardContent>
-              <CardFooter className="grid grid-cols-3 gap-2">
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/application/concept-maps/editor/${map.id}`}>
-                    <Eye className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">View</span>
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/application/concept-maps/editor/${map.id}?edit=true`}>
-                    <Edit className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
-                  </Link>
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Delete</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the concept map "{map.name}".
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDeleteMap(map.id, map.name)}>
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardFooter>
-            </Card>
+            <ConceptMapListItem
+              key={map.id}
+              map={map}
+              onDelete={handleDeleteMap}
+            />
           ))}
         </div>
       )}

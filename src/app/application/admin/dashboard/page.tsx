@@ -1,20 +1,15 @@
 
 "use client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { UserRole } from "@/types";
-import { Users, Settings, ArrowRight, LayoutDashboard, BookOpen, Loader2, AlertTriangle } from "lucide-react";
+import { Users, Settings, LayoutDashboard, Loader2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
-
-interface AdminDashboardData {
-  totalUsersCount: number;
-  activeClassroomsCount: number;
-}
+import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -32,7 +27,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (user && user.role !== UserRole.ADMIN) {
-      router.replace('/application/login'); 
+      router.replace('/application/login');
     }
   }, [user, router]);
 
@@ -42,8 +37,7 @@ export default function AdminDashboardPage() {
       setIsLoadingUsers(true);
       setErrorUsers(null);
       try {
-        // The /api/users endpoint with pagination includes totalCount
-        const usersResponse = await fetch('/api/users?page=1&limit=1'); 
+        const usersResponse = await fetch('/api/users?page=1&limit=1');
         if (!usersResponse.ok) {
           const errData = await usersResponse.json();
           throw new Error(`Failed to fetch users: ${errData.message || usersResponse.statusText}`);
@@ -65,8 +59,7 @@ export default function AdminDashboardPage() {
       setIsLoadingClassrooms(true);
       setErrorClassrooms(null);
       try {
-        // Calling /api/classrooms without params fetches all classrooms for admin count
-        const classroomsResponse = await fetch('/api/classrooms'); 
+        const classroomsResponse = await fetch('/api/classrooms');
         if (!classroomsResponse.ok) {
           const errData = await classroomsResponse.json();
           throw new Error(`Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`);
@@ -89,29 +82,27 @@ export default function AdminDashboardPage() {
     }
   }, [user, toast]);
 
-
   if (!user || user.role !== UserRole.ADMIN) {
-    // Show a loader or null while redirecting or if auth state is initially loading
-    return ( 
+    return (
         <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     );
   }
 
-  const displayCountOrError = (count: number | null, isLoading: boolean, error: string | null, itemName: string) => {
+  const renderCount = (count: number | null, isLoading: boolean, error: string | null, itemName: string) => {
     if (isLoading) {
-      return <div className="flex items-center space-x-2"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
+      return <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (error && (count === null || count === 0) ) { // Show error only if data isn't already available
-        return <div className="text-destructive flex items-center"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
+    if (error && (count === null || count === 0) ) {
+        return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
   };
 
   return (
     <div className="space-y-6">
-      <DashboardHeader 
+      <DashboardHeader
         title="Admin Dashboard"
         description="System overview and management tools."
         icon={LayoutDashboard}
@@ -119,37 +110,22 @@ export default function AdminDashboardPage() {
       />
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">User Management</CardTitle>
-            <Users className="h-6 w-6 text-primary" />
-          </CardHeader>
-          <CardContent>
-            {displayCountOrError(totalUsersCount, isLoadingUsers, errorUsers, "users")}
-            <p className="text-xs text-muted-foreground mb-4">
-              Total registered users in the system.
-            </p>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/application/admin/users">Manage Users <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">System Settings</CardTitle>
-            <Settings className="h-6 w-6 text-primary" />
-          </CardHeader>
-          <CardContent>
-            {displayCountOrError(activeClassroomsCount, isLoadingClassrooms, errorClassrooms, "classrooms")}
-             <p className="text-xs text-muted-foreground mb-4">
-              Active classrooms. Configure system parameters here.
-            </p>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/application/admin/settings">Configure Settings <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <DashboardLinkCard
+          title="User Management"
+          description="Total registered users in the system."
+          count={renderCount(totalUsersCount, isLoadingUsers, errorUsers, "users")}
+          icon={Users}
+          href="/application/admin/users"
+          linkText="Manage Users"
+        />
+        <DashboardLinkCard
+          title="System Settings"
+          description="Active classrooms. Configure system parameters here."
+          count={renderCount(activeClassroomsCount, isLoadingClassrooms, errorClassrooms, "classrooms")}
+          icon={Settings}
+          href="/application/admin/settings"
+          linkText="Configure Settings"
+        />
       </div>
     </div>
   );

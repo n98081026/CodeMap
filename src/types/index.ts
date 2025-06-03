@@ -1,3 +1,6 @@
+
+import type { LucideIcon } from "lucide-react"; // Added for EmptyState
+
 export enum UserRole {
   STUDENT = 'student',
   TEACHER = 'teacher',
@@ -14,11 +17,11 @@ export interface User {
 export interface Classroom {
   id: string;
   name: string;
-  description?: string; // Added optional description
+  description?: string;
   teacherId: string;
   teacherName?: string;
   studentIds: string[];
-  students?: User[]; // Populated on demand
+  students?: User[];
   inviteCode?: string;
 }
 
@@ -72,5 +75,23 @@ export interface ProjectSubmission {
   analysisStatus: ProjectSubmissionStatus;
   analysisError?: string | null;
   generatedConceptMapId?: string | null;
-  generatedConceptMap?: ConceptMap | null; // Populated on demand
+  generatedConceptMap?: ConceptMap | null;
+}
+
+// Interface for the EmptyState component props
+export interface EmptyStateProps {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  actionButton?: React.ReactNode;
+}
+
+// Interface for DashboardLinkCard component props
+export interface DashboardLinkCardProps {
+  title: string;
+  description: string;
+  count?: React.ReactNode;
+  icon: LucideIcon;
+  href: string;
+  linkText: string;
 }

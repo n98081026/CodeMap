@@ -7,11 +7,11 @@ import { UserRole } from "@/types";
 import { SubmissionListItem } from "@/components/projects/submission-list-item";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { FolderKanban, PlusCircle, Loader2, AlertTriangle } from "lucide-react"; // Removed Inbox
+import { FolderKanban, PlusCircle, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { EmptyState } from "@/components/layout/empty-state";
 
 export default function MySubmissionsPage() {
   const { user } = useAuth();
@@ -73,27 +73,27 @@ export default function MySubmissionsPage() {
       )}
 
       {error && !isLoading && (
-         <Card className="shadow-md border-destructive">
-          <CardHeader><CardTitle className="flex items-center text-destructive"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Submissions</CardTitle></CardHeader>
-          <CardContent><p>{error}</p><Button onClick={fetchSubmissions} className="mt-4">Try Again</Button></CardContent>
-        </Card>
+        <EmptyState
+          icon={AlertTriangle}
+          title="Error Loading Submissions"
+          description={error}
+          actionButton={<Button onClick={fetchSubmissions} variant="outline" size="sm">Try Again</Button>}
+        />
       )}
 
       {!isLoading && !error && userSubmissions.length === 0 && (
-        <Card className="shadow-md w-full max-w-lg mx-auto">
-          <CardHeader className="items-center text-center">
-            <FolderKanban className="h-16 w-16 text-muted-foreground/70 mb-4" /> {/* Changed icon */}
-            <CardTitle>No Submissions Yet</CardTitle>
-            <CardDescription>You haven&apos;t submitted any projects for analysis.</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-             <Button asChild>
-                <Link href="/application/student/projects/submit">
-                  <PlusCircle className="mr-2 h-4 w-4" /> Submit Your First Project
-                </Link>
-              </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FolderKanban}
+          title="No Submissions Yet"
+          description="You haven't submitted any projects for analysis."
+          actionButton={
+            <Button asChild>
+              <Link href="/application/student/projects/submit">
+                <PlusCircle className="mr-2 h-4 w-4" /> Submit Your First Project
+              </Link>
+            </Button>
+          }
+        />
       )}
 
       {!isLoading && !error && userSubmissions.length > 0 && (
