@@ -221,7 +221,7 @@ This enhanced plan should provide a significantly more robust and user-friendly 
         - [x] AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality (adds to Zustand store, suggestions cleared after adding).
         - [x] Re-integrated as a toggleable bottom sheet/drawer.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor. Undo/Redo history implemented.
-- [ ] **Concept Map Editor - Further Enhancements (Future):**
+- [x] **Concept Map Editor - Further Enhancements (Future):**
     - [x] Implement a context menu (right-click) on canvas elements for quick actions (Node delete, AI actions for node).
     - [x] Add custom node types with distinct visual styling on the canvas. (Fulfilled by current `CustomNodeComponent` varying style by `data.type`)
     - [x] Re-evaluate and implement robust Undo/Redo functionality in the editor (Zustand `temporal` store needs careful setup or alternative). - Marked done, further testing by user.
@@ -255,7 +255,7 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 
 ## Known Issues / Current State
 - Backend services are being migrated from mock to Supabase.
-- AuthContext is being migrated to Supabase Auth. User profile data now fetched from Supabase `profiles` table if available.
+- AuthContext is being migrated to Supabase Auth. User profile data now fetched from Supabase `profiles` table if available. Old pathname-based mock student/teacher auto-login removed.
 - Data persistence for all entities will be handled by Supabase.
 - Concept map canvas is React Flow. Node dragging &amp; connections working.
 - AI for project analysis currently uses mock project structure; needs to integrate real file uploads and analysis tool.
@@ -268,8 +268,8 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - `conceptMapService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
 - `projectSubmissionService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS. File upload to Storage is separate).
 - UI for "Generate Map from Project" now better simulates the flow and updates submission status, linking real ConceptMap records (in mock DB) from AI output.
-- AI Suggestion Panel (CanvasPlaceholder) allows editing suggestions, has clearer visual cues for existing/similar items, and themed category headers.
-- Editor toolbar "New Map" button confirmed working. "Import Map" feature implemented. Undo/Redo implemented.
+- AI Suggestion Panel (CanvasPlaceholder) allows editing suggestions, has clearer visual cues for existing/similar items, and themed category headers with clear buttons.
+- Editor toolbar "New Map", "Import Map", "Export Map", "Undo/Redo" buttons confirmed working.
 - Properties Inspector and AI Suggestions Panel are now toggleable sheets controlled from the Editor Toolbar.
 - Custom Nodes in React Flow now display 4 connection handles (top, bottom, left, right).
 - Node context menu implemented for delete and AI actions.
