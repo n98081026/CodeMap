@@ -1,6 +1,7 @@
 
 import { create } from 'zustand';
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
+import type { Connection } from 'reactflow'; // For onConnect params
 
 // --- Unique ID Generation ---
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -54,7 +55,7 @@ interface ConceptMapState {
   
   initializeNewMap: (userId: string) => void;
   setLoadedMap: (map: ConceptMap) => void;
-  importMapData: (importedData: ConceptMapData, fileName?: string) => void; // New action for import
+  importMapData: (importedData: ConceptMapData, fileName?: string) => void;
   resetStore: () => void;
 
   // Granular actions for map data
@@ -62,7 +63,7 @@ interface ConceptMapState {
   updateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   deleteNode: (nodeId: string) => void;
   
-  addEdge: (options: { source: string; target: string; label?: string }) => void;
+  addEdge: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
   updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
   deleteEdge: (edgeId: string) => void;
 }
@@ -143,12 +144,6 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
     set((state) => ({
       mapData: importedData,
       mapName: newName, 
-      // If current map is 'new', keep it 'new' so save creates a new entry.
-      // If current map is existing, importing overwrites its content. The ID and owner remain.
-      // isNewMapMode: state.isNewMapMode, // No change, decided by current state
-      // mapId: state.mapId, // No change
-      // currentMapOwnerId: state.currentMapOwnerId, // No change
-      // currentMapCreatedAt: state.currentMapCreatedAt, // No change
       selectedElementId: null,
       selectedElementType: null,
       aiExtractedConcepts: [],
@@ -161,7 +156,6 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
   },
   resetStore: () => set(initialState),
 
-  // --- Granular Map Data Actions ---
   addNode: (options) => set((state) => {
     const newNode: ConceptMapNode = {
       id: uniqueNodeId(),
@@ -188,7 +182,6 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
     const newEdges = state.mapData.edges.filter(
       (edge) => edge.source !== nodeId && edge.target !== nodeId
     );
-    // Also deselect if the deleted node was selected
     const newSelectedElementId = state.selectedElementId === nodeId ? null : state.selectedElementId;
     const newSelectedElementType = state.selectedElementId === nodeId ? null : state.selectedElementType;
     return { 
@@ -203,6 +196,8 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
       id: uniqueEdgeId(),
       source: options.source,
       target: options.target,
+      sourceHandle: options.sourceHandle || null,
+      targetHandle: options.targetHandle || null,
       label: options.label || 'connects',
     };
     return { mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } };
@@ -218,7 +213,6 @@ export const useConceptMapStore = create<ConceptMapState>((set, get) => ({
   })),
 
   deleteEdge: (edgeId) => set((state) => {
-     // Also deselect if the deleted edge was selected
     const newSelectedElementId = state.selectedElementId === edgeId ? null : state.selectedElementId;
     const newSelectedElementType = state.selectedElementId === edgeId ? null : state.selectedElementType;
     return {

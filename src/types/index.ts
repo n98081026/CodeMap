@@ -27,18 +27,22 @@ export interface Classroom {
 
 export interface ConceptMapNode {
   id: string;
-  text: string;
-  type: string;
+  text: string; // Label for the node
+  type: string; // e.g., 'key_feature', 'service_component', 'customConceptNode' (for React Flow type)
   details?: string;
-  x?: number;
-  y?: number;
+  x?: number; // Position x
+  y?: number; // Position y
+  // React Flow specific properties like 'position' are typically handled by React Flow state,
+  // but storing initial/saved x,y is good.
 }
 
 export interface ConceptMapEdge {
   id:string;
-  source: string;
-  target: string;
-  label: string;
+  source: string; // Source node ID
+  target: string; // Target node ID
+  label: string; // Label for the edge
+  sourceHandle?: string | null; // Optional: specific source handle ID
+  targetHandle?: string | null; // Optional: specific target handle ID
 }
 
 export interface ConceptMapData {

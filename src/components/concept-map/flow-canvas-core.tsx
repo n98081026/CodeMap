@@ -2,29 +2,27 @@
 "use client";
 
 import React, { useEffect, useCallback } from 'react';
-import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection } from 'reactflow';
+import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes } from 'reactflow';
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
-
-// Define these types or import if they are shared
-export interface RFConceptMapNodeData {
-  label: string;
-  details?: string;
-  type?: string; 
-}
+import CustomNodeComponent, { type CustomNodeData } from './custom-node';
 
 export interface RFConceptMapEdgeData {
   label?: string;
 }
 
+const nodeTypesConfig: NodeTypes = {
+  customConceptNode: CustomNodeComponent,
+};
+
 interface FlowCanvasCoreProps {
   mapDataFromStore: ConceptMapData;
   isViewOnlyMode?: boolean;
   onSelectionChange: (id: string | null, type: 'node' | 'edge' | null) => void;
-  onNodesChangeInStore: (nodeId: string, updates: Partial<ConceptMapNode>) => void; // For position mainly
+  onNodesChangeInStore: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   onNodesDeleteInStore: (nodeId: string) => void;
   onEdgesDeleteInStore: (edgeId: string) => void;
-  onConnectInStore: (options: { source: string; target: string; label?: string }) => void;
+  onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
 }
 
 const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
@@ -36,40 +34,39 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   onEdgesDeleteInStore,
   onConnectInStore,
 }) => {
-  const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<RFConceptMapNodeData>([]);
+  const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
 
   useEffect(() => {
     const transformedNodes = (mapDataFromStore.nodes || []).map(appNode => ({
       id: appNode.id,
-      type: appNode.type || 'default', 
+      type: 'customConceptNode',
       data: { label: appNode.text, details: appNode.details, type: appNode.type || 'default' },
       position: { x: appNode.x ?? Math.random() * 400, y: appNode.y ?? Math.random() * 300 },
-      style: {
-        border: '1px solid hsl(var(--border))',
-        padding: '10px 15px',
-        borderRadius: '8px',
-        background: 'hsl(var(--card))',
-        color: 'hsl(var(--foreground))',
-        boxShadow: '0 2px 4px hsla(var(--foreground), 0.1)',
-        minWidth: 150,
-        textAlign: 'center',
-      }
+      draggable: !isViewOnlyMode,
+      selectable: true,
+      connectable: !isViewOnlyMode, // Ensures handles on this node are generally connectable
+      dragHandle: '.cursor-move', // Specify drag handle for custom node
     }));
-    setRfNodes(transformedNodes as RFNode<RFConceptMapNodeData>[]);
+    setRfNodes(transformedNodes as RFNode<CustomNodeData>[]);
 
     const transformedEdges = (mapDataFromStore.edges || []).map(appEdge => ({
       id: appEdge.id,
       source: appEdge.source,
       target: appEdge.target,
+      sourceHandle: appEdge.sourceHandle || null, // Ensure sourceHandle and targetHandle are passed
+      targetHandle: appEdge.targetHandle || null,
       label: appEdge.label,
       type: 'smoothstep',
       animated: false,
       style: { strokeWidth: 2, stroke: 'hsl(var(--primary))' },
       markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+      updatable: !isViewOnlyMode,
+      deletable: !isViewOnlyMode,
+      selectable: true,
     }));
     setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
-  }, [mapDataFromStore, setRfNodes, setRfEdges]);
+  }, [mapDataFromStore, setRfNodes, setRfEdges, isViewOnlyMode]);
 
   const handleRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
@@ -78,33 +75,33 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       if (change.type === 'position' && change.position && change.dragging === false) {
         onNodesChangeInStore(change.id, { x: change.position.x, y: change.position.y });
       }
-      // Note: Other changes like 'dimensions' or 'select' are handled by React Flow.
-      // If direct store updates for other node properties are needed from canvas interactions, add here.
     });
   }, [isViewOnlyMode, onNodesChangeReactFlow, onNodesChangeInStore]);
 
   const handleRfEdgesChange: OnEdgesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
     onEdgesChangeReactFlow(changes);
-    // Handle edge updates if necessary, e.g., changing edge type via interaction (not common for this app)
   }, [isViewOnlyMode, onEdgesChangeReactFlow]);
 
   const handleRfNodesDeleted: OnNodesDelete = useCallback((deletedRfNodes) => {
     if (isViewOnlyMode) return;
     deletedRfNodes.forEach(node => onNodesDeleteInStore(node.id));
-    // Parent (ConceptMapEditorPage) will show toast
   }, [isViewOnlyMode, onNodesDeleteInStore]);
 
   const handleRfEdgesDeleted: OnEdgesDelete = useCallback((deletedRfEdges) => {
     if (isViewOnlyMode) return;
     deletedRfEdges.forEach(edge => onEdgesDeleteInStore(edge.id));
-    // Parent (ConceptMapEditorPage) will show toast
   }, [isViewOnlyMode, onEdgesDeleteInStore]);
 
   const handleRfConnect = useCallback((params: Connection) => {
     if (isViewOnlyMode) return;
-    onConnectInStore({ source: params.source!, target: params.target!, label: "connects" });
-    // Parent (ConceptMapEditorPage) will show toast
+    onConnectInStore({ 
+      source: params.source!, 
+      target: params.target!, 
+      sourceHandle: params.sourceHandle,
+      targetHandle: params.targetHandle,
+      label: "connects" 
+    });
   }, [isViewOnlyMode, onConnectInStore]);
 
   const handleRfSelectionChange = useCallback((selection: SelectionChanges) => {
@@ -129,10 +126,9 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onSelectionChange={handleRfSelectionChange}
       onConnect={handleRfConnect}
       isViewOnlyMode={isViewOnlyMode}
+      nodeTypes={nodeTypesConfig}
     />
   );
 };
 
 export default React.memo(FlowCanvasCore);
-
-    
