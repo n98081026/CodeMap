@@ -74,7 +74,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         {/* File Operations */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onNewMap} >
+            <Button variant="ghost" size="icon" onClick={onNewMap} > {/* Always enabled */}
               <FilePlus className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -98,7 +98,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onExportMap}>
+            <Button variant="ghost" size="icon" onClick={onExportMap}> {/* Always enabled */}
               <Download className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
