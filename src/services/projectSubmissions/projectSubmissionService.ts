@@ -1,50 +1,19 @@
-
 // src/services/projectSubmissions/projectSubmissionService.ts
 'use server';
 
 /**
- * @fileOverview Project Submission service for handling submission-related operations.
+ * @fileOverview Project Submission service for handling submission-related operations using Supabase.
  */
 
 import type { ProjectSubmission } from '@/types';
 import { ProjectSubmissionStatus, UserRole } from '@/types';
+import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService';
-
-// Mock data for submissions - reduced to a few key entries
-let mockSubmissionsData: ProjectSubmission[] = [
-  { 
-    id: "sub1", 
-    studentId: "student-test-id", 
-    originalFileName: "final-project-v1.zip", 
-    fileSize: 2345678, 
-    submissionTimestamp: new Date("2023-04-10T10:00:00Z").toISOString(), 
-    analysisStatus: ProjectSubmissionStatus.COMPLETED, 
-    generatedConceptMapId: "mapA", 
-    classroomId: "test-classroom-1",
-  },
-  { 
-    id: "sub2", 
-    studentId: "student-test-id", 
-    originalFileName: "alpha-prototype.rar", 
-    fileSize: 102400, 
-    submissionTimestamp: new Date("2023-04-12T14:30:00Z").toISOString(), 
-    analysisStatus: ProjectSubmissionStatus.PROCESSING,
-    classroomId: "test-classroom-1",
-  },
-  { 
-    id: "sub3", 
-    studentId: "student1", 
-    originalFileName: "buggy-code-fix-attempt.zip", 
-    fileSize: 50000, 
-    submissionTimestamp: new Date("2023-04-13T09:15:00Z").toISOString(), 
-    analysisStatus: ProjectSubmissionStatus.FAILED, 
-    analysisError: "Unsupported file structure in archive. Please ensure it's a standard ZIP or RAR.",
-    classroomId: "class1",
-  },
-];
 
 /**
  * Creates a new project submission record.
+ * Note: Actual file upload to Supabase Storage is handled separately.
+ * This function only creates the metadata record.
  */
 export async function createSubmission(
   studentId: string,
@@ -58,39 +27,121 @@ export async function createSubmission(
   }
 
   const now = new Date().toISOString();
-  const newSubmission: ProjectSubmission = {
-    id: `sub-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-    studentId,
-    originalFileName,
-    fileSize,
-    classroomId: classroomId || null,
-    submissionTimestamp: now,
-    analysisStatus: ProjectSubmissionStatus.PENDING,
+  const { data, error } = await supabase
+    .from('project_submissions')
+    .insert({
+      student_id: studentId,
+      original_file_name: originalFileName,
+      file_size: fileSize,
+      classroom_id: classroomId || null,
+      submission_timestamp: now,
+      analysis_status: ProjectSubmissionStatus.PENDING,
+      // file_storage_path will be updated later by the actual file upload mechanism
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase createSubmission error:', error);
+    throw new Error(`Failed to create project submission: ${error.message}`);
+  }
+  if (!data) throw new Error("Failed to create project submission: No data returned.");
+  
+  return {
+    id: data.id,
+    studentId: data.student_id,
+    originalFileName: data.original_file_name,
+    fileSize: data.file_size,
+    classroomId: data.classroom_id,
+    submissionTimestamp: data.submission_timestamp,
+    analysisStatus: data.analysis_status as ProjectSubmissionStatus,
+    analysisError: data.analysis_error,
+    generatedConceptMapId: data.generated_concept_map_id,
+    // fileStoragePath: data.file_storage_path, // Add if column exists and is selected
   };
-  mockSubmissionsData.unshift(newSubmission); 
-  return newSubmission;
 }
 
 /**
  * Retrieves a project submission by its ID.
  */
 export async function getSubmissionById(submissionId: string): Promise<ProjectSubmission | null> {
-  const submission = mockSubmissionsData.find(s => s.id === submissionId);
-  return submission || null;
+  const { data, error } = await supabase
+    .from('project_submissions')
+    .select('*')
+    .eq('id', submissionId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // PGRST116: "Query returned no rows"
+    console.error('Supabase getSubmissionById error:', error);
+    throw new Error(`Error fetching submission: ${error.message}`);
+  }
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    studentId: data.student_id,
+    originalFileName: data.original_file_name,
+    fileSize: data.file_size,
+    classroomId: data.classroom_id,
+    submissionTimestamp: data.submission_timestamp,
+    analysisStatus: data.analysis_status as ProjectSubmissionStatus,
+    analysisError: data.analysis_error,
+    generatedConceptMapId: data.generated_concept_map_id,
+  };
 }
 
 /**
  * Retrieves all submissions for a specific student.
  */
 export async function getSubmissionsByStudentId(studentId: string): Promise<ProjectSubmission[]> {
-  return mockSubmissionsData.filter(s => s.studentId === studentId);
+  const { data, error } = await supabase
+    .from('project_submissions')
+    .select('*')
+    .eq('student_id', studentId)
+    .order('submission_timestamp', { ascending: false });
+
+  if (error) {
+    console.error('Supabase getSubmissionsByStudentId error:', error);
+    throw new Error(`Failed to fetch submissions for student: ${error.message}`);
+  }
+  return (data || []).map(s => ({
+    id: s.id,
+    studentId: s.student_id,
+    originalFileName: s.original_file_name,
+    fileSize: s.file_size,
+    classroomId: s.classroom_id,
+    submissionTimestamp: s.submission_timestamp,
+    analysisStatus: s.analysis_status as ProjectSubmissionStatus,
+    analysisError: s.analysis_error,
+    generatedConceptMapId: s.generated_concept_map_id,
+  }));
 }
 
 /**
  * Retrieves all submissions for a specific classroom.
  */
 export async function getSubmissionsByClassroomId(classroomId: string): Promise<ProjectSubmission[]> {
-    return mockSubmissionsData.filter(s => s.classroomId === classroomId);
+  const { data, error } = await supabase
+    .from('project_submissions')
+    .select('*')
+    .eq('classroom_id', classroomId)
+    .order('submission_timestamp', { ascending: false });
+
+  if (error) {
+    console.error('Supabase getSubmissionsByClassroomId error:', error);
+    throw new Error(`Failed to fetch submissions for classroom: ${error.message}`);
+  }
+  return (data || []).map(s => ({
+    id: s.id,
+    studentId: s.student_id,
+    originalFileName: s.original_file_name,
+    fileSize: s.file_size,
+    classroomId: s.classroom_id,
+    submissionTimestamp: s.submission_timestamp,
+    analysisStatus: s.analysis_status as ProjectSubmissionStatus,
+    analysisError: s.analysis_error,
+    generatedConceptMapId: s.generated_concept_map_id,
+  }));
 }
 
 /**
@@ -102,22 +153,61 @@ export async function updateSubmissionStatus(
   analysisError?: string | null,
   generatedConceptMapId?: string | null
 ): Promise<ProjectSubmission | null> {
-  const submissionIndex = mockSubmissionsData.findIndex(s => s.id === submissionId);
-  if (submissionIndex === -1) {
-    return null; 
-  }
+  const updates: any = {
+    analysis_status: status,
+    analysis_error: analysisError === undefined ? null : analysisError, // Ensure null if undefined
+    generated_concept_map_id: generatedConceptMapId === undefined ? null : generatedConceptMapId, // Ensure null if undefined
+    updated_at: new Date().toISOString(), // Assuming an updated_at column
+  };
 
-  const submission = mockSubmissionsData[submissionIndex];
-  submission.analysisStatus = status;
-  submission.analysisError = analysisError || null;
-  submission.generatedConceptMapId = generatedConceptMapId || null;
+  const { data, error } = await supabase
+    .from('project_submissions')
+    .update(updates)
+    .eq('id', submissionId)
+    .select()
+    .single();
   
-  mockSubmissionsData[submissionIndex] = submission;
-  return submission;
+  if (error) {
+    console.error('Supabase updateSubmissionStatus error:', error);
+    throw new Error(`Failed to update submission status: ${error.message}`);
+  }
+  if (!data) return null; // Or throw "Submission not found"
+
+  return {
+    id: data.id,
+    studentId: data.student_id,
+    originalFileName: data.original_file_name,
+    fileSize: data.file_size,
+    classroomId: data.classroom_id,
+    submissionTimestamp: data.submission_timestamp,
+    analysisStatus: data.analysis_status as ProjectSubmissionStatus,
+    analysisError: data.analysis_error,
+    generatedConceptMapId: data.generated_concept_map_id,
+  };
 }
 
+/**
+ * Retrieves all project submissions (e.g., for admin).
+ */
 export async function getAllSubmissions(): Promise<ProjectSubmission[]> {
-    return [...mockSubmissionsData]; // Return a copy
-}
+  const { data, error } = await supabase
+    .from('project_submissions')
+    .select('*')
+    .order('submission_timestamp', { ascending: false });
 
-    
+  if (error) {
+    console.error('Supabase getAllSubmissions error:', error);
+    throw new Error(`Failed to fetch all submissions: ${error.message}`);
+  }
+  return (data || []).map(s => ({
+    id: s.id,
+    studentId: s.student_id,
+    originalFileName: s.original_file_name,
+    fileSize: s.file_size,
+    classroomId: s.classroom_id,
+    submissionTimestamp: s.submission_timestamp,
+    analysisStatus: s.analysis_status as ProjectSubmissionStatus,
+    analysisError: s.analysis_error,
+    generatedConceptMapId: s.generated_concept_map_id,
+  }));
+}

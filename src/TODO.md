@@ -1,5 +1,4 @@
 
-
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -66,32 +65,32 @@ This section outlines the tasks to migrate the application from mock backend ser
 
 **5. Project Submission & Analysis with Supabase**
 - [ ] **`project_submissions` Table:**
-    - [ ] Create `project_submissions` table (columns: `id` (PK, UUID), `student_id` (FK to `profiles.id`), `classroom_id` (FK, nullable), `original_file_name`, `file_size`, `submission_timestamp`, `analysis_status` (text enum), `analysis_error`, `generated_concept_map_id` (FK, nullable), `file_storage_path`). (User needs to create this in their Supabase project).
+    - [ ] Create `project_submissions` table (columns: `id` (PK, UUID), `student_id` (FK to `profiles.id`), `classroom_id` (FK, nullable), `original_file_name`, `file_size`, `submission_timestamp`, `analysis_status` (text enum), `analysis_error`, `generated_concept_map_id` (FK, nullable), `file_storage_path`, `updated_at` (TIMESTAMPTZ)). (User needs to create this in their Supabase project).
     - [ ] RLS policies: Students CRUD their own. Teachers read for their classrooms. Admins full access. (User needs to implement RLS).
 - [ ] **Supabase Storage Setup:**
     - [ ] Create a storage bucket for project file uploads. (User needs to do this).
     - [ ] Define RLS policies for the storage bucket (e.g., students can upload to a path associated with their ID). (User needs to implement RLS).
-- [ ] **`projectSubmissionService.ts` Refactor:**
-    - [ ] `createSubmission`: Upload file to Supabase Storage, then create record in `project_submissions` table with `file_storage_path`. (File upload to storage is user's responsibility; this service will handle DB record).
-    - [ ] `getSubmissionById`, `getSubmissionsByStudentId`, `getSubmissionsByClassroomId`: Query `project_submissions` table.
-    - [ ] `updateSubmissionStatus`: Update records in `project_submissions`.
-    - [ ] `getAllSubmissions`: Query for admin dashboard.
+- [x] **`projectSubmissionService.ts` Refactor:** (Refactored to use Supabase client calls. Assumes tables & RLS set up by user. File upload to Storage is separate).
+    - [x] `createSubmission`: Create record in `project_submissions` table. `file_storage_path` not handled by this service yet.
+    - [x] `getSubmissionById`, `getSubmissionsByStudentId`, `getSubmissionsByClassroomId`: Query `project_submissions` table.
+    - [x] `updateSubmissionStatus`: Update records in `project_submissions`.
+    - [x] `getAllSubmissions`: Query for admin dashboard.
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
     - [ ] Modify flow to fetch project file from Supabase Storage (if direct file content isn't passed by the tool).
     - [ ] On successful map generation:
-        - [ ] Call `conceptMapService.createConceptMap` (which will use Supabase) to save the new map.
-        - [ ] Call `projectSubmissionService.updateSubmissionStatus` (which will use Supabase) to link the `generated_concept_map_id` and set status to 'completed'.
+        - [x] Call `conceptMapService.createConceptMap` (which will use Supabase) to save the new map. (Done via frontend/API integration)
+        - [x] Call `projectSubmissionService.updateSubmissionStatus` (which will use Supabase) to link the `generated_concept_map_id` and set status to 'completed'. (Done via frontend/API integration)
 
 **6. API Route Refactoring**
 - [ ] Review all existing API routes in `src/app/api/` (excluding `/auth/*` which are deprecated).
 - [ ] Refactor each route to:
-    - [ ] Use the Supabase-powered service functions.
+    - [x] Use the Supabase-powered service functions. (Partially done for users, classrooms, conceptmaps, submissions)
     - [ ] Implement proper Supabase session/JWT authentication and authorization checks (e.g., using Supabase helper functions for Next.js API routes if available, or manually verifying JWTs).
     - [ ] Ensure RLS policies in Supabase are the primary source of data access control, with API routes performing supplementary checks if needed.
 
 **7. Frontend Connection to Supabase Backend**
 - [ ] For each page/component currently fetching data via API routes:
-    - [ ] Ensure API routes are correctly calling Supabase services.
+    - [x] Ensure API routes are correctly calling Supabase services. (Partially done for dashboard counts, classroom lists, user lists, etc.)
     - [ ] Update error handling and loading states to reflect real asynchronous operations.
     - [ ] This is a broad task that touches most of the frontend.
 
@@ -140,18 +139,18 @@ This section outlines improvements to make the GenAI Concept Map features more r
     - [x] **Tool Integration**: Instructs the LLM (via prompt) to utilize `projectStructureAnalyzerTool`.
     - [x] **Refined Prompt**: Updated prompt in `generateMapFromProjectPrompt` to guide LLM on interpreting tool output (Further refinement may be needed with real tool output).
 - [ ] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
-    - [ ] **Update `ProjectUploadForm`**:
-        - [ ] On "Generate Map" confirmation (after file metadata submission to `projectSubmissions` table and file upload to Supabase Storage):
-            - [ ] Trigger the enhanced `generateMapFromProject` flow (via API route or Supabase Function).
-            - [ ] Update `ProjectSubmission` status to `PROCESSING`.
-            - [ ] Provide better loading/progress feedback to the user (e.g., "AI analysis in progress... This might take a few minutes for larger projects.").
-    - [ ] **Map Creation & Linking**:
-        - [ ] When the Genkit flow successfully generates map data:
-            - [ ] The flow (or the API route calling it) should use `conceptMapService` (now Supabase-backed) to create a new concept map record.
-            - [ ] Update the `ProjectSubmission` record (via `projectSubmissionService`) with the `generated_concept_map_id` and set status to `COMPLETED`.
-            - [ ] Notify the user (e.g., via toast and on the submissions page) that the map is ready.
-    - [ ] **Viewing Generated Map**:
-        - [ ] Ensure the `SubmissionListItem` correctly links to the `generated_concept_map_id` in the editor (in view-only mode initially).
+    - [x] **Update `ProjectUploadForm`**: (File metadata submission to Supabase-backed service via API)
+        - [x] On "Generate Map" confirmation (after file metadata submission to `projectSubmissions` table):
+            - [x] Trigger the enhanced `generateMapFromProject` flow (via frontend client-side call, using mock project structure).
+            - [x] Update `ProjectSubmission` status to `PROCESSING` (via API).
+            - [x] Provide better loading/progress feedback to the user.
+    - [x] **Map Creation & Linking**: (Concept Map & Submission linking via API to Supabase-backed services)
+        - [x] When the Genkit flow successfully generates map data:
+            - [x] The flow (or the client-side code calling it) should use `conceptMapService` to create a new concept map record.
+            - [x] Update the `ProjectSubmission` record (via `projectSubmissionService`) with the `generated_concept_map_id` and set status to `COMPLETED`.
+            - [x] Notify the user (e.g., via toast and on the submissions page) that the map is ready.
+    - [x] **Viewing Generated Map**:
+        - [x] Ensure the `SubmissionListItem` correctly links to the `generated_concept_map_id` in the editor (in view-only mode initially).
     - [ ] (Advanced/Future) Allow selective merging/importing of parts of the AI-generated map into an existing map.
 
 **II. Improve In-Editor AI Tool Interactions & Contextual Awareness**
@@ -268,4 +267,4 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - `projectStructureAnalyzerTool` is defined with MOCK logic. The `generateMapFromProject` flow is updated to use it.
 - `classroomService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
 - `conceptMapService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
-
+- `projectSubmissionService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS. File upload to Storage is separate).
