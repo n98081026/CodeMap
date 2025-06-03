@@ -273,3 +273,4 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - Editor toolbar "New Map" button confirmed working. "Import Map" feature implemented. Undo/Redo implemented.
 - Properties Inspector and AI Suggestions Panel are now toggleable sheets controlled from the Editor Toolbar.
 - Custom Nodes in React Flow now display 4 connection handles (top, bottom, left, right).
+- Node context menu implemented for delete and AI actions.

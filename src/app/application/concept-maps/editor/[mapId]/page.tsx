@@ -433,15 +433,16 @@ export default function ConceptMapEditorPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeMapId, user?.id]); 
 
-  const prepareAndOpenExpandConceptModal = useCallback(() => {
+  const prepareAndOpenExpandConceptModal = useCallback((nodeIdForContext?: string) => {
     resetStoreAiSuggestions();
     let concept = "";
     let context: string[] = [];
     const currentNodes = useConceptMapStore.getState().mapData.nodes;
     const currentEdges = useConceptMapStore.getState().mapData.edges;
+    const targetNodeId = nodeIdForContext || selectedElementId;
 
-    if (selectedElementId && selectedElementType === 'node' && currentNodes) {
-      const selectedNode = currentNodes.find(n => n.id === selectedElementId);
+    if (targetNodeId && currentNodes) {
+      const selectedNode = currentNodes.find(n => n.id === targetNodeId);
       if (selectedNode) {
         concept = selectedNode.text;
         const neighborIds = new Set<string>();
@@ -454,23 +455,24 @@ export default function ConceptMapEditorPage() {
           .filter((text): text is string => !!text)
           .slice(0, 5); 
       }
-    } else if (currentNodes && currentNodes.length > 0) {
+    } else if (currentNodes && currentNodes.length > 0) { // Fallback if no node selected/provided
       concept = currentNodes[0].text; 
       context = currentNodes.slice(1, 6).map(n => n.text); 
     }
     setConceptToExpand(concept);
     setMapContextForExpansion(context);
     setIsExpandConceptModalOpen(true);
-  }, [selectedElementId, selectedElementType, resetStoreAiSuggestions]);
+  }, [selectedElementId, resetStoreAiSuggestions]);
   
-  const prepareAndOpenSuggestRelationsModal = useCallback(() => {
+  const prepareAndOpenSuggestRelationsModal = useCallback((nodeIdForContext?: string) => {
     resetStoreAiSuggestions();
     let concepts: string[] = [];
     const currentNodes = useConceptMapStore.getState().mapData.nodes;
     const currentEdges = useConceptMapStore.getState().mapData.edges;
+    const targetNodeId = nodeIdForContext || selectedElementId;
 
-    if (selectedElementId && selectedElementType === 'node' && currentNodes) {
-        const selectedNode = currentNodes.find(n => n.id === selectedElementId);
+    if (targetNodeId && currentNodes) {
+        const selectedNode = currentNodes.find(n => n.id === targetNodeId);
         if (selectedNode) {
             concepts.push(selectedNode.text);
             const neighborIds = new Set<string>();
@@ -481,15 +483,15 @@ export default function ConceptMapEditorPage() {
             concepts.push(...Array.from(neighborIds)
                 .map(id => currentNodes.find(n => n.id === id)?.text)
                 .filter((text): text is string => !!text)
-                .slice(0, 4));
+                .slice(0, 4)); // Max 4 neighbors + selected node = 5 concepts
         }
-    } else if (currentNodes && currentNodes.length > 0) {
+    } else if (currentNodes && currentNodes.length > 0) { // Fallback: use first few nodes
         concepts = currentNodes.slice(0, 5).map(n => n.text); 
     }
     
     setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept 1", "Example Concept 2"]);
     setIsSuggestRelationsModalOpen(true);
-  }, [selectedElementId, selectedElementType, resetStoreAiSuggestions]);
+  }, [selectedElementId, resetStoreAiSuggestions]);
 
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
@@ -619,6 +621,18 @@ export default function ConceptMapEditorPage() {
     closeContextMenu();
   }, [isViewOnlyMode, deleteStoreNode, toast, closeContextMenu]);
 
+  const handleExpandFromContextMenu = useCallback((nodeId: string) => {
+    if (isViewOnlyMode) return;
+    prepareAndOpenExpandConceptModal(nodeId);
+    closeContextMenu();
+  }, [isViewOnlyMode, prepareAndOpenExpandConceptModal, closeContextMenu]);
+
+  const handleSuggestRelationsFromContextMenu = useCallback((nodeId: string) => {
+    if (isViewOnlyMode) return;
+    prepareAndOpenSuggestRelationsModal(nodeId);
+    closeContextMenu();
+  }, [isViewOnlyMode, prepareAndOpenSuggestRelationsModal, closeContextMenu]);
+
 
   const handleSelectedElementPropertyUpdateInspector = useCallback((
     inspectorUpdates: any
@@ -695,8 +709,8 @@ export default function ConceptMapEditorPage() {
           onExportMap={handleExportMap}
           onTriggerImport={handleTriggerImport}
           onExtractConcepts={() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }}
-          onSuggestRelations={prepareAndOpenSuggestRelationsModal}
-          onExpandConcept={prepareAndOpenExpandConceptModal}
+          onSuggestRelations={() => prepareAndOpenSuggestRelationsModal()}
+          onExpandConcept={() => prepareAndOpenExpandConceptModal()}
           isViewOnlyMode={isViewOnlyMode}
           onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
           onToggleProperties={onTogglePropertiesInspector}
@@ -734,6 +748,8 @@ export default function ConceptMapEditorPage() {
             nodeId={contextMenu.nodeId}
             onClose={closeContextMenu}
             onDeleteNode={handleDeleteNodeFromContextMenu}
+            onExpandConcept={handleExpandFromContextMenu}
+            onSuggestRelations={handleSuggestRelationsFromContextMenu}
             isViewOnlyMode={isViewOnlyMode}
           />
         )}

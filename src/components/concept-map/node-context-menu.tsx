@@ -3,7 +3,8 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Trash2, Brain, Lightbulb } from 'lucide-react';
 
 interface NodeContextMenuProps {
   x: number;
@@ -11,6 +12,8 @@ interface NodeContextMenuProps {
   nodeId: string;
   onClose: () => void;
   onDeleteNode: (nodeId: string) => void;
+  onExpandConcept: (nodeId: string) => void;
+  onSuggestRelations: (nodeId: string) => void;
   isViewOnlyMode?: boolean;
 }
 
@@ -20,6 +23,8 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   nodeId,
   onClose,
   onDeleteNode,
+  onExpandConcept,
+  onSuggestRelations,
   isViewOnlyMode,
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -27,6 +32,18 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   const handleDelete = () => {
     if (isViewOnlyMode) return;
     onDeleteNode(nodeId);
+    onClose();
+  };
+
+  const handleExpand = () => {
+    if (isViewOnlyMode) return;
+    onExpandConcept(nodeId);
+    onClose();
+  };
+
+  const handleSuggest = () => {
+    if (isViewOnlyMode) return;
+    onSuggestRelations(nodeId);
     onClose();
   };
 
@@ -52,23 +69,39 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
 
   return (
     <div ref={menuRef} className="absolute z-[100]" style={{ top: y, left: x }}>
-      <Card className="w-48 shadow-xl border bg-popover text-popover-foreground">
-        <CardContent className="p-1">
+      <Card className="w-56 shadow-xl border bg-popover text-popover-foreground">
+        <CardContent className="p-1 space-y-1">
           <Button
             variant="ghost"
             size="sm"
             className="w-full justify-start px-2 py-1.5 text-sm"
+            onClick={handleExpand}
+            disabled={isViewOnlyMode}
+          >
+            <Brain className="mr-2 h-4 w-4 text-purple-500" />
+            Expand Concept (AI)
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start px-2 py-1.5 text-sm"
+            onClick={handleSuggest}
+            disabled={isViewOnlyMode}
+          >
+            <Lightbulb className="mr-2 h-4 w-4 text-yellow-500" />
+            Suggest Relations (AI)
+          </Button>
+          <Separator />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start px-2 py-1.5 text-sm text-destructive hover:text-destructive"
             onClick={handleDelete}
             disabled={isViewOnlyMode}
           >
-            <Trash2 className="mr-2 h-4 w-4 text-destructive" />
+            <Trash2 className="mr-2 h-4 w-4" />
             Delete Node
           </Button>
-          {/* Future actions can be added here */}
-          {/* <DropdownMenuSeparator />
-          <Button variant="ghost" size="sm" className="w-full justify-start px-2 py-1.5 text-sm">
-            <Edit3 className="mr-2 h-4 w-4" /> Edit Label
-          </Button> */}
         </CardContent>
       </Card>
     </div>
