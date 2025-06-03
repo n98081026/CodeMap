@@ -1,3 +1,4 @@
+
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -180,10 +181,10 @@ This section outlines improvements to make the GenAI Concept Map features more r
 **III. General AI User Experience (UX)**
 - [x] **Tooltips & Guidance**:
     - [x] Enhanced tooltips in `EditorToolbar` for AI buttons (clarify function, expected input, output).
-    - [ ] Provide brief in-UI guidance for new users.
+    - [x] Provide brief in-UI guidance for new users. (Implemented as enhanced empty state in AISuggestionPanel)
 - [x] **Loading & Feedback**:
     - [x] Consistent and more specific loading indicators for GenAI modals; buttons show loading state.
-    - [ ] Clearer error messages from AI flows, propagated to user via toasts. Offer actionable advice if possible.
+    - [x] Clearer error messages from AI flows, propagated to user via toasts. Offer actionable advice if possible.
 - [x] **AI Suggestion Panel (`AISuggestionPanel` - formerly `CanvasPlaceholder`):**
     - [x] Improved layout and clarity (distinct cards, better empty states for each category).
     - [x] Ensure panel is easily accessible (toggle button in toolbar).
@@ -267,3 +268,4 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - `classroomService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
 - `conceptMapService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
 - `projectSubmissionService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS. File upload to Storage is separate).
+

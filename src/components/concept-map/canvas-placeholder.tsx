@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2, Info, MessageSquareDashed, CheckSquare, Edit3 } from "lucide-react";
+import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2, Info, MessageSquareDashed, CheckSquare, Edit3, BotMessageSquare } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
@@ -410,14 +411,43 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     <Card className="h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
       <CardContent className="flex h-full flex-col items-center justify-center text-center p-0">
         {!hasAnyContent ? (
-          <div className="p-4">
-            <GitFork className="h-16 w-16 text-muted-foreground/50 mb-4 mx-auto" />
-            <h3 className="text-xl font-semibold text-muted-foreground">AI Suggestions & Map Data</h3>
-            <p className="text-sm text-muted-foreground">
-              Use the toolbar to add elements or invoke AI tools. Suggestions will appear here.
+          <div className="p-6 text-center">
+            <BotMessageSquare className="h-12 w-12 text-primary mb-4 mx-auto" />
+            <h3 className="text-xl font-semibold mb-2">Getting Started with AI Tools</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Unlock insights and build maps faster with our AI-powered features. Here's how to use them:
             </p>
-             <p className="text-xs text-muted-foreground/70 mt-2">
-              The interactive canvas is active above for map visualization and editing.
+            <div className="space-y-3 text-left max-w-md mx-auto">
+              <Card className="bg-background/70 shadow-sm">
+                <CardHeader className="flex flex-row items-center space-x-3 p-3">
+                  <SearchCode className="h-6 w-6 text-primary flex-shrink-0" />
+                  <div>
+                    <CardTitle className="text-base font-medium">Extract Concepts</CardTitle>
+                    <CardDescription className="text-xs">Paste text to identify key ideas from it.</CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+              <Card className="bg-background/70 shadow-sm">
+                <CardHeader className="flex flex-row items-center space-x-3 p-3">
+                  <Lightbulb className="h-6 w-6 text-primary flex-shrink-0" />
+                  <div>
+                    <CardTitle className="text-base font-medium">Suggest Relations</CardTitle>
+                    <CardDescription className="text-xs">Get AI suggestions for connections between existing concepts on your map.</CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+              <Card className="bg-background/70 shadow-sm">
+                <CardHeader className="flex flex-row items-center space-x-3 p-3">
+                  <Brain className="h-6 w-6 text-primary flex-shrink-0" />
+                  <div>
+                    <CardTitle className="text-base font-medium">Expand Concept</CardTitle>
+                    <CardDescription className="text-xs">Explore related ideas for a selected concept to deepen understanding.</CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+            </div>
+            <p className="text-sm text-muted-foreground mt-6">
+              Find these tools in the toolbar above. Your AI-generated suggestions will appear here.
             </p>
           </div>
         ) : (
