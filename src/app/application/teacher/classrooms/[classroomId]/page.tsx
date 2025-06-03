@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types";
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, FileText, Inbox } from "lucide-react";
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, Library, Inbox } from "lucide-react"; // Added Library, kept Inbox for reference if needed elsewhere
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -273,7 +273,7 @@ export default function ClassroomDetailPage() {
                 {errorMaps && !isLoadingMaps && <EmptyState icon={AlertTriangle} title="Error loading maps" description={errorMaps} actionButton={<Button onClick={fetchClassroomMaps} variant="link">Try Again</Button>} />}
                 {!isLoadingMaps && !errorMaps && classroomMaps.length === 0 && (
                      <EmptyState
-                        icon={FileText}
+                        icon={Library}
                         title="No Shared Maps"
                         description="No concept maps have been shared with this classroom yet."
                     />
@@ -322,7 +322,7 @@ export default function ClassroomDetailPage() {
             {errorSubmissions && !isLoadingSubmissions && <EmptyState icon={AlertTriangle} title="Error loading submissions" description={errorSubmissions} actionButton={<Button onClick={fetchClassroomSubmissions} variant="link">Try Again</Button>} />}
             {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && (
                  <EmptyState
-                    icon={Inbox}
+                    icon={FolderKanban}
                     title="No Submissions Yet"
                     description="Students in this classroom haven't submitted any projects for analysis."
                 />
@@ -385,3 +385,4 @@ declare module "@/components/dashboard/dashboard-header" {
     iconClassName?: string;
   }
 }
+

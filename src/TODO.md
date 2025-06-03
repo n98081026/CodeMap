@@ -5,6 +5,7 @@
 - [x] **User Authentication (Backend):**
     - [x] Refactor API routes (`/login`, `/register`) to use `userService`.
     - [x] Connect frontend `AuthContext` to live API (with Supabase service).
+    - [x] Remove old mock user data and local storage logic for user object session (Supabase handles its own session).
     - [ ] Implement actual API endpoints for JWT generation. (Out of Scope: Supabase handles JWTs)
     - [ ] Secure password hashing and storage. (Out of Scope: Supabase handles this)
 - [x] **Database & Models:** (Services now use Supabase)
