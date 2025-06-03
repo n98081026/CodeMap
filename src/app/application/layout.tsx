@@ -13,17 +13,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // This effect handles redirection for the /application route group.
+    // If auth is still loading, we wait.
+    // If done loading and not authenticated, redirect to login.
     if (!isLoading && !isAuthenticated) {
-      router.replace('/login'); // Corrected: redirect to actual login page at root
+      router.replace('/login'); 
     }
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
+    // Show a global loading spinner while AuthContext is determining auth state.
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full bg-primary/20" />
-          <Skeleton className="h-4 w-48 bg-primary/20" />
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Initializing CodeMap...</p>
         </div>
       </div>
@@ -31,9 +34,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    // User is not authenticated and we are not loading.
-    // The useEffect above will handle redirection.
-    // Return a minimal loader or null to prevent MainLayout flash.
+    // If not authenticated (and not loading), the useEffect above will trigger a redirect.
+    // Return a minimal loader to prevent MainLayout from flashing content.
      return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -41,6 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
+  // If authenticated and not loading, render the main application layout.
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
       <MainLayout>

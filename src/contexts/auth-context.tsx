@@ -19,10 +19,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Predefined test users for auto-login convenience during development
-const testStudent: User = { id: "student-test-id", email: "student-test@example.com", name: "Test Student", role: UserRole.STUDENT };
-const testTeacher: User = { id: "teacher-test-id", email: "teacher-test@example.com", name: "Test Teacher", role: UserRole.TEACHER };
-const testAdmin: User = { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN };
+// Predefined test users for login convenience during development
+// const testStudent: User = { id: "student-test-id", email: "student-test@example.com", name: "Test Student", role: UserRole.STUDENT };
+// const testTeacher: User = { id: "teacher-test-id", email: "teacher-test@example.com", name: "Test Teacher", role: UserRole.TEACHER };
+// const testAdmin: User = { id: "admin1", email: "admin@example.com", name: "Admin User", role: UserRole.ADMIN };
 
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -32,26 +32,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
+    // This effect runs once on mount to check for a stored user.
     const storedUser = localStorage.getItem('codemapUser');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      // Automatically log in a test user based on path if no user is stored (for dev convenience)
-      let autoLoginUser: User = testStudent; // Default to student
-      if (pathname.startsWith('/application/admin')) {
-        autoLoginUser = testAdmin;
-      } else if (pathname.startsWith('/application/teacher')) {
-        autoLoginUser = testTeacher;
-      }
-      // Only auto-login if we are on an app path that suggests a role,
-      // EXCLUDING the actual login/register pages themselves.
-      if (pathname.startsWith('/application/') && !pathname.startsWith('/application/login') && !pathname.startsWith('/application/register')) {
-        setUser(autoLoginUser);
-        localStorage.setItem('codemapUser', JSON.stringify(autoLoginUser));
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        console.error("Failed to parse stored user, removing incorrect data.", e);
+        localStorage.removeItem('codemapUser');
       }
     }
     setIsLoading(false);
-  }, [pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const login = async (email: string, password: string, role: UserRole) => {
     setIsLoading(true);
@@ -126,10 +120,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !!user;
 
    useEffect(() => {
-    // This effect handles redirection if not authenticated after initial loading.
-    // It's separate from the initial load effect to avoid race conditions.
+    // This effect handles redirection if not authenticated after initial loading and for protected routes.
     if (!isLoading && !isAuthenticated && !['/login', '/register', '/'].includes(pathname) && !pathname.startsWith("/_next/")) {
-       // If trying to access an /application/... path while not authenticated, redirect to login
       if (pathname.startsWith('/application/')) {
         router.push('/login');
       }
