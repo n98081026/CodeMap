@@ -48,7 +48,7 @@ export default function AdminDashboardPage() {
         const errorMessage = (err as Error).message;
         console.error("Error fetching users count:", errorMessage);
         setErrorUsers(errorMessage);
-        toast({ title: "Error Fetching Users Count", description: errorMessage, variant: "destructive" });
+        // Do not toast here, error will be shown in card
       } finally {
         setIsLoadingUsers(false);
       }
@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
         const errorMessage = (err as Error).message;
         console.error("Error fetching classrooms count:", errorMessage);
         setErrorClassrooms(errorMessage);
-        toast({ title: "Error Fetching Classrooms Count", description: errorMessage, variant: "destructive" });
+        // Do not toast here, error will be shown in card
       } finally {
         setIsLoadingClassrooms(false);
       }
@@ -81,7 +81,7 @@ export default function AdminDashboardPage() {
       fetchUsersCount();
       fetchClassroomsCount();
     }
-  }, [user, toast]);
+  }, [user]);
 
   if (!user || user.role !== UserRole.ADMIN) {
     return (
@@ -95,7 +95,7 @@ export default function AdminDashboardPage() {
     if (isLoading) {
       return <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (error && (count === null || count === 0) ) {
+    if (error && (count === null || count === 0) ) { // Updated condition here
         return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
@@ -131,3 +131,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
