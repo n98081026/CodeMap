@@ -2,13 +2,13 @@
 "use client";
 
 import type { ReactNode } from 'react';
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import type { User } from '@/types';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
-import type { AuthChangeEvent, Session, User as SupabaseUser, Subscription } from '@supabase/supabase-js';
-import { getUserById } from '@/services/users/userService';
+import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { getUserById as fetchSupabaseUserProfile } from '@/services/users/userService'; // Renamed for clarity
 
 // Define a mock admin user for development
 const mockAdminUser: User = {
@@ -22,7 +22,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<void>; // Added role
+  login: (email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   updateCurrentUserData: (updatedFields: Partial<User>) => void;
@@ -36,95 +36,117 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const fetchAndSetUserProfile = useCallback(async (supabaseUser: SupabaseUser) => {
+  // Ref to hold the latest user state for use in callbacks without adding user to useEffect deps
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  const fetchAndSetUserProfile = useCallback(async (supabaseAuthUser: SupabaseUser) => {
     try {
-      const profile = await getUserById(supabaseUser.id);
+      const profile = await fetchSupabaseUserProfile(supabaseAuthUser.id);
       if (profile) {
         setUser(profile);
       } else {
-        console.warn(`Profile not found for Supabase user ${supabaseUser.id} in 'profiles' table. Setting basic user object. Ensure a profile is created for new users (e.g., via Supabase Function trigger).`);
-        // Fallback to basic info from Supabase user if profile fetch fails or not found
+        console.warn(`Profile not found for Supabase user ${supabaseAuthUser.id}. Setting basic user object.`);
         setUser({
-          id: supabaseUser.id,
-          email: supabaseUser.email || '',
-          name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'New User',
-          role: (supabaseUser.user_metadata?.user_role as UserRole) || UserRole.STUDENT, // Attempt to get role from metadata
+          id: supabaseAuthUser.id,
+          email: supabaseAuthUser.email || '',
+          name: supabaseAuthUser.user_metadata?.full_name || supabaseAuthUser.email?.split('@')[0] || 'New User',
+          role: (supabaseAuthUser.user_metadata?.user_role as UserRole) || UserRole.STUDENT,
         });
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      setUser({ // Fallback user object on error
-        id: supabaseUser.id,
-        email: supabaseUser.email || '',
-        name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'Error User',
-        role: (supabaseUser.user_metadata?.user_role as UserRole) || UserRole.STUDENT,
+      setUser({
+        id: supabaseAuthUser.id,
+        email: supabaseAuthUser.email || '',
+        name: supabaseAuthUser.user_metadata?.full_name || supabaseAuthUser.email?.split('@')[0] || 'Error User',
+        role: (supabaseAuthUser.user_metadata?.user_role as UserRole) || UserRole.STUDENT,
       });
     }
   }, []);
 
   useEffect(() => {
     setIsLoading(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        setIsLoading(true);
-        if (session?.user) {
-          // Special handling for mock admin if previously "logged in" this way
-          // This check might be too simplistic if real admin logs out and mock admin was "active"
-          if (user && user.id === mockAdminUser.id && user.role === UserRole.ADMIN && event === 'SIGNED_OUT') {
-            setUser(null); // Clear mock admin on explicit logout
-          } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session.user)) {
-            await fetchAndSetUserProfile(session.user);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          if (!pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
-             router.push('/login');
-          }
-        } else if (event === 'INITIAL_SESSION' && !session) {
-           setUser(null);
+
+    const handleAuthChange = async (event: AuthChangeEvent, session: Session | null) => {
+      const currentContextUser = userRef.current;
+
+      if (currentContextUser?.id === mockAdminUser.id) {
+        if (event === 'SIGNED_OUT') {
+          setUser(null); // General sign out clears mock admin
+        } else if (session?.user && session.user.id !== mockAdminUser.id) {
+          await fetchAndSetUserProfile(session.user); // New real user session overrides mock admin
+        } else {
+          // Maintain mock admin state for other events or if session is null but not SIGNED_OUT
+          setIsLoading(false);
+          return;
         }
-        setIsLoading(false);
+      } else {
+        // Standard handling for non-mock users
+        if (session?.user) {
+          await fetchAndSetUserProfile(session.user);
+        } else {
+          setUser(null);
+          if (event === 'SIGNED_OUT' && !pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
+            router.push('/login');
+          }
+        }
       }
-    );
+      setIsLoading(false);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
 
     // Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const currentContextUser = userRef.current;
+      if (currentContextUser?.id === mockAdminUser.id) {
+        setIsLoading(false);
+        return;
+      }
       if (session?.user) {
         await fetchAndSetUserProfile(session.user);
+      } else {
+        setUser(null);
       }
       setIsLoading(false);
     }).catch(() => {
+      const currentContextUser = userRef.current;
+      if (currentContextUser?.id !== mockAdminUser.id) {
+        setUser(null);
+      }
       setIsLoading(false);
     });
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, [fetchAndSetUserProfile, router, pathname, user]); // Added user to dependency array for mock admin check
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchAndSetUserProfile, router, pathname]); // No `user` or `userRef` in deps here.
 
-
-  const login = useCallback(async (email: string, password: string, role: UserRole) => { // Added role
+  const login = useCallback(async (email: string, password: string, role: UserRole) => {
     setIsLoading(true);
     try {
       if (role === UserRole.ADMIN) {
-        // For Admin role, use mock login
-        console.log("Attempting mock admin login");
-        setUser(mockAdminUser);
-        // No actual Supabase session is created here.
+        console.log("Attempting mock admin login for:", email);
+        setUser(mockAdminUser); // This directly sets the user state
       } else {
-        // For Student and Teacher, use Supabase auth
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // onAuthStateChange will handle setting user and profile for Supabase users
+        // onAuthStateChange will handle fetching profile for real users.
       }
     } catch (error) {
       console.error("Login failed:", error);
-      setUser(null); // Clear user on any login error
+      if (role !== UserRole.ADMIN) { // Only clear user if it was a Supabase attempt that failed
+          setUser(null);
+      }
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [/* setUser, setIsLoading are stable */]);
 
   const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
     setIsLoading(true);
@@ -133,19 +155,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          data: {
-            full_name: name,
-            user_role: role
-          }
+          data: { full_name: name, user_role: role }
         }
       });
-
       if (signUpError) throw signUpError;
       if (!signUpData.user) throw new Error("Registration successful but no user data returned.");
-      
-      alert("Registration successful! Please check your email to confirm your account if required by your setup. You will then be able to log in.");
+      alert("Registration successful! Please check your email to confirm your account if required. You will then be able to log in.");
       router.push('/login');
-
     } catch (error) {
       console.error("Registration failed:", error);
       throw error;
@@ -156,68 +172,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     setIsLoading(true);
-    // If current user is the mock admin, just clear local state
-    if (user && user.id === mockAdminUser.id && user.role === UserRole.ADMIN) {
-      setUser(null);
-      // No Supabase signOut needed as there's no Supabase session for mock admin
-      if (!pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
-         router.push('/login');
-      }
-    } else {
-      // For real Supabase users, sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Logout error:", error);
-      }
-      // setUser(null) and router.push will be handled by onAuthStateChange 'SIGNED_OUT' event
-    }
-    setIsLoading(false);
-  }, [user, router, pathname]);
-  
-  const updateCurrentUserData = useCallback(async (updatedFields: Partial<User>) => {
-    if (!user) return;
+    const currentContextUser = userRef.current; // Use ref to get current user
+    const isMockAdmin = currentContextUser?.id === mockAdminUser.id && currentContextUser?.role === UserRole.ADMIN;
 
-    // If it's the mock admin, update locally (won't persist)
-    if (user.id === mockAdminUser.id) {
+    if (isMockAdmin) {
+      console.log("Logging out mock admin");
+      setUser(null);
+    } else {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error("Supabase signout error:", error);
+      // setUser(null) and redirect will be handled by onAuthStateChange 'SIGNED_OUT' event
+    }
+    
+    setIsLoading(false);
+    // Manually redirect if onAuthStateChange doesn't (e.g., if it was mock admin)
+    if (!pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
+        router.push('/login');
+    }
+  }, [router, pathname]); // Removed userRef from deps, it's a ref.
+
+  const updateCurrentUserData = useCallback(async (updatedFields: Partial<User>) => {
+    const currentContextUser = userRef.current;
+    if (!currentContextUser) return;
+
+    if (currentContextUser.id === mockAdminUser.id) {
       setUser(prevUser => prevUser ? { ...prevUser, ...updatedFields } : null);
       console.log("Mock admin user data updated locally:", updatedFields);
       return;
     }
     
-    // For real users, update in Supabase 'profiles' table
-    // TODO: Implement actual Supabase update logic here for 'profiles' table
-    // This requires ensuring the `profiles` table exists and RLS policies allow updates.
     try {
       const updatesToApply: any = { updated_at: new Date().toISOString() };
       if (updatedFields.name) updatesToApply.name = updatedFields.name;
-      if (updatedFields.email) {
-        // Updating email in Supabase Auth is a separate step, usually initiated by user
-        // For now, we'll just update the profiles table email if changed.
-        // This could lead to inconsistency if auth email isn't also changed.
+      if (updatedFields.email && updatedFields.email !== currentContextUser.email) {
+         // Note: Supabase auth email update is separate. This only updates profiles.
         updatesToApply.email = updatedFields.email;
-         console.warn("Email updated in profile, but Supabase Auth email might need separate update by user.");
       }
-      // Role updates are typically restricted and not done via general profile update
-      // if (updatedFields.role) updatesToApply.role = updatedFields.role;
-
+      // Role updates are generally not done this way.
+      if (Object.keys(updatesToApply).length <= 1 && !updatesToApply.updated_at) return; // No actual field changes
 
       const { data, error } = await supabase
             .from('profiles')
             .update(updatesToApply)
-            .eq('id', user.id)
+            .eq('id', currentContextUser.id)
             .select()
             .single();
-      
       if (error) throw error;
-
-      if (data) {
-        setUser(data as User); // Update local state with the new profile data
-      }
-       console.log("User profile updated in Supabase:", data);
+      if (data) setUser(data as User);
     } catch (error) {
         console.error("Failed to update user profile in Supabase:", error);
     }
-  }, [user]);
+  }, []); // userRef is not needed in deps
 
   const isAuthenticated = !!user;
 
