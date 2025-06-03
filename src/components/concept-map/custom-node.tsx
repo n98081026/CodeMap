@@ -14,58 +14,53 @@ export interface CustomNodeData {
 
 const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, selected, isConnectable, id }) => {
   const nodeTypeStyles: { [key: string]: string } = {
-    key_feature: 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 dark:border-blue-700',
-    service_component: 'bg-green-100 dark:bg-green-900/30 border-green-500 dark:border-green-700',
-    ui_view: 'bg-purple-100 dark:bg-purple-900/30 border-purple-500 dark:border-purple-700',
-    data_model: 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-500 dark:border-yellow-700',
-    code_module: 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-500 dark:border-indigo-700',
-    external_dependency: 'bg-pink-100 dark:bg-pink-900/30 border-pink-500 dark:border-pink-700',
-    user_role: 'bg-teal-100 dark:bg-teal-900/30 border-teal-500 dark:border-teal-700',
-    core_process: 'bg-orange-100 dark:bg-orange-900/30 border-orange-500 dark:border-orange-700',
-    'ai-extracted-concept': 'bg-gray-100 dark:bg-gray-700/30 border-gray-400 dark:border-gray-600',
-    'ai-concept': 'bg-gray-100 dark:bg-gray-700/30 border-gray-400 dark:border-gray-600',
-    'manual-node': 'bg-sky-100 dark:bg-sky-900/30 border-sky-500 dark:border-sky-700',
-    default: 'bg-card border-border',
+    key_feature: 'bg-blue-100 dark:bg-blue-900/50 border-blue-500 dark:border-blue-600 text-blue-900 dark:text-blue-200',
+    service_component: 'bg-green-100 dark:bg-green-900/50 border-green-500 dark:border-green-600 text-green-900 dark:text-green-200',
+    ui_view: 'bg-purple-100 dark:bg-purple-900/50 border-purple-500 dark:border-purple-600 text-purple-900 dark:text-purple-200',
+    data_model: 'bg-yellow-100 dark:bg-yellow-800/50 border-yellow-500 dark:border-yellow-600 text-yellow-900 dark:text-yellow-200',
+    code_module: 'bg-indigo-100 dark:bg-indigo-900/50 border-indigo-500 dark:border-indigo-600 text-indigo-900 dark:text-indigo-200',
+    external_dependency: 'bg-pink-100 dark:bg-pink-900/50 border-pink-500 dark:border-pink-600 text-pink-900 dark:text-pink-200',
+    user_role: 'bg-teal-100 dark:bg-teal-900/50 border-teal-500 dark:border-teal-600 text-teal-900 dark:text-teal-200',
+    core_process: 'bg-orange-100 dark:bg-orange-800/50 border-orange-500 dark:border-orange-600 text-orange-900 dark:text-orange-200',
+    'ai-extracted-concept': 'bg-slate-100 dark:bg-slate-700/50 border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-300',
+    'ai-concept': 'bg-gray-100 dark:bg-gray-700/50 border-gray-400 dark:border-gray-500 text-gray-800 dark:text-gray-300',
+    'manual-node': 'bg-sky-100 dark:bg-sky-900/50 border-sky-500 dark:border-sky-600 text-sky-900 dark:text-sky-200',
+    default: 'bg-card border-border text-card-foreground',
   };
 
-  const baseStyle = "shadow-md rounded-lg transition-all duration-150 ease-in-out border";
-  const selectedStyle = selected ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-background" : "hover:shadow-xl";
+  const baseStyle = "shadow-md rounded-lg transition-all duration-150 ease-in-out border-2"; // Increased border width
+  const selectedStyle = selected ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-background shadow-2xl" : "hover:shadow-xl";
   const typeSpecificStyle = nodeTypeStyles[data.type || 'default'] || nodeTypeStyles['default'];
 
-  // Handle style - subtle, appears more on hover/focus
   const handleBaseStyle = {
     width: 8,
     height: 8,
-    background: 'hsl(var(--muted))', // Muted background
+    background: 'hsl(var(--muted))', 
     border: '1px solid hsl(var(--border))',
     borderRadius: '2px',
     transition: 'all 0.2s ease',
   };
-  const handleHoverStyle = { // To be applied via CSS :hover if possible, or JS if complex
-    background: 'hsl(var(--primary))',
-    boxShadow: '0 0 5px hsl(var(--primary))',
-  };
-
 
   return (
     <Card className={cn(baseStyle, selectedStyle, typeSpecificStyle, 'min-w-[160px] max-w-[280px] group nodrag')}>
-      <CardHeader className="p-2.5 border-b border-[inherit] cursor-move nodrag">
-        <CardTitle className="text-sm font-medium text-center truncate group-hover:whitespace-normal">
+      <CardHeader className={cn("p-2.5 border-b border-[inherit] cursor-move nodrag", 
+        data.type && nodeTypeStyles[data.type] ? 'bg-opacity-20' : '' // Slightly different header bg based on type
+      )}>
+        <CardTitle className="text-sm font-semibold text-center truncate group-hover:whitespace-normal">
           {data.label || 'Node'}
         </CardTitle>
       </CardHeader>
       {data.details && (
-        <CardContent className="p-2.5 text-xs text-muted-foreground truncate group-hover:whitespace-normal group-hover:overflow-visible group-hover:text-clip max-h-20 overflow-y-auto">
+        <CardContent className="p-2.5 text-xs text-[inherit] opacity-90 truncate group-hover:whitespace-normal group-hover:overflow-visible group-hover:text-clip max-h-20 overflow-y-auto">
           {data.details}
         </CardContent>
       )}
 
-      {/* Handles - these act as both source and target */}
       <Handle
-        type="source" // Also target by default
+        type="source" 
         position={Position.Top}
         id={`${id}-top`}
-        style={{ ...handleBaseStyle, top: '-4px' }}
+        style={{ ...handleBaseStyle, top: '-5px' }} // Adjusted for thicker border
         isConnectable={isConnectable}
         className="react-flow__handle-custom"
       />
@@ -73,7 +68,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         type="source"
         position={Position.Bottom}
         id={`${id}-bottom`}
-        style={{ ...handleBaseStyle, bottom: '-4px' }}
+        style={{ ...handleBaseStyle, bottom: '-5px' }} // Adjusted for thicker border
         isConnectable={isConnectable}
         className="react-flow__handle-custom"
       />
@@ -81,7 +76,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         type="source"
         position={Position.Left}
         id={`${id}-left`}
-        style={{ ...handleBaseStyle, left: '-4px' }}
+        style={{ ...handleBaseStyle, left: '-5px' }} // Adjusted for thicker border
         isConnectable={isConnectable}
         className="react-flow__handle-custom"
       />
@@ -89,7 +84,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         type="source"
         position={Position.Right}
         id={`${id}-right`}
-        style={{ ...handleBaseStyle, right: '-4px' }}
+        style={{ ...handleBaseStyle, right: '-5px' }} // Adjusted for thicker border
         isConnectable={isConnectable}
         className="react-flow__handle-custom"
       />

@@ -80,8 +80,8 @@
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states.
 - [ ] **Concept Map Editor - Further Enhancements (Future):**
     - [x] Implement a context menu (right-click) on canvas elements for quick actions (Node delete implemented).
+    - [x] Add custom node types with distinct visual styling on the canvas (Base for custom types is in with `CustomNodeComponent`, further styling added).
     - [ ] Implement Undo/Redo functionality in the editor (complex, requires history tracking in store).
-    - [ ] Add custom node types with distinct visual styling on the canvas (Base for custom types is in with `CustomNodeComponent`, further styling needed).
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor).
 - [ ] **Real-time Features (Optional - Future Consideration):**
