@@ -92,7 +92,7 @@ This section outlines the tasks to migrate the application from mock backend ser
 **7. Frontend Connection to Supabase Backend**
 - [ ] For each page/component currently fetching data via API routes:
     - [x] Ensure API routes are correctly calling Supabase services. (Partially done for dashboard counts, classroom lists, user lists, etc.)
-    - [ ] Update error handling and loading states to reflect real asynchronous operations.
+    - [x] Update error handling and loading states to reflect real asynchronous operations.
     - [ ] This is a broad task that touches most of the frontend.
 
 ## GenAI & AI Features (Comprehensive Enhancement Plan) - Enhanced
@@ -101,7 +101,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
 
 **I. Enhance `generateMapFromProject` (Make it Practical & Insightful)**
 
-- [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending by user).
+- [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending by user. Flow now takes `projectStoragePath`).
 - [ ] **API Endpoint & Backend Processing Pipeline (Post-Supabase Storage Setup):**
     - [ ] API Endpoint: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
         - [ ] Receive notification of successful upload to Supabase Storage (or handle file stream if direct upload to backend is chosen).
@@ -138,8 +138,8 @@ This section outlines improvements to make the GenAI Concept Map features more r
     - [x] **Input**: Updated input schema to accept `projectStoragePath` and `userGoals`. (UI now sends this format).
     - [x] **Tool Integration**: Instructs the LLM (via prompt) to utilize `projectStructureAnalyzerTool`.
     - [x] **Refined Prompt**: Updated prompt in `generateMapFromProjectPrompt` to guide LLM on interpreting tool output (Further refinement may be needed with real tool output).
-- [ ] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
-    - [x] **Update `ProjectUploadForm`**: (File metadata submission to Supabase-backed service via API, triggers Genkit flow with mock storage path)
+- [x] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
+    - [x] **Update `ProjectUploadForm`**: (File metadata submission to Supabase-backed service via API, triggers Genkit flow with mock storage path. Map creation and linking uses Supabase-backed services via API).
         - [x] On "Generate Map" confirmation (after file metadata submission to `projectSubmissions` table):
             - [x] Trigger the enhanced `generateMapFromProject` flow (via frontend client-side call, using mock project structure that is passed to mocked tool).
             - [x] Update `ProjectSubmission` status to `PROCESSING` (via API).

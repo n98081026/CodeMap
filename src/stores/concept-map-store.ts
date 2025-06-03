@@ -155,7 +155,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       },
       importMapData: (importedData, fileName) => {
         const currentMapName = get().mapName;
-        const newName = fileName ? `Imported: ${fileName}` : `Imported: ${currentMapName}`;
+        const newName = fileName ? `${fileName}` : `Imported: ${currentMapName}`; // Use filename as map name directly
         
         set((state) => ({
           mapData: importedData,
@@ -165,6 +165,13 @@ export const useConceptMapStore = create<ConceptMapState>()(
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
           aiExpandedConcepts: [],
+          // Keep existing mapId, owner, public status etc. or reset them?
+          // For now, let's assume import replaces content but keeps current map's shell if it exists
+          // or initializes a new-like state if current map was "new"
+          mapId: state.isNewMapMode ? 'new' : state.mapId, // Keep old ID if not new, treat as "new" if was new.
+          isNewMapMode: state.isNewMapMode, // Preserve new map mode
+          // Consider if ownerId should change to current user upon import
+          // currentMapOwnerId: state.isNewMapMode ? get().currentMapOwnerId : state.currentMapOwnerId, // Or set to current user ID
           isLoading: false,
           isSaving: false,
           error: null,
@@ -264,3 +271,4 @@ export default useConceptMapStore;
 export type ConceptMapStoreWithTemporal = ReturnType<typeof useConceptMapStore.getState> & {
   temporal: TemporalState<TrackedState>;
 };
+
