@@ -115,7 +115,7 @@ export default function AdminDashboardPage() {
         title="Admin Dashboard"
         description="System overview and management tools."
         icon={LayoutDashboard}
-        iconLinkHref="/application/admin/dashboard" // Ensured this points to the admin dashboard
+        iconLinkHref="/application/admin/dashboard"
       />
 
       <div className="grid gap-6 md:grid-cols-2">
