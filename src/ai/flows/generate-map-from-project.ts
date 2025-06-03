@@ -37,8 +37,8 @@ const prompt = ai.definePrompt({
   name: 'generateMapFromProjectPrompt',
   input: {schema: GenerateMapFromProjectInputSchema},
   output: {schema: GenerateMapFromProjectOutputSchema},
-  prompt: `You are an expert software architect and system analyst specializing in creating insightful concept maps from code and project descriptions.
-Your task is to analyze the provided software project information and generate a concept map that clearly represents its key architectural components, core functionalities, and their primary interrelationships.
+  prompt: `You are an expert software architect and system analyst specializing in creating insightful, Whimsical-style concept maps from code and project descriptions.
+Your task is to analyze the provided software project information and generate a concept map that clearly represents its key architectural components, core functionalities, data entities, and their primary interrelationships in a conceptually organized manner.
 
 Project Description:
 {{{projectDescription}}}
@@ -48,24 +48,32 @@ Project Code Structure:
 
 Based on the above information, generate a concept map with the following characteristics:
 
-1.  **Nodes**:
-    *   Represent major directories as logical blocks or high-level components (e.g., 'src', 'components', 'services').
-    *   Represent key files (e.g., main entry points, core modules, service definitions, UI components) as distinct modules or services.
-    *   Represent significant classes, functions, or data structures if they are central to the architecture or functionality, especially if mentioned as exports in the code structure.
-    *   Infer and represent high-level features or user stories as functional nodes if evident from the description or structure.
-    *   Identify and represent key external dependencies or services if mentioned (e.g., from package.json or import statements in the code structure).
+1.  **Nodes**: Identify and represent the following conceptual elements:
+    *   **Key Features / User Stories**: High-level functionalities or user goals (e.g., "User Registration", "Concept Map Creation", "Project Analysis"). Use type: 'key_feature'.
+    *   **Core Architectural Components / Services**: Major logical blocks or services (e.g., "Authentication Service", "Data Processing Engine", "Notification Service"). Use type: 'service_component'.
+    *   **Primary UI Views / Screens**: Significant user interface screens or views (e.g., "Student Dashboard", "Map Editor Canvas", "Login Page"). Use type: 'ui_view'.
+    *   **Data Models / Entities**: Important data structures or database entities (e.g., "User Profile", "Classroom Data", "Concept Map Schema"). Use type: 'data_model'.
+    *   **Key Modules / Libraries**: Important code modules, libraries, or helper utilities if they represent a distinct functionality block (e.g., "API Client", "Validation Utilities"). Use type: 'code_module'.
+    *   **External Dependencies / APIs**: Significant external services or APIs the project interacts with (e.g., "External Payment API", "Cloud Storage Service"). Use type: 'external_dependency'.
+    *   **User Roles** (if applicable): Distinct types of users interacting with the system (e.g., "Student", "Teacher"). Use type: 'user_role'.
+    *   **Core Processes / Flows**: Important operational flows or sequences of actions (e.g., "Project Submission Pipeline", "Map Generation Process"). Use type: 'core_process'.
+    *   Avoid overly granular nodes like individual small functions or files unless they represent a very distinct and important concept. Focus on abstraction.
 
-2.  **Node Types**: Use clear and consistent types for your nodes. Suggested types include: 'directory', 'file', 'module', 'service', 'class', 'function', 'feature', 'data_structure', 'external_dependency', 'ui_component', 'api_endpoint'. Choose the most appropriate type for each node. Each node must have an "id" (unique string), "text" (display label), and "type". Optionally, include "details" for a brief explanation.
+2.  **Node Properties**: Each node MUST have:
+    *   "id": A unique string identifier (e.g., "user_auth_feature", "main_dashboard_view").
+    *   "text": A concise, descriptive display label for the node.
+    *   "type": One of the suggested types above (e.g., 'key_feature', 'service_component', 'ui_view', 'data_model', 'code_module', 'external_dependency', 'user_role', 'core_process').
+    *   "details" (optional): A brief explanation of the node's purpose or key responsibilities.
 
-3.  **Relationships (Edges)**: Define meaningful relationships between nodes.
-    *   Use descriptive labels like: 'contains', 'imports', 'exports', 'calls', 'inherits_from', 'implements', 'depends_on', 'manages', 'interacts_with', 'routes_to', 'triggers', 'uses_data'.
-    *   Pay close attention to 'imports' and 'exports' relationships if this information is present in the projectCodeStructure.
-    *   Focus on primary relationships that highlight the architecture and data flow.
-    *   Each edge must have an "id" (unique string), "source" (source node id), "target" (target node id), and "label".
+3.  **Relationships (Edges)**: Define meaningful, action-oriented relationships between nodes.
+    *   Use descriptive labels like: 'triggers', 'uses_data_from', 'displays_info_for', 'manages_access_to', 'interacts_with_api', 'depends_on_service', 'navigates_to_view', 'part_of_flow', 'owned_by_role'.
+    *   Focus on primary relationships that highlight the architecture, data flow, and user interaction.
+    *   Each edge MUST have: "id" (unique string), "source" (source node id), "target" (target node id), and "label".
 
-4.  **Clarity and Focus**:
-    *   Prioritize the most important elements and relationships to create a clear and understandable map. Avoid excessive detail or clutter.
-    *   The map should provide a good overview of how the project is structured and how its parts work together.
+4.  **Clarity, Conciseness, and Structure**:
+    *   Prioritize the most important elements and relationships. Aim for 10-20 key nodes for a good overview unless the project is very large.
+    *   The map should provide a clear, high-level understanding of how the project is structured and how its parts work together, much like a well-designed Whimsical diagram.
+    *   Think about logical groupings and flow. For example, a 'key_feature' might 'use' several 'service_components' and 'display_on' a 'ui_view'.
 
 5.  **Output Format**:
     *   You MUST output the concept map data as a single, well-formed JSON string.
@@ -76,18 +84,19 @@ Based on the above information, generate a concept map with the following charac
 Example JSON Output Structure:
 {
   "nodes": [
-    { "id": "src_dir", "text": "Source Directory (src)", "type": "directory", "details": "Contains all primary source code." },
-    { "id": "app_entry", "text": "app.ts", "type": "file", "details": "Main application entry point." },
-    { "id": "user_service", "text": "UserService", "type": "service", "details": "Manages user data and authentication." }
+    { "id": "feat_user_login", "text": "User Login Feature", "type": "key_feature", "details": "Handles user authentication and session management." },
+    { "id": "service_auth", "text": "Authentication Service", "type": "service_component", "details": "Manages user credentials and token generation." },
+    { "id": "view_login_page", "text": "Login Page", "type": "ui_view", "details": "UI for users to enter credentials." },
+    { "id": "data_user_creds", "text": "User Credentials", "type": "data_model", "details": "Stores hashed passwords and user identifiers." }
   ],
   "edges": [
-    { "id": "edge_1", "source": "src_dir", "target": "app_entry", "label": "contains" },
-    { "id": "edge_2", "source": "app_entry", "target": "user_service", "label": "initializes" },
-    { "id": "edge_3", "source": "user_service", "target": "external_auth_api", "label": "depends_on" }
+    { "id": "edge_1", "source": "feat_user_login", "target": "service_auth", "label": "uses_service" },
+    { "id": "edge_2", "source": "view_login_page", "target": "feat_user_login", "label": "triggers_feature" },
+    { "id": "edge_3", "source": "service_auth", "target": "data_user_creds", "label": "accesses_data" }
   ]
 }
 
-Analyze the provided project information and generate the concept map JSON data.
+Analyze the provided project information and generate the concept map JSON data adhering to these Whimsical-style guidelines.
 `,
 });
 
