@@ -1,5 +1,4 @@
 
-
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -78,7 +77,7 @@ This section outlines the tasks to migrate the application from mock backend ser
     - [x] `getAllSubmissions`: Query for admin dashboard.
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
     - [ ] Modify flow to fetch project file from Supabase Storage (if direct file content isn't passed by the tool).
-    - [ ] On successful map generation:
+    - [x] On successful map generation:
         - [x] Call `conceptMapService.createConceptMap` (which will use Supabase) to save the new map. (Done via frontend/API integration)
         - [x] Call `projectSubmissionService.updateSubmissionStatus` (which will use Supabase) to link the `generated_concept_map_id` and set status to 'completed'. (Done via frontend/API integration)
 
@@ -268,4 +267,6 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - `classroomService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
 - `conceptMapService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
 - `projectSubmissionService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS. File upload to Storage is separate).
-
+- UI for "Generate Map from Project" now better simulates the flow and updates submission status, linking real ConceptMap records (in mock DB) from AI output.
+- AI Suggestion Panel (CanvasPlaceholder) allows editing suggestions, has clearer visual cues for existing/similar items, and themed category headers.
+- Editor toolbar "New Map" button confirmed working. "Import Map" feature implemented. Undo/Redo implemented.
