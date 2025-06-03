@@ -1,3 +1,4 @@
+
 "use client";
 import React, { memo } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
@@ -65,15 +66,15 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   const handleBaseStyle = {
     width: 8,
     height: 8,
-    background: 'hsl(var(--muted))',
-    border: '1px solid hsl(var(--border))',
-    borderRadius: '2px',
+    // background: 'hsl(var(--muted))', // Handled by custom class
+    // border: '1px solid hsl(var(--border))', // Handled by custom class
+    // borderRadius: '2px', // Handled by custom class
     transition: 'all 0.2s ease',
     pointerEvents: 'all' as React.CSSProperties['pointerEvents'],
   };
 
   return (
-    <Card className={cn(baseStyle, selectedStyle, typeSpecificStyle, 'min-w-[160px] max-w-[280px] group')}>
+    <Card className={cn(baseStyle, selectedStyle, typeSpecificStyle, 'min-w-[160px] max-w-[280px] group nodrag')}>
       <CardHeader className={cn(
         "p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2",
         data.type && nodeTypeStyles[data.type] ? 'bg-opacity-20' : ''
@@ -89,6 +90,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         </CardContent>
       )}
 
+      {/* Handles act as both source and target by default if not specified */}
       <Handle
         type="source" 
         position={Position.Top}
@@ -126,3 +128,4 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
+

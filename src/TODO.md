@@ -225,7 +225,7 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - [ ] **Concept Map Editor - Further Enhancements (Future):**
     - [x] Implement a context menu (right-click) on canvas elements for quick actions (Node delete, AI actions for node).
     - [x] Add custom node types with distinct visual styling on the canvas.
-    - [ ] Re-evaluate and implement robust Undo/Redo functionality in the editor (Zustand `temporal` store needs careful setup or alternative). - Marked done, further testing by user.
+    - [x] Re-evaluate and implement robust Undo/Redo functionality in the editor (Zustand `temporal` store needs careful setup or alternative). - Marked done, further testing by user.
 - [x] **State Management:**
     - [x] Zustand implemented for Concept Map Editor. `temporal` middleware integrated.
 - [ ] **Real-time Features (Optional - Future Consideration):**
@@ -272,5 +272,4 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - AI Suggestion Panel (CanvasPlaceholder) allows editing suggestions, has clearer visual cues for existing/similar items, and themed category headers.
 - Editor toolbar "New Map" button confirmed working. "Import Map" feature implemented. Undo/Redo implemented.
 - Properties Inspector and AI Suggestions Panel are now toggleable sheets controlled from the Editor Toolbar.
-
-```
+- Custom Nodes in React Flow now display 4 connection handles (top, bottom, left, right).
