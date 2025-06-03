@@ -3,236 +3,403 @@
 'use server';
 
 /**
- * @fileOverview Classroom service for handling classroom-related operations.
+ * @fileOverview Classroom service for handling classroom-related operations using Supabase.
  */
 
 import type { Classroom, User } from '@/types';
 import { UserRole } from '@/types';
-import { getUserById } from '@/services/users/userService'; // To fetch teacher/student details
+import { supabase } from '@/lib/supabaseClient';
+import { getUserById } from '@/services/users/userService'; // Still useful for validating teacher/student roles
 
-// Mock data for classrooms - reduced to a few key entries
-let mockClassroomsData: Classroom[] = [
-  { id: "class1", name: "Introduction to Programming", teacherId: "teacher1", teacherName: "Teacher User", studentIds: ["student1", "student-test-id"], inviteCode: "PROG101", students: [], description: "Learn the fundamentals of programming using Python. Covers variables, loops, functions, and basic data structures." },
-  {
-    id: "test-classroom-1",
-    name: "Introduction to AI",
-    teacherId: "teacher-test-id",
-    teacherName: "Test Teacher",
-    studentIds: ["student-test-id"],
-    inviteCode: "AI101TEST",
-    students: [],
-    description: "An introductory course to Artificial Intelligence concepts, including search, logic, and basic machine learning."
-  },
-];
-
-// Helper to populate student details - in real app, this would be an efficient DB query
-async function populateStudentDetails(studentIds: string[]): Promise<User[]> {
-  const students: User[] = [];
-  for (const id of studentIds) {
-    const student = await getUserById(id);
-    if (student) {
-      students.push(student);
-    }
-  }
-  return students;
-}
 
 async function populateTeacherName(classroom: Classroom): Promise<void> {
-  if (classroom.teacherId && !classroom.teacherName) { // Only populate if not already set
+  if (classroom.teacherId && !classroom.teacherName) {
     const teacher = await getUserById(classroom.teacherId);
     if (teacher) {
       classroom.teacherName = teacher.name;
     } else {
-      classroom.teacherName = "Unknown Teacher"; // Fallback
+      classroom.teacherName = "Unknown Teacher";
     }
   }
 }
 
+async function populateStudentDetailsForClassroom(classroom: Classroom): Promise<void> {
+  const { data: studentEntries, error: studentEntriesError } = await supabase
+    .from('classroom_students')
+    .select('student_id')
+    .eq('classroom_id', classroom.id);
 
-/**
- * Creates a new classroom.
- * @param name The name of the classroom.
- * @param description An optional description for the classroom.
- * @param teacherId The ID of the teacher creating the classroom.
- * @returns The newly created classroom object.
- */
+  if (studentEntriesError) {
+    console.error(`Error fetching student entries for classroom ${classroom.id}:`, studentEntriesError);
+    classroom.studentIds = [];
+    classroom.students = [];
+    return;
+  }
+
+  const studentIds = studentEntries.map(entry => entry.student_id);
+  classroom.studentIds = studentIds;
+
+  if (studentIds.length > 0) {
+    const { data: studentProfiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name, email, role')
+      .in('id', studentIds);
+
+    if (profilesError) {
+      console.error(`Error fetching student profiles for classroom ${classroom.id}:`, profilesError);
+      classroom.students = []; // Or handle partial data if preferred
+      return;
+    }
+    classroom.students = studentProfiles as User[];
+  } else {
+    classroom.students = [];
+  }
+}
+
+
 export async function createClassroom(name: string, description: string | undefined, teacherId: string): Promise<Classroom> {
   const teacher = await getUserById(teacherId);
-  if (!teacher || (teacher.role !== UserRole.TEACHER && teacher.role !== UserRole.ADMIN)) { // Admins can also create classrooms
+  if (!teacher || (teacher.role !== UserRole.TEACHER && teacher.role !== UserRole.ADMIN)) {
     throw new Error("Invalid teacher ID or user is not authorized to create classrooms.");
   }
 
-  const newClassroom: Classroom = {
-    id: `class-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-    name,
-    description: description || "No description provided.",
-    teacherId,
-    teacherName: teacher.name,
-    studentIds: [],
+  const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from('classrooms')
+    .insert({
+      name,
+      description: description || null,
+      teacher_id: teacherId,
+      invite_code: inviteCode,
+      created_at: now,
+      updated_at: now,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase createClassroom error:', error);
+    throw new Error(`Failed to create classroom: ${error.message}`);
+  }
+  if (!data) throw new Error("Failed to create classroom: No data returned.");
+
+  // Convert Supabase row to Classroom type
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description ?? undefined,
+    teacherId: data.teacher_id,
+    teacherName: teacher.name, // Set from validated teacher
+    studentIds: [], // New classroom has no students
     students: [],
-    inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+    inviteCode: data.invite_code,
+    // created_at: data.created_at, // available on data
+    // updated_at: data.updated_at, // available on data
   };
-  mockClassroomsData.push(newClassroom);
-  return newClassroom;
 }
 
-/**
- * Retrieves classrooms taught by a specific teacher, with optional pagination.
- * @param teacherId The ID of the teacher.
- * @param page Optional page number for pagination (1-indexed).
- * @param limit Optional number of items per page for pagination.
- * @returns A list of classrooms, or a paginated result if page and limit are provided.
- */
+
 export async function getClassroomsByTeacherId(
   teacherId: string,
   page?: number,
   limit?: number
 ): Promise<Classroom[] | { classrooms: Classroom[]; totalCount: number }> {
-  const allTeacherClassrooms = mockClassroomsData.filter(c => c.teacherId === teacherId);
+  let query = supabase
+    .from('classrooms')
+    .select('*, teacher:profiles!teacher_id(name)', { count: 'exact' }) // Assuming RLS allows fetching teacher name
+    .eq('teacher_id', teacherId)
+    .order('name', { ascending: true });
 
-  for (const classroom of allTeacherClassrooms) {
-     await populateTeacherName(classroom);
+  if (page && limit) {
+    const startIndex = (page - 1) * limit;
+    query = query.range(startIndex, startIndex + limit - 1);
   }
-  
-  allTeacherClassrooms.sort((a, b) => a.name.localeCompare(b.name));
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error('Supabase getClassroomsByTeacherId error:', error);
+    throw new Error(`Failed to fetch classrooms for teacher: ${error.message}`);
+  }
+
+  const classrooms = (data || []).map(c => ({
+    id: c.id,
+    name: c.name,
+    description: c.description ?? undefined,
+    teacherId: c.teacher_id,
+    teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
+    studentIds: [], // Needs separate query or join for student count if displayed on list
+    inviteCode: c.invite_code,
+  }));
+
+  // Populate student counts for each classroom (can be heavy, consider if needed for list view)
+  for (const classroom of classrooms) {
+    const { count: studentCount, error: countError } = await supabase
+      .from('classroom_students')
+      .select('student_id', { count: 'exact', head: true })
+      .eq('classroom_id', classroom.id);
+    if (countError) console.warn(`Error counting students for classroom ${classroom.id}: ${countError.message}`);
+    classroom.studentIds = Array(studentCount || 0).fill(''); // Placeholder for count
+  }
 
 
   if (page && limit) {
-    const totalCount = allTeacherClassrooms.length;
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-    const paginatedClassrooms = allTeacherClassrooms.slice(startIndex, endIndex);
-    return { classrooms: paginatedClassrooms, totalCount };
-  }
-
-  return allTeacherClassrooms;
-}
-
-
-/**
- * Retrieves all classrooms a specific student is enrolled in.
- * @param studentId The ID of the student.
- * @returns A list of classrooms.
- */
-export async function getClassroomsByStudentId(studentId: string): Promise<Classroom[]> {
-  const classrooms = mockClassroomsData.filter(c => c.studentIds.includes(studentId));
-  for (const classroom of classrooms) {
-    await populateTeacherName(classroom);
+    return { classrooms, totalCount: count || 0 };
   }
   return classrooms;
 }
 
 
-/**
- * Retrieves a classroom by its ID, populating student details.
- * @param classroomId The ID of the classroom.
- * @returns The classroom object if found, otherwise null.
- */
-export async function getClassroomById(classroomId: string): Promise<Classroom | null> {
-  const classroom = mockClassroomsData.find(c => c.id === classroomId);
-  if (!classroom) return null;
+export async function getClassroomsByStudentId(studentId: string): Promise<Classroom[]> {
+  const { data: studentClassEntries, error: entriesError } = await supabase
+    .from('classroom_students')
+    .select('classroom_id')
+    .eq('student_id', studentId);
 
-  await populateTeacherName(classroom);
-  classroom.students = await populateStudentDetails(classroom.studentIds);
+  if (entriesError) {
+    console.error('Supabase getClassroomsByStudentId (entries) error:', entriesError);
+    throw new Error(`Failed to fetch student's classroom entries: ${entriesError.message}`);
+  }
+  if (!studentClassEntries || studentClassEntries.length === 0) {
+    return [];
+  }
+
+  const classroomIds = studentClassEntries.map(entry => entry.classroom_id);
+
+  const { data: classroomData, error: classroomsError } = await supabase
+    .from('classrooms')
+    .select('*, teacher:profiles!teacher_id(name)')
+    .in('id', classroomIds)
+    .order('name', { ascending: true });
+
+  if (classroomsError) {
+    console.error('Supabase getClassroomsByStudentId (classrooms) error:', classroomsError);
+    throw new Error(`Failed to fetch classrooms: ${classroomsError.message}`);
+  }
+
+  const classrooms = (classroomData || []).map(c => ({
+    id: c.id,
+    name: c.name,
+    description: c.description ?? undefined,
+    teacherId: c.teacher_id,
+    teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
+    studentIds: [], // Placeholder, can be populated if needed but might be redundant here
+    inviteCode: c.invite_code,
+  }));
+  
+  // Optionally populate student counts if really needed for this view
+  for (const classroom of classrooms) {
+    const { count: studentCount, error: countError } = await supabase
+      .from('classroom_students')
+      .select('student_id', { count: 'exact', head: true })
+      .eq('classroom_id', classroom.id);
+    if (countError) console.warn(`Error counting students for classroom ${classroom.id}: ${countError.message}`);
+    classroom.studentIds = Array(studentCount || 0).fill(''); // Placeholder for count
+  }
+
+  return classrooms;
+}
+
+
+export async function getClassroomById(classroomId: string): Promise<Classroom | null> {
+  const { data, error } = await supabase
+    .from('classrooms')
+    .select('*, teacher:profiles!teacher_id(name)') // Renamed relation for clarity
+    .eq('id', classroomId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    console.error('Supabase getClassroomById error:', error);
+    throw new Error(`Failed to fetch classroom: ${error.message}`);
+  }
+  if (!data) return null;
+
+  const classroom: Classroom = {
+    id: data.id,
+    name: data.name,
+    description: data.description ?? undefined,
+    teacherId: data.teacher_id,
+    teacherName: (data.teacher as any)?.name || 'Unknown Teacher',
+    studentIds: [], // To be populated by populateStudentDetailsForClassroom
+    students: [],   // To be populated by populateStudentDetailsForClassroom
+    inviteCode: data.invite_code,
+  };
+
+  await populateStudentDetailsForClassroom(classroom);
   return classroom;
 }
 
-/**
- * Adds a student (by ID) to a classroom.
- * @param classroomId The ID of the classroom.
- * @param studentId The ID of the student.
- * @returns The updated classroom object or null if not found/student invalid.
- */
+
 export async function addStudentToClassroom(classroomId: string, studentId: string): Promise<Classroom | null> {
-  const classroomIndex = mockClassroomsData.findIndex(c => c.id === classroomId);
-  if (classroomIndex === -1) {
-    throw new Error("Classroom not found.");
-  }
+  const classroom = await getClassroomById(classroomId); // Fetch to ensure classroom exists
+  if (!classroom) throw new Error("Classroom not found.");
 
   const student = await getUserById(studentId);
   if (!student || student.role !== UserRole.STUDENT) {
     throw new Error("Invalid student ID or user is not a student.");
   }
 
-  const classroom = mockClassroomsData[classroomIndex];
-  if (!classroom.studentIds.includes(studentId)) {
-    classroom.studentIds.push(studentId);
-    classroom.students = await populateStudentDetails(classroom.studentIds);
-    mockClassroomsData[classroomIndex] = classroom; 
+  // Check if student is already enrolled
+  const { data: existingEntry, error: checkError } = await supabase
+    .from('classroom_students')
+    .select('*')
+    .eq('classroom_id', classroomId)
+    .eq('student_id', studentId)
+    .maybeSingle(); // Use maybeSingle to avoid error if not found
+
+  if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows, which is fine here
+      console.error("Error checking existing student enrollment:", checkError);
+      throw new Error(`Failed to check enrollment: ${checkError.message}`);
+  }
+
+  if (existingEntry) {
+    // Student already enrolled, just return the classroom data with fresh student list
+    await populateStudentDetailsForClassroom(classroom);
     return classroom;
   }
-  // If student already in classroom, just ensure details are fresh
-  classroom.students = await populateStudentDetails(classroom.studentIds);
+
+  // Add student
+  const { error: insertError } = await supabase
+    .from('classroom_students')
+    .insert({ classroom_id: classroomId, student_id: studentId, enrolled_at: new Date().toISOString() });
+
+  if (insertError) {
+    console.error('Supabase addStudentToClassroom error:', insertError);
+    throw new Error(`Failed to add student to classroom: ${insertError.message}`);
+  }
+
+  await populateStudentDetailsForClassroom(classroom); // Refresh student list
   return classroom;
 }
 
-/**
- * Removes a student from a classroom.
- * @param classroomId The ID of the classroom.
- * @param studentId The ID of the student.
- * @returns The updated classroom object or null if classroom not found.
- */
+
 export async function removeStudentFromClassroom(classroomId: string, studentId: string): Promise<Classroom | null> {
-   const classroomIndex = mockClassroomsData.findIndex(c => c.id === classroomId);
-   if (classroomIndex === -1) {
-     throw new Error("Classroom not found.");
-   }
-   
-   const classroom = mockClassroomsData[classroomIndex];
-   const initialStudentCount = classroom.studentIds.length;
-   classroom.studentIds = classroom.studentIds.filter(id => id !== studentId);
+  const classroom = await getClassroomById(classroomId); // Fetch to ensure classroom exists
+  if (!classroom) throw new Error("Classroom not found.");
 
-   if (classroom.studentIds.length < initialStudentCount) { 
-     classroom.students = await populateStudentDetails(classroom.studentIds);
-     mockClassroomsData[classroomIndex] = classroom; 
-   } else { 
-     classroom.students = await populateStudentDetails(classroom.studentIds);
-   }
-   return classroom;
+  const { error } = await supabase
+    .from('classroom_students')
+    .delete()
+    .eq('classroom_id', classroomId)
+    .eq('student_id', studentId);
+
+  if (error) {
+    console.error('Supabase removeStudentFromClassroom error:', error);
+    throw new Error(`Failed to remove student from classroom: ${error.message}`);
+  }
+
+  await populateStudentDetailsForClassroom(classroom); // Refresh student list
+  return classroom;
 }
 
-/**
- * Updates a classroom.
- * @param classroomId The ID of the classroom.
- * @param updates Partial classroom data to update (name, description).
- * @returns The updated classroom or null if not found.
- */
+
 export async function updateClassroom(classroomId: string, updates: { name?: string; description?: string }): Promise<Classroom | null> {
-  const classroomIndex = mockClassroomsData.findIndex(c => c.id === classroomId);
-  if (classroomIndex === -1) return null;
+  const classroomToUpdate = await getClassroomById(classroomId);
+  if (!classroomToUpdate) return null; // Classroom not found
 
-  const classroomToUpdate = { ...mockClassroomsData[classroomIndex] };
-  if (updates.name !== undefined) {
-    classroomToUpdate.name = updates.name;
-  }
-  if (updates.description !== undefined) {
-    classroomToUpdate.description = updates.description;
-  }
+  const supabaseUpdates: any = {};
+  if (updates.name !== undefined) supabaseUpdates.name = updates.name;
+  if (updates.description !== undefined) supabaseUpdates.description = updates.description;
   
-  mockClassroomsData[classroomIndex] = classroomToUpdate;
-  await populateTeacherName(mockClassroomsData[classroomIndex]);
-  mockClassroomsData[classroomIndex].students = await populateStudentDetails(mockClassroomsData[classroomIndex].studentIds);
+  if (Object.keys(supabaseUpdates).length === 0) {
+      return classroomToUpdate; // No actual changes
+  }
+  supabaseUpdates.updated_at = new Date().toISOString();
 
-  return mockClassroomsData[classroomIndex];
+
+  const { data, error } = await supabase
+    .from('classrooms')
+    .update(supabaseUpdates)
+    .eq('id', classroomId)
+    .select('*, teacher:profiles!teacher_id(name)')
+    .single();
+
+  if (error) {
+    console.error('Supabase updateClassroom error:', error);
+    throw new Error(`Failed to update classroom: ${error.message}`);
+  }
+  if (!data) return null; // Should not happen if update was successful and id is correct
+
+  const updatedClassroom: Classroom = {
+    id: data.id,
+    name: data.name,
+    description: data.description ?? undefined,
+    teacherId: data.teacher_id,
+    teacherName: (data.teacher as any)?.name || classroomToUpdate.teacherName, // Preserve if teacher not re-queried
+    studentIds: classroomToUpdate.studentIds, // Preserve student list, can be repopulated if necessary
+    students: classroomToUpdate.students,
+    inviteCode: data.invite_code,
+  };
+  // Re-populate student details if structure changed significantly or if a fresh list is always needed
+  await populateStudentDetailsForClassroom(updatedClassroom);
+
+  return updatedClassroom;
 }
 
-/**
- * Deletes a classroom.
- * @param classroomId The ID of the classroom to delete.
- * @returns True if deleted, false otherwise.
- */
+
 export async function deleteClassroom(classroomId: string): Promise<boolean> {
-  const initialLength = mockClassroomsData.length;
-  mockClassroomsData = mockClassroomsData.filter(c => c.id !== classroomId);
-  return mockClassroomsData.length < initialLength;
+  // First, remove all student enrollments for this classroom
+  const { error: deleteEnrollmentsError } = await supabase
+    .from('classroom_students')
+    .delete()
+    .eq('classroom_id', classroomId);
+
+  if (deleteEnrollmentsError) {
+    console.error('Supabase deleteClassroom (enrollments) error:', deleteEnrollmentsError);
+    throw new Error(`Failed to delete student enrollments for classroom: ${deleteEnrollmentsError.message}`);
+  }
+
+  // Then, delete the classroom itself
+  const { error: deleteClassroomError } = await supabase
+    .from('classrooms')
+    .delete()
+    .eq('id', classroomId);
+
+  if (deleteClassroomError) {
+    console.error('Supabase deleteClassroom error:', deleteClassroomError);
+    throw new Error(`Failed to delete classroom: ${deleteClassroomError.message}`);
+  }
+
+  // `delete` doesn't return data or count directly unless `select()` is added.
+  // The absence of an error implies success if the row existed.
+  // To be certain, one might check if the classroom still exists, but for now, we assume success if no error.
+  return true;
 }
+
 
 export async function getAllClassrooms(): Promise<Classroom[]> {
-  const classrooms = [...mockClassroomsData]; // Return a copy
-  for (const classroom of classrooms) {
-     await populateTeacherName(classroom);
-     // Optionally populate student details if needed by admin view, but can be heavy
-     // classroom.students = await populateStudentDetails(classroom.studentIds);
+  const { data, error } = await supabase
+    .from('classrooms')
+    .select('*, teacher:profiles!teacher_id(name)')
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('Supabase getAllClassrooms error:', error);
+    throw new Error(`Failed to fetch all classrooms: ${error.message}`);
   }
+
+  const classrooms = (data || []).map(c => ({
+    id: c.id,
+    name: c.name,
+    description: c.description ?? undefined,
+    teacherId: c.teacher_id,
+    teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
+    studentIds: [], // For admin list, count is usually sufficient
+    inviteCode: c.invite_code,
+  }));
+  
+  // Populate student counts
+  for (const classroom of classrooms) {
+    const { count: studentCount, error: countError } = await supabase
+      .from('classroom_students')
+      .select('student_id', { count: 'exact', head: true })
+      .eq('classroom_id', classroom.id);
+    if (countError) console.warn(`Error counting students for classroom ${classroom.id}: ${countError.message}`);
+    classroom.studentIds = Array(studentCount || 0).fill(''); // Using studentIds length for count
+  }
+
   return classrooms;
 }

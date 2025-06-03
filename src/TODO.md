@@ -11,67 +11,67 @@ This section outlines the tasks to migrate the application from mock backend ser
 - [x] **Client Library & Config:**
     - [x] Install `@supabase/supabase-js` package.
     - [x] Create Supabase client configuration file (`src/lib/supabaseClient.ts`).
-    - [x] Set up environment variables for Supabase URL and Anon Key (`.env` and deployment). (User needs to fill in values - **DONE, user provided values**)
+    - [x] Set up environment variables for Supabase URL and Anon Key (`.env` and deployment). (User has provided values, `.env` updated).
 - [ ] **Database Schema Design (Initial Pass):**
-    - [ ] Define table structures for `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`. (Assumed conceptual definition, user needs to implement in Supabase)
-    - [ ] Plan relationships (foreign keys) between tables. (Assumed conceptual definition)
+    - [ ] Define table structures for `profiles`, `classrooms`, `classroom_students`, `concept_maps`, `project_submissions`. (User needs to implement in Supabase)
+    - [ ] Plan relationships (foreign keys) between tables. (User needs to implement in Supabase)
 - [x] **Database Migrations:**
     - [x] Set up Supabase CLI for local development and schema migrations. (Assumed user will do)
     - [x] Create initial schema migration SQL scripts. (Assumed user will do)
-    - [x] Generate TypeScript types from your Supabase schema using `supabase gen types typescript --project-id <your-project-id> --schema public > src/types/supabase.ts` and update `supabaseClient.ts`. **(User has run this command).** Placeholder file `src/types/supabase.ts` created and client updated. User needs to run command to populate it.
+    - [x] Generate TypeScript types from your Supabase schema using `supabase gen types typescript --project-id <your-project-id> --schema public > src/types/supabase.ts` and update `supabaseClient.ts`. File `src/types/supabase.ts` created with placeholder; `supabaseClient.ts` imports from it. **User needs to run the command to populate `src/types/supabase.ts`**.
 
 **2. User Authentication & Profiles with Supabase Auth**
 - [ ] **Users (`profiles`) Table:**
     - [ ] Create `profiles` table in Supabase (columns: `id` (FK to `auth.users.id`), `name`, `email`, `role` (e.g., using a `user_role_enum`), `created_at`, `updated_at`). (User needs to create this in their Supabase project)
     - [ ] Set up RLS policies for `profiles` (e.g., users can update their own profile, read their own, admins can manage). (User needs to implement RLS)
 - [x] **`AuthContext` Refactor:**
-    - [x] Replace mock `login` with Supabase `signInWithPassword`.
-    - [x] Replace mock `register` with Supabase `signUp`. (Profile creation post-signup is a separate step).
+    - [x] Replace mock `login` with Supabase `signInWithPassword` (mock admin login preserved as special case).
+    - [x] Replace mock `register` with Supabase `signUp`. (Profile creation post-signup needs to be handled, e.g., by Supabase Function trigger - User responsibility).
     - [x] Replace mock `logout` with Supabase `signOut`.
-    - [x] Fetch user profile data from `profiles` table after Supabase auth state changes. (Logic added to `AuthContext` to call `userService.getUserById`).
+    - [x] Fetch user profile data from `profiles` table after Supabase auth state changes (Logic added to `AuthContext` to call `userService.getUserById`).
     - [x] Implement session management using Supabase `onAuthStateChange`.
     - [x] Remove old mock user data and local storage logic for user object session (Supabase handles its own session).
 - [x] **`userService.ts` Refactor:**
-    - [x] `createUserProfile`: New function to create a corresponding record in the `profiles` table after Supabase `signUp` (to be called by a trigger or separate API). Original `createUser` concept adapted.
+    - [x] `createUserProfile`: New function to create a corresponding record in the `profiles` table after Supabase `signUp` (to be called by a trigger or separate API - User responsibility for trigger/API).
     - [x] `findUserByEmail`, `getUserById`: Query `profiles` table using `supabase-js`.
     - [x] `updateUser`: Update `profiles` table. Supabase Auth methods for email/password change handled separately.
-    - [x] `deleteUserProfile`: Delete from `profiles`. Actual `auth.users` deletion needs service_role.
-    - [x] `changeUserPassword`: Use Supabase Auth `updateUser` method for password changes (client-side context). (Implemented in userService to use Supabase Auth, UI needs wiring if not done).
+    - [x] `deleteUserProfile`: Delete from `profiles`. Actual `auth.users` deletion needs service_role (User responsibility).
+    - [x] `changeUserPassword`: Use Supabase Auth `updateUser` method for password changes (client-side context, needs user to be logged in).
 - [x] **API Routes (`/api/auth/*`) Review/Refactor:**
-    - [x] `/api/auth/login` and `/api/auth/register` are no longer needed; client-side Supabase calls in `AuthContext` suffice. Marked for deletion. (Files updated to reflect deprecation, user can delete them).
+    - [x] `/api/auth/login` and `/api/auth/register` are no longer needed; client-side Supabase calls in `AuthContext` suffice. Marked as deprecated. (User can delete these files).
     - [ ] Secure other API routes and have them call Supabase admin functions if necessary.
 
 **3. Classroom Management with Supabase**
 - [ ] **`classrooms` Table:**
-    - [ ] Create `classrooms` table (columns: `id` (PK, UUID), `name`, `description`, `teacher_id` (FK to `profiles.id`), `invite_code` (unique), `created_at`, `updated_at`).
-    - [ ] RLS policies: Teachers CRUD their own. Students read enrolled. Admins full access.
+    - [ ] Create `classrooms` table (columns: `id` (PK, UUID), `name`, `description`, `teacher_id` (FK to `profiles.id`), `invite_code` (unique), `created_at`, `updated_at`). (User needs to create this in their Supabase project).
+    - [ ] RLS policies: Teachers CRUD their own. Students read enrolled. Admins full access. (User needs to implement RLS).
 - [ ] **`classroom_students` Table (Junction):**
-    - [ ] Create `classroom_students` table (columns: `classroom_id` (FK), `student_id` (FK), `enrolled_at`). PK on (`classroom_id`, `student_id`).
-    - [ ] RLS policies: Teachers manage their classroom enrollments. Students read their own. Admins full access.
-- [ ] **`classroomService.ts` Refactor:**
-    - [ ] `createClassroom`: Insert into `classrooms`.
-    - [ ] `getClassroomsByTeacherId`, `getClassroomsByStudentId`: Query Supabase tables (may involve joins).
-    - [ ] `getClassroomById`: Query `classrooms`, join with `profiles` for teacher name, and join with `classroom_students` then `profiles` for student list.
-    - [ ] `addStudentToClassroom`, `removeStudentFromClassroom`: Manage records in `classroom_students`.
-    - [ ] `updateClassroom`, `deleteClassroom`: Update/delete from `classrooms` table.
-    - [ ] `getAllClassrooms`: Query for admin dashboard.
+    - [ ] Create `classroom_students` table (columns: `classroom_id` (FK), `student_id` (FK to `profiles.id`), `enrolled_at` (TIMESTAMPTZ)). PK on (`classroom_id`, `student_id`). (User needs to create this in their Supabase project).
+    - [ ] RLS policies: Teachers manage their classroom enrollments. Students read their own. Admins full access. (User needs to implement RLS).
+- [x] **`classroomService.ts` Refactor:** (Refactored to use Supabase client calls. Assumes tables & RLS set up by user).
+    - [x] `createClassroom`: Insert into `classrooms`.
+    - [x] `getClassroomsByTeacherId`, `getClassroomsByStudentId`: Query Supabase tables (may involve joins/multiple queries for teacher/student names/counts).
+    - [x] `getClassroomById`: Query `classrooms`, join with `profiles` for teacher name, and join with `classroom_students` then `profiles` for student list.
+    - [x] `addStudentToClassroom`, `removeStudentFromClassroom`: Manage records in `classroom_students`.
+    - [x] `updateClassroom`, `deleteClassroom`: Update/delete from `classrooms` table (delete cascades to `classroom_students` via service logic).
+    - [x] `getAllClassrooms`: Query for admin dashboard.
 
 **4. Concept Map Management with Supabase**
 - [ ] **`concept_maps` Table:**
-    - [ ] Create `concept_maps` table (columns: `id` (PK, UUID), `name`, `owner_id` (FK to `profiles.id`), `map_data` (JSONB), `is_public` (boolean), `shared_with_classroom_id` (FK to `classrooms.id`, nullable), `created_at`, `updated_at`).
-    - [ ] RLS policies: Owner CRUD. Classroom members read if shared. Public read if `is_public`. Admins full access.
+    - [ ] Create `concept_maps` table (columns: `id` (PK, UUID), `name`, `owner_id` (FK to `profiles.id`), `map_data` (JSONB), `is_public` (boolean), `shared_with_classroom_id` (FK to `classrooms.id`, nullable), `created_at`, `updated_at`). (User needs to create this in their Supabase project).
+    - [ ] RLS policies: Owner CRUD. Classroom members read if shared. Public read if `is_public`. Admins full access. (User needs to implement RLS).
 - [ ] **`conceptMapService.ts` Refactor:**
     - [ ] All CRUD operations to interact with the `concept_maps` table using `supabase-js`.
 
 **5. Project Submission & Analysis with Supabase**
 - [ ] **`project_submissions` Table:**
-    - [ ] Create `project_submissions` table (columns: `id` (PK, UUID), `student_id` (FK to `profiles.id`), `classroom_id` (FK, nullable), `original_file_name`, `file_size`, `submission_timestamp`, `analysis_status` (text enum), `analysis_error`, `generated_concept_map_id` (FK, nullable), `file_storage_path`).
-    - [ ] RLS policies: Students CRUD their own. Teachers read for their classrooms. Admins full access.
+    - [ ] Create `project_submissions` table (columns: `id` (PK, UUID), `student_id` (FK to `profiles.id`), `classroom_id` (FK, nullable), `original_file_name`, `file_size`, `submission_timestamp`, `analysis_status` (text enum), `analysis_error`, `generated_concept_map_id` (FK, nullable), `file_storage_path`). (User needs to create this in their Supabase project).
+    - [ ] RLS policies: Students CRUD their own. Teachers read for their classrooms. Admins full access. (User needs to implement RLS).
 - [ ] **Supabase Storage Setup:**
-    - [ ] Create a storage bucket for project file uploads.
-    - [ ] Define RLS policies for the storage bucket (e.g., students can upload to a path associated with their ID).
+    - [ ] Create a storage bucket for project file uploads. (User needs to do this).
+    - [ ] Define RLS policies for the storage bucket (e.g., students can upload to a path associated with their ID). (User needs to implement RLS).
 - [ ] **`projectSubmissionService.ts` Refactor:**
-    - [ ] `createSubmission`: Upload file to Supabase Storage, then create record in `project_submissions` table with `file_storage_path`.
+    - [ ] `createSubmission`: Upload file to Supabase Storage, then create record in `project_submissions` table with `file_storage_path`. (File upload to storage is user's responsibility; this service will handle DB record).
     - [ ] `getSubmissionById`, `getSubmissionsByStudentId`, `getSubmissionsByClassroomId`: Query `project_submissions` table.
     - [ ] `updateSubmissionStatus`: Update records in `project_submissions`.
     - [ ] `getAllSubmissions`: Query for admin dashboard.
@@ -100,40 +100,18 @@ This section outlines improvements to make the GenAI Concept Map features more r
 
 **I. Enhance `generateMapFromProject` (Make it Practical & Insightful)**
 
-- [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending).
-    - [ ] Frontend: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar, .tar.gz, .tgz) uploads to Supabase Storage.
+- [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending by user).
+    - [ ] Frontend: Implement UI in `ProjectUploadForm` for project archive (.zip, .rar, .tar.gz, .tgz) uploads to Supabase Storage. (Actual upload to Supabase Storage not done by AI agent).
 - [ ] **API Endpoint & Backend Processing Pipeline (Post-Supabase Storage Setup):**
     - [ ] API Endpoint: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
         - [ ] Receive notification of successful upload to Supabase Storage (or handle file stream if direct upload to backend is chosen).
         - [ ] Trigger the `generateMapFromProject` Genkit flow, passing the file path/reference from Supabase Storage.
     - [ ] Consider using Supabase Functions for asynchronous processing triggered by file uploads to avoid long-running API requests.
-- [ ] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`):**
-    - [x] **Tool Definition**: Define a new Genkit Tool (`ai.defineTool`). (`src/ai/tools/project-analyzer-tool.ts` created)
-    - [x] **Input**: (`ProjectAnalysisInputSchema` defined in tool file)
-        - projectStoragePath: string (File path/reference from Supabase Storage).
-        - userHint (optional string): User-provided hint about the project's nature or focus area (e.g., "e-commerce backend," "data processing pipeline").
-    - [x] **Output (Structured JSON for LLM)**: (`ProjectAnalysisOutputSchema` defined in tool file)
-        ```json
-        {
-          "projectName": "string | null",
-          "inferredLanguagesFrameworks": [
-            { "name": "string (e.g., TypeScript, Spring Boot)", "confidence": "high | medium | low" }
-          ],
-          "projectSummary": "string | null (from README or userHint)",
-          "dependencies": { "npm": ["string"], "maven": ["string"], "pip": ["string"] },
-          "directoryStructureSummary": [
-            { "path": "string", "fileCounts": { ".ts": 10 }, "inferredPurpose": "string | null" }
-          ],
-          "keyFiles": [
-            { "filePath": "string", "type": "string", "extractedSymbols": ["string"], "briefDescription": "string | null" }
-          ],
-          "potentialArchitecturalComponents": [
-            { "name": "string", "type": "string", "relatedFiles": ["string"] }
-          ],
-          "parsingErrors": ["string"] 
-        }
-        ```
-    - [ ] **Tool Logic - Phase 1 (Structure & Dependencies - Core Functionality)**: (Tool currently has MOCK logic)
+- [x] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`):**
+    - [x] **Tool Definition**: Defined `projectStructureAnalyzerTool` in `src/ai/tools/project-analyzer-tool.ts`.
+    - [x] **Input**: `ProjectAnalysisInputSchema` (accepts `projectStoragePath`, `userHint`) defined in tool file.
+    - [x] **Output (Structured JSON for LLM)**: `ProjectAnalysisOutputSchema` defined in tool file.
+    - [ ] **Tool Logic - Phase 1 (Structure & Dependencies - Core Functionality)**: (Tool currently has MOCK logic. User needs to implement actual download from Supabase Storage, unpacking, parsing, etc.).
         - [ ] Securely download/access the file from Supabase Storage.
         - [ ] Unpack archive (handle .zip, .rar if library available, .tar.gz, .tgz). Implement robust error handling for corrupted archives.
         - [ ] Traverse directory structure.
@@ -157,9 +135,9 @@ This section outlines improvements to make the GenAI Concept Map features more r
         - [ ] Implement timeouts for unpacking and analysis to prevent runaway processes.
         - [ ] Gracefully handle unparseable files or unrecognized structures, logging these and including them in parsingErrors.
 - [x] **Modify `generateMapFromProject` Genkit Flow:**
-    - [x] **Input**: Update input schema to accept `projectStoragePath` (string) and `userGoals` (optional string, for focus areas).
-    - [x] **Tool Integration**: Instruct the LLM (via prompt) to utilize the `projectStructureAnalyzerTool`.
-    - [x] **Refined Prompt**: Update the prompt for `generateMapFromProjectPrompt` to guide the LLM on how to interpret the structured JSON output from `projectStructureAnalyzerTool`.
+    - [x] **Input**: Updated input schema to accept `projectStoragePath` and `userGoals`.
+    - [x] **Tool Integration**: Instructs the LLM (via prompt) to utilize `projectStructureAnalyzerTool`.
+    - [x] **Refined Prompt**: Updated prompt in `generateMapFromProjectPrompt` to guide LLM on interpreting tool output (Further refinement may be needed with real tool output).
 - [ ] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
     - [ ] **Update `ProjectUploadForm`**:
         - [ ] On "Generate Map" confirmation (after file metadata submission to `projectSubmissions` table and file upload to Supabase Storage):
@@ -287,4 +265,4 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - `userService.ts` refactored for Supabase profile operations. Old `/api/auth/*` routes marked deprecated.
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a mechanism to create the corresponding `profiles` table entry (e.g., Supabase Function trigger) is still needed by the user.
 - `projectStructureAnalyzerTool` is defined with MOCK logic. The `generateMapFromProject` flow is updated to use it.
-```
+- `classroomService.ts` refactored to use Supabase client calls. (Requires user to set up tables & RLS).
