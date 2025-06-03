@@ -61,7 +61,7 @@ This section outlines the tasks to migrate the application from mock backend ser
 - [x] **Connect frontend classroom list UI for edit/delete actions (Teacher).** -> Now connected to Supabase-backed API.
 - [x] **Connect frontend classroom detail UI (teacher) to live API for details and student management.** -> Now connected to Supabase-backed API for classroom details, student list, add/remove student. Maps and Submissions tabs are also connected to their respective Supabase-backed services.
 - [x] **Connect frontend classroom listing UI (student) to live API (with mock service).**
-- [ ] **Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.**
+- [x] **Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.**
 
 **4. Concept Map Management with Supabase**
 - [ ] **`concept_maps` Table:**
@@ -272,5 +272,7 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a Supabase Function trigger (or similar mechanism) is needed by the user to create the corresponding `profiles` table entry automatically.
 - API routes rely on Supabase-backed services. Further auth checks (JWT verification, role-based access) for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
+
+    
 
     
