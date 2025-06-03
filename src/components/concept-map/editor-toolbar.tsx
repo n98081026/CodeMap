@@ -5,12 +5,18 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, SearchCode, Lightbulb, Brain, Loader2 } from "lucide-react";
+import { 
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, 
+  SearchCode, Lightbulb, Brain, Loader2, PanelRightOpen, LayoutPanelBottom, Settings2, BotMessageSquare 
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface EditorToolbarProps {
+  onNewMap: () => void;
   onSaveMap: () => void;
   isSaving: boolean;
+  onExportMap: () => void;
   onExtractConcepts: () => void;
   onSuggestRelations: () => void;
   onExpandConcept: () => void;
@@ -18,18 +24,28 @@ interface EditorToolbarProps {
   onAddNodeToData?: () => void;
   onAddEdgeToData?: () => void;
   canAddEdge?: boolean;
+  onToggleProperties: () => void;
+  onToggleAiPanel: () => void;
+  isPropertiesPanelOpen?: boolean;
+  isAiPanelOpen?: boolean;
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({ 
+  onNewMap,
   onSaveMap, 
   isSaving, 
+  onExportMap,
   onExtractConcepts, 
   onSuggestRelations, 
   onExpandConcept,
   isViewOnlyMode,
   onAddNodeToData,
   onAddEdgeToData,
-  canAddEdge
+  canAddEdge,
+  onToggleProperties,
+  onToggleAiPanel,
+  isPropertiesPanelOpen,
+  isAiPanelOpen,
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -50,12 +66,12 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
 
   return (
-    <TooltipProvider>
-      <div className="mb-4 flex h-14 items-center gap-1 rounded-lg border bg-card p-2 shadow-sm">
+    <TooltipProvider delayDuration={100}>
+      <div className="mb-2 flex h-14 items-center gap-1 rounded-lg border bg-card p-2 shadow-sm flex-wrap">
         {/* File Operations */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("New Map")} >
+            <Button variant="ghost" size="icon" onClick={onNewMap} >
               <FilePlus className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -75,15 +91,15 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Upload className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Import (Disabled in View Mode)" : "Import Map"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Import (Disabled in View Mode)" : "Import Map (JSON)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handlePlaceholderClick("Export Map")}>
+            <Button variant="ghost" size="icon" onClick={onExportMap}>
               <Download className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Export</TooltipContent>
+          <TooltipContent>Export Map (JSON)</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />
@@ -95,7 +111,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Undo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Undo (Disabled in View Mode)" : "Undo"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Undo (Disabled)" : "Undo (Placeholder)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -103,7 +119,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Redo className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Redo (Disabled in View Mode)" : "Redo"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Redo (Disabled)" : "Redo (Placeholder)"}</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />
@@ -115,7 +131,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <PlusSquare className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Add Node (Disabled in View Mode)" : "Add Node"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Add Node (Disabled)" : "Add Node"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -123,7 +139,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Spline className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Add Edge (Disabled in View Mode)" : !canAddEdge ? "Add Edge (Requires at least 2 nodes)" : "Add Edge"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Add Edge (Disabled)" : !canAddEdge ? "Add Edge (Requires 2+ nodes)" : "Add Edge"}</TooltipContent>
         </Tooltip>
         
         <Separator orientation="vertical" className="mx-1 h-full" />
@@ -135,7 +151,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <SearchCode className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Extract Concepts (AI) (Disabled in View Mode)" : "Extract Concepts (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Extract Concepts (AI) (Disabled)" : "Extract Concepts (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -143,7 +159,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Lightbulb className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Suggest Relations (AI) (Disabled in View Mode)" : "Suggest Relations (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Suggest Relations (AI) (Disabled)" : "Suggest Relations (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -151,12 +167,40 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Brain className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Expand Concept (AI) (Disabled in View Mode)" : "Expand Concept (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Expand Concept (AI) (Disabled)" : "Expand Concept (AI)"}</TooltipContent>
         </Tooltip>
 
         {/* Spacer */}
         <div className="flex-grow" />
 
+        {/* View/Panel Toggles */}
+        <Separator orientation="vertical" className="mx-1 h-full" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onToggleProperties} 
+              className={cn(isPropertiesPanelOpen && "bg-accent text-accent-foreground")}
+            >
+              <Settings2 className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isPropertiesPanelOpen ? "Hide Properties" : "Show Properties"}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onToggleAiPanel}
+              className={cn(isAiPanelOpen && "bg-accent text-accent-foreground")}
+            >
+              <BotMessageSquare className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isAiPanelOpen ? "Hide AI Suggestions / Map Info" : "Show AI Suggestions / Map Info"}</TooltipContent>
+        </Tooltip>
       </div>
     </TooltipProvider>
   );
