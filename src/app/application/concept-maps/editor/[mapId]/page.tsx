@@ -5,8 +5,9 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ReactFlowProvider } from 'reactflow'; 
 
-// import { EditorToolbar } from "@/components/concept-map/editor-toolbar"; // Temporarily comment out
-import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
+import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
+// import { PropertiesInspector } from "@/components/concept-map/properties-inspector"; // Temporarily removed for layout change
+// import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder"; // Temporarily removed for layout change
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -21,7 +22,7 @@ import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from 
 import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
+
 import useConceptMapStore from '@/stores/concept-map-store';
 import FlowCanvasCore from "@/components/concept-map/flow-canvas-core"; 
 
@@ -47,7 +48,7 @@ export default function ConceptMapEditorPage() {
     initializeNewMap, setLoadedMap, setIsLoading: setStoreIsLoading, setError: setStoreError,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
-    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge,
+    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge, // Ensured deleteEdge is here
     setSelectedElement: setStoreSelectedElement, setIsSaving: setStoreIsSaving,
     setAiExtractedConcepts: setStoreAiExtractedConcepts,
     setAiSuggestedRelations: setStoreAiSuggestedRelations,
@@ -361,12 +362,13 @@ export default function ConceptMapEditorPage() {
 
   // GROUP 8: Effects
   useEffect(() => {
-    if (typeof routeMapId === 'string' && routeMapId.trim() !== '') {
+    if (typeof routeMapId === 'string') { // Ensure routeMapId is a string and not undefined/null.
       loadMapData(routeMapId);
-    } else if (user && user.id && !storeMapId && isNewMapMode) { 
+    } else if (user && user.id && !storeMapId && isNewMapMode) { // For new map, if storeMapId is not yet set
       initializeNewMap(user.id);
     }
-  }, [routeMapId, loadMapData, user, storeMapId, isNewMapMode, initializeNewMap]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeMapId, user?.id]); // Removed loadMapData, initializeNewMap from deps as they are stable now
 
 
   let mapForInspector: ConceptMap | null = (storeMapId && storeMapId !== 'new' && currentMapOwnerId) ? {
@@ -412,7 +414,7 @@ export default function ConceptMapEditorPage() {
       </DashboardHeader>
 
       <ReactFlowProvider> 
-        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
+        <div className="flex flex-1 flex-col gap-4 overflow-hidden"> {/* Main content area below header */}
           {isStoreLoading ? (
             <div className="flex flex-grow justify-center items-center py-10">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -428,18 +430,17 @@ export default function ConceptMapEditorPage() {
             </Card>
           ) : (
             <>
-              {/* <EditorToolbar
+              <EditorToolbar
                 onSaveMap={handleSaveMap} isSaving={isSaving}
                 onExtractConcepts={useCallback(() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }, [resetStoreAiSuggestions])}
                 onSuggestRelations={useCallback(() => { resetStoreAiSuggestions(); setIsSuggestRelationsModalOpen(true); }, [resetStoreAiSuggestions])}
                 onExpandConcept={useCallback(() => { resetStoreAiSuggestions(); setIsExpandConceptModalOpen(true); }, [resetStoreAiSuggestions])}
                 isViewOnlyMode={isViewOnlyMode}
                 onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
-              /> */}
-              <div className="mb-4 flex h-14 items-center gap-1 rounded-lg border bg-card p-2 shadow-sm">Editor Toolbar Placeholder</div>
+              />
               
-              <div className="flex flex-1 gap-4 overflow-hidden">
-                <div className="flex-grow">
+              {/* This div will now primarily contain the canvas, expanding to fill space */}
+              <div className="flex-grow overflow-hidden"> 
                   <FlowCanvasCore
                     mapDataFromStore={storeMapData}
                     isViewOnlyMode={isViewOnlyMode}
@@ -449,34 +450,12 @@ export default function ConceptMapEditorPage() {
                     onEdgesDeleteInStore={deleteEdge} 
                     onConnectInStore={addStoreEdge}
                   />
-                </div>
-                
-                <aside className="hidden w-80 flex-shrink-0 lg:block"> 
-                  <PropertiesInspector
-                    currentMap={mapForInspector}
-                    onMapPropertiesChange={handleMapPropertiesChange}
-                    selectedElement={actualSelectedElementForInspector}
-                    selectedElementType={selectedElementType}
-                    onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
-                    isNewMapMode={(isNewMapMode || storeMapId === 'new')}
-                    isViewOnlyMode={isViewOnlyMode}
-                  />
-                </aside>
-                
               </div>
-              
-              <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
-                <CanvasPlaceholder
-                    mapData={storeMapData}
-                    extractedConcepts={aiExtractedConcepts} suggestedRelations={aiSuggestedRelations} expandedConcepts={aiExpandedConcepts}
-                    onAddExtractedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-extracted-concept')}
-                    onAddSuggestedRelations={handleAddSuggestedRelationsToMap}
-                    onAddExpandedConcepts={(concepts) => addConceptsToMapData(concepts, 'ai-expanded-concept')}
-                    isViewOnlyMode={isViewOnlyMode}
-                />
-              </div>
-              
-              
+                
+              {/* PropertiesInspector and CanvasPlaceholder are temporarily removed from fixed layout for larger canvas */}
+              {/* We will re-integrate them, perhaps as overlays or toggleable panels later */}
+
+              {/* Modals are still rendered based on their state */}
               {isExtractConceptsModalOpen && !isViewOnlyMode && (<ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen}/>)}
               {isSuggestRelationsModalOpen && !isViewOnlyMode && (<SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={storeMapData.nodes.slice(0,5).map(n => n.text)} onOpenChange={setIsSuggestRelationsModalOpen}/>)}
               {isExpandConceptModalOpen && !isViewOnlyMode && (<ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={storeMapData.nodes.length > 0 ? storeMapData.nodes[0].text : ""} onOpenChange={setIsExpandConceptModalOpen}/>)}
