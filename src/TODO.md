@@ -60,7 +60,7 @@
     - [x] **`EditorToolbar`**: 
         - [x] Provides UI for Save, Add Node, Add Edge. 
         - [x] GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals. 
-        - [x] Other file/edit operations are placeholders. 
+        - [x] Other file/edit operations are placeholders (Import, Undo/Redo). 
         - [x] "Add Edge" disabled if <2 nodes.
         - [x] Implement "New Map" button (navigates to new map route).
         - [x] Implement "Export Map" (JSON download of current map data).
@@ -106,7 +106,7 @@
 ## GenAI & AI Features
 - [x] **Refine GenAI Prompts:**
     - [x] Iterate on prompts for `extractConcepts`, `suggestRelations`, `expandConcept` for better accuracy and relevance.
-    - [x] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice (Input structure refined).
+    - [x] Develop and refine advanced prompts for `generateMapFromProject` in the analysis microservice (Input structure refined, "Whimsical-style" guidance added).
 - [x] **Integrate GenAI Output:**
     - [x] Develop intuitive ways for users to interact with and utilize the outputs of GenAI tools within the concept map editor.
         - [x] Add placeholder "Add to Map" indicators for AI-generated content in CanvasPlaceholder. (Functional, adds to Zustand store)
@@ -134,4 +134,3 @@
 - Admin "Add User" button is disabled with a tooltip explaining new users should register via the public page.
 - Real file uploads for project analysis are not implemented; only metadata is processed and AI analysis is mocked based on file name/description.
 - Message queues and separate microservices for project analysis are not implemented; AI generation is done in-process for prototyping.
-
