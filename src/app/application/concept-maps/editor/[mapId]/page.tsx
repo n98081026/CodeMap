@@ -47,7 +47,7 @@ export default function ConceptMapEditorPage() {
     initializeNewMap, setLoadedMap, setIsLoading: setStoreIsLoading, setError: setStoreError,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
-    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge, // <--- CORRECTED: Added deleteEdge here
+    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge,
     setSelectedElement: setStoreSelectedElement, setIsSaving: setStoreIsSaving,
     setAiExtractedConcepts: setStoreAiExtractedConcepts,
     setAiSuggestedRelations: setStoreAiSuggestedRelations,
@@ -361,17 +361,14 @@ export default function ConceptMapEditorPage() {
 
   // GROUP 8: Effects
   useEffect(() => {
-    // Only call loadMapData if routeMapId is defined and is a string.
-    // This avoids issues if paramsHook.mapId is undefined or not a string during initial renders.
     if (typeof routeMapId === 'string' && routeMapId.trim() !== '') {
       loadMapData(routeMapId);
-    } else if (user && user.id && !storeMapId && isNewMapMode) { // Auto-initialize for new map if user is available and not already initialized
+    } else if (user && user.id && !storeMapId && isNewMapMode) { 
       initializeNewMap(user.id);
     }
   }, [routeMapId, loadMapData, user, storeMapId, isNewMapMode, initializeNewMap]);
 
 
-  // Data for Inspector
   let mapForInspector: ConceptMap | null = (storeMapId && storeMapId !== 'new' && currentMapOwnerId) ? {
     id: storeMapId, name: mapName, ownerId: currentMapOwnerId,
     mapData: storeMapData, isPublic: isPublic, sharedWithClassroomId: sharedWithClassroomId,
@@ -379,7 +376,7 @@ export default function ConceptMapEditorPage() {
   } : null;
   
   if ((isNewMapMode || storeMapId === 'new') && !mapForInspector && user) {
-      mapForInspector = { // Changed from const to let above
+      mapForInspector = { 
         id: 'new', name: mapName, ownerId: user.id,
         mapData: storeMapData, isPublic: isPublic, sharedWithClassroomId: sharedWithClassroomId,
         createdAt: currentMapCreatedAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -465,7 +462,7 @@ export default function ConceptMapEditorPage() {
                 </aside>
                 
               </div>
-              {/*
+              
               <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
                 <CanvasPlaceholder
                     mapData={storeMapData}
@@ -476,10 +473,12 @@ export default function ConceptMapEditorPage() {
                     isViewOnlyMode={isViewOnlyMode}
                 />
               </div>
-              */}
+              
+              {/*
               {isExtractConceptsModalOpen && !isViewOnlyMode && (<ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen}/>)}
               {isSuggestRelationsModalOpen && !isViewOnlyMode && (<SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={storeMapData.nodes.slice(0,5).map(n => n.text)} onOpenChange={setIsSuggestRelationsModalOpen}/>)}
               {isExpandConceptModalOpen && !isViewOnlyMode && (<ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={storeMapData.nodes.length > 0 ? storeMapData.nodes[0].text : ""} onOpenChange={setIsExpandConceptModalOpen}/>)}
+              */}
             </>
           )}
         </div>
