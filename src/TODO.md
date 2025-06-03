@@ -1,4 +1,5 @@
 
+
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -100,7 +101,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
 
 **I. Enhance `generateMapFromProject` (Make it Practical & Insightful)**
 
-- [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending by user. Flow now takes `projectStoragePath`).
+- [x] **File Upload UI Adaptation**: (UI flow adapted for archive uploads in `ProjectUploadForm`, Zod schema updated. Actual Supabase Storage upload pending by user. Flow now takes `projectStoragePath`. Simulated end-to-end flow for submission status and map record creation is more robust).
 - [ ] **API Endpoint & Backend Processing Pipeline (Post-Supabase Storage Setup):**
     - [ ] API Endpoint: Create/Modify an API route (e.g., `/api/projects/analyze-upload`) to:
         - [ ] Receive notification of successful upload to Supabase Storage (or handle file stream if direct upload to backend is chosen).
@@ -205,8 +206,8 @@ This enhanced plan should provide a significantly more robust and user-friendly 
         - [x] "Add Edge" disabled if &lt;2 nodes.
         - [x] Implement "New Map" button (navigates to new map route).
         - [x] Implement "Export Map" (JSON download of current map data).
-        - [x] Add button to toggle Properties Inspector panel.
-        - [x] Add button to toggle AI Suggestions / Map Info panel.
+        - [x] Add button to toggle Properties Inspector panel. (Done)
+        - [x] Add button to toggle AI Suggestions / Map Info panel. (Done)
         - [x] Implement "Import Map" (JSON file upload and parsing).
         - [x] Fix/Re-enable Undo/Redo buttons (connected to Zustand temporal store).
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Node movement fixed. Connection logic working.
@@ -270,5 +271,6 @@ This enhanced plan should provide a significantly more robust and user-friendly 
 - UI for "Generate Map from Project" now better simulates the flow and updates submission status, linking real ConceptMap records (in mock DB) from AI output.
 - AI Suggestion Panel (CanvasPlaceholder) allows editing suggestions, has clearer visual cues for existing/similar items, and themed category headers.
 - Editor toolbar "New Map" button confirmed working. "Import Map" feature implemented. Undo/Redo implemented.
+- Properties Inspector and AI Suggestions Panel are now toggleable sheets controlled from the Editor Toolbar.
 
 ```

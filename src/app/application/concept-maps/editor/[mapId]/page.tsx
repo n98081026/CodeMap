@@ -768,7 +768,7 @@ export default function ConceptMapEditorPage() {
                 View AI-generated suggestions or textual representation of your map.
               </SheetDescription>
             </SheetHeader>
-            <div className="py-4 h-[calc(100%-4rem)]">
+            <div className="py-4 h-[calc(100%-4rem)]"> {/* Adjust height to account for header */}
               <CanvasPlaceholder
                 mapData={storeMapData}
                 currentMapNodes={storeMapData.nodes}
