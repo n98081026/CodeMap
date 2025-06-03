@@ -55,16 +55,16 @@ export default function ConceptMapEditorPage() {
     resetAiSuggestions: resetStoreAiSuggestions
   } = useConceptMapStore();
 
-  // GROUP 4: Local state for modals (no React Flow state here anymore)
+  // GROUP 5: Local state for modals
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
 
-  // GROUP 5: DERIVED STATE (after all hooks)
+  // GROUP 6: DERIVED STATE (after all hooks)
   const routeMapId = paramsHook.mapId as string;
   const isViewOnlyMode = searchParams.get('viewOnly') === 'true';
 
-  // GROUP 6: Callbacks
+  // GROUP 7: Callbacks
   const loadMapData = useCallback(async (idToLoad: string) => {
     if (!idToLoad || idToLoad.trim() === '') {
       console.warn("loadMapData called with invalid id:", idToLoad);
@@ -97,7 +97,7 @@ export default function ConceptMapEditorPage() {
     } catch (err) {
       setStoreError((err as Error).message);
       toast({ title: "Error Loading Map", description: (err as Error).message, variant: "destructive" });
-      setStoreMapName("Error Loading Map"); // Explicitly set name on error as well
+      setStoreMapName("Error Loading Map");
     } finally {
       setStoreIsLoading(false);
     }
@@ -359,7 +359,7 @@ export default function ConceptMapEditorPage() {
     return "Back";
   }, [user, isNewMapMode, storeMapId, sharedWithClassroomId]);
 
-  // GROUP 7: Effects
+  // GROUP 8: Effects
   useEffect(() => {
     if (typeof routeMapId === 'string' && routeMapId.trim() !== '') {
       loadMapData(routeMapId);
@@ -443,11 +443,11 @@ export default function ConceptMapEditorPage() {
                     onSelectionChange={handleFlowSelectionChange}
                     onNodesChangeInStore={updateStoreNode} 
                     onNodesDeleteInStore={deleteStoreNode}
-                    onEdgesDeleteInStore={deleteStoreNode} 
+                    onEdgesDeleteInStore={deleteEdge} 
                     onConnectInStore={addStoreEdge}
                   />
                 </div>
-                {/*
+                
                 <aside className="hidden w-80 flex-shrink-0 lg:block"> 
                   <PropertiesInspector
                     currentMap={mapForInspector}
@@ -459,8 +459,9 @@ export default function ConceptMapEditorPage() {
                     isViewOnlyMode={isViewOnlyMode}
                   />
                 </aside>
-                */}
+                
               </div>
+              {/*
               <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
                 <CanvasPlaceholder
                     mapData={storeMapData}
@@ -471,6 +472,7 @@ export default function ConceptMapEditorPage() {
                     isViewOnlyMode={isViewOnlyMode}
                 />
               </div>
+              */}
               {isExtractConceptsModalOpen && !isViewOnlyMode && (<ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen}/>)}
               {isSuggestRelationsModalOpen && !isViewOnlyMode && (<SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={storeMapData.nodes.slice(0,5).map(n => n.text)} onOpenChange={setIsSuggestRelationsModalOpen}/>)}
               {isExpandConceptModalOpen && !isViewOnlyMode && (<ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={storeMapData.nodes.length > 0 ? storeMapData.nodes[0].text : ""} onOpenChange={setIsExpandConceptModalOpen}/>)}
@@ -481,5 +483,4 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
-
     
