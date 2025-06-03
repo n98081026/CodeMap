@@ -166,14 +166,15 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
     checkIfRelationNodesExistOnMap: (relation: { source: string; target: string }) => { source?: boolean, target?: boolean },
     onAddSelectedItems: (selectedItems: any[]) => void,
     onClearCategory?: () => void,
-    cardClassName?: string
+    cardClassName?: string,
+    titleClassName?: string // New prop for title text color
   ) => {
     if (!onAddSelectedItems && items.length === 0 && !mapData) return null;
     if (!items || items.length === 0) {
       return (
         <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)}>
           <CardHeader>
-            <CardTitle className="text-base font-semibold text-muted-foreground flex items-center">
+            <CardTitle className={cn("text-base font-semibold text-muted-foreground flex items-center", titleClassName)}>
               <IconComponent className="mr-2 h-5 w-5" /> {title} (0)
             </CardTitle>
           </CardHeader>
@@ -250,7 +251,7 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
       <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)}>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="text-base font-semibold text-primary flex items-center">
+            <CardTitle className={cn("text-base font-semibold flex items-center", titleClassName || "text-primary")}>
               <IconComponent className="mr-2 h-5 w-5" /> {title} ({items.length})
             </CardTitle>
             <div className="flex items-center space-x-2">
@@ -448,27 +449,27 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
             <div className="space-y-3 text-left max-w-md mx-auto">
               <Card className="bg-background/70 shadow-sm">
                 <CardHeader className="flex flex-row items-center space-x-3 p-3">
-                  <SearchCode className="h-6 w-6 text-primary flex-shrink-0" />
+                  <SearchCode className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                   <div>
-                    <CardTitle className="text-base font-medium">Extract Concepts</CardTitle>
+                    <CardTitle className="text-base font-medium text-blue-700 dark:text-blue-300">Extract Concepts</CardTitle>
                     <CardDescription className="text-xs">Paste text to identify key ideas from it.</CardDescription>
                   </div>
                 </CardHeader>
               </Card>
               <Card className="bg-background/70 shadow-sm">
                 <CardHeader className="flex flex-row items-center space-x-3 p-3">
-                  <Lightbulb className="h-6 w-6 text-primary flex-shrink-0" />
+                  <Lightbulb className="h-6 w-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
                   <div>
-                    <CardTitle className="text-base font-medium">Suggest Relations</CardTitle>
+                    <CardTitle className="text-base font-medium text-yellow-700 dark:text-yellow-300">Suggest Relations</CardTitle>
                     <CardDescription className="text-xs">Get AI suggestions for connections between existing concepts on your map.</CardDescription>
                   </div>
                 </CardHeader>
               </Card>
               <Card className="bg-background/70 shadow-sm">
                 <CardHeader className="flex flex-row items-center space-x-3 p-3">
-                  <Brain className="h-6 w-6 text-primary flex-shrink-0" />
+                  <Brain className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                   <div>
-                    <CardTitle className="text-base font-medium">Expand Concept</CardTitle>
+                    <CardTitle className="text-base font-medium text-purple-700 dark:text-purple-300">Expand Concept</CardTitle>
                     <CardDescription className="text-xs">Explore related ideas for a selected concept to deepen understanding.</CardDescription>
                   </div>
                 </CardHeader>
@@ -540,7 +541,8 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
                 "Extracted Concepts", SearchCode, editableExtracted, selectedExtractedIndices, "extracted-concept",
                 (item, index, itemStatus) => renderEditableConceptLabel(item as EditableSuggestion, index, 'extracted', itemStatus),
                 getConceptStatus, checkRelationNodesExistOnMap,
-                onAddExtractedConcepts, onClearExtractedConcepts, "bg-blue-500/5 border-blue-500/20"
+                onAddExtractedConcepts, onClearExtractedConcepts, 
+                "bg-blue-500/5 border-blue-500/20", "text-blue-700 dark:text-blue-400"
               )}
 
               {onAddSuggestedRelations && renderSuggestionSection(
@@ -548,14 +550,16 @@ export const CanvasPlaceholder = React.memo(function CanvasPlaceholder({
                  (item, index, itemStatus, relationNodeExist) => renderEditableRelationLabel(item as EditableRelationSuggestion, index, itemStatus, relationNodeExist),
                 getConceptStatus, // For relations, source/target text against existing nodes
                 checkRelationNodesExistOnMap,
-                onAddSuggestedRelations, onClearSuggestedRelations, "bg-yellow-500/5 border-yellow-500/20"
+                onAddSuggestedRelations, onClearSuggestedRelations, 
+                "bg-yellow-500/5 border-yellow-500/20", "text-yellow-700 dark:text-yellow-400"
               )}
 
               {onAddExpandedConcepts && renderSuggestionSection(
                 "Expanded Ideas", Brain, editableExpanded, selectedExpandedIndices, "expanded-concept",
                  (item, index, itemStatus) => renderEditableConceptLabel(item as EditableSuggestion, index, 'expanded', itemStatus),
                 getConceptStatus, checkRelationNodesExistOnMap,
-                onAddExpandedConcepts, onClearExpandedConcepts, "bg-purple-500/5 border-purple-500/20"
+                onAddExpandedConcepts, onClearExpandedConcepts, 
+                "bg-purple-500/5 border-purple-500/20", "text-purple-700 dark:text-purple-400"
               )}
 
               {hasAnyContent && (

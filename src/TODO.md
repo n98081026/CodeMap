@@ -175,7 +175,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
         - [x] Visually differentiate suggestions closely matching existing nodes (e.g., highlight or slightly different style if a suggestion is very similar but not identical to an existing node).
         - [x] Provide a "Clear" option for suggestion categories (Trash icon in header for each category).
     - [x] **Panel Styling and Usability**:
-        - [x] Distinct section styling for each AI suggestion type using card backgrounds/borders.
+        - [x] Distinct section styling for each AI suggestion type using card backgrounds/borders and themed title/icon colors.
         - [x] Clearer "No Suggestions" state within each card.
         - [x] Refined "Add All New" and "Add Selected" button labels with counts.
 
