@@ -526,17 +526,23 @@ export default function ConceptMapEditorPage() {
     const currentMapData = useConceptMapStore.getState().mapData;
     const currentMapName = useConceptMapStore.getState().mapName || 'concept-map';
     const filename = `${currentMapName.replace(/\s+/g, '_').toLowerCase()}.json`;
-    const jsonStr = JSON.stringify(currentMapData, null, 2);
-    const blob = new Blob([jsonStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast({ title: "Map Exported", description: `Saved as ${filename}` });
+    
+    try {
+      const jsonStr = JSON.stringify(currentMapData, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: "Map Exported", description: `Saved as ${filename}` });
+    } catch (error) {
+      console.error("Error exporting map:", error);
+      toast({ title: "Export Failed", description: "Could not serialize map data for export.", variant: "destructive" });
+    }
   }, [toast]);
 
   const handleTriggerImport = useCallback(() => {
