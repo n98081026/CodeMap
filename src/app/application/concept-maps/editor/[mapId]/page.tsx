@@ -13,7 +13,6 @@ import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide
 import type { Node as RFNode, Edge as RFEdge, OnNodesChange, OnEdgesChange, OnNodesDelete, OnEdgesDelete, SelectionChanges, Connection } from 'reactflow';
 import { useNodesState, useEdgesState, MarkerType } from 'reactflow';
 
-
 import {
   ExtractConceptsModal,
   SuggestRelationsModal,
@@ -28,34 +27,41 @@ import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
 import useConceptMapStore from '@/stores/concept-map-store';
 import type { RFConceptMapNodeData, RFConceptMapEdgeData } from "@/components/concept-map/interactive-canvas";
 
-
 export default function ConceptMapEditorPage() {
+  // Group 1: Next.js router hooks
   const paramsHook = useParams();
-  const routeMapId = paramsHook.mapId as string;
-
+  const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Group 2: Context hooks
   const { toast } = useToast();
   const { user } = useAuth();
-  const router = useRouter();
 
-  const isViewOnlyMode = searchParams.get('viewOnly') === 'true';
-
+  // Group 3: Zustand store hook
   const store = useConceptMapStore();
   const {
-    mapId, mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
-    mapData, isLoading, isSaving, error,
+    mapId: storeMapId, 
+    mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
+    mapData, isLoading: isStoreLoading, isSaving, error: storeError, 
     selectedElementId, selectedElementType,
     aiExtractedConcepts, aiSuggestedRelations, aiExpandedConcepts
   } = store;
 
+  // Group 4: React Flow state hooks
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<RFConceptMapNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
 
+  // Group 5: Local state for modals
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
 
+  // Derived state (defined AFTER all hooks)
+  const routeMapId = paramsHook.mapId as string; 
+  const isViewOnlyMode = searchParams.get('viewOnly') === 'true';
 
+
+  // Group 6: Callbacks (useCallback)
   const loadMapData = useCallback(async (id: string) => {
     if (id === "new") {
       if (user && user.id) {
@@ -83,61 +89,15 @@ export default function ConceptMapEditorPage() {
     } catch (err) {
       store.setError((err as Error).message);
       toast({ title: "Error Loading Map", description: (err as Error).message, variant: "destructive" });
-      store.setMapName("Error Loading Map");
+      store.setMapName("Error Loading Map"); 
     } finally {
       store.setIsLoading(false);
     }
   }, [toast, user, store]);
 
-  useEffect(() => {
-    // Ensure routeMapId is a valid string before calling loadMapData
-    if (typeof routeMapId === 'string' && routeMapId.trim() !== '') {
-      loadMapData(routeMapId);
-    }
-  }, [routeMapId, loadMapData]);
-
-  useEffect(() => {
-    const transformedNodes = (store.mapData.nodes || []).map(appNode => {
-      return {
-        id: appNode.id,
-        type: appNode.type || 'default',
-        data: { label: appNode.text, details: appNode.details, type: appNode.type || 'default' },
-        position: {
-          x: appNode.x ?? (Math.random() * 400),
-          y: appNode.y ?? (Math.random() * 300),
-        },
-        style: {
-          border: '1px solid hsl(var(--border))',
-          padding: '10px 15px',
-          borderRadius: '8px',
-          background: 'hsl(var(--card))',
-          color: 'hsl(var(--foreground))',
-          boxShadow: '0 2px 4px hsla(var(--foreground), 0.1)',
-          minWidth: 150,
-          textAlign: 'center',
-        }
-      };
-    });
-    setRfNodes(transformedNodes as RFNode<RFConceptMapNodeData>[]);
-
-    const transformedEdges = (store.mapData.edges || []).map(appEdge => ({
-      id: appEdge.id,
-      source: appEdge.source,
-      target: appEdge.target,
-      label: appEdge.label,
-      type: 'smoothstep',
-      animated: false,
-      style: { strokeWidth: 2, stroke: 'hsl(var(--primary))' },
-      markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
-    }));
-    setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
-  }, [store.mapData, setRfNodes, setRfEdges]);
-
-
   const onRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
     setRfNodes((nds) => onNodesChangeReactFlow(changes, nds));
-
     changes.forEach(change => {
         if (change.type === 'position' && change.position && change.dragging === false) {
             store.updateNode(change.id, { x: change.position.x, y: change.position.y });
@@ -212,7 +172,6 @@ export default function ConceptMapEditorPage() {
     }
   }, [selectedElementId, selectedElementType, isViewOnlyMode, store]);
 
-
   const handleSaveMap = useCallback(async () => {
     if (isViewOnlyMode) {
         toast({ title: "View Only Mode", description: "Cannot save changes in view-only mode.", variant: "default"});
@@ -230,7 +189,7 @@ export default function ConceptMapEditorPage() {
     store.setIsSaving(true);
 
     const finalNodesToSave = rfNodes.map(rfNode => {
-        const appNodeFromStore = store.mapData.nodes.find(n => n.id === rfNode.id);
+        const appNodeFromStore = mapData.nodes.find(n => n.id === rfNode.id);
         return {
             ...(appNodeFromStore || { id: rfNode.id, text: rfNode.data.label, type: rfNode.data.type || 'default'}),
             x: rfNode.position.x,
@@ -243,7 +202,7 @@ export default function ConceptMapEditorPage() {
 
     const mapDataToSave: ConceptMapData = {
       nodes: finalNodesToSave,
-      edges: store.mapData.edges,
+      edges: mapData.edges,
     };
 
     const payloadOwnerId = (isNewMapMode || !currentMapOwnerId) ? user.id : currentMapOwnerId;
@@ -263,7 +222,7 @@ export default function ConceptMapEditorPage() {
 
     try {
       let response;
-      const currentMapIdForAPI = (isNewMapMode || store.mapId === 'new') ? null : store.mapId;
+      const currentMapIdForAPI = (isNewMapMode || storeMapId === 'new') ? null : storeMapId;
 
       if (!currentMapIdForAPI) {
         response = await fetch('/api/concept-maps', {
@@ -272,12 +231,12 @@ export default function ConceptMapEditorPage() {
           body: JSON.stringify(payload),
         });
       } else {
-        const updatePayload = {
+        const updatePayload = { 
             name: mapName,
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId,
+            ownerId: currentMapOwnerId, 
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -296,7 +255,7 @@ export default function ConceptMapEditorPage() {
 
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
 
-      if (store.isNewMapMode && savedMap.id) {
+      if (isNewMapMode && savedMap.id) { 
          router.replace(`/application/concept-maps/editor/${savedMap.id}${isViewOnlyMode ? '?viewOnly=true' : ''}`, { scroll: false });
       }
     } catch (err) {
@@ -306,9 +265,9 @@ export default function ConceptMapEditorPage() {
       store.setIsSaving(false);
     }
   }, [
-    isViewOnlyMode, user, mapName, store, rfNodes,
+    isViewOnlyMode, user, mapName, store, rfNodes, mapData, // Added mapData to dependency list for finalNodesToSave and mapDataToSave
     isNewMapMode, currentMapOwnerId, isPublic, sharedWithClassroomId,
-    router, toast
+    router, toast, storeMapId 
   ]);
 
   const handleConceptsExtracted = useCallback((concepts: string[]) => {
@@ -326,10 +285,9 @@ export default function ConceptMapEditorPage() {
     toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas. You can add them to the map via the suggestions panel.` });
   }, [store, toast]);
 
-
   const addConceptsToMapData = useCallback((conceptsToAdd: string[], type: 'ai-extracted-concept' | 'ai-expanded-concept') => {
     if (isViewOnlyMode) return;
-    const existingNodeTexts = new Set(store.mapData.nodes.map(n => n.text));
+    const existingNodeTexts = new Set(mapData.nodes.map(n => n.text)); // Use mapData from store
     let addedCount = 0;
     conceptsToAdd.forEach(conceptText => {
       if (!existingNodeTexts.has(conceptText)) {
@@ -353,31 +311,35 @@ export default function ConceptMapEditorPage() {
     } else if (type === 'ai-expanded-concept') {
         store.setAiExpandedConcepts([]);
     }
-  }, [isViewOnlyMode, store, toast]);
+  }, [isViewOnlyMode, store, toast, mapData]); // Added mapData
 
   const handleAddSuggestedRelationsToMap = useCallback((relations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) return;
     let relationsActuallyAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
+    
+    // Get current nodes from the store for accurate checks
+    let currentNodes = useConceptMapStore.getState().mapData.nodes;
 
     relations.forEach(rel => {
-      let sourceNode = store.mapData.nodes.find(node => node.text === rel.source);
+      let sourceNode = currentNodes.find(node => node.text === rel.source);
       if (!sourceNode) {
         store.addNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        const updatedNodes = useConceptMapStore.getState().mapData.nodes;
-        sourceNode = updatedNodes.find(node => node.text === rel.source);
+        currentNodes = useConceptMapStore.getState().mapData.nodes; // Re-fetch after adding
+        sourceNode = currentNodes.find(node => node.text === rel.source);
         if(sourceNode) conceptsAddedFromRelationsCount++; else return;
       }
 
-      let targetNode = store.mapData.nodes.find(node => node.text === rel.target);
+      let targetNode = currentNodes.find(node => node.text === rel.target);
       if (!targetNode) {
         store.addNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400, y: Math.random() * 300 } });
-        const updatedNodes = useConceptMapStore.getState().mapData.nodes;
-        targetNode = updatedNodes.find(node => node.text === rel.target);
+        currentNodes = useConceptMapStore.getState().mapData.nodes; // Re-fetch
+        targetNode = currentNodes.find(node => node.text === rel.target);
         if(targetNode) conceptsAddedFromRelationsCount++; else return;
       }
 
-      if (sourceNode && targetNode && !store.mapData.edges.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
+      const currentEdges = useConceptMapStore.getState().mapData.edges;
+      if (sourceNode && targetNode && !currentEdges.some(edge => edge.source === sourceNode!.id && edge.target === targetNode!.id && edge.label === rel.relation)) {
         store.addEdge({ source: sourceNode!.id, target: targetNode!.id, label: rel.relation });
         relationsActuallyAddedCount++;
       }
@@ -397,24 +359,24 @@ export default function ConceptMapEditorPage() {
 
   const handleAddNodeToData = useCallback(() => {
     if (isViewOnlyMode) return;
-    const newNodeText = `Node ${store.mapData.nodes.length + 1}`;
+    const newNodeText = `Node ${mapData.nodes.length + 1}`; // Use mapData from store
     store.addNode({
       text: newNodeText,
       type: 'manual-node',
       position: {x: Math.random() * 200 + 50, y: Math.random() * 100 + 50},
     });
     toast({ title: "Node Added to Map", description: `"${newNodeText}" added. Save the map to persist changes.`});
-  }, [isViewOnlyMode, store, toast]);
+  }, [isViewOnlyMode, store, toast, mapData]); // Added mapData
 
   const handleAddEdgeToData = useCallback(() => {
     if (isViewOnlyMode) return;
-    const nodes = store.mapData.nodes;
+    const nodes = mapData.nodes; // Use mapData from store
     if (nodes.length < 2) {
       toast({ title: "Cannot Add Edge", description: "Not enough nodes to create an edge. Add at least two nodes first.", variant: "default" });
       return;
     }
-    const sourceNode = nodes[nodes.length - 2];
-    const targetNode = nodes[nodes.length - 1];
+    const sourceNode = nodes.length >=2 ? nodes[nodes.length - 2] : nodes[0];
+    const targetNode = nodes.length >=2 ? nodes[nodes.length - 1] : nodes[1];
 
     if (!sourceNode || !targetNode) {
         toast({ title: "Error Adding Edge", description: "Could not find suitable source/target nodes.", variant: "destructive" });
@@ -422,8 +384,7 @@ export default function ConceptMapEditorPage() {
     }
     store.addEdge({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
     toast({ title: "Edge Added to Map", description: `Edge connecting "${sourceNode.text}" and "${targetNode.text}" added. Save to persist.`});
-  }, [isViewOnlyMode, store, toast]);
-
+  }, [isViewOnlyMode, store, toast, mapData]); // Added mapData
 
   const getRoleBasedDashboardLink = useCallback(() => {
     if (!user) return "/";
@@ -437,26 +398,24 @@ export default function ConceptMapEditorPage() {
 
   const getBackLink = useCallback(() => {
     if (!user) return "/";
-    // If it's a new map, or if the user is an admin (who might not have a specific classroom context for this map)
-    if (isNewMapMode || store.mapId === 'new' || user.role === UserRole.ADMIN) {
+    if (isNewMapMode || storeMapId === 'new' || user.role === UserRole.ADMIN) {
         return getRoleBasedDashboardLink();
     }
-    // If it's an existing map
     if (user.role === UserRole.STUDENT) {
         return "/application/student/concept-maps";
     }
     if (user.role === UserRole.TEACHER) {
-        if (sharedWithClassroomId) { // If map is shared with a classroom, teacher goes back to that classroom
+        if (sharedWithClassroomId) {
             return `/application/teacher/classrooms/${sharedWithClassroomId}`;
         }
-        return "/application/teacher/dashboard"; // Fallback for teacher if no classroom context
+        return "/application/teacher/dashboard";
     }
-    return getRoleBasedDashboardLink(); // Default fallback
-  }, [user, isNewMapMode, store.mapId, sharedWithClassroomId, getRoleBasedDashboardLink]);
+    return getRoleBasedDashboardLink();
+  }, [user, isNewMapMode, storeMapId, sharedWithClassroomId, getRoleBasedDashboardLink]);
 
   const getBackButtonText = useCallback(() => {
     if (!user) return "Back";
-     if (isNewMapMode || store.mapId === 'new' || user.role === UserRole.ADMIN) {
+     if (isNewMapMode || storeMapId === 'new' || user.role === UserRole.ADMIN) {
         return "Back to Dashboard";
     }
     if (user.role === UserRole.STUDENT) {
@@ -469,10 +428,57 @@ export default function ConceptMapEditorPage() {
         return "Back to Dashboard";
     }
     return "Back";
-  }, [user, isNewMapMode, store.mapId, sharedWithClassroomId]);
+  }, [user, isNewMapMode, storeMapId, sharedWithClassroomId]);
+
+  // Group 7: Effects (useEffect)
+  useEffect(() => {
+    if (typeof routeMapId === 'string' && routeMapId.trim() !== '') {
+      loadMapData(routeMapId);
+    }
+  }, [routeMapId, loadMapData]);
+
+  useEffect(() => {
+    const transformedNodes = (mapData.nodes || []).map(appNode => {
+      return {
+        id: appNode.id,
+        type: appNode.type || 'default',
+        data: { label: appNode.text, details: appNode.details, type: appNode.type || 'default' },
+        position: {
+          x: appNode.x ?? (Math.random() * 400),
+          y: appNode.y ?? (Math.random() * 300),
+        },
+        style: {
+          border: '1px solid hsl(var(--border))',
+          padding: '10px 15px',
+          borderRadius: '8px',
+          background: 'hsl(var(--card))',
+          color: 'hsl(var(--foreground))',
+          boxShadow: '0 2px 4px hsla(var(--foreground), 0.1)',
+          minWidth: 150,
+          textAlign: 'center',
+        }
+      };
+    });
+    setRfNodes(transformedNodes as RFNode<RFConceptMapNodeData>[]);
+
+    const transformedEdges = (mapData.edges || []).map(appEdge => ({
+      id: appEdge.id,
+      source: appEdge.source,
+      target: appEdge.target,
+      label: appEdge.label,
+      type: 'smoothstep',
+      animated: false,
+      style: { strokeWidth: 2, stroke: 'hsl(var(--primary))' },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
+    }));
+    setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
+  }, [mapData, setRfNodes, setRfEdges]);
 
 
-  if (isLoading) {
+  // ---- CONDITIONAL RENDERING LOGIC ----
+  // All hooks have been called before this point.
+
+  if (isStoreLoading) { 
     return (
       <div className="flex h-full flex-col space-y-4 p-4">
         <DashboardHeader title="Loading Map..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={getRoleBasedDashboardLink()} />
@@ -483,9 +489,8 @@ export default function ConceptMapEditorPage() {
     );
   }
 
-  // Use routeMapId for error display consistency if it's an existing map error
-  const mapIdForErrorCheck = (isNewMapMode || store.mapId === 'new') ? 'new' : routeMapId;
-  if (store.error && mapIdForErrorCheck !== 'new') {
+  const mapIdForErrorCheck = (isNewMapMode || storeMapId === 'new') ? 'new' : routeMapId;
+  if (storeError && mapIdForErrorCheck !== 'new') { 
      return (
       <div className="flex h-full flex-col space-y-4 p-4">
         <DashboardHeader title="Error Loading Map" icon={AlertTriangle} iconLinkHref={getRoleBasedDashboardLink()} />
@@ -494,7 +499,7 @@ export default function ConceptMapEditorPage() {
             <CardTitle className="text-destructive">Could not load map: {mapName}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>{store.error}</p>
+            <p>{storeError}</p>
             <Button asChild variant="outline" className="mt-4">
               <Link href={getBackLink()}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}
@@ -507,10 +512,10 @@ export default function ConceptMapEditorPage() {
   }
 
   const mapForInspector: ConceptMap = {
-    id: store.mapId || routeMapId,
+    id: storeMapId || routeMapId,
     name: mapName,
     ownerId: currentMapOwnerId || user?.id || "",
-    mapData: store.mapData,
+    mapData: mapData, 
     isPublic: isPublic,
     sharedWithClassroomId: sharedWithClassroomId,
     createdAt: currentMapCreatedAt || new Date().toISOString(),
@@ -520,20 +525,20 @@ export default function ConceptMapEditorPage() {
   let actualSelectedElementForInspector: ConceptMapNode | ConceptMapEdge | null = null;
   if (selectedElementId && selectedElementType) {
     if (selectedElementType === 'node') {
-      actualSelectedElementForInspector = store.mapData.nodes.find(n => n.id === selectedElementId) || null;
+      actualSelectedElementForInspector = mapData.nodes.find(n => n.id === selectedElementId) || null;
     } else if (selectedElementType === 'edge') {
-      actualSelectedElementForInspector = store.mapData.edges.find(e => e.id === selectedElementId) || null;
+      actualSelectedElementForInspector = mapData.edges.find(e => e.id === selectedElementId) || null;
     }
   }
 
-  const canAddEdge = store.mapData.nodes.length >= 2;
+  const canAddEdge = mapData.nodes.length >= 2;
 
   return (
     <div className="flex h-full flex-col space-y-4">
       <DashboardHeader
         title={isViewOnlyMode ? `Viewing: ${mapName}` : mapName}
         description={isViewOnlyMode ? "This map is in view-only mode. Interactions are disabled." : "Create, edit, and visualize your ideas. Nodes are draggable."}
-        icon={(isNewMapMode || store.mapId === 'new') ? Compass : Share2}
+        icon={(isNewMapMode || storeMapId === 'new') ? Compass : Share2}
         iconLinkHref={getRoleBasedDashboardLink()}
       >
         {!isViewOnlyMode && (
@@ -582,7 +587,7 @@ export default function ConceptMapEditorPage() {
             selectedElement={actualSelectedElementForInspector}
             selectedElementType={selectedElementType}
             onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdate}
-            isNewMapMode={(isNewMapMode || store.mapId === 'new')}
+            isNewMapMode={(isNewMapMode || storeMapId === 'new')}
             isViewOnlyMode={isViewOnlyMode}
           />
         </aside>
@@ -590,7 +595,7 @@ export default function ConceptMapEditorPage() {
 
       <div className="mt-4 max-h-96 overflow-y-auto border-t pt-4">
         <CanvasPlaceholder
-            mapData={store.mapData}
+            mapData={mapData} 
             extractedConcepts={aiExtractedConcepts}
             suggestedRelations={aiSuggestedRelations}
             expandedConcepts={aiExpandedConcepts}
@@ -610,17 +615,19 @@ export default function ConceptMapEditorPage() {
       {isSuggestRelationsModalOpen && !isViewOnlyMode && (
         <SuggestRelationsModal
           onRelationsSuggested={handleRelationsSuggested}
-          initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)}
+          initialConcepts={rfNodes.slice(0,5).map(n => n.data.label)} 
           onOpenChange={setIsSuggestRelationsModalOpen}
         />
       )}
       {isExpandConceptModalOpen && !isViewOnlyMode && (
         <ExpandConceptModal
           onConceptExpanded={handleConceptExpanded}
-          initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""}
+          initialConcept={rfNodes.length > 0 ? rfNodes[0].data.label : ""} 
           onOpenChange={setIsExpandConceptModalOpen}
         />
       )}
     </div>
   );
 }
+    
+    
