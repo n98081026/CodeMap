@@ -1,4 +1,5 @@
 
+
 # CodeMap TODO List
 
 ## Supabase Backend Integration
@@ -135,7 +136,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
         - [ ] Implement timeouts for unpacking and analysis to prevent runaway processes.
         - [ ] Gracefully handle unparseable files or unrecognized structures, logging these and including them in parsingErrors.
 - [x] **Modify `generateMapFromProject` Genkit Flow:**
-    - [x] **Input**: Updated input schema to accept `projectStoragePath` and `userGoals`.
+    - [x] **Input**: Updated input schema to accept `projectStoragePath` and `userGoals`. (UI now sends this format).
     - [x] **Tool Integration**: Instructs the LLM (via prompt) to utilize `projectStructureAnalyzerTool`.
     - [x] **Refined Prompt**: Updated prompt in `generateMapFromProjectPrompt` to guide LLM on interpreting tool output (Further refinement may be needed with real tool output).
 - [ ] **Output Handling & User Interaction (Post Supabase Integration for Submissions & Maps):**
@@ -171,7 +172,7 @@ This section outlines improvements to make the GenAI Concept Map features more r
     - [x] **Edit Before Adding**: Allow click-to-edit suggested text in `AISuggestionPanel`.
     - [x] **Clearer Visual Cues**:
         - [x] More obvious which suggestions already exist on map (disabled checkbox, "(already on map)" text).
-        - [x] Visually differentiate suggestions closely matching existing nodes (partially done by greying out / label).
+        - [x] Visually differentiate suggestions closely matching existing nodes (e.g., highlight or slightly different style if a suggestion is very similar but not identical to an existing node).
         - [x] Provide a "Clear" option for suggestion categories (Trash icon in header for each category).
     - [x] **Panel Styling and Usability**:
         - [x] Distinct section styling for each AI suggestion type using card backgrounds/borders.
