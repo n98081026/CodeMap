@@ -8,7 +8,7 @@ import type { User } from '@/types';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
-import { getUserById as fetchSupabaseUserProfile } from '@/services/users/userService';
+import { getUserById as fetchSupabaseUserProfile, updateUser as updateUserProfileService } from '@/services/users/userService'; // Added updateUserProfileService
 
 // Define a mock admin user for development
 const mockAdminUser: User = {
@@ -25,7 +25,8 @@ interface AuthContextType {
   login: (email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
-  updateCurrentUserData: (updatedFields: Partial<User>) => Promise<void>; // Made async
+  updateCurrentUserData: (updatedFields: Partial<User>) => Promise<void>;
+  setTestUserRole: (newRole: UserRole) => void; // Added for testing
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,35 +73,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentContextUser = userRef.current;
       const isMockAdminSession = currentContextUser?.id === mockAdminUser.id;
 
-      if (session?.user) { // A Supabase session exists
+      if (session?.user) { 
         if (isMockAdminSession && session.user.email !== mockAdminUser.email) {
-          // If was mock admin, but now a real Supabase session for a different user started
           await fetchAndSetSupabaseUser(session.user);
         } else if (!isMockAdminSession) {
-          // Regular Supabase user session
           await fetchAndSetSupabaseUser(session.user);
         }
-        // If isMockAdminSession and session.user.email IS mockAdminUser.email, this case is unlikely/problematic
-        // as mock admin login doesn't create a Supabase session for admin@example.com.
-        // We prioritize real Supabase sessions.
-      } else { // No Supabase session
-        if (!isMockAdminSession) { // If not mock admin, and no Supabase session, then no user.
+      } else { 
+        if (!isMockAdminSession) { 
           setUser(null);
         }
-        // If it was a mock admin session and Supabase session is null, keep mock admin unless explicitly logged out.
       }
       setIsLoading(false);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
     
-    // Initial check for Supabase session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
          await fetchAndSetSupabaseUser(session.user);
       } else {
-        // If no Supabase session, and not already mock admin, then no user.
-        // If userRef.current is mockAdmin, it remains.
         if (userRef.current?.id !== mockAdminUser.id) {
             setUser(null);
         }
@@ -124,30 +116,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (email === mockAdminUser.email && role === UserRole.ADMIN && password === "adminpass") {
         console.log("Mock admin login successful for:", email);
-        setUser(mockAdminUser); // Directly set mock admin user
-        setIsLoading(false); // Mock admin login is synchronous for state
-        // No redirect here, page effect handles it.
+        setUser(mockAdminUser); 
+        setIsLoading(false); 
+        
+        if (pathname === '/login' || pathname === '/') {
+            router.replace('/application/admin/dashboard');
+        }
         return; 
       }
       
-      // For real users, attempt Supabase login
       const { error, data: sessionData } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       if (!sessionData.user) throw new Error("Login successful but no user data returned from Supabase.");
-      // onAuthStateChange will handle fetching profile & setting user for Supabase users
-      // setIsLoading(false) will be called by onAuthStateChange handler.
+      // onAuthStateChange will handle fetching profile & setting user. setIsLoading(false) handled there.
+      // Redirect based on role will be handled by page effects AFTER user is set by onAuthStateChange.
+      const fetchedProfile = await fetchSupabaseUserProfile(sessionData.user.id);
+      if (fetchedProfile) {
+        // Check if Supabase profile role matches the role selected in the form
+        if (fetchedProfile.role !== role) {
+            await supabase.auth.signOut(); // Sign out if role mismatch
+            throw new Error(`Role mismatch. Expected ${role}, but account role is ${fetchedProfile.role}.`);
+        }
+        setUser(fetchedProfile); // Set user to trigger redirect effects
+         switch (fetchedProfile.role) {
+            case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
+            case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
+            case UserRole.STUDENT: router.replace('/application/student/dashboard'); break;
+            default: router.replace('/login');
+        }
+      } else {
+          await supabase.auth.signOut();
+          throw new Error("User profile not found after Supabase login.");
+      }
 
     } catch (error) {
       console.error("Login failed:", error);
-      // If it wasn't a mock admin attempt, ensure user state is cleared
       if (!(email === mockAdminUser.email && role === UserRole.ADMIN)) {
           setUser(null);
       }
       setIsLoading(false);
       throw error;
     } 
-    // setIsLoading(false) for Supabase path is handled by onAuthStateChange
-  }, []);
+  }, [router, pathname, fetchSupabaseUserProfile]);
 
   const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
     setIsLoading(true);
@@ -157,24 +167,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
         options: {
           data: { 
-            full_name: name, // Standard Supabase metadata key
-            user_role: role  // Custom metadata key
+            full_name: name, 
+            user_role: role  
           }
         }
       });
       if (signUpError) throw signUpError;
       if (!signUpData.user) throw new Error("Registration successful but no user data returned.");
       
-      // After Supabase auth.signUp, the onAuthStateChange listener should detect the new user.
-      // A Supabase Database Function (trigger on auth.users insert) is the recommended way
-      // to create the corresponding 'profiles' table entry.
-      // Example: CREATE FUNCTION public.handle_new_user() ...
-      // If email confirmation is on, user won't be "SIGNED_IN" immediately.
       alert("Registration successful! If email confirmation is enabled, please check your email to confirm your account. You can then log in.");
       router.push('/login');
     } catch (error) {
       console.error("Registration failed:", error);
-      throw error; // Re-throw to be caught by form
+      throw error; 
     } finally {
       setIsLoading(false);
     }
@@ -192,13 +197,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signOut();
       if (error) {
           console.error("Supabase signout error:", error);
-          // Even on error, try to clear local state for Supabase user
           setUser(null);
       }
-      // setUser(null) for Supabase users is primarily handled by onAuthStateChange 'SIGNED_OUT' event.
     }
     
-    // Common redirect logic after attempting logout
     if (!pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
         router.push('/login');
     }
@@ -208,8 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateCurrentUserData = useCallback(async (updatedFields: Partial<User>) => {
     const currentContextUser = userRef.current;
     if (!currentContextUser) {
-      console.error("Cannot update user data: No current user in context.");
-      return;
+      throw new Error("Cannot update user data: No current user in context.");
     }
 
     if (currentContextUser.id === mockAdminUser.id) {
@@ -219,32 +220,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      // If email is being changed, it needs special handling with Supabase Auth
+      // If email is being changed, this should be handled by Supabase auth update flows
+      // This service function only updates the 'profiles' table.
       if (updatedFields.email && updatedFields.email !== currentContextUser.email) {
-        // IMPORTANT: Updating email in auth.users requires a separate Supabase Auth call
-        // and typically involves email confirmation. This should ideally be a distinct user action.
-        // For this example, we'll update the `profiles` table email,
-        // but the actual auth email remains unchanged unless `supabase.auth.updateUser({ email })` is called.
-        console.warn("Attempting to update email in profiles table. Note: This does NOT change the Supabase Auth email automatically.");
+        console.warn("Attempting to update email in profiles table. Note: This does NOT change the Supabase Auth email automatically. A separate flow for changing auth email is needed.");
       }
 
-      const updatedProfile = await fetchSupabaseUserProfile(currentContextUser.id, updatedFields);
+      const updatedProfile = await updateUserProfileService(currentContextUser.id, updatedFields);
       
       if (updatedProfile) {
         setUser(updatedProfile);
       } else {
-        // This case should ideally not happen if the user exists.
-        // It might indicate an issue with the updateUser service function or data consistency.
         console.error(`Failed to get updated profile for user ${currentContextUser.id} after update attempt.`);
-        // Optionally, refetch the current user to ensure client state is consistent with DB.
-        await fetchAndSetSupabaseUser(currentContextUser as SupabaseUser); // Re-cast if necessary, or fetch by ID
+        // Attempt to refetch to ensure consistency
+        const supabaseAuthUser = (await supabase.auth.getUser()).data.user;
+        if (supabaseAuthUser) await fetchAndSetSupabaseUser(supabaseAuthUser);
       }
     } catch (error) {
         console.error("Failed to update user profile in Supabase 'profiles' table:", error);
-        // Re-throw or show toast to user is an option here.
         throw error; 
     }
   }, [fetchAndSetSupabaseUser]);
+
+  const setTestUserRole = useCallback((newRole: UserRole) => {
+    setUser(prevUser => {
+      if (prevUser) {
+        // If it's the mock admin, we preserve its ID and email
+        if (prevUser.id === mockAdminUser.id) {
+          return { ...mockAdminUser, role: newRole };
+        }
+        // For other users, just update the role
+        return { ...prevUser, role: newRole };
+      }
+      return null;
+    });
+  }, []);
 
   const isAuthenticated = !!user;
 
@@ -255,8 +265,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     logout,
     register,
-    updateCurrentUserData
-  }), [user, isAuthenticated, isLoading, login, logout, register, updateCurrentUserData]);
+    updateCurrentUserData,
+    setTestUserRole // Added
+  }), [user, isAuthenticated, isLoading, login, logout, register, updateCurrentUserData, setTestUserRole]);
 
   return (
     <AuthContext.Provider value={contextValue}>

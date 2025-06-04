@@ -81,6 +81,7 @@
     - [x] Refine `PropertiesInspector` in "View Only" mode (muted labels, inputs disabled).
     - [x] Implement change password functionality on profile page (uses Supabase Auth via API).
     - [x] **[CRITICAL TEMPORARY CHANGE]** Revert automatic admin login bypass in `src/app/page.tsx` and `src/app/(auth)/login/page.tsx`. These files were modified to force mock admin login for testing purposes.
+    - [ ] Developer/Testing: Role switcher on Profile page for testing. Should be removed or properly secured for production. (Added)
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to Supabase-backed service; add user via register flow - Add button tooltip added).
     - [x] Develop system settings interface (Admin Settings page now fetches and saves settings to Supabase via API. Linked from Admin Dashboard).

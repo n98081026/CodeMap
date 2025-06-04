@@ -7,10 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { UserCircle, Shield, Edit3, KeyRound, Loader2 } from "lucide-react";
+import { UserCircle, Shield, Edit3, KeyRound, Loader2, TestTubeDiagonal } from "lucide-react"; // Added TestTubeDiagonal
 import Link from "next/link";
 import { UserRole, type User } from "@/types";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation"; // Added useRouter
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select
 import { useToast } from "@/hooks/use-toast";
 
 const profileFormSchema = z.object({
@@ -35,7 +37,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 function EditProfileDialog({
   currentUser,
-  onProfileUpdate, // This will call authContext.updateCurrentUserData
+  onProfileUpdate,
   isOpen,
   onOpenChange,
 }: {
@@ -58,7 +60,6 @@ function EditProfileDialog({
   const onSubmit = useCallback(async (data: ProfileFormValues) => {
     setIsSaving(true);
     try {
-      // Call the passed-in update function, which should link to authContext.updateCurrentUserData
       await onProfileUpdate({ name: data.name, email: data.email });
       toast({ title: "Profile Updated", description: "Your profile has been successfully updated." });
       onOpenChange(false);
@@ -74,14 +75,13 @@ function EditProfileDialog({
   }, [onProfileUpdate, toast, onOpenChange]);
 
   React.useEffect(() => {
-    if (currentUser && isOpen) { // Reset form when dialog opens with current user data
+    if (currentUser && isOpen) {
       form.reset({
         name: currentUser.name,
         email: currentUser.email,
       });
     }
   }, [currentUser, form, isOpen]);
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -138,7 +138,6 @@ function EditProfileDialog({
 }
 
 const changePasswordSchema = z.object({
-  // currentPassword: z.string().min(1, { message: "Current password is required." }), // Not strictly needed for Supabase updateUser for authenticated user
   newPassword: z.string().min(6, { message: "New password must be at least 6 characters." }),
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -165,7 +164,6 @@ function ChangePasswordDialog({
   const form = useForm<ChangePasswordFormValues>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: {
-      // currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -188,7 +186,7 @@ function ChangePasswordDialog({
       const response = await fetch(`/api/users/${userId}/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword: data.newPassword }), // Only newPassword needed for API
+        body: JSON.stringify({ newPassword: data.newPassword }),
       });
 
       const result = await response.json();
@@ -222,19 +220,6 @@ function ChangePasswordDialog({
         ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* <FormField
-              control={form.control}
-              name="currentPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" {...field} disabled={isSaving} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            /> */}
             <FormField
               control={form.control}
               name="newPassword"
@@ -278,13 +263,20 @@ function ChangePasswordDialog({
   );
 }
 
-
 export default function ProfilePage() {
-  const { user, updateCurrentUserData, isLoading: authIsLoading } = useAuth();
+  const { user, updateCurrentUserData, setTestUserRole, isLoading: authIsLoading } = useAuth();
+  const router = useRouter();
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [selectedRoleForTest, setSelectedRoleForTest] = useState<UserRole | null>(user?.role || null);
 
-  if (authIsLoading || !user) { // Check authIsLoading as well
+  useEffect(() => {
+    if (user) {
+      setSelectedRoleForTest(user.role);
+    }
+  }, [user]);
+
+  if (authIsLoading || !user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -294,14 +286,10 @@ export default function ProfilePage() {
 
   const getDashboardLink = useCallback(() => {
     switch (user.role) {
-      case UserRole.ADMIN:
-        return "/application/admin/dashboard";
-      case UserRole.TEACHER:
-        return "/application/teacher/dashboard";
-      case UserRole.STUDENT:
-        return "/application/student/dashboard";
-      default:
-        return "/application/login"; 
+      case UserRole.ADMIN: return "/application/admin/dashboard";
+      case UserRole.TEACHER: return "/application/teacher/dashboard";
+      case UserRole.STUDENT: return "/application/student/dashboard";
+      default: return "/application/login"; 
     }
   }, [user.role]);
 
@@ -309,8 +297,22 @@ export default function ProfilePage() {
     await updateCurrentUserData(updatedFields); 
   }, [updateCurrentUserData]);
 
-  const isUserMockAdmin = user.id === 'admin-mock-id';
+  const handleTestRoleChange = (newRoleValue: string) => {
+    const newRole = newRoleValue as UserRole;
+    setSelectedRoleForTest(newRole);
+    if (user && newRole !== user.role) {
+      setTestUserRole(newRole); // Update AuthContext locally
+      // Navigate to new dashboard
+      switch (newRole) {
+        case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
+        case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
+        case UserRole.STUDENT: router.replace('/application/student/dashboard'); break;
+        default: router.replace('/application/login');
+      }
+    }
+  };
 
+  const isUserMockAdmin = user.id === 'admin-mock-id';
 
   return (
     <div className="space-y-6">
@@ -336,8 +338,23 @@ export default function ProfilePage() {
             <Input id="profileEmail" type="email" value={user.email} readOnly />
           </div>
           <div>
-            <Label htmlFor="profileRole">Role</Label>
-            <Input id="profileRole" value={user.role.charAt(0).toUpperCase() + user.role.slice(1)} readOnly />
+            <Label htmlFor="profileRole">Role (Current: {user.role.charAt(0).toUpperCase() + user.role.slice(1)})</Label>
+            <div className="flex items-center space-x-2 mt-1">
+              <TestTubeDiagonal className="h-5 w-5 text-orange-500 flex-shrink-0" />
+              <Select value={selectedRoleForTest || user.role} onValueChange={handleTestRoleChange}>
+                <SelectTrigger id="profileRoleSelect">
+                  <SelectValue placeholder="Switch Role (Testing)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UserRole.STUDENT}>Student</SelectItem>
+                  <SelectItem value={UserRole.TEACHER}>Teacher</SelectItem>
+                  <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              This role switcher is for testing purposes. Changes apply locally and redirect you.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -406,4 +423,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-    
