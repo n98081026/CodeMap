@@ -1,7 +1,6 @@
 
 import { create } from 'zustand';
-// import { temporal, type TemporalState } from 'zustand/middleware'; // Old import
-import * as ZustandMiddleware from 'zustand/middleware'; // New import style
+import { temporal, type TemporalState as ZustandTemporalState } from 'zustand/middleware/temporal'; // Direct import
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 
 // --- Unique ID Generation ---
@@ -67,22 +66,22 @@ interface ConceptMapState {
   updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
   deleteEdge: (edgeId: string) => void;
 
-  // Placeholder for methods added by zustand/middleware/temporal if different from zundo
-  // undo?: () => void;
-  // redo?: () => void;
-  // clear?: () => void; 
-  // pastStates?: TrackedState[];
-  // futureStates?: TrackedState[];
+  // Methods added by temporal middleware
+  undo?: () => void;
+  redo?: () => void;
+  clearTemporal?: () => void; 
+  // pastStates and futureStates are typically part of the temporal state object, not direct properties of the store state.
 }
 
 // Define the part of the state that will be tracked by temporal middleware
 type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId'>;
 
-// Type for the temporal state structure if using a middleware that adds a .temporal property (like zundo)
-// For zustand/middleware/temporal, this structure is different.
-// The `ZustandMiddleware.TemporalState` type will be used by the middleware itself.
-// The store state type `ConceptMapState` will be augmented by the middleware with methods like undo, redo.
-// type ZustandTemporalState = ZustandMiddleware.TemporalState<TrackedState>;
+// Type for the temporal state structure provided by zustand/middleware/temporal
+// This might be an opaque type or a specific structure defined by the middleware.
+// For now, we assume ZustandTemporalState is the correct type from the import.
+export type ConceptMapStoreWithTemporal = ConceptMapState & {
+  temporal: ZustandTemporalState<TrackedState>; // This structure might be specific to zundo/older versions
+};
 
 
 const initialStateBase: Omit<ConceptMapState, 
@@ -90,8 +89,8 @@ const initialStateBase: Omit<ConceptMapState,
   'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
   'setSelectedElement' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 'setAiExpandedConcepts' | 
   'resetAiSuggestions' | 'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' | 
-  'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' 
-  // Remove undo/redo etc. from Omit as they might be added by the middleware to ConceptMapState
+  'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
+  'undo' | 'redo' | 'clearTemporal'
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -113,7 +112,7 @@ const initialStateBase: Omit<ConceptMapState,
 
 
 export const useConceptMapStore = create<ConceptMapState>()(
-  ZustandMiddleware.temporal( // Use the imported middleware object's temporal property
+  temporal( 
     (set, get) => ({
       ...initialStateBase,
 
@@ -140,15 +139,15 @@ export const useConceptMapStore = create<ConceptMapState>()(
         const newMapState = {
           ...initialStateBase,
           mapId: 'new',
-          mapName: 'Mock Initial Map', // Added mock name
-          mapData: { // Added mock data
+          mapName: 'Mock Initial Map', 
+          mapData: { 
             nodes: [
               { id: uniqueNodeId(), text: 'Main Component', type: 'ui_view', x: 100, y: 100, details: 'The primary UI entry point.' },
               { id: uniqueNodeId(), text: 'API Service', type: 'service_component', x: 300, y: 150, details: 'Handles data fetching.' },
               { id: uniqueNodeId(), text: 'Database Schema', type: 'data_model', x: 100, y: 300, details: 'Represents user data.' },
             ],
             edges: [
-              { id: uniqueEdgeId(), source: 'node-0', target: 'node-1', label: 'fetches from' }, // Placeholder IDs, will be dynamic
+              { id: uniqueEdgeId(), source: 'node-0', target: 'node-1', label: 'fetches from' }, 
             ],
           },
           currentMapOwnerId: userId,
@@ -156,15 +155,15 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: true,
           isLoading: false,
         };
-        // Adjust mock IDs after generation
-        if (newMapState.mapData.nodes.length >= 2) {
+        
+        if (newMapState.mapData.nodes.length >= 2 && newMapState.mapData.edges.length > 0) {
              newMapState.mapData.edges[0].source = newMapState.mapData.nodes[0].id;
              newMapState.mapData.edges[0].target = newMapState.mapData.nodes[1].id;
         }
         
         set(newMapState);
-        const store = get() as any;
-        if (store.clear) store.clear();
+        const storeApi = get();
+        if (storeApi.clearTemporal) storeApi.clearTemporal();
       },
       setLoadedMap: (map) => {
         set({
@@ -182,8 +181,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           aiSuggestedRelations: [],
           aiExpandedConcepts: [],
         });
-        const store = get() as any;
-        if (store.clear) store.clear();
+        const storeApi = get();
+        if (storeApi.clearTemporal) storeApi.clearTemporal();
       },
       importMapData: (importedData, fileName) => {
         const currentMapName = get().mapName;
@@ -203,13 +202,13 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isSaving: false,
           error: null,
         }));
-        const store = get() as any;
-        if (store.clear) store.clear();
+        const storeApi = get();
+        if (storeApi.clearTemporal) storeApi.clearTemporal();
       },
       resetStore: () => {
         set(initialStateBase);
-        const store = get() as any;
-        if (store.clear) store.clear();
+        const storeApi = get();
+        if (storeApi.clearTemporal) storeApi.clearTemporal();
       },
 
       addNode: (options) => set((state) => {
@@ -287,16 +286,14 @@ export const useConceptMapStore = create<ConceptMapState>()(
         const { mapData, mapName, isPublic, sharedWithClassroomId } = state;
         return { mapData, mapName, isPublic, sharedWithClassroomId };
       },
+      // Additional temporal options if needed
     }
   )
 );
         
-// This type and its usage for accessing .temporal.undo etc. are likely for zundo or zustand-temporal,
-// not directly for zustand/middleware/temporal. This will need to be addressed if the "not a function" error is resolved.
-export type ConceptMapStoreWithTemporal = ReturnType<typeof useConceptMapStore.getState> & {
-  temporal: ZustandMiddleware.TemporalState<TrackedState>;
-};
 
 export default useConceptMapStore;
+
+    
 
     
