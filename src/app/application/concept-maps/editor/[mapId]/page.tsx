@@ -9,7 +9,7 @@ import dynamic from 'next/dynamic';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
-import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"; // Updated import
+import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -317,12 +317,11 @@ export default function ConceptMapEditorPage() {
         toast({ title: "No Concepts Selected", description: "Please select concepts to add.", variant: "default"});
         return;
     }
-    // Logic to check against existing nodes is now handled within AISuggestionPanel / Zustand store if needed, or by the nature of the suggestions provided
     let addedCount = 0;
     selectedConcepts.forEach(conceptText => {
       addStoreNode({
         text: conceptText,
-        type: 'ai-concept', // Or a more specific type from the suggestion if available
+        type: 'ai-concept',
         position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
       });
       addedCount++;
@@ -827,16 +826,16 @@ export default function ConceptMapEditorPage() {
         </Sheet>
 
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
-          <SheetContent side="bottom" className="h-[40vh] sm:h-1/3"> {/* Adjusted height */}
+          <SheetContent side="bottom" className="h-[40vh] sm:h-1/3">
             <SheetHeader>
-              <SheetTitle>AI Suggestions</SheetTitle> {/* Simplified Title */}
+              <SheetTitle>AI Suggestions</SheetTitle>
               <SheetDescription>
                 View and add AI-generated suggestions to your map.
               </SheetDescription>
             </SheetHeader>
             <div className="py-4 h-[calc(100%-4rem)]"> 
               <AISuggestionPanel
-                currentMapNodes={storeMapData.nodes} // Pass current map nodes
+                currentMapNodes={storeMapData.nodes}
                 extractedConcepts={aiExtractedConcepts}
                 suggestedRelations={aiSuggestedRelations}
                 expandedConcepts={aiExpandedConcepts}
@@ -877,4 +876,3 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
-

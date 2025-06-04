@@ -24,7 +24,6 @@ interface FlowCanvasCoreProps {
   onEdgesDeleteInStore: (edgeId: string) => void;
   onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
   onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
-  // Prop for page-level onNodeDragStop logic, expects (event, node)
   onNodeDragStop?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
 }
 
@@ -37,7 +36,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   onEdgesDeleteInStore,
   onConnectInStore,
   onNodeContextMenu,
-  onNodeDragStop: onNodeDragStopPropFromPage, // Renamed for clarity
+  onNodeDragStop: onNodeDragStopPropFromPage,
 }) => {
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
@@ -78,23 +77,17 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     onNodesChangeReactFlow(changes);
   }, [isViewOnlyMode, onNodesChangeReactFlow]);
 
-  // This is the actual callback given to ReactFlow via InteractiveCanvas
-  // Its signature MUST match what ReactFlow provides: (event, node, nodes)
   const handleNodeDragStopInternal = useCallback(
     (event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>, _allNodes: RFNode<CustomNodeData>[]) => {
       if (isViewOnlyMode) return;
 
-      // Robust check for position and its properties
       if (!draggedNode || !draggedNode.position || typeof draggedNode.position.x !== 'number' || typeof draggedNode.position.y !== 'number') {
         console.warn('[FlowCanvasCore] handleNodeDragStopInternal: draggedNode.position is invalid. Node:', draggedNode, 'Node.position:', draggedNode?.position);
         return;
       }
       
-      // Update the store with the new position
       onNodesChangeInStore(draggedNode.id, { x: draggedNode.position.x, y: draggedNode.position.y });
       
-      // If the page component provided its own onNodeDragStop handler, call it.
-      // It expects (event, node)
       if (onNodeDragStopPropFromPage) {
         onNodeDragStopPropFromPage(event, draggedNode);
       }
@@ -152,7 +145,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       isViewOnlyMode={isViewOnlyMode}
       nodeTypes={nodeTypesConfig}
       onNodeContextMenu={onNodeContextMenu}
-      onNodeDragStop={handleNodeDragStopInternal} // Pass the internal handler
+      onNodeDragStop={handleNodeDragStopInternal}
     />
   );
 };
