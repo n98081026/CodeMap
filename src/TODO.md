@@ -63,9 +63,9 @@
     - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented with disabled inputs and muted styling.
     - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal` to interact with AI flows. Context menu now correctly opens these.
     - [x] **`AISuggestionPanel` (formerly `CanvasPlaceholder`)**: Area below canvas displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions are cleared after being added to the map. Suggestions can be edited before adding. Enhanced empty state logic.
-    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented.
+    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
 - [x] **State Management:**
-    - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor, including `temporal` middleware).
+    - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor, including `zundo` middleware).
 - [ ] **Real-time Features (Optional - Future Consideration):**
     - [ ] Consider real-time collaboration on concept maps (e.g., using Supabase Realtime) - (High Complexity - Deferred).
     - [x] Real-time updates for project submission status (Basic polling implemented in SubmissionListItem. Could be enhanced with Supabase Realtime).
@@ -80,8 +80,8 @@
     - [x] Implement "View Only" mode for Concept Map Editor.
     - [x] Refine `PropertiesInspector` in "View Only" mode (muted labels, inputs disabled).
     - [x] Implement change password functionality on profile page (uses Supabase Auth via API).
-    - [x] **[CRITICAL TEMPORARY CHANGE]** Revert automatic admin login bypass in `src/app/page.tsx` and `src/app/(auth)/login/page.tsx`. These files were modified to force mock admin login for testing purposes.
-    - [ ] Developer/Testing: Role switcher on Profile page for testing. Should be removed or properly secured for production. (Added)
+    - [x] **[CRITICAL TEMPORARY CHANGE]** Revert automatic admin login bypass in `src/app/page.tsx` and `src/app/(auth)/login/page.tsx`. These files were modified to force mock admin login for testing purposes. (Now defaults to mock student login for testing).
+    - [x] Developer/Testing: Role switcher on Profile page for testing. Should be removed or properly secured for production. (Added)
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to Supabase-backed service; add user via register flow - Add button tooltip added).
     - [x] Develop system settings interface (Admin Settings page now fetches and saves settings to Supabase via API. Linked from Admin Dashboard).
@@ -108,19 +108,23 @@
     - [x] **Map Creation & Linking**: (Concept Map & Submission linking via API to Supabase-backed services)
     - [x] **Viewing Generated Map**: (SubmissionListItem links to generated map in view-only mode).
     - [ ] (Advanced/Future) Allow selective merging/importing of parts of the AI-generated map into an existing map.
-- [x] **Contextual Input for AI Tools:**
-    - [x] **`expandConcept`**: Flow and UI use selected node & neighbors as context.
-    - [x] **`suggestRelations`**: Flow and UI use selected/relevant node texts from map.
-    - [ ] **`extractConcepts`**: (Future Feature) If text is from document upload, pass document name/context.
-- [x] **Interactive AI Suggestions in `AISuggestionPanel` (formerly `CanvasPlaceholder`):**
+- [ ] **Improve Usability of In-Editor GenAI Tools:**
+    - [ ] **Context for `extractConcepts`**: (Future Feature) If text is from document upload, pass document name/context. Consider allowing extraction from selected node text or notes.
+    - [ ] **Context for `suggestRelations`**: Revise `SuggestRelationsModal` and page logic to better utilize multiple selected nodes from the canvas as input, rather than just the primary selected node or a text list. Provide option to run on all map concepts.
+    - [ ] **Context for `expandConcept`**: Ensure clear visual feedback to the user about which node is being used for expansion, especially when triggered from the toolbar.
+    - [ ] **Review & Iterate Prompts**: Review prompts for `extractConcepts`, `suggestRelations`, `expandConcept` in `src/ai/flows/` to improve quality, relevance, and actionability of suggestions. Aim for fewer, high-impact suggestions if current output is noisy.
+- [ ] **Enhance Interactive AI Suggestions in `AISuggestionPanel`:**
+    - [ ] **Workflow Review**: Re-evaluate the entire workflow from invoking an AI tool to seeing suggestions and adding them to the map. Identify and smooth out friction points.
+    - [ ] **Visual Feedback on Add**: Provide clearer visual feedback (e.g., suggestion item grays out, shows a checkmark, or is removed) when a suggestion is successfully added to the map from the panel.
+    - [ ] **Smart Placement**: When adding AI-suggested nodes to the map, implement a smarter placement strategy (e.g., near related existing nodes, in an open canvas area) rather than just random positions.
     - [x] **Selective Addition**: "Add Selected" and "Add All New" implemented for suggestions.
     - [x] **Edit Before Adding**: Suggestions can be edited in the panel.
     - [x] **Clearer Visual Cues**: Differentiates existing/similar suggestions, clear option for each category. (Theming and status indicators added)
     - [x] **Panel Styling and Usability**: Improved layout, distinct cards, better empty states. (Category-specific empty states added)
-- [x] **General AI User Experience (UX)**
-    - [x] **Tooltips & Guidance**: Enhanced tooltips, in-UI guidance. (Initial guide in AI panel)
-    - [x] **Loading & Feedback**: Consistent loading indicators, clearer error messages.
-    - [x] **AI Suggestion Panel (`AISuggestionPanel`)**: Improved layout, accessibility via toggle. (Renamed, themed, improved)
+- [ ] **General AI User Experience (UX) for In-Editor Tools**
+    - [ ] **Refine Tooltips & In-UI Guidance**: Review and enhance tooltips for AI tools. Add brief contextual help within modals or the `AISuggestionPanel` on using each feature and interpreting results.
+    - [x] **Loading & Feedback**: Consistent loading indicators, clearer error messages for AI operations.
+    - [x] **AI Suggestion Panel (`AISuggestionPanel`)**: Improved layout, accessibility via toggle.
 
 ## Supabase Backend Integration (Remaining from previous master TODO)
 This section outlines tasks to fully migrate to Supabase. Many are now complete.
@@ -177,13 +181,16 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 
 ## Known Issues / Current State
 - Backend services largely migrated from mock to Supabase (users, classrooms, concept_maps, project_submissions, system_settings).
-- AuthContext migrated to Supabase Auth. User profile data fetched from Supabase `profiles` table. Mock admin login via form preserved.
+- AuthContext migrated to Supabase Auth. User profile data fetched from Supabase `profiles` table. Mock admin/student login via form preserved for testing.
 - Data persistence for all entities handled by Supabase (requires user to set up tables & RLS).
-- Concept map canvas is React Flow. Undo/Redo implemented.
+- Concept map canvas is React Flow. Undo/Redo implemented with `zundo`.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file uploads and tool logic.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - For public registration via `AuthContext -> supabase.auth.signUp()`, a Supabase Function trigger (or similar mechanism) is needed by the user to create the corresponding `profiles` table entry automatically.
 - API routes rely on Supabase-backed services. Further auth checks (JWT verification, role-based access) for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis now uploads to Supabase Storage (bucket 'project_archives', path `user-<user_id>/<timestamp>-<filename>`).
 - User needs to create the 'project_archives' bucket and add `file_storage_path TEXT NULLABLE` to `project_submissions` table, and set up RLS for the bucket.
-- Mock admin user cannot have their profile edited or password changed via the UI to prevent breaking the mock login flow. Real admin accounts created via Supabase registration can.
+- Mock admin/student user profiles cannot be edited or passwords changed via the UI to prevent breaking the mock login flow. Real accounts created via Supabase registration can.
+- Dragging nodes and creating connections in the concept map editor should now be working correctly. If issues persist, further investigation into React Flow event handling or CSS conflicts might be needed.
+
+    
