@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { UserRole } from "@/types";
 
 export default function LoginPage() {
-  const { isAuthenticated, user, isLoading, login } = useAuth(); // Added login
+  const { isAuthenticated, user, isLoading, login } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,18 +19,17 @@ export default function LoginPage() {
         else if (user.role === UserRole.TEACHER) router.replace('/application/teacher/dashboard');
         else router.replace('/application/student/dashboard');
       } else {
-        // Force mock admin login for testing if not authenticated
-        console.log("Login page: Not authenticated, attempting forced mock admin login.");
-        login('admin@example.com', 'adminpass', UserRole.ADMIN).catch(err => {
-          console.error("Forced mock admin login on login page failed:", err);
+        // Force mock student login for testing if not authenticated
+        console.log("Login page: Not authenticated, attempting forced mock student login.");
+        login('student@example.com', 'studentpass', UserRole.STUDENT).catch(err => {
+          console.error("Forced mock student login on login page failed:", err);
           // If forced login fails, remain on login page, user can try manually.
         });
       }
     }
-  }, [isAuthenticated, user, router, isLoading, login]); // Added login to dependencies
-  
-  // Show loader if auth state is loading OR if user is authenticated OR if trying forced login
-  if (isLoading || (isAuthenticated && user)) { 
+  }, [isAuthenticated, user, router, isLoading, login]);
+
+  if (isLoading || (isAuthenticated && user)) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-background to-accent/10">
          <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -38,7 +37,6 @@ export default function LoginPage() {
     );
   }
 
-  // If not loading and not authenticated (and forced login hasn't redirected yet), show the form
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-accent/10 p-4">
       <Card className="w-full max-w-md shadow-2xl">
@@ -47,7 +45,7 @@ export default function LoginPage() {
             <CodeXml className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="font-headline text-3xl">Welcome to CodeMap</CardTitle>
-          <CardDescription>Sign in to access your dashboards and tools. (Admin bypass active for testing)</CardDescription>
+          <CardDescription>Sign in to access your dashboards and tools. (Student bypass active for testing)</CardDescription>
         </CardHeader>
         <CardContent>
           <LoginForm />
@@ -56,3 +54,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

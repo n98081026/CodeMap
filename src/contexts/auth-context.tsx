@@ -8,14 +8,21 @@ import type { User } from '@/types';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
-import { getUserById as fetchSupabaseUserProfile, updateUser as updateUserProfileService } from '@/services/users/userService'; // Added updateUserProfileService
+import { getUserById as fetchSupabaseUserProfile, updateUser as updateUserProfileService } from '@/services/users/userService';
 
-// Define a mock admin user for development
+// Define mock users for development
 const mockAdminUser: User = {
-  id: 'admin-mock-id', 
+  id: 'admin-mock-id',
   name: 'Mock Admin',
   email: 'admin@example.com',
   role: UserRole.ADMIN,
+};
+
+const mockStudentUser: User = {
+  id: 'student-test-id',
+  name: 'Mock Student',
+  email: 'student@example.com',
+  role: UserRole.STUDENT,
 };
 
 interface AuthContextType {
@@ -26,7 +33,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   updateCurrentUserData: (updatedFields: Partial<User>) => Promise<void>;
-  setTestUserRole: (newRole: UserRole) => void; // Added for testing
+  setTestUserRole: (newRole: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,15 +79,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const handleAuthChange = async (_event: AuthChangeEvent, session: Session | null) => {
       const currentContextUser = userRef.current;
       const isMockAdminSession = currentContextUser?.id === mockAdminUser.id;
+      const isMockStudentSession = currentContextUser?.id === mockStudentUser.id;
 
-      if (session?.user) { 
-        if (isMockAdminSession && session.user.email !== mockAdminUser.email) {
+      if (session?.user) {
+        if ((isMockAdminSession && session.user.email !== mockAdminUser.email) || (isMockStudentSession && session.user.email !== mockStudentUser.email) ) {
           await fetchAndSetSupabaseUser(session.user);
-        } else if (!isMockAdminSession) {
+        } else if (!isMockAdminSession && !isMockStudentSession) {
           await fetchAndSetSupabaseUser(session.user);
         }
-      } else { 
-        if (!isMockAdminSession) { 
+      } else {
+        if (!isMockAdminSession && !isMockStudentSession) {
           setUser(null);
         }
       }
@@ -88,19 +96,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
-    
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
          await fetchAndSetSupabaseUser(session.user);
       } else {
-        if (userRef.current?.id !== mockAdminUser.id) {
-            setUser(null);
+        // If no Supabase session, and not currently a mock user, default to mock student for testing
+        if (userRef.current?.id !== mockAdminUser.id && userRef.current?.id !== mockStudentUser.id) {
+            // This was the previous logic, but explicit login from pages is more direct
+            // setUser(mockStudentUser); 
         }
       }
       setIsLoading(false);
     }).catch(() => {
-      if (userRef.current?.id !== mockAdminUser.id) {
-        setUser(null);
+      if (userRef.current?.id !== mockAdminUser.id && userRef.current?.id !== mockStudentUser.id) {
+        // setUser(mockStudentUser);
       }
       setIsLoading(false);
     });
@@ -116,28 +126,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (email === mockAdminUser.email && role === UserRole.ADMIN && password === "adminpass") {
         console.log("Mock admin login successful for:", email);
-        setUser(mockAdminUser); 
-        setIsLoading(false); 
-        
+        setUser(mockAdminUser);
+        setIsLoading(false);
         if (pathname === '/login' || pathname === '/') {
             router.replace('/application/admin/dashboard');
         }
-        return; 
+        return;
+      } else if (email === mockStudentUser.email && role === UserRole.STUDENT && password === "studentpass") {
+        console.log("Mock student login successful for:", email);
+        setUser(mockStudentUser);
+        setIsLoading(false);
+        if (pathname === '/login' || pathname === '/') {
+            router.replace('/application/student/dashboard');
+        }
+        return;
       }
-      
+
       const { error, data: sessionData } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       if (!sessionData.user) throw new Error("Login successful but no user data returned from Supabase.");
-      // onAuthStateChange will handle fetching profile & setting user. setIsLoading(false) handled there.
-      // Redirect based on role will be handled by page effects AFTER user is set by onAuthStateChange.
+
       const fetchedProfile = await fetchSupabaseUserProfile(sessionData.user.id);
       if (fetchedProfile) {
-        // Check if Supabase profile role matches the role selected in the form
         if (fetchedProfile.role !== role) {
-            await supabase.auth.signOut(); // Sign out if role mismatch
+            await supabase.auth.signOut();
             throw new Error(`Role mismatch. Expected ${role}, but account role is ${fetchedProfile.role}.`);
         }
-        setUser(fetchedProfile); // Set user to trigger redirect effects
+        setUser(fetchedProfile);
          switch (fetchedProfile.role) {
             case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
             case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
@@ -151,12 +166,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
       console.error("Login failed:", error);
-      if (!(email === mockAdminUser.email && role === UserRole.ADMIN)) {
+      if (!(email === mockAdminUser.email && role === UserRole.ADMIN) && !(email === mockStudentUser.email && role === UserRole.STUDENT) ) {
           setUser(null);
       }
       setIsLoading(false);
       throw error;
-    } 
+    }
   }, [router, pathname, fetchSupabaseUserProfile]);
 
   const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
@@ -166,20 +181,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          data: { 
-            full_name: name, 
-            user_role: role  
+          data: {
+            full_name: name,
+            user_role: role
           }
         }
       });
       if (signUpError) throw signUpError;
       if (!signUpData.user) throw new Error("Registration successful but no user data returned.");
-      
+
       alert("Registration successful! If email confirmation is enabled, please check your email to confirm your account. You can then log in.");
       router.push('/login');
     } catch (error) {
       console.error("Registration failed:", error);
-      throw error; 
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -189,10 +204,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     const currentContextUser = userRef.current;
     const isMockAdminSession = currentContextUser?.id === mockAdminUser.id;
+    const isMockStudentSession = currentContextUser?.id === mockStudentUser.id;
 
-    if (isMockAdminSession) {
-      console.log("Logging out mock admin");
-      setUser(null); 
+    if (isMockAdminSession || isMockStudentSession) {
+      console.log("Logging out mock user");
+      setUser(null);
     } else {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -200,7 +216,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
       }
     }
-    
+
     if (!pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
         router.push('/login');
     }
@@ -218,38 +234,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log("Mock admin user data updated locally:", updatedFields);
       return;
     }
-    
+    if (currentContextUser.id === mockStudentUser.id) {
+      setUser(prevUser => prevUser ? { ...prevUser, ...updatedFields } : null);
+      console.log("Mock student user data updated locally:", updatedFields);
+      return;
+    }
+
     try {
-      // If email is being changed, this should be handled by Supabase auth update flows
-      // This service function only updates the 'profiles' table.
       if (updatedFields.email && updatedFields.email !== currentContextUser.email) {
         console.warn("Attempting to update email in profiles table. Note: This does NOT change the Supabase Auth email automatically. A separate flow for changing auth email is needed.");
       }
 
       const updatedProfile = await updateUserProfileService(currentContextUser.id, updatedFields);
-      
+
       if (updatedProfile) {
         setUser(updatedProfile);
       } else {
         console.error(`Failed to get updated profile for user ${currentContextUser.id} after update attempt.`);
-        // Attempt to refetch to ensure consistency
         const supabaseAuthUser = (await supabase.auth.getUser()).data.user;
         if (supabaseAuthUser) await fetchAndSetSupabaseUser(supabaseAuthUser);
       }
     } catch (error) {
         console.error("Failed to update user profile in Supabase 'profiles' table:", error);
-        throw error; 
+        throw error;
     }
   }, [fetchAndSetSupabaseUser]);
 
   const setTestUserRole = useCallback((newRole: UserRole) => {
     setUser(prevUser => {
       if (prevUser) {
-        // If it's the mock admin, we preserve its ID and email
         if (prevUser.id === mockAdminUser.id) {
           return { ...mockAdminUser, role: newRole };
         }
-        // For other users, just update the role
+        if (prevUser.id === mockStudentUser.id) {
+          return { ...mockStudentUser, role: newRole };
+        }
         return { ...prevUser, role: newRole };
       }
       return null;
@@ -266,7 +285,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     register,
     updateCurrentUserData,
-    setTestUserRole // Added
+    setTestUserRole
   }), [user, isAuthenticated, isLoading, login, logout, register, updateCurrentUserData, setTestUserRole]);
 
   return (
@@ -283,3 +302,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    
