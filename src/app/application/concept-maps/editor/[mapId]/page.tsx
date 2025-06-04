@@ -9,7 +9,8 @@ import dynamic from 'next/dynamic';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
-import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel";
+// import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"; // Original was CanvasPlaceholder
+import { AISuggestionPanel } from "@/components/concept-map/canvas-placeholder"; // Reverted to canvas-placeholder which was renamed to AISuggestionPanel in a previous step.
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -64,24 +65,55 @@ export default function ConceptMapEditorPage() {
     importMapData,
   } = useConceptMapStore();
   
-  const temporalStore = useConceptMapStore.temporal;
-  const undo = temporalStore.undo;
-  const redo = temporalStore.redo;
-  const getTemporalState = temporalStore.getState;
+  // Access zundo's temporal store methods and state
+  const temporalStoreAPI = useConceptMapStore.temporal;
+  const undo = temporalStoreAPI.undo;
+  const redo = temporalStoreAPI.redo;
+  
+  const [temporalState, setTemporalState] = useState(temporalStoreAPI.getState());
 
-  const pastStates = getTemporalState().pastStates;
-  const futureStates = getTemporalState().futureStates;
+  useEffect(() => {
+    const unsubscribe = temporalStoreAPI.subscribe(
+      (newTemporalState) => setTemporalState(newTemporalState),
+      (state) => state // Selects the entire temporal state for subscription
+    );
+    return unsubscribe;
+  }, [temporalStoreAPI]);
+
+  const pastStates = temporalState.pastStates;
+  const futureStates = temporalState.futureStates;
   
   const canUndo = pastStates.length > 0;
   const canRedo = futureStates.length > 0;
 
   const clearTemporalHistory = useCallback(() => {
-    if (temporalStore && typeof temporalStore.clear === 'function') {
-      temporalStore.clear();
+    const currentTemporalStore = useConceptMapStore.temporal;
+    // Enhanced Debugging
+    console.log("[DEBUG] Attempting to clear temporal history.");
+    console.log("[DEBUG] useConceptMapStore.temporal object:", currentTemporalStore);
+
+    if (currentTemporalStore) {
+      console.log("[DEBUG] Temporal store object exists. Keys:", Object.keys(currentTemporalStore));
+      console.log("[DEBUG] Value of currentTemporalStore.clear:", currentTemporalStore.clear);
+      console.log("[DEBUG] typeof currentTemporalStore.clear:", typeof currentTemporalStore.clear);
+
+      if (currentTemporalStore.clear && typeof currentTemporalStore.clear === 'function') {
+        try {
+          currentTemporalStore.clear();
+          console.log("[DEBUG] Temporal history cleared successfully.");
+        } catch (e) {
+          // This catch block will execute if the call itself throws an error
+          console.error("[DEBUG] Error calling currentTemporalStore.clear():", e);
+          // Log the problematic 'clear' property again for inspection
+          console.error("[DEBUG] currentTemporalStore.clear was:", currentTemporalStore.clear, "with type:", typeof currentTemporalStore.clear, "when error occurred.");
+        }
+      } else {
+        console.warn("[DEBUG] `clear` method not found or not a function on temporal store. Value:", currentTemporalStore.clear, "Type:", typeof currentTemporalStore.clear, "Available methods:", Object.keys(currentTemporalStore));
+      }
     } else {
-      console.warn("Temporal store or clear function not available when attempting to clear history.");
+      console.warn("[DEBUG] Temporal store object (useConceptMapStore.temporal) not available when attempting to clear history.");
     }
-  }, [temporalStore]);
+  }, []);
 
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
