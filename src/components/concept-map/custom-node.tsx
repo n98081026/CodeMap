@@ -66,12 +66,16 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   const handleBaseStyle = {
     width: 8,
     height: 8,
-    // background: 'hsl(var(--muted))', // Handled by custom class
-    // border: '1px solid hsl(var(--border))', // Handled by custom class
-    // borderRadius: '2px', // Handled by custom class
     transition: 'all 0.2s ease',
     pointerEvents: 'all' as React.CSSProperties['pointerEvents'],
   };
+
+  const handlePositions = [
+    { position: Position.Top, idSuffix: 'top' },
+    { position: Position.Bottom, idSuffix: 'bottom' },
+    { position: Position.Left, idSuffix: 'left' },
+    { position: Position.Right, idSuffix: 'right' },
+  ];
 
   return (
     <Card className={cn(baseStyle, selectedStyle, typeSpecificStyle, 'min-w-[160px] max-w-[280px] group nodrag')}>
@@ -90,42 +94,40 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         </CardContent>
       )}
 
-      {/* Handles act as both source and target by default if not specified */}
-      <Handle
-        type="source" 
-        position={Position.Top}
-        id={`${id}-top`}
-        style={{ ...handleBaseStyle, top: '-5px' }}
-        isConnectable={isConnectable}
-        className="react-flow__handle-custom"
-      />
-      <Handle
-        type="source" 
-        position={Position.Bottom}
-        id={`${id}-bottom`}
-        style={{ ...handleBaseStyle, bottom: '-5px' }}
-        isConnectable={isConnectable}
-        className="react-flow__handle-custom"
-      />
-      <Handle
-        type="source" 
-        position={Position.Left}
-        id={`${id}-left`}
-        style={{ ...handleBaseStyle, left: '-5px' }}
-        isConnectable={isConnectable}
-        className="react-flow__handle-custom"
-      />
-      <Handle
-        type="source" 
-        position={Position.Right}
-        id={`${id}-right`}
-        style={{ ...handleBaseStyle, right: '-5px' }}
-        isConnectable={isConnectable}
-        className="react-flow__handle-custom"
-      />
+      {handlePositions.map(hp => (
+        <React.Fragment key={hp.idSuffix}>
+          <Handle
+            type="source"
+            position={hp.position}
+            id={`${id}-${hp.idSuffix}-source`}
+            style={{
+              ...handleBaseStyle,
+              ...(hp.position === Position.Top && { top: '-5px' }),
+              ...(hp.position === Position.Bottom && { bottom: '-5px' }),
+              ...(hp.position === Position.Left && { left: '-5px' }),
+              ...(hp.position === Position.Right && { right: '-5px' }),
+            }}
+            isConnectable={isConnectable}
+            className="react-flow__handle-custom"
+          />
+          <Handle
+            type="target"
+            position={hp.position}
+            id={`${id}-${hp.idSuffix}-target`}
+             style={{
+              ...handleBaseStyle,
+              ...(hp.position === Position.Top && { top: '-5px' }),
+              ...(hp.position === Position.Bottom && { bottom: '-5px' }),
+              ...(hp.position === Position.Left && { left: '-5px' }),
+              ...(hp.position === Position.Right && { right: '-5px' }),
+            }}
+            isConnectable={isConnectable}
+            className="react-flow__handle-custom"
+          />
+        </React.Fragment>
+      ))}
     </Card>
   );
 };
 
 export default memo(CustomNodeComponent);
-
