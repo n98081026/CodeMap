@@ -58,11 +58,11 @@
 
 ## Frontend Enhancements
 - [x] **Key Concept Map Editor Components & Functionality:**
-    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals. Other file/edit operations are placeholders. "New Map" and "Export Map" enabled in view-only. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added.
+    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added.
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles.
     - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented with disabled inputs and muted styling.
     - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal` to interact with AI flows. Context menu now correctly opens these.
-    - [x] **`AISuggestionPanel` (formerly `CanvasPlaceholder`)**: Area below canvas displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions are cleared after being added to the map. Suggestions can be edited before adding.
+    - [x] **`AISuggestionPanel` (formerly `CanvasPlaceholder`)**: Area below canvas displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions are cleared after being added to the map. Suggestions can be edited before adding. Enhanced empty state logic.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor, including `temporal` middleware).
@@ -76,10 +76,11 @@
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Change password functionality using Supabase Auth implemented. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management page and Teacher classrooms page now have pagination with Supabase-backed services).
     - [x] Add loading spinner to Login/Register pages. (Current implementation prevents form flash, considered complete)
-    - [x] Make header icons link to main dashboards for easier navigation (Role-based for Concept Map Editor, Teacher pages, and main Admin/Student/Teacher dashboards).
+    - [x] Make header icons link to main dashboards for easier navigation (Role-based for Concept Map Editor, Teacher pages, and main Admin/Student/Teacher dashboards. Simplified for some role-specific subpages).
     - [x] Implement "View Only" mode for Concept Map Editor.
     - [x] Refine `PropertiesInspector` in "View Only" mode (muted labels, inputs disabled).
     - [x] Implement change password functionality on profile page (uses Supabase Auth via API).
+    - [x] **[CRITICAL TEMPORARY CHANGE]** Revert automatic admin login bypass in `src/app/page.tsx` and `src/app/(auth)/login/page.tsx`. These files were modified to force mock admin login for testing purposes.
 - [x] **Admin Panel:**
     - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to Supabase-backed service; add user via register flow - Add button tooltip added).
     - [x] Develop system settings interface (Admin Settings page now fetches and saves settings to Supabase via API. Linked from Admin Dashboard).
