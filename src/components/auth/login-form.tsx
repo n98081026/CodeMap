@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react"; // Added missing import
+import { useState } from "react"; 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -13,6 +13,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription, // Added FormDescription
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
@@ -20,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { UserRole } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogIn, Loader2 } from "lucide-react"; // Added Loader2
+import { LogIn, Loader2 } from "lucide-react"; 
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -29,9 +30,9 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
-  const { login, isLoading: authIsLoading } = useAuth(); // Renamed isLoading to authIsLoading
+  const { login, isLoading: authIsLoading } = useAuth(); 
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false); // Local loading state for form
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,10 +43,12 @@ export function LoginForm() {
     },
   });
 
+  const watchedRole = form.watch("role"); // Watch the role field
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-      await login(values.email, values.password, values.role); // Pass role to login
+      await login(values.email, values.password, values.role); 
       toast({
         title: "Login Successful",
         description: "Welcome back!",
@@ -115,6 +118,17 @@ export function LoginForm() {
             </FormItem>
           )}
         />
+
+        {watchedRole === UserRole.ADMIN && (
+          <div className="mt-2 text-xs text-muted-foreground p-3 border border-dashed rounded-md bg-background">
+            <p className="font-semibold">Admin Login Note:</p>
+            <ul className="list-disc list-inside pl-2 mt-1 space-y-0.5">
+              <li>For the pre-configured mock admin, use email <code className="bg-muted px-1 py-0.5 rounded text-xs">admin@example.com</code> and password <code className="bg-muted px-1 py-0.5 rounded text-xs">adminpass</code>.</li>
+              <li>Other admin credentials must be registered in your Supabase project.</li>
+            </ul>
+          </div>
+        )}
+
         <Button type="submit" className="w-full" disabled={currentLoadingState}>
           {currentLoadingState ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
           {currentLoadingState ? "Logging in..." : "Login"}
