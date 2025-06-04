@@ -122,7 +122,7 @@
     pointer-events: all; /* Handles should always be interactive */
   }
   .nodrag { /* The Card itself */
-     pointer-events: all !important;
+     /* Removed pointer-events: all !important; to allow dragHandle and connection events to propagate correctly */
   }
   .nodrag > .cursor-move { /* The CardHeader for dragging */
     cursor: move;
