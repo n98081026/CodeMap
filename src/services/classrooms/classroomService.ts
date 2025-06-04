@@ -57,7 +57,14 @@ async function populateStudentDetailsForClassroom(classroom: Classroom): Promise
 }
 
 
-export async function createClassroom(name: string, description: string | undefined, teacherId: string): Promise<Classroom> {
+export async function createClassroom(
+  name: string,
+  description: string | undefined,
+  teacherId: string,
+  subject?: string,
+  difficulty?: "beginner" | "intermediate" | "advanced",
+  enableStudentAiAnalysis?: boolean
+): Promise<Classroom> {
   const teacher = await getUserById(teacherId);
   if (!teacher || (teacher.role !== UserRole.TEACHER && teacher.role !== UserRole.ADMIN)) {
     throw new Error("Invalid teacher ID or user is not authorized to create classrooms.");
@@ -66,16 +73,23 @@ export async function createClassroom(name: string, description: string | undefi
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
   const now = new Date().toISOString();
 
+  const classroomToInsert: any = {
+    name,
+    description: description || null,
+    teacher_id: teacherId,
+    invite_code: inviteCode,
+    created_at: now,
+    updated_at: now,
+  };
+
+  if (subject) classroomToInsert.subject = subject;
+  if (difficulty) classroomToInsert.difficulty = difficulty;
+  if (enableStudentAiAnalysis !== undefined) classroomToInsert.enable_student_ai_analysis = enableStudentAiAnalysis;
+
+
   const { data, error } = await supabase
     .from('classrooms')
-    .insert({
-      name,
-      description: description || null,
-      teacher_id: teacherId,
-      invite_code: inviteCode,
-      created_at: now,
-      updated_at: now,
-    })
+    .insert(classroomToInsert)
     .select()
     .single();
 
@@ -95,6 +109,9 @@ export async function createClassroom(name: string, description: string | undefi
     studentIds: [], // New classroom has no students
     students: [],
     inviteCode: data.invite_code,
+    subject: data.subject ?? undefined,
+    difficulty: data.difficulty ?? undefined,
+    enableStudentAiAnalysis: data.enable_student_ai_analysis ?? true,
     // created_at: data.created_at, // available on data
     // updated_at: data.updated_at, // available on data
   };
@@ -132,6 +149,9 @@ export async function getClassroomsByTeacherId(
     teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
     studentIds: [], 
     inviteCode: c.invite_code,
+    subject: c.subject ?? undefined,
+    difficulty: c.difficulty ?? undefined,
+    enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
   }));
 
   for (const classroom of classrooms) {
@@ -186,6 +206,9 @@ export async function getClassroomsByStudentId(studentId: string): Promise<Class
     teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
     studentIds: [], 
     inviteCode: c.invite_code,
+    subject: c.subject ?? undefined,
+    difficulty: c.difficulty ?? undefined,
+    enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
   }));
   
   for (const classroom of classrooms) {
@@ -224,6 +247,9 @@ export async function getClassroomById(classroomId: string): Promise<Classroom |
     studentIds: [], 
     students: [],   
     inviteCode: data.invite_code,
+    subject: data.subject ?? undefined,
+    difficulty: data.difficulty ?? undefined,
+    enableStudentAiAnalysis: data.enable_student_ai_analysis ?? true,
   };
 
   await populateStudentDetailsForClassroom(classroom);
@@ -291,13 +317,16 @@ export async function removeStudentFromClassroom(classroomId: string, studentId:
 }
 
 
-export async function updateClassroom(classroomId: string, updates: { name?: string; description?: string }): Promise<Classroom | null> {
+export async function updateClassroom(classroomId: string, updates: Partial<Pick<Classroom, 'name' | 'description' | 'subject' | 'difficulty' | 'enableStudentAiAnalysis'>>): Promise<Classroom | null> {
   const classroomToUpdate = await getClassroomById(classroomId);
   if (!classroomToUpdate) return null; 
 
   const supabaseUpdates: any = {};
   if (updates.name !== undefined) supabaseUpdates.name = updates.name;
   if (updates.description !== undefined) supabaseUpdates.description = updates.description;
+  if (updates.subject !== undefined) supabaseUpdates.subject = updates.subject;
+  if (updates.difficulty !== undefined) supabaseUpdates.difficulty = updates.difficulty;
+  if (updates.enableStudentAiAnalysis !== undefined) supabaseUpdates.enable_student_ai_analysis = updates.enableStudentAiAnalysis;
   
   if (Object.keys(supabaseUpdates).length === 0) {
       return classroomToUpdate; 
@@ -327,6 +356,9 @@ export async function updateClassroom(classroomId: string, updates: { name?: str
     studentIds: classroomToUpdate.studentIds, 
     students: classroomToUpdate.students,
     inviteCode: data.invite_code,
+    subject: data.subject ?? undefined,
+    difficulty: data.difficulty ?? undefined,
+    enableStudentAiAnalysis: data.enable_student_ai_analysis ?? true,
   };
   await populateStudentDetailsForClassroom(updatedClassroom);
 
@@ -401,6 +433,9 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
       teacherName: teacherName,
       studentIds: [], 
       inviteCode: row.invite_code,
+      subject: row.subject ?? undefined,
+      difficulty: row.difficulty ?? undefined,
+      enableStudentAiAnalysis: row.enable_student_ai_analysis ?? true,
     };
 
     const { count: studentCount, error: countError } = await supabase
@@ -416,4 +451,3 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
 
   return classrooms;
 }
-

@@ -23,6 +23,9 @@ export interface Classroom {
   studentIds: string[];
   students?: User[];
   inviteCode?: string;
+  subject?: string; // New field
+  difficulty?: "beginner" | "intermediate" | "advanced"; // New field
+  enableStudentAiAnalysis?: boolean; // New field
 }
 
 export interface ConceptMapNode {

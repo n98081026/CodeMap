@@ -5,12 +5,19 @@ import { createClassroom, getClassroomsByTeacherId, getClassroomsByStudentId, ge
 
 export async function POST(request: Request) {
   try {
-    const { name, description, teacherId } = await request.json() as { name: string; description?: string; teacherId: string };
+    const { name, description, teacherId, subject, difficulty, enableStudentAiAnalysis } = await request.json() as { 
+      name: string; 
+      description?: string; 
+      teacherId: string;
+      subject?: string;
+      difficulty?: "beginner" | "intermediate" | "advanced";
+      enableStudentAiAnalysis?: boolean;
+    };
 
     if (!name || !teacherId) {
       return NextResponse.json({ message: "Classroom name and teacher ID are required" }, { status: 400 });
     }
-    const newClassroom = await createClassroom(name, description, teacherId);
+    const newClassroom = await createClassroom(name, description, teacherId, subject, difficulty, enableStudentAiAnalysis);
     return NextResponse.json(newClassroom, { status: 201 });
 
   } catch (error) {
