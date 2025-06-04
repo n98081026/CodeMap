@@ -24,7 +24,8 @@ interface FlowCanvasCoreProps {
   onEdgesDeleteInStore: (edgeId: string) => void;
   onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
   onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
-  onNodeDragStop?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void; // Changed to pass only the node
+  // Prop for page-level onNodeDragStop logic, expects (event, node)
+  onNodeDragStop?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
 }
 
 const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
@@ -36,7 +37,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   onEdgesDeleteInStore,
   onConnectInStore,
   onNodeContextMenu,
-  onNodeDragStop, // Updated prop name
+  onNodeDragStop: onNodeDragStopPropFromPage, // Renamed for clarity
 }) => {
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
@@ -50,7 +51,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       draggable: !isViewOnlyMode,
       selectable: true,
       connectable: !isViewOnlyMode,
-      dragHandle: '.cursor-move', // Added dragHandle
+      dragHandle: '.cursor-move',
     }));
     setRfNodes(transformedNodes as RFNode<CustomNodeData>[]);
 
@@ -75,20 +76,30 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const handleRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
     onNodesChangeReactFlow(changes);
-    // Node position updates are handled by onNodeDragStop
   }, [isViewOnlyMode, onNodesChangeReactFlow]);
 
-  const handleNodeDragStopInternal = useCallback( // Renamed to avoid conflict if onNodeDragStop is directly passed
-    (_event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
-      if (isViewOnlyMode || !node.position) return;
-      // Call the prop from parent (Zustand store update)
-      onNodesChangeInStore(node.id, { x: node.position.x, y: node.position.y });
-      // Also call the onNodeDragStop prop if provided for other side effects
-      if (onNodeDragStop) {
-        onNodeDragStop(_event, node);
+  // This is the actual callback given to ReactFlow via InteractiveCanvas
+  // Its signature MUST match what ReactFlow provides: (event, node, nodes)
+  const handleNodeDragStopInternal = useCallback(
+    (event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>, _allNodes: RFNode<CustomNodeData>[]) => {
+      if (isViewOnlyMode) return;
+
+      // Robust check for position and its properties
+      if (!draggedNode || !draggedNode.position || typeof draggedNode.position.x !== 'number' || typeof draggedNode.position.y !== 'number') {
+        console.warn('[FlowCanvasCore] handleNodeDragStopInternal: draggedNode.position is invalid. Node:', draggedNode, 'Node.position:', draggedNode?.position);
+        return;
+      }
+      
+      // Update the store with the new position
+      onNodesChangeInStore(draggedNode.id, { x: draggedNode.position.x, y: draggedNode.position.y });
+      
+      // If the page component provided its own onNodeDragStop handler, call it.
+      // It expects (event, node)
+      if (onNodeDragStopPropFromPage) {
+        onNodeDragStopPropFromPage(event, draggedNode);
       }
     },
-    [isViewOnlyMode, onNodesChangeInStore, onNodeDragStop]
+    [isViewOnlyMode, onNodesChangeInStore, onNodeDragStopPropFromPage]
   );
 
   const handleRfEdgesChange: OnEdgesChange = useCallback((changes) => {
