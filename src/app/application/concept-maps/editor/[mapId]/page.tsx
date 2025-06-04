@@ -51,14 +51,14 @@ export default function ConceptMapEditorPage() {
     isLoading: isStoreLoading,
     isSaving, error: storeError,
     selectedElementId, selectedElementType,
-    multiSelectedNodeIds, // New: Get multi-selected node IDs
+    multiSelectedNodeIds, 
     aiExtractedConcepts, aiSuggestedRelations, aiExpandedConcepts,
     initializeNewMap, setLoadedMap, setIsLoading: setStoreIsLoading, setError: setStoreError,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
     addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge,
     setSelectedElement: setStoreSelectedElement,
-    setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds, // New: Action to set IDs
+    setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds, 
     setIsSaving: setStoreIsSaving,
     setAiExtractedConcepts: setStoreAiExtractedConcepts,
     setAiSuggestedRelations: setStoreAiSuggestedRelations,
@@ -315,6 +315,27 @@ export default function ConceptMapEditorPage() {
   }, [isViewOnlyMode, setStoreAiExpandedConcepts, toast]);
 
 
+  const getNodePlacementPosition = useCallback((index: number): { x: number; y: number } => {
+    const currentStoreState = useConceptMapStore.getState();
+    const { selectedElementId: currentSelectedId, mapData: currentMapData } = currentStoreState;
+    let baseX = 50;
+    let baseY = 50;
+    const offsetX = 180; // Horizontal distance between nodes
+    const offsetY = 70;  // Vertical distance between new nodes
+
+    if (currentSelectedId) {
+      const selectedNode = currentMapData.nodes.find(n => n.id === currentSelectedId);
+      if (selectedNode && typeof selectedNode.x === 'number' && typeof selectedNode.y === 'number') {
+        baseX = selectedNode.x + offsetX; // Place to the right of selected node
+        baseY = selectedNode.y + (index * offsetY);
+        return { x: baseX, y: baseY };
+      }
+    }
+    // Default cascading placement if no node is selected or selected node has no position
+    return { x: baseX + (index % 3) * offsetX , y: baseY + Math.floor(index / 3) * offsetY + (index * 20) };
+  }, []);
+
+
   const addSelectedExtractedConceptsToMap = useCallback((selectedConcepts: string[]) => {
     if (isViewOnlyMode) {
         toast({ title: "View Only Mode", description: "Cannot add concepts in view-only mode.", variant: "default"});
@@ -325,11 +346,12 @@ export default function ConceptMapEditorPage() {
         return;
     }
     let addedCount = 0;
-    selectedConcepts.forEach(conceptText => {
+    selectedConcepts.forEach((conceptText, index) => {
+      const position = getNodePlacementPosition(index);
       addStoreNode({
         text: conceptText,
         type: 'ai-concept',
-        position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
+        position: position,
       });
       addedCount++;
     });
@@ -338,7 +360,7 @@ export default function ConceptMapEditorPage() {
     else toast({ title: "No New Concepts Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
 
     setStoreAiExtractedConcepts([]); 
-  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts]);
+  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts, getNodePlacementPosition]);
 
   const addSelectedSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) {
@@ -353,11 +375,12 @@ export default function ConceptMapEditorPage() {
     let relationsAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
     
-    selectedRelations.forEach(rel => {
+    selectedRelations.forEach((rel, index) => {
       let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
       let sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
       if (!sourceNode) {
-        addStoreNode({ text: rel.source, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
+        const position = getNodePlacementPosition(conceptsAddedFromRelationsCount); // Use separate counter for new node placement
+        addStoreNode({ text: rel.source, type: 'ai-concept', position });
         currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
         sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
         if (sourceNode) conceptsAddedFromRelationsCount++; else return; 
@@ -365,7 +388,8 @@ export default function ConceptMapEditorPage() {
 
       let targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
       if (!targetNode) {
-        addStoreNode({ text: rel.target, type: 'ai-concept', position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 } });
+        const position = getNodePlacementPosition(conceptsAddedFromRelationsCount); // Use separate counter
+        addStoreNode({ text: rel.target, type: 'ai-concept', position });
         currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
         targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
         if (targetNode) conceptsAddedFromRelationsCount++; else return; 
@@ -386,7 +410,7 @@ export default function ConceptMapEditorPage() {
     else toast({ title: "No New Relations Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
 
     setStoreAiSuggestedRelations([]); 
-  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations]);
+  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations, getNodePlacementPosition]);
 
   const addSelectedExpandedConceptsToMap = useCallback((selectedConcepts: string[]) => {
      if (isViewOnlyMode) {
@@ -398,11 +422,12 @@ export default function ConceptMapEditorPage() {
         return;
     }
     let addedCount = 0;
-    selectedConcepts.forEach(conceptText => {
+    selectedConcepts.forEach((conceptText, index) => {
+      const position = getNodePlacementPosition(index);
       addStoreNode({
         text: conceptText,
         type: 'ai-expanded', 
-        position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
+        position: position,
       });
       addedCount++;
     });
@@ -410,7 +435,7 @@ export default function ConceptMapEditorPage() {
     else toast({ title: "No New Ideas Added", description: "All selected new suggestions might already exist or were not selected.", variant: "default" });
 
     setStoreAiExpandedConcepts([]); 
-  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExpandedConcepts]);
+  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExpandedConcepts, getNodePlacementPosition]);
 
 
   const handleAddNodeToData = useCallback(() => {
@@ -419,9 +444,10 @@ export default function ConceptMapEditorPage() {
         return;
     }
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
-    addStoreNode({ text: newNodeText, type: 'manual-node', position: {x: Math.random() * 200 + 50, y: Math.random() * 100 + 50} });
+    const position = getNodePlacementPosition(useConceptMapStore.getState().mapData.nodes.length);
+    addStoreNode({ text: newNodeText, type: 'manual-node', position });
     toast({ title: "Node Added", description: `"${newNodeText}" added. Remember to save.`});
-  }, [isViewOnlyMode, toast, addStoreNode]);
+  }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
 
   const handleAddEdgeToData = useCallback(() => {
     if (isViewOnlyMode) {
@@ -803,7 +829,7 @@ export default function ConceptMapEditorPage() {
               mapDataFromStore={storeMapData}
               isViewOnlyMode={isViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange}
-              onMultiNodeSelectionChange={handleMultiNodeSelectionChange} // Pass new handler
+              onMultiNodeSelectionChange={handleMultiNodeSelectionChange} 
               onNodesChangeInStore={updateStoreNode} 
               onNodesDeleteInStore={deleteStoreNode}
               onEdgesDeleteInStore={deleteEdge}
