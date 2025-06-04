@@ -37,7 +37,7 @@ export default function AdminDashboardPage() {
       setIsLoadingUsers(true);
       setErrorUsers(null);
       try {
-        const usersResponse = await fetch('/api/users?page=1&limit=1'); // Fetching 1 to get totalCount
+        const usersResponse = await fetch('/api/users?page=1&limit=1'); 
         if (!usersResponse.ok) {
           const errData = await usersResponse.json();
           throw new Error(`Failed to fetch users: ${errData.message || usersResponse.statusText}`);
@@ -47,8 +47,7 @@ export default function AdminDashboardPage() {
       } catch (err) {
         const errorMessage = (err as Error).message;
         console.error("Error fetching users count:", errorMessage);
-        setErrorUsers(errorMessage);
-        // Do not toast here, error will be shown in card
+        setErrorUsers(errorMessage); // Set error state here
       } finally {
         setIsLoadingUsers(false);
       }
@@ -59,7 +58,6 @@ export default function AdminDashboardPage() {
       setIsLoadingClassrooms(true);
       setErrorClassrooms(null);
       try {
-        // Admin fetches all classrooms
         const classroomsResponse = await fetch('/api/classrooms'); 
         if (!classroomsResponse.ok) {
           const errData = await classroomsResponse.json();
@@ -70,8 +68,7 @@ export default function AdminDashboardPage() {
       } catch (err) {
         const errorMessage = (err as Error).message;
         console.error("Error fetching classrooms count:", errorMessage);
-        setErrorClassrooms(errorMessage);
-        // Do not toast here, error will be shown in card
+        setErrorClassrooms(errorMessage); // Set error state here
       } finally {
         setIsLoadingClassrooms(false);
       }
@@ -95,8 +92,8 @@ export default function AdminDashboardPage() {
     if (isLoading) {
       return <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (error && (count === null || count === 0) ) { // Updated condition here
-        return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
+    if (error) { // Simplified error display: if error is present, show it.
+        return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error fetching {itemName}</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
   };
@@ -131,4 +128,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
