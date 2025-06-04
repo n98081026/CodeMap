@@ -19,6 +19,7 @@ interface FlowCanvasCoreProps {
   mapDataFromStore: ConceptMapData;
   isViewOnlyMode?: boolean;
   onSelectionChange: (id: string | null, type: 'node' | 'edge' | null) => void;
+  onMultiNodeSelectionChange?: (nodeIds: string[]) => void; // New prop
   onNodesChangeInStore: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   onNodesDeleteInStore: (nodeId: string) => void;
   onEdgesDeleteInStore: (edgeId: string) => void;
@@ -31,6 +32,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   mapDataFromStore,
   isViewOnlyMode,
   onSelectionChange,
+  onMultiNodeSelectionChange, // New prop
   onNodesChangeInStore,
   onNodesDeleteInStore,
   onEdgesDeleteInStore,
@@ -123,6 +125,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   const handleRfSelectionChange = useCallback((selection: SelectionChanges) => {
     const { nodes, edges } = selection;
+    // Handle single selection for property inspector
     if (nodes.length === 1 && edges.length === 0) {
       onSelectionChange(nodes[0].id, 'node');
     } else if (edges.length === 1 && nodes.length === 0) {
@@ -130,7 +133,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     } else {
       onSelectionChange(null, null);
     }
-  }, [onSelectionChange]);
+
+    // Handle multi-node selection for AI tools context
+    if (onMultiNodeSelectionChange) {
+      const selectedNodeIds = nodes.map(node => node.id);
+      onMultiNodeSelectionChange(selectedNodeIds);
+    }
+  }, [onSelectionChange, onMultiNodeSelectionChange]);
 
   return (
     <InteractiveCanvas

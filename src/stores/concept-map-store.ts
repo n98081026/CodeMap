@@ -29,6 +29,7 @@ interface ConceptMapState {
   
   selectedElementId: string | null;
   selectedElementType: 'node' | 'edge' | null;
+  multiSelectedNodeIds: string[]; // New: To store multiple selected node IDs
 
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
@@ -48,6 +49,7 @@ interface ConceptMapState {
   setError: (error: string | null) => void;
 
   setSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => void;
+  setMultiSelectedNodeIds: (ids: string[]) => void; // New: Action to set multiple selected node IDs
 
   setAiExtractedConcepts: (concepts: string[]) => void;
   setAiSuggestedRelations: (relations: Array<{ source: string; target: string; relation: string }>) => void;
@@ -72,7 +74,7 @@ interface ConceptMapState {
 }
 
 // Define the part of the state that will be tracked by zundo
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType'>;
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds'>;
 
 // Type for the temporal state structure provided by zundo.
 // This is typically accessed via useConceptMapStore.temporal.getState()
@@ -82,7 +84,7 @@ export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 const initialStateBase: Omit<ConceptMapState, 
   'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 
   'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
-  'setSelectedElement' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 'setAiExpandedConcepts' | 
+  'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 'setAiExpandedConcepts' | 
   'resetAiSuggestions' | 'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' | 
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
 > = {
@@ -99,6 +101,7 @@ const initialStateBase: Omit<ConceptMapState,
   error: null,
   selectedElementId: null,
   selectedElementType: null,
+  multiSelectedNodeIds: [], // Initialize new state
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
   aiExpandedConcepts: [],
@@ -123,6 +126,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setError: (errorMsg) => set({ error: errorMsg }),
 
       setSelectedElement: (id, type) => set({ selectedElementId: id, selectedElementType: type }),
+      setMultiSelectedNodeIds: (ids) => set({ multiSelectedNodeIds: ids }), // Implement new action
       
       setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
       setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
@@ -148,6 +152,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           currentMapCreatedAt: new Date().toISOString(),
           isNewMapMode: true,
           isLoading: false,
+          multiSelectedNodeIds: [], // Reset multi-selection
         };
         
         if (newMapState.mapData.nodes.length >= 2 && newMapState.mapData.edges.length > 0) {
@@ -170,6 +175,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: false,
           isLoading: false,
           error: null,
+          multiSelectedNodeIds: [], // Reset multi-selection
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
           aiExpandedConcepts: [],
@@ -185,6 +191,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           mapName: newName, 
           selectedElementId: null,
           selectedElementType: null,
+          multiSelectedNodeIds: [], // Reset multi-selection
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
           aiExpandedConcepts: [],
@@ -229,10 +236,12 @@ export const useConceptMapStore = create<ConceptMapState>()(
         );
         const newSelectedElementId = state.selectedElementId === nodeId ? null : state.selectedElementId;
         const newSelectedElementType = state.selectedElementId === nodeId ? null : state.selectedElementType;
+        const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => id !== nodeId);
         return { 
           mapData: { nodes: newNodes, edges: newEdges },
           selectedElementId: newSelectedElementId,
           selectedElementType: newSelectedElementType,
+          multiSelectedNodeIds: newMultiSelectedNodeIds,
         };
       }),
 
@@ -272,8 +281,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds };
       },
       limit: 50, 
       // equality: (pastState, currentState) => { /* custom equality function if needed */ },

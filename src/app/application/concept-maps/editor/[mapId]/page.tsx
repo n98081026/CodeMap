@@ -51,12 +51,15 @@ export default function ConceptMapEditorPage() {
     isLoading: isStoreLoading,
     isSaving, error: storeError,
     selectedElementId, selectedElementType,
+    multiSelectedNodeIds, // New: Get multi-selected node IDs
     aiExtractedConcepts, aiSuggestedRelations, aiExpandedConcepts,
     initializeNewMap, setLoadedMap, setIsLoading: setStoreIsLoading, setError: setStoreError,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
     addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge,
-    setSelectedElement: setStoreSelectedElement, setIsSaving: setStoreIsSaving,
+    setSelectedElement: setStoreSelectedElement,
+    setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds, // New: Action to set IDs
+    setIsSaving: setStoreIsSaving,
     setAiExtractedConcepts: setStoreAiExtractedConcepts,
     setAiSuggestedRelations: setStoreAiSuggestedRelations,
     setAiExpandedConcepts: setStoreAiExpandedConcepts,
@@ -203,6 +206,10 @@ export default function ConceptMapEditorPage() {
   const handleFlowSelectionChange = useCallback((elementId: string | null, elementType: 'node' | 'edge' | null) => {
     setStoreSelectedElement(elementId, elementType);
   }, [setStoreSelectedElement]);
+
+  const handleMultiNodeSelectionChange = useCallback((nodeIds: string[]) => {
+    setStoreMultiSelectedNodeIds(nodeIds);
+  }, [setStoreMultiSelectedNodeIds]);
 
 
   const handleSaveMap = useCallback(async () => {
@@ -515,31 +522,51 @@ export default function ConceptMapEditorPage() {
   const prepareAndOpenSuggestRelationsModal = useCallback((nodeIdForContext?: string) => {
     resetStoreAiSuggestions();
     let concepts: string[] = [];
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const currentEdges = useConceptMapStore.getState().mapData.edges;
-    const targetNodeId = nodeIdForContext || selectedElementId;
+    const currentMapNodes = useConceptMapStore.getState().mapData.nodes;
+    const currentMapEdges = useConceptMapStore.getState().mapData.edges;
+    const currentMultiSelectedNodeIds = useConceptMapStore.getState().multiSelectedNodeIds;
 
-    if (targetNodeId && currentNodes) {
-        const selectedNode = currentNodes.find(n => n.id === targetNodeId);
-        if (selectedNode) {
-            concepts.push(selectedNode.text);
+    if (nodeIdForContext && currentMapNodes) { // Called from context menu
+        const cNode = currentMapNodes.find(n => n.id === nodeIdForContext);
+        if (cNode) {
+            concepts.push(cNode.text);
             const neighborIds = new Set<string>();
-            currentEdges?.forEach(edge => {
-                if (edge.source === selectedNode.id) neighborIds.add(edge.target);
-                if (edge.target === selectedNode.id) neighborIds.add(edge.source);
+            currentMapEdges?.forEach(edge => {
+                if (edge.source === cNode.id) neighborIds.add(edge.target);
+                if (edge.target === cNode.id) neighborIds.add(edge.source);
             });
             concepts.push(...Array.from(neighborIds)
-                .map(id => currentNodes.find(n => n.id === id)?.text)
+                .map(id => currentMapNodes.find(n => n.id === id)?.text)
                 .filter((text): text is string => !!text)
-                .slice(0, 4)); 
+                .slice(0, 4)); // Max 5 concepts (1 target + 4 neighbors)
         }
-    } else if (currentNodes && currentNodes.length > 0) { 
-        concepts = currentNodes.slice(0, 5).map(n => n.text); 
+    } else { // Called from toolbar
+        if (currentMultiSelectedNodeIds && currentMultiSelectedNodeIds.length >= 2) {
+            concepts = currentMultiSelectedNodeIds
+                .map(id => currentMapNodes.find(n => n.id === id)?.text)
+                .filter((text): text is string => !!text);
+        } else if (currentMultiSelectedNodeIds && currentMultiSelectedNodeIds.length === 1 && currentMapNodes) {
+            const selectedNode = currentMapNodes.find(n => n.id === currentMultiSelectedNodeIds[0]);
+            if (selectedNode) {
+                concepts.push(selectedNode.text);
+                const neighborIds = new Set<string>();
+                 currentMapEdges?.forEach(edge => {
+                    if (edge.source === selectedNode.id) neighborIds.add(edge.target);
+                    if (edge.target === selectedNode.id) neighborIds.add(edge.source);
+                });
+                concepts.push(...Array.from(neighborIds)
+                    .map(id => currentMapNodes.find(n => n.id === id)?.text)
+                    .filter((text): text is string => !!text)
+                    .slice(0, 4));
+            }
+        } else if (currentMapNodes && currentMapNodes.length > 0) { // No selection, use some from map
+             concepts = currentMapNodes.slice(0, Math.min(5, currentMapNodes.length)).map(n => n.text);
+        }
     }
     
-    setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept 1", "Example Concept 2"]);
+    setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept A", "Example Concept B"]); // Default if no context
     setIsSuggestRelationsModalOpen(true);
-  }, [selectedElementId, resetStoreAiSuggestions]);
+  }, [resetStoreAiSuggestions]);
 
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
@@ -776,6 +803,7 @@ export default function ConceptMapEditorPage() {
               mapDataFromStore={storeMapData}
               isViewOnlyMode={isViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange}
+              onMultiNodeSelectionChange={handleMultiNodeSelectionChange} // Pass new handler
               onNodesChangeInStore={updateStoreNode} 
               onNodesDeleteInStore={deleteStoreNode}
               onEdgesDeleteInStore={deleteEdge}

@@ -103,8 +103,8 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
       toast({ title: "Input Required", description: "Please provide at least one concept.", variant: "destructive" });
       return;
     }
-    if (concepts.length < 2) {
-      toast({ title: "More Concepts Recommended", description: "For best results, provide at least two concepts.", variant: "default" });
+    if (concepts.length < 2 && concepts.length > 0) { // If only one concept, it's okay, but more are better
+      toast({ title: "More Concepts Recommended", description: "For best results with relation suggestions, provide at least two concepts. The AI will try its best with the current input.", variant: "default" });
     }
     setIsLoading(true);
     try {
@@ -125,16 +125,16 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
         <DialogHeader>
           <DialogTitle>Suggest Relations with AI</DialogTitle>
           <DialogDescription>
-            Enter concepts (comma-separated) or use concepts from your map. The AI will suggest relationships.
+            The AI will suggest relationships based on the provided concepts. These concepts may be derived from your current selection, a specific node, or an overview of your map.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <Label htmlFor="concepts-sr">Concepts</Label>
+          <Label htmlFor="concepts-sr">Concepts for Relation Suggestion</Label>
           <Textarea 
             id="concepts-sr" 
             value={conceptsInput} 
             onChange={(e) => setConceptsInput(e.target.value)}
-            placeholder="e.g., User Authentication, JWT, Database Security. These are often based on selected map nodes." 
+            placeholder="e.g., User Authentication, JWT, Database Security." 
             rows={3}
             className="resize-none"
             disabled={isLoading}
