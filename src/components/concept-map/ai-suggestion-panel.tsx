@@ -13,7 +13,7 @@ import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
 
 interface AISuggestionPanelProps {
-  mapData?: ConceptMapData;
+  mapData?: ConceptMapData; // Kept for potential future use, but currentMapNodes is primary for comparison
   currentMapNodes?: ConceptMapNode[];
   extractedConcepts?: string[];
   suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
@@ -218,7 +218,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             items.forEach((item, index) => {
                 const value = getComparableItemValue(item);
                 const status = getItemStatus(value as string);
-                if (status !== 'exact-match') { 
+                if (status !== 'exact-match') { // Only select items that are not exact matches
                     newSelectedIndices.add(index);
                 }
             });
@@ -232,10 +232,10 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         items.every((item, index) => {
             const value = getComparableItemValue(item);
             const status = getItemStatus(value as string);
-            if (status !== 'exact-match') { 
+            if (status !== 'exact-match') { // Only consider items that are not exact matches for "all selected" state
                 return selectedIndicesSet.has(index);
             }
-            return true; 
+            return true; // Ignore exact matches for this check
         });
 
     const countOfSelectedAndNew = items.filter((item, index) => {
@@ -285,7 +285,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
               return (
                 <div key={displayId} className={cn(
                     "flex items-start space-x-3 p-2 border-b last:border-b-0",
-                    itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-') && "opacity-60 bg-muted/30",
+                    itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-') && "opacity-60 bg-muted/30", // Special styling for exact match non-relations
                     itemStatus === 'similar-match' && !itemKeyPrefix.startsWith('relation-') && "bg-yellow-500/10 border-yellow-500/20"
                 )}>
                   {!isViewOnlyMode && (
@@ -412,7 +412,10 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     );
   };
 
+  // Determines if a concept is new, an exact match, or a similar match to existing nodes.
   const getConceptStatus = useCallback((conceptValue: string | {source: string, target: string}): ItemStatus => {
+      // For relation objects, we don't mark the relation itself as 'exact' or 'similar' based on node text.
+      // The individual nodes (source/target) within the relation will be checked by `checkRelationNodesExistOnMap`.
       if (typeof conceptValue !== 'string') return 'new'; 
 
       const normalizedConcept = conceptValue.toLowerCase().trim();
@@ -420,7 +423,11 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         return 'exact-match';
       }
 
+      // Simple similarity check: one string contains the other (and not identical length, handled by exact match)
+      // This is a basic heuristic and can be expanded (e.g., Levenshtein distance).
       for (const existingNode of existingNodeTexts) {
+        // Avoid matching if lengths are identical (already covered by exact-match)
+        // Check if one contains the other non-trivially
         if (existingNode.length !== normalizedConcept.length && (existingNode.includes(normalizedConcept) || normalizedConcept.includes(existingNode))) {
              return 'similar-match';
         }
@@ -428,6 +435,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       return 'new';
   }, [existingNodeTexts]);
 
+  // Checks if the source and target nodes of a relation suggestion already exist on the map.
   const checkRelationNodesExistOnMap = useCallback((relationValue: { source: string; target: string }) => {
     return {
       source: existingNodeTexts.has(relationValue.source.toLowerCase().trim()),
@@ -498,58 +506,6 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     return (
       <ScrollArea className="h-full w-full">
         <div className="p-4 space-y-4 text-left">
-          <h3 className="text-lg font-semibold text-muted-foreground mb-4 text-center">
-            AI Suggestions & Map Data
-          </h3>
-          {hasMapDataNodes && (
-            <Card className="mb-4 bg-primary/5 border-primary/20">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold text-primary flex items-center">
-                  <Box className="mr-2 h-5 w-5" />Nodes in Map ({mapData?.nodes.length})
-                </CardTitle>
-                <CardDescription className="text-xs">Current nodes on the canvas.</CardDescription>
-              </CardHeader>
-               <CardContent className="max-h-48 overflow-y-auto">
-                <div className="space-y-2">
-                  {mapData?.nodes.map((node) => (
-                    <div key={node.id} className="p-3 border rounded-md shadow-sm bg-background hover:shadow-md transition-shadow">
-                      <div className="flex items-center">
-                        <Layers className="mr-2 h-4 w-4 text-primary flex-shrink-0" />
-                        <span className="font-medium text-sm">{node.text}</span>
-                        <span className="text-xs text-muted-foreground ml-2">({node.type || 'node'})</span>
-                      </div>
-                      {node.details && <p className="text-xs text-muted-foreground mt-1 pl-6">{node.details}</p>}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {hasMapDataEdges && (
-            <Card className="mb-4 bg-green-500/5 border-green-500/20">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold text-green-700 dark:text-green-400 flex items-center">
-                  <Waypoints className="mr-2 h-5 w-5" />Edges in Map ({mapData?.edges.length})
-                </CardTitle>
-                 <CardDescription className="text-xs">Current connections on the canvas.</CardDescription>
-              </CardHeader>
-              <CardContent className="max-h-48 overflow-y-auto">
-                <ul className="list-none text-sm space-y-1">
-                  {mapData?.edges.map((edge) => (
-                    <li key={edge.id} className="flex items-center p-2 border-b border-dashed border-green-500/20">
-                      <Link2 className="mr-2 h-4 w-4 text-green-600 dark:text-green-500 flex-shrink-0" />
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1">
-                        <span><span className="font-medium">From:</span> {mapData.nodes.find(n => n.id === edge.source)?.text || edge.source.substring(0, 8) + '...'}</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-1 hidden sm:inline-block transform rotate-0 sm:rotate-0"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                        <span><span className="font-medium">To:</span> {mapData.nodes.find(n => n.id === edge.target)?.text || edge.target.substring(0, 8) + '...'}</span>
-                        <span className="text-xs text-muted-foreground sm:ml-1">({edge.label})</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
           {onAddExtractedConcepts && renderSuggestionSection(
             "Extracted Concepts", SearchCode, editableExtracted, selectedExtractedIndices, "extracted-concept",
             (item, index, itemStatus) => renderEditableConceptLabel(item as EditableSuggestion, index, 'extracted', itemStatus),
@@ -560,7 +516,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           {onAddSuggestedRelations && renderSuggestionSection(
             "Suggested Relations", Lightbulb, editableRelations, selectedRelationIndices, "relation-",
              (item, index, itemStatus, relationNodeExist) => renderEditableRelationLabel(item as EditableRelationSuggestion, index, itemStatus, relationNodeExist),
-            getConceptStatus, 
+            getConceptStatus, // For relations, this primarily informs if individual nodes might be "new" or "similar", not the relation itself
             checkRelationNodesExistOnMap,
             onAddSuggestedRelations, onClearSuggestedRelations, 
             "bg-yellow-500/5 border-yellow-500/20", "text-yellow-700 dark:text-yellow-400"
@@ -578,6 +534,12 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
               {!isViewOnlyMode && " AI suggestions can be edited and added to the map using the controls above."}
             </p>
           )}
+           {!hasAiOutput && hasMapDataNodes && ( // This section is if AI output is cleared but map data still exists
+            <div className="text-center py-6">
+                <Info className="mx-auto h-10 w-10 text-muted-foreground/60 mb-3"/>
+                <p className="text-sm text-muted-foreground">No active AI suggestions. Use AI tools to generate new ideas.</p>
+            </div>
+           )}
         </div>
       </ScrollArea>
     );
@@ -592,3 +554,4 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   );
 });
 AISuggestionPanel.displayName = "AISuggestionPanel";
+

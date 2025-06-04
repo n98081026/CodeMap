@@ -218,7 +218,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             items.forEach((item, index) => {
                 const value = getComparableItemValue(item);
                 const status = getItemStatus(value as string);
-                if (status !== 'exact-match') {
+                if (status !== 'exact-match') { // Only select items that are not exact matches
                     newSelectedIndices.add(index);
                 }
             });
@@ -232,10 +232,10 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         items.every((item, index) => {
             const value = getComparableItemValue(item);
             const status = getItemStatus(value as string);
-            if (status !== 'exact-match') { 
+            if (status !== 'exact-match') { // Only consider items that are not exact matches for "all selected" state
                 return selectedIndicesSet.has(index);
             }
-            return true; 
+            return true; // Ignore exact matches for this check
         });
 
     const countOfSelectedAndNew = items.filter((item, index) => {
@@ -261,12 +261,13 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                             id={`${itemKeyPrefix}-select-all`}
                             checked={allSelectableAreChecked}
                             onCheckedChange={(checkedState) => handleSelectAllNew(Boolean(checkedState))}
+                            disabled={isViewOnlyMode}
                         />
                         <Label htmlFor={`${itemKeyPrefix}-select-all`} className="text-xs">Select New/Similar</Label>
                      </>
                 )}
                 {onClearCategory && !isViewOnlyMode && items.length > 0 && (
-                  <Button variant="ghost" size="icon" onClick={onClearCategory} title={`Clear all ${title} suggestions`}>
+                  <Button variant="ghost" size="icon" onClick={onClearCategory} title={`Clear all ${title} suggestions`} disabled={isViewOnlyMode}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 )}
@@ -284,7 +285,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
               return (
                 <div key={displayId} className={cn(
                     "flex items-start space-x-3 p-2 border-b last:border-b-0",
-                    itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-') && "opacity-60 bg-muted/30",
+                    itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-') && "opacity-60 bg-muted/30", // Special styling for exact match non-relations
                     itemStatus === 'similar-match' && !itemKeyPrefix.startsWith('relation-') && "bg-yellow-500/10 border-yellow-500/20"
                 )}>
                   {!isViewOnlyMode && (
@@ -295,7 +296,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                         itemKeyPrefix.startsWith('extracted-') ? 'extracted' :
                         itemKeyPrefix.startsWith('relation-') ? 'relation' : 'expanded'
                       )(index, Boolean(checked))}
-                      disabled={(itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-')) || item.isEditing}
+                      disabled={(itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-')) || item.isEditing || isViewOnlyMode}
                     />
                   )}
                   <div className="flex-grow">
@@ -340,7 +341,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     const isExactMatch = itemStatus === 'exact-match';
     const isSimilarMatch = itemStatus === 'similar-match';
 
-    if (item.isEditing) {
+    if (item.isEditing && !isViewOnlyMode) {
       return (
         <div className="flex items-center space-x-2 w-full">
           <Input
@@ -350,8 +351,9 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleConfirmEdit(type, index)}
             onBlur={() => handleConfirmEdit(type, index)}
+            disabled={isViewOnlyMode}
           />
-          <Button size="icon" variant="ghost" onClick={() => handleConfirmEdit(type, index)} className="h-8 w-8">
+          <Button size="icon" variant="ghost" onClick={() => handleConfirmEdit(type, index)} className="h-8 w-8" disabled={isViewOnlyMode}>
             <CheckSquare className="h-4 w-4 text-green-600" />
           </Button>
         </div>
@@ -359,13 +361,13 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     }
     return (
       <div className="flex items-center justify-between w-full group">
-        <Label htmlFor={`${type}-${index}`} className={cn("text-sm font-normal flex-grow cursor-pointer", isExactMatch && "cursor-default")}>
+        <Label htmlFor={`${type}-${index}`} className={cn("text-sm font-normal flex-grow cursor-pointer", (isExactMatch || isViewOnlyMode) && "cursor-default")}>
           {item.current}
           {isExactMatch && <span className="ml-2 text-xs text-muted-foreground italic">(already on map)</span>}
           {isSimilarMatch && <span className="ml-2 text-xs text-yellow-700 dark:text-yellow-400 italic flex items-center"><Zap className="h-3 w-3 mr-1"/>(similar to existing)</span>}
         </Label>
         {!isViewOnlyMode && !isExactMatch && (
-          <Button size="icon" variant="ghost" onClick={() => handleToggleEdit(type, index)} className="h-6 w-6 opacity-0 group-hover:opacity-100">
+          <Button size="icon" variant="ghost" onClick={() => handleToggleEdit(type, index)} className="h-6 w-6 opacity-0 group-hover:opacity-100" disabled={isViewOnlyMode}>
             <Edit3 className="h-3 w-3" />
           </Button>
         )}
@@ -375,7 +377,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
 
   const renderEditableRelationLabel = (item: EditableRelationSuggestion, index: number, _itemStatus: ItemStatus, relationNodeExistence?: { source?: boolean, target?: boolean }) => {
     const renderField = (field: 'source' | 'target' | 'relation') => {
-      if (item.isEditing && item.editingField === field) {
+      if (item.isEditing && item.editingField === field && !isViewOnlyMode) {
         return (
           <Input
             value={item.current[field]}
@@ -384,6 +386,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             autoFocus
             onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmEdit('relation', index);}}
             onBlur={() => handleConfirmEdit('relation', index)}
+            disabled={isViewOnlyMode}
           />
         );
       }
@@ -409,7 +412,10 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     );
   };
 
+  // Determines if a concept is new, an exact match, or a similar match to existing nodes.
   const getConceptStatus = useCallback((conceptValue: string | {source: string, target: string}): ItemStatus => {
+      // For relation objects, we don't mark the relation itself as 'exact' or 'similar' based on node text.
+      // The individual nodes (source/target) within the relation will be checked by `checkRelationNodesExistOnMap`.
       if (typeof conceptValue !== 'string') return 'new'; 
 
       const normalizedConcept = conceptValue.toLowerCase().trim();
@@ -417,8 +423,11 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         return 'exact-match';
       }
 
+      // Simple similarity check: one string contains the other (and not identical length, handled by exact match)
+      // This is a basic heuristic and can be expanded (e.g., Levenshtein distance).
       for (const existingNode of existingNodeTexts) {
-        // Check for similarity only if not an exact match (case/space differences are handled by normalization for exact match)
+        // Avoid matching if lengths are identical (already covered by exact-match)
+        // Check if one contains the other non-trivially
         if (existingNode.length !== normalizedConcept.length && (existingNode.includes(normalizedConcept) || normalizedConcept.includes(existingNode))) {
              return 'similar-match';
         }
@@ -426,6 +435,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       return 'new';
   }, [existingNodeTexts]);
 
+  // Checks if the source and target nodes of a relation suggestion already exist on the map.
   const checkRelationNodesExistOnMap = useCallback((relationValue: { source: string; target: string }) => {
     return {
       source: existingNodeTexts.has(relationValue.source.toLowerCase().trim()),
@@ -433,144 +443,115 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     };
   }, [existingNodeTexts]);
 
+  const mainContent = () => {
+    if (!hasMapDataNodes && !hasAiOutput) {
+      // Case 1: No map data and no AI suggestions - Show initial guide
+      return (
+        <div className="p-6 text-center">
+          <BotMessageSquare className="h-12 w-12 text-primary mb-4 mx-auto" />
+          <h3 className="text-xl font-semibold mb-2">Getting Started with AI Tools</h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            Unlock insights and build maps faster with our AI-powered features. Here's how to use them:
+          </p>
+          <div className="space-y-3 text-left max-w-md mx-auto">
+            <Card className="bg-background/70 shadow-sm">
+              <CardHeader className="flex flex-row items-center space-x-3 p-3">
+                <SearchCode className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <div>
+                  <CardTitle className="text-base font-medium text-blue-700 dark:text-blue-300">Extract Concepts</CardTitle>
+                  <CardDescription className="text-xs">Paste text to identify key ideas from it.</CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+            <Card className="bg-background/70 shadow-sm">
+              <CardHeader className="flex flex-row items-center space-x-3 p-3">
+                <Lightbulb className="h-6 w-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                <div>
+                  <CardTitle className="text-base font-medium text-yellow-700 dark:text-yellow-300">Suggest Relations</CardTitle>
+                  <CardDescription className="text-xs">Get AI suggestions for connections between existing concepts on your map.</CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+            <Card className="bg-background/70 shadow-sm">
+              <CardHeader className="flex flex-row items-center space-x-3 p-3">
+                <Brain className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                <div>
+                  <CardTitle className="text-base font-medium text-purple-700 dark:text-purple-300">Expand Concept</CardTitle>
+                  <CardDescription className="text-xs">Explore related ideas for a selected concept to deepen understanding.</CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          </div>
+          <p className="text-sm text-muted-foreground mt-6">
+            Find these tools in the toolbar above. Your AI-generated suggestions will appear here.
+          </p>
+        </div>
+      );
+    }
+    if (hasMapDataNodes && !hasAiOutput) {
+      // Case 2: Has map data but no AI suggestions - Show "No AI suggestions" message
+      return (
+        <div className="p-6 text-center">
+          <MessageSquareDashed className="h-12 w-12 text-muted-foreground/70 mb-4 mx-auto" />
+          <h3 className="text-xl font-semibold mb-2">No AI Suggestions Yet</h3>
+          <p className="text-sm text-muted-foreground">
+            Your map has content, but no AI suggestions are currently available.
+            {!isViewOnlyMode && " Use the AI tools in the toolbar to generate concepts, relations, or expand on ideas!"}
+            {isViewOnlyMode && " The map is in view-only mode. AI tools are disabled."}
+          </p>
+        </div>
+      );
+    }
+    // Case 3: Has AI suggestions (and possibly map data) - Show the suggestion sections
+    return (
+      <ScrollArea className="h-full w-full">
+        <div className="p-4 space-y-4 text-left">
+          {onAddExtractedConcepts && renderSuggestionSection(
+            "Extracted Concepts", SearchCode, editableExtracted, selectedExtractedIndices, "extracted-concept",
+            (item, index, itemStatus) => renderEditableConceptLabel(item as EditableSuggestion, index, 'extracted', itemStatus),
+            getConceptStatus, checkRelationNodesExistOnMap,
+            onAddExtractedConcepts, onClearExtractedConcepts, 
+            "bg-blue-500/5 border-blue-500/20", "text-blue-700 dark:text-blue-400"
+          )}
+          {onAddSuggestedRelations && renderSuggestionSection(
+            "Suggested Relations", Lightbulb, editableRelations, selectedRelationIndices, "relation-",
+             (item, index, itemStatus, relationNodeExist) => renderEditableRelationLabel(item as EditableRelationSuggestion, index, itemStatus, relationNodeExist),
+            getConceptStatus, // For relations, this primarily informs if individual nodes might be "new" or "similar", not the relation itself
+            checkRelationNodesExistOnMap,
+            onAddSuggestedRelations, onClearSuggestedRelations, 
+            "bg-yellow-500/5 border-yellow-500/20", "text-yellow-700 dark:text-yellow-400"
+          )}
+          {onAddExpandedConcepts && renderSuggestionSection(
+            "Expanded Ideas", Brain, editableExpanded, selectedExpandedIndices, "expanded-concept",
+             (item, index, itemStatus) => renderEditableConceptLabel(item as EditableSuggestion, index, 'expanded', itemStatus),
+            getConceptStatus, checkRelationNodesExistOnMap,
+            onAddExpandedConcepts, onClearExpandedConcepts, 
+            "bg-purple-500/5 border-purple-500/20", "text-purple-700 dark:text-purple-400"
+          )}
+          {hasAnyContent && (
+            <p className="text-xs text-muted-foreground/70 mt-6 text-center">
+              Map elements are rendered on the interactive canvas above.
+              {!isViewOnlyMode && " AI suggestions can be edited and added to the map using the controls above."}
+            </p>
+          )}
+           {!hasAiOutput && hasMapDataNodes && ( // This section is if AI output is cleared but map data still exists
+            <div className="text-center py-6">
+                <Info className="mx-auto h-10 w-10 text-muted-foreground/60 mb-3"/>
+                <p className="text-sm text-muted-foreground">No active AI suggestions. Use AI tools to generate new ideas.</p>
+            </div>
+           )}
+        </div>
+      </ScrollArea>
+    );
+  };
 
   return (
     <Card className="h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
       <CardContent className="flex h-full flex-col items-center justify-center text-center p-0">
-        {!hasAnyContent ? (
-          <div className="p-6 text-center">
-            <BotMessageSquare className="h-12 w-12 text-primary mb-4 mx-auto" />
-            <h3 className="text-xl font-semibold mb-2">Getting Started with AI Tools</h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Unlock insights and build maps faster with our AI-powered features. Here's how to use them:
-            </p>
-            <div className="space-y-3 text-left max-w-md mx-auto">
-              <Card className="bg-background/70 shadow-sm">
-                <CardHeader className="flex flex-row items-center space-x-3 p-3">
-                  <SearchCode className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                  <div>
-                    <CardTitle className="text-base font-medium text-blue-700 dark:text-blue-300">Extract Concepts</CardTitle>
-                    <CardDescription className="text-xs">Paste text to identify key ideas from it.</CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-              <Card className="bg-background/70 shadow-sm">
-                <CardHeader className="flex flex-row items-center space-x-3 p-3">
-                  <Lightbulb className="h-6 w-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-                  <div>
-                    <CardTitle className="text-base font-medium text-yellow-700 dark:text-yellow-300">Suggest Relations</CardTitle>
-                    <CardDescription className="text-xs">Get AI suggestions for connections between existing concepts on your map.</CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-              <Card className="bg-background/70 shadow-sm">
-                <CardHeader className="flex flex-row items-center space-x-3 p-3">
-                  <Brain className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                  <div>
-                    <CardTitle className="text-base font-medium text-purple-700 dark:text-purple-300">Expand Concept</CardTitle>
-                    <CardDescription className="text-xs">Explore related ideas for a selected concept to deepen understanding.</CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            </div>
-            <p className="text-sm text-muted-foreground mt-6">
-              Find these tools in the toolbar above. Your AI-generated suggestions will appear here.
-            </p>
-          </div>
-        ) : (
-          <ScrollArea className="h-full w-full">
-            <div className="p-4 space-y-4 text-left">
-              <h3 className="text-lg font-semibold text-muted-foreground mb-4 text-center">
-                AI Suggestions & Map Data
-              </h3>
-
-              {hasMapDataNodes && (
-                <Card className="mb-4 bg-primary/5 border-primary/20">
-                  <CardHeader>
-                    <CardTitle className="text-base font-semibold text-primary flex items-center">
-                      <Box className="mr-2 h-5 w-5" />Nodes in Map ({mapData?.nodes.length})
-                    </CardTitle>
-                    <CardDescription className="text-xs">Current nodes on the canvas.</CardDescription>
-                  </CardHeader>
-                   <CardContent className="max-h-48 overflow-y-auto">
-                    <div className="space-y-2">
-                      {mapData?.nodes.map((node) => (
-                        <div key={node.id} className="p-3 border rounded-md shadow-sm bg-background hover:shadow-md transition-shadow">
-                          <div className="flex items-center">
-                            <Layers className="mr-2 h-4 w-4 text-primary flex-shrink-0" />
-                            <span className="font-medium text-sm">{node.text}</span>
-                            <span className="text-xs text-muted-foreground ml-2">({node.type || 'node'})</span>
-                          </div>
-                          {node.details && <p className="text-xs text-muted-foreground mt-1 pl-6">{node.details}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {hasMapDataEdges && (
-                <Card className="mb-4 bg-green-500/5 border-green-500/20">
-                  <CardHeader>
-                    <CardTitle className="text-base font-semibold text-green-700 dark:text-green-400 flex items-center">
-                      <Waypoints className="mr-2 h-5 w-5" />Edges in Map ({mapData?.edges.length})
-                    </CardTitle>
-                     <CardDescription className="text-xs">Current connections on the canvas.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="max-h-48 overflow-y-auto">
-                    <ul className="list-none text-sm space-y-1">
-                      {mapData?.edges.map((edge) => (
-                        <li key={edge.id} className="flex items-center p-2 border-b border-dashed border-green-500/20">
-                          <Link2 className="mr-2 h-4 w-4 text-green-600 dark:text-green-500 flex-shrink-0" />
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1">
-                            <span><span className="font-medium">From:</span> {mapData.nodes.find(n => n.id === edge.source)?.text || edge.source.substring(0, 8) + '...'}</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-1 hidden sm:inline-block transform rotate-0 sm:rotate-0"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                            <span><span className="font-medium">To:</span> {mapData.nodes.find(n => n.id === edge.target)?.text || edge.target.substring(0, 8) + '...'}</span>
-                            <span className="text-xs text-muted-foreground sm:ml-1">({edge.label})</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
-
-              {onAddExtractedConcepts && renderSuggestionSection(
-                "Extracted Concepts", SearchCode, editableExtracted, selectedExtractedIndices, "extracted-concept",
-                (item, index, itemStatus) => renderEditableConceptLabel(item as EditableSuggestion, index, 'extracted', itemStatus),
-                getConceptStatus, checkRelationNodesExistOnMap,
-                onAddExtractedConcepts, onClearExtractedConcepts, 
-                "bg-blue-500/5 border-blue-500/20", "text-blue-700 dark:text-blue-400"
-              )}
-
-              {onAddSuggestedRelations && renderSuggestionSection(
-                "Suggested Relations", Lightbulb, editableRelations, selectedRelationIndices, "relation-",
-                 (item, index, itemStatus, relationNodeExist) => renderEditableRelationLabel(item as EditableRelationSuggestion, index, itemStatus, relationNodeExist),
-                getConceptStatus, 
-                checkRelationNodesExistOnMap,
-                onAddSuggestedRelations, onClearSuggestedRelations, 
-                "bg-yellow-500/5 border-yellow-500/20", "text-yellow-700 dark:text-yellow-400"
-              )}
-
-              {onAddExpandedConcepts && renderSuggestionSection(
-                "Expanded Ideas", Brain, editableExpanded, selectedExpandedIndices, "expanded-concept",
-                 (item, index, itemStatus) => renderEditableConceptLabel(item as EditableSuggestion, index, 'expanded', itemStatus),
-                getConceptStatus, checkRelationNodesExistOnMap,
-                onAddExpandedConcepts, onClearExpandedConcepts, 
-                "bg-purple-500/5 border-purple-500/20", "text-purple-700 dark:text-purple-400"
-              )}
-
-              {hasAnyContent && (
-                <p className="text-xs text-muted-foreground/70 mt-6 text-center">
-                  Map elements are rendered on the interactive canvas above.
-                  {!isViewOnlyMode && " AI suggestions can be edited and added to the map using the controls above."}
-                </p>
-              )}
-            </div>
-          </ScrollArea>
-        )}
+        {mainContent()}
       </CardContent>
     </Card>
   );
 });
 AISuggestionPanel.displayName = "AISuggestionPanel";
+

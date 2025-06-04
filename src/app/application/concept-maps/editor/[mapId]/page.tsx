@@ -9,8 +9,7 @@ import dynamic from 'next/dynamic';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
-// import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"; // Original was CanvasPlaceholder
-import { AISuggestionPanel } from "@/components/concept-map/canvas-placeholder"; // Reverted to canvas-placeholder which was renamed to AISuggestionPanel in a previous step.
+import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"; // Updated import
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -65,7 +64,6 @@ export default function ConceptMapEditorPage() {
     importMapData,
   } = useConceptMapStore();
   
-  // Access zundo's temporal store methods and state
   const temporalStoreAPI = useConceptMapStore.temporal;
   const undo = temporalStoreAPI.undo;
   const redo = temporalStoreAPI.redo;
@@ -75,7 +73,7 @@ export default function ConceptMapEditorPage() {
   useEffect(() => {
     const unsubscribe = temporalStoreAPI.subscribe(
       (newTemporalState) => setTemporalState(newTemporalState),
-      (state) => state // Selects the entire temporal state for subscription
+      (state) => state 
     );
     return unsubscribe;
   }, [temporalStoreAPI]);
@@ -88,7 +86,6 @@ export default function ConceptMapEditorPage() {
 
   const clearTemporalHistory = useCallback(() => {
     const currentTemporalStore = useConceptMapStore.temporal;
-    // Enhanced Debugging
     console.log("[DEBUG] Attempting to clear temporal history.");
     console.log("[DEBUG] useConceptMapStore.temporal object:", currentTemporalStore);
 
@@ -102,9 +99,7 @@ export default function ConceptMapEditorPage() {
           currentTemporalStore.clear();
           console.log("[DEBUG] Temporal history cleared successfully.");
         } catch (e) {
-          // This catch block will execute if the call itself throws an error
           console.error("[DEBUG] Error calling currentTemporalStore.clear():", e);
-          // Log the problematic 'clear' property again for inspection
           console.error("[DEBUG] currentTemporalStore.clear was:", currentTemporalStore.clear, "with type:", typeof currentTemporalStore.clear, "when error occurred.");
         }
       } else {
@@ -322,20 +317,19 @@ export default function ConceptMapEditorPage() {
         toast({ title: "No Concepts Selected", description: "Please select concepts to add.", variant: "default"});
         return;
     }
-    const existingNodeTexts = new Set(useConceptMapStore.getState().mapData.nodes.map(n => n.text.toLowerCase().trim()));
+    // Logic to check against existing nodes is now handled within AISuggestionPanel / Zustand store if needed, or by the nature of the suggestions provided
     let addedCount = 0;
     selectedConcepts.forEach(conceptText => {
-      if (!existingNodeTexts.has(conceptText.toLowerCase().trim())) {
-        addStoreNode({
-          text: conceptText,
-          type: 'ai-concept',
-          position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
-        });
-        addedCount++;
-      }
+      addStoreNode({
+        text: conceptText,
+        type: 'ai-concept', // Or a more specific type from the suggestion if available
+        position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
+      });
+      addedCount++;
     });
+
     if (addedCount > 0) toast({ title: "Concepts Added", description: `${addedCount} new concepts added to map. Remember to save.` });
-    else toast({ title: "No New Concepts", description: "All selected new suggestions may already exist on the map or were not selected.", variant: "default" });
+    else toast({ title: "No New Concepts Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
 
     setStoreAiExtractedConcepts([]); 
   }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts]);
@@ -383,7 +377,7 @@ export default function ConceptMapEditorPage() {
     if (conceptsAddedFromRelationsCount > 0) toastMessage += `${conceptsAddedFromRelationsCount} new concepts (from relations) added. `;
 
     if (toastMessage) toast({ title: "Relations Added", description: `${toastMessage.trim()} Remember to save the map.` });
-    else toast({ title: "No New Relations", description: "All selected suggestions may already exist on the map or were not selected.", variant: "default" });
+    else toast({ title: "No New Relations Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
 
     setStoreAiSuggestedRelations([]); 
   }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations]);
@@ -397,20 +391,17 @@ export default function ConceptMapEditorPage() {
         toast({ title: "No Concepts Selected", description: "Please select concepts to add.", variant: "default"});
         return;
     }
-    const existingNodeTexts = new Set(useConceptMapStore.getState().mapData.nodes.map(n => n.text.toLowerCase().trim()));
     let addedCount = 0;
     selectedConcepts.forEach(conceptText => {
-      if (!existingNodeTexts.has(conceptText.toLowerCase().trim())) {
-        addStoreNode({
-          text: conceptText,
-          type: 'ai-expanded', 
-          position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
-        });
-        addedCount++;
-      }
+      addStoreNode({
+        text: conceptText,
+        type: 'ai-expanded', 
+        position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
+      });
+      addedCount++;
     });
     if (addedCount > 0) toast({ title: "Expanded Ideas Added", description: `${addedCount} new ideas added to map. Remember to save.` });
-    else toast({ title: "No New Ideas", description: "All selected new suggestions may already exist on the map or were not selected.", variant: "default" });
+    else toast({ title: "No New Ideas Added", description: "All selected new suggestions might already exist or were not selected.", variant: "default" });
 
     setStoreAiExpandedConcepts([]); 
   }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExpandedConcepts]);
@@ -489,7 +480,6 @@ export default function ConceptMapEditorPage() {
       initializeNewMap(user.id);
       clearTemporalHistory(); 
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeMapId, user?.id, initializeNewMap, loadMapData, storeMapId, isNewMapMode, clearTemporalHistory]); 
 
   const prepareAndOpenExpandConceptModal = useCallback((nodeIdForContext?: string) => {
@@ -837,17 +827,16 @@ export default function ConceptMapEditorPage() {
         </Sheet>
 
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
-          <SheetContent side="bottom" className="h-[40vh] sm:h-1/3">
+          <SheetContent side="bottom" className="h-[40vh] sm:h-1/3"> {/* Adjusted height */}
             <SheetHeader>
-              <SheetTitle>AI Suggestions & Map Data</SheetTitle>
+              <SheetTitle>AI Suggestions</SheetTitle> {/* Simplified Title */}
               <SheetDescription>
-                View AI-generated suggestions or textual representation of your map.
+                View and add AI-generated suggestions to your map.
               </SheetDescription>
             </SheetHeader>
             <div className="py-4 h-[calc(100%-4rem)]"> 
               <AISuggestionPanel
-                mapData={storeMapData}
-                currentMapNodes={storeMapData.nodes}
+                currentMapNodes={storeMapData.nodes} // Pass current map nodes
                 extractedConcepts={aiExtractedConcepts}
                 suggestedRelations={aiSuggestedRelations}
                 expandedConcepts={aiExpandedConcepts}
@@ -863,10 +852,29 @@ export default function ConceptMapEditorPage() {
           </SheetContent>
         </Sheet>
 
-        {isExtractConceptsModalOpen && !isViewOnlyMode && (<ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen}/>)}
-        {isSuggestRelationsModalOpen && !isViewOnlyMode && (<SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={conceptsForRelationSuggestion} onOpenChange={setIsSuggestRelationsModalOpen}/>)}
-        {isExpandConceptModalOpen && !isViewOnlyMode && (<ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={conceptToExpand} existingMapContext={mapContextForExpansion} onOpenChange={setIsExpandConceptModalOpen}/>)}
+        {isExtractConceptsModalOpen && !isViewOnlyMode && (
+          <ExtractConceptsModal 
+            onConceptsExtracted={handleConceptsExtracted} 
+            onOpenChange={setIsExtractConceptsModalOpen}
+          />
+        )}
+        {isSuggestRelationsModalOpen && !isViewOnlyMode && (
+          <SuggestRelationsModal 
+            onRelationsSuggested={handleRelationsSuggested} 
+            initialConcepts={conceptsForRelationSuggestion} 
+            onOpenChange={setIsSuggestRelationsModalOpen}
+          />
+        )}
+        {isExpandConceptModalOpen && !isViewOnlyMode && (
+          <ExpandConceptModal 
+            onConceptExpanded={handleConceptExpanded} 
+            initialConcept={conceptToExpand} 
+            existingMapContext={mapContextForExpansion} 
+            onOpenChange={setIsExpandConceptModalOpen}
+          />
+        )}
       </ReactFlowProvider>
     </div>
   );
 }
+
