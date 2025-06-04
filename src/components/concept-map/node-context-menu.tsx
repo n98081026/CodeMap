@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Brain, Lightbulb } from 'lucide-react';
+import { Trash2, Brain, Lightbulb, SearchCode } from 'lucide-react'; // Added SearchCode
 
 interface NodeContextMenuProps {
   x: number;
@@ -14,6 +14,7 @@ interface NodeContextMenuProps {
   onDeleteNode: (nodeId: string) => void;
   onExpandConcept: (nodeId: string) => void;
   onSuggestRelations: (nodeId: string) => void;
+  onExtractConcepts: (nodeId: string) => void; // New prop
   isViewOnlyMode?: boolean;
 }
 
@@ -25,6 +26,7 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   onDeleteNode,
   onExpandConcept,
   onSuggestRelations,
+  onExtractConcepts, // New prop
   isViewOnlyMode,
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -44,6 +46,12 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   const handleSuggest = () => {
     if (isViewOnlyMode) return;
     onSuggestRelations(nodeId);
+    onClose();
+  };
+
+  const handleExtract = () => { // New handler
+    if (isViewOnlyMode) return;
+    onExtractConcepts(nodeId);
     onClose();
   };
 
@@ -69,8 +77,18 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
 
   return (
     <div ref={menuRef} className="absolute z-[100]" style={{ top: y, left: x }}>
-      <Card className="w-56 shadow-xl border bg-popover text-popover-foreground">
+      <Card className="w-60 shadow-xl border bg-popover text-popover-foreground"> {/* Increased width slightly */}
         <CardContent className="p-1 space-y-1">
+           <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start px-2 py-1.5 text-sm"
+            onClick={handleExtract} // Wired up
+            disabled={isViewOnlyMode}
+          >
+            <SearchCode className="mr-2 h-4 w-4 text-blue-500" />
+            Extract Concepts (AI)
+          </Button>
           <Button
             variant="ghost"
             size="sm"

@@ -27,12 +27,17 @@ interface ModalProps {
 
 interface ExtractConceptsModalProps extends ModalProps {
   onConceptsExtracted?: (concepts: string[]) => void;
+  initialText?: string; // New prop
 }
 
-export function ExtractConceptsModal({ onConceptsExtracted, onOpenChange }: ExtractConceptsModalProps) {
-  const [text, setText] = useState("");
+export function ExtractConceptsModal({ onConceptsExtracted, initialText = "", onOpenChange }: ExtractConceptsModalProps) {
+  const [text, setText] = useState(initialText);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setText(initialText);
+  }, [initialText]);
 
   const handleExtract = async () => {
     if (!text.trim()) {
@@ -53,12 +58,15 @@ export function ExtractConceptsModal({ onConceptsExtracted, onOpenChange }: Extr
   };
 
   return (
-    <Dialog open={true} onOpenChange={onOpenChange}> 
+    <Dialog open={true} onOpenChange={(isOpen) => {
+      if (!isOpen) setText(""); // Clear text on close
+      onOpenChange(isOpen);
+    }}> 
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Extract Concepts with AI</DialogTitle>
           <DialogDescription>
-            Paste text below. The AI will identify and extract key concepts. These will appear in the AI Suggestions panel.
+            Paste text below, or use text from selected map nodes. The AI will identify and extract key concepts. These will appear in the AI Suggestions panel.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -120,7 +128,10 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
   };
   
   return (
-    <Dialog open={true} onOpenChange={onOpenChange}>
+    <Dialog open={true} onOpenChange={(isOpen) => {
+      if (!isOpen) setConceptsInput(""); // Clear on close
+      onOpenChange(isOpen);
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Suggest Relations with AI</DialogTitle>
@@ -187,7 +198,10 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
   };
 
   return (
-    <Dialog open={true} onOpenChange={onOpenChange}>
+    <Dialog open={true} onOpenChange={(isOpen) => {
+      if (!isOpen) setConcept(""); // Clear on close
+      onOpenChange(isOpen);
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Expand Concept with AI</DialogTitle>

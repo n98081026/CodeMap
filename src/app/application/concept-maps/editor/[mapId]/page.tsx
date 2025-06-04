@@ -89,27 +89,27 @@ export default function ConceptMapEditorPage() {
 
   const clearTemporalHistory = useCallback(() => {
     const currentTemporalStore = useConceptMapStore.temporal;
-    console.log("[DEBUG] Attempting to clear temporal history.");
-    console.log("[DEBUG] useConceptMapStore.temporal object:", currentTemporalStore);
+    // console.log("[DEBUG] Attempting to clear temporal history.");
+    // console.log("[DEBUG] useConceptMapStore.temporal object:", currentTemporalStore);
 
     if (currentTemporalStore) {
-      console.log("[DEBUG] Temporal store object exists. Keys:", Object.keys(currentTemporalStore));
-      console.log("[DEBUG] Value of currentTemporalStore.clear:", currentTemporalStore.clear);
-      console.log("[DEBUG] typeof currentTemporalStore.clear:", typeof currentTemporalStore.clear);
+      // console.log("[DEBUG] Temporal store object exists. Keys:", Object.keys(currentTemporalStore));
+      // console.log("[DEBUG] Value of currentTemporalStore.clear:", currentTemporalStore.clear);
+      // console.log("[DEBUG] typeof currentTemporalStore.clear:", typeof currentTemporalStore.clear);
 
       if (currentTemporalStore.clear && typeof currentTemporalStore.clear === 'function') {
         try {
           currentTemporalStore.clear();
-          console.log("[DEBUG] Temporal history cleared successfully.");
+          // console.log("[DEBUG] Temporal history cleared successfully.");
         } catch (e) {
           console.error("[DEBUG] Error calling currentTemporalStore.clear():", e);
-          console.error("[DEBUG] currentTemporalStore.clear was:", currentTemporalStore.clear, "with type:", typeof currentTemporalStore.clear, "when error occurred.");
+          // console.error("[DEBUG] currentTemporalStore.clear was:", currentTemporalStore.clear, "with type:", typeof currentTemporalStore.clear, "when error occurred.");
         }
       } else {
-        console.warn("[DEBUG] `clear` method not found or not a function on temporal store. Value:", currentTemporalStore.clear, "Type:", typeof currentTemporalStore.clear, "Available methods:", Object.keys(currentTemporalStore));
+        // console.warn("[DEBUG] `clear` method not found or not a function on temporal store. Value:", currentTemporalStore.clear, "Type:", typeof currentTemporalStore.clear, "Available methods:", Object.keys(currentTemporalStore));
       }
     } else {
-      console.warn("[DEBUG] Temporal store object (useConceptMapStore.temporal) not available when attempting to clear history.");
+      // console.warn("[DEBUG] Temporal store object (useConceptMapStore.temporal) not available when attempting to clear history.");
     }
   }, []);
 
@@ -118,6 +118,7 @@ export default function ConceptMapEditorPage() {
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
   
+  const [textForExtraction, setTextForExtraction] = useState(""); // New state for Extract Concepts
   const [conceptToExpand, setConceptToExpand] = useState("");
   const [mapContextForExpansion, setMapContextForExpansion] = useState<string[]>([]);
   const [conceptsForRelationSuggestion, setConceptsForRelationSuggestion] = useState<string[]>([]);
@@ -594,6 +595,32 @@ export default function ConceptMapEditorPage() {
     setIsSuggestRelationsModalOpen(true);
   }, [resetStoreAiSuggestions]);
 
+  const prepareAndOpenExtractConceptsModal = useCallback((nodeIdForContext?: string) => {
+    resetStoreAiSuggestions();
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const currentSelectedNodeId = useConceptMapStore.getState().selectedElementId;
+    const currentSelectedType = useConceptMapStore.getState().selectedElementType;
+    const currentMultiSelectedIds = useConceptMapStore.getState().multiSelectedNodeIds;
+    let initialText = "";
+
+    if (nodeIdForContext) { // From context menu
+        const node = currentNodes.find(n => n.id === nodeIdForContext);
+        if (node) initialText = `${node.text}${node.details ? `\n\nDetails: ${node.details}` : ''}`;
+    } else if (currentMultiSelectedIds.length > 0) { // From toolbar with multi-selection
+        initialText = currentMultiSelectedIds.map(id => {
+            const node = currentNodes.find(n => n.id === id);
+            return node ? `${node.text}${node.details ? `\nDetails: ${node.details}` : ''}` : '';
+        }).filter(Boolean).join("\n\n---\n\n");
+    } else if (currentSelectedNodeId && currentSelectedType === 'node') { // From toolbar with single selection
+        const node = currentNodes.find(n => n.id === currentSelectedNodeId);
+        if (node) initialText = `${node.text}${node.details ? `\n\nDetails: ${node.details}` : ''}`;
+    }
+    // If no selection, initialText remains "" and user types in modal
+
+    setTextForExtraction(initialText);
+    setIsExtractConceptsModalOpen(true);
+  }, [resetStoreAiSuggestions]);
+
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
   const onToggleAiPanel = useCallback(() => setIsAiPanelOpen(prev => !prev), []);
@@ -735,6 +762,12 @@ export default function ConceptMapEditorPage() {
     closeContextMenu();
   }, [isViewOnlyMode, prepareAndOpenSuggestRelationsModal, closeContextMenu]);
 
+  const handleExtractConceptsFromContextMenu = useCallback((nodeId: string) => { // New handler
+    if (isViewOnlyMode) return;
+    prepareAndOpenExtractConceptsModal(nodeId);
+    closeContextMenu();
+  }, [isViewOnlyMode, prepareAndOpenExtractConceptsModal, closeContextMenu]);
+
 
   const handleSelectedElementPropertyUpdateInspector = useCallback((
     inspectorUpdates: any
@@ -810,7 +843,7 @@ export default function ConceptMapEditorPage() {
           onSaveMap={handleSaveMap} isSaving={isSaving}
           onExportMap={handleExportMap}
           onTriggerImport={handleTriggerImport}
-          onExtractConcepts={() => { resetStoreAiSuggestions(); setIsExtractConceptsModalOpen(true); }}
+          onExtractConcepts={() => prepareAndOpenExtractConceptsModal()} // Updated
           onSuggestRelations={() => prepareAndOpenSuggestRelationsModal()}
           onExpandConcept={() => prepareAndOpenExpandConceptModal()}
           isViewOnlyMode={isViewOnlyMode}
@@ -853,6 +886,7 @@ export default function ConceptMapEditorPage() {
             onDeleteNode={handleDeleteNodeFromContextMenu}
             onExpandConcept={handleExpandFromContextMenu}
             onSuggestRelations={handleSuggestRelationsFromContextMenu}
+            onExtractConcepts={handleExtractConceptsFromContextMenu} // New prop
             isViewOnlyMode={isViewOnlyMode}
           />
         )}
@@ -907,6 +941,7 @@ export default function ConceptMapEditorPage() {
 
         {isExtractConceptsModalOpen && !isViewOnlyMode && (
           <ExtractConceptsModal 
+            initialText={textForExtraction} // Pass initial text
             onConceptsExtracted={handleConceptsExtracted} 
             onOpenChange={setIsExtractConceptsModalOpen}
           />
