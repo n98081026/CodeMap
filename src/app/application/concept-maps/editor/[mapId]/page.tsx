@@ -27,7 +27,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu'; 
 import type { CustomNodeData } from '@/components/concept-map/custom-node'; 
 
-import useConceptMapStore, { type ConceptMapStoreWithTemporal } from '@/stores/concept-map-store';
+import useConceptMapStore from '@/stores/concept-map-store'; // Adjusted import
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -44,6 +44,7 @@ export default function ConceptMapEditorPage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Destructure state and actions from the main store
   const {
     mapId: storeMapId,
     mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
@@ -64,10 +65,11 @@ export default function ConceptMapEditorPage() {
     importMapData,
   } = useConceptMapStore();
 
-  const { undo, redo, pastStates, futureStates } = useConceptMapStore(
-    (state) => (state as ConceptMapStoreWithTemporal).temporal
-  );
-
+  // Access temporal state and actions from zundo via store.temporal
+  const { undo, redo, clear, getState: getTemporalState } = useConceptMapStore.temporal;
+  const pastStates = getTemporalState().pastStates;
+  const futureStates = getTemporalState().futureStates;
+  
   const canUndo = pastStates.length > 0;
   const canRedo = futureStates.length > 0;
 
@@ -99,13 +101,18 @@ export default function ConceptMapEditorPage() {
 
   const loadMapData = useCallback(async (idToLoad: string) => {
     if (!idToLoad || idToLoad.trim() === '') {
-      if (user && user.id) initializeNewMap(user.id);
-      else setStoreError("Cannot initialize new map: User not found.");
+      if (user && user.id) {
+        initializeNewMap(user.id);
+        clear(); // Clear history for new mock map
+      } else {
+         setStoreError("Cannot initialize new map: User not found.");
+      }
       return;
     }
     if (idToLoad === "new") {
       if (user && user.id) {
         initializeNewMap(user.id);
+        clear(); // Clear history for new map
       } else {
         setStoreError("User data not available for new map initialization.");
         toast({ title: "Authentication Error", description: "User data not available for new map.", variant: "destructive" });
@@ -120,10 +127,19 @@ export default function ConceptMapEditorPage() {
       const response = await fetch(`/api/concept-maps/${idToLoad}`);
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.message || "Failed to load map");
+        // Fallback to mock if API fails (for testing GAI)
+        if (user && user.id) {
+          initializeNewMap(user.id); 
+          clear();
+          toast({ title: "Map Load Failed (Using Mock)", description: `Could not load map '${idToLoad}'. Displaying a mock map instead.`, variant: "destructive"});
+        } else {
+          throw new Error(errData.message || "Failed to load map and no user for mock fallback");
+        }
+        return;
       }
       const data: ConceptMap = await response.json();
       setLoadedMap(data);
+      clear(); // Clear history for loaded map
     } catch (err) {
       setStoreError((err as Error).message);
       toast({ title: "Error Loading Map", description: (err as Error).message, variant: "destructive" });
@@ -131,7 +147,7 @@ export default function ConceptMapEditorPage() {
     } finally {
       setStoreIsLoading(false);
     }
-  }, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, resetStoreAiSuggestions, setStoreMapName]);
+  }, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, resetStoreAiSuggestions, setStoreMapName, clear]);
 
 
   const handleMapPropertiesChange = useCallback((properties: {
@@ -201,7 +217,7 @@ export default function ConceptMapEditorPage() {
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId, // For authorization check on backend
+            ownerId: currentMapOwnerId, 
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -216,6 +232,7 @@ export default function ConceptMapEditorPage() {
       }
       const savedMap: ConceptMap = await response.json();
       setLoadedMap(savedMap); 
+      clear(); // Clear history after successful save and load
       toast({ title: "Map Saved", description: `"${savedMap.name}" has been saved successfully.` });
 
       if ((isNewMapMode || storeMapId === 'new') && savedMap.id) {
@@ -230,7 +247,7 @@ export default function ConceptMapEditorPage() {
   }, [
     isViewOnlyMode, user, mapName, storeMapData,
     isNewMapMode, currentMapOwnerId, isPublic, sharedWithClassroomId,
-    router, toast, storeMapId, setStoreIsSaving, setLoadedMap, setStoreError
+    router, toast, storeMapId, setStoreIsSaving, setLoadedMap, setStoreError, clear
   ]);
 
   const handleConceptsExtracted = useCallback((concepts: string[]) => {
@@ -429,6 +446,7 @@ export default function ConceptMapEditorPage() {
       loadMapData(routeMapId);
     } else if (user && user.id && !storeMapId && isNewMapMode) {
       initializeNewMap(user.id);
+      clear(); // Clear history for new map
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeMapId, user?.id]); 
@@ -455,7 +473,7 @@ export default function ConceptMapEditorPage() {
           .filter((text): text is string => !!text)
           .slice(0, 5); 
       }
-    } else if (currentNodes && currentNodes.length > 0) { // Fallback if no node selected/provided
+    } else if (currentNodes && currentNodes.length > 0) { 
       concept = currentNodes[0].text; 
       context = currentNodes.slice(1, 6).map(n => n.text); 
     }
@@ -483,9 +501,9 @@ export default function ConceptMapEditorPage() {
             concepts.push(...Array.from(neighborIds)
                 .map(id => currentNodes.find(n => n.id === id)?.text)
                 .filter((text): text is string => !!text)
-                .slice(0, 4)); // Max 4 neighbors + selected node = 5 concepts
+                .slice(0, 4)); 
         }
-    } else if (currentNodes && currentNodes.length > 0) { // Fallback: use first few nodes
+    } else if (currentNodes && currentNodes.length > 0) { 
         concepts = currentNodes.slice(0, 5).map(n => n.text); 
     }
     
@@ -579,6 +597,7 @@ export default function ConceptMapEditorPage() {
           const importedMapData = importedJson as ConceptMapData;
           const mapNameFromFileName = file.name.replace(/\.json$/i, '');
           importMapData(importedMapData, `Imported: ${mapNameFromFileName}`);
+          clear(); // Clear history for imported map
           toast({ title: "Map Imported", description: `"${file.name}" loaded successfully. Remember to save if you want to keep it.` });
         } else {
           throw new Error("Invalid JSON structure. Expected 'nodes' and 'edges' arrays.");
@@ -594,7 +613,7 @@ export default function ConceptMapEditorPage() {
       if(fileInputRef.current) fileInputRef.current.value = "";
     };
     reader.readAsText(file);
-  }, [isViewOnlyMode, toast, importMapData]);
+  }, [isViewOnlyMode, toast, importMapData, clear]);
 
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
     event.preventDefault();
@@ -784,7 +803,7 @@ export default function ConceptMapEditorPage() {
                 View AI-generated suggestions or textual representation of your map.
               </SheetDescription>
             </SheetHeader>
-            <div className="py-4 h-[calc(100%-4rem)]"> {/* Adjust height to account for header */}
+            <div className="py-4 h-[calc(100%-4rem)]"> 
               <AISuggestionPanel
                 mapData={storeMapData}
                 currentMapNodes={storeMapData.nodes}

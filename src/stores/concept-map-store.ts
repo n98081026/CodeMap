@@ -1,6 +1,8 @@
 
 import { create } from 'zustand';
-import { temporal, type TemporalState as ZustandTemporalState } from 'zustand/middleware/temporal'; // Direct import
+import { temporal } from 'zundo'; // Import temporal from zundo
+import type { TemporalState as ZundoTemporalState } from 'zundo'; // Import type from zundo
+
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 
 // --- Unique ID Generation ---
@@ -66,22 +68,15 @@ interface ConceptMapState {
   updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
   deleteEdge: (edgeId: string) => void;
 
-  // Methods added by temporal middleware
-  undo?: () => void;
-  redo?: () => void;
-  clearTemporal?: () => void; 
-  // pastStates and futureStates are typically part of the temporal state object, not direct properties of the store state.
+  // Note: undo, redo, clear are not part of the state slice but are methods on the store.temporal object provided by zundo
 }
 
-// Define the part of the state that will be tracked by temporal middleware
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId'>;
+// Define the part of the state that will be tracked by zundo
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType'>;
 
-// Type for the temporal state structure provided by zustand/middleware/temporal
-// This might be an opaque type or a specific structure defined by the middleware.
-// For now, we assume ZustandTemporalState is the correct type from the import.
-export type ConceptMapStoreWithTemporal = ConceptMapState & {
-  temporal: ZustandTemporalState<TrackedState>; // This structure might be specific to zundo/older versions
-};
+// Type for the temporal state structure provided by zundo.
+// This is typically accessed via useConceptMapStore.temporal.getState()
+export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
 
 const initialStateBase: Omit<ConceptMapState, 
@@ -89,8 +84,7 @@ const initialStateBase: Omit<ConceptMapState,
   'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
   'setSelectedElement' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 'setAiExpandedConcepts' | 
   'resetAiSuggestions' | 'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' | 
-  'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
-  'undo' | 'redo' | 'clearTemporal'
+  'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -162,8 +156,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
         }
         
         set(newMapState);
-        const storeApi = get();
-        if (storeApi.clearTemporal) storeApi.clearTemporal();
+        // History clearing will be handled by the component after state update
       },
       setLoadedMap: (map) => {
         set({
@@ -181,8 +174,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           aiSuggestedRelations: [],
           aiExpandedConcepts: [],
         });
-        const storeApi = get();
-        if (storeApi.clearTemporal) storeApi.clearTemporal();
+        // History clearing will be handled by the component after state update
       },
       importMapData: (importedData, fileName) => {
         const currentMapName = get().mapName;
@@ -202,13 +194,11 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isSaving: false,
           error: null,
         }));
-        const storeApi = get();
-        if (storeApi.clearTemporal) storeApi.clearTemporal();
+        // History clearing will be handled by the component after state update
       },
       resetStore: () => {
         set(initialStateBase);
-        const storeApi = get();
-        if (storeApi.clearTemporal) storeApi.clearTemporal();
+        // History clearing will be handled by the component after state update
       },
 
       addNode: (options) => set((state) => {
@@ -281,19 +271,16 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })
     }),
     {
-      limit: 50, 
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType };
       },
-      // Additional temporal options if needed
+      limit: 50, 
+      // equality: (pastState, currentState) => { /* custom equality function if needed */ },
+      // onSave: (pastState, currentState) => { /* callback on save */ },
     }
   )
 );
         
 
 export default useConceptMapStore;
-
-    
-
-    
