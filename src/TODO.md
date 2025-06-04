@@ -108,15 +108,23 @@
     - [x] **Map Creation & Linking**: (Concept Map & Submission linking via API to Supabase-backed services)
     - [x] **Viewing Generated Map**: (SubmissionListItem links to generated map in view-only mode).
     - [ ] (Advanced/Future) Allow selective merging/importing of parts of the AI-generated map into an existing map.
-- [ ] **Improve Usability of In-Editor GenAI Tools:**
+
+- [ ] **Improve Usability of In-Editor GenAI Tools (Whimsical-Inspired):**
+    - [ ] **Canvas-Integrated AI Brainstorming & Expansion:**
+        - [ ] **Context Menu AI Actions:** Implement AI actions (Expand, Suggest Relations, Ask AI Question) directly on node right-click context menus. (This enhances `Context for expandConcept` and `suggestRelations`).
+        - [ ] **"Quick AI Node/Cluster" on Canvas:** Allow user to type a prompt on canvas (e.g., via a floating button or command palette) to generate a new node or a small cluster of related nodes directly.
+        - [ ] **Direct AI Output Visualization:** For AI-suggested nodes/edges, investigate options for previewing them directly on the canvas (e.g., as ghost elements) before final addition, rather than solely relying on the `AISuggestionPanel`.
+    - [ ] **AI for Structuring Text into Map Snippets:**
+        - [ ] Enhance "Extract Concepts" (or create new tool): Allow pasting larger text blocks (e.g., meeting notes) and have AI attempt to generate a small, structured set of interconnected nodes (a mini-map snippet) directly from it.
     - [ ] **Context for `extractConcepts`**: (Future Feature) If text is from document upload, pass document name/context. Consider allowing extraction from selected node text or notes.
     - [ ] **Context for `suggestRelations`**: Revise `SuggestRelationsModal` and page logic to better utilize multiple selected nodes from the canvas as input, rather than just the primary selected node or a text list. Provide option to run on all map concepts.
     - [ ] **Context for `expandConcept`**: Ensure clear visual feedback to the user about which node is being used for expansion, especially when triggered from the toolbar.
-    - [ ] **Review & Iterate Prompts**: Review prompts for `extractConcepts`, `suggestRelations`, `expandConcept` in `src/ai/flows/` to improve quality, relevance, and actionability of suggestions. Aim for fewer, high-impact suggestions if current output is noisy.
+    - [ ] **Review & Iterate Prompts**: Continuously review prompts for `extractConcepts`, `suggestRelations`, `expandConcept` in `src/ai/flows/` to improve quality, relevance, and actionability of suggestions. Aim for fewer, high-impact suggestions if current output is noisy.
+
 - [ ] **Enhance Interactive AI Suggestions in `AISuggestionPanel`:**
-    - [ ] **Workflow Review**: Re-evaluate the entire workflow from invoking an AI tool to seeing suggestions and adding them to the map. Identify and smooth out friction points.
+    - [ ] **Workflow Review**: Re-evaluate the entire workflow from invoking an AI tool to seeing suggestions and adding them to the map. Identify and smooth out friction points. (Panel should be a companion, not a bottleneck).
     - [ ] **Visual Feedback on Add**: Provide clearer visual feedback (e.g., suggestion item grays out, shows a checkmark, or is removed) when a suggestion is successfully added to the map from the panel.
-    - [ ] **Smart Placement**: When adding AI-suggested nodes to the map, implement a smarter placement strategy (e.g., near related existing nodes, in an open canvas area) rather than just random positions.
+    - [ ] **Smart Placement**: When adding AI-suggested nodes *from the panel*, refine the placement strategy (e.g., near related existing nodes, in an open canvas area) rather than just random positions.
     - [x] **Selective Addition**: "Add Selected" and "Add All New" implemented for suggestions.
     - [x] **Edit Before Adding**: Suggestions can be edited in the panel.
     - [x] **Clearer Visual Cues**: Differentiates existing/similar suggestions, clear option for each category. (Theming and status indicators added)
