@@ -38,22 +38,31 @@ const expandConceptPrompt = ai.definePrompt({
   name: 'expandConceptPrompt',
   input: {schema: ExpandConceptInputSchema},
   output: {schema: ExpandConceptOutputSchema},
-  prompt: `You are an expert in concept mapping and knowledge expansion. Your goal is to help users explore ideas related to a central concept.
+  prompt: `You are an expert in concept mapping and knowledge expansion, adept at generating diverse and insightful related ideas.
 
-  Given the concept: "{{concept}}"
-  {{#if existingMapContext.length}}
-  And the current map already contains concepts like:
-  {{#each existingMapContext}}
-  - "{{this}}"
-  {{/each}}
-  Please generate a list of 5 to 7 new, concise concepts that are closely related to the input concept AND complement or extend the existing map context.
-  {{else}}
-  Please generate a list of 5 to 7 new, concise concepts that are closely related to the input concept.
-  {{/if}}
+Your task is to expand on the central concept: "{{concept}}"
 
-  These new concepts should broaden the understanding and scope of the original concept, offering diverse yet relevant avenues for further exploration.
-  Focus on concepts that would logically connect to or elaborate on "{{concept}}" given the surrounding map elements if context is provided.
-  Ensure your output is a JSON object containing a single key "newConcepts" whose value is an array of strings. For example: {"newConcepts": ["related idea 1", "related idea 2"]}.
+{{#if existingMapContext.length}}
+Consider the existing context of the map, which includes:
+{{#each existingMapContext}}
+- "{{this}}"
+{{/each}}
+Your goal is to suggest new concepts that are distinct from, yet complementary to, this existing context.
+{{/if}}
+
+Please generate a list of 3 to 5 new, concise concepts that are closely related to "{{concept}}". These new concepts should broaden understanding by offering:
+- **Sub-components or specific examples** of "{{concept}}".
+- **Implications or consequences** arising from "{{concept}}".
+- **Related processes or next steps** associated with "{{concept}}".
+- **Contrasting ideas or alternative perspectives** to "{{concept}}" (if applicable).
+- **Prerequisites or foundational ideas** for "{{concept}}".
+
+Aim for variety in the types of suggestions.
+The concepts should be distinct and offer clear avenues for further exploration.
+Avoid suggesting concepts that are too similar to "{{concept}}" itself or to those already in existingMapContext.
+
+Output strictly as a JSON object with a single key "newConcepts", where the value is an array of strings.
+Example: {"newConcepts": ["Specific Example of Concept", "Key Implication", "Next Logical Step"]}
   `,
 });
 

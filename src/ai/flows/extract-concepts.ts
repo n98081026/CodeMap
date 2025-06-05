@@ -1,3 +1,4 @@
+
 // src/ai/flows/extract-concepts.ts
 'use server';
 /**
@@ -29,13 +30,20 @@ const prompt = ai.definePrompt({
   name: 'extractConceptsPrompt',
   input: {schema: ExtractConceptsInputSchema},
   output: {schema: ExtractConceptsOutputSchema},
-  prompt: `You are an expert at identifying key concepts and entities from text. Your task is to extract the most significant nouns or noun phrases that represent the core ideas.
+  prompt: `You are an expert at identifying and extracting core concepts and key entities from text. Your task is to distill the most significant nouns or short noun phrases that represent the central ideas of the provided text.
 
-  Please analyze the following text and identify the 5-10 most important key concepts.
-  Avoid overly granular or trivial concepts. Focus on terms that are central to understanding the text's main themes.
-  Return your output as a JSON object with a single key "concepts" whose value is an array of strings. For example: {"concepts": ["main idea A", "significant entity B"]}.
+Please analyze the following text:
+{{{text}}}
 
-  Text: {{{text}}}`,
+Identify 3 to 7 of the most important key concepts.
+These concepts should be:
+- **Concise:** Preferably 1-4 words.
+- **Significant:** Central to understanding the text's main themes.
+- **Specific:** Avoid overly generic terms (e.g., "system", "process", "data") unless they are highly contextualized and crucial.
+
+Return your output as a JSON object with a single key "concepts", where the value is an array of strings.
+Example: {"concepts": ["User Authentication Flow", "API Rate Limiting", "Data Encryption Standard"]}
+  `,
 });
 
 const extractConceptsFlow = ai.defineFlow(
@@ -49,3 +57,4 @@ const extractConceptsFlow = ai.defineFlow(
     return output!;
   }
 );
+

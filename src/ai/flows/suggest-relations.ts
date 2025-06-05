@@ -36,20 +36,26 @@ const prompt = ai.definePrompt({
   name: 'suggestRelationsPrompt',
   input: {schema: SuggestRelationsInputSchema},
   output: {schema: SuggestRelationsOutputSchema},
-  prompt: `You are an expert in conceptual analysis and identifying meaningful relationships between ideas.
+  prompt: `You are an expert in conceptual analysis, skilled at identifying meaningful and diverse relationships between ideas.
 
-  Given the following list of concepts, which may be from an existing concept map:
-  {{#each concepts}}
-  - {{this}}
-  {{/each}}
+Given the following list of concepts from a concept map:
+{{#each concepts}}
+- "{{this}}"
+{{/each}}
 
-  Your task is to suggest plausible relationships *between pairs of these concepts*.
-  If fewer than two concepts are provided, explain that more concepts are needed for robust suggestions, but still attempt to provide any meaningful (even if trivial) relation if possible for a single concept (e.g., relating it to a general idea).
-  For each suggested relationship, identify a source concept, a target concept, and a descriptive label for the relation (e.g., "causes", "is a type of", "part of", "influences", "leads to", "related to").
-  Focus on the most direct and significant relationships.
-  Return your output as a JSON array. Each element in the array should be an object with three keys: "source" (string), "target" (string), and "relation" (string).
-  Example: [{"source": "Concept A", "target": "Concept B", "relation": "is a part of"}]
-  If no meaningful relations can be suggested (e.g., only one unrelated concept provided), return an empty array.
+Your task is to suggest 3 to 5 of the most plausible and insightful relationships *between pairs of these exact concepts*.
+The source and target of each relationship MUST be one of the concepts provided in the list above. Do not introduce new concepts.
+
+For each suggested relationship, provide:
+- "source": The source concept (must be from the input list).
+- "target": The target concept (must be from the input list, and different from the source).
+- "relation": A concise, descriptive label for the relationship (e.g., "causes", "is a type of", "supports", "depends on", "leads to", "contrasts with").
+
+Prioritize relationships that highlight key interactions, dependencies, or classifications. Aim for a variety of relationship types if possible.
+If fewer than two concepts are provided, or if no meaningful relationships can be formed between the given concepts, return an empty array.
+
+Output strictly as a JSON array of objects.
+Example: [{"source": "User Authentication", "target": "JWT", "relation": "uses"}, {"source": "Database Security", "target": "User Authentication", "relation": "is critical for"}]
   `,
 });
 
