@@ -56,6 +56,10 @@ interface ConceptMapState {
   setAiExpandedConcepts: (concepts: string[]) => void;
   resetAiSuggestions: () => void;
   
+  removeExtractedConceptsFromSuggestions: (conceptsToRemove: string[]) => void;
+  removeSuggestedRelationsFromSuggestions: (relationsToRemove: Array<{ source: string; target: string; relation: string }>) => void;
+  removeExpandedConceptsFromSuggestions: (conceptsToRemove: string[]) => void;
+
   initializeNewMap: (userId: string) => void;
   setLoadedMap: (map: ConceptMap) => void;
   importMapData: (importedData: ConceptMapData, fileName?: string) => void;
@@ -80,7 +84,8 @@ const initialStateBase: Omit<ConceptMapState,
   'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 
   'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
   'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 'setAiExpandedConcepts' | 
-  'resetAiSuggestions' | 'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' | 
+  'resetAiSuggestions' | 'removeExtractedConceptsFromSuggestions' | 'removeSuggestedRelationsFromSuggestions' | 'removeExpandedConceptsFromSuggestions' | 
+  'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' | 
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
 > = {
   mapId: null,
@@ -127,6 +132,20 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
       setAiExpandedConcepts: (concepts) => set({ aiExpandedConcepts: concepts }),
       resetAiSuggestions: () => set({ aiExtractedConcepts: [], aiSuggestedRelations: [], aiExpandedConcepts: [] }),
+
+      removeExtractedConceptsFromSuggestions: (conceptsToRemove) => set((state) => ({
+        aiExtractedConcepts: state.aiExtractedConcepts.filter(concept => !conceptsToRemove.includes(concept))
+      })),
+      removeSuggestedRelationsFromSuggestions: (relationsToRemove) => set((state) => ({
+        aiSuggestedRelations: state.aiSuggestedRelations.filter(relation => 
+          !relationsToRemove.some(rtr => 
+            rtr.source === relation.source && rtr.target === relation.target && rtr.relation === relation.relation
+          )
+        )
+      })),
+      removeExpandedConceptsFromSuggestions: (conceptsToRemove) => set((state) => ({
+        aiExpandedConcepts: state.aiExpandedConcepts.filter(concept => !conceptsToRemove.includes(concept))
+      })),
 
       initializeNewMap: (userId) => {
         const newMapState = {

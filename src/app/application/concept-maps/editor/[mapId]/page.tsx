@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -68,6 +69,9 @@ export default function ConceptMapEditorPage() {
     setAiSuggestedRelations: setStoreAiSuggestedRelations,
     setAiExpandedConcepts: setStoreAiExpandedConcepts,
     resetAiSuggestions: resetStoreAiSuggestions,
+    removeExtractedConceptsFromSuggestions,
+    removeSuggestedRelationsFromSuggestions,
+    removeExpandedConceptsFromSuggestions,
     importMapData,
   } = useConceptMapStore();
   
@@ -359,9 +363,13 @@ export default function ConceptMapEditorPage() {
       addedCount++;
     });
 
-    if (addedCount > 0) toast({ title: "Concepts Added", description: `${addedCount} new concepts added to map. Remember to save.` });
-    else toast({ title: "No New Concepts Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
-  }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
+    if (addedCount > 0) {
+      toast({ title: "Concepts Added", description: `${addedCount} new concepts added to map. Remember to save.` });
+      removeExtractedConceptsFromSuggestions(selectedConcepts);
+    } else {
+      toast({ title: "No New Concepts Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
+    }
+  }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition, removeExtractedConceptsFromSuggestions]);
 
   const addSelectedSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) {
@@ -376,7 +384,7 @@ export default function ConceptMapEditorPage() {
     let relationsAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
     
-    selectedRelations.forEach((rel, index) {
+    selectedRelations.forEach((rel, index) => {
       let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
       let sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
       if (!sourceNode) {
@@ -407,9 +415,13 @@ export default function ConceptMapEditorPage() {
     if (relationsAddedCount > 0) toastMessage += `${relationsAddedCount} new relations added. `;
     if (conceptsAddedFromRelationsCount > 0) toastMessage += `${conceptsAddedFromRelationsCount} new concepts (from relations) added. `;
 
-    if (toastMessage) toast({ title: "Relations Added", description: `${toastMessage.trim()} Remember to save the map.` });
-    else toast({ title: "No New Relations Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
-  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, getNodePlacementPosition]);
+    if (toastMessage) {
+        toast({ title: "Relations Added", description: `${toastMessage.trim()} Remember to save the map.` });
+        removeSuggestedRelationsFromSuggestions(selectedRelations);
+    } else {
+        toast({ title: "No New Relations Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
+    }
+  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, getNodePlacementPosition, removeSuggestedRelationsFromSuggestions]);
 
   const addSelectedExpandedConceptsToMap = useCallback((selectedConcepts: string[]) => {
      if (isViewOnlyMode) {
@@ -430,9 +442,13 @@ export default function ConceptMapEditorPage() {
       });
       addedCount++;
     });
-    if (addedCount > 0) toast({ title: "Expanded Ideas Added", description: `${addedCount} new ideas added to map. Remember to save.` });
-    else toast({ title: "No New Ideas Added", description: "All selected new suggestions might already exist or were not selected.", variant: "default" });
-  }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
+    if (addedCount > 0) {
+      toast({ title: "Expanded Ideas Added", description: `${addedCount} new ideas added to map. Remember to save.` });
+      removeExpandedConceptsFromSuggestions(selectedConcepts);
+    } else {
+      toast({ title: "No New Ideas Added", description: "All selected new suggestions might already exist or were not selected.", variant: "default" });
+    }
+  }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition, removeExpandedConceptsFromSuggestions]);
 
 
   const handleAddNodeToData = useCallback(() => {
