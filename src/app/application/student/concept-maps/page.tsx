@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { ConceptMap } from "@/types";
 import { UserRole } from "@/types"; 
-import { PlusCircle, Share2, Loader2, AlertTriangle } from "lucide-react";
+import { PlusCircle, Share2, Loader2, AlertTriangle, Eye, Edit } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
@@ -127,6 +127,8 @@ export default function StudentConceptMapsPage() {
               key={map.id}
               map={map}
               onDelete={handleDeleteMap}
+              viewLinkHref={`/application/concept-maps/editor/${map.id}?viewOnly=true`}
+              editLinkHref={`/application/concept-maps/editor/${map.id}`}
             />
           ))}
         </div>
@@ -134,4 +136,3 @@ export default function StudentConceptMapsPage() {
     </div>
   );
 }
-

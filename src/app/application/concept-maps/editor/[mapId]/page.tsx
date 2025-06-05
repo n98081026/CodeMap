@@ -13,11 +13,11 @@ import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide-react";
+import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save, EyeOff } from "lucide-react";
 import {
   ExtractConceptsModal,
   SuggestRelationsModal,
-  ExpandConceptModal, // Modal itself is still used
+  ExpandConceptModal, 
   AskQuestionModal,
 } from "@/components/concept-map/genai-modals";
 import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal";
@@ -25,6 +25,7 @@ import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-
 import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
+import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
@@ -54,8 +55,8 @@ export default function ConceptMapEditorPage() {
   const {
     mapId: storeMapId, mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
     mapData: storeMapData, isLoading: isStoreLoading, isSaving: isStoreSaving, error: storeError,
-    selectedElementId, selectedElementType,
-    aiExtractedConcepts, aiSuggestedRelations, // aiExpandedConcepts removed from store access here
+    selectedElementId, selectedElementType, multiSelectedNodeIds,
+    aiExtractedConcepts, aiSuggestedRelations, 
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     deleteNode: deleteStoreNode, updateNode: updateStoreNode,
     updateEdge: updateStoreEdge,
@@ -78,14 +79,13 @@ export default function ConceptMapEditorPage() {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen, conceptsForRelationSuggestion, openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
     isExpandConceptModalOpen, setIsExpandConceptModalOpen, conceptToExpandDetails, mapContextForExpansion, openExpandConceptModal, handleConceptExpanded,
-    // addExpandedConceptsToMap, // This specific panel-adder is no longer needed for expand
     isQuickClusterModalOpen, setIsQuickClusterModalOpen, openQuickClusterModal, handleClusterGenerated,
     isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen, openGenerateSnippetModal, handleSnippetGenerated,
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
     isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
     handleSummarizeSelectedNodes,
-    addStoreNode: addNodeFromHook, // Renaming for clarity if direct add from hook needed elsewhere
-    deleteEdge: deleteEdgeFromHook, // Renaming for clarity
+    addStoreNode: addNodeFromHook, 
+    addStoreEdge: addEdgeFromHook,
   } = useConceptMapAITools(isViewOnlyMode);
 
 
@@ -95,7 +95,7 @@ export default function ConceptMapEditorPage() {
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; nodeId: string | null; } | null>(null);
 
   const handleMapPropertiesChange = useCallback((properties: { name: string; isPublic: boolean; sharedWithClassroomId: string | null; }) => {
-    if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
+    if (isViewOnlyMode) { toast({ title: "View Only Mode", description: "Map properties cannot be changed.", variant: "default"}); return; }
     setStoreMapName(properties.name);
     setStoreIsPublic(properties.isPublic);
     setStoreSharedWithClassroomId(properties.sharedWithClassroomId);
@@ -112,7 +112,7 @@ export default function ConceptMapEditorPage() {
   const aiToolsHook = useConceptMapAITools(isViewOnlyMode);
 
   const handleAddNodeToData = useCallback(() => {
-    if (isViewOnlyMode) return;
+    if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
     const { x, y } = aiToolsHook.getNodePlacementPosition(useConceptMapStore.getState().mapData.nodes.length, 1);
     addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
@@ -120,18 +120,18 @@ export default function ConceptMapEditorPage() {
   }, [isViewOnlyMode, toast, aiToolsHook, addNodeFromHook]);
 
   const handleAddEdgeToData = useCallback(() => {
-    if (isViewOnlyMode) return;
+    if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const nodes = useConceptMapStore.getState().mapData.nodes;
-    if (nodes.length < 2) { toast({ title: "Cannot Add Edge", variant: "default" }); return; }
+    if (nodes.length < 2) { toast({ title: "Cannot Add Edge", description: "At least two nodes are required to add an edge.", variant: "default" }); return; }
     const sourceNode = nodes[nodes.length - 2]; const targetNode = nodes[nodes.length - 1];
-    if (!sourceNode || !targetNode) { toast({ title: "Error Adding Edge", variant: "destructive"}); return; }
-    aiToolsHook.addStoreEdge({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
+    if (!sourceNode || !targetNode) { toast({ title: "Error Adding Edge", description: "Source or target node for edge not found.", variant: "destructive"}); return; }
+    addEdgeFromHook({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
     toast({ title: "Edge Added" });
-  }, [isViewOnlyMode, toast, aiToolsHook]);
+  }, [isViewOnlyMode, toast, addEdgeFromHook]);
 
   const getRoleBasedDashboardLink = useCallback(() => { return user ? `/application/${user.role}/dashboard` : '/login'; }, [user]);
-  const getBackLink = useCallback(() => { return "/application/student/concept-maps"; }, []);
-  const getBackButtonText = useCallback(() => { return "Back to My Maps"; }, []);
+  const getBackLink = useCallback(() => { return user && user.role === UserRole.TEACHER ? "/application/teacher/classrooms" : "/application/student/concept-maps"; }, [user]);
+  const getBackButtonText = useCallback(() => { return user && user.role === UserRole.TEACHER ? "Back to Classrooms" : "Back to My Maps"; }, [user]);
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
   const onToggleAiPanel = useCallback(() => setIsAiPanelOpen(prev => !prev), []);
@@ -166,7 +166,7 @@ export default function ConceptMapEditorPage() {
     toast({title: "Map Exported", description: `${mapName}.json has been downloaded.`});
   }, [mapName, storeMapData, isPublic, sharedWithClassroomId, toast]);
 
-  const handleTriggerImport = useCallback(() => { if (!isViewOnlyMode) fileInputRef.current?.click(); }, [isViewOnlyMode]);
+  const handleTriggerImport = useCallback(() => { if (!isViewOnlyMode) fileInputRef.current?.click(); else toast({title: "View Only Mode", description: "Import disabled."})}, [isViewOnlyMode, toast]);
   const handleFileSelectedForImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode) return; const file = event.target.files?.[0]; if (!file) return;
     try {
@@ -185,32 +185,39 @@ export default function ConceptMapEditorPage() {
   }, [isViewOnlyMode, toast, importMapData, temporalStoreAPI]);
 
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
-    event.preventDefault(); if (isViewOnlyMode) return;
+    event.preventDefault(); 
     setContextMenu({ isOpen: true, x: event.clientX, y: event.clientY, nodeId: node.id });
-  }, [isViewOnlyMode]);
+  }, []);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
   const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => { if(!isViewOnlyMode) deleteStoreNode(nodeId); closeContextMenu(); }, [isViewOnlyMode, deleteStoreNode, closeContextMenu]);
 
   const handleSelectedElementPropertyUpdateInspector = useCallback((updates: any) => {
     if (isViewOnlyMode || !selectedElementId || !selectedElementType ) return;
     if (selectedElementType === 'node') updateStoreNode(selectedElementId, updates);
-    else if (selectedElementType === 'edge') updateEdge(selectedElementId, updates);
-  }, [isViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateEdge]);
+    else if (selectedElementType === 'edge') updateStoreEdge(selectedElementId, updates);
+  }, [isViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
 
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
-  if (storeError) { return <div className="p-4 text-destructive"><AlertTriangle /> {storeError} <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
+  if (storeError) { return <div className="p-4 text-destructive flex flex-col items-center justify-center h-full gap-4"><AlertTriangle className="h-10 w-10" /> <p>{storeError}</p> <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col">
       <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileSelectedForImport} style={{ display: 'none' }} disabled={isViewOnlyMode} />
-      <DashboardHeader title={isViewOnlyMode ? `Viewing: ${mapName}` : mapName} description={isViewOnlyMode ? "View-only mode." : "Create & visualize."} icon={(isNewMapMode || storeMapId === 'new') ? Compass : Share2} iconLinkHref={getRoleBasedDashboardLink()}>
-        {!isViewOnlyMode && <Button onClick={() => saveMap(isViewOnlyMode)} disabled={isStoreSaving}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
+      <DashboardHeader 
+        title={mapName} 
+        description={isViewOnlyMode ? "Currently in view-only mode." : "Create, edit, and visualize your ideas."} 
+        icon={isViewOnlyMode ? EyeOff : (isNewMapMode || storeMapId === 'new') ? Compass : Share2} 
+        iconLinkHref={getRoleBasedDashboardLink()}
+      >
+        {!isViewOnlyMode && <Button onClick={() => saveMap(isViewOnlyMode)} disabled={isStoreSaving || isViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
         <Button asChild variant="outline"><Link href={getBackLink()}><ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}</Link></Button>
       </DashboardHeader>
       <ReactFlowProvider>
         <EditorToolbar
           onNewMap={handleNewMap} onSaveMap={() => saveMap(isViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
-          onExtractConcepts={() => openExtractConceptsModal()} onSuggestRelations={() => openSuggestRelationsModal()} onExpandConcept={() => openExpandConceptModal(selectedElementId || undefined)}
+          onExtractConcepts={() => openExtractConceptsModal(selectedElementId || undefined)} 
+          onSuggestRelations={() => openSuggestRelationsModal(selectedElementId || undefined)} 
+          onExpandConcept={() => openExpandConceptModal(selectedElementId || undefined)}
           onQuickCluster={openQuickClusterModal} onGenerateSnippetFromText={openGenerateSnippetModal}
           onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
           isViewOnlyMode={isViewOnlyMode} onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
@@ -223,7 +230,8 @@ export default function ConceptMapEditorPage() {
               mapDataFromStore={storeMapData} isViewOnlyMode={isViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange} onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode} onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={deleteEdgeFromHook} onConnectInStore={aiToolsHook.addStoreEdge}
+              onEdgesDeleteInStore={(edgeId) => { if (!isViewOnlyMode) updateStoreEdge(edgeId, {}); }} // Using update to trigger history for deletion
+              onConnectInStore={addEdgeFromHook}
               onNodeContextMenu={handleNodeContextMenu}
               onNodeDragStop={ (event, node) => { if (!isViewOnlyMode && node.position && typeof node.position.x === 'number' && typeof node.position.y === 'number') updateStoreNode(node.id, { x: node.position.x, y: node.position.y }); }}
             />

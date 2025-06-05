@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import useConceptMapStore from '@/stores/concept-map-store'; // Import the store
+import useConceptMapStore from '@/stores/concept-map-store'; 
 
 interface EditorToolbarProps {
   onNewMap: () => void;
@@ -24,7 +24,7 @@ interface EditorToolbarProps {
   onExpandConcept: () => void;
   onQuickCluster: () => void; 
   onGenerateSnippetFromText: () => void; 
-  onSummarizeSelectedNodes: () => void; // New prop for summarization
+  onSummarizeSelectedNodes: () => void; 
   isViewOnlyMode?: boolean;
   onAddNodeToData?: () => void;
   onAddEdgeToData?: () => void;
@@ -50,7 +50,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onExpandConcept,
   onQuickCluster, 
   onGenerateSnippetFromText, 
-  onSummarizeSelectedNodes, // New prop
+  onSummarizeSelectedNodes, 
   isViewOnlyMode,
   onAddNodeToData,
   onAddEdgeToData,
@@ -65,7 +65,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   canRedo,
 }: EditorToolbarProps) {
   const { toast } = useToast();
-  const { multiSelectedNodeIds } = useConceptMapStore(); // Get multi-selected nodes from store
+  const { multiSelectedNodeIds } = useConceptMapStore(); 
 
   const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
     if (isViewOnlyMode) {

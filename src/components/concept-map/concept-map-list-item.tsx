@@ -22,12 +22,18 @@ import {
 interface ConceptMapListItemProps {
   map: ConceptMap;
   onDelete: (mapId: string, mapName: string) => void;
+  viewLinkHref?: string;
+  editLinkHref?: string;
 }
 
 export const ConceptMapListItem: React.FC<ConceptMapListItemProps> = ({
   map,
   onDelete,
+  viewLinkHref,
+  editLinkHref,
 }) => {
+  const defaultViewLink = `/application/concept-maps/editor/${map.id}?viewOnly=true`;
+  const defaultEditLink = `/application/concept-maps/editor/${map.id}`;
   return (
     <Card key={map.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
@@ -44,12 +50,12 @@ export const ConceptMapListItem: React.FC<ConceptMapListItemProps> = ({
       </CardContent>
       <CardFooter className="grid grid-cols-3 gap-2">
         <Button asChild variant="outline" size="sm">
-          <Link href={`/application/concept-maps/editor/${map.id}`}>
+          <Link href={viewLinkHref || defaultViewLink}>
             <Eye className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">View</span>
           </Link>
         </Button>
         <Button asChild variant="outline" size="sm">
-          <Link href={`/application/concept-maps/editor/${map.id}?edit=true`}>
+          <Link href={editLinkHref || defaultEditLink}>
             <Edit className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
           </Link>
         </Button>

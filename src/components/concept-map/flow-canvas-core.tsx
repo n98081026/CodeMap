@@ -50,7 +50,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       data: { label: appNode.text, details: appNode.details, type: appNode.type || 'default' },
       position: { x: appNode.x ?? Math.random() * 400, y: appNode.y ?? Math.random() * 300 },
       draggable: !isViewOnlyMode,
-      selectable: true,
+      selectable: true, // Selection still allowed for properties view
       connectable: !isViewOnlyMode,
       dragHandle: '.cursor-move',
     }));
@@ -69,7 +69,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
       updatable: !isViewOnlyMode,
       deletable: !isViewOnlyMode,
-      selectable: true,
+      selectable: true, // Selection still allowed
     }));
     setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
   }, [mapDataFromStore, setRfNodes, setRfEdges, isViewOnlyMode]);
@@ -112,14 +112,14 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     deletedRfEdges.forEach(edge => onEdgesDeleteInStore(edge.id));
   }, [isViewOnlyMode, onEdgesDeleteInStore]);
 
-  const handleRfConnect = useCallback((params: Connection) => {
+  const handleRfConnect: OnConnect = useCallback((params: Connection) => {
     if (isViewOnlyMode) return;
     onConnectInStore({
       source: params.source!,
       target: params.target!,
       sourceHandle: params.sourceHandle,
       targetHandle: params.targetHandle,
-      label: "connects"
+      label: "connects" // Default label, can be changed in PropertiesInspector
     });
   }, [isViewOnlyMode, onConnectInStore]);
 

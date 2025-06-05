@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Eye, FileArchive, AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
-import React from "react"; // Removed unused imports
-import { useSubmissionStatusPoller } from "@/hooks/useSubmissionStatusPoller"; // Import the new hook
+import React from "react"; 
+import { useSubmissionStatusPoller } from "@/hooks/useSubmissionStatusPoller"; 
 
 interface SubmissionListItemProps {
   submission: ProjectSubmission;

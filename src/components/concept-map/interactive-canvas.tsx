@@ -85,19 +85,20 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         fitViewOptions={fitViewOptions}
         nodesDraggable={!isViewOnlyMode}
         nodesConnectable={!isViewOnlyMode}
-        elementsSelectable={true}
+        elementsSelectable={true} // Keep selectable for property viewing
         deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
         className="bg-background"
         proOptions={{ hideAttribution: true }}
         nodeTypes={nodeTypes}
         onNodeContextMenu={onNodeContextMenu}
         onNodeDragStop={onNodeDragStop}
-        panOnDrag={!isViewOnlyMode}
-        zoomOnScroll={!isViewOnlyMode}
-        zoomOnPinch={!isViewOnlyMode}
-        zoomOnDoubleClick={!isViewOnlyMode}
+        // Allow pan and zoom in view-only mode for navigation
+        panOnDrag={true} 
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={!isViewOnlyMode} // Double click zoom might be an edit action
         selectionOnDrag={!isViewOnlyMode}
-        // paneMoveable={!isViewOnlyMode} // Removed this line
+        // paneMoveable={true} // Always allow pane movement for navigation
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />

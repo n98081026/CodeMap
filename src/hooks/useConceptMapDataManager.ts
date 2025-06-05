@@ -6,6 +6,7 @@ from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { ConceptMap, User } from '@/types';
+import { UserRole } from '@/types';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 interface UseConceptMapDataManagerProps {
@@ -110,7 +111,7 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
   useEffect(() => {
     if (routeMapId) {
       loadMapData(routeMapId);
-    } else if (user?.id && !storeMapId && isNewMapMode) { // Handle direct navigation to /editor/new or similar
+    } else if (user?.id && !storeMapId && isNewMapMode) { 
       initializeNewMap(user.id);
       temporalStoreAPI.getState().clear();
     }
@@ -230,7 +231,6 @@ const MOCK_USER_FOR_TESTING_MAPS: { [key: string]: ConceptMap } = {
         isPublic: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
     }
 };
-enum UserRole { STUDENT = 'student', TEACHER = 'teacher', ADMIN = 'admin' }
 // --- END OF AUTH BYPASS MOCK DATA ---
 
     

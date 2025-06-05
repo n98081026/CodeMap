@@ -331,21 +331,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchAndSetSupabaseUser, toast]);
 
   const setTestUserRole = useCallback((newRole: UserRole) => {
-     // When bypassing auth, this still updates the MOCK_USER_FOR_TESTING's role for current session
-    if (BYPASS_AUTH_FOR_TESTING) {
-      setUser(prevUser => {
-          if (prevUser) {
-              console.warn(`BYPASS: Locally overriding MOCK user role to ${newRole} for testing.`);
-              return { ...prevUser, role: newRole };
-          }
-          return null;
-      });
-      return;
-    }
-    // Normal operation for non-bypassed auth (though it still only updates local state)
     setUser(prevUser => {
       if (prevUser) {
-        console.warn(`Locally overriding user role to ${newRole} for testing. This is NOT saved to the database.`);
+        console.warn(`Locally overriding user role to ${newRole} for testing. This is NOT saved to the database. (Bypass_Auth: ${BYPASS_AUTH_FOR_TESTING})`);
         return { ...prevUser, role: newRole };
       }
       return null;
