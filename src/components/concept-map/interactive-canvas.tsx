@@ -97,7 +97,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         zoomOnPinch={!isViewOnlyMode}
         zoomOnDoubleClick={!isViewOnlyMode}
         selectionOnDrag={!isViewOnlyMode}
-        paneMoveable={!isViewOnlyMode}
+        // paneMoveable={!isViewOnlyMode} // Removed this line
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
