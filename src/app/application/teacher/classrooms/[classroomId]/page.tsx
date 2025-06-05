@@ -6,27 +6,19 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types";
-import { UserRole, ProjectSubmissionStatus } from "@/types";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, Library } from "lucide-react";
+import { ArrowLeft, Users, Share2, FolderKanban, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { EmptyState } from "@/components/layout/empty-state";
+import { EmptyState } from "@/components/layout/empty-state"; // Kept for main error state
+
+// Import new tab components
+import { ClassroomStudentsTab } from "@/components/teacher/classrooms/tabs/ClassroomStudentsTab";
+import { ClassroomMapsTab } from "@/components/teacher/classrooms/tabs/ClassroomMapsTab";
+import { ClassroomSubmissionsTab } from "@/components/teacher/classrooms/tabs/ClassroomSubmissionsTab";
 
 
 export default function ClassroomDetailPage() {
@@ -35,8 +27,8 @@ export default function ClassroomDetailPage() {
 
   const { user } = useAuth();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
-  const [isLoadingClassroom, setIsLoadingClassroom] = useState(true);
-  const [errorClassroom, setErrorClassroom] = useState<string | null>(null);
+  const [isLoadingClassroom, setIsLoadingClassroom] = useState(true); // For main classroom details and students
+  const [errorClassroom, setErrorClassroom] = useState<string | null>(null); // For main classroom details and students
   const { toast } = useToast();
 
   const [classroomMaps, setClassroomMaps] = useState<ConceptMap[]>([]);
@@ -49,7 +41,7 @@ export default function ClassroomDetailPage() {
 
   const headerIconLink = "/application/teacher/dashboard";
 
-  const fetchClassroomDetails = useCallback(async () => {
+  const fetchClassroomDetailsAndStudents = useCallback(async () => {
     setIsLoadingClassroom(true);
     setErrorClassroom(null);
     try {
@@ -59,7 +51,7 @@ export default function ClassroomDetailPage() {
         throw new Error(errorData.message || "Failed to fetch classroom details");
       }
       const data: Classroom = await response.json();
-      setClassroom(data);
+      setClassroom(data); // This data includes students array from the service
     } catch (err) {
       const errorMessage = (err as Error).message;
       setErrorClassroom(errorMessage);
@@ -112,11 +104,11 @@ export default function ClassroomDetailPage() {
 
   useEffect(() => {
     if (routeClassroomId) {
-      fetchClassroomDetails();
+      fetchClassroomDetailsAndStudents();
       fetchClassroomMaps();
       fetchClassroomSubmissions();
     }
-  }, [routeClassroomId, fetchClassroomDetails, fetchClassroomMaps, fetchClassroomSubmissions]);
+  }, [routeClassroomId, fetchClassroomDetailsAndStudents, fetchClassroomMaps, fetchClassroomSubmissions]);
 
   const handleRemoveStudent = useCallback(async (studentId: string, studentName: string) => {
     if (!classroom) return;
@@ -132,7 +124,7 @@ export default function ClassroomDetailPage() {
         title: "Student Removed",
         description: `${studentName} has been removed from the classroom.`,
       });
-      fetchClassroomDetails();
+      fetchClassroomDetailsAndStudents(); // Re-fetch classroom details to update student list
     } catch (errorMsg) {
       toast({
         title: "Error Removing Student",
@@ -140,13 +132,13 @@ export default function ClassroomDetailPage() {
         variant: "destructive",
       });
     }
-  }, [classroom, toast, fetchClassroomDetails]);
+  }, [classroom, toast, fetchClassroomDetailsAndStudents]);
 
   const handleStudentActionCompleted = useCallback(() => {
-    fetchClassroomDetails();
-  }, [fetchClassroomDetails]);
+    fetchClassroomDetailsAndStudents(); // Re-fetch classroom details after invite/add
+  }, [fetchClassroomDetailsAndStudents]);
 
-  if (isLoadingClassroom && !classroom) {
+  if (isLoadingClassroom && !classroom) { // Initial loading state for the whole page
     return (
       <div className="space-y-6 p-4">
         <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={headerIconLink}/>
@@ -157,7 +149,7 @@ export default function ClassroomDetailPage() {
     );
   }
 
-  if (errorClassroom || !classroom) {
+  if (errorClassroom || !classroom) { // Main error state if classroom itself fails to load
     return (
       <div className="space-y-6 p-4">
         <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={headerIconLink} />
@@ -207,57 +199,13 @@ export default function ClassroomDetailPage() {
               <CardDescription>List of students currently enrolled in this classroom.</CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoadingClassroom && !errorClassroom && <div className="flex items-center justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading students...</p></div>}
-              {!isLoadingClassroom && errorClassroom && <EmptyState icon={AlertTriangle} title="Error loading students" description={errorClassroom} actionButton={<Button onClick={fetchClassroomDetails} variant="link">Try Again</Button>} />}
-              {!isLoadingClassroom && !errorClassroom && enrolledStudents.length === 0 && (
-                <EmptyState
-                    icon={Users}
-                    title="No Students Enrolled"
-                    description='No students are currently enrolled. Use the "Invite/Add Student" button to add students.'
-                />
-              )}
-              {!isLoadingClassroom && !errorClassroom && enrolledStudents.length > 0 && (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {enrolledStudents.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell>{student.email}</TableCell>
-                        <TableCell className="text-right">
-                           <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" title="Remove student">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action will remove {student.name} from the classroom. They will lose access to classroom materials.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleRemoveStudent(student.id, student.name)}>
-                                  Remove Student
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <ClassroomStudentsTab
+                isLoading={isLoadingClassroom}
+                error={errorClassroom}
+                students={enrolledStudents}
+                onRemoveStudent={handleRemoveStudent}
+                onFetchRetry={fetchClassroomDetailsAndStudents}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -269,44 +217,13 @@ export default function ClassroomDetailPage() {
               <CardDescription>Concept maps created by students and shared with this classroom.</CardDescription>
             </CardHeader>
             <CardContent>
-                {isLoadingMaps && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading maps...</p></div>}
-                {errorMaps && !isLoadingMaps && <EmptyState icon={AlertTriangle} title="Error loading maps" description={errorMaps} actionButton={<Button onClick={fetchClassroomMaps} variant="link">Try Again</Button>} />}
-                {!isLoadingMaps && !errorMaps && classroomMaps.length === 0 && (
-                     <EmptyState
-                        icon={Library}
-                        title="No Shared Maps"
-                        description="No concept maps have been shared with this classroom yet."
-                    />
-                )}
-                {!isLoadingMaps && !errorMaps && classroomMaps.length > 0 && (
-                    <Table>
-                    <TableHeader>
-                        <TableRow>
-                        <TableHead>Map Name</TableHead>
-                        <TableHead>Owner</TableHead>
-                        <TableHead>Last Updated</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {classroomMaps.map((map) => {
-                        const owner = enrolledStudents.find(s => s.id === map.ownerId);
-                        return (
-                            <TableRow key={map.id}>
-                            <TableCell className="font-medium">{map.name}</TableCell>
-                            <TableCell>{owner?.name || map.ownerId}</TableCell>
-                            <TableCell>{new Date(map.updatedAt).toLocaleDateString()}</TableCell>
-                            <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" asChild title="View map">
-                                <Link href={`/application/concept-maps/editor/${map.id}?viewOnly=true`}><Eye className="h-4 w-4" /></Link>
-                                </Button>
-                            </TableCell>
-                            </TableRow>
-                        );
-                        })}
-                    </TableBody>
-                    </Table>
-                )}
+                <ClassroomMapsTab
+                    isLoading={isLoadingMaps}
+                    error={errorMaps}
+                    maps={classroomMaps}
+                    enrolledStudents={enrolledStudents} // Pass for owner name resolution
+                    onFetchRetry={fetchClassroomMaps}
+                />
             </CardContent>
           </Card>
         </TabsContent>
@@ -318,60 +235,13 @@ export default function ClassroomDetailPage() {
               <CardDescription>Projects submitted by students in this classroom.</CardDescription>
             </CardHeader>
             <CardContent>
-            {isLoadingSubmissions && <div className="flex justify-center items-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="ml-2">Loading submissions...</p></div>}
-            {errorSubmissions && !isLoadingSubmissions && <EmptyState icon={AlertTriangle} title="Error loading submissions" description={errorSubmissions} actionButton={<Button onClick={fetchClassroomSubmissions} variant="link">Try Again</Button>} />}
-            {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && (
-                 <EmptyState
-                    icon={FolderKanban} 
-                    title="No Submissions Yet"
-                    description="Students in this classroom haven't submitted any projects for analysis."
+                <ClassroomSubmissionsTab
+                    isLoading={isLoadingSubmissions}
+                    error={errorSubmissions}
+                    submissions={classroomSubmissions}
+                    enrolledStudents={enrolledStudents} // Pass for student name resolution
+                    onFetchRetry={fetchClassroomSubmissions}
                 />
-            )}
-            {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>File Name</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Submitted At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {classroomSubmissions.map((submission) => {
-                    const student = enrolledStudents.find(s => s.id === submission.studentId);
-                    return (
-                      <TableRow key={submission.id}>
-                        <TableCell className="font-medium">{student?.name || submission.studentId}</TableCell>
-                        <TableCell>{submission.originalFileName}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              submission.analysisStatus === ProjectSubmissionStatus.COMPLETED ? 'default' :
-                              submission.analysisStatus === ProjectSubmissionStatus.FAILED ? 'destructive' :
-                              'secondary'
-                            }
-                          >
-                            {submission.analysisStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(submission.submissionTimestamp).toLocaleString()}</TableCell>
-                        <TableCell className="text-right">
-                          {submission.generatedConceptMapId ? (
-                            <Button variant="ghost" size="icon" asChild title="View generated map">
-                               <Link href={`/application/concept-maps/editor/${submission.generatedConceptMapId}?viewOnly=true`}><Eye className="h-4 w-4" /></Link>
-                            </Button>
-                          ) : (
-                            <Button variant="ghost" size="icon" disabled><Eye className="h-4 w-4 opacity-50" /></Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -380,8 +250,11 @@ export default function ClassroomDetailPage() {
   );
 }
 
+// Ensure DashboardHeaderProps accepts iconClassName if not already declared globally
+// This might be redundant if already handled elsewhere (e.g. in src/types/index.ts or component file)
 declare module "@/components/dashboard/dashboard-header" {
   interface DashboardHeaderProps {
     iconClassName?: string;
   }
 }
+    
