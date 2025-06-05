@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -197,6 +196,12 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       const status = getItemStatus(value as string); 
       return status !== 'exact-match';
     });
+    
+    const clearSelectionForCategory = () => {
+      if (itemKeyPrefix.startsWith('extracted-')) setSelectedExtractedIndices(new Set());
+      else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(new Set());
+      else if (itemKeyPrefix.startsWith('expanded-')) setSelectedExpandedIndices(new Set());
+    };
 
     const handleAddSelected = () => {
       const toAdd = items
@@ -209,6 +214,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
 
       if (toAdd.length > 0) {
         onAddSelectedItems(toAdd);
+        clearSelectionForCategory();
       }
     };
 
@@ -324,6 +330,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
               onClick={() => {
                 if (selectableItems.length > 0) {
                    onAddSelectedItems(selectableItems.map(item => getComparableItemValue(item as EditableSuggestion | EditableRelationSuggestion)));
+                   clearSelectionForCategory();
                 }
               }}
               disabled={isViewOnlyMode || countOfAllNewOrSimilar === 0}
@@ -554,5 +561,3 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   );
 });
 AISuggestionPanel.displayName = "AISuggestionPanel";
-
-
