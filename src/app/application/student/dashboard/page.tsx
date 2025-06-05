@@ -119,7 +119,7 @@ export default function StudentDashboardPage() {
        setIsLoadingSubmissions(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // Removed toast from dependency array as it's stable
+  }, [user]); // Removed toast from dependency array
 
   if (!user && (isLoadingClassrooms || isLoadingMaps || isLoadingSubmissions)) return <LoadingSpinner />;
   if (!user) return null;
@@ -191,3 +191,4 @@ export default function StudentDashboardPage() {
     </div>
   );
 }
+

@@ -92,8 +92,8 @@ export default function AdminDashboardPage() {
     if (isLoading) {
       return <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (error) { // Simplified error display: if error is present, show it.
-        return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error fetching {itemName}</div>;
+    if (error && (count === 0 || count === null)) { // Updated condition
+        return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
   };
@@ -128,3 +128,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+

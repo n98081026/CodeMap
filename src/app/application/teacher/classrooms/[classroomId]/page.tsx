@@ -322,7 +322,7 @@ export default function ClassroomDetailPage() {
             {errorSubmissions && !isLoadingSubmissions && <EmptyState icon={AlertTriangle} title="Error loading submissions" description={errorSubmissions} actionButton={<Button onClick={fetchClassroomSubmissions} variant="link">Try Again</Button>} />}
             {!isLoadingSubmissions && !errorSubmissions && classroomSubmissions.length === 0 && (
                  <EmptyState
-                    icon={FolderKanban}
+                    icon={FolderKanban} 
                     title="No Submissions Yet"
                     description="Students in this classroom haven't submitted any projects for analysis."
                 />
@@ -379,3 +379,4 @@ export default function ClassroomDetailPage() {
     </div>
   );
 }
+

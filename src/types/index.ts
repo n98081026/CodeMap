@@ -114,3 +114,10 @@ export interface SystemSettings {
 
 export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>;
 
+// Add a type for DashboardHeaderProps to allow iconClassName
+// This is conventionally done in the component file itself, but adding here for centralization if needed.
+// declare module '@/components/dashboard/dashboard-header' {
+//   interface DashboardHeaderProps {
+//     iconClassName?: string;
+//   }
+// }
