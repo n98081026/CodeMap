@@ -1,3 +1,4 @@
+
 // src/services/classrooms/classroomService.ts
 'use server';
 
@@ -114,13 +115,19 @@ export async function createClassroom(
 export async function getClassroomsByTeacherId(
   teacherId: string,
   page?: number,
-  limit?: number
+  limit?: number,
+  searchTerm?: string
 ): Promise<{ classrooms: Classroom[]; totalCount: number }> {
   let query = supabase
     .from('classrooms')
     .select('*, teacher:profiles!teacher_id(name)', { count: 'exact' }) 
     .eq('teacher_id', teacherId)
     .order('name', { ascending: true });
+
+  if (searchTerm && searchTerm.trim() !== '') {
+    const cleanedSearchTerm = searchTerm.trim().replace(/[%_]/g, '\\$&');
+    query = query.ilike('name', `%${cleanedSearchTerm}%`);
+  }
 
   if (page && limit) {
     const startIndex = (page - 1) * limit;

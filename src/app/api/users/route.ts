@@ -1,3 +1,4 @@
+
 // src/app/api/users/route.ts
 import { NextResponse } from 'next/server';
 import { getAllUsers } from '@/services/users/userService';
@@ -9,6 +10,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit');
+    const searchTerm = searchParams.get('search') || undefined;
+
 
     const page = pageParam ? parseInt(pageParam, 10) : 1;
     const limit = limitParam ? parseInt(limitParam, 10) : 10;
@@ -18,7 +21,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Invalid page or limit parameters" }, { status: 400 });
     }
 
-    const { users, totalCount } = await getAllUsers(page, limit);
+    const { users, totalCount } = await getAllUsers(page, limit, searchTerm);
     return NextResponse.json({ users, totalCount, page, limit, totalPages: Math.ceil(totalCount / limit) });
 
   } catch (error) {
@@ -27,3 +30,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "Failed to fetch users: " + errorMessage }, { status: 500 });
   }
 }
+

@@ -1,3 +1,4 @@
+
 // src/app/api/classrooms/route.ts
 import { NextResponse } from 'next/server';
 import { createClassroom, getClassroomsByTeacherId, getClassroomsByStudentId, getAllClassrooms } from '@/services/classrooms/classroomService';
@@ -33,6 +34,8 @@ export async function GET(request: Request) {
     const studentId = searchParams.get('studentId');
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit');
+    const searchTerm = searchParams.get('search') || undefined;
+
 
     if (teacherId) {
       const page = pageParam ? parseInt(pageParam, 10) : 1; // Default to page 1
@@ -42,16 +45,19 @@ export async function GET(request: Request) {
         return NextResponse.json({ message: "Invalid page or limit parameters" }, { status: 400 });
       }
       
-      const result = await getClassroomsByTeacherId(teacherId, page, limit); // Service handles pagination
+      const result = await getClassroomsByTeacherId(teacherId, page, limit, searchTerm); // Service handles pagination & search
       return NextResponse.json(result);
     }
     
     if (studentId) {
+      // Note: getClassroomsByStudentId does not currently support pagination or search.
+      // If needed, this service function would also need to be updated.
       const classrooms = await getClassroomsByStudentId(studentId);
       return NextResponse.json(classrooms); 
     }
     
     // Admin: Get all classrooms (for count or full list if needed, here assuming for count)
+    // Note: getAllClassrooms does not currently support pagination or search.
     const allClassrooms = await getAllClassrooms(); 
     return NextResponse.json(allClassrooms); 
 

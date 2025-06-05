@@ -1,22 +1,24 @@
+
 // src/app/application/teacher/classrooms/page.tsx
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useDeferredValue } from "react";
 import Link from "next/link";
 import type { Classroom } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Users, BookOpen, Loader2, AlertTriangle, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusCircle, BookOpen, Loader2, AlertTriangle, Search } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardFooter } from "@/components/ui/card"; // Removed unused Card imports
 import { Dialog, DialogContent, DialogDescription as FormDialogDescription, DialogFooter as FormDialogFooter, DialogHeader as FormDialogHeader, DialogTitle as FormDialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/layout/empty-state";
 import { ClassroomListItem } from "@/components/classrooms/classroom-list-item";
+import { ChevronLeft, ChevronRight } from "lucide-react"; // Added for pagination
 
 const CLASSROOMS_PER_PAGE = 6;
 
@@ -36,9 +38,12 @@ export default function TeacherClassroomsPage() {
   const [totalClassrooms, setTotalClassrooms] = useState(0);
   const totalPages = Math.ceil(totalClassrooms / CLASSROOMS_PER_PAGE);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+
   const headerIconLink = "/application/teacher/dashboard";
 
-  const fetchTeacherClassrooms = useCallback(async (page: number) => {
+  const fetchTeacherClassrooms = useCallback(async (page: number, search: string) => {
     if (!user || !user.id) {
       setIsLoading(false);
       setError("User not authenticated.");
@@ -47,7 +52,16 @@ export default function TeacherClassroomsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/classrooms?teacherId=${user.id}&page=${page}&limit=${CLASSROOMS_PER_PAGE}`);
+      const searchParams = new URLSearchParams({
+        teacherId: user.id,
+        page: page.toString(),
+        limit: CLASSROOMS_PER_PAGE.toString(),
+      });
+      if (search.trim()) {
+        searchParams.append('search', search.trim());
+      }
+
+      const response = await fetch(`/api/classrooms?${searchParams.toString()}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classrooms");
@@ -58,19 +72,23 @@ export default function TeacherClassroomsPage() {
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
-      toast({
-        title: "Error Fetching Classrooms",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // toast({
+      //   title: "Error Fetching Classrooms",
+      //   description: errorMessage,
+      //   variant: "destructive",
+      // });
     } finally {
       setIsLoading(false);
     }
   }, [user, toast]);
 
   useEffect(() => {
-    fetchTeacherClassrooms(currentPage);
-  }, [currentPage, fetchTeacherClassrooms]);
+    fetchTeacherClassrooms(currentPage, deferredSearchTerm);
+  }, [currentPage, deferredSearchTerm, fetchTeacherClassrooms]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to page 1 when search term changes
+  }, [deferredSearchTerm]);
 
   const handleDeleteClassroom = useCallback(async (classroomId: string, classroomName: string) => {
     try {
@@ -83,12 +101,12 @@ export default function TeacherClassroomsPage() {
       if (teacherClassrooms.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
-        fetchTeacherClassrooms(currentPage);
+        fetchTeacherClassrooms(currentPage, deferredSearchTerm);
       }
     } catch (err) {
       toast({ title: "Error Deleting Classroom", description: (err as Error).message, variant: "destructive" });
     }
-  }, [toast, teacherClassrooms.length, currentPage, fetchTeacherClassrooms]);
+  }, [toast, teacherClassrooms.length, currentPage, fetchTeacherClassrooms, deferredSearchTerm]);
 
   const openEditModal = useCallback((classroom: Classroom) => {
     setEditingClassroom(classroom);
@@ -121,13 +139,13 @@ export default function TeacherClassroomsPage() {
       toast({ title: "Classroom Updated", description: `Classroom "${editFormData.name}" has been updated.` });
       setIsEditModalOpen(false);
       setEditingClassroom(null);
-      fetchTeacherClassrooms(currentPage);
+      fetchTeacherClassrooms(currentPage, deferredSearchTerm);
     } catch (err) {
       toast({ title: "Error Updating Classroom", description: (err as Error).message, variant: "destructive" });
     } finally {
       setIsSavingEdit(false);
     }
-  }, [editingClassroom, editFormData, toast, fetchTeacherClassrooms, currentPage]);
+  }, [editingClassroom, editFormData, toast, fetchTeacherClassrooms, currentPage, deferredSearchTerm]);
 
   const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
@@ -156,6 +174,19 @@ export default function TeacherClassroomsPage() {
         </Button>
       </DashboardHeader>
 
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Filter by classroom name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 w-full max-w-sm"
+          />
+        </div>
+      </div>
+
       {isLoading && !error && (
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -168,21 +199,23 @@ export default function TeacherClassroomsPage() {
             icon={AlertTriangle}
             title="Error Loading Classrooms"
             description={error}
-            actionButton={<Button onClick={() => fetchTeacherClassrooms(currentPage)} variant="outline" size="sm">Try Again</Button>}
+            actionButton={<Button onClick={() => fetchTeacherClassrooms(currentPage, deferredSearchTerm)} variant="outline" size="sm">Try Again</Button>}
         />
       )}
 
-      {!isLoading && !error && teacherClassrooms.length === 0 && totalClassrooms === 0 && (
+      {!isLoading && !error && teacherClassrooms.length === 0 && (
         <EmptyState
           icon={BookOpen}
-          title="No Classrooms Yet"
-          description="You haven't created or been assigned to any classrooms."
+          title={deferredSearchTerm ? "No Classrooms Found" : "No Classrooms Yet"}
+          description={deferredSearchTerm ? "No classrooms match your search term." : "You haven't created or been assigned to any classrooms."}
           actionButton={
-            <Button asChild className="mt-4">
-              <Link href="/application/teacher/classrooms/new">
-                <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Classroom
-              </Link>
-            </Button>
+            !deferredSearchTerm ? (
+                <Button asChild className="mt-4">
+                <Link href="/application/teacher/classrooms/new">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Classroom
+                </Link>
+                </Button>
+            ) : undefined
           }
         />
       )}
@@ -281,3 +314,4 @@ export default function TeacherClassroomsPage() {
     </div>
   );
 }
+

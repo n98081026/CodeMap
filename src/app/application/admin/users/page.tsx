@@ -2,14 +2,14 @@
 // src/app/application/admin/users/page.tsx
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useDeferredValue } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -56,14 +56,23 @@ export default function AdminUsersPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+
   const adminDashboardLink = "/application/admin/dashboard";
 
-
-  const fetchUsers = useCallback(async (page: number) => {
+  const fetchUsers = useCallback(async (page: number, search: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/users?page=${page}&limit=${USERS_PER_PAGE}`);
+      const searchParams = new URLSearchParams({
+        page: page.toString(),
+        limit: USERS_PER_PAGE.toString(),
+      });
+      if (search.trim()) {
+        searchParams.append('search', search.trim());
+      }
+      const response = await fetch(`/api/users?${searchParams.toString()}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch users");
@@ -74,15 +83,21 @@ export default function AdminUsersPage() {
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
-      toast({ title: "Error Fetching Users", description: errorMessage, variant: "destructive" });
+      // toast({ title: "Error Fetching Users", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchUsers(currentPage);
-  }, [currentPage, fetchUsers]);
+    fetchUsers(currentPage, deferredSearchTerm);
+  }, [currentPage, deferredSearchTerm, fetchUsers]);
+  
+  useEffect(() => {
+    // Reset to page 1 when search term changes
+    setCurrentPage(1);
+  }, [deferredSearchTerm]);
+
 
   const handleDeleteUser = useCallback(async (userId: string, userName: string) => {
      if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin-mock-id" || userId === adminUser?.id) {
@@ -99,12 +114,12 @@ export default function AdminUsersPage() {
       if (users.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
-        fetchUsers(currentPage);
+        fetchUsers(currentPage, deferredSearchTerm);
       }
     } catch (err) {
       toast({ title: "Error Deleting User", description: (err as Error).message, variant: "destructive" });
     }
-  }, [toast, users.length, currentPage, fetchUsers, adminUser?.id]);
+  }, [toast, users.length, currentPage, fetchUsers, adminUser?.id, deferredSearchTerm]);
 
   const openEditModal = useCallback((userToEdit: User) => {
     if (userToEdit.id === "student-test-id" || userToEdit.id === "teacher-test-id" || userToEdit.id === "admin-mock-id" || userToEdit.id === adminUser?.id) {
@@ -150,13 +165,13 @@ export default function AdminUsersPage() {
       toast({ title: "User Updated", description: `User "${editFormData.name}" has been updated.` });
       setIsEditModalOpen(false);
       setEditingUser(null);
-      fetchUsers(currentPage);
+      fetchUsers(currentPage, deferredSearchTerm);
     } catch (err) {
       toast({ title: "Error Updating User", description: (err as Error).message, variant: "destructive" });
     } finally {
       setIsSavingEdit(false);
     }
-  }, [editingUser, editFormData, toast, fetchUsers, currentPage]);
+  }, [editingUser, editFormData, toast, fetchUsers, currentPage, deferredSearchTerm]);
 
   const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
@@ -194,6 +209,19 @@ export default function AdminUsersPage() {
         </TooltipProvider>
       </DashboardHeader>
 
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Filter by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 w-full max-w-sm"
+          />
+        </div>
+      </div>
+
       {isLoading && (
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -206,7 +234,7 @@ export default function AdminUsersPage() {
             icon={AlertTriangle}
             title="Error Loading Users"
             description={error}
-            actionButton={<Button onClick={() => fetchUsers(currentPage)} variant="outline" size="sm">Try Again</Button>}
+            actionButton={<Button onClick={() => fetchUsers(currentPage, deferredSearchTerm)} variant="outline" size="sm">Try Again</Button>}
         />
       )}
 
@@ -215,7 +243,7 @@ export default function AdminUsersPage() {
            <EmptyState
              icon={Users}
              title="No Users Found"
-             description="There are no users in the system yet. New users can register through the public registration page."
+             description={deferredSearchTerm ? "No users match your search criteria." : "There are no users in the system yet. New users can register through the public registration page."}
            />
         ) : (
          <Card className="shadow-lg">

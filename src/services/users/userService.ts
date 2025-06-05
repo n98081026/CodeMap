@@ -104,12 +104,20 @@ export async function getUserById(userId: string): Promise<User | null> {
   return data ? data as User : null;
 }
 
-export async function getAllUsers(page: number = 1, limit: number = 10): Promise<{ users: User[]; totalCount: number }> {
-  const { data, error, count } = await supabase
+export async function getAllUsers(page: number = 1, limit: number = 10, searchTerm?: string): Promise<{ users: User[]; totalCount: number }> {
+  let query = supabase
     .from('profiles')
     .select('id, name, email, role', { count: 'exact' })
-    .order('name', { ascending: true })
-    .range((page - 1) * limit, page * limit - 1);
+    .order('name', { ascending: true });
+
+  if (searchTerm && searchTerm.trim() !== '') {
+    const cleanedSearchTerm = searchTerm.trim().replace(/[%_]/g, '\\$&'); // Escape special characters
+    query = query.or(`name.ilike.%${cleanedSearchTerm}%,email.ilike.%${cleanedSearchTerm}%`);
+  }
+
+  query = query.range((page - 1) * limit, page * limit - 1);
+
+  const { data, error, count } = await query;
 
   if (error) {
     console.error('Supabase getAllUsers error:', error);
@@ -211,3 +219,4 @@ export async function deleteUser(userId: string): Promise<boolean> {
   console.log(`Profile for user ${userId} deleted. Associated auth.users entry needs separate handling if not cascaded.`);
   return true;
 }
+
