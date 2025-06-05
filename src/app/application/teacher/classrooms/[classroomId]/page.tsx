@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -9,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types";
 import { UserRole, ProjectSubmissionStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, Library, Inbox } from "lucide-react"; // Added Library, kept Inbox for reference if needed elsewhere
+import { ArrowLeft, Users, Share2, FolderKanban, Trash2, Eye, Loader2, AlertTriangle, Library } from "lucide-react";
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -377,4 +378,10 @@ export default function ClassroomDetailPage() {
       </Tabs>
     </div>
   );
+}
+
+declare module "@/components/dashboard/dashboard-header" {
+  interface DashboardHeaderProps {
+    iconClassName?: string;
+  }
 }
