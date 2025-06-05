@@ -43,29 +43,19 @@ export async function GET(request: Request) {
         return NextResponse.json({ message: "Invalid page or limit parameters" }, { status: 400 });
       }
       
+      // getClassroomsByTeacherId now returns Classroom[] or { classrooms: Classroom[], totalCount: number }
       const result = await getClassroomsByTeacherId(teacherId, page, limit);
-      // The service function now returns either Classroom[] or { classrooms: Classroom[], totalCount: number }
-      // The API should consistently return the latter structure if pagination is used.
-      if (page && limit) {
-        return NextResponse.json(result); // result is { classrooms, totalCount }
-      } else {
-        // If not paginating, wrap array in expected structure for consistency, or adjust client
-        // For now, assuming client will adapt if it receives just an array vs object
-        return NextResponse.json(result); // result is Classroom[]
-      }
+      return NextResponse.json(result); // Directly return the result from the service
     }
     
     if (studentId) {
-      // Student classroom list is typically not paginated in this app's context for simplicity
       const classrooms = await getClassroomsByStudentId(studentId);
-      return NextResponse.json(classrooms);
+      return NextResponse.json(classrooms); // Returns Classroom[]
     }
     
-    // If no specific ID, assume it's an admin request for all classrooms (can be refined with auth)
-    // For Admin Dashboard count
-    const allClassrooms = await getAllClassrooms();
-    return NextResponse.json(allClassrooms);
-
+    // Admin: Get all classrooms for dashboard count
+    const allClassrooms = await getAllClassrooms(); // This fetches full classroom objects
+    return NextResponse.json(allClassrooms); // Returns Classroom[]
 
   } catch (error) {
     console.error("Get Classrooms API error:", error);

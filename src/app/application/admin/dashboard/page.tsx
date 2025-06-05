@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { UserRole } from "@/types";
 import { Users, Settings, LayoutDashboard, Loader2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
@@ -25,60 +25,60 @@ export default function AdminDashboardPage() {
   const [errorUsers, setErrorUsers] = useState<string | null>(null);
   const [errorClassrooms, setErrorClassrooms] = useState<string | null>(null);
 
+  const fetchUsersCount = useCallback(async () => {
+    if (!user || user.role !== UserRole.ADMIN) return;
+    setIsLoadingUsers(true);
+    setErrorUsers(null);
+    try {
+      const usersResponse = await fetch('/api/users?page=1&limit=1'); 
+      if (!usersResponse.ok) {
+        const errData = await usersResponse.json();
+        throw new Error(`Failed to fetch users: ${errData.message || usersResponse.statusText}`);
+      }
+      const usersData = await usersResponse.json();
+      setTotalUsersCount(usersData.totalCount);
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      console.error("Error fetching users count:", errorMessage);
+      setErrorUsers(errorMessage); 
+      toast({ title: "Error Fetching Users", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, [user, toast]);
+
+  const fetchClassroomsCount = useCallback(async () => {
+    if (!user || user.role !== UserRole.ADMIN) return;
+    setIsLoadingClassrooms(true);
+    setErrorClassrooms(null);
+    try {
+      const classroomsResponse = await fetch('/api/classrooms'); 
+      if (!classroomsResponse.ok) {
+        const errData = await classroomsResponse.json();
+        throw new Error(`Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`);
+      }
+      const classroomsData = await classroomsResponse.json();
+      setActiveClassroomsCount(classroomsData.length); // Assuming API returns full list for admin
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      console.error("Error fetching classrooms count:", errorMessage);
+      setErrorClassrooms(errorMessage); 
+      toast({ title: "Error Fetching Classrooms", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoadingClassrooms(false);
+    }
+  }, [user, toast]);
+
+
   useEffect(() => {
     if (user && user.role !== UserRole.ADMIN) {
       router.replace('/application/login');
-    }
-  }, [user, router]);
-
-  useEffect(() => {
-    const fetchUsersCount = async () => {
-      if (!user || user.role !== UserRole.ADMIN) return;
-      setIsLoadingUsers(true);
-      setErrorUsers(null);
-      try {
-        const usersResponse = await fetch('/api/users?page=1&limit=1'); 
-        if (!usersResponse.ok) {
-          const errData = await usersResponse.json();
-          throw new Error(`Failed to fetch users: ${errData.message || usersResponse.statusText}`);
-        }
-        const usersData = await usersResponse.json();
-        setTotalUsersCount(usersData.totalCount);
-      } catch (err) {
-        const errorMessage = (err as Error).message;
-        console.error("Error fetching users count:", errorMessage);
-        setErrorUsers(errorMessage); // Set error state here
-      } finally {
-        setIsLoadingUsers(false);
-      }
-    };
-
-    const fetchClassroomsCount = async () => {
-      if (!user || user.role !== UserRole.ADMIN) return;
-      setIsLoadingClassrooms(true);
-      setErrorClassrooms(null);
-      try {
-        const classroomsResponse = await fetch('/api/classrooms'); 
-        if (!classroomsResponse.ok) {
-          const errData = await classroomsResponse.json();
-          throw new Error(`Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`);
-        }
-        const classroomsData = await classroomsResponse.json();
-        setActiveClassroomsCount(classroomsData.length);
-      } catch (err) {
-        const errorMessage = (err as Error).message;
-        console.error("Error fetching classrooms count:", errorMessage);
-        setErrorClassrooms(errorMessage); // Set error state here
-      } finally {
-        setIsLoadingClassrooms(false);
-      }
-    };
-
-    if (user && user.role === UserRole.ADMIN) {
+    } else if (user && user.role === UserRole.ADMIN) {
       fetchUsersCount();
       fetchClassroomsCount();
     }
-  }, [user]);
+  }, [user, router, fetchUsersCount, fetchClassroomsCount]);
+
 
   if (!user || user.role !== UserRole.ADMIN) {
     return (
@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
     if (isLoading) {
       return <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (error && (count === 0 || count === null)) { // Updated condition
+    if (error && (count === 0 || count === null)) {
         return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
@@ -128,4 +128,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-

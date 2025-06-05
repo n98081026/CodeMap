@@ -10,14 +10,13 @@ export async function POST(request: Request) {
       originalFileName: string;
       fileSize: number;
       classroomId?: string | null;
-      fileStoragePath?: string | null; // Added fileStoragePath
+      fileStoragePath?: string | null; 
     };
 
     if (!studentId || !originalFileName || fileSize === undefined) {
       return NextResponse.json({ message: "Student ID, original file name, and file size are required" }, { status: 400 });
     }
 
-    // Pass fileStoragePath to createSubmission
     const newSubmission = await createSubmission(studentId, originalFileName, fileSize, classroomId, fileStoragePath);
     return NextResponse.json(newSubmission, { status: 201 });
 
@@ -44,9 +43,8 @@ export async function GET(request: Request) {
         return NextResponse.json(submissions);
     }
     
-    // If no specific ID, assume admin request for all submissions (e.g. for Admin Dashboard)
-    // This path could be secured for admin role only in a real app.
-    const allSubmissionsData = await getAllSubmissions();
+    // Admin: Get all submissions for dashboard count (if ever needed, currently not used for count)
+    const allSubmissionsData = await getAllSubmissions(); // Returns ProjectSubmission[]
     return NextResponse.json(allSubmissionsData);
 
   } catch (error) {
@@ -55,5 +53,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: `Failed to fetch submissions: ${errorMessage}` }, { status: 500 });
   }
 }
-
-    

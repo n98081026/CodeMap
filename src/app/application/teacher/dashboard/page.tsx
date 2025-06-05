@@ -7,7 +7,7 @@ import type { Classroom } from "@/types";
 import { UserRole } from "@/types";
 import { BookOpen, Users, LayoutDashboard, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
@@ -28,75 +28,66 @@ export default function TeacherDashboardPage() {
   const { toast } = useToast();
 
   const [dashboardData, setDashboardData] = useState<TeacherDashboardData | null>(null);
-  const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(true);
-  const [isLoadingStudents, setIsLoadingStudents] = useState(true); // Combined for simplicity in this case
-  const [errorClassrooms, setErrorClassrooms] = useState<string | null>(null);
-  const [errorStudents, setErrorStudents] = useState<string | null>(null); // Combined
+  const [isLoadingClassroomsAndStudents, setIsLoadingClassroomsAndStudents] = useState(true);
+  const [errorClassroomsAndStudents, setErrorClassroomsAndStudents] = useState<string | null>(null);
 
   const adminDashboardLink = "/application/admin/dashboard";
 
-  useEffect(() => {
-    const fetchTeacherClassroomsAndStudentCount = async () => {
-      if (!user) {
-        setIsLoadingClassrooms(false);
-        setIsLoadingStudents(false);
-        return;
-      }
-      setIsLoadingClassrooms(true);
-      setIsLoadingStudents(true);
-      setErrorClassrooms(null);
-      setErrorStudents(null);
+  const fetchTeacherClassroomsAndStudentCount = useCallback(async () => {
+    if (!user) {
+      setIsLoadingClassroomsAndStudents(false);
+      return;
+    }
+    setIsLoadingClassroomsAndStudents(true);
+    setErrorClassroomsAndStudents(null);
 
-      try {
-        // Teacher fetches their own classrooms. The API route for teacherId does not support totalCount directly for all classrooms,
-        // so we fetch all and count, then sum studentIds.
-        const response = await fetch(`/api/classrooms?teacherId=${user.id}`);
-        if (!response.ok) {
-          let errorMsg = `Classrooms API Error (${response.status})`;
-          try {
-            const errData = await response.json();
-            errorMsg = `${errorMsg}: ${errData.message || response.statusText}`;
-          } catch(e) {
-            errorMsg = `${errorMsg}: ${response.statusText || "Failed to parse error"}`;
-          }
-          throw new Error(errorMsg);
+    try {
+      const response = await fetch(`/api/classrooms?teacherId=${user.id}`); // Fetch all classrooms for this teacher (no pagination for dashboard count)
+      if (!response.ok) {
+        let errorMsg = `Classrooms API Error (${response.status})`;
+        try {
+          const errData = await response.json();
+          errorMsg = `${errorMsg}: ${errData.message || response.statusText}`;
+        } catch(e) {
+          errorMsg = `${errorMsg}: ${response.statusText || "Failed to parse error"}`;
         }
-        const classrooms: Classroom[] = await response.json(); // API returns Classroom[] directly when not paginating
-
-        const managedClassroomsCount = classrooms.length;
-        let totalStudents = 0;
-        classrooms.forEach(c => {
-          // The service now populates studentIds as an array representing count
-          totalStudents += c.studentIds?.length || 0;
-        });
-
-        setDashboardData({
-          managedClassroomsCount: managedClassroomsCount,
-          totalStudentsCount: totalStudents,
-        });
-        setErrorClassrooms(null);
-        setErrorStudents(null);
-
-      } catch (err) {
-        const errorMessage = (err as Error).message;
-        console.error("Error fetching teacher dashboard data:", errorMessage);
-        toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
-        setErrorClassrooms(errorMessage); // Set error for both as they depend on the same call
-        setErrorStudents(errorMessage);
-        setDashboardData(prev => prev || { managedClassroomsCount: 0, totalStudentsCount: 0 });
-      } finally {
-        setIsLoadingClassrooms(false);
-        setIsLoadingStudents(false);
+        throw new Error(errorMsg);
       }
-    };
+      const classrooms: Classroom[] = await response.json(); 
 
+      const managedClassroomsCount = classrooms.length;
+      let totalStudents = 0;
+      classrooms.forEach(c => {
+        // Assuming studentIds array from API now correctly reflects the count of enrolled students for each classroom
+        totalStudents += c.studentIds?.length || 0;
+      });
+
+      setDashboardData({
+        managedClassroomsCount: managedClassroomsCount,
+        totalStudentsCount: totalStudents,
+      });
+      setErrorClassroomsAndStudents(null);
+
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      console.error("Error fetching teacher dashboard data:", errorMessage);
+      toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
+      setErrorClassroomsAndStudents(errorMessage);
+      setDashboardData(prev => prev || { managedClassroomsCount: 0, totalStudentsCount: 0 });
+    } finally {
+      setIsLoadingClassroomsAndStudents(false);
+    }
+  }, [user, toast]);
+
+
+  useEffect(() => {
     if (user) {
       fetchTeacherClassroomsAndStudentCount();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // Removed toast from dependency array
+  }, [user, fetchTeacherClassroomsAndStudentCount]);
 
-  if (!user && (isLoadingClassrooms || isLoadingStudents)) return <LoadingSpinner />;
+
+  if (!user && isLoadingClassroomsAndStudents) return <LoadingSpinner />;
   if (!user) return null;
 
   const renderCount = (count: number | undefined, isLoading: boolean, error: string | null, itemName: string) => {
@@ -128,7 +119,7 @@ export default function TeacherDashboardPage() {
         <DashboardLinkCard
           title="Managed Classrooms"
           description="Classrooms you are currently teaching."
-          count={renderCount(dashboardData?.managedClassroomsCount, isLoadingClassrooms, errorClassrooms, "classrooms")}
+          count={renderCount(dashboardData?.managedClassroomsCount, isLoadingClassroomsAndStudents, errorClassroomsAndStudents, "classrooms")}
           icon={BookOpen}
           href="/application/teacher/classrooms"
           linkText="Manage Classrooms"
@@ -136,9 +127,9 @@ export default function TeacherDashboardPage() {
         <DashboardLinkCard
           title="Total Students"
           description="Students across all your classrooms."
-          count={renderCount(dashboardData?.totalStudentsCount, isLoadingStudents, errorStudents, "students")}
+          count={renderCount(dashboardData?.totalStudentsCount, isLoadingClassroomsAndStudents, errorClassroomsAndStudents, "students")}
           icon={Users}
-          href="/application/teacher/classrooms" // Link to classrooms page to view student lists per classroom
+          href="/application/teacher/classrooms" 
           linkText="View Student Lists"
         />
       </div>
@@ -159,4 +150,3 @@ export default function TeacherDashboardPage() {
     </div>
   );
 }
-

@@ -7,11 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { UserCircle, Shield, Edit3, KeyRound, Loader2, TestTubeDiagonal } from "lucide-react"; // Added TestTubeDiagonal
+import { UserCircle, Shield, Edit3, KeyRound, Loader2, TestTubeDiagonal } from "lucide-react"; 
 import Link from "next/link";
 import { UserRole, type User } from "@/types";
 import React, { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation"; // Added useRouter
+import { useRouter } from "next/navigation"; 
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
 import { useToast } from "@/hooks/use-toast";
 
 const profileFormSchema = z.object({
@@ -82,6 +82,8 @@ function EditProfileDialog({
       });
     }
   }, [currentUser, form, isOpen]);
+  
+  const isMockUser = currentUser.id === "admin-mock-id" || currentUser.id === "student-test-id" || currentUser.id === "teacher-test-id";
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -99,7 +101,7 @@ function EditProfileDialog({
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={isSaving || currentUser.id === "admin-mock-id"} />
+                    <Input {...field} disabled={isSaving || isMockUser} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,20 +114,20 @@ function EditProfileDialog({
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input type="email" {...field} disabled={isSaving || currentUser.id === "admin-mock-id"} />
+                    <Input type="email" {...field} disabled={isSaving || isMockUser} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {currentUser.id === "admin-mock-id" && (
-              <p className="text-xs text-muted-foreground">Mock admin profile cannot be edited here.</p>
+            {isMockUser && (
+              <p className="text-xs text-muted-foreground">Pre-defined mock user profiles cannot be edited here.</p>
             )}
             <DialogFooter>
               <DialogClose asChild>
                  <Button type="button" variant="outline" disabled={isSaving}>Cancel</Button>
               </DialogClose>
-              <Button type="submit" disabled={isSaving || currentUser.id === "admin-mock-id"}>
+              <Button type="submit" disabled={isSaving || isMockUser}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
@@ -149,12 +151,12 @@ type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
 
 function ChangePasswordDialog({
   userId,
-  isMockAdmin,
+  isMockUser,
   isOpen,
   onOpenChange,
 }: {
   userId: string;
-  isMockAdmin: boolean;
+  isMockUser: boolean;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -177,8 +179,8 @@ function ChangePasswordDialog({
   }, [form, onOpenChange]);
 
   const onSubmit = useCallback(async (data: ChangePasswordFormValues) => {
-    if (isMockAdmin) {
-      toast({ title: "Operation Denied", description: "Password for the mock admin cannot be changed here.", variant: "destructive"});
+    if (isMockUser) {
+      toast({ title: "Operation Denied", description: "Password for mock user accounts cannot be changed here.", variant: "destructive"});
       return;
     }
     setIsSaving(true);
@@ -206,7 +208,7 @@ function ChangePasswordDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [userId, toast, handleDialogStateChange, isMockAdmin]);
+  }, [userId, toast, handleDialogStateChange, isMockUser]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogStateChange}>
@@ -215,8 +217,8 @@ function ChangePasswordDialog({
           <DialogTitle>Change Password</DialogTitle>
           <DialogDescription>Update your account password.</DialogDescription>
         </DialogHeader>
-        {isMockAdmin ? (
-           <p className="text-sm text-destructive py-4">Password for the mock admin account cannot be changed through this interface.</p>
+        {isMockUser ? (
+           <p className="text-sm text-destructive py-4">Password for pre-defined mock accounts cannot be changed through this interface.</p>
         ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -301,8 +303,7 @@ export default function ProfilePage() {
     const newRole = newRoleValue as UserRole;
     setSelectedRoleForTest(newRole);
     if (user && newRole !== user.role) {
-      setTestUserRole(newRole); // Update AuthContext locally
-      // Navigate to new dashboard
+      setTestUserRole(newRole); 
       switch (newRole) {
         case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
         case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
@@ -312,7 +313,7 @@ export default function ProfilePage() {
     }
   };
 
-  const isUserMockAdmin = user.id === 'admin-mock-id';
+  const isUserMock = user.id === 'admin-mock-id' || user.id === 'student-test-id' || user.id === 'teacher-test-id';
 
   return (
     <div className="space-y-6">
@@ -370,7 +371,7 @@ export default function ProfilePage() {
               <h3 className="font-medium">Edit Profile</h3>
               <p className="text-sm text-muted-foreground">Update your name or email address.</p>
             </div>
-            <Button variant="outline" onClick={() => setIsEditProfileOpen(true)} disabled={isUserMockAdmin}>
+            <Button variant="outline" onClick={() => setIsEditProfileOpen(true)} disabled={isUserMock}>
               <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
             </Button>
           </div>
@@ -379,10 +380,13 @@ export default function ProfilePage() {
               <h3 className="font-medium">Change Password</h3>
               <p className="text-sm text-muted-foreground">Update your account password.</p>
             </div>
-            <Button variant="outline" onClick={() => setIsChangePasswordOpen(true)} disabled={isUserMockAdmin}>
+            <Button variant="outline" onClick={() => setIsChangePasswordOpen(true)} disabled={isUserMock}>
               <KeyRound className="mr-2 h-4 w-4" /> Change Password
             </Button>
           </div>
+           {isUserMock && (
+              <p className="text-xs text-destructive p-2">Editing name/email or changing password is disabled for pre-defined mock user accounts.</p>
+            )}
         </CardContent>
       </Card>
 
@@ -415,7 +419,7 @@ export default function ProfilePage() {
       {isChangePasswordOpen && user && (
         <ChangePasswordDialog
           userId={user.id}
-          isMockAdmin={isUserMockAdmin}
+          isMockUser={isUserMock}
           isOpen={isChangePasswordOpen}
           onOpenChange={setIsChangePasswordOpen}
         />

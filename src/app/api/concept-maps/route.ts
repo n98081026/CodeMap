@@ -44,10 +44,11 @@ export async function GET(request: Request) {
       return NextResponse.json(maps);
     }
 
-    // If neither ownerId nor classroomId is provided, return an empty array or a specific message.
-    // For the student dashboard calling with ownerId, this path shouldn't be hit if ownerId is always present.
-    // If it's a general call without parameters, what should be returned? For now, an error.
-    return NextResponse.json({ message: "Query parameter 'ownerId' or 'classroomId' is required." }, { status: 400 });
+    // If neither ownerId nor classroomId is provided.
+    // For dashboard counts, specific queries are made (ownerId for student, classroomId for teacher).
+    // Admin might need a way to get all maps for a total count, but that's not implemented here.
+    // For now, return error if no specific query param.
+    return NextResponse.json({ message: "Query parameter 'ownerId' or 'classroomId' is required to list concept maps." }, { status: 400 });
 
   } catch (error) {
     console.error("Get Concept Maps API error:", error);
@@ -55,5 +56,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: `Failed to fetch concept maps: ${errorMessage}` }, { status: 500 });
   }
 }
-
-    

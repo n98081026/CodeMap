@@ -30,18 +30,21 @@ export async function POST(request: Request, context: { params: { userId: string
     }
 
     // Security check: Ensure the authenticated user is the one trying to change their password
+    // or is an admin with special logic (not implemented here, admin password changes usually done differently)
     if (authUser.id !== pathUserId) {
-      // Deny if trying to change password for a different user, unless an admin with special logic
+      // Deny if trying to change password for a different user.
       // For this app, only self-service password change is implemented.
-      if (authUser.id === "admin-mock-id") {
-        // Mock admin cannot change passwords for other users this way
-        return NextResponse.json({ message: "Forbidden: Mock admin cannot change other users' passwords via this endpoint." }, { status: 403 });
+       if (authUser.id === "admin-mock-id" || authUser.id === "student-test-id" || authUser.id === "teacher-test-id") {
+        return NextResponse.json({ message: "Forbidden: Mock user accounts cannot change other users' passwords via this endpoint." }, { status: 403 });
       }
       return NextResponse.json({ message: "Forbidden: You can only change your own password." }, { status: 403 });
     }
+
+    // Check if the user is one of the mock users for whom password change should be disabled
+     if (pathUserId === "admin-mock-id" || pathUserId === "student-test-id" || pathUserId === "teacher-test-id") {
+      return NextResponse.json({ message: "Forbidden: Password for pre-defined mock accounts cannot be changed." }, { status: 403 });
+    }
     
-    // The client-side form already asks for currentPassword and confirmPassword for UX.
-    // Supabase's updateUser for an authenticated session does not require currentPassword.
     const { error: updateError } = await supabase.auth.updateUser({
       password: newPassword,
     });
@@ -54,7 +57,7 @@ export async function POST(request: Request, context: { params: { userId: string
       } else if (updateError.message.includes("weak password")) {
         errorMessage = "Password is too weak. Please choose a stronger password.";
       }
-      return NextResponse.json({ message: errorMessage }, { status: 400 }); // Using 400 for user input related errors
+      return NextResponse.json({ message: errorMessage }, { status: 400 });
     }
     
     return NextResponse.json({ message: "Password changed successfully." });

@@ -189,7 +189,7 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 
 ## Known Issues / Current State
 - Backend services largely migrated from mock to Supabase (users, classrooms, concept_maps, project_submissions, system_settings).
-- AuthContext migrated to Supabase Auth. User profile data fetched from Supabase `profiles` table. Mock admin/student login via form preserved for testing.
+- AuthContext migrated to Supabase Auth. User profile data fetched from Supabase `profiles` table. Mock admin/student/teacher login via form preserved for testing.
 - Data persistence for all entities handled by Supabase (requires user to set up tables &amp; RLS).
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file uploads and tool logic.
@@ -198,6 +198,5 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 - API routes rely on Supabase-backed services. Further auth checks (JWT verification, role-based access) for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis now uploads to Supabase Storage (bucket 'project_archives', path `user-&lt;user_id&gt;/&lt;timestamp&gt;-&lt;filename&gt;`).
 - User needs to create the 'project_archives' bucket and add `file_storage_path TEXT NULLABLE` to `project_submissions` table, and set up RLS for the bucket.
-- Mock admin/student user profiles cannot be edited or passwords changed via the UI to prevent breaking the mock login flow. Real accounts created via Supabase registration can.
+- Mock user profiles cannot be edited or passwords changed via the UI to prevent breaking the mock login flow. Real accounts created via Supabase registration can.
 - Dragging nodes and creating connections in the concept map editor should now be working correctly. If issues persist, further investigation into React Flow event handling or CSS conflicts might be needed.
-
