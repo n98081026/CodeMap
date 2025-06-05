@@ -30,8 +30,8 @@ const EdgeSchema = z.object({
 });
 
 const GenerateQuickClusterOutputSchema = z.object({
-  nodes: z.array(NodeSchema).min(1).max(5).describe('An array of 2 to 4 generated concept nodes.'),
-  edges: z.array(EdgeSchema).max(3).optional().describe('An optional array of 0 to 2 suggested edges connecting the generated nodes.'),
+  nodes: z.array(NodeSchema).min(2).max(4).describe('An array of 2 to 4 generated concept nodes.'),
+  edges: z.array(EdgeSchema).max(2).optional().describe('An optional array of 0 to 2 suggested edges connecting the generated nodes.'),
 });
 export type GenerateQuickClusterOutput = z.infer<typeof GenerateQuickClusterOutputSchema>;
 
@@ -93,3 +93,4 @@ const generateQuickClusterFlow = ai.defineFlow(
     return output!;
   }
 );
+

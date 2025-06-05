@@ -62,7 +62,7 @@ interface ConceptMapState {
   resetStore: () => void;
 
   // Granular actions for map data
-  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string }) => void;
+  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string }) => string; // Returns new node ID
   updateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   deleteNode: (nodeId: string) => void;
   
@@ -208,7 +208,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
         // History clearing will be handled by the component after state update
       },
 
-      addNode: (options) => set((state) => {
+      addNode: (options) => {
         const newNode: ConceptMapNode = {
           id: uniqueNodeId(),
           text: options.text,
@@ -217,8 +217,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
           y: options.position.y,
           details: options.details || '',
         };
-        return { mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } };
-      }),
+        set((state) => ({ mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } }));
+        return newNode.id; // Return the ID of the new node
+      },
 
       updateNode: (nodeId, updates) => set((state) => ({
         mapData: {
@@ -293,3 +294,4 @@ export const useConceptMapStore = create<ConceptMapState>()(
         
 
 export default useConceptMapStore;
+

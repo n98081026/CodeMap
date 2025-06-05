@@ -395,18 +395,18 @@ export default function ConceptMapEditorPage() {
       let sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
       if (!sourceNode) {
         const position = getNodePlacementPosition(conceptsAddedFromRelationsCount, selectedRelations.length, index); 
-        addStoreNode({ text: rel.source, type: 'ai-concept', position });
+        const newSourceNodeId = addStoreNode({ text: rel.source, type: 'ai-concept', position });
         currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
-        sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
+        sourceNode = currentNodesSnapshot.find(node => node.id === newSourceNodeId);
         if (sourceNode) conceptsAddedFromRelationsCount++; else return; 
       }
 
       let targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
       if (!targetNode) {
         const position = getNodePlacementPosition(conceptsAddedFromRelationsCount, selectedRelations.length, index); 
-        addStoreNode({ text: rel.target, type: 'ai-concept', position });
+        const newTargetNodeId = addStoreNode({ text: rel.target, type: 'ai-concept', position });
         currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
-        targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
+        targetNode = currentNodesSnapshot.find(node => node.id === newTargetNodeId);
         if (targetNode) conceptsAddedFromRelationsCount++; else return; 
       }
 
@@ -650,30 +650,14 @@ export default function ConceptMapEditorPage() {
 
     // Add nodes first
     output.nodes.forEach((aiNode, index) => {
-      const position = getNodePlacementPosition(index, output.nodes.length, addedNodesCount); // Pass cluster size and current node index in cluster
-      const newNode: ConceptMapNode = {
-        id: `temp-ai-${Date.now()}-${index}`, // Temporary ID
+      const position = getNodePlacementPosition(index, output.nodes.length, addedNodesCount); 
+      const newNodeId = addStoreNode({
         text: aiNode.text,
         type: aiNode.type || 'ai-generated',
         details: aiNode.details || '',
-        x: position.x,
-        y: position.y,
-      };
-      addStoreNode(newNode); // addStoreNode should handle unique ID generation internally
-      
-      // After addStoreNode, the node in the store has its final ID. We need to get it.
-      // This is a bit tricky as addStoreNode doesn't return the new node.
-      // We'll assume the last added node is the one we just processed. This is fragile.
-      const currentNodes = useConceptMapStore.getState().mapData.nodes;
-      const actuallyAddedNode = currentNodes[currentNodes.length - 1];
-      if (actuallyAddedNode && actuallyAddedNode.text === aiNode.text) {
-        newNodesMap.set(aiNode.text, actuallyAddedNode.id);
-      } else {
-         // Fallback: if text matching is unreliable due to edits or exact duplicates
-         console.warn("Could not reliably map AI node text to a new node ID for edge creation. Original text:", aiNode.text);
-         // Use the temp ID as a key, but this means edges might not connect if IDs change significantly in addStoreNode
-         newNodesMap.set(aiNode.text, newNode.id); 
-      }
+        position: position,
+      });
+      newNodesMap.set(aiNode.text, newNodeId); // Use the returned ID
       addedNodesCount++;
     });
 
