@@ -24,7 +24,7 @@ import { ProjectSubmissionStatus } from "@/types";
 import { UploadCloud, Loader2, AlertTriangle, FileUp, Brain } from "lucide-react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
 import { useAuth } from "@/contexts/auth-context";
-import { supabase } from "@/lib/supabaseClient"; 
+import { useSupabaseStorageUpload } from "@/hooks/useSupabaseStorageUpload"; // Import the new hook
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,13 +37,13 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const MAX_FILE_SIZE_MB_FROM_ENV = parseInt(process.env.NEXT_PUBLIC_MAX_PROJECT_FILE_SIZE_MB || "10", 10);
-const MAX_FILE_SIZE = (MAX_FILE_SIZE_MB_FROM_ENV || 10) * 1024 * 1024; // Default 10MB if env var is missing/invalid
+const MAX_FILE_SIZE = (MAX_FILE_SIZE_MB_FROM_ENV || 10) * 1024 * 1024; 
 
 const ACCEPTED_FILE_TYPES_MIME = [
   "application/zip", "application/x-zip-compressed",
   "application/vnd.rar", "application/x-rar-compressed", 
   "application/gzip", "application/x-tar", 
-  "application/octet-stream", // Fallback for some archives
+  "application/octet-stream", 
 ];
 const ACCEPTED_FILE_EXTENSIONS_STRING = ".zip, .rar, .tar, .gz, .tgz";
 
@@ -63,9 +63,8 @@ const projectUploadSchema = z.object({
         const fileExtension = file.name.split('.').pop()?.toLowerCase();
         const acceptedExtensions = ['zip', 'rar', 'tar', 'gz', 'tgz']; 
         
-        if (ACCEPTED_FILE_TYPES_MIME.includes(file.type)) return true; // Check MIME first
-        if (fileExtension && acceptedExtensions.includes(fileExtension)) return true; // Check extension
-        // Special case for .tar.gz or .tar.tgz where MIME might be just application/gzip
+        if (ACCEPTED_FILE_TYPES_MIME.includes(file.type)) return true; 
+        if (fileExtension && acceptedExtensions.includes(fileExtension)) return true; 
         if ((file.name.endsWith('.tar.gz') || file.name.endsWith('.tar.tgz')) && file.type === 'application/gzip') return true;
 
         return false;
@@ -80,7 +79,13 @@ export function ProjectUploadForm() {
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
-  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  
+  const { 
+    isUploading: isUploadingFileWithHook, 
+    error: uploadError, 
+    uploadFile 
+  } = useSupabaseStorageUpload({ bucketName: SUPABASE_PROJECT_ARCHIVES_BUCKET });
+
   const [isSubmittingMetadata, setIsSubmittingMetadata] = useState(false);
   const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>([]);
   const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(false);
@@ -157,32 +162,16 @@ export function ProjectUploadForm() {
         return;
     }
     const file = values.projectFile[0];
-    let uploadedFilePath: string | null = null;
+    
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'dat';
+    const filePathInBucket = `user-${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}.${fileExtension}`;
+    
+    const uploadedFilePath = await uploadFile({ file, filePathInBucket });
 
-    setIsUploadingFile(true);
-    toast({ title: "Uploading File...", description: `Starting upload of "${file.name}". Please wait.` });
-    try {
-      const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'dat';
-      const filePathInBucket = `user-${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}.${fileExtension}`; 
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(SUPABASE_PROJECT_ARCHIVES_BUCKET)
-        .upload(filePathInBucket, file, {
-          cacheControl: '3600',
-          upsert: false, 
-        });
-
-      if (uploadError) throw new Error(`Supabase Storage Error: ${uploadError.message}`);
-      if (!uploadData || !uploadData.path) throw new Error("File uploaded but no path returned.");
-      
-      uploadedFilePath = uploadData.path;
-      toast({ title: "File Upload Successful!", description: `"${file.name}" is securely stored.` });
-    } catch (uploadError) {
-      toast({ title: "File Upload Failed", description: (uploadError as Error).message, variant: "destructive" });
-      setIsUploadingFile(false);
+    if (!uploadedFilePath) {
+      // Error handling is done within the hook (toast shown)
       return;
     }
-    setIsUploadingFile(false);
 
     setIsSubmittingMetadata(true);
     const submissionPayload = {
@@ -215,7 +204,7 @@ export function ProjectUploadForm() {
     } finally {
       setIsSubmittingMetadata(false);
     }
-  }, [user, toast, form, router]); // Added router to dependencies
+  }, [user, toast, form, router, uploadFile]);
 
   const handleConfirmAIGeneration = useCallback(async () => {
     if (!currentSubmissionForAI || !user) return;
@@ -279,7 +268,7 @@ export function ProjectUploadForm() {
     router.push("/application/student/projects/submissions");
   }, [router, currentSubmissionForAI?.originalFileName, toast]);
 
-  const isBusy = isUploadingFile || isSubmittingMetadata || isProcessingAIInDialog;
+  const isBusyOverall = isUploadingFileWithHook || isSubmittingMetadata || isProcessingAIInDialog;
 
   return (
     <>
@@ -296,7 +285,7 @@ export function ProjectUploadForm() {
                     type="file"
                     accept={ACCEPTED_FILE_EXTENSIONS_STRING}
                     onChange={(e) => onChange(e.target.files)}
-                    disabled={isBusy}
+                    disabled={isBusyOverall}
                     {...fieldProps}
                   />
                 </FormControl>
@@ -318,7 +307,7 @@ export function ProjectUploadForm() {
                     {...field}
                     rows={3}
                     className="resize-none"
-                    disabled={isBusy}
+                    disabled={isBusyOverall}
                   />
                 </FormControl>
                 <FormMessage />
@@ -333,7 +322,7 @@ export function ProjectUploadForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Share with Classroom (Optional)</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ""} disabled={isBusy || isLoadingClassrooms}>
+                <Select onValueChange={field.onChange} value={field.value || ""} disabled={isBusyOverall || isLoadingClassrooms}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={
@@ -370,9 +359,9 @@ export function ProjectUploadForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isBusy || !form.formState.isValid}>
-            {isUploadingFile ? <FileUp className="mr-2 h-4 w-4 animate-pulse" /> : isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-            {isUploadingFile ? "Uploading..." : isSubmittingMetadata ? "Submitting..." : isProcessingAIInDialog ? "AI Processing..." : "Submit Project"}
+          <Button type="submit" className="w-full" disabled={isBusyOverall || !form.formState.isValid}>
+            {isUploadingFileWithHook ? <FileUp className="mr-2 h-4 w-4 animate-pulse" /> : isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+            {isUploadingFileWithHook ? "Uploading..." : isSubmittingMetadata ? "Submitting..." : isProcessingAIInDialog ? "AI Processing..." : "Submit Project"}
           </Button>
         </form>
       </Form>
