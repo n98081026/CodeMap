@@ -19,7 +19,7 @@ import { Loader2, HelpCircle } from "lucide-react"; // Added HelpCircle
 
 import { extractConcepts as aiExtractConcepts } from "@/ai/flows/extract-concepts";
 import { suggestRelations as aiSuggestRelations } from "@/ai/flows/suggest-relations";
-import { expandConcept as aiExpandConcept } from "@/ai/flows/expand-concept";
+import { expandConcept as aiExpandConcept, type ExpandConceptInput } from "@/ai/flows/expand-concept"; // Updated import
 import { askQuestionAboutNode as aiAskQuestionAboutNode, type AskQuestionAboutNodeOutput } from "@/ai/flows/ask-question-about-node"; // New import
 
 interface ModalProps {
@@ -173,11 +173,13 @@ interface ExpandConceptModalProps extends ModalProps {
 
 export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", existingMapContext = [], onOpenChange }: ExpandConceptModalProps) {
   const [concept, setConcept] = useState(initialConcept);
+  const [refinementPrompt, setRefinementPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     setConcept(initialConcept);
+    setRefinementPrompt(""); // Reset refinement on new initial concept
   }, [initialConcept]);
 
   const handleExpand = async () => {
@@ -187,7 +189,11 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
     }
     setIsLoading(true);
     try {
-      const result = await aiExpandConcept({ concept, existingMapContext });
+      const input: ExpandConceptInput = { concept, existingMapContext };
+      if (refinementPrompt.trim()) {
+        input.userRefinementPrompt = refinementPrompt.trim();
+      }
+      const result = await aiExpandConcept(input);
       toast({ title: "AI: Expansion Ready", description: `${result.newConcepts.length} new ideas generated. View them in the AI Suggestions panel.` });
       onConceptExpanded?.(result.newConcepts);
       onOpenChange(false);
@@ -200,14 +206,17 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
 
   return (
     <Dialog open={true} onOpenChange={(isOpen) => {
-      if (!isOpen) setConcept(""); 
+      if (!isOpen) {
+        setConcept(""); 
+        setRefinementPrompt("");
+      }
       onOpenChange(isOpen);
     }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Expand Concept with AI</DialogTitle>
           <DialogDescription>
-            Enter a concept. The AI will suggest related ideas, considering existing map context if available.
+            Enter a concept. Optionally, add a refinement to guide the AI. The AI will suggest related ideas, considering existing map context if available.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -218,6 +227,18 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
               value={concept} 
               onChange={(e) => setConcept(e.target.value)} 
               placeholder="e.g., Microservices, Machine Learning. Often based on a selected map node." 
+              disabled={isLoading}
+            />
+          </div>
+          <div>
+            <Label htmlFor="refinement-prompt-ec">Refinement (Optional)</Label>
+            <Textarea
+              id="refinement-prompt-ec"
+              value={refinementPrompt}
+              onChange={(e) => setRefinementPrompt(e.target.value)}
+              placeholder="e.g., 'focus on security aspects', 'generate ideas for children', 'consider scalability implications'"
+              rows={3}
+              className="resize-none"
               disabled={isLoading}
             />
           </div>
@@ -311,3 +332,4 @@ export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange
     </Dialog>
   );
 }
+

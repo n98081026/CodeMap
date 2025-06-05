@@ -3,7 +3,8 @@
 
 /**
  * @fileOverview This file defines a Genkit flow for expanding a concept by
- * generating additional related concepts, optionally using existing map context.
+ * generating additional related concepts, optionally using existing map context
+ * and a user-provided refinement prompt.
  *
  * - expandConcept - A function that expands a given concept into
  *   additional, related concepts.
@@ -19,6 +20,7 @@ const ExpandConceptInputSchema = z.object({
     .string()
     .describe('The concept to expand upon.'),
   existingMapContext: z.array(z.string()).optional().describe('Brief text of existing nodes in the map to provide context and guide the expansion.'),
+  userRefinementPrompt: z.string().optional().describe('An optional user-provided prompt to further refine or guide the concept expansion.'),
 });
 export type ExpandConceptInput = z.infer<typeof ExpandConceptInputSchema>;
 
@@ -49,7 +51,12 @@ Consider the existing context of the map, which includes:
 Your goal is to suggest new concepts that are distinct from, yet complementary to, this existing context.
 {{/if}}
 
-Please generate a list of 3 to 5 new, concise concepts that are closely related to "{{concept}}". These new concepts should broaden understanding by offering a variety of the following:
+{{#if userRefinementPrompt}}
+Additionally, the user has provided the following refinement to guide the expansion. Please prioritize suggestions related to this:
+"{{userRefinementPrompt}}"
+{{/if}}
+
+Please generate a list of 3 to 5 new, concise concepts that are closely related to "{{concept}}" and align with any user refinement provided. These new concepts should broaden understanding by offering a variety of the following:
 - **Sub-components or specific examples** of "{{concept}}".
 - **Implications or consequences** arising from "{{concept}}".
 - **Related processes or next steps** associated with "{{concept}}".
