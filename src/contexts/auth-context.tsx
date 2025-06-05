@@ -52,10 +52,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.log(`Profile created for user ${supabaseAuthUser.id} during registration flow.`);
         } catch (profileCreationError) {
             console.error("Failed to create profile for new user during registration flow:", profileCreationError);
-            // This is a critical error: user exists in Supabase Auth but not in our `profiles` table.
-            // Sign them out to avoid an inconsistent state.
             await supabase.auth.signOut();
-            setUser(null); // Clear local user state
+            setUser(null); 
             throw new Error(`User registered in Supabase Auth, but profile creation failed: ${(profileCreationError as Error).message}. Please contact support or try registering again.`);
         }
       }
@@ -63,12 +61,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (profile) {
         setUser(profile);
       } else if (!isRegistering) { 
-        // If NOT registering and profile is still not found, this is a problem.
-        console.error(`CRITICAL: Profile for user ${supabaseAuthUser.id} not found in 'profiles' table, and not during a registration flow. Logging out to prevent inconsistent state. This might indicate a missing profile or DB trigger failure.`);
+        console.error(`CRITICAL: Profile for user ${supabaseAuthUser.id} not found in 'profiles' table, and not during a registration flow. Logging out to prevent inconsistent state.`);
         await supabase.auth.signOut();
         setUser(null);
       } else {
-        // If isRegistering but profile is somehow still null (should have been created), also an issue.
         console.error(`CRITICAL: Profile for user ${supabaseAuthUser.id} is null even after attempting creation during registration. Logging out.`);
         await supabase.auth.signOut();
         setUser(null);
@@ -76,69 +72,107 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
       console.error("Error in fetchAndSetSupabaseUser (fetching or creating user profile):", error);
-      // Fallback: clear user state and sign out from Supabase to be safe
       await supabase.auth.signOut().catch(e => console.warn("Supabase signout failed during error handling:", e));
       setUser(null);
     }
   }, []);
 
 
-  useEffect(() => {
-    setIsLoading(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
-      const supabaseAuthUser = session?.user ?? null;
-      console.log('Auth state changed:', event, supabaseAuthUser ? supabaseAuthUser.id : 'no user');
+  const initialAuthCheckCompleted = useRef(false);
 
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+  useEffect(() => {
+    if (initialAuthCheckCompleted.current && !fetchAndSetSupabaseUser) { 
+        // This condition means the effect is re-running after initial check, potentially due to HMR or other reasons,
+        // but fetchAndSetSupabaseUser is not ready (which shouldn't happen if useCallback is used properly).
+        // We want to avoid re-setting up listeners if not necessary or if dependencies are unstable.
+        console.warn("AuthContext useEffect re-run after initial check, but fetchAndSetSupabaseUser might be undefined. Skipping listener setup.");
+        return;
+    }
+
+    console.log("AuthContext useEffect: Setting up listeners and initial check. initialAuthCheckCompleted.current:", initialAuthCheckCompleted.current);
+    setIsLoading(true); 
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`AuthContext event: ${event}`, session?.user?.id || "no user");
+      const supabaseAuthUser = session?.user ?? null;
+
+      let needsLoadingStateUpdate = false;
+
+      if (event === 'INITIAL_SESSION') {
         if (supabaseAuthUser) {
-            await fetchAndSetSupabaseUser(supabaseAuthUser);
+          await fetchAndSetSupabaseUser(supabaseAuthUser);
         } else {
-            setUser(null); // No user in session means not authenticated
+          setUser(null);
+        }
+        if (!initialAuthCheckCompleted.current) {
+            initialAuthCheckCompleted.current = true;
+            needsLoadingStateUpdate = true;
+            console.log("AuthContext: INITIAL_SESSION processed.");
+        }
+      } else if (event === 'SIGNED_IN') {
+        if (supabaseAuthUser) {
+          await fetchAndSetSupabaseUser(supabaseAuthUser);
+        }
+        if (!initialAuthCheckCompleted.current) {
+            initialAuthCheckCompleted.current = true;
+            needsLoadingStateUpdate = true;
+            console.log("AuthContext: SIGNED_IN processed (initial auth likely).");
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-      }
-      setIsLoading(false);
-    });
-
-    // Check initial session more robustly.
-    // Using a timeout to ensure it doesn't get stuck if onAuthStateChange doesn't fire 'INITIAL_SESSION' quickly.
-    const sessionCheckTimeout = setTimeout(() => {
-        if (isLoading) { // if still loading after timeout, assume no session or error
-            console.warn("Auth context timeout: still loading, assuming no active session initially.");
-            setIsLoading(false);
-            setUser(null);
+        if (!initialAuthCheckCompleted.current) {
+            initialAuthCheckCompleted.current = true;
+            needsLoadingStateUpdate = true;
+            console.log("AuthContext: SIGNED_OUT processed (initial auth likely no user).");
         }
-    }, 3000); // 3 seconds timeout
-
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      clearTimeout(sessionCheckTimeout); // Clear timeout if getSession resolves
-      if (isLoading) { // Only proceed if timeout hasn't already set isLoading to false
-        if (session?.user) {
-          console.log('Initial session found:', session.user.id);
-          await fetchAndSetSupabaseUser(session.user);
+      } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        if (supabaseAuthUser) {
+          await fetchAndSetSupabaseUser(supabaseAuthUser);
         } else {
-          console.log('No initial session found.');
           setUser(null);
         }
-        setIsLoading(false);
+         if (!initialAuthCheckCompleted.current) {
+            initialAuthCheckCompleted.current = true;
+            needsLoadingStateUpdate = true;
+             console.log("AuthContext: TOKEN_REFRESHED/USER_UPDATED processed (initial auth likely).");
+        }
       }
-    }).catch((error) => {
-      clearTimeout(sessionCheckTimeout);
-      if (isLoading) {
-        console.error('Error getting initial session:', error);
-        setUser(null);
+
+      if (needsLoadingStateUpdate) {
         setIsLoading(false);
+        console.log("AuthContext: isLoading set to false via onAuthStateChange event.");
       }
     });
 
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!initialAuthCheckCompleted.current) { 
+        console.log("AuthContext getSession(): User:", session?.user?.id || "no user");
+        if (session?.user) {
+          await fetchAndSetSupabaseUser(session.user);
+        } else {
+          setUser(null);
+        }
+        initialAuthCheckCompleted.current = true;
+        setIsLoading(false);
+        console.log("AuthContext: getSession() processed, isLoading set to false.");
+      } else {
+         console.log("AuthContext getSession(): Initial auth check already completed by onAuthStateChange. Current user:", userRef.current?.id || "none");
+      }
+    }).catch(error => {
+      if (!initialAuthCheckCompleted.current) {
+        console.error("AuthContext getSession() error:", error);
+        setUser(null);
+        initialAuthCheckCompleted.current = true;
+        setIsLoading(false);
+        console.log("AuthContext: getSession() error, isLoading set to false.");
+      }
+    });
 
     return () => {
-      subscription?.unsubscribe();
-      clearTimeout(sessionCheckTimeout);
+      subscription.unsubscribe();
+      console.log("AuthContext: Unsubscribed from auth state changes.");
     };
-  }, [fetchAndSetSupabaseUser, isLoading]); // Added isLoading to dependency array
+  }, [fetchAndSetSupabaseUser]);
 
 
   const login = useCallback(async (email: string, password: string, role: UserRole) => {
@@ -148,15 +182,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       if (!sessionData.user) throw new Error("Login successful but no user data returned from Supabase.");
 
-      // onAuthStateChange will trigger fetchAndSetSupabaseUser, which includes role check.
-      // We fetch profile here to validate role immediately.
       const fetchedProfile = await fetchSupabaseUserProfile(sessionData.user.id);
       if (fetchedProfile) {
         if (fetchedProfile.role !== role) {
-            await supabase.auth.signOut(); // Sign out if role mismatch
+            await supabase.auth.signOut(); 
             throw new Error(`Role mismatch. You selected '${role}', but your account role is '${fetchedProfile.role}'. Please log in with the correct role.`);
         }
-        // setUser(fetchedProfile); // Optimistically set, but onAuthStateChange will confirm
+         setUser(fetchedProfile); // Optimistically set user, onAuthStateChange will also fire.
+         // Redirect logic after successful login and role check
          switch (fetchedProfile.role) {
             case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
             case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
@@ -164,19 +197,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             default: router.replace('/login'); 
         }
       } else {
-          // This case should ideally be handled by a DB trigger that creates a profile on auth.users insert.
-          // If no profile, it's an issue.
           await supabase.auth.signOut();
           throw new Error("User profile not found after Supabase login. Please ensure your profile exists or contact support.");
       }
     } catch (error) {
       console.error("Login failed:", error);
-      setUser(null); // Ensure local state is cleared on failure
-      setIsLoading(false); // Ensure loading is false on error
-      throw error; // Re-throw for the form to handle
+      setUser(null); 
+      setIsLoading(false); 
+      throw error; 
+    } finally {
+        // setIsLoading(false); // isLoading is primarily managed by the main useEffect now
     }
-    // setIsLoading(false); will be handled by onAuthStateChange
-  }, [router, fetchSupabaseUserProfile]);
+  }, [router, fetchSupabaseUserProfile]); // fetchSupabaseUserProfile from useCallback
 
   const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
     setIsLoading(true);
@@ -186,8 +218,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
         options: {
           data: { 
-            full_name: name, // Store name in Supabase Auth metadata
-            user_role: role,   // Store role in Supabase Auth metadata (useful for triggers)
+            full_name: name, 
+            user_role: role,   
           }
         }
       });
@@ -195,73 +227,74 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (signUpError) throw signUpError;
       if (!signUpData.user) throw new Error("Registration successful but no user data returned from Supabase Auth.");
       
-      // Explicitly create profile here. If a DB trigger exists, this might be redundant but safe.
-      // The fetchAndSetSupabaseUser called by onAuthStateChange will pick up the created profile.
+      // Ensure profile is created immediately after auth user creation.
+      // The onAuthStateChange listener for SIGNED_IN might also call fetchAndSetSupabaseUser,
+      // so isRegistering=true helps that function create the profile if it runs first.
       await fetchAndSetSupabaseUser(signUpData.user, true, { name, role });
 
       toast({
         title: "Registration Successful!",
         description: "Your account has been created. If email confirmation is required by your Supabase project, please check your email to confirm. Then you can log in.",
-        duration: 10000, // Longer duration for this important message
+        duration: 10000, 
       });
       
-      router.push('/login'); // Redirect to login after registration
+      router.push('/login'); 
 
     } catch (error) {
       console.error("Registration process failed:", error);
-      throw error; // Re-throw for the form to handle
-    } finally {
       setIsLoading(false);
+      throw error; 
+    } finally {
+      // setIsLoading(false); // Let main useEffect handle isLoading for consistency
     }
   }, [router, fetchAndSetSupabaseUser, toast]);
 
   const logout = useCallback(async () => {
-    setIsLoading(true);
+    const currentPath = pathname; // Capture pathname before potential navigation by AuthContext
+    console.log("AuthContext: logout called from path", currentPath);
+    setIsLoading(true); // Indicate an auth operation is in progress
     setUser(null); 
     const { error } = await supabase.auth.signOut();
     if (error) {
         console.error("Supabase signout error:", error);
-        // Even if Supabase signout fails, force redirect and clear local state
     }
-    // Redirect to login page
-    if (!pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
+    // onAuthStateChange with SIGNED_OUT event will set initialAuthCheckCompleted and isLoading=false
+    
+    // Explicitly navigate to login unless already on a public auth page
+    // This ensures redirection even if onAuthStateChange is slow or fails.
+    if (!currentPath.startsWith('/login') && !currentPath.startsWith('/register') && currentPath !== '/') {
         router.replace('/login');
     }
-    setIsLoading(false);
-  }, [router, pathname]);
+    // Ensure loading is false after logout actions, if not handled by onAuthStateChange quickly enough
+    // This is a fallback, ideally onAuthStateChange's SIGNED_OUT handles it.
+    setTimeout(() => {
+        if(isLoading) setIsLoading(false);
+    }, 500);
+
+  }, [router, pathname, isLoading]); // Added isLoading to dependencies to use latest value
 
   const updateCurrentUserData = useCallback(async (updatedFields: Partial<User>) => {
-    const currentContextUser = userRef.current;
+    const currentContextUser = userRef.current; // Use ref to get latest user state
     if (!currentContextUser) {
       throw new Error("Cannot update user data: No current user in context.");
     }
 
     try {
-      // Note: Updating email in the 'profiles' table doesn't automatically update Supabase Auth email.
-      // That's a separate process usually involving user re-authentication and `supabase.auth.updateUser()`.
-      // This function primarily updates the custom profile data.
-      if (updatedFields.email && updatedFields.email !== currentContextUser.email) {
-        console.warn("Attempting to update email in 'profiles' table. This does NOT change the Supabase Auth email automatically.");
-      }
-
       const updatedProfile = await updateUserProfileService(currentContextUser.id, updatedFields);
 
       if (updatedProfile) {
-        setUser(updatedProfile); // Update context user state
+        setUser(updatedProfile); 
       } else {
-        // If service returns null or throws, it's an error.
-        // If it returns null indicating not found (shouldn't happen for current user), re-fetch.
-        console.error(`Failed to get updated profile for user ${currentContextUser.id} after update attempt. Re-fetching.`);
+        console.error(`Failed to get updated profile for user ${currentContextUser.id} after update attempt. Re-fetching Supabase Auth user.`);
         const {data: {user: supabaseAuthUserNow}} = await supabase.auth.getUser();
         if (supabaseAuthUserNow) await fetchAndSetSupabaseUser(supabaseAuthUserNow);
       }
     } catch (error) {
         console.error("Failed to update user profile in Supabase 'profiles' table:", error);
-        throw error; // Re-throw for the calling component to handle
+        throw error; 
     }
-  }, [fetchAndSetSupabaseUser]);
+  }, [fetchAndSetSupabaseUser]); // fetchAndSetSupabaseUser is stable
 
-  // Kept for local testing convenience. Does NOT persist role changes to backend.
   const setTestUserRole = useCallback((newRole: UserRole) => {
     setUser(prevUser => {
       if (prevUser) {
@@ -299,3 +332,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+  
