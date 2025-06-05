@@ -63,7 +63,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
       <EmptyState
         icon={UsersIcon}
         title="No Students Enrolled"
-        description='No students are currently enrolled. Use the "Invite/Add Student" button on the main page to add students.'
+        description='No students are currently enrolled. Use the "Invite/Add Student" button on the main classroom page to add students.'
       />
     );
   }
@@ -115,3 +115,4 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
   );
 };
     
+

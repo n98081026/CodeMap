@@ -37,7 +37,7 @@ export const DashboardLinkCard: React.FC<DashboardLinkCardProps> = ({
         ) : (
           count // Render loading/error component directly
         )}
-        <p className="text-xs text-muted-foreground mb-4 h-8 sm:h-10 line-clamp-2"> {/* Fixed height for description */}
+        <p className="text-xs text-muted-foreground mb-4 h-10 line-clamp-2"> {/* Adjusted height and line-clamp */}
           {description}
         </p>
         <Button asChild variant="outline" size="sm" className="w-full">
@@ -49,3 +49,4 @@ export const DashboardLinkCard: React.FC<DashboardLinkCardProps> = ({
     </Card>
   );
 };
+

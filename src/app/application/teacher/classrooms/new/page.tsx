@@ -1,3 +1,4 @@
+
 // src/app/application/teacher/classrooms/new/page.tsx
 "use client";
 
@@ -223,3 +224,4 @@ export default function CreateClassroomPage() {
     </div>
   );
 }
+

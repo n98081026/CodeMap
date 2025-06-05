@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from 'next-themes'; 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { UserRole } from '@/types';
 import { usePathname } from 'next/navigation'; 
 
@@ -27,7 +27,7 @@ export function Navbar() {
     setMounted(true);
   }, []);
   
-  const getRoleBasedDashboardLink = () => {
+  const getRoleBasedDashboardLink = useCallback(() => {
     if (!user) return "/login"; 
     switch (user.role) {
       case UserRole.ADMIN:
@@ -39,19 +39,20 @@ export function Navbar() {
       default:
         return "/login"; 
     }
-  };
+  }, [user]);
 
-  const getLogoLink = () => {
-    if (isAuthenticated) {
+  const getLogoLink = useCallback(() => {
+    if (isAuthenticated && user) { // Ensure user is also available for role check
       return getRoleBasedDashboardLink();
     }
     // For unauthenticated users, always link to /login
     return '/login';
-  };
+  }, [isAuthenticated, user, getRoleBasedDashboardLink]);
 
 
   if (!mounted) {
     // Avoid rendering mismatch during hydration for theme toggle
+    // Ensure placeholder dimensions match rendered content to prevent layout shift
     return (
       <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-6">
@@ -60,8 +61,8 @@ export function Navbar() {
           <span className="font-headline text-xl font-semibold">CodeMap</span>
         </Link>
         <div className="flex items-center space-x-3">
-            <div className="h-9 w-9"></div> {/* Placeholder for theme toggle to prevent layout shift */}
-            {isAuthenticated && user ? <div className="h-9 w-9"></div> : <div className="h-10 w-[78px]"></div>}
+            <div className="h-9 w-9"></div> {/* Placeholder for theme toggle */}
+            <div className="h-9 w-9"></div> {/* Placeholder for user dropdown/login button */}
         </div>
       </div>
     </nav>
@@ -134,3 +135,4 @@ export function Navbar() {
     </nav>
   );
 }
+

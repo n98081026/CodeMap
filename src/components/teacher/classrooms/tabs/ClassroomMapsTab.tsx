@@ -53,7 +53,7 @@ export const ClassroomMapsTab: React.FC<ClassroomMapsTabProps> = ({
       <EmptyState
         icon={Share2Icon}
         title="No Shared Maps"
-        description="No concept maps have been shared with this classroom yet."
+        description="No concept maps have been shared with this classroom yet by students or the teacher."
       />
     );
   }
@@ -93,3 +93,4 @@ export const ClassroomMapsTab: React.FC<ClassroomMapsTabProps> = ({
   );
 };
     
+
