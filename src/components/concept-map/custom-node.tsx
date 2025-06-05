@@ -17,7 +17,8 @@ import {
   Brain, // ai-extracted-concept, ai-concept
   Lightbulb, // ai-expanded, ai-concept
   Puzzle, // manual-node
-  AlignLeft // ai-summary-node
+  AlignLeft, // ai-summary-node
+  PenLine // ai-rewritten-node
 } from 'lucide-react';
 
 // Data expected by our custom node
@@ -39,6 +40,7 @@ const nodeTypeStyles: { [key: string]: string } = {
   'ai-concept': 'bg-slate-100 dark:bg-slate-700/50 border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-300',
   'ai-expanded': 'bg-fuchsia-100 dark:bg-fuchsia-900/50 border-fuchsia-500 dark:border-fuchsia-600 text-fuchsia-900 dark:text-fuchsia-200',
   'ai-summary-node': 'bg-cyan-100 dark:bg-cyan-900/50 border-cyan-500 dark:border-cyan-600 text-cyan-900 dark:text-cyan-200',
+  'ai-rewritten-node': 'bg-gray-100 dark:bg-gray-800/50 border-gray-400 dark:border-gray-500 text-gray-800 dark:text-gray-300',
   'manual-node': 'bg-sky-100 dark:bg-sky-900/50 border-sky-500 dark:border-sky-600 text-sky-900 dark:text-sky-200',
   'text-derived-concept': 'bg-lime-100 dark:bg-lime-900/50 border-lime-500 dark:border-lime-600 text-lime-900 dark:text-lime-200',
   'ai-generated': 'bg-rose-100 dark:bg-rose-900/50 border-rose-500 dark:border-rose-600 text-rose-900 dark:text-rose-200',
@@ -57,6 +59,7 @@ const nodeTypeIcons: { [key: string]: React.ElementType } = {
   'ai-concept': Brain,
   'ai-expanded': Lightbulb,
   'ai-summary-node': AlignLeft,
+  'ai-rewritten-node': PenLine,
   'manual-node': Puzzle,
   'text-derived-concept': FileCode2, 
   'ai-generated': Brain,
@@ -141,3 +144,4 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
+
