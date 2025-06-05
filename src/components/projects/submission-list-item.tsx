@@ -8,63 +8,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Eye, FileArchive, AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
-import React, { useEffect, useState, useCallback } from "react";
-import { useToast } from "@/hooks/use-toast";
+import React from "react"; // Removed unused imports
+import { useSubmissionStatusPoller } from "@/hooks/useSubmissionStatusPoller"; // Import the new hook
 
 interface SubmissionListItemProps {
   submission: ProjectSubmission;
 }
 
-const POLLING_INTERVAL = 7000; // Poll every 7 seconds
-
 export const SubmissionListItem = React.memo(function SubmissionListItem({ submission: initialSubmission }: SubmissionListItemProps) {
-  const [currentSubmission, setCurrentSubmission] = useState<ProjectSubmission>(initialSubmission);
-  const [isPolling, setIsPolling] = useState(false);
-  const { toast } = useToast();
+  const { currentSubmission, isPolling: isAutoPollingActive, manualRefresh } = useSubmissionStatusPoller(initialSubmission);
+  const [isManualRefreshing, setIsManualRefreshing] = React.useState(false);
 
-  useEffect(() => {
-    setCurrentSubmission(initialSubmission); 
-  }, [initialSubmission]);
-
-  const fetchLatestStatus = useCallback(async () => {
-    setIsPolling(true);
-    try {
-      const response = await fetch(`/api/projects/submissions/${currentSubmission.id}`);
-      if (!response.ok) {
-        console.error(`Polling failed for submission ${currentSubmission.id}: ${response.statusText}`);
-        // Optionally show a toast for fetch error during polling
-        // toast({ title: "Status Update Failed", description: "Could not fetch latest status.", variant: "destructive" });
-        return;
-      }
-      const updatedSubmission: ProjectSubmission = await response.json();
-      setCurrentSubmission(updatedSubmission);
-    } catch (error) {
-      console.error(`Error polling for submission ${currentSubmission.id}:`, error);
-      // toast({ title: "Status Update Error", description: "An error occurred while fetching status.", variant: "destructive" });
-    } finally {
-      setIsPolling(false);
-    }
-  }, [currentSubmission.id]);
-
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout | undefined;
-
-    const activeStatuses = [
-      ProjectSubmissionStatus.PENDING,
-      ProjectSubmissionStatus.QUEUED,
-      ProjectSubmissionStatus.PROCESSING,
-    ];
-
-    if (activeStatuses.includes(currentSubmission.analysisStatus)) {
-      fetchLatestStatus(); // Initial fetch if active
-      intervalId = setInterval(fetchLatestStatus, POLLING_INTERVAL);
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [currentSubmission.analysisStatus, fetchLatestStatus]); 
-
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    await manualRefresh();
+    setIsManualRefreshing(false);
+  };
+  
   const getStatusIconAndColor = () => {
     switch (currentSubmission.analysisStatus) {
       case ProjectSubmissionStatus.COMPLETED:
@@ -80,6 +40,12 @@ export const SubmissionListItem = React.memo(function SubmissionListItem({ submi
   };
 
   const { icon: StatusIcon, color: statusColor } = getStatusIconAndColor();
+
+  const isRefreshable = [
+      ProjectSubmissionStatus.PENDING,
+      ProjectSubmissionStatus.QUEUED,
+      ProjectSubmissionStatus.PROCESSING,
+  ].includes(currentSubmission.analysisStatus);
 
   return (
     <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -97,7 +63,7 @@ export const SubmissionListItem = React.memo(function SubmissionListItem({ submi
       <CardContent>
         <div className="flex items-center space-x-2 mb-2">
           <span className="text-sm font-medium">Status:</span>
-          <Badge 
+          <Badge
             variant={
               currentSubmission.analysisStatus === ProjectSubmissionStatus.COMPLETED ? 'default' :
               currentSubmission.analysisStatus === ProjectSubmissionStatus.FAILED ? 'destructive' :
@@ -107,11 +73,9 @@ export const SubmissionListItem = React.memo(function SubmissionListItem({ submi
           >
             {currentSubmission.analysisStatus}
           </Badge>
-          {(currentSubmission.analysisStatus === ProjectSubmissionStatus.PENDING || 
-            currentSubmission.analysisStatus === ProjectSubmissionStatus.QUEUED || 
-            currentSubmission.analysisStatus === ProjectSubmissionStatus.PROCESSING) && (
-            <Button variant="ghost" size="icon" onClick={fetchLatestStatus} disabled={isPolling} className="h-6 w-6 ml-auto">
-              <RefreshCw className={`h-4 w-4 ${isPolling ? 'animate-spin' : ''}`} />
+          {isRefreshable && (
+            <Button variant="ghost" size="icon" onClick={handleManualRefresh} disabled={isManualRefreshing || isAutoPollingActive} className="h-6 w-6 ml-auto">
+              <RefreshCw className={`h-4 w-4 ${isManualRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           )}
         </div>
