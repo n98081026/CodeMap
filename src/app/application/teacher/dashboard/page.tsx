@@ -7,9 +7,9 @@ import { UserRole } from "@/types";
 import { BookOpen, Users, LayoutDashboard, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
-import { useTeacherDashboardMetrics } from "@/hooks/useTeacherDashboardMetrics"; // Import the custom hook
+import { useTeacherDashboardMetrics } from "@/hooks/useTeacherDashboardMetrics";
+import { QuickActionsCard, type QuickActionItem } from "@/components/dashboard/quick-actions-card";
 
 const LoadingSpinner = () => (
   <div className="flex h-screen w-screen items-center justify-center">
@@ -19,10 +19,9 @@ const LoadingSpinner = () => (
 
 export default function TeacherDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();
-  const { 
-    managedClassrooms: managedClassroomsMetric, 
+  const {
+    managedClassrooms: managedClassroomsMetric,
     totalStudents: totalStudentsMetric,
-    fetchMetrics
   } = useTeacherDashboardMetrics();
 
   const adminDashboardLink = "/application/admin/dashboard";
@@ -43,6 +42,16 @@ export default function TeacherDashboardPage() {
     }
     return <div className="text-3xl font-bold">{metric.count ?? 0}</div>;
   };
+
+  const teacherQuickActions: QuickActionItem[] = [
+    {
+      label: "Create New Classroom",
+      href: "/application/teacher/classrooms/new",
+      icon: Users, // Assuming Users icon is appropriate for creating a classroom
+      size: "lg",
+      className: "w-full sm:w-auto"
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -78,19 +87,11 @@ export default function TeacherDashboardPage() {
         />
       </div>
 
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks for managing your teaching activities.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/application/teacher/classrooms/new">
-              <Users className="mr-2 h-5 w-5" /> Create New Classroom
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <QuickActionsCard
+        actions={teacherQuickActions}
+        title="Quick Actions"
+        description="Common tasks for managing your teaching activities."
+      />
     </div>
   );
 }

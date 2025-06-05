@@ -1,14 +1,13 @@
 
 "use client";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { BookOpen, FileText, Share2, FolderKanban, LayoutDashboard, Compass, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
-import { useStudentDashboardMetrics } from "@/hooks/useStudentDashboardMetrics"; // Import the custom hook
+import { useStudentDashboardMetrics } from "@/hooks/useStudentDashboardMetrics";
+import { QuickActionsCard, type QuickActionItem } from "@/components/dashboard/quick-actions-card";
 
 const LoadingSpinner = () => (
   <div className="flex h-screen w-screen items-center justify-center">
@@ -18,11 +17,10 @@ const LoadingSpinner = () => (
 
 export default function StudentDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();
-  const { 
-    classrooms: classroomsMetric, 
-    conceptMaps: conceptMapsMetric, 
+  const {
+    classrooms: classroomsMetric,
+    conceptMaps: conceptMapsMetric,
     submissions: submissionsMetric,
-    fetchMetrics 
   } = useStudentDashboardMetrics();
 
   useEffect(() => {
@@ -41,6 +39,24 @@ export default function StudentDashboardPage() {
     }
     return <div className="text-3xl font-bold">{metric.count ?? 0}</div>;
   };
+
+  const studentQuickActions: QuickActionItem[] = [
+    {
+      label: "Create New Concept Map",
+      href: "/application/concept-maps/editor/new",
+      icon: Compass,
+      size: "lg",
+      className: "w-full"
+    },
+    {
+      label: "Submit New Project",
+      href: "/application/student/projects/submit",
+      icon: FileText,
+      variant: "secondary",
+      size: "lg",
+      className: "w-full"
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -78,24 +94,7 @@ export default function StudentDashboardPage() {
         />
       </div>
 
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Get started with common tasks quickly.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Button asChild size="lg" className="w-full">
-            <Link href="/application/concept-maps/editor/new">
-              <Compass className="mr-2 h-5 w-5" /> Create New Concept Map
-            </Link>
-          </Button>
-          <Button asChild variant="secondary" size="lg" className="w-full">
-            <Link href="/application/student/projects/submit">
-              <FileText className="mr-2 h-5 w-5" /> Submit New Project
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <QuickActionsCard actions={studentQuickActions} />
     </div>
   );
 }
