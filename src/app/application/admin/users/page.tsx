@@ -22,21 +22,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription as FormDialogDescription,
-  DialogFooter as FormDialogFooter,
-  DialogHeader as FormDialogHeader,
-  DialogTitle as FormDialogTitle,
-  DialogClose
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from '@/contexts/auth-context';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/layout/empty-state";
+import { EditUserDialog } from '@/components/admin/users/edit-user-dialog'; // Import the new dialog
 
 const USERS_PER_PAGE = 7;
 
@@ -49,9 +39,7 @@ export default function AdminUsersPage() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editFormData, setEditFormData] = useState({ name: "", email: "", role: UserRole.STUDENT });
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
@@ -83,18 +71,16 @@ export default function AdminUsersPage() {
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
-      // toast({ title: "Error Fetching Users", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchUsers(currentPage, deferredSearchTerm);
   }, [currentPage, deferredSearchTerm, fetchUsers]);
   
   useEffect(() => {
-    // Reset to page 1 when search term changes
     setCurrentPage(1);
   }, [deferredSearchTerm]);
 
@@ -127,51 +113,12 @@ export default function AdminUsersPage() {
        return;
     }
     setEditingUser(userToEdit);
-    setEditFormData({ name: userToEdit.name, email: userToEdit.email, role: userToEdit.role });
     setIsEditModalOpen(true);
   }, [toast, adminUser?.id]);
 
-  const handleEditFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement> | string, fieldName?: string) => {
-    if (typeof e === "string" && fieldName) {
-      setEditFormData(prev => ({ ...prev, [fieldName]: e as UserRole }));
-    } else if (typeof e !== "string") {
-      const { name, value } = e.target as HTMLInputElement;
-      setEditFormData(prev => ({ ...prev, [name]: value }));
-    }
-  }, []);
-
-  const handleUpdateUser = useCallback(async () => {
-    if (!editingUser) return;
-    if (!editFormData.name.trim()) {
-      toast({ title: "Name Required", description: "User name cannot be empty.", variant: "destructive" });
-      return;
-    }
-    if (!editFormData.email.trim() || !editFormData.email.includes('@')) {
-      toast({ title: "Valid Email Required", description: "Please provide a valid email address.", variant: "destructive" });
-      return;
-    }
-
-    setIsSavingEdit(true);
-    try {
-      const response = await fetch(`/api/users/${editingUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update user");
-      }
-      toast({ title: "User Updated", description: `User "${editFormData.name}" has been updated.` });
-      setIsEditModalOpen(false);
-      setEditingUser(null);
-      fetchUsers(currentPage, deferredSearchTerm);
-    } catch (err) {
-      toast({ title: "Error Updating User", description: (err as Error).message, variant: "destructive" });
-    } finally {
-      setIsSavingEdit(false);
-    }
-  }, [editingUser, editFormData, toast, fetchUsers, currentPage, deferredSearchTerm]);
+  const handleUserUpdateSuccess = useCallback(() => {
+    fetchUsers(currentPage, deferredSearchTerm);
+  }, [currentPage, deferredSearchTerm, fetchUsers]);
 
   const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
@@ -345,47 +292,14 @@ export default function AdminUsersPage() {
         )
       )}
 
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <FormDialogHeader>
-            <FormDialogTitle>Edit User: {editingUser?.name}</FormDialogTitle>
-            <FormDialogDescription>Modify the user's details below.</FormDialogDescription>
-          </FormDialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Name</Label>
-              <Input id="name" name="name" value={editFormData.name} onChange={handleEditFormChange} className="col-span-3" disabled={isSavingEdit} />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">Email</Label>
-              <Input id="email" name="email" type="email" value={editFormData.email} onChange={handleEditFormChange} className="col-span-3" disabled={isSavingEdit} />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="role" className="text-right">Role</Label>
-              <Select name="role" value={editFormData.role} onValueChange={(value) => handleEditFormChange(value, "role")} disabled={isSavingEdit}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={UserRole.STUDENT}>Student</SelectItem>
-                  <SelectItem value={UserRole.TEACHER}>Teacher</SelectItem>
-                  <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <FormDialogFooter>
-            <DialogClose asChild>
-                <Button type="button" variant="outline" disabled={isSavingEdit}>Cancel</Button>
-            </DialogClose>
-            <Button onClick={handleUpdateUser} disabled={isSavingEdit}>
-                {isSavingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSavingEdit ? "Saving..." : "Save Changes"}
-            </Button>
-          </FormDialogFooter>
-        </DialogContent>
-      </Dialog>
+      {editingUser && (
+        <EditUserDialog
+          isOpen={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          userToEdit={editingUser}
+          onUserUpdateSuccess={handleUserUpdateSuccess}
+        />
+      )}
     </div>
   );
 }
-

@@ -6,19 +6,16 @@ import React, { useEffect, useState, useCallback, useDeferredValue } from "react
 import Link from "next/link";
 import type { Classroom } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, BookOpen, Loader2, AlertTriangle, Search } from "lucide-react";
+import { PlusCircle, BookOpen, Loader2, AlertTriangle, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardFooter } from "@/components/ui/card"; // Removed unused Card imports
-import { Dialog, DialogContent, DialogDescription as FormDialogDescription, DialogFooter as FormDialogFooter, DialogHeader as FormDialogHeader, DialogTitle as FormDialogTitle, DialogClose } from "@/components/ui/dialog";
+import { CardFooter } from "@/components/ui/card"; 
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/layout/empty-state";
 import { ClassroomListItem } from "@/components/classrooms/classroom-list-item";
-import { ChevronLeft, ChevronRight } from "lucide-react"; // Added for pagination
+import { EditClassroomDialog } from "@/components/teacher/classrooms/edit-classroom-dialog"; // Import new dialog
 
 const CLASSROOMS_PER_PAGE = 6;
 
@@ -31,9 +28,7 @@ export default function TeacherClassroomsPage() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null);
-  const [editFormData, setEditFormData] = useState({ name: "", description: "" });
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalClassrooms, setTotalClassrooms] = useState(0);
   const totalPages = Math.ceil(totalClassrooms / CLASSROOMS_PER_PAGE);
@@ -72,22 +67,17 @@ export default function TeacherClassroomsPage() {
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
-      // toast({
-      //   title: "Error Fetching Classrooms",
-      //   description: errorMessage,
-      //   variant: "destructive",
-      // });
     } finally {
       setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   useEffect(() => {
     fetchTeacherClassrooms(currentPage, deferredSearchTerm);
   }, [currentPage, deferredSearchTerm, fetchTeacherClassrooms]);
 
   useEffect(() => {
-    setCurrentPage(1); // Reset to page 1 when search term changes
+    setCurrentPage(1); 
   }, [deferredSearchTerm]);
 
   const handleDeleteClassroom = useCallback(async (classroomId: string, classroomName: string) => {
@@ -110,42 +100,12 @@ export default function TeacherClassroomsPage() {
 
   const openEditModal = useCallback((classroom: Classroom) => {
     setEditingClassroom(classroom);
-    setEditFormData({ name: classroom.name, description: classroom.description || "" });
     setIsEditModalOpen(true);
   }, []);
 
-  const handleEditFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setEditFormData(prev => ({ ...prev, [name]: value }));
-  }, []);
-
-  const handleUpdateClassroom = useCallback(async () => {
-    if (!editingClassroom) return;
-    if (!editFormData.name.trim()) {
-      toast({ title: "Validation Error", description: "Classroom name cannot be empty.", variant: "destructive" });
-      return;
-    }
-    setIsSavingEdit(true);
-    try {
-      const response = await fetch(`/api/classrooms/${editingClassroom.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update classroom");
-      }
-      toast({ title: "Classroom Updated", description: `Classroom "${editFormData.name}" has been updated.` });
-      setIsEditModalOpen(false);
-      setEditingClassroom(null);
-      fetchTeacherClassrooms(currentPage, deferredSearchTerm);
-    } catch (err) {
-      toast({ title: "Error Updating Classroom", description: (err as Error).message, variant: "destructive" });
-    } finally {
-      setIsSavingEdit(false);
-    }
-  }, [editingClassroom, editFormData, toast, fetchTeacherClassrooms, currentPage, deferredSearchTerm]);
+  const handleClassroomUpdateSuccess = useCallback(() => {
+    fetchTeacherClassrooms(currentPage, deferredSearchTerm);
+  }, [currentPage, deferredSearchTerm, fetchTeacherClassrooms]);
 
   const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
@@ -227,14 +187,14 @@ export default function TeacherClassroomsPage() {
             <ClassroomListItem
               key={classroom.id}
               classroom={classroom}
-              userRole={user!.role}
+              userRole={user!.role} 
               onEdit={openEditModal}
               onDelete={handleDeleteClassroom}
             />
           ))}
         </div>
         {totalPages > 1 && (
-            <CardFooter className="flex items-center justify-between border-t pt-4 mt-6">
+            <CardFooter className="flex items-center justify-between border-t pt-4 mt-6 bg-card">
                 <span className="text-sm text-muted-foreground">
                   Page {currentPage} of {totalPages} ({totalClassrooms} classrooms)
                 </span>
@@ -263,55 +223,14 @@ export default function TeacherClassroomsPage() {
         </>
       )}
 
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <FormDialogHeader>
-            <FormDialogTitle>Edit Classroom: {editingClassroom?.name}</FormDialogTitle>
-            <FormDialogDescription>
-              Update the details for this classroom.
-            </FormDialogDescription>
-          </FormDialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-classroom-name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="edit-classroom-name"
-                name="name"
-                value={editFormData.name}
-                onChange={handleEditFormChange}
-                className="col-span-3"
-                disabled={isSavingEdit}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-classroom-description" className="text-right">
-                Description
-              </Label>
-              <Textarea
-                id="edit-classroom-description"
-                name="description"
-                value={editFormData.description}
-                onChange={handleEditFormChange}
-                className="col-span-3 resize-none"
-                placeholder="Optional: A brief description of the classroom."
-                disabled={isSavingEdit}
-              />
-            </div>
-          </div>
-          <FormDialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline" disabled={isSavingEdit}>Cancel</Button>
-            </DialogClose>
-            <Button type="submit" onClick={handleUpdateClassroom} disabled={isSavingEdit}>
-                {isSavingEdit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {isSavingEdit ? "Saving..." : "Save Changes"}
-            </Button>
-          </FormDialogFooter>
-        </DialogContent>
-      </Dialog>
+      {editingClassroom && (
+        <EditClassroomDialog
+          isOpen={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          classroomToEdit={editingClassroom}
+          onClassroomUpdateSuccess={handleClassroomUpdateSuccess}
+        />
+      )}
     </div>
   );
 }
-
