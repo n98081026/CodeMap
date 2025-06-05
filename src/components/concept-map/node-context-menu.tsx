@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Brain, Lightbulb, SearchCode } from 'lucide-react'; // Added SearchCode
+import { Trash2, Brain, Lightbulb, SearchCode, HelpCircle } from 'lucide-react'; // Added HelpCircle
 
 interface NodeContextMenuProps {
   x: number;
@@ -14,7 +14,8 @@ interface NodeContextMenuProps {
   onDeleteNode: (nodeId: string) => void;
   onExpandConcept: (nodeId: string) => void;
   onSuggestRelations: (nodeId: string) => void;
-  onExtractConcepts: (nodeId: string) => void; // New prop
+  onExtractConcepts: (nodeId: string) => void;
+  onAskQuestion: (nodeId: string) => void; // New prop
   isViewOnlyMode?: boolean;
 }
 
@@ -26,7 +27,8 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   onDeleteNode,
   onExpandConcept,
   onSuggestRelations,
-  onExtractConcepts, // New prop
+  onExtractConcepts,
+  onAskQuestion, // New prop
   isViewOnlyMode,
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -49,9 +51,15 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     onClose();
   };
 
-  const handleExtract = () => { // New handler
+  const handleExtract = () => { 
     if (isViewOnlyMode) return;
     onExtractConcepts(nodeId);
+    onClose();
+  };
+
+  const handleAsk = () => { // New handler
+    if (isViewOnlyMode) return;
+    onAskQuestion(nodeId);
     onClose();
   };
 
@@ -77,13 +85,13 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
 
   return (
     <div ref={menuRef} className="absolute z-[100]" style={{ top: y, left: x }}>
-      <Card className="w-60 shadow-xl border bg-popover text-popover-foreground"> {/* Increased width slightly */}
+      <Card className="w-64 shadow-xl border bg-popover text-popover-foreground">
         <CardContent className="p-1 space-y-1">
            <Button
             variant="ghost"
             size="sm"
             className="w-full justify-start px-2 py-1.5 text-sm"
-            onClick={handleExtract} // Wired up
+            onClick={handleExtract} 
             disabled={isViewOnlyMode}
           >
             <SearchCode className="mr-2 h-4 w-4 text-blue-500" />
@@ -108,6 +116,16 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           >
             <Lightbulb className="mr-2 h-4 w-4 text-yellow-500" />
             Suggest Relations (AI)
+          </Button>
+           <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start px-2 py-1.5 text-sm"
+            onClick={handleAsk}
+            disabled={isViewOnlyMode}
+          >
+            <HelpCircle className="mr-2 h-4 w-4 text-green-500" />
+            Ask AI Question...
           </Button>
           <Separator />
           <Button

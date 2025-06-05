@@ -15,11 +15,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, HelpCircle } from "lucide-react"; // Added HelpCircle
 
 import { extractConcepts as aiExtractConcepts } from "@/ai/flows/extract-concepts";
 import { suggestRelations as aiSuggestRelations } from "@/ai/flows/suggest-relations";
 import { expandConcept as aiExpandConcept } from "@/ai/flows/expand-concept";
+import { askQuestionAboutNode as aiAskQuestionAboutNode, type AskQuestionAboutNodeOutput } from "@/ai/flows/ask-question-about-node"; // New import
 
 interface ModalProps {
   onOpenChange: (isOpen: boolean) => void; 
@@ -27,7 +28,7 @@ interface ModalProps {
 
 interface ExtractConceptsModalProps extends ModalProps {
   onConceptsExtracted?: (concepts: string[]) => void;
-  initialText?: string; // New prop
+  initialText?: string; 
 }
 
 export function ExtractConceptsModal({ onConceptsExtracted, initialText = "", onOpenChange }: ExtractConceptsModalProps) {
@@ -59,7 +60,7 @@ export function ExtractConceptsModal({ onConceptsExtracted, initialText = "", on
 
   return (
     <Dialog open={true} onOpenChange={(isOpen) => {
-      if (!isOpen) setText(""); // Clear text on close
+      if (!isOpen) setText(""); 
       onOpenChange(isOpen);
     }}> 
       <DialogContent className="sm:max-w-lg">
@@ -111,7 +112,7 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
       toast({ title: "Input Required", description: "Please provide at least one concept.", variant: "destructive" });
       return;
     }
-    if (concepts.length < 2 && concepts.length > 0) { // If only one concept, it's okay, but more are better
+    if (concepts.length < 2 && concepts.length > 0) { 
       toast({ title: "More Concepts Recommended", description: "For best results with relation suggestions, provide at least two concepts. The AI will try its best with the current input.", variant: "default" });
     }
     setIsLoading(true);
@@ -129,7 +130,7 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
   
   return (
     <Dialog open={true} onOpenChange={(isOpen) => {
-      if (!isOpen) setConceptsInput(""); // Clear on close
+      if (!isOpen) setConceptsInput(""); 
       onOpenChange(isOpen);
     }}>
       <DialogContent className="sm:max-w-md">
@@ -199,7 +200,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
 
   return (
     <Dialog open={true} onOpenChange={(isOpen) => {
-      if (!isOpen) setConcept(""); // Clear on close
+      if (!isOpen) setConcept(""); 
       onOpenChange(isOpen);
     }}>
       <DialogContent className="sm:max-w-md">
@@ -238,3 +239,75 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
   );
 }
 
+// New Modal for Asking Questions
+interface AskQuestionModalProps extends ModalProps {
+  nodeContext: { text: string; details?: string } | null;
+  onQuestionAnswered: (answer: string) => void;
+}
+
+export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange }: AskQuestionModalProps) {
+  const [question, setQuestion] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleAskQuestion = async () => {
+    if (!question.trim() || !nodeContext) {
+      toast({ title: "Input Required", description: "Please enter your question.", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const result: AskQuestionAboutNodeOutput = await aiAskQuestionAboutNode({
+        nodeText: nodeContext.text,
+        nodeDetails: nodeContext.details,
+        question: question,
+      });
+      onQuestionAnswered(result.answer);
+      onOpenChange(false); // Close modal on success
+    } catch (error) {
+      toast({ title: "Error Getting Answer", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={(isOpen) => {
+      if (!isOpen) setQuestion(""); // Clear question on close
+      onOpenChange(isOpen);
+    }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center">
+            <HelpCircle className="mr-2 h-5 w-5 text-primary" /> Ask AI About Node
+          </DialogTitle>
+          {nodeContext && (
+            <DialogDescription>
+              Node: <strong className="text-foreground">{nodeContext.text}</strong>
+              {nodeContext.details && <span className="block text-xs text-muted-foreground mt-1">Details: {nodeContext.details}</span>}
+            </DialogDescription>
+          )}
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <Label htmlFor="ai-question">Your Question:</Label>
+          <Textarea
+            id="ai-question"
+            placeholder="e.g., What are the implications of this concept? Can you explain this in simpler terms?"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            rows={4}
+            className="resize-none"
+            disabled={isLoading || !nodeContext}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
+          <Button onClick={handleAskQuestion} disabled={isLoading || !question.trim() || !nodeContext}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Ask Question
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

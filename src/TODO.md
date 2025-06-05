@@ -58,11 +58,11 @@
 
 ## Frontend Enhancements
 - [x] **Key Concept Map Editor Components & Functionality:**
-    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added.
+    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added.
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles.
     - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented with disabled inputs and muted styling.
-    - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal` to interact with AI flows. Context menu now correctly opens these.
-    - [x] **`AISuggestionPanel` (formerly `CanvasPlaceholder`)**: Area below canvas displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions are cleared after being added to the map. Suggestions can be edited before adding. Enhanced empty state logic.
+    - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal` to interact with AI flows. Context menu now correctly opens these.
+    - [x] **`AISuggestionPanel` (formerly `CanvasPlaceholder`)**: Area below canvas displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions are cleared after being added to the map (Now, items persist and update status). Suggestions can be edited before adding. Enhanced empty state logic.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor, including `zundo` middleware).
@@ -95,30 +95,30 @@
 
 - [ ] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
     - [ ] **Canvas-Integrated AI Brainstorming & Expansion:**
-        - [ ] **Context Menu AI Actions:** Implement AI actions (Expand, Suggest Relations, Ask AI Question About This) directly on node right-click context menus. (This enhances `Context for expandConcept` and `suggestRelations`).
-        - [ ] **"Quick AI Node/Cluster" on Canvas:** Allow user to type a prompt on canvas (e.g., via a floating button or command palette) to generate a new node or a small cluster of related nodes directly onto the map.
+        - [x] **Context Menu AI Actions:** Implement AI actions (Expand, Suggest Relations, Extract Concepts, Ask AI Question) directly on node right-click context menus.
+        - [x] **"Quick AI Node/Cluster" on Canvas:** Allow user to type a prompt on canvas (e.g., via a floating button or command palette - Implemented via Toolbar Modal) to generate a new node or a small cluster of related nodes directly onto the map.
         - [ ] **Direct AI Output Visualization:** For AI-suggested nodes/edges, investigate options for previewing them directly on the canvas (e.g., as ghost elements or in a temporary layer) before final addition, rather than solely relying on the `AISuggestionPanel`.
     - [ ] **AI for Structuring Text into Map Snippets:**
         - [ ] Enhance "Extract Concepts" (or create a new, more powerful tool): Allow pasting larger text blocks (e.g., meeting notes, documentation paragraphs) and have the AI attempt to generate a small, structured set of interconnected nodes (a mini-map snippet) directly from it.
-    - [ ] **Enhanced Context for In-Editor AI Tools:**
-        - [ ] **`extractConcepts` Context:** (Future Feature) If text is from document upload, pass document name/context. Consider allowing extraction from selected node text or notes on the map.
-        - [ ] **`suggestRelations` Context:** Revise `SuggestRelationsModal` and underlying logic to better utilize multiple selected nodes from the canvas as primary input, rather than just a text list. Provide option to run on all map concepts or a large selection.
-        - [ ] **`expandConcept` Context:** Ensure clear visual feedback to the user about which node is being used for expansion, especially when triggered from toolbar vs. context menu. Allow expansion based on multiple selected nodes to find common themes or bridging concepts.
+    - [x] **Enhanced Context for In-Editor AI Tools:**
+        - [x] **`extractConcepts` Context:** If text is from document upload, pass document name/context. Allows extraction from selected node text or notes on the map (Implemented for node/multi-node selection).
+        - [x] **`suggestRelations` Context:** Revise `SuggestRelationsModal` and underlying logic to better utilize multiple selected nodes from the canvas as primary input, rather than just a text list. Provide option to run on all map concepts or a large selection (Implemented for multi-node selection).
+        - [x] **`expandConcept` Context:** Ensure clear visual feedback to the user about which node is being used for expansion, especially when triggered from toolbar vs. context menu. Allow expansion based on multiple selected nodes to find common themes or bridging concepts (Implemented for selected node context).
     - [ ] **Iterate on GenAI Prompts for Quality & Relevance:**
-        - [ ] Continuously review and refine prompts for `extractConcepts`, `suggestRelations`, `expandConcept` in `src/ai/flows/` to improve the quality, relevance, conciseness, and actionability of suggestions. Aim for fewer, high-impact suggestions if current output is noisy or too generic.
+        - [ ] Continuously review and refine prompts for `extractConcepts`, `suggestRelations`, `expandConcept`, `generateQuickCluster`, `askQuestionAboutNode` in `src/ai/flows/` to improve the quality, relevance, conciseness, and actionability of suggestions. Aim for fewer, high-impact suggestions if current output is noisy or too generic.
         - [ ] Explore prompt strategies for more diverse types of suggestions (e.g., analogies, counter-arguments, examples).
 
-- [ ] **Refine `AISuggestionPanel` Workflow & User Experience:**
-    - [ ] **Workflow Review**: Re-evaluate the entire workflow from invoking an AI tool to seeing suggestions and adding them to the map. Identify and smooth out friction points. The panel should be a helpful companion, not a bottleneck.
-    - [ ] **Visual Feedback on "Add to Map"**: Provide clearer visual feedback within the panel when a suggestion is successfully added to the map (e.g., item grays out, shows a checkmark, or is removed from the "new" list, rather than just disappearing).
-    - [ ] **Smart Placement for Panel-Added Nodes**: When adding AI-suggested nodes *from the panel*, refine the placement strategy on the canvas (e.g., near related existing nodes if context is known, or in an open canvas area) rather than just random positions.
+- [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
+    - [x] **Workflow Review**: Re-evaluate the entire workflow from invoking an AI tool to seeing suggestions and adding them to the map. Identify and smooth out friction points. The panel should be a helpful companion, not a bottleneck. (Suggestions now persist and update status, not cleared immediately).
+    - [x] **Visual Feedback on "Add to Map"**: Provide clearer visual feedback within the panel when a suggestion is successfully added to the map (e.g., item grays out, shows a checkmark, or is removed from the "new" list, rather than just disappearing). (Items now persist, update status to 'exact-match' or 'similar-match', checkboxes disable for exact matches).
+    - [x] **Smart Placement for Panel-Added Nodes**: When adding AI-suggested nodes *from the panel*, refine the placement strategy on the canvas (e.g., near related existing nodes if context is known, or in an open canvas area) rather than just random positions. (Implemented: Places near selected node or cascades from top-left).
     - [x] **Selective Addition**: "Add Selected" and "Add All New" implemented.
     - [x] **Edit Before Adding**: Suggestions can be edited in the panel.
     - [x] **Clearer Visual Cues**: Differentiates existing/similar suggestions.
     - [x] **Panel Styling and Usability**: Improved layout, distinct cards.
 
-- [ ] **Improve General AI User Experience (UX) for In-Editor Tools:**
-    - [ ] **Tooltips & In-UI Guidance**: Review and enhance tooltips for AI toolbar buttons. Add brief, contextual help within modals or the `AISuggestionPanel` on how to best use each feature and interpret its results.
+- [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
+    - [x] **Tooltips & In-UI Guidance**: Review and enhance tooltips for AI toolbar buttons. Add brief, contextual help within modals or the `AISuggestionPanel` on how to best use each feature and interpret its results. (Modals updated, tooltips present).
     - [x] **Loading & Feedback**: Consistent loading indicators, clearer error messages for AI operations.
     - [x] **AI Suggestion Panel (`AISuggestionPanel`)**: Basic layout and toggle accessibility implemented.
 

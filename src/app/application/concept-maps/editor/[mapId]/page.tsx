@@ -18,9 +18,10 @@ import {
   ExtractConceptsModal,
   SuggestRelationsModal,
   ExpandConceptModal,
+  AskQuestionModal, // New Import
 } from "@/components/concept-map/genai-modals";
-import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal"; // New Import
-import type { GenerateQuickClusterOutput } from "@/ai/flows/generate-quick-cluster"; // New Import
+import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal"; 
+import type { GenerateQuickClusterOutput } from "@/ai/flows/generate-quick-cluster"; 
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { UserRole } from "@/types";
@@ -91,27 +92,12 @@ export default function ConceptMapEditorPage() {
 
   const clearTemporalHistory = useCallback(() => {
     const currentTemporalStore = useConceptMapStore.temporal;
-    // console.log("[DEBUG] Attempting to clear temporal history.");
-    // console.log("[DEBUG] useConceptMapStore.temporal object:", currentTemporalStore);
-
-    if (currentTemporalStore) {
-      // console.log("[DEBUG] Temporal store object exists. Keys:", Object.keys(currentTemporalStore));
-      // console.log("[DEBUG] Value of currentTemporalStore.clear:", currentTemporalStore.clear);
-      // console.log("[DEBUG] typeof currentTemporalStore.clear:", typeof currentTemporalStore.clear);
-
-      if (currentTemporalStore.clear && typeof currentTemporalStore.clear === 'function') {
-        try {
-          currentTemporalStore.clear();
-          // console.log("[DEBUG] Temporal history cleared successfully.");
-        } catch (e) {
-          console.error("[DEBUG] Error calling currentTemporalStore.clear():", e);
-          // console.error("[DEBUG] currentTemporalStore.clear was:", currentTemporalStore.clear, "with type:", typeof currentTemporalStore.clear, "when error occurred.");
-        }
-      } else {
-        // console.warn("[DEBUG] `clear` method not found or not a function on temporal store. Value:", currentTemporalStore.clear, "Type:", typeof currentTemporalStore.clear, "Available methods:", Object.keys(currentTemporalStore));
+    if (currentTemporalStore && currentTemporalStore.clear && typeof currentTemporalStore.clear === 'function') {
+      try {
+        currentTemporalStore.clear();
+      } catch (e) {
+        console.error("Error calling currentTemporalStore.clear():", e);
       }
-    } else {
-      // console.warn("[DEBUG] Temporal store object (useConceptMapStore.temporal) not available when attempting to clear history.");
     }
   }, []);
 
@@ -119,13 +105,14 @@ export default function ConceptMapEditorPage() {
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
-  const [isQuickClusterModalOpen, setIsQuickClusterModalOpen] = useState(false); // New state
+  const [isQuickClusterModalOpen, setIsQuickClusterModalOpen] = useState(false); 
+  const [isAskQuestionModalOpen, setIsAskQuestionModalOpen] = useState(false); // New state
   
   const [textForExtraction, setTextForExtraction] = useState(""); 
   const [conceptToExpand, setConceptToExpand] = useState("");
   const [mapContextForExpansion, setMapContextForExpansion] = useState<string[]>([]);
   const [conceptsForRelationSuggestion, setConceptsForRelationSuggestion] = useState<string[]>([]);
-
+  const [nodeContextForQuestion, setNodeContextForQuestion] = useState<{ text: string; details?: string, id: string } | null>(null); // New state
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
@@ -326,7 +313,7 @@ export default function ConceptMapEditorPage() {
     let baseY = 50;
     const offsetX = 180; 
     const offsetY = 70;  
-    const clusterOffsetX = 10; // Small offset for nodes within the same cluster call
+    const clusterOffsetX = 10; 
     const clusterOffsetY = 10;
 
     if (currentSelectedId) {
@@ -334,13 +321,11 @@ export default function ConceptMapEditorPage() {
       if (selectedNode && typeof selectedNode.x === 'number' && typeof selectedNode.y === 'number') {
         baseX = selectedNode.x + offsetX; 
         baseY = selectedNode.y + (index * offsetY);
-         // Apply additional offset for cluster items
         baseX += clusterIndex * clusterOffsetX;
         baseY += clusterIndex * clusterOffsetY;
         return { x: baseX, y: baseY };
       }
     }
-    // Default cascading placement if no node is selected
     const nodesPerRow = clusterSize > 1 ? Math.ceil(Math.sqrt(clusterSize)) : 3;
     const rowIndex = Math.floor(index / nodesPerRow);
     const colIndex = index % nodesPerRow;
@@ -565,7 +550,7 @@ export default function ConceptMapEditorPage() {
     const currentMapEdges = useConceptMapStore.getState().mapData.edges;
     const currentMultiSelectedNodeIds = useConceptMapStore.getState().multiSelectedNodeIds;
 
-    if (nodeIdForContext && currentMapNodes) { // Called from context menu
+    if (nodeIdForContext && currentMapNodes) { 
         const cNode = currentMapNodes.find(n => n.id === nodeIdForContext);
         if (cNode) {
             concepts.push(cNode.text);
@@ -577,9 +562,9 @@ export default function ConceptMapEditorPage() {
             concepts.push(...Array.from(neighborIds)
                 .map(id => currentMapNodes.find(n => n.id === id)?.text)
                 .filter((text): text is string => !!text)
-                .slice(0, 4)); // Max 5 concepts (1 target + 4 neighbors)
+                .slice(0, 4)); 
         }
-    } else { // Called from toolbar
+    } else { 
         if (currentMultiSelectedNodeIds && currentMultiSelectedNodeIds.length >= 2) {
             concepts = currentMultiSelectedNodeIds
                 .map(id => currentMapNodes.find(n => n.id === id)?.text)
@@ -598,12 +583,12 @@ export default function ConceptMapEditorPage() {
                     .filter((text): text is string => !!text)
                     .slice(0, 4));
             }
-        } else if (currentMapNodes && currentMapNodes.length > 0) { // No selection, use some from map
+        } else if (currentMapNodes && currentMapNodes.length > 0) { 
              concepts = currentMapNodes.slice(0, Math.min(5, currentMapNodes.length)).map(n => n.text);
         }
     }
     
-    setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept A", "Example Concept B"]); // Default if no context
+    setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept A", "Example Concept B"]); 
     setIsSuggestRelationsModalOpen(true);
   }, [resetStoreAiSuggestions]);
 
@@ -615,25 +600,22 @@ export default function ConceptMapEditorPage() {
     const currentMultiSelectedIds = useConceptMapStore.getState().multiSelectedNodeIds;
     let initialText = "";
 
-    if (nodeIdForContext) { // From context menu
+    if (nodeIdForContext) { 
         const node = currentNodes.find(n => n.id === nodeIdForContext);
         if (node) initialText = `${node.text}${node.details ? `\n\nDetails: ${node.details}` : ''}`;
-    } else if (currentMultiSelectedIds.length > 0) { // From toolbar with multi-selection
+    } else if (currentMultiSelectedIds.length > 0) { 
         initialText = currentMultiSelectedIds.map(id => {
             const node = currentNodes.find(n => n.id === id);
             return node ? `${node.text}${node.details ? `\nDetails: ${node.details}` : ''}` : '';
         }).filter(Boolean).join("\n\n---\n\n");
-    } else if (currentSelectedNodeId && currentSelectedType === 'node') { // From toolbar with single selection
+    } else if (currentSelectedNodeId && currentSelectedType === 'node') { 
         const node = currentNodes.find(n => n.id === currentSelectedNodeId);
-        if (node) initialText = `${node.text}${node.details ? `\n\nDetails: ${node.details}` : ''}`;
+        if (node) initialText = `${node.text}${node.details ? `\nDetails: ${node.details}` : ''}`;
     }
-    // If no selection, initialText remains "" and user types in modal
-
     setTextForExtraction(initialText);
     setIsExtractConceptsModalOpen(true);
   }, [resetStoreAiSuggestions]);
 
-  // New: Handle Quick Cluster Modal
   const handleOpenQuickClusterModal = useCallback(() => {
     if (isViewOnlyMode) {
       toast({ title: "View Only Mode", description: "Cannot use Quick AI Cluster in view-only mode.", variant: "default" });
@@ -645,10 +627,9 @@ export default function ConceptMapEditorPage() {
   const handleClusterGenerated = useCallback((output: GenerateQuickClusterOutput) => {
     if (isViewOnlyMode) return;
 
-    const newNodesMap = new Map<string, string>(); // Map original text to new node ID
+    const newNodesMap = new Map<string, string>(); 
     let addedNodesCount = 0;
 
-    // Add nodes first
     output.nodes.forEach((aiNode, index) => {
       const position = getNodePlacementPosition(index, output.nodes.length, addedNodesCount); 
       const newNodeId = addStoreNode({
@@ -657,11 +638,10 @@ export default function ConceptMapEditorPage() {
         details: aiNode.details || '',
         position: position,
       });
-      newNodesMap.set(aiNode.text, newNodeId); // Use the returned ID
+      newNodesMap.set(aiNode.text, newNodeId); 
       addedNodesCount++;
     });
 
-    // Add edges
     if (output.edges) {
       output.edges.forEach(aiEdge => {
         const sourceId = newNodesMap.get(aiEdge.sourceText);
@@ -679,6 +659,31 @@ export default function ConceptMapEditorPage() {
     }
     toast({ title: "AI Cluster Added", description: `Added ${output.nodes.length} nodes and ${output.edges?.length || 0} edges to the map.` });
   }, [isViewOnlyMode, addStoreNode, addStoreEdge, toast, getNodePlacementPosition]);
+
+  // New: For "Ask AI Question"
+  const prepareAndOpenAskQuestionModal = useCallback((nodeId: string) => {
+    if (isViewOnlyMode) {
+        toast({ title: "View Only Mode", description: "Cannot ask questions in view-only mode.", variant: "default" });
+        return;
+    }
+    const node = storeMapData.nodes.find(n => n.id === nodeId);
+    if (node) {
+        setNodeContextForQuestion({ text: node.text, details: node.details, id: node.id });
+        setIsAskQuestionModalOpen(true);
+    } else {
+        toast({ title: "Error", description: "Node not found.", variant: "destructive" });
+    }
+  }, [isViewOnlyMode, storeMapData.nodes, toast]);
+
+  const handleQuestionAnswered = useCallback((answer: string) => {
+    toast({
+        title: "AI Answer Received",
+        description: answer.length > 150 ? `${answer.substring(0, 147)}... (See console for full answer)` : answer,
+        duration: 7000,
+    });
+    console.log("AI Answer for node", nodeContextForQuestion?.id, ":\n", answer);
+    setNodeContextForQuestion(null); // Clear context after answering
+  }, [toast, nodeContextForQuestion]);
 
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
@@ -827,6 +832,12 @@ export default function ConceptMapEditorPage() {
     closeContextMenu();
   }, [isViewOnlyMode, prepareAndOpenExtractConceptsModal, closeContextMenu]);
 
+  const handleAskQuestionFromContextMenu = useCallback((nodeId: string) => { // New handler
+    if (isViewOnlyMode) return;
+    prepareAndOpenAskQuestionModal(nodeId);
+    closeContextMenu();
+  }, [isViewOnlyMode, prepareAndOpenAskQuestionModal, closeContextMenu]);
+
 
   const handleSelectedElementPropertyUpdateInspector = useCallback((
     inspectorUpdates: any
@@ -905,7 +916,7 @@ export default function ConceptMapEditorPage() {
           onExtractConcepts={() => prepareAndOpenExtractConceptsModal()} 
           onSuggestRelations={() => prepareAndOpenSuggestRelationsModal()}
           onExpandConcept={() => prepareAndOpenExpandConceptModal()}
-          onQuickCluster={handleOpenQuickClusterModal} // Pass new handler
+          onQuickCluster={handleOpenQuickClusterModal} 
           isViewOnlyMode={isViewOnlyMode}
           onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
           onToggleProperties={onTogglePropertiesInspector}
@@ -947,6 +958,7 @@ export default function ConceptMapEditorPage() {
             onExpandConcept={handleExpandFromContextMenu}
             onSuggestRelations={handleSuggestRelationsFromContextMenu}
             onExtractConcepts={handleExtractConceptsFromContextMenu} 
+            onAskQuestion={handleAskQuestionFromContextMenu} // Pass new handler
             isViewOnlyMode={isViewOnlyMode}
           />
         )}
@@ -1021,15 +1033,21 @@ export default function ConceptMapEditorPage() {
             onOpenChange={setIsExpandConceptModalOpen}
           />
         )}
-        {isQuickClusterModalOpen && !isViewOnlyMode && ( // New Modal render
+        {isQuickClusterModalOpen && !isViewOnlyMode && ( 
           <QuickClusterModal
             isOpen={isQuickClusterModalOpen}
             onOpenChange={setIsQuickClusterModalOpen}
             onClusterGenerated={handleClusterGenerated}
           />
         )}
+        {isAskQuestionModalOpen && !isViewOnlyMode && nodeContextForQuestion && ( // New Modal render
+          <AskQuestionModal
+            nodeContext={nodeContextForQuestion}
+            onQuestionAnswered={handleQuestionAnswered}
+            onOpenChange={setIsAskQuestionModalOpen}
+          />
+        )}
       </ReactFlowProvider>
     </div>
   );
 }
-
