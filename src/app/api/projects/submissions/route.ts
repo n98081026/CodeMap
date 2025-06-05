@@ -38,20 +38,19 @@ export async function GET(request: Request) {
     const limitParam = searchParams.get('limit');
 
     const page = pageParam ? parseInt(pageParam, 10) : 1;
-    const limit = limitParam ? parseInt(limitParam, 10) : 10; // Default to 10 if not specified for general queries
+    const limit = limitParam ? parseInt(limitParam, 10) : 10; 
     
     if (classroomId) {
-        const submissions = await getSubmissionsByClassroomId(classroomId); // This service might need pagination too
+        const submissions = await getSubmissionsByClassroomId(classroomId); 
         return NextResponse.json(submissions);
     }
 
     if (studentId) { 
-        const submissions = await getSubmissionsByStudentId(studentId); // This service might need pagination too
-        return NextResponse.json(submissions);
+        const submissions = await getSubmissionsByStudentId(studentId); 
+        return NextResponse.json(submissions); // Returns array directly
     }
     
     // Admin: Get all submissions with pagination
-    // Ensure RLS policies correctly restrict this if it's not intended for all authenticated users.
     const { submissions, totalCount } = await getAllSubmissions(page, limit); 
     return NextResponse.json({ submissions, totalCount, page, limit, totalPages: Math.ceil(totalCount / limit) });
 
@@ -61,3 +60,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: `Failed to fetch submissions: ${errorMessage}` }, { status: 500 });
   }
 }
+
+    

@@ -1,3 +1,4 @@
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -61,7 +62,7 @@
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles.
     - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
     - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal` to interact with AI flows. Context menu now correctly opens these.
-    - [x] **`AISuggestionPanel`**: Area (now a toggleable Sheet) displaying AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions persist and update status. Suggestions can be edited before adding. Enhanced empty state logic.
+    - [x] **`AISuggestionPanel`**: Area (now a toggleable Sheet) displaying AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions persist and update status. Suggestions can be edited before adding. Enhanced empty state logic. Suggestions are removed from panel after being added to map.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history).
@@ -73,7 +74,7 @@
     - [x] Add more comprehensive loading states and error handling (Done for many list pages and dashboards with Supabase).
     - [x] Enhance empty states for lists (Largely done with `EmptyState` component and specific icons).
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Change password functionality using Supabase Auth implemented. Linked from Navbar and Sidebar).
-    - [x] Add pagination and filtering for lists (Admin User Management and Teacher classrooms pages have pagination with Supabase).
+    - [x] Add pagination and filtering for lists (Admin User Management and Teacher classrooms pages have pagination and filtering with Supabase).
     - [x] Add loading spinner to Login/Register pages.
     - [x] Make header icons link to main dashboards.
     - [x] Implement "View Only" mode for Concept Map Editor.
@@ -81,7 +82,7 @@
     - [x] Implement change password functionality on profile page (uses Supabase Auth via API).
     - [x] Developer/Testing: Role switcher on Profile page for testing (local context update).
 - [x] **Admin Panel:**
-    - [x] Implement CRUD operations for user management (view with pagination, delete, edit connected to Supabase; add user via register flow).
+    - [x] Implement CRUD operations for user management (view with pagination and filtering, delete, edit connected to Supabase; add user via register flow).
     - [x] Develop system settings interface (Admin Settings page fetches/saves to Supabase via API).
 
 ## GenAI & AI Features - In-Editor Enhancements (Whimsical-Inspired)
@@ -95,7 +96,7 @@
     - [x] Frontend handles saving the generated map (via API) and updating submission status.
 - [x] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`)**:
     - [x] Input schema updated to `projectStoragePath` and `userHint`.
-    - [x] Mock logic acknowledges these inputs.
+    - [x] Mock logic acknowledges these inputs and slightly varies output based on hint.
 - [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**:
     - [x] Input schema updated to `projectStoragePath` and `userGoals`.
     - [x] Prompt explicitly instructs use of `projectStructureAnalyzerTool` with these inputs.
@@ -115,7 +116,7 @@
         - [x] **`expandConcept` Context:** Uses selected node and its neighbors.
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools).
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
-    - [x] **Workflow Review**: Suggestions persist, update status.
+    - [x] **Workflow Review**: Suggestions persist, update status, removed from panel after adding to map.
     - [x] **Visual Feedback on "Add to Map"**: Items persist, status updates.
     - [x] **Smart Placement for Panel-Added Nodes**: Basic logic implemented.
     - [x] **Selective Addition**: "Add Selected" and "Add All New/Similar" implemented.
@@ -202,3 +203,6 @@ The main remaining area for full Supabase connection is:
 *   Potentially enhancing real-time features with Supabase Realtime.
 *   Thorough testing and deployment preparations.
 This covers a very large portion of the Supabase integration tasks. The application is now significantly more robust and data-driven.
+
+```
+    

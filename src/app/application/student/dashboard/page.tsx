@@ -1,3 +1,4 @@
+
 "use client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -25,7 +26,10 @@ export default function StudentDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();
   const { toast } = useToast();
 
-  const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(null);
+  const [enrolledClassroomsCount, setEnrolledClassroomsCount] = useState<number | null>(null);
+  const [conceptMapsCount, setConceptMapsCount] = useState<number | null>(null);
+  const [projectSubmissionsCount, setProjectSubmissionsCount] = useState<number | null>(null);
+
 
   const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(true);
   const [isLoadingMaps, setIsLoadingMaps] = useState(true);
@@ -43,15 +47,8 @@ export default function StudentDashboardPage() {
       return;
     }
 
-    setIsLoadingClassrooms(true); setErrorClassrooms(null);
-    setIsLoadingMaps(true); setErrorMaps(null);
-    setIsLoadingSubmissions(true); setErrorSubmissions(null);
-
-    let classroomsCount = 0;
-    let mapsCount = 0;
-    let submissionsCount = 0;
-
     // Fetch Classrooms
+    setIsLoadingClassrooms(true); setErrorClassrooms(null);
     try {
       const classroomsResponse = await fetch(`/api/classrooms?studentId=${user.id}`);
       if (!classroomsResponse.ok) {
@@ -59,16 +56,17 @@ export default function StudentDashboardPage() {
         throw new Error(errData.message || `Classrooms API Error (${classroomsResponse.status})`);
       }
       const data = await classroomsResponse.json();
-      classroomsCount = data.length;
+      setEnrolledClassroomsCount(data.length);
     } catch (err) {
       const msg = (err as Error).message;
       setErrorClassrooms(msg);
-      toast({ title: "Error Fetching Classrooms", description: msg, variant: "destructive" });
+      // toast({ title: "Error Fetching Classrooms", description: msg, variant: "destructive" });
     } finally {
       setIsLoadingClassrooms(false);
     }
 
     // Fetch Concept Maps
+    setIsLoadingMaps(true); setErrorMaps(null);
     try {
       const mapsResponse = await fetch(`/api/concept-maps?ownerId=${user.id}`);
        if (!mapsResponse.ok) {
@@ -76,16 +74,17 @@ export default function StudentDashboardPage() {
         throw new Error(errData.message || `Concept Maps API Error (${mapsResponse.status})`);
       }
       const data = await mapsResponse.json();
-      mapsCount = data.length;
+      setConceptMapsCount(data.length);
     } catch (err) {
       const msg = (err as Error).message;
       setErrorMaps(msg);
-      toast({ title: "Error Fetching Concept Maps", description: msg, variant: "destructive" });
+      // toast({ title: "Error Fetching Concept Maps", description: msg, variant: "destructive" });
     } finally {
       setIsLoadingMaps(false);
     }
 
     // Fetch Submissions
+    setIsLoadingSubmissions(true); setErrorSubmissions(null);
     try {
       const submissionsResponse = await fetch(`/api/projects/submissions?studentId=${user.id}`);
       if (!submissionsResponse.ok) {
@@ -93,20 +92,14 @@ export default function StudentDashboardPage() {
         throw new Error(errData.message || `Submissions API Error (${submissionsResponse.status})`);
       }
       const data = await submissionsResponse.json();
-      submissionsCount = data.length;
+      setProjectSubmissionsCount(data.length); // API returns direct array for this query
     } catch (err) {
       const msg = (err as Error).message;
       setErrorSubmissions(msg);
-      toast({ title: "Error Fetching Submissions", description: msg, variant: "destructive" });
+      // toast({ title: "Error Fetching Submissions", description: msg, variant: "destructive" });
     } finally {
       setIsLoadingSubmissions(false);
     }
-
-    setDashboardData({
-      enrolledClassroomsCount: classroomsCount,
-      conceptMapsCount: mapsCount,
-      projectSubmissionsCount: submissionsCount,
-    });
   }, [user, toast]);
 
 
@@ -117,18 +110,17 @@ export default function StudentDashboardPage() {
        setIsLoadingClassrooms(false);
        setIsLoadingMaps(false);
        setIsLoadingSubmissions(false);
-       // AuthProvider or page layout should handle redirection if user is null
     }
   }, [user, authIsLoading, fetchDashboardData]);
 
   if (authIsLoading || (!user && !authIsLoading)) return <LoadingSpinner />;
-  if (!user) return null; // Should be handled by AppLayout redirect
+  if (!user) return null; 
 
-  const renderCount = (count: number | undefined, isLoading: boolean, error: string | null, itemName: string) => {
+  const renderCount = (count: number | null, isLoading: boolean, error: string | null, itemName: string) => {
     if (isLoading) {
       return <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
     }
-    if (error && (count === 0 || count === undefined)) {
+    if (error && (count === 0 || count === null)) {
         return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
     }
     return <div className="text-3xl font-bold">{count ?? 0}</div>;
@@ -147,7 +139,7 @@ export default function StudentDashboardPage() {
         <DashboardLinkCard
           title="My Classrooms"
           description="Classrooms you are enrolled in."
-          count={renderCount(dashboardData?.enrolledClassroomsCount, isLoadingClassrooms, errorClassrooms, "classrooms")}
+          count={renderCount(enrolledClassroomsCount, isLoadingClassrooms, errorClassrooms, "classrooms")}
           icon={BookOpen}
           href="/application/student/classrooms"
           linkText="View Classrooms"
@@ -155,7 +147,7 @@ export default function StudentDashboardPage() {
         <DashboardLinkCard
           title="My Concept Maps"
           description="Concept maps you have created or have access to."
-          count={renderCount(dashboardData?.conceptMapsCount, isLoadingMaps, errorMaps, "maps")}
+          count={renderCount(conceptMapsCount, isLoadingMaps, errorMaps, "maps")}
           icon={Share2}
           href="/application/student/concept-maps"
           linkText="View Maps"
@@ -163,7 +155,7 @@ export default function StudentDashboardPage() {
         <DashboardLinkCard
           title="Project Submissions"
           description="Projects you have submitted for analysis."
-          count={renderCount(dashboardData?.projectSubmissionsCount, isLoadingSubmissions, errorSubmissions, "submissions")}
+          count={renderCount(projectSubmissionsCount, isLoadingSubmissions, errorSubmissions, "submissions")}
           icon={FolderKanban}
           href="/application/student/projects/submissions"
           linkText="View Submissions"
@@ -191,3 +183,5 @@ export default function StudentDashboardPage() {
     </div>
   );
 }
+
+    

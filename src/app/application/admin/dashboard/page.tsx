@@ -1,3 +1,4 @@
+
 "use client";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
@@ -39,7 +40,7 @@ export default function AdminDashboardPage() {
       const errorMessage = (err as Error).message;
       console.error("Error fetching users count:", errorMessage);
       setErrorUsers(errorMessage); 
-      toast({ title: "Error Fetching Users Count", description: errorMessage, variant: "destructive" });
+      // toast({ title: "Error Fetching Users Count", description: errorMessage, variant: "destructive" }); // Optional: can be noisy for dashboard
     } finally {
       setIsLoadingUsers(false);
     }
@@ -57,19 +58,17 @@ export default function AdminDashboardPage() {
         throw new Error(`Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`);
       }
       const classroomsData = await classroomsResponse.json();
-      // If API returns { classrooms: [], totalCount: number }
-      if (typeof classroomsData.totalCount === 'number') {
-        setActiveClassroomsCount(classroomsData.totalCount);
-      } else if (Array.isArray(classroomsData)) { // If it returns array directly
+      // API for /api/classrooms (all) returns a direct array
+      if (Array.isArray(classroomsData)) { 
         setActiveClassroomsCount(classroomsData.length);
-      } else {
-        setActiveClassroomsCount(0); // Fallback if structure is unexpected
+      } else { // If it were paginated, it might have a totalCount
+        setActiveClassroomsCount(classroomsData.totalCount || 0);
       }
     } catch (err) {
       const errorMessage = (err as Error).message;
       console.error("Error fetching classrooms count:", errorMessage);
       setErrorClassrooms(errorMessage); 
-      toast({ title: "Error Fetching Classrooms Count", description: errorMessage, variant: "destructive" });
+      // toast({ title: "Error Fetching Classrooms Count", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoadingClassrooms(false);
     }
@@ -79,7 +78,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!authIsLoading) { // Ensure auth state is resolved
         if (user && user.role !== UserRole.ADMIN) {
-        router.replace('/application/login'); 
+        router.replace('/login'); 
         } else if (user && user.role === UserRole.ADMIN) {
         fetchUsersCount();
         fetchClassroomsCount();
@@ -140,3 +139,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
