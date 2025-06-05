@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, 
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles // Added Sparkles
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch // Added TextSearch
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,8 @@ interface EditorToolbarProps {
   onExtractConcepts: () => void;
   onSuggestRelations: () => void;
   onExpandConcept: () => void;
-  onQuickCluster: () => void; // New prop
+  onQuickCluster: () => void; 
+  onGenerateSnippetFromText: () => void; // New prop
   isViewOnlyMode?: boolean;
   onAddNodeToData?: () => void;
   onAddEdgeToData?: () => void;
@@ -45,7 +46,8 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onExtractConcepts, 
   onSuggestRelations, 
   onExpandConcept,
-  onQuickCluster, // New prop
+  onQuickCluster, 
+  onGenerateSnippetFromText, // New prop
   isViewOnlyMode,
   onAddNodeToData,
   onAddEdgeToData,
@@ -160,6 +162,14 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onGenerateSnippetFromText, "Generate Snippet from Text")} disabled={isViewOnlyMode}>
+              <TextSearch className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isViewOnlyMode ? "Generate Snippet from Text (Disabled)" : "Generate Map Snippet from Text (AI)"}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onExtractConcepts, "Extract Concepts")} disabled={isViewOnlyMode}>
               <SearchCode className="h-5 w-5" />
             </Button>
@@ -212,7 +222,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <BotMessageSquare className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isAiPanelOpen ? "Hide AI Suggestions / Map Info" : "Show AI Suggestions / Map Info"}</TooltipContent>
+          <TooltipContent>{isAiPanelOpen ? "Hide AI Suggestions" : "Show AI Suggestions"}</TooltipContent>
         </Tooltip>
       </div>
     </TooltipProvider>

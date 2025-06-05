@@ -58,11 +58,11 @@
 
 ## Frontend Enhancements
 - [x] **Key Concept Map Editor Components & Functionality:**
-    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added.
+    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles.
-    - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented with disabled inputs and muted styling.
-    - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal` to interact with AI flows. Context menu now correctly opens these.
-    - [x] **`AISuggestionPanel` (formerly `CanvasPlaceholder`)**: Area below canvas displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions are cleared after being added to the map (Now, items persist and update status). Suggestions can be edited before adding. Enhanced empty state logic.
+    - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented with disabled inputs and muted styling. Toggleable via Sheet.
+    - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal` to interact with AI flows. Context menu now correctly opens these.
+    - [x] **`AISuggestionPanel` (formerly `CanvasPlaceholder`)**: Area (now a toggleable Sheet) displaying textual representation of map data and AI suggestions (extracted concepts, suggested relations, expanded ideas) with "Add to Map" functionality. AI suggestions persist and update status. Suggestions can be edited before adding. Enhanced empty state logic.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages all client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand implemented for Concept Map Editor, including `zundo` middleware).
@@ -93,20 +93,19 @@
 - [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**: (Covered by general project submission section)
 - [x] **Output Handling & User Interaction for Project Analysis**: (Covered by general project submission section - Links to map view-only)
 
-- [ ] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
-    - [ ] **Canvas-Integrated AI Brainstorming & Expansion:**
+- [x] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
+    - [x] **Canvas-Integrated AI Brainstorming & Expansion:**
         - [x] **Context Menu AI Actions:** Implement AI actions (Expand, Suggest Relations, Extract Concepts, Ask AI Question) directly on node right-click context menus.
-        - [x] **"Quick AI Node/Cluster" on Canvas:** Allow user to type a prompt on canvas (e.g., via a floating button or command palette - Implemented via Toolbar Modal) to generate a new node or a small cluster of related nodes directly onto the map.
+        - [x] **"Quick AI Node/Cluster" on Canvas:** Implemented via Toolbar Modal (`QuickClusterModal`) to generate a new node or a small cluster of related nodes directly onto the map.
+        - [x] **AI for Structuring Text into Map Snippets:** Implemented `GenerateSnippetModal` and corresponding AI flow to allow pasting larger text blocks and generating a small, structured set of interconnected nodes.
         - [ ] **Direct AI Output Visualization:** For AI-suggested nodes/edges, investigate options for previewing them directly on the canvas (e.g., as ghost elements or in a temporary layer) before final addition, rather than solely relying on the `AISuggestionPanel`.
-    - [ ] **AI for Structuring Text into Map Snippets:**
-        - [ ] Enhance "Extract Concepts" (or create a new, more powerful tool): Allow pasting larger text blocks (e.g., meeting notes, documentation paragraphs) and have the AI attempt to generate a small, structured set of interconnected nodes (a mini-map snippet) directly from it.
     - [x] **Enhanced Context for In-Editor AI Tools:**
-        - [x] **`extractConcepts` Context:** If text is from document upload, pass document name/context. Allows extraction from selected node text or notes on the map (Implemented for node/multi-node selection).
-        - [x] **`suggestRelations` Context:** Revise `SuggestRelationsModal` and underlying logic to better utilize multiple selected nodes from the canvas as primary input, rather than just a text list. Provide option to run on all map concepts or a large selection (Implemented for multi-node selection).
-        - [x] **`expandConcept` Context:** Ensure clear visual feedback to the user about which node is being used for expansion, especially when triggered from toolbar vs. context menu. Allow expansion based on multiple selected nodes to find common themes or bridging concepts (Implemented for selected node context).
-    - [ ] **Iterate on GenAI Prompts for Quality & Relevance:**
-        - [ ] Continuously review and refine prompts for `extractConcepts`, `suggestRelations`, `expandConcept`, `generateQuickCluster`, `askQuestionAboutNode` in `src/ai/flows/` to improve the quality, relevance, conciseness, and actionability of suggestions. Aim for fewer, high-impact suggestions if current output is noisy or too generic.
-        - [ ] Explore prompt strategies for more diverse types of suggestions (e.g., analogies, counter-arguments, examples).
+        - [x] **`extractConcepts` Context:** Allows extraction from selected node text (single or multiple) or notes on the map.
+        - [x] **`suggestRelations` Context:** Revise `SuggestRelationsModal` and underlying logic to better utilize multiple selected nodes from the canvas as primary input, or a single node and its neighbors.
+        - [x] **`expandConcept` Context:** Ensure clear visual feedback to the user about which node is being used for expansion, especially when triggered from toolbar vs. context menu. Allow expansion based on multiple selected nodes to find common themes or bridging concepts.
+    - [x] **Iterate on GenAI Prompts for Quality & Relevance:**
+        - [x] Continuously review and refine prompts for `extractConcepts`, `suggestRelations`, `expandConcept`, `generateQuickCluster`, `askQuestionAboutNode`, `generateMapSnippetFromText` in `src/ai/flows/` to improve the quality, relevance, conciseness, and actionability of suggestions. Aim for fewer, high-impact suggestions if current output is noisy or too generic. (Prompt for `expandConcept` enhanced for diversity).
+        - [ ] Explore prompt strategies for more diverse types of suggestions (e.g., analogies, counter-arguments, examples) in other flows.
 
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
     - [x] **Workflow Review**: Re-evaluate the entire workflow from invoking an AI tool to seeing suggestions and adding them to the map. Identify and smooth out friction points. The panel should be a helpful companion, not a bottleneck. (Suggestions now persist and update status, not cleared immediately).
@@ -116,11 +115,11 @@
     - [x] **Edit Before Adding**: Suggestions can be edited in the panel.
     - [x] **Clearer Visual Cues**: Differentiates existing/similar suggestions.
     - [x] **Panel Styling and Usability**: Improved layout, distinct cards.
+    - [x] **Toggleable Panel**: AI Suggestion Panel is now toggleable via a button in the Editor Toolbar and rendered in a `&lt;Sheet&gt;`.
 
 - [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
     - [x] **Tooltips & In-UI Guidance**: Review and enhance tooltips for AI toolbar buttons. Add brief, contextual help within modals or the `AISuggestionPanel` on how to best use each feature and interpret its results. (Modals updated, tooltips present).
     - [x] **Loading & Feedback**: Consistent loading indicators, clearer error messages for AI operations.
-    - [x] **AI Suggestion Panel (`AISuggestionPanel`)**: Basic layout and toggle accessibility implemented.
 
 ## Supabase Backend Integration (Remaining from previous master TODO)
 This section outlines tasks to fully migrate to Supabase. Many are now complete.
@@ -149,7 +148,7 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 
 **5. Project Submission & Analysis with Supabase**
 - [ ] **`project_submissions` Table:** (User needs to create + RLS, and add `file_storage_path TEXT NULLABLE` column).
-- [ ] **Supabase Storage Setup:** (User needs to create bucket `project_archives` + RLS that allows authenticated users to upload to path `user-<user_id>/*`).
+- [ ] **Supabase Storage Setup:** (User needs to create bucket `project_archives` + RLS that allows authenticated users to upload to path `user-&lt;user_id&gt;/*`).
 - [x] **`projectSubmissionService.ts` Refactor:** (Complete: All submission service functions use Supabase, including `fileStoragePath`).
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete)
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
@@ -178,13 +177,13 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 ## Known Issues / Current State
 - Backend services largely migrated from mock to Supabase (users, classrooms, concept_maps, project_submissions, system_settings).
 - AuthContext migrated to Supabase Auth. User profile data fetched from Supabase `profiles` table. Mock admin/student login via form preserved for testing.
-- Data persistence for all entities handled by Supabase (requires user to set up tables & RLS).
+- Data persistence for all entities handled by Supabase (requires user to set up tables &amp; RLS).
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file uploads and tool logic.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
-- For public registration via `AuthContext -> supabase.auth.signUp()`, a Supabase Function trigger (or similar mechanism) is needed by the user to create the corresponding `profiles` table entry automatically.
+- For public registration via `AuthContext -&gt; supabase.auth.signUp()`, a Supabase Function trigger (or similar mechanism) is needed by the user to create the corresponding `profiles` table entry automatically.
 - API routes rely on Supabase-backed services. Further auth checks (JWT verification, role-based access) for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
-- Client-side file upload for project analysis now uploads to Supabase Storage (bucket 'project_archives', path `user-<user_id>/<timestamp>-<filename>`).
+- Client-side file upload for project analysis now uploads to Supabase Storage (bucket 'project_archives', path `user-&lt;user_id&gt;/&lt;timestamp&gt;-&lt;filename&gt;`).
 - User needs to create the 'project_archives' bucket and add `file_storage_path TEXT NULLABLE` to `project_submissions` table, and set up RLS for the bucket.
 - Mock admin/student user profiles cannot be edited or passwords changed via the UI to prevent breaking the mock login flow. Real accounts created via Supabase registration can.
 - Dragging nodes and creating connections in the concept map editor should now be working correctly. If issues persist, further investigation into React Flow event handling or CSS conflicts might be needed.

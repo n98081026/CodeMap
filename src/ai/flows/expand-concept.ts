@@ -19,7 +19,6 @@ const ExpandConceptInputSchema = z.object({
     .string()
     .describe('The concept to expand upon.'),
   existingMapContext: z.array(z.string()).optional().describe('Brief text of existing nodes in the map to provide context and guide the expansion.'),
-  // context field removed as existingMapContext is more specific
 });
 export type ExpandConceptInput = z.infer<typeof ExpandConceptInputSchema>;
 
@@ -50,19 +49,22 @@ Consider the existing context of the map, which includes:
 Your goal is to suggest new concepts that are distinct from, yet complementary to, this existing context.
 {{/if}}
 
-Please generate a list of 3 to 5 new, concise concepts that are closely related to "{{concept}}". These new concepts should broaden understanding by offering:
+Please generate a list of 3 to 5 new, concise concepts that are closely related to "{{concept}}". These new concepts should broaden understanding by offering a variety of the following:
 - **Sub-components or specific examples** of "{{concept}}".
 - **Implications or consequences** arising from "{{concept}}".
 - **Related processes or next steps** associated with "{{concept}}".
 - **Contrasting ideas or alternative perspectives** to "{{concept}}" (if applicable).
 - **Prerequisites or foundational ideas** for "{{concept}}".
+- **Analogies or metaphors** that clarify "{{concept}}".
+- **Potential challenges or risks** associated with "{{concept}}".
+- **Key questions** that "{{concept}}" raises.
 
 Aim for variety in the types of suggestions.
 The concepts should be distinct and offer clear avenues for further exploration.
 Avoid suggesting concepts that are too similar to "{{concept}}" itself or to those already in existingMapContext.
 
 Output strictly as a JSON object with a single key "newConcepts", where the value is an array of strings.
-Example: {"newConcepts": ["Specific Example of Concept", "Key Implication", "Next Logical Step"]}
+Example: {"newConcepts": ["Specific Example of Concept", "Key Implication", "Next Logical Step", "Alternative Viewpoint", "Foundational Prerequisite"]}
   `,
 });
 
@@ -77,4 +79,3 @@ const expandConceptFlow = ai.defineFlow(
     return output!;
   }
 );
-
