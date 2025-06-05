@@ -78,4 +78,3 @@ export const ConceptMapListItem: React.FC<ConceptMapListItemProps> = ({
     </Card>
   );
 };
-

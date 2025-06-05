@@ -99,4 +99,3 @@ export const ClassroomListItem: React.FC<ClassroomListItemProps> = ({
     </Card>
   );
 };
-
