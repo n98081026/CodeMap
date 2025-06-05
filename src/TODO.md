@@ -122,12 +122,12 @@
         - [ ] Trigger: Context menu on multi-selection and/or Toolbar button.
         - [ ] Input: Text/details from selected nodes.
         - [ ] Action: Create Genkit flow (`summarizeNodesFlow`) that takes an array of node contents and returns a summary text.
-        - [ ] Output: Create a new node with the summary, potentially linked to the summarized nodes or placed nearby. Mark as AI-generated.
-    - [ ] **Implement "Rewrite Node Content (AI)" Feature:**
+        - [ ] Output: Create a new node with the summary, potentially linked to the summarized nodes or placed nearby. Mark as AI-generated (e.g., `type: 'ai-summary-node'`).
+    - [ ] **Implement "Rewrite Node Content (AI) / Change Tone" Feature:**
         - [ ] Trigger: Context menu on a node or dedicated AI icon on selected node.
         - [ ] Input: Node text/details and target tone/style (e.g., from a sub-menu/select: Formal, Casual, Concise, Elaborate, Humorous).
         - [ ] Action: Create Genkit flow (`rewriteNodeContentFlow`) for text rewriting.
-        - [ ] Output: Offer to update the selected node's text/details with the rewritten content (perhaps with preview/confirmation or by offering it as a suggestion in `AISuggestionPanel`). Mark as AI-generated if applied.
+        - [ ] Output: Offer to update the selected node's text/details with the rewritten content (perhaps with preview/confirmation or by offering it as a suggestion in `AISuggestionPanel`). Mark as AI-generated if applied (e.g., `type: 'ai-rewritten-node'`).
     - [ ] **(Advanced - Future) Explore "AI Structure Suggestions":**
         - [ ] Analyze map structure and content to propose new connections or organizational improvements (e.g., "These 3 nodes seem related, would you like to group them?" or "Consider linking Node A to Node B because...").
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
@@ -222,4 +222,3 @@ The main remaining area for full Supabase connection is:
 *   Thorough testing and deployment preparations.
 This covers a very large portion of the Supabase integration tasks. The application is now significantly more robust and data-driven.
 
-```
