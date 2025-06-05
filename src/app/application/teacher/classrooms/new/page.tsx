@@ -1,4 +1,3 @@
-
 // src/app/application/teacher/classrooms/new/page.tsx
 "use client";
 

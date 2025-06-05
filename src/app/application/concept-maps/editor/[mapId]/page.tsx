@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -254,7 +253,7 @@ export default function ConceptMapEditorPage() {
             mapData: mapDataToSave,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: currentMapOwnerId, 
+            ownerId: currentMapOwnerId, // For backend authorization
         };
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
           method: 'PUT',
@@ -377,7 +376,7 @@ export default function ConceptMapEditorPage() {
     let relationsAddedCount = 0;
     let conceptsAddedFromRelationsCount = 0;
     
-    selectedRelations.forEach((rel, index) => {
+    selectedRelations.forEach((rel, index) {
       let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
       let sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
       if (!sourceNode) {
@@ -475,7 +474,7 @@ export default function ConceptMapEditorPage() {
       case UserRole.STUDENT: return "/application/student/dashboard";
       case UserRole.TEACHER: return "/application/teacher/dashboard";
       case UserRole.ADMIN: return "/application/admin/dashboard";
-      default: return "/login";
+      default: return "/login"; 
     }
   }, [user]);
 
@@ -1114,4 +1113,3 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
-

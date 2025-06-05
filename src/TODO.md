@@ -1,5 +1,3 @@
-
-
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -13,7 +11,7 @@
     - [x] Set up database (PostgreSQL via Supabase). (User to set up Supabase tables & RLS).
     - [x] Define and implement database schemas for Users, Classrooms, ConceptMaps, ProjectSubmissions, etc. (User to implement in Supabase; types defined in `src/types/supabase.ts` (placeholder) and `src/types/index.ts`).
     - [x] Create ORM/ODM layer (Replaced with Supabase client in services).
-- [ ] **Classroom Management (Backend & Frontend Integration):** (Partially Done with Supabase, needs full frontend connection)
+- [x] **Classroom Management (Backend & Frontend Integration):**
     - [x] Create `classroomService.ts` with Supabase data management.
     - [x] API endpoint for creating classrooms (`POST /api/classrooms`).
     - [x] API endpoint for listing classrooms by teacher (`GET /api/classrooms?teacherId=xxx`). (Supports pagination)
@@ -23,19 +21,19 @@
         - [x] API endpoint for adding a student to a classroom (`POST /api/classrooms/[classroomId]/students`). (Adds by ID)
         - [x] API endpoint for removing a student from a classroom (`DELETE /api/classrooms/[classroomId]/students/[studentId]`).
     - [x] API endpoints for updating, deleting classrooms (`PUT /api/classrooms/[classroomId]`, `DELETE /api/classrooms/[classroomId]`).
-    - [ ] Connect frontend classroom creation and listing UI (teacher) to live API (with Supabase service).
-    - [ ] Connect frontend classroom listing UI (student) to live API (with Supabase service).
-    - [ ] Connect frontend classroom list UI for edit/delete actions (Teacher) to live API (with Supabase service).
-    - [ ] Connect frontend classroom detail UI (teacher) to live API for details and student management.
-    - [ ] Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.
-- [ ] **Concept Map Service (Backend & Frontend Integration):** (Partially Done with Supabase, needs full frontend connection)
+    - [x] Connect frontend classroom creation and listing UI (teacher) to live API (with Supabase service).
+    - [x] Connect frontend classroom listing UI (student) to live API (with Supabase service).
+    - [x] Connect frontend classroom list UI for edit/delete actions (Teacher) to live API (with Supabase service).
+    - [x] Connect frontend classroom detail UI (teacher) to live API for details and student management.
+    - [x] Connect frontend student classroom detail UI to live API for viewing classroom info and shared maps.
+- [x] **Concept Map Service (Backend & Frontend Integration):**
     - [x] Create `conceptMapService.ts` with Supabase data management.
     - [x] API endpoints for CRUD operations on concept maps (`/api/concept-maps`, `/api/concept-maps/[mapId]`).
     - [x] API endpoint for listing concept maps by classroom (`GET /api/concept-maps?classroomId=xxx`).
     - [x] Logic for map ownership and sharing (with classrooms, public) - Implemented in Supabase service.
-    - [ ] Connect frontend concept map listing (student) to live API for loading/deleting.
-    - [ ] Connect frontend concept map editor to live API for saving/loading new and existing maps.
-- [x] **Project Submission & Analysis (Backend & Frontend Integration):** (Partially Done with Supabase for metadata & storage path, AI flow updated)
+    - [x] Connect frontend concept map listing (student) to live API for loading/deleting.
+    - [x] Connect frontend concept map editor to live API for saving/loading new and existing maps.
+- [x] **Project Submission & Analysis (Backend & Frontend Integration):**
     - [x] Create `projectSubmissionService.ts` with Supabase data management (now includes `fileStoragePath`).
     - [x] API endpoint for project file uploads (`POST /api/projects/submissions` - now handles `fileStoragePath` for metadata).
     - [x] API endpoint for listing student submissions (`GET /api/projects/submissions?studentId=xxx`).
@@ -51,7 +49,7 @@
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output, creates new ConceptMap record via Supabase service - partially via `ProjectUploadForm` flow).
         - [x] Map Data Formatter & Persister (saves generated map via Supabase service, updates submission status with real map ID - partially via `ProjectUploadForm` flow).
     - [x] Connect frontend project submission UI to live API (for metadata, client-side upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service - In progress, `ProjectUploadForm` updated).
-    - [ ] Connect frontend student submissions list to live API.
+    - [x] Connect frontend student submissions list to live API.
     - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states (using Supabase-backed services).
     - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states (using Supabase-backed services).
     - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states (using Supabase-backed services).
@@ -73,7 +71,7 @@
 - [x] **User Interface & User Experience (Desktop Focus):**
     - [x] Refine UI details for some pages, ensure consistency and professional design.
     - [x] Add more comprehensive loading states and error handling (Done for many list pages and dashboards with Supabase).
-    - [x/partial] Enhance empty states for lists (Partially done, more specific icons can be added).
+    - [x] Enhance empty states for lists (Largely done with `EmptyState` component and specific icons).
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Change password functionality using Supabase Auth implemented. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management and Teacher classrooms pages have pagination with Supabase).
     - [x] Add loading spinner to Login/Register pages.
@@ -104,7 +102,7 @@
 - [x] **Output Handling & User Interaction for Project Analysis**:
     - [x] Submission process creates a new `ConceptMap` record from AI output.
     - [x] Submission status updated to `COMPLETED` or `FAILED` with map ID or error.
-    - [ ] Submission list item links to the generated map (Needs verification after all changes).
+    - [x] Submission list item links to the generated map.
 
 - [x] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
     - [x] **Canvas-Integrated AI Brainstorming & Expansion:**
@@ -124,13 +122,13 @@
     - [x] **Edit Before Adding**: Suggestions can be edited.
     - [x] **Clearer Visual Cues**: Differentiates existing/similar suggestions.
     - [x] **Panel Styling and Usability**: Improved layout, cards.
-    - [x/partial] **Toggleable Panel**: Panel is toggleable sheet. (Initial toggle done, advanced state like remembering open/closed could be added).
+    - [x] **Toggleable Panel**: Panel is toggleable sheet. 
 
 - [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
     - [x] **Tooltips & In-UI Guidance**: Modals updated, tooltips present.
     - [x] **Loading & Feedback**: Consistent loading indicators, clearer error messages.
 
-## Supabase Backend Integration (Review - Most tasks are now complete or in progress for frontend connection)
+## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
 **1. Supabase Setup & Initial Configuration**
 - [x] **Project Setup:** (User Task)
@@ -148,18 +146,19 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **`classrooms` Table:** (User needs to create + RLS).
 - [x] **`classroom_students` Table (Junction):** (User needs to create + RLS).
 - [x] **`classroomService.ts` Refactor:** (Complete: All classroom service functions use Supabase).
-- [ ] **Connect frontend classroom UI (teacher, student) to live API (with Supabase service).** (In Progress / Next Steps)
+- [x] **Connect frontend classroom UI (teacher, student) to live API (with Supabase service).**
 
 **4. Concept Map Management with Supabase**
 - [x] **`concept_maps` Table:** (User needs to create + RLS).
 - [x] **`conceptMapService.ts` Refactor:** (Complete: All concept map service functions use Supabase).
-- [ ] **Connect frontend concept map UI (student, editor) to live API (with Supabase service).** (In Progress / Next Steps)
+- [x] **Connect frontend concept map UI (student, editor) to live API (with Supabase service).**
 
 **5. Project Submission & Analysis with Supabase**
 - [x] **`project_submissions` Table:** (User needs to create + RLS, and add `file_storage_path TEXT NULLABLE` column).
 - [x] **Supabase Storage Setup:** (User needs to create bucket `project_archives` + RLS that allows authenticated users to upload to path `user-<user_id>/*`).
 - [x] **`projectSubmissionService.ts` Refactor:** (Complete: All submission service functions use Supabase, including `fileStoragePath`).
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Largely Complete via `ProjectUploadForm` updates).
+- [x] **Connect frontend student submissions list to live API.**
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
     - [ ] Modify flow to fetch project file from Supabase Storage (User to implement when `projectStructureAnalyzerTool` is made real).
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done in `ProjectUploadForm` flow).
@@ -184,27 +183,22 @@ This section outlines tasks to fully migrate to Supabase.
     - [ ] Configure production environment for Next.js and Supabase.
 
 ## Known Issues / Current State
-- Backend services largely migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings).
+- Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings).
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table.
 - Data persistence for all entities handled by Supabase (requires user to set up tables & RLS).
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file uploads and tool logic.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
-- For public registration via `AuthContext -> supabase.auth.signUp()`, the `AuthContext` now attempts to create the `profiles` entry. User should ensure RLS allows this or use a DB trigger.
-- API routes rely on Supabase-backed services. Further auth checks for API routes might be needed based on specific security requirements. RLS in Supabase is the primary data access control.
+- For public registration via `AuthContext -> supabase.auth.signUp()`, the `AuthContext` now attempts to create the `profiles` entry.
+- API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis now uploads to Supabase Storage (bucket 'project_archives', path `user-<user_id>/<timestamp>-<filename>`).
 - User needs to create the 'project_archives' bucket and add `file_storage_path TEXT NULLABLE` to `project_submissions` table, and set up RLS for the bucket. Also `NEXT_PUBLIC_MAX_PROJECT_FILE_SIZE_MB` env var.
-- Mock user profiles cannot be edited or passwords changed via the UI as they are not actual Supabase Auth users. Real accounts created via Supabase registration can be managed.
-- Login/Register pages and App Layout updated for smoother Supabase auth flow.
-- Admin User Management page and Profile Page are now connected to Supabase for CRUD and password changes.
-- Dashboard counts are now fetched from Supabase-backed APIs.
+- Admin User Management page and Profile Page are connected to Supabase for CRUD and password changes.
+- Dashboard counts are fetched from Supabase-backed APIs.
+- Classroom management (Teacher & Student), Concept Map management (Student & Editor), and Student Submissions list are now connected to Supabase.
 
-This covers a very large portion of the Supabase integration tasks. The application is now significantly more robust and data-driven.
-
-The main remaining areas for full Supabase connection are:
-*   Connecting the frontend for Classroom CRUD and details (Teacher & Student views).
-*   Connecting the frontend for Concept Map CRUD and editor save/load (Student view & Editor).
-*   Connecting the frontend for Student Submissions list page.
+The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me).
 *   Potentially enhancing real-time features with Supabase Realtime.
 *   Thorough testing and deployment preparations.
+This covers a very large portion of the Supabase integration tasks. The application is now significantly more robust and data-driven.

@@ -1,4 +1,3 @@
-
 // src/app/application/teacher/classrooms/page.tsx
 "use client";
 
@@ -282,4 +281,3 @@ export default function TeacherClassroomsPage() {
     </div>
   );
 }
-
