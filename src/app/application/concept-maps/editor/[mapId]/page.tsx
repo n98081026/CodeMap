@@ -61,7 +61,7 @@ export default function ConceptMapEditorPage() {
     initializeNewMap, setLoadedMap, setIsLoading: setStoreIsLoading, setError: setStoreError,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
-    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge: deleteStoreEdge, // Renamed from deleteEdge
+    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge: deleteStoreEdge, 
     setSelectedElement: setStoreSelectedElement,
     setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds, 
     setIsSaving: setStoreIsSaving,
@@ -164,9 +164,9 @@ export default function ConceptMapEditorPage() {
         if (user && user.id) {
           initializeNewMap(user.id); 
           clearTemporalHistory();
-          toast({ title: "Map Load Failed", description: `Could not load map '${idToLoad}'. Displaying a mock map instead.`, variant: "destructive"});
+          toast({ title: "Map Load Failed", description: `Could not load map '${idToLoad}'. Displaying a new map instead.`, variant: "destructive"});
         } else {
-          throw new Error(errData.message || "Failed to load map and no user for mock fallback");
+          throw new Error(errData.message || "Failed to load map and no user for new map fallback");
         }
         return;
       }

@@ -77,11 +77,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const handleRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
     onNodesChangeReactFlow(changes);
-    // For position changes, React Flow updates internal state.
-    // We capture the final position onNodeDragStop.
-    // For other changes like dimension changes (if nodes were resizable),
-    // we might need to iterate through changes and call onNodesChangeInStore here.
-    // For now, our custom nodes are fixed size, so this mainly handles selection.
   }, [isViewOnlyMode, onNodesChangeReactFlow]);
 
   const handleNodeDragStopInternal = useCallback(

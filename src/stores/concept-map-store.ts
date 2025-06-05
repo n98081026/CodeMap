@@ -29,7 +29,7 @@ interface ConceptMapState {
   
   selectedElementId: string | null;
   selectedElementType: 'node' | 'edge' | null;
-  multiSelectedNodeIds: string[]; // New: To store multiple selected node IDs
+  multiSelectedNodeIds: string[]; 
 
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
@@ -49,7 +49,7 @@ interface ConceptMapState {
   setError: (error: string | null) => void;
 
   setSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => void;
-  setMultiSelectedNodeIds: (ids: string[]) => void; // New: Action to set multiple selected node IDs
+  setMultiSelectedNodeIds: (ids: string[]) => void; 
 
   setAiExtractedConcepts: (concepts: string[]) => void;
   setAiSuggestedRelations: (relations: Array<{ source: string; target: string; relation: string }>) => void;
@@ -62,22 +62,17 @@ interface ConceptMapState {
   resetStore: () => void;
 
   // Granular actions for map data
-  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string }) => string; // Returns new node ID
+  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string }) => string; 
   updateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   deleteNode: (nodeId: string) => void;
   
   addEdge: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
   updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
   deleteEdge: (edgeId: string) => void;
-
-  // Note: undo, redo, clear are not part of the state slice but are methods on the store.temporal object provided by zundo
 }
 
-// Define the part of the state that will be tracked by zundo
 type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds'>;
 
-// Type for the temporal state structure provided by zundo.
-// This is typically accessed via useConceptMapStore.temporal.getState()
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
 
@@ -101,7 +96,7 @@ const initialStateBase: Omit<ConceptMapState,
   error: null,
   selectedElementId: null,
   selectedElementType: null,
-  multiSelectedNodeIds: [], // Initialize new state
+  multiSelectedNodeIds: [], 
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
   aiExpandedConcepts: [],
@@ -126,7 +121,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setError: (errorMsg) => set({ error: errorMsg }),
 
       setSelectedElement: (id, type) => set({ selectedElementId: id, selectedElementType: type }),
-      setMultiSelectedNodeIds: (ids) => set({ multiSelectedNodeIds: ids }), // Implement new action
+      setMultiSelectedNodeIds: (ids) => set({ multiSelectedNodeIds: ids }), 
       
       setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
       setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
@@ -137,31 +132,19 @@ export const useConceptMapStore = create<ConceptMapState>()(
         const newMapState = {
           ...initialStateBase,
           mapId: 'new',
-          mapName: 'Mock Initial Map', 
+          mapName: 'New Concept Map', 
           mapData: { 
-            nodes: [
-              { id: uniqueNodeId(), text: 'Main Component', type: 'ui_view', x: 100, y: 100, details: 'The primary UI entry point.' },
-              { id: uniqueNodeId(), text: 'API Service', type: 'service_component', x: 300, y: 150, details: 'Handles data fetching.' },
-              { id: uniqueNodeId(), text: 'Database Schema', type: 'data_model', x: 100, y: 300, details: 'Represents user data.' },
-            ],
-            edges: [
-              { id: uniqueEdgeId(), source: 'node-0', target: 'node-1', label: 'fetches from' }, 
-            ],
+            nodes: [], // Start with an empty map initially for user to add
+            edges: [],
           },
           currentMapOwnerId: userId,
           currentMapCreatedAt: new Date().toISOString(),
           isNewMapMode: true,
           isLoading: false,
-          multiSelectedNodeIds: [], // Reset multi-selection
+          multiSelectedNodeIds: [], 
         };
-        
-        if (newMapState.mapData.nodes.length >= 2 && newMapState.mapData.edges.length > 0) {
-             newMapState.mapData.edges[0].source = newMapState.mapData.nodes[0].id;
-             newMapState.mapData.edges[0].target = newMapState.mapData.nodes[1].id;
-        }
-        
         set(newMapState);
-        // History clearing will be handled by the component after state update
+        useConceptMapStore.temporal.getState().clear();
       },
       setLoadedMap: (map) => {
         set({
@@ -175,12 +158,12 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: false,
           isLoading: false,
           error: null,
-          multiSelectedNodeIds: [], // Reset multi-selection
+          multiSelectedNodeIds: [], 
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
           aiExpandedConcepts: [],
         });
-        // History clearing will be handled by the component after state update
+        useConceptMapStore.temporal.getState().clear();
       },
       importMapData: (importedData, fileName) => {
         const currentMapName = get().mapName;
@@ -191,7 +174,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           mapName: newName, 
           selectedElementId: null,
           selectedElementType: null,
-          multiSelectedNodeIds: [], // Reset multi-selection
+          multiSelectedNodeIds: [], 
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
           aiExpandedConcepts: [],
@@ -201,11 +184,11 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isSaving: false,
           error: null,
         }));
-        // History clearing will be handled by the component after state update
+        useConceptMapStore.temporal.getState().clear();
       },
       resetStore: () => {
         set(initialStateBase);
-        // History clearing will be handled by the component after state update
+        useConceptMapStore.temporal.getState().clear();
       },
 
       addNode: (options) => {
@@ -218,7 +201,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           details: options.details || '',
         };
         set((state) => ({ mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } }));
-        return newNode.id; // Return the ID of the new node
+        return newNode.id; 
       },
 
       updateNode: (nodeId, updates) => set((state) => ({
@@ -286,13 +269,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
         return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds };
       },
       limit: 50, 
-      // equality: (pastState, currentState) => { /* custom equality function if needed */ },
-      // onSave: (pastState, currentState) => { /* callback on save */ },
     }
   )
 );
         
 
 export default useConceptMapStore;
-
-

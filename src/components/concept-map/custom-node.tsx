@@ -67,7 +67,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     width: 8,
     height: 8,
     transition: 'all 0.2s ease',
-    pointerEvents: 'all' as React.CSSProperties['pointerEvents'], // Ensure handles are interactive
+    pointerEvents: 'all' as React.CSSProperties['pointerEvents'], 
   };
 
   const handlePositions = [
@@ -84,7 +84,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
           "p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2",
           data.type && nodeTypeStyles[data.type] ? 'bg-opacity-20' : ''
         )}
-        style={{ pointerEvents: 'all' }} // Added for drag handle diagnosis
+        style={{ pointerEvents: 'all' }} 
       >
         <IconComponent className="h-4 w-4 text-[inherit] opacity-80 flex-shrink-0" />
         <CardTitle className="text-sm font-semibold text-center truncate group-hover:whitespace-normal flex-grow min-w-0">
@@ -109,7 +109,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
               ...(hp.position === Position.Bottom && { bottom: '-5px' }),
               ...(hp.position === Position.Left && { left: '-5px' }),
               ...(hp.position === Position.Right && { right: '-5px' }),
-              pointerEvents: 'all', // Added for connection diagnosis
             }}
             isConnectable={isConnectable}
             className="react-flow__handle-custom"
@@ -124,7 +123,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
               ...(hp.position === Position.Bottom && { bottom: '-5px' }),
               ...(hp.position === Position.Left && { left: '-5px' }),
               ...(hp.position === Position.Right && { right: '-5px' }),
-              pointerEvents: 'all', // Added for connection diagnosis
             }}
             isConnectable={isConnectable}
             className="react-flow__handle-custom"
