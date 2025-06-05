@@ -11,6 +11,17 @@ import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/s
 import { getUserById as fetchSupabaseUserProfile, updateUser as updateUserProfileService, createUserProfile } from '@/services/users/userService';
 import { useToast } from '@/hooks/use-toast';
 
+// --- START OF AUTH BYPASS ---
+// Set this to true to bypass Supabase auth and use a mock student user.
+// REMEMBER TO SET TO FALSE FOR ACTUAL AUTH TESTING/PRODUCTION.
+const BYPASS_AUTH_FOR_TESTING = true;
+const MOCK_USER_FOR_TESTING: User = {
+  id: 'student-test-id', // Matches one of the mock user IDs
+  name: 'Test Student (Bypass)',
+  email: 'teststudent.bypass@example.com',
+  role: UserRole.STUDENT,
+};
+// --- END OF AUTH BYPASS ---
 
 interface AuthContextType {
   user: User | null;
@@ -20,7 +31,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   updateCurrentUserData: (updatedFields: Partial<User>) => Promise<void>;
-  setTestUserRole: (newRole: UserRole) => void; 
+  setTestUserRole: (newRole: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +49,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const fetchAndSetSupabaseUser = useCallback(async (supabaseAuthUser: SupabaseUser | null, isRegistering: boolean = false, registrationDetails?: {name: string, role: UserRole}) => {
+    if (BYPASS_AUTH_FOR_TESTING) return; // Skip if bypassing
+
     if (!supabaseAuthUser) {
       setUser(null);
       return;
@@ -81,10 +94,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const initialAuthCheckCompleted = useRef(false);
 
   useEffect(() => {
+    if (BYPASS_AUTH_FOR_TESTING) {
+      console.warn("AuthContext: BYPASS_AUTH_FOR_TESTING is TRUE. Using mock user.");
+      setUser(MOCK_USER_FOR_TESTING);
+      setIsLoading(false);
+      initialAuthCheckCompleted.current = true;
+      return; // Skip Supabase listeners and calls
+    }
+
     if (initialAuthCheckCompleted.current && !fetchAndSetSupabaseUser) { 
-        // This condition means the effect is re-running after initial check, potentially due to HMR or other reasons,
-        // but fetchAndSetSupabaseUser is not ready (which shouldn't happen if useCallback is used properly).
-        // We want to avoid re-setting up listeners if not necessary or if dependencies are unstable.
         console.warn("AuthContext useEffect re-run after initial check, but fetchAndSetSupabaseUser might be undefined. Skipping listener setup.");
         return;
     }
@@ -176,6 +194,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   const login = useCallback(async (email: string, password: string, role: UserRole) => {
+    if (BYPASS_AUTH_FOR_TESTING) {
+      console.warn("Login attempt while BYPASS_AUTH_FOR_TESTING is true. No-op.");
+      setUser(MOCK_USER_FOR_TESTING); // Ensure mock user is set
+      setIsLoading(false);
+      // Simulate redirect based on mock user's role
+      switch (MOCK_USER_FOR_TESTING.role) {
+          case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
+          case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
+          case UserRole.STUDENT: router.replace('/application/student/dashboard'); break;
+          default: router.replace('/login');
+      }
+      return;
+    }
     setIsLoading(true);
     try {
       const { error, data: sessionData } = await supabase.auth.signInWithPassword({ email, password });
@@ -188,8 +219,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             await supabase.auth.signOut(); 
             throw new Error(`Role mismatch. You selected '${role}', but your account role is '${fetchedProfile.role}'. Please log in with the correct role.`);
         }
-         setUser(fetchedProfile); // Optimistically set user, onAuthStateChange will also fire.
-         // Redirect logic after successful login and role check
+         setUser(fetchedProfile);
          switch (fetchedProfile.role) {
             case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
             case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
@@ -205,12 +235,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null); 
       setIsLoading(false); 
       throw error; 
-    } finally {
-        // setIsLoading(false); // isLoading is primarily managed by the main useEffect now
     }
-  }, [router, fetchSupabaseUserProfile]); // fetchSupabaseUserProfile from useCallback
+  }, [router, fetchSupabaseUserProfile]);
 
   const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
+    if (BYPASS_AUTH_FOR_TESTING) {
+      console.warn("Register attempt while BYPASS_AUTH_FOR_TESTING is true. No-op.");
+      toast({ title: "Registration Skipped", description: "Auth bypass is active.", variant: "default" });
+      return;
+    }
     setIsLoading(true);
     try {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -227,9 +260,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (signUpError) throw signUpError;
       if (!signUpData.user) throw new Error("Registration successful but no user data returned from Supabase Auth.");
       
-      // Ensure profile is created immediately after auth user creation.
-      // The onAuthStateChange listener for SIGNED_IN might also call fetchAndSetSupabaseUser,
-      // so isRegistering=true helps that function create the profile if it runs first.
       await fetchAndSetSupabaseUser(signUpData.user, true, { name, role });
 
       toast({
@@ -244,37 +274,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Registration process failed:", error);
       setIsLoading(false);
       throw error; 
-    } finally {
-      // setIsLoading(false); // Let main useEffect handle isLoading for consistency
     }
   }, [router, fetchAndSetSupabaseUser, toast]);
 
   const logout = useCallback(async () => {
-    const currentPath = pathname; // Capture pathname before potential navigation by AuthContext
+    if (BYPASS_AUTH_FOR_TESTING) {
+      console.warn("Logout attempt while BYPASS_AUTH_FOR_TESTING is true. Simulating logout.");
+      setUser(null);
+      setIsLoading(false); // Important to set loading false
+      router.replace('/login');
+      return;
+    }
+    const currentPath = pathname; 
     console.log("AuthContext: logout called from path", currentPath);
-    setIsLoading(true); // Indicate an auth operation is in progress
+    setIsLoading(true); 
     setUser(null); 
     const { error } = await supabase.auth.signOut();
     if (error) {
         console.error("Supabase signout error:", error);
     }
-    // onAuthStateChange with SIGNED_OUT event will set initialAuthCheckCompleted and isLoading=false
     
-    // Explicitly navigate to login unless already on a public auth page
-    // This ensures redirection even if onAuthStateChange is slow or fails.
     if (!currentPath.startsWith('/login') && !currentPath.startsWith('/register') && currentPath !== '/') {
         router.replace('/login');
     }
-    // Ensure loading is false after logout actions, if not handled by onAuthStateChange quickly enough
-    // This is a fallback, ideally onAuthStateChange's SIGNED_OUT handles it.
     setTimeout(() => {
         if(isLoading) setIsLoading(false);
     }, 500);
 
-  }, [router, pathname, isLoading]); // Added isLoading to dependencies to use latest value
+  }, [router, pathname, isLoading]); 
 
   const updateCurrentUserData = useCallback(async (updatedFields: Partial<User>) => {
-    const currentContextUser = userRef.current; // Use ref to get latest user state
+    if (BYPASS_AUTH_FOR_TESTING) {
+      setUser(prev => prev ? ({ ...prev, ...updatedFields }) : null);
+      toast({ title: "Profile Update (Mocked)", description: "Bypass active, data updated locally." });
+      return;
+    }
+    const currentContextUser = userRef.current; 
     if (!currentContextUser) {
       throw new Error("Cannot update user data: No current user in context.");
     }
@@ -293,9 +328,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to update user profile in Supabase 'profiles' table:", error);
         throw error; 
     }
-  }, [fetchAndSetSupabaseUser]); // fetchAndSetSupabaseUser is stable
+  }, [fetchAndSetSupabaseUser, toast]);
 
   const setTestUserRole = useCallback((newRole: UserRole) => {
+     // When bypassing auth, this still updates the MOCK_USER_FOR_TESTING's role for current session
+    if (BYPASS_AUTH_FOR_TESTING) {
+      setUser(prevUser => {
+          if (prevUser) {
+              console.warn(`BYPASS: Locally overriding MOCK user role to ${newRole} for testing.`);
+              return { ...prevUser, role: newRole };
+          }
+          return null;
+      });
+      return;
+    }
+    // Normal operation for non-bypassed auth (though it still only updates local state)
     setUser(prevUser => {
       if (prevUser) {
         console.warn(`Locally overriding user role to ${newRole} for testing. This is NOT saved to the database.`);
@@ -332,5 +379,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-  
