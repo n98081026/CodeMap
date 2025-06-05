@@ -84,37 +84,58 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
   // Simulate some delay
   await new Promise(resolve => setTimeout(resolve, 1500));
 
-  // Return mock data conforming to ProjectAnalysisOutputSchema
+  const projectNameFromPath = input.projectStoragePath.split('/').pop()?.split('.')[0] || "MockProject";
+  const userHintIncorporated = input.userHint ? ` (User Hint: ${input.userHint})` : "";
+
+  let mainComponentType: "E-commerce Backend" | "Data Processing Pipeline" | "Frontend UI Library" = "E-commerce Backend";
+  if (input.userHint?.toLowerCase().includes("data")) {
+    mainComponentType = "Data Processing Pipeline";
+  } else if (input.userHint?.toLowerCase().includes("ui") || input.userHint?.toLowerCase().includes("frontend")) {
+    mainComponentType = "Frontend UI Library";
+  }
+
+  const baseArchitecturalComponents = [
+      { name: "Core Authentication Module", type: "service" as const, relatedFiles: ["src/services/auth.ts", "src/views/login.tsx"] },
+      { name: "Primary Data Store Interface", type: "data_store_interface" as const, relatedFiles: ["src/db/schema.ts", "src/services/data-access.ts"] },
+  ];
+
+  if (mainComponentType === "E-commerce Backend") {
+    baseArchitecturalComponents.push({ name: "Order Processing Service", type: "service" as const, relatedFiles: ["src/services/orderProcessor.ts", "src/api/orders.ts"] });
+    baseArchitecturalComponents.push({ name: "Product Catalog API", type: "external_api" as const, relatedFiles: ["src/clients/productApi.ts"] });
+  } else if (mainComponentType === "Data Processing Pipeline") {
+     baseArchitecturalComponents.push({ name: "Data Ingestion Unit", type: "module" as const, relatedFiles: ["src/ingestion/kafkaConsumer.ts"] });
+     baseArchitecturalComponents.push({ name: "Transformation Engine", type: "service" as const, relatedFiles: ["src/transform/sparkJobs.scala"] });
+  } else { // Frontend UI Library
+     baseArchitecturalComponents.push({ name: "Reusable Button Component", type: "ui_area" as const, relatedFiles: ["src/components/Button.tsx"] });
+     baseArchitecturalComponents.push({ name: "Theme Provider", type: "module" as const, relatedFiles: ["src/contexts/ThemeContext.tsx"] });
+  }
+
+
   return {
-    projectName: "Mock E-Commerce Platform",
+    projectName: `${projectNameFromPath.replace(/[-_]/g, ' ')}${userHintIncorporated}`,
     inferredLanguagesFrameworks: [
       { name: "TypeScript", confidence: "high" },
       { name: "React", confidence: "high" },
-      { name: "Node.js", confidence: "medium" },
+      { name: "Next.js", confidence: "medium" },
     ],
-    projectSummary: `This is a mock analysis for a project supposedly at ${input.projectStoragePath}. ${input.userHint ? `User hint: ${input.userHint}.` : ''} It simulates an e-commerce backend with a React frontend.`,
+    projectSummary: `This is a mock AI-generated analysis for the project from '${input.projectStoragePath}'. ${userHintIncorporated}. The project appears to be a ${mainComponentType.toLowerCase()} application. The analysis highlights key architectural components and their interactions.`,
     dependencies: {
-      npm: ["express", "react", "zod", "lucide-react"],
-      maven: [], // example
-      pip: [],   // example
+      npm: ["react", "next", "zod", "lucide-react", mainComponentType === "E-commerce Backend" ? "stripe" : "apache-beam"],
+      maven: [],
+      pip: mainComponentType === "Data Processing Pipeline" ? ["pandas", "numpy"] : [],
     },
     directoryStructureSummary: [
-      { path: "src/components", fileCounts: { ".tsx": 15, ".css": 5 }, inferredPurpose: "Reusable UI components" },
-      { path: "src/services", fileCounts: { ".ts": 5 }, inferredPurpose: "Backend API interaction services" },
-      { path: "src/pages", fileCounts: { ".tsx": 10 }, inferredPurpose: "Application pages/routes" },
+      { path: "src/components", fileCounts: { ".tsx": mainComponentType === "Frontend UI Library" ? 25 : 10, ".css": 5 }, inferredPurpose: "UI components" },
+      { path: "src/services", fileCounts: { ".ts": 8 }, inferredPurpose: "Business logic and API services" },
+      { path: "src/app", fileCounts: { ".tsx": 12, "route.ts": 5 }, inferredPurpose: "Application pages and API routes" },
     ],
     keyFiles: [
-      { filePath: "src/App.tsx", type: "entry_point", extractedSymbols: ["App", "RootLayout"], briefDescription: "Main application entry point and root layout." },
+      { filePath: "src/app/page.tsx", type: "entry_point", extractedSymbols: ["HomePage"], briefDescription: "Main application entry point or landing page." },
       { filePath: "package.json", type: "manifest", extractedSymbols: [], briefDescription: "Project dependencies and scripts." },
-      { filePath: "src/services/userService.ts", type: "service_definition", extractedSymbols: ["getUser", "updateProfile"], briefDescription: "Manages user data operations." },
-      { filePath: "README.md", type: "readme", briefDescription: "Project overview and setup instructions."}
+      { filePath: "src/lib/utils.ts", type: "utility", extractedSymbols: ["cn", "formatDate"], briefDescription: "Utility functions."}
     ],
-    potentialArchitecturalComponents: [
-      { name: "Authentication Service", type: "service", relatedFiles: ["src/services/authService.ts", "src/pages/login.tsx"] },
-      { name: "Product Catalog API", type: "external_api", relatedFiles: ["src/services/productApi.ts"] },
-      { name: "Shopping Cart Module", type: "module", relatedFiles: ["src/components/ShoppingCart.tsx", "src/store/cartStore.ts"] },
-    ],
-    parsingErrors: ["Mock Error: Could not unpack hypothetical auxiliary.dat file.", "Mock Warning: Deprecated API used in config/legacy.js"],
+    potentialArchitecturalComponents: baseArchitecturalComponents,
+    parsingErrors: input.projectStoragePath.includes("error_trigger_file.zip") ? ["Mock Error: Hypothetical 'project.lock' file parsing failed due to unsupported version."] : [],
   };
 }
 
@@ -127,3 +148,4 @@ export const projectStructureAnalyzerTool = ai.defineTool(
   },
   analyzeProjectStructure // Using the async function directly
 );
+
