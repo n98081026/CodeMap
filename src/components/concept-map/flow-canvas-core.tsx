@@ -19,7 +19,7 @@ interface FlowCanvasCoreProps {
   mapDataFromStore: ConceptMapData;
   isViewOnlyMode?: boolean;
   onSelectionChange: (id: string | null, type: 'node' | 'edge' | null) => void;
-  onMultiNodeSelectionChange?: (nodeIds: string[]) => void; // New prop
+  onMultiNodeSelectionChange?: (nodeIds: string[]) => void; 
   onNodesChangeInStore: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   onNodesDeleteInStore: (nodeId: string) => void;
   onEdgesDeleteInStore: (edgeId: string) => void;
@@ -32,7 +32,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   mapDataFromStore,
   isViewOnlyMode,
   onSelectionChange,
-  onMultiNodeSelectionChange, // New prop
+  onMultiNodeSelectionChange, 
   onNodesChangeInStore,
   onNodesDeleteInStore,
   onEdgesDeleteInStore,
@@ -77,6 +77,11 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const handleRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
     onNodesChangeReactFlow(changes);
+    // For position changes, React Flow updates internal state.
+    // We capture the final position onNodeDragStop.
+    // For other changes like dimension changes (if nodes were resizable),
+    // we might need to iterate through changes and call onNodesChangeInStore here.
+    // For now, our custom nodes are fixed size, so this mainly handles selection.
   }, [isViewOnlyMode, onNodesChangeReactFlow]);
 
   const handleNodeDragStopInternal = useCallback(
@@ -125,7 +130,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   const handleRfSelectionChange = useCallback((selection: SelectionChanges) => {
     const { nodes, edges } = selection;
-    // Handle single selection for property inspector
+    
     if (nodes.length === 1 && edges.length === 0) {
       onSelectionChange(nodes[0].id, 'node');
     } else if (edges.length === 1 && nodes.length === 0) {
@@ -134,7 +139,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onSelectionChange(null, null);
     }
 
-    // Handle multi-node selection for AI tools context
     if (onMultiNodeSelectionChange) {
       const selectedNodeIds = nodes.map(node => node.id);
       onMultiNodeSelectionChange(selectedNodeIds);

@@ -91,7 +91,13 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         proOptions={{ hideAttribution: true }}
         nodeTypes={nodeTypes}
         onNodeContextMenu={onNodeContextMenu}
-        onNodeDragStop={onNodeDragStop} // Pass to ReactFlow
+        onNodeDragStop={onNodeDragStop}
+        panOnDrag={!isViewOnlyMode}
+        zoomOnScroll={!isViewOnlyMode}
+        zoomOnPinch={!isViewOnlyMode}
+        zoomOnDoubleClick={!isViewOnlyMode}
+        selectionOnDrag={!isViewOnlyMode}
+        paneMoveable={!isViewOnlyMode}
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />

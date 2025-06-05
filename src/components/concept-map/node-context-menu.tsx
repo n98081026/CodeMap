@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Brain, Lightbulb, SearchCode, HelpCircle } from 'lucide-react'; // Added HelpCircle
+import { Trash2, Brain, Lightbulb, SearchCode, HelpCircle } from 'lucide-react'; 
 
 interface NodeContextMenuProps {
   x: number;
@@ -15,7 +15,7 @@ interface NodeContextMenuProps {
   onExpandConcept: (nodeId: string) => void;
   onSuggestRelations: (nodeId: string) => void;
   onExtractConcepts: (nodeId: string) => void;
-  onAskQuestion: (nodeId: string) => void; // New prop
+  onAskQuestion: (nodeId: string) => void; 
   isViewOnlyMode?: boolean;
 }
 
@@ -28,7 +28,7 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   onExpandConcept,
   onSuggestRelations,
   onExtractConcepts,
-  onAskQuestion, // New prop
+  onAskQuestion, 
   isViewOnlyMode,
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -57,7 +57,7 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     onClose();
   };
 
-  const handleAsk = () => { // New handler
+  const handleAsk = () => { 
     if (isViewOnlyMode) return;
     onAskQuestion(nodeId);
     onClose();

@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Settings2, Box, Waypoints } from "lucide-react";
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
-// RFConceptMapNodeData, RFConceptMapEdgeData are not directly used here for updates, using ConceptMapNode/Edge types from store
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 

@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, 
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch // Added TextSearch
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ interface EditorToolbarProps {
   onSuggestRelations: () => void;
   onExpandConcept: () => void;
   onQuickCluster: () => void; 
-  onGenerateSnippetFromText: () => void; // New prop
+  onGenerateSnippetFromText: () => void; 
   isViewOnlyMode?: boolean;
   onAddNodeToData?: () => void;
   onAddEdgeToData?: () => void;
@@ -47,7 +47,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onSuggestRelations, 
   onExpandConcept,
   onQuickCluster, 
-  onGenerateSnippetFromText, // New prop
+  onGenerateSnippetFromText, 
   isViewOnlyMode,
   onAddNodeToData,
   onAddEdgeToData,
@@ -78,7 +78,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         {/* File Operations */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onNewMap} > {/* Always enabled */}
+            <Button variant="ghost" size="icon" onClick={onNewMap} >
               <FilePlus className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -102,7 +102,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onExportMap}> {/* Always enabled */}
+            <Button variant="ghost" size="icon" onClick={onExportMap}> 
               <Download className="h-5 w-5" />
             </Button>
           </TooltipTrigger>

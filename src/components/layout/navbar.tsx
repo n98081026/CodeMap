@@ -15,20 +15,20 @@ import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from 'next-themes'; 
 import { useEffect, useState } from 'react';
 import { UserRole } from '@/types';
-import { usePathname } from 'next/navigation'; // Added usePathname
+import { usePathname } from 'next/navigation'; 
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const pathname = usePathname(); // Get current path
+  const pathname = usePathname(); 
 
   useEffect(() => {
     setMounted(true);
   }, []);
   
-  const getDashboardLink = () => {
-    if (!user) return "/application/login"; // Should ideally not be hit if isAuthenticated is true
+  const getRoleBasedDashboardLink = () => {
+    if (!user) return "/login"; 
     switch (user.role) {
       case UserRole.ADMIN:
         return "/application/admin/dashboard";
@@ -37,19 +37,16 @@ export function Navbar() {
       case UserRole.STUDENT:
         return "/application/student/dashboard";
       default:
-        return "/application/login"; // Fallback
+        return "/login"; 
     }
   };
 
   const getLogoLink = () => {
     if (isAuthenticated) {
-      return getDashboardLink();
+      return getRoleBasedDashboardLink();
     }
-    // For unauthenticated users
-    if (pathname === '/login' || pathname === '/register') {
-      return '/login';
-    }
-    return '/'; // Default for root or other public pages
+    // For unauthenticated users, always link to /login
+    return '/login';
   };
 
 
@@ -107,7 +104,7 @@ export function Navbar() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={getDashboardLink()}>
+                  <Link href={getRoleBasedDashboardLink()}>
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     Dashboard
                   </Link>

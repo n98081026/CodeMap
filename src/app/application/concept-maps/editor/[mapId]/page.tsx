@@ -21,9 +21,9 @@ import {
   AskQuestionModal,
 } from "@/components/concept-map/genai-modals";
 import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal"; 
-import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal"; // New Import
+import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal"; 
 import type { GenerateQuickClusterOutput } from "@/ai/flows/generate-quick-cluster"; 
-import type { GenerateMapSnippetOutput } from "@/ai/flows/generate-map-snippet-from-text"; // New Import
+import type { GenerateMapSnippetOutput } from "@/ai/flows/generate-map-snippet-from-text"; 
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { UserRole } from "@/types";
@@ -61,7 +61,7 @@ export default function ConceptMapEditorPage() {
     initializeNewMap, setLoadedMap, setIsLoading: setStoreIsLoading, setError: setStoreError,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
-    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge,
+    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge: deleteStoreEdge, // Renamed from deleteEdge
     setSelectedElement: setStoreSelectedElement,
     setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds, 
     setIsSaving: setStoreIsSaving,
@@ -108,7 +108,7 @@ export default function ConceptMapEditorPage() {
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
   const [isQuickClusterModalOpen, setIsQuickClusterModalOpen] = useState(false); 
-  const [isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen] = useState(false); // New state
+  const [isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen] = useState(false); 
   const [isAskQuestionModalOpen, setIsAskQuestionModalOpen] = useState(false);
   
   const [textForExtraction, setTextForExtraction] = useState(""); 
@@ -118,7 +118,7 @@ export default function ConceptMapEditorPage() {
   const [nodeContextForQuestion, setNodeContextForQuestion] = useState<{ text: string; details?: string, id: string } | null>(null);
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
-  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false); // Default to false, can be adjusted
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false); 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -164,7 +164,7 @@ export default function ConceptMapEditorPage() {
         if (user && user.id) {
           initializeNewMap(user.id); 
           clearTemporalHistory();
-          toast({ title: "Map Load Failed (Using Mock)", description: `Could not load map '${idToLoad}'. Displaying a mock map instead.`, variant: "destructive"});
+          toast({ title: "Map Load Failed", description: `Could not load map '${idToLoad}'. Displaying a mock map instead.`, variant: "destructive"});
         } else {
           throw new Error(errData.message || "Failed to load map and no user for mock fallback");
         }
@@ -362,7 +362,6 @@ export default function ConceptMapEditorPage() {
 
     if (addedCount > 0) toast({ title: "Concepts Added", description: `${addedCount} new concepts added to map. Remember to save.` });
     else toast({ title: "No New Concepts Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
-    // Removed setStoreAiExtractedConcepts([]) to keep items in panel
   }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
 
   const addSelectedSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
@@ -411,7 +410,6 @@ export default function ConceptMapEditorPage() {
 
     if (toastMessage) toast({ title: "Relations Added", description: `${toastMessage.trim()} Remember to save the map.` });
     else toast({ title: "No New Relations Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
-    // Removed setStoreAiSuggestedRelations([])
   }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, getNodePlacementPosition]);
 
   const addSelectedExpandedConceptsToMap = useCallback((selectedConcepts: string[]) => {
@@ -435,7 +433,6 @@ export default function ConceptMapEditorPage() {
     });
     if (addedCount > 0) toast({ title: "Expanded Ideas Added", description: `${addedCount} new ideas added to map. Remember to save.` });
     else toast({ title: "No New Ideas Added", description: "All selected new suggestions might already exist or were not selected.", variant: "default" });
-    // Removed setStoreAiExpandedConcepts([])
   }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
 
 
@@ -473,17 +470,17 @@ export default function ConceptMapEditorPage() {
 
 
   const getRoleBasedDashboardLink = useCallback(() => {
-    if (!user) return "/application/login";
+    if (!user) return "/login";
     switch (user.role) {
       case UserRole.STUDENT: return "/application/student/dashboard";
       case UserRole.TEACHER: return "/application/teacher/dashboard";
       case UserRole.ADMIN: return "/application/admin/dashboard";
-      default: return "/application/login";
+      default: return "/login";
     }
   }, [user]);
 
   const getBackLink = useCallback(() => {
-    if (!user) return "/application/login";
+    if (!user) return "/login";
     if (isNewMapMode || storeMapId === 'new' || (user.role === UserRole.ADMIN && !sharedWithClassroomId)) {
         return getRoleBasedDashboardLink();
     }
@@ -516,6 +513,10 @@ export default function ConceptMapEditorPage() {
   }, [routeMapId, user?.id, initializeNewMap, loadMapData, storeMapId, isNewMapMode, clearTemporalHistory]); 
 
   const prepareAndOpenExpandConceptModal = useCallback((nodeIdForContext?: string) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot expand concept in view-only mode.", variant: "default" });
+      return;
+    }
     resetStoreAiSuggestions();
     let concept = "";
     let context: string[] = [];
@@ -544,9 +545,13 @@ export default function ConceptMapEditorPage() {
     setConceptToExpand(concept);
     setMapContextForExpansion(context);
     setIsExpandConceptModalOpen(true);
-  }, [selectedElementId, resetStoreAiSuggestions]);
+  }, [selectedElementId, resetStoreAiSuggestions, isViewOnlyMode, toast]);
   
   const prepareAndOpenSuggestRelationsModal = useCallback((nodeIdForContext?: string) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot suggest relations in view-only mode.", variant: "default" });
+      return;
+    }
     resetStoreAiSuggestions();
     let concepts: string[] = [];
     const currentMapNodes = useConceptMapStore.getState().mapData.nodes;
@@ -593,9 +598,13 @@ export default function ConceptMapEditorPage() {
     
     setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept A", "Example Concept B"]); 
     setIsSuggestRelationsModalOpen(true);
-  }, [resetStoreAiSuggestions]);
+  }, [resetStoreAiSuggestions, isViewOnlyMode, toast]);
 
-  const prepareAndOpenExtractConceptsModal = useCallback((nodeIdForContext?: string) => {
+  const prepareAndOpenExtractConceptsModal = useCallback((nodeIdForContext?: string) => { 
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot extract concepts in view-only mode.", variant: "default" });
+      return;
+    }
     resetStoreAiSuggestions();
     const currentNodes = useConceptMapStore.getState().mapData.nodes;
     const currentSelectedNodeId = useConceptMapStore.getState().selectedElementId;
@@ -617,7 +626,7 @@ export default function ConceptMapEditorPage() {
     }
     setTextForExtraction(initialText);
     setIsExtractConceptsModalOpen(true);
-  }, [resetStoreAiSuggestions]);
+  }, [resetStoreAiSuggestions, isViewOnlyMode, toast]);
 
   const handleOpenQuickClusterModal = useCallback(() => {
     if (isViewOnlyMode) {
@@ -677,7 +686,7 @@ export default function ConceptMapEditorPage() {
     let addedNodesCount = 0;
 
     output.nodes.forEach((aiNode, index) => {
-      const position = getNodePlacementPosition(index, output.nodes.length, addedNodesCount + 5); // Offset cluster slightly
+      const position = getNodePlacementPosition(index, output.nodes.length, addedNodesCount + 5); 
       const newNodeId = addStoreNode({
         text: aiNode.text,
         type: aiNode.type || 'text-derived-concept',
@@ -963,7 +972,7 @@ export default function ConceptMapEditorPage() {
           onSuggestRelations={() => prepareAndOpenSuggestRelationsModal()}
           onExpandConcept={() => prepareAndOpenExpandConceptModal()}
           onQuickCluster={handleOpenQuickClusterModal} 
-          onGenerateSnippetFromText={handleOpenGenerateSnippetModal} // Pass new handler
+          onGenerateSnippetFromText={handleOpenGenerateSnippetModal} 
           isViewOnlyMode={isViewOnlyMode}
           onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddAddEdgeToData} canAddEdge={canAddEdge}
           onToggleProperties={onTogglePropertiesInspector}
@@ -983,7 +992,7 @@ export default function ConceptMapEditorPage() {
               onMultiNodeSelectionChange={handleMultiNodeSelectionChange} 
               onNodesChangeInStore={updateStoreNode} 
               onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={deleteEdge}
+              onEdgesDeleteInStore={deleteStoreEdge}
               onConnectInStore={addStoreEdge}
               onNodeContextMenu={handleNodeContextMenu} 
               onNodeDragStop={ (event, node) => {
@@ -1013,7 +1022,7 @@ export default function ConceptMapEditorPage() {
         <Sheet open={isPropertiesInspectorOpen} onOpenChange={setIsPropertiesInspectorOpen}>
           <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>Map & Element Properties</SheetTitle>
+              <SheetTitle>Map &amp; Element Properties</SheetTitle>
               <SheetDescription>
                 {isViewOnlyMode ? "Viewing properties. Editing is disabled." : "Edit map or selected element properties."}
               </SheetDescription>
@@ -1087,7 +1096,7 @@ export default function ConceptMapEditorPage() {
             onClusterGenerated={handleClusterGenerated}
           />
         )}
-        {isGenerateSnippetModalOpen && !isViewOnlyMode && ( // New Modal Render
+        {isGenerateSnippetModalOpen && !isViewOnlyMode && ( 
             <GenerateSnippetModal
                 isOpen={isGenerateSnippetModalOpen}
                 onOpenChange={setIsGenerateSnippetModalOpen}
