@@ -1,5 +1,5 @@
 
-import type { LucideIcon } from "lucide-react"; // Added for EmptyState
+import type { LucideIcon } from "lucide-react"; 
 
 export enum UserRole {
   STUDENT = 'student',
@@ -23,29 +23,27 @@ export interface Classroom {
   studentIds: string[];
   students?: User[];
   inviteCode?: string;
-  subject?: string; // New field
-  difficulty?: "beginner" | "intermediate" | "advanced"; // New field
-  enableStudentAiAnalysis?: boolean; // New field
+  subject?: string; 
+  difficulty?: "beginner" | "intermediate" | "advanced"; 
+  enableStudentAiAnalysis?: boolean; 
 }
 
 export interface ConceptMapNode {
   id: string;
-  text: string; // Label for the node
-  type: string; // e.g., 'key_feature', 'service_component', 'customConceptNode' (for React Flow type)
+  text: string; 
+  type: string; 
   details?: string;
-  x?: number; // Position x
-  y?: number; // Position y
-  // React Flow specific properties like 'position' are typically handled by React Flow state,
-  // but storing initial/saved x,y is good.
+  x?: number; 
+  y?: number; 
 }
 
 export interface ConceptMapEdge {
   id:string;
-  source: string; // Source node ID
-  target: string; // Target node ID
-  label: string; // Label for the edge
-  sourceHandle?: string | null; // Optional: specific source handle ID
-  targetHandle?: string | null; // Optional: specific target handle ID
+  source: string; 
+  target: string; 
+  label: string; 
+  sourceHandle?: string | null; 
+  targetHandle?: string | null; 
 }
 
 export interface ConceptMapData {
@@ -78,15 +76,14 @@ export interface ProjectSubmission {
   classroomId?: string | null;
   originalFileName: string;
   fileSize: number;
-  fileStoragePath?: string | null; // Added field for Supabase Storage path
+  fileStoragePath?: string | null; 
   submissionTimestamp: string;
   analysisStatus: ProjectSubmissionStatus;
   analysisError?: string | null;
   generatedConceptMapId?: string | null;
-  generatedConceptMap?: ConceptMap | null; // Optional: for cases where we might want to embed generated map details
+  generatedConceptMap?: ConceptMap | null; 
 }
 
-// Interface for the EmptyState component props
 export interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
@@ -94,7 +91,6 @@ export interface EmptyStateProps {
   actionButton?: React.ReactNode;
 }
 
-// Interface for DashboardLinkCard component props
 export interface DashboardLinkCardProps {
   title: string;
   description: string;
@@ -108,17 +104,6 @@ export interface SystemSettings {
   enable_ai_project_analysis: boolean;
   default_concept_map_visibility: "public" | "private";
   max_project_file_size_mb: number;
-  // No 'id' or 'updated_at' here, as they are DB implementation details
-  // or handled by the service/API layer for the single settings row.
 }
 
 export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>;
-
-// Add a type for DashboardHeaderProps to allow iconClassName
-// This is conventionally done in the component file itself, but adding here for centralization if needed.
-// declare module '@/components/dashboard/dashboard-header' {
-//   interface DashboardHeaderProps {
-//     iconClassName?: string;
-//   }
-// }
-

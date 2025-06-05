@@ -5,7 +5,7 @@ import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertTriangle, Eye, FolderKanban } from "lucide-react";
+import { Loader2, AlertTriangle, Eye, FolderKanban, Inbox } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/layout/empty-state";
 import type { ProjectSubmission, User } from "@/types";
@@ -53,7 +53,7 @@ export const ClassroomSubmissionsTab: React.FC<ClassroomSubmissionsTabProps> = (
   if (!isLoading && !error && submissions.length === 0) {
     return (
       <EmptyState
-        icon={FolderKanban}
+        icon={Inbox}
         title="No Submissions Yet"
         description="Students in this classroom haven't submitted any projects for analysis."
       />

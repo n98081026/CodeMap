@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from '@/contexts/auth-context';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/layout/empty-state";
-import { EditUserDialog } from '@/components/admin/users/edit-user-dialog'; // Import the new dialog
+import { EditUserDialog } from '@/components/admin/users/edit-user-dialog'; 
 
 const USERS_PER_PAGE = 7;
 

@@ -249,12 +249,4 @@ export default function ClassroomDetailPage() {
     </div>
   );
 }
-
-// Ensure DashboardHeaderProps accepts iconClassName if not already declared globally
-// This might be redundant if already handled elsewhere (e.g. in src/types/index.ts or component file)
-declare module "@/components/dashboard/dashboard-header" {
-  interface DashboardHeaderProps {
-    iconClassName?: string;
-  }
-}
     

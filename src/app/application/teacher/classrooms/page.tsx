@@ -15,7 +15,7 @@ import { CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/layout/empty-state";
 import { ClassroomListItem } from "@/components/classrooms/classroom-list-item";
-import { EditClassroomDialog } from "@/components/teacher/classrooms/edit-classroom-dialog"; // Import new dialog
+import { EditClassroomDialog } from "@/components/teacher/classrooms/edit-classroom-dialog"; 
 
 const CLASSROOMS_PER_PAGE = 6;
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -24,7 +25,7 @@ export default function MySubmissionsPage() {
 
   const fetchSubmissions = useCallback(async () => {
     if (!user) {
-      setIsLoading(false); // Stop loading if no user
+      setIsLoading(false); 
       return;
     }
     setIsLoading(true);

@@ -4,7 +4,7 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, Eye, Library } from "lucide-react";
+import { Loader2, AlertTriangle, Eye, Library, Share2 as Share2Icon } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/layout/empty-state";
 import type { ConceptMap, User } from "@/types";
@@ -51,7 +51,7 @@ export const ClassroomMapsTab: React.FC<ClassroomMapsTabProps> = ({
   if (!isLoading && !error && maps.length === 0) {
     return (
       <EmptyState
-        icon={Library}
+        icon={Share2Icon}
         title="No Shared Maps"
         description="No concept maps have been shared with this classroom yet."
       />
