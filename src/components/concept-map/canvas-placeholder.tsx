@@ -13,7 +13,7 @@ import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
 
 interface AISuggestionPanelProps {
-  mapData?: ConceptMapData;
+  mapData?: ConceptMapData; // Kept for potential future use, but currentMapNodes is primary for comparison
   currentMapNodes?: ConceptMapNode[];
   extractedConcepts?: string[];
   suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
@@ -554,4 +554,5 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   );
 });
 AISuggestionPanel.displayName = "AISuggestionPanel";
+
 

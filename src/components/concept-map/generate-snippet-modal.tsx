@@ -1,3 +1,4 @@
+
 // src/components/concept-map/generate-snippet-modal.tsx
 "use client";
 
@@ -98,3 +99,4 @@ export function GenerateSnippetModal({ isOpen, onOpenChange, onSnippetGenerated 
     </Dialog>
   );
 }
+
