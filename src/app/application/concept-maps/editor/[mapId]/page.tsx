@@ -360,8 +360,8 @@ export default function ConceptMapEditorPage() {
     if (addedCount > 0) toast({ title: "Concepts Added", description: `${addedCount} new concepts added to map. Remember to save.` });
     else toast({ title: "No New Concepts Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
 
-    setStoreAiExtractedConcepts([]); 
-  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExtractedConcepts, getNodePlacementPosition]);
+    // setStoreAiExtractedConcepts([]); // Removed: Let panel re-evaluate status
+  }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
 
   const addSelectedSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode) {
@@ -410,8 +410,8 @@ export default function ConceptMapEditorPage() {
     if (toastMessage) toast({ title: "Relations Added", description: `${toastMessage.trim()} Remember to save the map.` });
     else toast({ title: "No New Relations Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
 
-    setStoreAiSuggestedRelations([]); 
-  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, setStoreAiSuggestedRelations, getNodePlacementPosition]);
+    // setStoreAiSuggestedRelations([]); // Removed: Let panel re-evaluate status
+  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, getNodePlacementPosition]);
 
   const addSelectedExpandedConceptsToMap = useCallback((selectedConcepts: string[]) => {
      if (isViewOnlyMode) {
@@ -435,8 +435,8 @@ export default function ConceptMapEditorPage() {
     if (addedCount > 0) toast({ title: "Expanded Ideas Added", description: `${addedCount} new ideas added to map. Remember to save.` });
     else toast({ title: "No New Ideas Added", description: "All selected new suggestions might already exist or were not selected.", variant: "default" });
 
-    setStoreAiExpandedConcepts([]); 
-  }, [isViewOnlyMode, toast, addStoreNode, setStoreAiExpandedConcepts, getNodePlacementPosition]);
+    // setStoreAiExpandedConcepts([]); // Removed: Let panel re-evaluate status
+  }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
 
 
   const handleAddNodeToData = useCallback(() => {
@@ -762,7 +762,7 @@ export default function ConceptMapEditorPage() {
     closeContextMenu();
   }, [isViewOnlyMode, prepareAndOpenSuggestRelationsModal, closeContextMenu]);
 
-  const handleExtractConceptsFromContextMenu = useCallback((nodeId: string) => { // New handler
+  const handleExtractConceptsFromContextMenu = useCallback((nodeId: string) => { 
     if (isViewOnlyMode) return;
     prepareAndOpenExtractConceptsModal(nodeId);
     closeContextMenu();
@@ -843,7 +843,7 @@ export default function ConceptMapEditorPage() {
           onSaveMap={handleSaveMap} isSaving={isSaving}
           onExportMap={handleExportMap}
           onTriggerImport={handleTriggerImport}
-          onExtractConcepts={() => prepareAndOpenExtractConceptsModal()} // Updated
+          onExtractConcepts={() => prepareAndOpenExtractConceptsModal()} 
           onSuggestRelations={() => prepareAndOpenSuggestRelationsModal()}
           onExpandConcept={() => prepareAndOpenExpandConceptModal()}
           isViewOnlyMode={isViewOnlyMode}
@@ -886,7 +886,7 @@ export default function ConceptMapEditorPage() {
             onDeleteNode={handleDeleteNodeFromContextMenu}
             onExpandConcept={handleExpandFromContextMenu}
             onSuggestRelations={handleSuggestRelationsFromContextMenu}
-            onExtractConcepts={handleExtractConceptsFromContextMenu} // New prop
+            onExtractConcepts={handleExtractConceptsFromContextMenu} 
             isViewOnlyMode={isViewOnlyMode}
           />
         )}
@@ -941,7 +941,7 @@ export default function ConceptMapEditorPage() {
 
         {isExtractConceptsModalOpen && !isViewOnlyMode && (
           <ExtractConceptsModal 
-            initialText={textForExtraction} // Pass initial text
+            initialText={textForExtraction} 
             onConceptsExtracted={handleConceptsExtracted} 
             onOpenChange={setIsExtractConceptsModalOpen}
           />
