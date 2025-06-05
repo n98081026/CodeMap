@@ -462,7 +462,7 @@ export default function ConceptMapEditorPage() {
     toast({ title: "Node Added", description: `"${newNodeText}" added. Remember to save.`});
   }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
 
-  const handleAddEdgeToData = useCallback(() => {
+  const handleAddAddEdgeToData = useCallback(() => {
     if (isViewOnlyMode) {
         toast({ title: "View Only Mode", description: "Cannot add edge in view-only mode.", variant: "default"});
         return;
@@ -472,10 +472,12 @@ export default function ConceptMapEditorPage() {
       toast({ title: "Cannot Add Edge", description: "Add at least two nodes to create an edge.", variant: "default" });
       return;
     }
+    // Default behavior: connect the last two nodes added
     const sourceNode = nodes[nodes.length - 2];
     const targetNode = nodes[nodes.length - 1];
-    if (!sourceNode || !targetNode) {
-        toast({ title: "Error Adding Edge", description: "Could not find source/target nodes.", variant: "destructive" });
+    
+    if (!sourceNode || !targetNode) { // Should not happen if length check passed
+        toast({ title: "Error Adding Edge", description: "Could not determine source/target nodes for default edge.", variant: "destructive"});
         return;
     }
 
@@ -1129,3 +1131,4 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
+
