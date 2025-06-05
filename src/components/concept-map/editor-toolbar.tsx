@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, 
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare 
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles // Added Sparkles
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ interface EditorToolbarProps {
   onExtractConcepts: () => void;
   onSuggestRelations: () => void;
   onExpandConcept: () => void;
+  onQuickCluster: () => void; // New prop
   isViewOnlyMode?: boolean;
   onAddNodeToData?: () => void;
   onAddEdgeToData?: () => void;
@@ -44,6 +45,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onExtractConcepts, 
   onSuggestRelations, 
   onExpandConcept,
+  onQuickCluster, // New prop
   isViewOnlyMode,
   onAddNodeToData,
   onAddEdgeToData,
@@ -148,6 +150,14 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         <Separator orientation="vertical" className="mx-1 h-full" />
 
         {/* GenAI Tools */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onQuickCluster, "Quick AI Cluster")} disabled={isViewOnlyMode}>
+              <Sparkles className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isViewOnlyMode ? "Quick AI Cluster (Disabled)" : "Quick AI Node/Cluster from Prompt"}</TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onExtractConcepts, "Extract Concepts")} disabled={isViewOnlyMode}>

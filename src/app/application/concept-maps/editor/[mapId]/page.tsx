@@ -19,6 +19,8 @@ import {
   SuggestRelationsModal,
   ExpandConceptModal,
 } from "@/components/concept-map/genai-modals";
+import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal"; // New Import
+import type { GenerateQuickClusterOutput } from "@/ai/flows/generate-quick-cluster"; // New Import
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { UserRole } from "@/types";
@@ -117,8 +119,9 @@ export default function ConceptMapEditorPage() {
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
+  const [isQuickClusterModalOpen, setIsQuickClusterModalOpen] = useState(false); // New state
   
-  const [textForExtraction, setTextForExtraction] = useState(""); // New state for Extract Concepts
+  const [textForExtraction, setTextForExtraction] = useState(""); 
   const [conceptToExpand, setConceptToExpand] = useState("");
   const [mapContextForExpansion, setMapContextForExpansion] = useState<string[]>([]);
   const [conceptsForRelationSuggestion, setConceptsForRelationSuggestion] = useState<string[]>([]);
@@ -316,24 +319,36 @@ export default function ConceptMapEditorPage() {
   }, [isViewOnlyMode, setStoreAiExpandedConcepts, toast]);
 
 
-  const getNodePlacementPosition = useCallback((index: number): { x: number; y: number } => {
+  const getNodePlacementPosition = useCallback((index: number, clusterSize: number = 1, clusterIndex: number = 0): { x: number; y: number } => {
     const currentStoreState = useConceptMapStore.getState();
     const { selectedElementId: currentSelectedId, mapData: currentMapData } = currentStoreState;
     let baseX = 50;
     let baseY = 50;
-    const offsetX = 180; // Horizontal distance between nodes
-    const offsetY = 70;  // Vertical distance between new nodes
+    const offsetX = 180; 
+    const offsetY = 70;  
+    const clusterOffsetX = 10; // Small offset for nodes within the same cluster call
+    const clusterOffsetY = 10;
 
     if (currentSelectedId) {
       const selectedNode = currentMapData.nodes.find(n => n.id === currentSelectedId);
       if (selectedNode && typeof selectedNode.x === 'number' && typeof selectedNode.y === 'number') {
-        baseX = selectedNode.x + offsetX; // Place to the right of selected node
+        baseX = selectedNode.x + offsetX; 
         baseY = selectedNode.y + (index * offsetY);
+         // Apply additional offset for cluster items
+        baseX += clusterIndex * clusterOffsetX;
+        baseY += clusterIndex * clusterOffsetY;
         return { x: baseX, y: baseY };
       }
     }
-    // Default cascading placement if no node is selected or selected node has no position
-    return { x: baseX + (index % 3) * offsetX , y: baseY + Math.floor(index / 3) * offsetY + (index * 20) };
+    // Default cascading placement if no node is selected
+    const nodesPerRow = clusterSize > 1 ? Math.ceil(Math.sqrt(clusterSize)) : 3;
+    const rowIndex = Math.floor(index / nodesPerRow);
+    const colIndex = index % nodesPerRow;
+    
+    return { 
+      x: baseX + colIndex * offsetX + (clusterIndex * clusterOffsetX), 
+      y: baseY + rowIndex * offsetY + (clusterIndex * clusterOffsetY)
+    };
   }, []);
 
 
@@ -348,7 +363,7 @@ export default function ConceptMapEditorPage() {
     }
     let addedCount = 0;
     selectedConcepts.forEach((conceptText, index) => {
-      const position = getNodePlacementPosition(index);
+      const position = getNodePlacementPosition(index, selectedConcepts.length);
       addStoreNode({
         text: conceptText,
         type: 'ai-concept',
@@ -360,7 +375,6 @@ export default function ConceptMapEditorPage() {
     if (addedCount > 0) toast({ title: "Concepts Added", description: `${addedCount} new concepts added to map. Remember to save.` });
     else toast({ title: "No New Concepts Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
 
-    // setStoreAiExtractedConcepts([]); // Removed: Let panel re-evaluate status
   }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
 
   const addSelectedSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
@@ -380,7 +394,7 @@ export default function ConceptMapEditorPage() {
       let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
       let sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
       if (!sourceNode) {
-        const position = getNodePlacementPosition(conceptsAddedFromRelationsCount); // Use separate counter for new node placement
+        const position = getNodePlacementPosition(conceptsAddedFromRelationsCount, selectedRelations.length, index); 
         addStoreNode({ text: rel.source, type: 'ai-concept', position });
         currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
         sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
@@ -389,7 +403,7 @@ export default function ConceptMapEditorPage() {
 
       let targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
       if (!targetNode) {
-        const position = getNodePlacementPosition(conceptsAddedFromRelationsCount); // Use separate counter
+        const position = getNodePlacementPosition(conceptsAddedFromRelationsCount, selectedRelations.length, index); 
         addStoreNode({ text: rel.target, type: 'ai-concept', position });
         currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; 
         targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
@@ -410,7 +424,6 @@ export default function ConceptMapEditorPage() {
     if (toastMessage) toast({ title: "Relations Added", description: `${toastMessage.trim()} Remember to save the map.` });
     else toast({ title: "No New Relations Added", description: "All selected suggestions might already exist or were not selected.", variant: "default" });
 
-    // setStoreAiSuggestedRelations([]); // Removed: Let panel re-evaluate status
   }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, getNodePlacementPosition]);
 
   const addSelectedExpandedConceptsToMap = useCallback((selectedConcepts: string[]) => {
@@ -424,7 +437,7 @@ export default function ConceptMapEditorPage() {
     }
     let addedCount = 0;
     selectedConcepts.forEach((conceptText, index) => {
-      const position = getNodePlacementPosition(index);
+      const position = getNodePlacementPosition(index, selectedConcepts.length);
       addStoreNode({
         text: conceptText,
         type: 'ai-expanded', 
@@ -435,7 +448,6 @@ export default function ConceptMapEditorPage() {
     if (addedCount > 0) toast({ title: "Expanded Ideas Added", description: `${addedCount} new ideas added to map. Remember to save.` });
     else toast({ title: "No New Ideas Added", description: "All selected new suggestions might already exist or were not selected.", variant: "default" });
 
-    // setStoreAiExpandedConcepts([]); // Removed: Let panel re-evaluate status
   }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition]);
 
 
@@ -620,6 +632,69 @@ export default function ConceptMapEditorPage() {
     setTextForExtraction(initialText);
     setIsExtractConceptsModalOpen(true);
   }, [resetStoreAiSuggestions]);
+
+  // New: Handle Quick Cluster Modal
+  const handleOpenQuickClusterModal = useCallback(() => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot use Quick AI Cluster in view-only mode.", variant: "default" });
+      return;
+    }
+    setIsQuickClusterModalOpen(true);
+  }, [isViewOnlyMode, toast]);
+
+  const handleClusterGenerated = useCallback((output: GenerateQuickClusterOutput) => {
+    if (isViewOnlyMode) return;
+
+    const newNodesMap = new Map<string, string>(); // Map original text to new node ID
+    let addedNodesCount = 0;
+
+    // Add nodes first
+    output.nodes.forEach((aiNode, index) => {
+      const position = getNodePlacementPosition(index, output.nodes.length, addedNodesCount); // Pass cluster size and current node index in cluster
+      const newNode: ConceptMapNode = {
+        id: `temp-ai-${Date.now()}-${index}`, // Temporary ID
+        text: aiNode.text,
+        type: aiNode.type || 'ai-generated',
+        details: aiNode.details || '',
+        x: position.x,
+        y: position.y,
+      };
+      addStoreNode(newNode); // addStoreNode should handle unique ID generation internally
+      
+      // After addStoreNode, the node in the store has its final ID. We need to get it.
+      // This is a bit tricky as addStoreNode doesn't return the new node.
+      // We'll assume the last added node is the one we just processed. This is fragile.
+      const currentNodes = useConceptMapStore.getState().mapData.nodes;
+      const actuallyAddedNode = currentNodes[currentNodes.length - 1];
+      if (actuallyAddedNode && actuallyAddedNode.text === aiNode.text) {
+        newNodesMap.set(aiNode.text, actuallyAddedNode.id);
+      } else {
+         // Fallback: if text matching is unreliable due to edits or exact duplicates
+         console.warn("Could not reliably map AI node text to a new node ID for edge creation. Original text:", aiNode.text);
+         // Use the temp ID as a key, but this means edges might not connect if IDs change significantly in addStoreNode
+         newNodesMap.set(aiNode.text, newNode.id); 
+      }
+      addedNodesCount++;
+    });
+
+    // Add edges
+    if (output.edges) {
+      output.edges.forEach(aiEdge => {
+        const sourceId = newNodesMap.get(aiEdge.sourceText);
+        const targetId = newNodesMap.get(aiEdge.targetText);
+        if (sourceId && targetId) {
+          addStoreEdge({
+            source: sourceId,
+            target: targetId,
+            label: aiEdge.relationLabel,
+          });
+        } else {
+            console.warn(`Could not create edge for AI relation: "${aiEdge.sourceText}" -> "${aiEdge.targetText}" (${aiEdge.relationLabel}). One or both nodes not found after adding.`);
+        }
+      });
+    }
+    toast({ title: "AI Cluster Added", description: `Added ${output.nodes.length} nodes and ${output.edges?.length || 0} edges to the map.` });
+  }, [isViewOnlyMode, addStoreNode, addStoreEdge, toast, getNodePlacementPosition]);
 
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
@@ -846,6 +921,7 @@ export default function ConceptMapEditorPage() {
           onExtractConcepts={() => prepareAndOpenExtractConceptsModal()} 
           onSuggestRelations={() => prepareAndOpenSuggestRelationsModal()}
           onExpandConcept={() => prepareAndOpenExpandConceptModal()}
+          onQuickCluster={handleOpenQuickClusterModal} // Pass new handler
           isViewOnlyMode={isViewOnlyMode}
           onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
           onToggleProperties={onTogglePropertiesInspector}
@@ -961,7 +1037,15 @@ export default function ConceptMapEditorPage() {
             onOpenChange={setIsExpandConceptModalOpen}
           />
         )}
+        {isQuickClusterModalOpen && !isViewOnlyMode && ( // New Modal render
+          <QuickClusterModal
+            isOpen={isQuickClusterModalOpen}
+            onOpenChange={setIsQuickClusterModalOpen}
+            onClusterGenerated={handleClusterGenerated}
+          />
+        )}
       </ReactFlowProvider>
     </div>
   );
 }
+
