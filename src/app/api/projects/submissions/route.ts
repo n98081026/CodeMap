@@ -1,4 +1,3 @@
-
 // src/app/api/projects/submissions/route.ts
 import { NextResponse } from 'next/server';
 import { createSubmission, getSubmissionsByStudentId, getSubmissionsByClassroomId, getAllSubmissions } from '@/services/projectSubmissions/projectSubmissionService';
@@ -16,6 +15,10 @@ export async function POST(request: Request) {
     if (!studentId || !originalFileName || fileSize === undefined) {
       return NextResponse.json({ message: "Student ID, original file name, and file size are required" }, { status: 400 });
     }
+    if (fileStoragePath === undefined) { // Check explicitly for undefined, null is acceptable
+      console.warn("fileStoragePath is undefined in POST /api/projects/submissions. This might be okay if file upload is optional or handled later, but often expected.");
+    }
+
 
     const newSubmission = await createSubmission(studentId, originalFileName, fileSize, classroomId, fileStoragePath);
     return NextResponse.json(newSubmission, { status: 201 });
@@ -43,8 +46,10 @@ export async function GET(request: Request) {
         return NextResponse.json(submissions);
     }
     
-    // Admin: Get all submissions for dashboard count (if ever needed, currently not used for count)
-    const allSubmissionsData = await getAllSubmissions(); // Returns ProjectSubmission[]
+    // Default to returning all submissions if no specific filter is provided
+    // This could be used by an admin dashboard or for overall system stats.
+    // Ensure RLS policies correctly restrict this if it's not intended for all authenticated users.
+    const allSubmissionsData = await getAllSubmissions(); 
     return NextResponse.json(allSubmissionsData);
 
   } catch (error) {

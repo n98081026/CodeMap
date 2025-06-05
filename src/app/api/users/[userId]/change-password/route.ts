@@ -1,9 +1,8 @@
-
 // src/app/api/users/[userId]/change-password/route.ts
 import { NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import type { Database } from '@/types/supabase';
+import type { Database } from '@/types/supabase'; // Make sure this path is correct
 
 export async function POST(request: Request, context: { params: { userId: string } }) {
   try {
@@ -29,19 +28,15 @@ export async function POST(request: Request, context: { params: { userId: string
       return NextResponse.json({ message: "Unauthorized: Could not retrieve authenticated user." }, { status: 401 });
     }
 
-    // Security check: Ensure the authenticated user is the one trying to change their password
-    // or is an admin with special logic (not implemented here, admin password changes usually done differently)
     if (authUser.id !== pathUserId) {
-      // Deny if trying to change password for a different user.
-      // For this app, only self-service password change is implemented.
-       if (authUser.id === "admin-mock-id" || authUser.id === "student-test-id" || authUser.id === "teacher-test-id") {
-        return NextResponse.json({ message: "Forbidden: Mock user accounts cannot change other users' passwords via this endpoint." }, { status: 403 });
-      }
+      // For this app, only self-service password change is implemented for non-mock users.
+      // Mock users cannot change passwords via this endpoint.
       return NextResponse.json({ message: "Forbidden: You can only change your own password." }, { status: 403 });
     }
 
-    // Check if the user is one of the mock users for whom password change should be disabled
-     if (pathUserId === "admin-mock-id" || pathUserId === "student-test-id" || pathUserId === "teacher-test-id") {
+    // Prevent password changes for predefined mock accounts (which don't exist in Supabase Auth anyway)
+    const mockUserIds = ["admin-mock-id", "student-test-id", "teacher-test-id"];
+    if (mockUserIds.includes(pathUserId)) {
       return NextResponse.json({ message: "Forbidden: Password for pre-defined mock accounts cannot be changed." }, { status: 403 });
     }
     
@@ -50,11 +45,11 @@ export async function POST(request: Request, context: { params: { userId: string
     });
 
     if (updateError) {
-      console.error(`Change Password API error (User ID: ${authUser.id}):`, updateError);
+      console.error(`Change Password API error for user ${authUser.id}:`, updateError);
       let errorMessage = `Failed to change password: ${updateError.message}`;
-      if (updateError.message.includes("same as the old password")) {
+      if (updateError.message.toLowerCase().includes("same as the old password")) {
         errorMessage = "New password must be different from the old password.";
-      } else if (updateError.message.includes("weak password")) {
+      } else if (updateError.message.toLowerCase().includes("weak password")) {
         errorMessage = "Password is too weak. Please choose a stronger password.";
       }
       return NextResponse.json({ message: errorMessage }, { status: 400 });

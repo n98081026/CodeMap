@@ -1,4 +1,3 @@
-
 // src/services/users/userService.ts
 'use server';
 
@@ -22,9 +21,14 @@ export async function createUserProfile(userId: string, name: string, email: str
     throw new Error(`Failed to check existing profile: ${errorById.message}`);
   }
   if (existingById) {
-    throw new Error("A profile for this user ID already exists.");
+    // Profile already exists, perhaps created by a trigger. Fetch and return it.
+    const existingProfile = await getUserById(userId);
+    if (existingProfile) return existingProfile;
+    // If it exists by ID but getUserById fails, that's an issue.
+    throw new Error("A profile for this user ID exists but could not be fetched.");
   }
   
+  // Check for existing profile by email only if ID check didn't find one
   const { data: existingByEmail, error: errorByEmail } = await supabase
     .from('profiles')
     .select('id')
@@ -46,7 +50,7 @@ export async function createUserProfile(userId: string, name: string, email: str
       name,
       email,
       role,
-      updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(), // Supabase typically handles created_at/updated_at via default values or triggers
     })
     .select()
     .single();
@@ -76,6 +80,8 @@ export async function findUserByEmail(email: string): Promise<User | null> {
 
   if (error) { 
     console.error('Supabase findUserByEmail error:', error);
+    // Don't throw for not found, just return null
+    if (error.code === 'PGRST116') return null; // PGRST116: "Query returned no rows"
     throw new Error(`Error fetching user by email: ${error.message}`);
   }
   if (!data) {
@@ -91,7 +97,7 @@ export async function getUserById(userId: string): Promise<User | null> {
     .eq('id', userId) 
     .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116: "Query returned no rows"
+  if (error && error.code !== 'PGRST116') {
     console.error('Supabase getUserById error:', error);
     throw new Error(`Error fetching profile: ${error.message}`);
   }
@@ -119,7 +125,7 @@ export async function getAllUsers(page: number = 1, limit: number = 10): Promise
 export async function updateUser(userId: string, updates: { name?: string; email?: string; role?: UserRole }): Promise<User | null> {
   const userToUpdate = await getUserById(userId);
   if (!userToUpdate) {
-    return null; 
+    throw new Error("User profile not found for update.");
   }
   
   const profileUpdates: any = {};
@@ -127,7 +133,6 @@ export async function updateUser(userId: string, updates: { name?: string; email
   if (updates.role !== undefined && updates.role !== userToUpdate.role) profileUpdates.role = updates.role;
 
   if (updates.email && updates.email !== userToUpdate.email) {
-    // Check if the new email is already taken by another profile
     const { data: existingByEmail, error: emailCheckError } = await supabase
       .from('profiles')
       .select('id')
@@ -143,11 +148,7 @@ export async function updateUser(userId: string, updates: { name?: string; email
       throw new Error("Another user profile already exists with this email address.");
     }
     profileUpdates.email = updates.email;
-    // IMPORTANT: This only updates the 'profiles.email'.
-    // To update the Supabase Auth email, you must use `supabase.auth.updateUser({ email: newEmail })`
-    // which typically involves an email confirmation flow. This service does NOT handle that.
-    // The AuthContext or Profile page should coordinate this if full auth email change is desired.
-    console.warn(`Profile email for user ${userId} updated to ${updates.email}. Auth email remains unchanged.`);
+    console.warn(`Profile email for user ${userId} updated to ${updates.email}. This does NOT change the Supabase Auth email. Ensure Supabase Auth email is updated separately if needed.`);
   }
 
 
@@ -172,11 +173,12 @@ export async function updateUser(userId: string, updates: { name?: string; email
 }
 
 export async function deleteUser(userId: string): Promise<boolean> {
-  if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin-mock-id") {
+  // Protect mock users from deletion via service for safety during testing
+  const mockUserIds = ["admin-mock-id", "student-test-id", "teacher-test-id"];
+  if (mockUserIds.includes(userId)) {
       throw new Error("Pre-defined test user profiles cannot be deleted through this service.");
   }
   
-  // First, delete from 'profiles' table
   const { error: profileDeleteError, count: profileDeleteCount } = await supabase
     .from('profiles')
     .delete({ count: 'exact' })
@@ -186,26 +188,15 @@ export async function deleteUser(userId: string): Promise<boolean> {
     console.error('Supabase deleteUserProfile error:', profileDeleteError);
     throw new Error(`Failed to delete user profile: ${profileDeleteError.message}`);
   }
+  
+  // Deleting the Supabase Auth user typically requires admin privileges and is a separate operation.
+  // This service only handles the 'profiles' table.
+  // console.warn(`Profile for user ${userId} deleted. Deleting the auth.users entry requires admin privileges and must be handled separately if not cascaded.`);
+  
   if (profileDeleteCount === 0) {
-    console.warn(`Profile for user ${userId} not found for deletion or already deleted.`);
-    // Depending on desired behavior, you might still want to try deleting the auth user
-    // or return false / throw error. For now, let's proceed to auth user deletion attempt.
+    console.warn(`No profile found for user ID ${userId} to delete, or RLS prevented deletion.`);
+    return false; // Indicate no profile row was deleted
   }
 
-  // Then, delete from 'auth.users' table (requires service_role key or admin privileges)
-  // This part is tricky as frontend Supabase client usually doesn't have rights to delete other auth users.
-  // This should ideally be handled by a Supabase Edge Function with service_role key.
-  // For now, this will likely fail if not called with sufficient privileges.
-  // console.warn(`Attempting to delete auth user ${userId}. This requires admin privileges or a service_role key setup.`);
-  // const { error: authUserDeleteError } = await supabase.auth.admin.deleteUser(userId); // This needs Admin API
-  // if (authUserDeleteError) {
-  //   console.error(`Supabase deleteAuthUser error for ${userId}:`, authUserDeleteError);
-  //   // If profile was deleted but auth user wasn't, we have an orphaned auth user.
-  //   // This is a serious issue that needs proper handling in a production app.
-  //   throw new Error(`Failed to delete auth user (profile may have been deleted): ${authUserDeleteError.message}`);
-  // }
-  console.log(`Profile for user ${userId} deleted. Associated auth.users entry deletion should be handled by an admin process if not automatically cascaded by DB policies.`);
-
-
-  return true; // Returns true if profile deletion was successful or profile was not found.
+  return true;
 }

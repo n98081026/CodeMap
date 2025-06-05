@@ -1,9 +1,8 @@
-
 "use client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
-import type { Classroom } from "@/types";
+import type { Classroom } from "@/types"; // Ensure Classroom type is imported
 import { UserRole } from "@/types";
 import { BookOpen, Users, LayoutDashboard, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -24,7 +23,7 @@ const LoadingSpinner = () => (
 );
 
 export default function TeacherDashboardPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authIsLoading } = useAuth();
   const { toast } = useToast();
 
   const [dashboardData, setDashboardData] = useState<TeacherDashboardData | null>(null);
@@ -42,25 +41,42 @@ export default function TeacherDashboardPage() {
     setErrorClassroomsAndStudents(null);
 
     try {
-      const response = await fetch(`/api/classrooms?teacherId=${user.id}`); // Fetch all classrooms for this teacher (no pagination for dashboard count)
-      if (!response.ok) {
-        let errorMsg = `Classrooms API Error (${response.status})`;
-        try {
-          const errData = await response.json();
-          errorMsg = `${errorMsg}: ${errData.message || response.statusText}`;
-        } catch(e) {
-          errorMsg = `${errorMsg}: ${response.statusText || "Failed to parse error"}`;
-        }
-        throw new Error(errorMsg);
+      // Fetch classrooms with pagination to get totalCount for managedClassroomsCount
+      const classroomsResponse = await fetch(`/api/classrooms?teacherId=${user.id}&page=1&limit=1`);
+      if (!classroomsResponse.ok) {
+        const errData = await classroomsResponse.json();
+        throw new Error(errData.message || `Classrooms API Error (${classroomsResponse.status})`);
       }
-      const classrooms: Classroom[] = await response.json(); 
+      const classroomsResult = await classroomsResponse.json() as { classrooms: Classroom[], totalCount: number };
+      const managedClassroomsCount = classroomsResult.totalCount;
 
-      const managedClassroomsCount = classrooms.length;
+      // To get totalStudentsCount, we might need to fetch all classrooms for the teacher
+      // or have a dedicated API endpoint for this aggregated data.
+      // For simplicity, if the first fetch returns all classrooms (if totalCount <= limit used, e.g. 1), use that.
+      // Otherwise, this count might be slightly off or require another more comprehensive fetch.
+      // A better approach for totalStudentsCount would be an aggregate query on the backend.
+      // For this example, we'll sum from the paginated result if it's the only page, or make a broader call.
+      
       let totalStudents = 0;
-      classrooms.forEach(c => {
-        // Assuming studentIds array from API now correctly reflects the count of enrolled students for each classroom
-        totalStudents += c.studentIds?.length || 0;
-      });
+      if (classroomsResult.classrooms.length === managedClassroomsCount) { // All classrooms fetched in one go
+         classroomsResult.classrooms.forEach(c => {
+           totalStudents += c.studentIds?.length || 0;
+         });
+      } else {
+        // If more classrooms exist than fetched in the count query, fetch all to sum students
+        // This is not ideal for performance if a teacher has many classrooms.
+        // A dedicated backend aggregate query is better.
+        const allClassroomsResponse = await fetch(`/api/classrooms?teacherId=${user.id}`); // No pagination
+        if(!allClassroomsResponse.ok) { /* handle error */ }
+        else {
+            const allClassesData = await allClassroomsResponse.json() as { classrooms: Classroom[], totalCount: number } | Classroom[];
+            const classroomsArray = Array.isArray(allClassesData) ? allClassesData : allClassesData.classrooms;
+            classroomsArray.forEach(c => {
+                totalStudents += c.studentIds?.length || 0;
+            });
+        }
+      }
+
 
       setDashboardData({
         managedClassroomsCount: managedClassroomsCount,
@@ -81,14 +97,16 @@ export default function TeacherDashboardPage() {
 
 
   useEffect(() => {
-    if (user) {
+     if (!authIsLoading && user) {
       fetchTeacherClassroomsAndStudentCount();
+    } else if (!authIsLoading && !user) {
+      setIsLoadingClassroomsAndStudents(false);
     }
-  }, [user, fetchTeacherClassroomsAndStudentCount]);
+  }, [user, authIsLoading, fetchTeacherClassroomsAndStudentCount]);
 
 
-  if (!user && isLoadingClassroomsAndStudents) return <LoadingSpinner />;
-  if (!user) return null;
+  if (authIsLoading || (!user && !authIsLoading)) return <LoadingSpinner />;
+  if (!user) return null; // Should be handled by AppLayout redirect
 
   const renderCount = (count: number | undefined, isLoading: boolean, error: string | null, itemName: string) => {
     if (isLoading) {

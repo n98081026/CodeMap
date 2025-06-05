@@ -1,16 +1,24 @@
-
 // src/app/api/users/[userId]/route.ts
 import { NextResponse } from 'next/server';
 import { getUserById, updateUser, deleteUser } from '@/services/users/userService';
-import type { User, UserRole } from '@/types';
+import type { UserRole } from '@/types'; // User type is implicitly handled by service
+// For enhanced security, verify session and admin role for PUT/DELETE
+// import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+// import { cookies } from 'next/headers';
+// import { UserRole as AppUserRole } from '@/types';
 
-// Basic auth check placeholder - RLS is primary, but this could be enhanced
-// For a real app, use Supabase session validation like in change-password route.
-// const checkAdminAuth = async (request: Request) => { /* ... */ return true; }
+// async function isAdmin(request: Request): Promise<boolean> {
+//   const cookieStore = cookies();
+//   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+//   const { data: { user: authUser } } = await supabase.auth.getUser();
+//   if (!authUser) return false;
+//   const profile = await getUserById(authUser.id);
+//   return profile?.role === AppUserRole.ADMIN;
+// }
 
 export async function GET(request: Request, context: { params: { userId: string } }) {
   try {
-    // if (!await checkAdminAuth(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    // Could add auth check here: if (!await isAdmin(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     const { userId } = context.params;
     const user = await getUserById(userId);
     if (!user) {
@@ -25,7 +33,7 @@ export async function GET(request: Request, context: { params: { userId: string 
 
 export async function PUT(request: Request, context: { params: { userId: string } }) {
   try {
-    // if (!await checkAdminAuth(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    // if (!await isAdmin(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     const { userId } = context.params;
     const updates = await request.json() as { name?: string; email?: string; role?: UserRole };
 
@@ -33,22 +41,21 @@ export async function PUT(request: Request, context: { params: { userId: string 
         return NextResponse.json({ message: "No updates provided" }, { status: 400 });
     }
     
-    // Prevent editing predefined mock users directly via API if needed
-    if (userId === "admin-mock-id" || userId === "student-test-id" || userId === "teacher-test-id") {
-      if (updates.email || updates.role) { // Allow name changes for mock for testing, but not email/role
-        return NextResponse.json({ message: "Cannot change email or role for pre-defined mock users via API." }, { status: 403 });
-      }
-    }
-
+    // The userService.updateUser has logic to prevent editing mock user emails/roles.
+    // It also handles checks for email uniqueness if email is being updated.
     const updatedUser = await updateUser(userId, updates);
     if (!updatedUser) {
+      // This might occur if getUserById inside updateUser returns null, meaning user was deleted.
       return NextResponse.json({ message: "User not found or update failed" }, { status: 404 });
     }
     return NextResponse.json(updatedUser);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-     if (errorMessage.includes("Another user profile already exists")) {
-      return NextResponse.json({ message: errorMessage }, { status: 409 });
+     if (errorMessage.includes("Another user profile already exists with this email address")) {
+      return NextResponse.json({ message: errorMessage }, { status: 409 }); // Conflict
+    }
+    if (errorMessage.includes("Cannot change email or role for pre-defined mock users")) {
+        return NextResponse.json({message: errorMessage}, {status: 403});
     }
     return NextResponse.json({ message: `Failed to update user: ${errorMessage}` }, { status: 500 });
   }
@@ -56,15 +63,16 @@ export async function PUT(request: Request, context: { params: { userId: string 
 
 export async function DELETE(request: Request, context: { params: { userId: string } }) {
   try {
-    // if (!await checkAdminAuth(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    // if (!await isAdmin(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     const { userId } = context.params;
     
-    const deleted = await deleteUser(userId); // Service has protection for mock users
+    // userService.deleteUser has logic to prevent deleting mock users.
+    const deleted = await deleteUser(userId); 
     if (!deleted) {
-      // Service throws specific errors for mock users or not found
+      // This implies the user was not found by the service (or RLS prevented it).
       return NextResponse.json({ message: "User not found or deletion failed" }, { status: 404 });
     }
-    return NextResponse.json({ message: "User deleted successfully" });
+    return NextResponse.json({ message: "User's profile deleted successfully. Associated auth user may need manual deletion if not cascaded." });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
      if (errorMessage.includes("Pre-defined test user profiles cannot be deleted")) {

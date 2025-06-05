@@ -1,4 +1,3 @@
-
 // src/app/api/concept-maps/route.ts
 import { NextResponse } from 'next/server';
 import { createConceptMap, getConceptMapsByOwnerId, getConceptMapsByClassroomId } from '@/services/conceptMaps/conceptMapService';
@@ -44,10 +43,8 @@ export async function GET(request: Request) {
       return NextResponse.json(maps);
     }
 
-    // If neither ownerId nor classroomId is provided.
-    // For dashboard counts, specific queries are made (ownerId for student, classroomId for teacher).
-    // Admin might need a way to get all maps for a total count, but that's not implemented here.
-    // For now, return error if no specific query param.
+    // If neither ownerId nor classroomId is provided, it's an invalid request for this endpoint.
+    // Admin might have a separate endpoint or flag for getting all maps.
     return NextResponse.json({ message: "Query parameter 'ownerId' or 'classroomId' is required to list concept maps." }, { status: 400 });
 
   } catch (error) {

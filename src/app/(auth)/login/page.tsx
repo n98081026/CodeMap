@@ -1,4 +1,3 @@
-
 "use client";
 import { LoginForm } from "@/components/auth/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,27 +8,31 @@ import { useEffect } from "react";
 import { UserRole } from "@/types";
 
 export default function LoginPage() {
-  const { isAuthenticated, user, isLoading, login } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated && user) {
-        if (user.role === UserRole.ADMIN) router.replace('/application/admin/dashboard');
-        else if (user.role === UserRole.TEACHER) router.replace('/application/teacher/dashboard');
-        else router.replace('/application/student/dashboard');
-      } else {
-        // Force mock student login for testing if not authenticated
-        console.log("Login page: Not authenticated, attempting forced mock student login.");
-        login('student@example.com', 'studentpass', UserRole.STUDENT).catch(err => {
-          console.error("Forced mock student login on login page failed:", err);
-          // If forced login fails, remain on login page, user can try manually.
-        });
+    if (!isLoading && isAuthenticated && user) {
+      // If user is already authenticated, redirect them from login page
+      switch (user.role) {
+        case UserRole.ADMIN:
+          router.replace('/application/admin/dashboard');
+          break;
+        case UserRole.TEACHER:
+          router.replace('/application/teacher/dashboard');
+          break;
+        case UserRole.STUDENT:
+          router.replace('/application/student/dashboard');
+          break;
+        default:
+          // Fallback, though ideally role should always be known
+          router.replace('/application/student/dashboard'); 
       }
     }
-  }, [isAuthenticated, user, router, isLoading, login]);
+  }, [isAuthenticated, user, router, isLoading]);
 
-  if (isLoading || (isAuthenticated && user)) {
+  // Show loader if auth state is loading OR if user is authenticated (to prevent form flash before redirect)
+  if (isLoading || (isAuthenticated && user) ) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-background to-accent/10">
          <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -37,6 +40,7 @@ export default function LoginPage() {
     );
   }
 
+  // If not loading and not authenticated, show login form
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-accent/10 p-4">
       <Card className="w-full max-w-md shadow-2xl">
@@ -45,7 +49,7 @@ export default function LoginPage() {
             <CodeXml className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="font-headline text-3xl">Welcome to CodeMap</CardTitle>
-          <CardDescription>Sign in to access your dashboards and tools. (Student bypass active for testing)</CardDescription>
+          <CardDescription>Sign in to access your dashboards and tools.</CardDescription>
         </CardHeader>
         <CardContent>
           <LoginForm />
@@ -54,5 +58,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

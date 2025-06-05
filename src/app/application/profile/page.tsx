@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -83,7 +82,10 @@ function EditProfileDialog({
     }
   }, [currentUser, form, isOpen]);
   
-  const isMockUser = currentUser.id === "admin-mock-id" || currentUser.id === "student-test-id" || currentUser.id === "teacher-test-id";
+  // Check if the current user is one of the predefined mock users.
+  // This logic is now for UI disabling only; actual Supabase RLS/service logic handles backend protection.
+  const isPredefinedMockUser = currentUser.id === "admin-mock-id" || currentUser.id === "student-test-id" || currentUser.id === "teacher-test-id";
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -101,7 +103,7 @@ function EditProfileDialog({
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={isSaving || isMockUser} />
+                    <Input {...field} disabled={isSaving || isPredefinedMockUser} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -114,20 +116,24 @@ function EditProfileDialog({
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input type="email" {...field} disabled={isSaving || isMockUser} />
+                    <Input type="email" {...field} disabled={isSaving || isPredefinedMockUser} />
                   </FormControl>
+                  {isPredefinedMockUser && <p className="text-xs text-muted-foreground">Email for pre-defined mock accounts cannot be changed.</p>}
+                   {!isPredefinedMockUser && <p className="text-xs text-muted-foreground">Changing your email here updates your profile. To change your login email, Supabase typically requires email confirmation.</p>}
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {isMockUser && (
-              <p className="text-xs text-muted-foreground">Pre-defined mock user profiles cannot be edited here.</p>
+            {isPredefinedMockUser && (
+              <p className="text-xs text-destructive p-2 border border-dashed border-destructive rounded-md">
+                Editing name or email for pre-defined mock accounts is disabled in this dialog.
+              </p>
             )}
             <DialogFooter>
               <DialogClose asChild>
                  <Button type="button" variant="outline" disabled={isSaving}>Cancel</Button>
               </DialogClose>
-              <Button type="submit" disabled={isSaving || isMockUser}>
+              <Button type="submit" disabled={isSaving || isPredefinedMockUser}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
@@ -151,12 +157,12 @@ type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
 
 function ChangePasswordDialog({
   userId,
-  isMockUser,
+  isMockUserAccount, // Renamed for clarity
   isOpen,
   onOpenChange,
 }: {
   userId: string;
-  isMockUser: boolean;
+  isMockUserAccount: boolean;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -179,8 +185,8 @@ function ChangePasswordDialog({
   }, [form, onOpenChange]);
 
   const onSubmit = useCallback(async (data: ChangePasswordFormValues) => {
-    if (isMockUser) {
-      toast({ title: "Operation Denied", description: "Password for mock user accounts cannot be changed here.", variant: "destructive"});
+    if (isMockUserAccount) {
+      toast({ title: "Operation Denied", description: "Password for pre-defined mock accounts cannot be changed here.", variant: "destructive"});
       return;
     }
     setIsSaving(true);
@@ -208,7 +214,7 @@ function ChangePasswordDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [userId, toast, handleDialogStateChange, isMockUser]);
+  }, [userId, toast, handleDialogStateChange, isMockUserAccount]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogStateChange}>
@@ -217,7 +223,7 @@ function ChangePasswordDialog({
           <DialogTitle>Change Password</DialogTitle>
           <DialogDescription>Update your account password.</DialogDescription>
         </DialogHeader>
-        {isMockUser ? (
+        {isMockUserAccount ? (
            <p className="text-sm text-destructive py-4">Password for pre-defined mock accounts cannot be changed through this interface.</p>
         ) : (
         <Form {...form}>
@@ -296,6 +302,8 @@ export default function ProfilePage() {
   }, [user.role]);
 
   const handleProfileUpdated = useCallback(async (updatedFields: Partial<User>) => {
+    // This function is passed to EditProfileDialog.
+    // AuthContext's updateCurrentUserData handles the actual API call and state update.
     await updateCurrentUserData(updatedFields); 
   }, [updateCurrentUserData]);
 
@@ -303,17 +311,19 @@ export default function ProfilePage() {
     const newRole = newRoleValue as UserRole;
     setSelectedRoleForTest(newRole);
     if (user && newRole !== user.role) {
-      setTestUserRole(newRole); 
+      setTestUserRole(newRole); // This updates role locally in AuthContext for testing
+      // Redirect to the new role's dashboard
       switch (newRole) {
         case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
         case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
         case UserRole.STUDENT: router.replace('/application/student/dashboard'); break;
-        default: router.replace('/application/login');
+        default: router.replace('/application/login'); // Fallback
       }
     }
   };
-
-  const isUserMock = user.id === 'admin-mock-id' || user.id === 'student-test-id' || user.id === 'teacher-test-id';
+  
+  // Use a consistent check for whether the current user is one of the predefined mock accounts.
+  const isCurrentAccountMock = user.id === "admin-mock-id" || user.id === "student-test-id" || user.id === "teacher-test-id";
 
   return (
     <div className="space-y-6">
@@ -343,7 +353,7 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-2 mt-1">
               <TestTubeDiagonal className="h-5 w-5 text-orange-500 flex-shrink-0" />
               <Select value={selectedRoleForTest || user.role} onValueChange={handleTestRoleChange}>
-                <SelectTrigger id="profileRoleSelect">
+                <SelectTrigger id="profileRoleSelect" className="w-full md:w-[200px]">
                   <SelectValue placeholder="Switch Role (Testing)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -354,7 +364,7 @@ export default function ProfilePage() {
               </Select>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              This role switcher is for testing purposes. Changes apply locally and redirect you.
+              This role switcher is for local testing convenience. It does not change your actual account role on the server.
             </p>
           </div>
         </CardContent>
@@ -371,7 +381,7 @@ export default function ProfilePage() {
               <h3 className="font-medium">Edit Profile</h3>
               <p className="text-sm text-muted-foreground">Update your name or email address.</p>
             </div>
-            <Button variant="outline" onClick={() => setIsEditProfileOpen(true)} disabled={isUserMock}>
+            <Button variant="outline" onClick={() => setIsEditProfileOpen(true)} disabled={isCurrentAccountMock}>
               <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
             </Button>
           </div>
@@ -380,12 +390,12 @@ export default function ProfilePage() {
               <h3 className="font-medium">Change Password</h3>
               <p className="text-sm text-muted-foreground">Update your account password.</p>
             </div>
-            <Button variant="outline" onClick={() => setIsChangePasswordOpen(true)} disabled={isUserMock}>
+            <Button variant="outline" onClick={() => setIsChangePasswordOpen(true)} disabled={isCurrentAccountMock}>
               <KeyRound className="mr-2 h-4 w-4" /> Change Password
             </Button>
           </div>
-           {isUserMock && (
-              <p className="text-xs text-destructive p-2">Editing name/email or changing password is disabled for pre-defined mock user accounts.</p>
+           {isCurrentAccountMock && (
+              <p className="text-xs text-destructive p-2">Editing name/email or changing password is disabled for pre-defined mock user accounts for stability during testing.</p>
             )}
         </CardContent>
       </Card>
@@ -419,7 +429,7 @@ export default function ProfilePage() {
       {isChangePasswordOpen && user && (
         <ChangePasswordDialog
           userId={user.id}
-          isMockUser={isUserMock}
+          isMockUserAccount={isCurrentAccountMock}
           isOpen={isChangePasswordOpen}
           onOpenChange={setIsChangePasswordOpen}
         />
@@ -427,4 +437,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

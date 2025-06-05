@@ -1,4 +1,3 @@
-
 // src/services/classrooms/classroomService.ts
 'use server';
 
@@ -9,7 +8,7 @@
 import type { Classroom, User } from '@/types';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
-import { getUserById } from '@/services/users/userService'; // Still useful for validating teacher/student roles
+import { getUserById } from '@/services/users/userService'; 
 
 
 async function populateTeacherName(classroom: Classroom): Promise<void> {
@@ -47,7 +46,7 @@ async function populateStudentDetailsForClassroom(classroom: Classroom): Promise
 
     if (profilesError) {
       console.error(`Error fetching student profiles for classroom ${classroom.id}:`, profilesError);
-      classroom.students = []; // Or handle partial data if preferred
+      classroom.students = []; 
       return;
     }
     classroom.students = studentProfiles as User[];
@@ -71,21 +70,18 @@ export async function createClassroom(
   }
 
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const now = new Date().toISOString();
-
+  
   const classroomToInsert: any = {
     name,
     description: description || null,
     teacher_id: teacherId,
     invite_code: inviteCode,
-    created_at: now,
-    updated_at: now,
   };
 
   if (subject) classroomToInsert.subject = subject;
   if (difficulty) classroomToInsert.difficulty = difficulty;
-  if (enableStudentAiAnalysis !== undefined) classroomToInsert.enable_student_ai_analysis = enableStudentAiAnalysis;
-
+  // Default to true if undefined, or use the provided value
+  classroomToInsert.enable_student_ai_analysis = enableStudentAiAnalysis === undefined ? true : enableStudentAiAnalysis;
 
   const { data, error } = await supabase
     .from('classrooms')
@@ -99,21 +95,18 @@ export async function createClassroom(
   }
   if (!data) throw new Error("Failed to create classroom: No data returned.");
 
-  // Convert Supabase row to Classroom type
   return {
     id: data.id,
     name: data.name,
     description: data.description ?? undefined,
     teacherId: data.teacher_id,
-    teacherName: teacher.name, // Set from validated teacher
-    studentIds: [], // New classroom has no students
+    teacherName: teacher.name, 
+    studentIds: [], 
     students: [],
     inviteCode: data.invite_code,
     subject: data.subject ?? undefined,
     difficulty: data.difficulty ?? undefined,
     enableStudentAiAnalysis: data.enable_student_ai_analysis ?? true,
-    // created_at: data.created_at, // available on data
-    // updated_at: data.updated_at, // available on data
   };
 }
 
@@ -122,7 +115,7 @@ export async function getClassroomsByTeacherId(
   teacherId: string,
   page?: number,
   limit?: number
-): Promise<Classroom[] | { classrooms: Classroom[]; totalCount: number }> {
+): Promise<{ classrooms: Classroom[]; totalCount: number }> {
   let query = supabase
     .from('classrooms')
     .select('*, teacher:profiles!teacher_id(name)', { count: 'exact' }) 
@@ -141,33 +134,36 @@ export async function getClassroomsByTeacherId(
     throw new Error(`Failed to fetch classrooms for teacher: ${error.message}`);
   }
 
-  const classrooms = (data || []).map(c => ({
-    id: c.id,
-    name: c.name,
-    description: c.description ?? undefined,
-    teacherId: c.teacher_id,
-    teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
-    studentIds: [], 
-    inviteCode: c.invite_code,
-    subject: c.subject ?? undefined,
-    difficulty: c.difficulty ?? undefined,
-    enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
-  }));
-
-  for (const classroom of classrooms) {
+  const classroomsPromises = (data || []).map(async (c) => {
+    const classroom: Classroom = {
+        id: c.id,
+        name: c.name,
+        description: c.description ?? undefined,
+        teacherId: c.teacher_id,
+        teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
+        studentIds: [], 
+        inviteCode: c.invite_code,
+        subject: c.subject ?? undefined,
+        difficulty: c.difficulty ?? undefined,
+        enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
+    };
+    // Fetch student count for each classroom
     const { count: studentCount, error: countError } = await supabase
       .from('classroom_students')
       .select('student_id', { count: 'exact', head: true })
-      .eq('classroom_id', classroom.id);
-    if (countError) console.warn(`Error counting students for classroom ${classroom.id}: ${countError.message}`);
-    classroom.studentIds = Array(studentCount || 0).fill(''); 
-  }
+      .eq('classroom_id', c.id);
 
+    if (countError) {
+        console.warn(`Error counting students for classroom ${c.id}: ${countError.message}`);
+        classroom.studentIds = []; // Default to empty array on error
+    } else {
+        classroom.studentIds = Array(studentCount || 0).fill(''); // Placeholder array of correct length
+    }
+    return classroom;
+  });
 
-  if (page && limit) {
-    return { classrooms, totalCount: count || 0 };
-  }
-  return classrooms;
+  const classrooms = await Promise.all(classroomsPromises);
+  return { classrooms, totalCount: count || 0 };
 }
 
 
@@ -198,29 +194,29 @@ export async function getClassroomsByStudentId(studentId: string): Promise<Class
     throw new Error(`Failed to fetch classrooms: ${classroomsError.message}`);
   }
 
-  const classrooms = (classroomData || []).map(c => ({
-    id: c.id,
-    name: c.name,
-    description: c.description ?? undefined,
-    teacherId: c.teacher_id,
-    teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
-    studentIds: [], 
-    inviteCode: c.invite_code,
-    subject: c.subject ?? undefined,
-    difficulty: c.difficulty ?? undefined,
-    enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
-  }));
-  
-  for (const classroom of classrooms) {
+  const classroomsPromises = (classroomData || []).map(async (c) => {
+    const classroom: Classroom = {
+        id: c.id,
+        name: c.name,
+        description: c.description ?? undefined,
+        teacherId: c.teacher_id,
+        teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
+        studentIds: [], 
+        inviteCode: c.invite_code,
+        subject: c.subject ?? undefined,
+        difficulty: c.difficulty ?? undefined,
+        enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
+    };
     const { count: studentCount, error: countError } = await supabase
       .from('classroom_students')
       .select('student_id', { count: 'exact', head: true })
-      .eq('classroom_id', classroom.id);
-    if (countError) console.warn(`Error counting students for classroom ${classroom.id}: ${countError.message}`);
-    classroom.studentIds = Array(studentCount || 0).fill(''); 
-  }
-
-  return classrooms;
+      .eq('classroom_id', c.id);
+    if (countError) console.warn(`Error counting students for classroom ${c.id}: ${countError.message}`);
+    classroom.studentIds = Array(studentCount || 0).fill('');
+    return classroom;
+  });
+  
+  return Promise.all(classroomsPromises);
 }
 
 
@@ -231,8 +227,7 @@ export async function getClassroomById(classroomId: string): Promise<Classroom |
     .eq('id', classroomId)
     .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') return null; 
+  if (error && error.code !== 'PGRST116') { 
     console.error('Supabase getClassroomById error:', error);
     throw new Error(`Failed to fetch classroom: ${error.message}`);
   }
@@ -258,8 +253,8 @@ export async function getClassroomById(classroomId: string): Promise<Classroom |
 
 
 export async function addStudentToClassroom(classroomId: string, studentId: string): Promise<Classroom | null> {
-  const classroom = await getClassroomById(classroomId); 
-  if (!classroom) throw new Error("Classroom not found.");
+  const classroomData = await getClassroomById(classroomId); 
+  if (!classroomData) throw new Error("Classroom not found.");
 
   const student = await getUserById(studentId);
   if (!student || student.role !== UserRole.STUDENT) {
@@ -278,28 +273,28 @@ export async function addStudentToClassroom(classroomId: string, studentId: stri
       throw new Error(`Failed to check enrollment: ${checkError.message}`);
   }
 
-  if (existingEntry) {
-    await populateStudentDetailsForClassroom(classroom);
-    return classroom;
+  if (existingEntry) { // Student already enrolled
+    await populateStudentDetailsForClassroom(classroomData); // Ensure it's up-to-date
+    return classroomData;
   }
 
   const { error: insertError } = await supabase
     .from('classroom_students')
-    .insert({ classroom_id: classroomId, student_id: studentId, enrolled_at: new Date().toISOString() });
+    .insert({ classroom_id: classroomId, student_id: studentId });
 
   if (insertError) {
     console.error('Supabase addStudentToClassroom error:', insertError);
     throw new Error(`Failed to add student to classroom: ${insertError.message}`);
   }
 
-  await populateStudentDetailsForClassroom(classroom); 
-  return classroom;
+  await populateStudentDetailsForClassroom(classroomData); 
+  return classroomData;
 }
 
 
 export async function removeStudentFromClassroom(classroomId: string, studentId: string): Promise<Classroom | null> {
-  const classroom = await getClassroomById(classroomId); 
-  if (!classroom) throw new Error("Classroom not found.");
+  const classroomData = await getClassroomById(classroomId); 
+  if (!classroomData) throw new Error("Classroom not found.");
 
   const { error } = await supabase
     .from('classroom_students')
@@ -312,8 +307,8 @@ export async function removeStudentFromClassroom(classroomId: string, studentId:
     throw new Error(`Failed to remove student from classroom: ${error.message}`);
   }
 
-  await populateStudentDetailsForClassroom(classroom); 
-  return classroom;
+  await populateStudentDetailsForClassroom(classroomData); 
+  return classroomData;
 }
 
 
@@ -323,8 +318,8 @@ export async function updateClassroom(classroomId: string, updates: Partial<Pick
 
   const supabaseUpdates: any = {};
   if (updates.name !== undefined) supabaseUpdates.name = updates.name;
-  if (updates.description !== undefined) supabaseUpdates.description = updates.description;
-  if (updates.subject !== undefined) supabaseUpdates.subject = updates.subject;
+  if (updates.description !== undefined) supabaseUpdates.description = updates.description === "" ? null : updates.description;
+  if (updates.subject !== undefined) supabaseUpdates.subject = updates.subject === "" ? null : updates.subject;
   if (updates.difficulty !== undefined) supabaseUpdates.difficulty = updates.difficulty;
   if (updates.enableStudentAiAnalysis !== undefined) supabaseUpdates.enable_student_ai_analysis = updates.enableStudentAiAnalysis;
   
@@ -354,14 +349,13 @@ export async function updateClassroom(classroomId: string, updates: Partial<Pick
     teacherId: data.teacher_id,
     teacherName: (data.teacher as any)?.name || classroomToUpdate.teacherName, 
     studentIds: classroomToUpdate.studentIds, 
-    students: classroomToUpdate.students,
+    students: classroomToUpdate.students, // Students list needs re-population if studentIds changed
     inviteCode: data.invite_code,
     subject: data.subject ?? undefined,
     difficulty: data.difficulty ?? undefined,
     enableStudentAiAnalysis: data.enable_student_ai_analysis ?? true,
   };
-  await populateStudentDetailsForClassroom(updatedClassroom);
-
+  await populateStudentDetailsForClassroom(updatedClassroom); // Re-populate in case student list needs update
   return updatedClassroom;
 }
 
@@ -377,24 +371,28 @@ export async function deleteClassroom(classroomId: string): Promise<boolean> {
     throw new Error(`Failed to delete student enrollments for classroom: ${deleteEnrollmentsError.message}`);
   }
 
-  const { error: deleteClassroomError } = await supabase
+  // TODO: Consider what to do with concept maps shared with this classroom.
+  // For now, they will remain but shared_with_classroom_id will point to a non-existent classroom.
+  // Could set shared_with_classroom_id to NULL for those maps.
+
+  const { error: deleteClassroomError, count } = await supabase
     .from('classrooms')
-    .delete()
+    .delete({count: 'exact'})
     .eq('id', classroomId);
 
   if (deleteClassroomError) {
     console.error('Supabase deleteClassroom error:', deleteClassroomError);
     throw new Error(`Failed to delete classroom: ${deleteClassroomError.message}`);
   }
-
-  return true;
+  
+  return count !== null && count > 0;
 }
 
 
 export async function getAllClassrooms(): Promise<Classroom[]> {
   const { data: classroomRows, error: classroomError } = await supabase
     .from('classrooms')
-    .select('*') // Fetch basic classroom data first
+    .select('*, teacher:profiles!teacher_id(name)') 
     .order('name', { ascending: true });
 
   if (classroomError) {
@@ -406,31 +404,13 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
     return [];
   }
 
-  const classrooms: Classroom[] = [];
-
-  for (const row of classroomRows) {
-    let teacherName = 'Unknown Teacher';
-    if (row.teacher_id) {
-      // Fetch teacher profile separately
-      const { data: teacherProfile, error: teacherError } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', row.teacher_id)
-        .single();
-
-      if (teacherError && teacherError.code !== 'PGRST116') { 
-        console.warn(`Error fetching teacher profile for ID ${row.teacher_id}:`, teacherError.message);
-      } else if (teacherProfile) {
-        teacherName = teacherProfile.name;
-      }
-    }
-    
+  const classroomsPromises = classroomRows.map(async (row) => {
     const classroom: Classroom = {
       id: row.id,
       name: row.name,
       description: row.description ?? undefined,
       teacherId: row.teacher_id,
-      teacherName: teacherName,
+      teacherName: (row.teacher as any)?.name || 'Unknown Teacher',
       studentIds: [], 
       inviteCode: row.invite_code,
       subject: row.subject ?? undefined,
@@ -446,8 +426,8 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
     if (countError) console.warn(`Error counting students for classroom ${classroom.id}: ${countError.message}`);
     classroom.studentIds = Array(studentCount || 0).fill(''); 
 
-    classrooms.push(classroom);
-  }
+    return classroom;
+  });
 
-  return classrooms;
+  return Promise.all(classroomsPromises);
 }

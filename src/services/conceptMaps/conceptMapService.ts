@@ -1,4 +1,3 @@
-
 // src/services/conceptMaps/conceptMapService.ts
 'use server';
 
@@ -31,17 +30,14 @@ export async function createConceptMap(
     throw new Error("Invalid owner ID. User does not exist.");
   }
 
-  const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('concept_maps')
     .insert({
       name,
       owner_id: ownerId,
-      map_data: mapData || { nodes: [], edges: [] }, // Ensure mapData is initialized
+      map_data: mapData || { nodes: [], edges: [] }, 
       is_public: isPublic,
       shared_with_classroom_id: sharedWithClassroomId || null,
-      created_at: now,
-      updated_at: now,
     })
     .select()
     .single();
@@ -76,7 +72,7 @@ export async function getConceptMapById(mapId: string): Promise<ConceptMap | nul
     .eq('id', mapId)
     .single();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116: "Query returned no rows"
+  if (error && error.code !== 'PGRST116') { 
     console.error('Supabase getConceptMapById error:', error);
     throw new Error(`Error fetching concept map: ${error.message}`);
   }
@@ -154,15 +150,15 @@ export async function getConceptMapsByClassroomId(classroomId: string): Promise<
 
 /**
  * Updates an existing concept map.
- * The 'ownerId' in updates is used for authorization check here, but RLS is preferred.
+ * The 'ownerId' in updates is used for authorization check here.
  * @param mapId The ID of the concept map to update.
- * @param updates An object containing the fields to update, and optionally ownerId for auth.
+ * @param updates An object containing the fields to update, including ownerId for auth.
  * @returns The updated concept map object or null if not found or not authorized.
  * @throws Error if the user is not authorized or update fails.
  */
 export async function updateConceptMap(
   mapId: string, 
-  updates: Partial<Omit<ConceptMap, 'id' | 'createdAt' | 'updatedAt'>> & { ownerId?: string }
+  updates: Partial<Omit<ConceptMap, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>> & { ownerId: string } // ownerId is required in updates for auth
 ): Promise<ConceptMap | null> {
   
   const mapToUpdate = await getConceptMapById(mapId);
@@ -170,24 +166,20 @@ export async function updateConceptMap(
     throw new Error("Concept map not found.");
   }
 
-  // Authorization check (basic, RLS is better for production)
-  // This check assumes client sends current user's ID as `updates.ownerId` if they are the owner.
-  if (updates.ownerId && mapToUpdate.ownerId !== updates.ownerId) {
+  if (mapToUpdate.ownerId !== updates.ownerId) {
     throw new Error("User not authorized to update this concept map.");
   }
   
-  // Prepare the object for Supabase, mapping camelCase to snake_case for DB columns
   const supabaseUpdates: any = {};
   if (updates.name !== undefined) supabaseUpdates.name = updates.name;
   if (updates.mapData !== undefined) supabaseUpdates.map_data = updates.mapData;
   if (updates.isPublic !== undefined) supabaseUpdates.is_public = updates.isPublic;
-  // Handle sharedWithClassroomId explicitly to allow setting it to null
   if (updates.hasOwnProperty('sharedWithClassroomId')) {
     supabaseUpdates.shared_with_classroom_id = updates.sharedWithClassroomId;
   }
   
   if (Object.keys(supabaseUpdates).length === 0) {
-    return mapToUpdate; // No actual changes to map properties
+    return mapToUpdate; 
   }
   supabaseUpdates.updated_at = new Date().toISOString();
 
@@ -196,9 +188,7 @@ export async function updateConceptMap(
     .from('concept_maps')
     .update(supabaseUpdates)
     .eq('id', mapId)
-    // RLS should primarily handle ownership, but an additional check here is fine for belt-and-suspenders
-    // if not relying solely on RLS during this development phase.
-    .eq('owner_id', mapToUpdate.ownerId) 
+    .eq('owner_id', updates.ownerId) // Ensure only owner can update
     .select()
     .single();
 
@@ -206,7 +196,7 @@ export async function updateConceptMap(
     console.error('Supabase updateConceptMap error:', error);
     throw new Error(`Failed to update concept map: ${error.message}`);
   }
-  if (!data) return null; // Should not happen if update was successful and id/ownerId is correct
+  if (!data) return null; 
 
   return {
     id: data.id,
@@ -232,26 +222,22 @@ export async function deleteConceptMap(mapId: string, currentUserId: string): Pr
   if (!mapToDelete) {
     throw new Error("Concept map not found.");
   }
-  // Basic ownership check. RLS is the primary mechanism for security.
   if (mapToDelete.ownerId !== currentUserId) {
     throw new Error("User not authorized to delete this concept map.");
   }
 
   const { error, count } = await supabase
     .from('concept_maps')
-    .delete({ count: 'exact' }) // Request count to verify deletion
+    .delete({ count: 'exact' }) 
     .eq('id', mapId)
-    .eq('owner_id', currentUserId); // Double-check ownership at DB level for safety
+    .eq('owner_id', currentUserId); 
 
   if (error) {
     console.error('Supabase deleteConceptMap error:', error);
     throw new Error(`Failed to delete concept map: ${error.message}`);
   }
   if (count === 0) {
-    // This could mean the map was already deleted, or RLS prevented deletion,
-    // or the owner_id check failed (if RLS didn't already block).
-    throw new Error("Failed to delete concept map: Map not found or not authorized for deletion (record count 0).");
+    throw new Error("Failed to delete concept map: Map not found (owned by this user) or RLS prevented deletion.");
   }
   return true;
 }
-

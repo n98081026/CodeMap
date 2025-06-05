@@ -1,4 +1,3 @@
-
 // src/services/admin/settingsService.ts
 'use server';
 
@@ -9,8 +8,7 @@
 import type { SystemSettings } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 
-// Define a fixed ID for the single row in system_settings table
-const SETTINGS_ROW_ID = '00000000-0000-0000-0000-000000000001'; // Example fixed UUID
+const SETTINGS_ROW_ID = '00000000-0000-0000-0000-000000000001'; 
 
 const defaultSettings: SystemSettings = {
   enable_ai_project_analysis: true,
@@ -18,22 +16,15 @@ const defaultSettings: SystemSettings = {
   max_project_file_size_mb: 10,
 };
 
-/**
- * Retrieves the system settings.
- * If no settings row exists, it returns default settings (but does not create the row).
- * @returns The system settings object or default settings if none found.
- */
 export async function getSystemSettings(): Promise<SystemSettings> {
   const { data, error } = await supabase
     .from('system_settings')
     .select('enable_ai_project_analysis, default_concept_map_visibility, max_project_file_size_mb')
     .eq('id', SETTINGS_ROW_ID)
-    .maybeSingle(); // Use maybeSingle as the row might not exist initially
+    .maybeSingle(); 
 
   if (error) {
     console.error('Supabase getSystemSettings error:', error);
-    // For critical settings, you might want to throw, but for now, log and return defaults
-    // throw new Error(`Failed to fetch system settings: ${error.message}`);
   }
 
   if (data) {
@@ -44,25 +35,47 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     };
   }
   
-  console.warn("No system settings found in database, returning default values. Consider creating an initial settings row.");
-  return defaultSettings;
+  console.warn("No system settings found in database, returning default values. Creating an initial settings row with defaults.");
+  // If no settings row, try to create it with defaults. This ensures one always exists after first call.
+  try {
+    const { data: insertedData, error: insertError } = await supabase
+      .from('system_settings')
+      .insert({
+        id: SETTINGS_ROW_ID,
+        ...defaultSettings,
+        updated_at: new Date().toISOString(),
+      })
+      .select('enable_ai_project_analysis, default_concept_map_visibility, max_project_file_size_mb')
+      .single();
+    
+    if (insertError) {
+        console.error('Failed to insert default system settings:', insertError);
+        return defaultSettings; // Return defaults if insert fails
+    }
+    if(insertedData) {
+        return {
+            enable_ai_project_analysis: insertedData.enable_ai_project_analysis,
+            default_concept_map_visibility: insertedData.default_concept_map_visibility as "public" | "private",
+            max_project_file_size_mb: insertedData.max_project_file_size_mb,
+        };
+    }
+  } catch (e) {
+    console.error('Unexpected error during initial settings creation:', e);
+  }
+  return defaultSettings; // Fallback to defaults
 }
 
-/**
- * Updates (or inserts if not exists - upserts) the system settings.
- * @param settings The settings object to save.
- * @returns The updated system settings object.
- */
+
 export async function updateSystemSettings(settings: Partial<SystemSettings>): Promise<SystemSettings> {
   const updatesToApply = {
-    id: SETTINGS_ROW_ID, // Ensure the fixed ID is used for upsert
+    id: SETTINGS_ROW_ID, 
     ...settings,
     updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await supabase
     .from('system_settings')
-    .upsert(updatesToApply, { onConflict: 'id' }) // Upsert based on the ID
+    .upsert(updatesToApply, { onConflict: 'id' }) 
     .select('enable_ai_project_analysis, default_concept_map_visibility, max_project_file_size_mb')
     .single();
 
@@ -80,15 +93,3 @@ export async function updateSystemSettings(settings: Partial<SystemSettings>): P
     max_project_file_size_mb: data.max_project_file_size_mb,
   };
 }
-
-// Example of how you might initialize settings if the table is empty (run once manually or via a script)
-// export async function initializeDefaultSettings(): Promise<void> {
-//   const existing = await getSystemSettings();
-//   if (existing && existing.id === SETTINGS_ROW_ID) { // Check if already initialized via some property
-//     console.log("System settings already initialized.");
-//     return;
-//   }
-//   console.log("Initializing default system settings...");
-//   await updateSystemSettings(defaultSettings); // This will insert if not present
-//   console.log("Default system settings initialized.");
-// }

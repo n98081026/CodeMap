@@ -1,54 +1,48 @@
-
 "use client";
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 
 export default function HomePage() {
-  const { user, isAuthenticated, isLoading, login } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading) {
-      // Force mock student login for testing
-      login('student@example.com', 'studentpass', UserRole.STUDENT).then(() => {
-        // After attempting login, the existing logic based on user role will redirect.
-        if (isAuthenticated && user) {
-            switch (user.role) {
-              case UserRole.ADMIN:
-                router.replace('/application/admin/dashboard');
-                break;
-              case UserRole.TEACHER:
-                router.replace('/application/teacher/dashboard');
-                break;
-              case UserRole.STUDENT:
-                router.replace('/application/student/dashboard');
-                break;
-              default:
-                router.replace('/login');
-            }
-        } else {
-             console.log("Attempted mock student login on home page. Waiting for redirect or fallback.");
+      if (isAuthenticated && user) {
+        // User is authenticated, redirect to their respective dashboard
+        switch (user.role) {
+          case UserRole.ADMIN:
+            router.replace('/application/admin/dashboard');
+            break;
+          case UserRole.TEACHER:
+            router.replace('/application/teacher/dashboard');
+            break;
+          case UserRole.STUDENT:
+            router.replace('/application/student/dashboard');
+            break;
+          default:
+            // Fallback if role is somehow unknown, go to login
+            console.warn("Authenticated user with unknown role, redirecting to login.");
+            router.replace('/login'); 
         }
-      }).catch(err => {
-        console.error("Forced mock student login on home page failed:", err);
-        router.replace('/login'); // Fallback if forced login has an issue
-      });
+      } else {
+        // Not authenticated and not loading, redirect to login page
+        router.replace('/login');
+      }
     }
-  }, [isLoading, router, login, isAuthenticated, user]);
+  }, [isLoading, isAuthenticated, user, router]);
 
+  // Display a loading indicator while auth state is being determined
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center space-y-4">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="text-muted-foreground">Initializing CodeMap & Attempting Student Bypass...</p>
+        <p className="text-muted-foreground">Initializing CodeMap...</p>
       </div>
     </div>
   );
 }
-
-    

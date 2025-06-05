@@ -1,4 +1,3 @@
-
 // src/services/projectSubmissions/projectSubmissionService.ts
 'use server';
 
@@ -20,14 +19,13 @@ export async function createSubmission(
   originalFileName: string,
   fileSize: number,
   classroomId?: string | null,
-  fileStoragePath?: string | null // Added fileStoragePath parameter
+  fileStoragePath?: string | null 
 ): Promise<ProjectSubmission> {
   const student = await getUserById(studentId);
   if (!student || student.role !== UserRole.STUDENT) {
     throw new Error("Invalid student ID or user is not a student.");
   }
 
-  const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('project_submissions')
     .insert({
@@ -35,10 +33,10 @@ export async function createSubmission(
       original_file_name: originalFileName,
       file_size: fileSize,
       classroom_id: classroomId || null,
-      file_storage_path: fileStoragePath || null, // Store the file path
-      submission_timestamp: now,
+      file_storage_path: fileStoragePath || null, 
+      submission_timestamp: new Date().toISOString(),
       analysis_status: ProjectSubmissionStatus.PENDING,
-      updated_at: now,
+      // updated_at will be handled by Supabase default or trigger
     })
     .select()
     .single();
@@ -73,7 +71,7 @@ export async function getSubmissionById(submissionId: string): Promise<ProjectSu
     .eq('id', submissionId)
     .single();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116: "Query returned no rows"
+  if (error && error.code !== 'PGRST116') { 
     console.error('Supabase getSubmissionById error:', error);
     throw new Error(`Error fetching submission: ${error.message}`);
   }
@@ -157,11 +155,10 @@ export async function updateSubmissionStatus(
   status: ProjectSubmissionStatus,
   analysisError?: string | null,
   generatedConceptMapId?: string | null
-  // fileStoragePath could also be updated here if needed, e.g., after a retry or move
 ): Promise<ProjectSubmission | null> {
   const updates: any = {
     analysis_status: status,
-    analysis_error: analysisError === undefined ? null : analysisError,
+    analysis_error: analysisError === undefined ? null : analysisError, // Handle undefined to set null explicitly
     generated_concept_map_id: generatedConceptMapId === undefined ? null : generatedConceptMapId,
     updated_at: new Date().toISOString(),
   };
@@ -219,4 +216,3 @@ export async function getAllSubmissions(): Promise<ProjectSubmission[]> {
     generatedConceptMapId: s.generated_concept_map_id,
   }));
 }
-

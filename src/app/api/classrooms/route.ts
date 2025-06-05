@@ -1,4 +1,3 @@
-
 // src/app/api/classrooms/route.ts
 import { NextResponse } from 'next/server';
 import { createClassroom, getClassroomsByTeacherId, getClassroomsByStudentId, getAllClassrooms } from '@/services/classrooms/classroomService';
@@ -36,26 +35,25 @@ export async function GET(request: Request) {
     const limitParam = searchParams.get('limit');
 
     if (teacherId) {
-      const page = pageParam ? parseInt(pageParam, 10) : undefined;
-      const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+      const page = pageParam ? parseInt(pageParam, 10) : 1; // Default to page 1
+      const limit = limitParam ? parseInt(limitParam, 10) : 10; // Default to limit 10
 
-      if ((page && (isNaN(page) || page < 1)) || (limit && (isNaN(limit) || limit < 1))) {
+      if (isNaN(page) || page < 1 || isNaN(limit) || limit < 1) {
         return NextResponse.json({ message: "Invalid page or limit parameters" }, { status: 400 });
       }
       
-      // getClassroomsByTeacherId now returns Classroom[] or { classrooms: Classroom[], totalCount: number }
-      const result = await getClassroomsByTeacherId(teacherId, page, limit);
-      return NextResponse.json(result); // Directly return the result from the service
+      const result = await getClassroomsByTeacherId(teacherId, page, limit); // Service handles pagination
+      return NextResponse.json(result);
     }
     
     if (studentId) {
       const classrooms = await getClassroomsByStudentId(studentId);
-      return NextResponse.json(classrooms); // Returns Classroom[]
+      return NextResponse.json(classrooms); 
     }
     
-    // Admin: Get all classrooms for dashboard count
-    const allClassrooms = await getAllClassrooms(); // This fetches full classroom objects
-    return NextResponse.json(allClassrooms); // Returns Classroom[]
+    // Admin: Get all classrooms (for count or full list if needed, here assuming for count)
+    const allClassrooms = await getAllClassrooms(); 
+    return NextResponse.json(allClassrooms); 
 
   } catch (error) {
     console.error("Get Classrooms API error:", error);
