@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Brain, Lightbulb, SearchCode, HelpCircle, Sparkles, TextSearch } from 'lucide-react'; 
+import { Trash2, Brain, Lightbulb, SearchCode, HelpCircle, Sparkles, TextSearch, MessageSquareQuote } from 'lucide-react'; 
 
 interface NodeContextMenuProps {
   x: number;
@@ -16,8 +16,7 @@ interface NodeContextMenuProps {
   onSuggestRelations: (nodeId: string) => void;
   onExtractConcepts: (nodeId: string) => void;
   onAskQuestion: (nodeId: string) => void; 
-  // Add Quick Cluster and Generate Snippet if applicable from node context
-  // For now, these are primarily toolbar actions.
+  onRewriteContent: (nodeId: string) => void;
   isViewOnlyMode?: boolean;
 }
 
@@ -31,6 +30,7 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   onSuggestRelations,
   onExtractConcepts,
   onAskQuestion, 
+  onRewriteContent,
   isViewOnlyMode,
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -64,6 +64,12 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     onAskQuestion(nodeId);
     onClose();
   };
+
+  const handleRewrite = () => {
+    if (isViewOnlyMode) return;
+    onRewriteContent(nodeId);
+    onClose();
+  }
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -129,13 +135,16 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             <HelpCircle className="mr-2 h-4 w-4 text-green-500" />
             Ask AI Question...
           </Button>
-          {/* Consider adding Quick Cluster or Generate Snippet if they can be node-contextual */}
-          {/* <Button variant="ghost" size="sm" className="w-full justify-start px-2 py-1.5 text-sm" onClick={() => {}} disabled={isViewOnlyMode}>
-            <Sparkles className="mr-2 h-4 w-4 text-orange-500" /> Quick Cluster (AI)
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start px-2 py-1.5 text-sm"
+            onClick={handleRewrite}
+            disabled={isViewOnlyMode}
+          >
+            <MessageSquareQuote className="mr-2 h-4 w-4 text-indigo-500" />
+            Rewrite Content (AI)...
           </Button>
-          <Button variant="ghost" size="sm" className="w-full justify-start px-2 py-1.5 text-sm" onClick={() => {}} disabled={isViewOnlyMode}>
-            <TextSearch className="mr-2 h-4 w-4 text-teal-500" /> Generate Snippet (AI)
-          </Button> */}
           <Separator />
           <Button
             variant="ghost"
@@ -152,3 +161,4 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     </div>
   );
 };
+

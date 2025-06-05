@@ -5,6 +5,7 @@
  * @fileOverview This file defines a Genkit flow for expanding a concept by
  * generating additional related concepts, optionally using existing map context
  * and a user-provided refinement prompt.
+ * Expanded ideas are now returned as objects with text and an optional relation label.
  *
  * - expandConcept - A function that expands a given concept into
  *   additional, related concepts.
@@ -24,10 +25,14 @@ const ExpandConceptInputSchema = z.object({
 });
 export type ExpandConceptInput = z.infer<typeof ExpandConceptInputSchema>;
 
+const ExpandedIdeaSchema = z.object({
+  text: z.string().describe("The text for the new expanded idea/node."),
+  relationLabel: z.string().optional().describe("A brief label for the relationship from the parent concept to this new idea, e.g., 'leads to', 'example of', 'supports'. Default is 'related to' if not provided.")
+});
+
 const ExpandConceptOutputSchema = z.object({
-  newConcepts: z.array(
-    z.string().describe('A list of new concepts related to the input concept.')
-  ),
+  expandedIdeas: z.array(ExpandedIdeaSchema)
+    .describe('A list of new concepts (as objects with text and optional relationLabel) related to the input concept.'),
 });
 export type ExpandConceptOutput = z.infer<typeof ExpandConceptOutputSchema>;
 
@@ -48,7 +53,7 @@ Consider the existing context of the map, which includes:
 {{#each existingMapContext}}
 - "{{this}}"
 {{/each}}
-Your goal is to suggest new concepts that are distinct from, yet complementary to, this existing context.
+Your goal is to suggest new ideas that are distinct from, yet complementary to, this existing context.
 {{/if}}
 
 {{#if userRefinementPrompt}}
@@ -56,22 +61,33 @@ Additionally, the user has provided the following refinement to guide the expans
 "{{userRefinementPrompt}}"
 {{/if}}
 
-Please generate a list of 3 to 5 new, concise concepts that are closely related to "{{concept}}" and align with any user refinement provided. These new concepts should broaden understanding by offering a variety of the following:
+Please generate a list of 3 to 5 new, concise ideas that are closely related to "{{concept}}" and align with any user refinement provided.
+For each idea, provide:
+1.  "text": The main text for the new idea/node.
+2.  "relationLabel" (optional): A brief, action-oriented label describing how this new idea relates to the original "{{concept}}" (e.g., "supports", "example of", "leads to", "challenges"). If no specific relation is obvious, you can omit this or use a generic like "related to".
+
+These new ideas should broaden understanding by offering a variety of the following:
 - **Sub-components or specific examples** of "{{concept}}".
 - **Implications or consequences** arising from "{{concept}}".
 - **Related processes or next steps** associated with "{{concept}}".
 - **Contrasting ideas or alternative perspectives** to "{{concept}}" (if applicable).
 - **Prerequisites or foundational ideas** for "{{concept}}".
-- **Analogies or metaphors** that clarify "{{concept}}".
-- **Potential challenges or risks** associated with "{{concept}}".
 - **Key questions** that "{{concept}}" raises.
 
 Aim for variety in the types of suggestions.
-The concepts should be distinct and offer clear avenues for further exploration.
-Avoid suggesting concepts that are too similar to "{{concept}}" itself or to those already in existingMapContext.
+The ideas should be distinct and offer clear avenues for further exploration.
+Avoid suggesting ideas that are too similar to "{{concept}}" itself or to those already in existingMapContext.
 
-Output strictly as a JSON object with a single key "newConcepts", where the value is an array of strings.
-Example: {"newConcepts": ["Specific Example of Concept", "Key Implication", "Next Logical Step", "Alternative Viewpoint", "Foundational Prerequisite"]}
+Output strictly as a JSON object with a single key "expandedIdeas", where the value is an array of objects, each having "text" and optionally "relationLabel".
+Example:
+{
+  "expandedIdeas": [
+    { "text": "Specific Example of Concept", "relationLabel": "is an example of" },
+    { "text": "Key Implication", "relationLabel": "results in" },
+    { "text": "Next Logical Step" },
+    { "text": "Alternative Viewpoint", "relationLabel": "contrasts with" }
+  ]
+}
   `,
 });
 

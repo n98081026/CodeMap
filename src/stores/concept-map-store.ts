@@ -33,7 +33,7 @@ interface ConceptMapState {
 
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
-  aiExpandedConcepts: string[];
+  // aiExpandedConcepts: string[]; // Removed as "Expand Concept" now adds directly
 
   // Actions
   setMapId: (id: string | null) => void;
@@ -53,12 +53,12 @@ interface ConceptMapState {
 
   setAiExtractedConcepts: (concepts: string[]) => void;
   setAiSuggestedRelations: (relations: Array<{ source: string; target: string; relation: string }>) => void;
-  setAiExpandedConcepts: (concepts: string[]) => void;
+  // setAiExpandedConcepts: (concepts: string[]) => void; // Removed
   resetAiSuggestions: () => void;
   
   removeExtractedConceptsFromSuggestions: (conceptsToRemove: string[]) => void;
   removeSuggestedRelationsFromSuggestions: (relationsToRemove: Array<{ source: string; target: string; relation: string }>) => void;
-  removeExpandedConceptsFromSuggestions: (conceptsToRemove: string[]) => void;
+  // removeExpandedConceptsFromSuggestions: (conceptsToRemove: string[]) => void; // Removed
 
   initializeNewMap: (userId: string) => void;
   setLoadedMap: (map: ConceptMap) => void;
@@ -83,8 +83,8 @@ export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 const initialStateBase: Omit<ConceptMapState, 
   'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 
   'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
-  'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 'setAiExpandedConcepts' | 
-  'resetAiSuggestions' | 'removeExtractedConceptsFromSuggestions' | 'removeSuggestedRelationsFromSuggestions' | 'removeExpandedConceptsFromSuggestions' | 
+  'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 
+  'resetAiSuggestions' | 'removeExtractedConceptsFromSuggestions' | 'removeSuggestedRelationsFromSuggestions' | 
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' | 
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
 > = {
@@ -104,7 +104,7 @@ const initialStateBase: Omit<ConceptMapState,
   multiSelectedNodeIds: [], 
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
-  aiExpandedConcepts: [],
+  // aiExpandedConcepts: [], // Removed
 };
 
 
@@ -130,8 +130,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
       
       setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
       setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
-      setAiExpandedConcepts: (concepts) => set({ aiExpandedConcepts: concepts }),
-      resetAiSuggestions: () => set({ aiExtractedConcepts: [], aiSuggestedRelations: [], aiExpandedConcepts: [] }),
+      // setAiExpandedConcepts: (concepts) => set({ aiExpandedConcepts: concepts }), // Removed
+      resetAiSuggestions: () => set({ aiExtractedConcepts: [], aiSuggestedRelations: [] }), // Removed aiExpandedConcepts
 
       removeExtractedConceptsFromSuggestions: (conceptsToRemove) => set((state) => ({
         aiExtractedConcepts: state.aiExtractedConcepts.filter(concept => !conceptsToRemove.includes(concept))
@@ -143,9 +143,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
           )
         )
       })),
-      removeExpandedConceptsFromSuggestions: (conceptsToRemove) => set((state) => ({
-        aiExpandedConcepts: state.aiExpandedConcepts.filter(concept => !conceptsToRemove.includes(concept))
-      })),
+      // removeExpandedConceptsFromSuggestions: (conceptsToRemove) => set((state) => ({ // Removed
+      //   aiExpandedConcepts: state.aiExpandedConcepts.filter(concept => !conceptsToRemove.includes(concept))
+      // })),
 
       initializeNewMap: (userId) => {
         const newMapState = {
@@ -153,7 +153,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           mapId: 'new',
           mapName: 'New Concept Map', 
           mapData: { 
-            nodes: [], // Start with an empty map initially for user to add
+            nodes: [], 
             edges: [],
           },
           currentMapOwnerId: userId,
@@ -178,9 +178,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isLoading: false,
           error: null,
           multiSelectedNodeIds: [], 
-          aiExtractedConcepts: [],
-          aiSuggestedRelations: [],
-          aiExpandedConcepts: [],
+          aiExtractedConcepts: [], // Reset on load
+          aiSuggestedRelations: [], // Reset on load
+          // aiExpandedConcepts: [], // Removed
         });
         useConceptMapStore.temporal.getState().clear();
       },
@@ -196,7 +196,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           multiSelectedNodeIds: [], 
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
-          aiExpandedConcepts: [],
+          // aiExpandedConcepts: [], // Removed
           mapId: state.isNewMapMode ? 'new' : state.mapId, 
           isNewMapMode: state.isNewMapMode, 
           isLoading: false,
@@ -294,3 +294,4 @@ export const useConceptMapStore = create<ConceptMapState>()(
         
 
 export default useConceptMapStore;
+

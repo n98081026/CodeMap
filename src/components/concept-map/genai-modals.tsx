@@ -19,7 +19,7 @@ import { Loader2, HelpCircle } from "lucide-react"; // Added HelpCircle
 
 import { extractConcepts as aiExtractConcepts } from "@/ai/flows/extract-concepts";
 import { suggestRelations as aiSuggestRelations } from "@/ai/flows/suggest-relations";
-import { expandConcept as aiExpandConcept, type ExpandConceptInput } from "@/ai/flows/expand-concept"; // Updated import
+import { expandConcept as aiExpandConcept, type ExpandConceptInput, type ExpandConceptOutput } from "@/ai/flows/expand-concept"; // Updated import
 import { askQuestionAboutNode as aiAskQuestionAboutNode, type AskQuestionAboutNodeOutput } from "@/ai/flows/ask-question-about-node"; // New import
 
 interface ModalProps {
@@ -166,21 +166,21 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
 }
 
 interface ExpandConceptModalProps extends ModalProps {
-  onConceptExpanded?: (newConcepts: string[]) => void;
-  initialConcept?: string;
+  onConceptExpanded?: (output: ExpandConceptOutput) => void; // Updated to pass the full output
+  initialConceptText?: string; // Renamed to clarify it's just the text
   existingMapContext?: string[];
 }
 
-export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", existingMapContext = [], onOpenChange }: ExpandConceptModalProps) {
-  const [concept, setConcept] = useState(initialConcept);
+export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "", existingMapContext = [], onOpenChange }: ExpandConceptModalProps) {
+  const [concept, setConcept] = useState(initialConceptText);
   const [refinementPrompt, setRefinementPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    setConcept(initialConcept);
-    setRefinementPrompt(""); // Reset refinement on new initial concept
-  }, [initialConcept]);
+    setConcept(initialConceptText);
+    setRefinementPrompt(""); 
+  }, [initialConceptText]);
 
   const handleExpand = async () => {
     if (!concept.trim()) {
@@ -194,8 +194,8 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
         input.userRefinementPrompt = refinementPrompt.trim();
       }
       const result = await aiExpandConcept(input);
-      toast({ title: "AI: Expansion Ready", description: `${result.newConcepts.length} new ideas generated. View them in the AI Suggestions panel.` });
-      onConceptExpanded?.(result.newConcepts);
+      // Callback now passes the full result for the hook to handle node/edge creation
+      onConceptExpanded?.(result); 
       onOpenChange(false);
     } catch (error) {
       toast({ title: "Error Expanding Concept", description: (error as Error).message, variant: "destructive" });
@@ -216,7 +216,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
         <DialogHeader>
           <DialogTitle>Expand Concept with AI</DialogTitle>
           <DialogDescription>
-            Enter a concept. Optionally, add a refinement to guide the AI. The AI will suggest related ideas, considering existing map context if available.
+            Enter a concept. Optionally, add a refinement to guide the AI. New ideas will be added directly to the map.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -252,7 +252,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConcept = "", exi
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
           <Button onClick={handleExpand} disabled={isLoading || !concept.trim()}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Expand Concept
+            Expand & Add to Map
           </Button>
         </DialogFooter>
       </DialogContent>

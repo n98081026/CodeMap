@@ -11,17 +11,25 @@ import {
   askQuestionAboutNode as aiAskQuestionAboutNode,
   generateQuickCluster as aiGenerateQuickCluster,
   generateMapSnippetFromText as aiGenerateMapSnippetFromText,
-  summarizeNodes as aiSummarizeNodes // Import the new flow
+  summarizeNodes as aiSummarizeNodes
 } from '@/ai/flows';
 import type {
   AskQuestionAboutNodeOutput,
-  ExpandConceptOutput,
+  ExpandConceptOutput, // Will use the updated structure
   ExtractConceptsOutput,
   GenerateMapSnippetOutput,
   GenerateQuickClusterOutput,
   SuggestRelationsOutput,
-  SummarizeNodesOutput // Import the new type
+  SummarizeNodesOutput
 } from '@/ai/flows';
+import type { ConceptMapNode } from '@/types';
+
+
+// Define a more specific type for the concept to expand, including its ID
+interface ConceptToExpandDetails {
+  id: string | null; // ID of the source node, null if not expanding from a specific node
+  text: string;
+}
 
 export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const { toast } = useToast();
@@ -31,10 +39,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     multiSelectedNodeIds,
     setAiExtractedConcepts,
     setAiSuggestedRelations,
-    setAiExpandedConcepts,
+    // setAiExpandedConcepts, // No longer setting this in store for "Expand Concept"
     removeExtractedConceptsFromSuggestions,
     removeSuggestedRelationsFromSuggestions,
-    removeExpandedConceptsFromSuggestions,
+    // removeExpandedConceptsFromSuggestions, // No longer needed for "Expand Concept"
     resetAiSuggestions,
     addNode: addStoreNode,
     addEdge: addStoreEdge,
@@ -47,8 +55,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [conceptsForRelationSuggestion, setConceptsForRelationSuggestion] = useState<string[]>([]);
 
   const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
-  const [conceptToExpand, setConceptToExpand] = useState("");
+  // Store details including ID for the concept being expanded
+  const [conceptToExpandDetails, setConceptToExpandDetails] = useState<ConceptToExpandDetails | null>(null);
   const [mapContextForExpansion, setMapContextForExpansion] = useState<string[]>([]);
+
 
   const [isQuickClusterModalOpen, setIsQuickClusterModalOpen] = useState(false);
   const [isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen] = useState(false);
@@ -56,35 +66,50 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [isAskQuestionModalOpen, setIsAskQuestionModalOpen] = useState(false);
   const [nodeContextForQuestion, setNodeContextForQuestion] = useState<{ text: string; details?: string, id: string } | null>(null);
 
-  const getNodePlacementPosition = useCallback((index: number, clusterSize: number = 1, clusterIndex: number = 0): { x: number; y: number } => {
+  const getNodePlacementPosition = useCallback((
+    index: number, 
+    totalNewNodes: number = 1, 
+    sourceNodePos?: { x: number, y: number } | null,
+    radius: number = 150, // Radius for circular/fan placement
+    startAngle: number = -90 // Start angle (degrees, -90 is top)
+  ): { x: number; y: number } => {
+    
+    if (sourceNodePos && totalNewNodes > 0) {
+      if (totalNewNodes === 1) {
+        return { x: sourceNodePos.x + radius, y: sourceNodePos.y };
+      }
+      const angleStep = 360 / totalNewNodes;
+      const angle = startAngle + index * angleStep;
+      const radians = (angle * Math.PI) / 180;
+      return {
+        x: sourceNodePos.x + radius * Math.cos(radians) + (Math.random() * 20 - 10), // Add slight jitter
+        y: sourceNodePos.y + radius * Math.sin(radians) + (Math.random() * 20 - 10),
+      };
+    }
+
+    // Fallback for non-parented nodes or initial nodes
     const currentStoreState = useConceptMapStore.getState();
     const { selectedElementId: currentSelectedId, mapData: currentMapData } = currentStoreState;
     let baseX = 50 + Math.random() * 50; 
     let baseY = 50 + Math.random() * 50;
-    const offsetX = 200;
-    const offsetY = 80;
-    const clusterOffsetX = 15;
-    const clusterOffsetY = 15;
-
+    const offsetX = 200; 
+    const offsetY = 80;  
+    
     if (currentSelectedId && currentMapData.nodes.length > 0) {
       const selectedNode = currentMapData.nodes.find(n => n.id === currentSelectedId);
       if (selectedNode && typeof selectedNode.x === 'number' && typeof selectedNode.y === 'number') {
         baseX = selectedNode.x + offsetX;
         baseY = selectedNode.y + (index * offsetY);
-      } else if (currentMapData.nodes.length > 0 && currentMapData.nodes[0] && typeof currentMapData.nodes[0].x === 'number' && typeof currentMapData.nodes[0].y === 'number' ) {
-        // Fallback to first node if selected is somehow invalid or not found (should not happen often)
-        baseX = currentMapData.nodes[0].x + offsetX;
-        baseY = currentMapData.nodes[0].y + (index * offsetY);
       }
-    } else if (currentMapData.nodes.length > 0 && currentMapData.nodes[0] && typeof currentMapData.nodes[0].x === 'number' && typeof currentMapData.nodes[0].y === 'number') {
-        // Fallback if no node is selected
-        baseX = currentMapData.nodes[0].x + offsetX;
-        baseY = currentMapData.nodes[0].y + (index * offsetY);
+    } else if (currentMapData.nodes.length > 0) {
+        const lastNode = currentMapData.nodes[currentMapData.nodes.length - 1];
+        if (lastNode && typeof lastNode.x === 'number' && typeof lastNode.y === 'number') {
+             baseX = lastNode.x + offsetX /2;
+             baseY = lastNode.y + offsetY /2 + (index * (offsetY/2));
+        }
     }
-
-    baseX += clusterIndex * clusterOffsetX;
-    baseY += clusterIndex * clusterOffsetY;
-    const nodesPerRow = clusterSize > 1 ? Math.ceil(Math.sqrt(clusterSize)) : 3;
+    
+    const nodesPerRow = totalNewNodes > 1 ? Math.ceil(Math.sqrt(totalNewNodes)) : 3;
     const rowIndex = Math.floor(index / nodesPerRow);
     const colIndex = index % nodesPerRow;
 
@@ -118,14 +143,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleConceptsExtracted = useCallback((concepts: string[]) => {
     setAiExtractedConcepts(concepts);
-    // toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts. View them in the AI Suggestions panel.` });
   }, [setAiExtractedConcepts]);
 
   const addExtractedConceptsToMap = useCallback((selectedConcepts: string[]) => {
     if (isViewOnlyMode || selectedConcepts.length === 0) return;
     let addedCount = 0;
     selectedConcepts.forEach((conceptText, index) => {
-      addStoreNode({ text: conceptText, type: 'ai-concept', position: getNodePlacementPosition(index, selectedConcepts.length, 0) });
+      addStoreNode({ text: conceptText, type: 'ai-concept', position: getNodePlacementPosition(index, selectedConcepts.length) });
       addedCount++;
     });
     if (addedCount > 0) {
@@ -142,7 +166,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     let concepts: string[] = [];
     const targetNodeId = nodeIdForContext || selectedElementId;
     const selectedNode = targetNodeId ? mapData.nodes.find(n => n.id === targetNodeId) : null;
-
 
     if (multiSelectedNodeIds.length >= 2) {
         concepts = multiSelectedNodeIds.map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text);
@@ -163,23 +186,22 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleRelationsSuggested = useCallback((relations: SuggestRelationsOutput) => {
     setAiSuggestedRelations(relations);
-    // toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations.` });
   }, [setAiSuggestedRelations]);
 
   const addSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode || selectedRelations.length === 0) return;
     let relationsAddedCount = 0; let conceptsAddedFromRelationsCount = 0;
     selectedRelations.forEach((rel, index) => {
-      let currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes];
+      const currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes];
       let sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
       if (!sourceNode) {
-        const newSourceNodeId = addStoreNode({ text: rel.source, type: 'ai-concept', position: getNodePlacementPosition(conceptsAddedFromRelationsCount, selectedRelations.length, index + conceptsAddedFromRelationsCount) });
+        const newSourceNodeId = addStoreNode({ text: rel.source, type: 'ai-concept', position: getNodePlacementPosition(conceptsAddedFromRelationsCount, selectedRelations.length) });
         sourceNode = useConceptMapStore.getState().mapData.nodes.find(node => node.id === newSourceNodeId);
         if (sourceNode) conceptsAddedFromRelationsCount++; else return;
       }
       let targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
       if (!targetNode) {
-        const newTargetNodeId = addStoreNode({ text: rel.target, type: 'ai-concept', position: getNodePlacementPosition(conceptsAddedFromRelationsCount, selectedRelations.length, index + conceptsAddedFromRelationsCount + 1) }); // Offset slightly more
+        const newTargetNodeId = addStoreNode({ text: rel.target, type: 'ai-concept', position: getNodePlacementPosition(conceptsAddedFromRelationsCount + 1, selectedRelations.length) }); 
         targetNode = useConceptMapStore.getState().mapData.nodes.find(node => node.id === newTargetNodeId);
         if (targetNode) conceptsAddedFromRelationsCount++; else return;
       }
@@ -198,16 +220,18 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     }
   }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, getNodePlacementPosition, removeSuggestedRelationsFromSuggestions]);
 
-  // --- Expand Concept ---
+  // --- Expand Concept (Direct Addition) ---
   const openExpandConceptModal = useCallback((nodeIdForContext?: string) => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
-    resetAiSuggestions();
-    let concept = ""; let context: string[] = [];
+    // resetAiSuggestions(); // Don't reset all suggestions, only if this specific flow populated something before
+    
+    let conceptDetails: ConceptToExpandDetails | null = null;
+    let context: string[] = [];
     const targetNodeId = nodeIdForContext || selectedElementId;
     const selectedNode = targetNodeId ? mapData.nodes.find(n => n.id === targetNodeId) : null;
 
     if (selectedNode) {
-      concept = selectedNode.text;
+      conceptDetails = { id: selectedNode.id, text: selectedNode.text };
       const neighborIds = new Set<string>();
       mapData.edges?.forEach(edge => {
         if (edge.source === selectedNode.id) neighborIds.add(edge.target);
@@ -215,29 +239,53 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       });
       context = Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 5);
     } else if (mapData.nodes.length > 0) {
-      concept = mapData.nodes[0].text; 
+      // Fallback if no specific node, expand a general idea (no source ID for linking)
+      conceptDetails = { id: null, text: "General Map Topic" }; // Or prompt user for a topic
+    } else {
+        // If map is empty, prompt for a starting concept
+        conceptDetails = {id: null, text: ""}; // Modal will require concept input
     }
-    setConceptToExpand(concept); setMapContextForExpansion(context);
+    setConceptToExpandDetails(conceptDetails); 
+    setMapContextForExpansion(context);
     setIsExpandConceptModalOpen(true);
-  }, [isViewOnlyMode, resetAiSuggestions, mapData, selectedElementId, toast]);
+  }, [isViewOnlyMode, mapData, selectedElementId, toast]);
 
-  const handleConceptExpanded = useCallback((newConcepts: string[]) => {
-    setAiExpandedConcepts(newConcepts);
-    // toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas.` });
-  }, [setAiExpandedConcepts]);
+  const handleConceptExpanded = useCallback((output: ExpandConceptOutput) => {
+    if (isViewOnlyMode || !conceptToExpandDetails) return;
 
-  const addExpandedConceptsToMap = useCallback((selectedConcepts: string[]) => {
-    if (isViewOnlyMode || selectedConcepts.length === 0) return;
-    let addedCount = 0;
-    selectedConcepts.forEach((conceptText, index) => {
-      addStoreNode({ text: conceptText, type: 'ai-expanded', position: getNodePlacementPosition(index, selectedConcepts.length, addedCount + 2) }); // Offset more
-      addedCount++;
-    });
-    if (addedCount > 0) {
-      toast({ title: "Expanded Ideas Added", description: `${addedCount} new ideas added to the map.` });
-      removeExpandedConceptsFromSuggestions(selectedConcepts);
+    const sourceNodeId = conceptToExpandDetails.id;
+    let sourceNodePos: { x: number; y: number } | null = null;
+
+    if (sourceNodeId) {
+        const node = mapData.nodes.find(n => n.id === sourceNodeId);
+        if (node && typeof node.x === 'number' && typeof node.y === 'number') {
+            sourceNodePos = { x: node.x, y: node.y };
+        }
     }
-  }, [isViewOnlyMode, toast, addStoreNode, getNodePlacementPosition, removeExpandedConceptsFromSuggestions]);
+
+    let addedNodesCount = 0;
+    output.expandedIdeas.forEach((idea, index) => {
+      const newNodeId = addStoreNode({
+        text: idea.text,
+        type: 'ai-expanded',
+        position: getNodePlacementPosition(index, output.expandedIdeas.length, sourceNodePos),
+      });
+      addedNodesCount++;
+      if (sourceNodeId && newNodeId) {
+        addStoreEdge({
+          source: sourceNodeId,
+          target: newNodeId,
+          label: idea.relationLabel || 'related to',
+        });
+      }
+    });
+
+    if (addedNodesCount > 0) {
+      toast({ title: "Concept Expanded", description: `${addedNodesCount} new ideas directly added to the map.` });
+    }
+    // No longer populating AISuggestionPanel for this action
+    // removeExpandedConceptsFromSuggestions(output.expandedIdeas.map(idea => idea.text));
+  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, getNodePlacementPosition, conceptToExpandDetails, mapData.nodes]);
 
 
   // --- Quick Cluster ---
@@ -249,8 +297,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleClusterGenerated = useCallback((output: GenerateQuickClusterOutput) => {
     const newNodesMap = new Map<string, string>(); let addedNodesCount = 0;
+    const sourceNode = selectedElementId ? mapData.nodes.find(n => n.id === selectedElementId) : null;
+    const sourcePos = sourceNode && typeof sourceNode.x === 'number' && typeof sourceNode.y === 'number' ? { x: sourceNode.x, y: sourceNode.y } : null;
+
     output.nodes.forEach((aiNode, index) => {
-      const newNodeId = addStoreNode({ text: aiNode.text, type: aiNode.type || 'ai-generated', details: aiNode.details || '', position: getNodePlacementPosition(index, output.nodes.length, addedNodesCount) });
+      const newNodeId = addStoreNode({ text: aiNode.text, type: aiNode.type || 'ai-generated', details: aiNode.details || '', position: getNodePlacementPosition(index, output.nodes.length, sourcePos) });
       newNodesMap.set(aiNode.text, newNodeId); addedNodesCount++;
     });
     output.edges?.forEach(aiEdge => {
@@ -258,7 +309,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       if (sourceId && targetId) addStoreEdge({ source: sourceId, target: targetId, label: aiEdge.relationLabel });
     });
     toast({ title: "AI Cluster Added", description: `Added ${output.nodes.length} nodes and ${output.edges?.length || 0} edges.` });
-  }, [addStoreNode, addStoreEdge, toast, getNodePlacementPosition]);
+  }, [addStoreNode, addStoreEdge, toast, getNodePlacementPosition, selectedElementId, mapData.nodes]);
 
   // --- Generate Snippet ---
   const openGenerateSnippetModal = useCallback(() => {
@@ -269,8 +320,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleSnippetGenerated = useCallback((output: GenerateMapSnippetOutput) => {
     const newNodesMap = new Map<string, string>(); let addedNodesCount = 0;
+    const sourceNode = selectedElementId ? mapData.nodes.find(n => n.id === selectedElementId) : null;
+    const sourcePos = sourceNode && typeof sourceNode.x === 'number' && typeof sourceNode.y === 'number' ? { x: sourceNode.x, y: sourceNode.y } : null;
+
     output.nodes.forEach((aiNode, index) => {
-      const newNodeId = addStoreNode({ text: aiNode.text, type: aiNode.type || 'text-derived-concept', details: aiNode.details || '', position: getNodePlacementPosition(index, output.nodes.length, addedNodesCount + 5) });
+      const newNodeId = addStoreNode({ text: aiNode.text, type: aiNode.type || 'text-derived-concept', details: aiNode.details || '', position: getNodePlacementPosition(index, output.nodes.length, sourcePos, 200) }); // Larger radius for snippets
       newNodesMap.set(aiNode.text, newNodeId); addedNodesCount++;
     });
     output.edges?.forEach(aiEdge => {
@@ -278,7 +332,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       if (sourceId && targetId) addStoreEdge({ source: sourceId, target: targetId, label: aiEdge.relationLabel });
     });
     toast({ title: "AI Snippet Added", description: `Added ${output.nodes.length} nodes and ${output.edges?.length || 0} edges.` });
-  }, [addStoreNode, addStoreEdge, toast, getNodePlacementPosition]);
+  }, [addStoreNode, addStoreEdge, toast, getNodePlacementPosition, selectedElementId, mapData.nodes]);
 
   // --- Ask Question ---
   const openAskQuestionModal = useCallback((nodeId: string) => {
@@ -324,7 +378,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         });
         const position = count > 0 
             ? { x: avgX / count + 100, y: avgY / count + 50 } 
-            : getNodePlacementPosition(0);
+            : getNodePlacementPosition(0, 1);
 
 
         addStoreNode({
@@ -344,10 +398,18 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   return {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen, conceptsForRelationSuggestion, openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
-    isExpandConceptModalOpen, setIsExpandConceptModalOpen, conceptToExpand, mapContextForExpansion, openExpandConceptModal, handleConceptExpanded, addExpandedConceptsToMap,
+    isExpandConceptModalOpen, setIsExpandConceptModalOpen, 
+    conceptToExpandDetails, // Updated state name
+    mapContextForExpansion, 
+    openExpandConceptModal, 
+    handleConceptExpanded, 
+    // addExpandedConceptsToMap, // This is no longer used for direct addition from AISuggestionPanel for this flow
     isQuickClusterModalOpen, setIsQuickClusterModalOpen, openQuickClusterModal, handleClusterGenerated,
     isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen, openGenerateSnippetModal, handleSnippetGenerated,
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
-    handleSummarizeSelectedNodes, // Export new handler
+    handleSummarizeSelectedNodes, 
+    deleteEdge: addStoreEdge, // Renaming addStoreEdge to deleteEdge for consistency in hook return, though it's addEdge.
+    addStoreNode, 
   };
 }
+

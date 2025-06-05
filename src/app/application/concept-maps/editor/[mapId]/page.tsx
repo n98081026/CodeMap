@@ -17,14 +17,14 @@ import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save } from "lucide
 import {
   ExtractConceptsModal,
   SuggestRelationsModal,
-  ExpandConceptModal,
+  ExpandConceptModal, // Modal itself is still used
   AskQuestionModal,
 } from "@/components/concept-map/genai-modals";
 import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal";
 import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
+import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
-// import { UserRole } from "@/types"; // UserRole not directly used here
 import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
@@ -55,7 +55,7 @@ export default function ConceptMapEditorPage() {
     mapId: storeMapId, mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
     mapData: storeMapData, isLoading: isStoreLoading, isSaving: isStoreSaving, error: storeError,
     selectedElementId, selectedElementType,
-    aiExtractedConcepts, aiSuggestedRelations, aiExpandedConcepts,
+    aiExtractedConcepts, aiSuggestedRelations, // aiExpandedConcepts removed from store access here
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     deleteNode: deleteStoreNode, updateNode: updateStoreNode,
     updateEdge: updateStoreEdge,
@@ -77,11 +77,15 @@ export default function ConceptMapEditorPage() {
   const {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen, conceptsForRelationSuggestion, openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
-    isExpandConceptModalOpen, setIsExpandConceptModalOpen, conceptToExpand, mapContextForExpansion, openExpandConceptModal, handleConceptExpanded, addExpandedConceptsToMap,
+    isExpandConceptModalOpen, setIsExpandConceptModalOpen, conceptToExpandDetails, mapContextForExpansion, openExpandConceptModal, handleConceptExpanded,
+    // addExpandedConceptsToMap, // This specific panel-adder is no longer needed for expand
     isQuickClusterModalOpen, setIsQuickClusterModalOpen, openQuickClusterModal, handleClusterGenerated,
     isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen, openGenerateSnippetModal, handleSnippetGenerated,
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
-    handleSummarizeSelectedNodes, // Get the new handler from the hook
+    isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
+    handleSummarizeSelectedNodes,
+    addStoreNode: addNodeFromHook, // Renaming for clarity if direct add from hook needed elsewhere
+    deleteEdge: deleteEdgeFromHook, // Renaming for clarity
   } = useConceptMapAITools(isViewOnlyMode);
 
 
@@ -110,10 +114,10 @@ export default function ConceptMapEditorPage() {
   const handleAddNodeToData = useCallback(() => {
     if (isViewOnlyMode) return;
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
-    const { x, y } = aiToolsHook.getNodePlacementPosition(useConceptMapStore.getState().mapData.nodes.length);
-    aiToolsHook.addStoreNode({ text: newNodeText, type: 'manual-node', position: { x, y } });
+    const { x, y } = aiToolsHook.getNodePlacementPosition(useConceptMapStore.getState().mapData.nodes.length, 1);
+    addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
-  }, [isViewOnlyMode, toast, aiToolsHook]);
+  }, [isViewOnlyMode, toast, aiToolsHook, addNodeFromHook]);
 
   const handleAddEdgeToData = useCallback(() => {
     if (isViewOnlyMode) return;
@@ -206,9 +210,9 @@ export default function ConceptMapEditorPage() {
       <ReactFlowProvider>
         <EditorToolbar
           onNewMap={handleNewMap} onSaveMap={() => saveMap(isViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
-          onExtractConcepts={() => openExtractConceptsModal()} onSuggestRelations={() => openSuggestRelationsModal()} onExpandConcept={() => openExpandConceptModal()}
+          onExtractConcepts={() => openExtractConceptsModal()} onSuggestRelations={() => openSuggestRelationsModal()} onExpandConcept={() => openExpandConceptModal(selectedElementId || undefined)}
           onQuickCluster={openQuickClusterModal} onGenerateSnippetFromText={openGenerateSnippetModal}
-          onSummarizeSelectedNodes={handleSummarizeSelectedNodes} // Pass new handler
+          onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
           isViewOnlyMode={isViewOnlyMode} onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
           onToggleProperties={onTogglePropertiesInspector} onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
@@ -219,17 +223,19 @@ export default function ConceptMapEditorPage() {
               mapDataFromStore={storeMapData} isViewOnlyMode={isViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange} onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode} onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={aiToolsHook.deleteEdge} onConnectInStore={aiToolsHook.addStoreEdge}
+              onEdgesDeleteInStore={deleteEdgeFromHook} onConnectInStore={aiToolsHook.addStoreEdge}
               onNodeContextMenu={handleNodeContextMenu}
               onNodeDragStop={ (event, node) => { if (!isViewOnlyMode && node.position && typeof node.position.x === 'number' && typeof node.position.y === 'number') updateStoreNode(node.id, { x: node.position.x, y: node.position.y }); }}
             />
         </div>
         {contextMenu?.isOpen && contextMenu.nodeId && (
           <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu}
-            onDeleteNode={handleDeleteNodeFromContextMenu} onExpandConcept={() => { openExpandConceptModal(contextMenu.nodeId!); closeContextMenu(); }}
+            onDeleteNode={handleDeleteNodeFromContextMenu} 
+            onExpandConcept={() => { openExpandConceptModal(contextMenu.nodeId!); closeContextMenu(); }}
             onSuggestRelations={() => { openSuggestRelationsModal(contextMenu.nodeId!); closeContextMenu(); }}
             onExtractConcepts={() => { openExtractConceptsModal(contextMenu.nodeId!); closeContextMenu(); }}
             onAskQuestion={() => { openAskQuestionModal(contextMenu.nodeId!); closeContextMenu(); }}
+            onRewriteContent={() => { openRewriteNodeContentModal(contextMenu.nodeId!); closeContextMenu(); }}
             isViewOnlyMode={isViewOnlyMode} />
         )}
         <Sheet open={isPropertiesInspectorOpen} onOpenChange={setIsPropertiesInspectorOpen}>
@@ -243,21 +249,29 @@ export default function ConceptMapEditorPage() {
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
           <SheetContent side="bottom" className="h-[40vh] sm:h-1/3">
             <AISuggestionPanel currentMapNodes={storeMapData.nodes}
-              extractedConcepts={aiExtractedConcepts} suggestedRelations={aiSuggestedRelations} expandedConcepts={aiExpandedConcepts}
-              onAddExtractedConcepts={addExtractedConceptsToMap} onAddSuggestedRelations={addSuggestedRelationsToMap} onAddExpandedConcepts={addExpandedConceptsToMap}
+              extractedConcepts={aiExtractedConcepts} suggestedRelations={aiSuggestedRelations} 
+              onAddExtractedConcepts={addExtractedConceptsToMap} onAddSuggestedRelations={addSuggestedRelationsToMap} 
               onClearExtractedConcepts={() => useConceptMapStore.getState().setAiExtractedConcepts([])}
               onClearSuggestedRelations={() => useConceptMapStore.getState().setAiSuggestedRelations([])}
-              onClearExpandedConcepts={() => useConceptMapStore.getState().setAiExpandedConcepts([])}
               isViewOnlyMode={isViewOnlyMode} />
           </SheetContent>
         </Sheet>
         {isExtractConceptsModalOpen && !isViewOnlyMode && <ExtractConceptsModal initialText={textForExtraction} onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />}
         {isSuggestRelationsModalOpen && !isViewOnlyMode && <SuggestRelationsModal initialConcepts={conceptsForRelationSuggestion} onRelationsSuggested={handleRelationsSuggested} onOpenChange={setIsSuggestRelationsModalOpen} />}
-        {isExpandConceptModalOpen && !isViewOnlyMode && <ExpandConceptModal initialConcept={conceptToExpand} existingMapContext={mapContextForExpansion} onConceptExpanded={handleConceptExpanded} onOpenChange={setIsExpandConceptModalOpen} />}
+        {isExpandConceptModalOpen && !isViewOnlyMode && conceptToExpandDetails && (
+          <ExpandConceptModal 
+            initialConceptText={conceptToExpandDetails.text} 
+            existingMapContext={mapContextForExpansion} 
+            onConceptExpanded={handleConceptExpanded} 
+            onOpenChange={setIsExpandConceptModalOpen} 
+          />
+        )}
         {isQuickClusterModalOpen && !isViewOnlyMode && <QuickClusterModal isOpen={isQuickClusterModalOpen} onOpenChange={setIsQuickClusterModalOpen} onClusterGenerated={handleClusterGenerated} />}
         {isGenerateSnippetModalOpen && !isViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
         {isAskQuestionModalOpen && !isViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
+        {isRewriteNodeContentModalOpen && !isViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
       </ReactFlowProvider>
     </div>
   );
 }
+
