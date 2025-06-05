@@ -7,10 +7,11 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, 
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import useConceptMapStore from '@/stores/concept-map-store'; // Import the store
 
 interface EditorToolbarProps {
   onNewMap: () => void;
@@ -23,6 +24,7 @@ interface EditorToolbarProps {
   onExpandConcept: () => void;
   onQuickCluster: () => void; 
   onGenerateSnippetFromText: () => void; 
+  onSummarizeSelectedNodes: () => void; // New prop for summarization
   isViewOnlyMode?: boolean;
   onAddNodeToData?: () => void;
   onAddEdgeToData?: () => void;
@@ -48,6 +50,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onExpandConcept,
   onQuickCluster, 
   onGenerateSnippetFromText, 
+  onSummarizeSelectedNodes, // New prop
   isViewOnlyMode,
   onAddNodeToData,
   onAddEdgeToData,
@@ -62,6 +65,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   canRedo,
 }: EditorToolbarProps) {
   const { toast } = useToast();
+  const { multiSelectedNodeIds } = useConceptMapStore(); // Get multi-selected nodes from store
 
   const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
     if (isViewOnlyMode) {
@@ -71,6 +75,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
     actionCallback();
   }, [isViewOnlyMode, toast]);
 
+  const isMultiSelectionActive = multiSelectedNodeIds.length > 1;
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -182,7 +187,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Lightbulb className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Suggest Relations (AI) (Disabled)" : "Suggest Relations between map concepts (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Suggest Relations (AI) (Disabled)" : "Suggest Relations (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -190,8 +195,17 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Brain className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Expand Concept (AI) (Disabled)" : "Expand selected/primary map concept (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Expand Concept (AI) (Disabled)" : "Expand Concept (AI)"}</TooltipContent>
         </Tooltip>
+         <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onSummarizeSelectedNodes, "Summarize Selection")} disabled={isViewOnlyMode || !isMultiSelectionActive}>
+              <ListCollapse className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isViewOnlyMode ? "Summarize Selection (Disabled)" : !isMultiSelectionActive ? "Summarize Selection (Select 2+ nodes)" : "Summarize Selection (AI)"}</TooltipContent>
+        </Tooltip>
+
 
         {/* Spacer */}
         <div className="flex-grow" />

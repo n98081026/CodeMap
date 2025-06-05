@@ -24,7 +24,7 @@ import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal"
 import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
-import { UserRole } from "@/types";
+// import { UserRole } from "@/types"; // UserRole not directly used here
 import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
@@ -57,10 +57,10 @@ export default function ConceptMapEditorPage() {
     selectedElementId, selectedElementType,
     aiExtractedConcepts, aiSuggestedRelations, aiExpandedConcepts,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
-    addNode: addStoreNode, updateNode: updateStoreNode, deleteNode: deleteStoreNode,
-    addEdge: addStoreEdge, updateEdge: updateStoreEdge, deleteEdge: deleteStoreEdge,
+    deleteNode: deleteStoreNode, updateNode: updateStoreNode,
+    updateEdge: updateStoreEdge,
     setSelectedElement: setStoreSelectedElement, setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
-    importMapData, clearTemporalHistory,
+    importMapData,
   } = useConceptMapStore();
 
   const temporalStoreAPI = useConceptMapStore.temporal;
@@ -81,6 +81,7 @@ export default function ConceptMapEditorPage() {
     isQuickClusterModalOpen, setIsQuickClusterModalOpen, openQuickClusterModal, handleClusterGenerated,
     isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen, openGenerateSnippetModal, handleSnippetGenerated,
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
+    handleSummarizeSelectedNodes, // Get the new handler from the hook
   } = useConceptMapAITools(isViewOnlyMode);
 
 
@@ -88,7 +89,6 @@ export default function ConceptMapEditorPage() {
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; nodeId: string | null; } | null>(null);
-
 
   const handleMapPropertiesChange = useCallback((properties: { name: string; isPublic: boolean; sharedWithClassroomId: string | null; }) => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
@@ -104,15 +104,16 @@ export default function ConceptMapEditorPage() {
   const handleMultiNodeSelectionChange = useCallback((nodeIds: string[]) => {
     setStoreMultiSelectedNodeIds(nodeIds);
   }, [setStoreMultiSelectedNodeIds]);
+  
+  const aiToolsHook = useConceptMapAITools(isViewOnlyMode);
 
   const handleAddNodeToData = useCallback(() => {
     if (isViewOnlyMode) return;
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
-    // Use a simple placement for toolbar-added nodes or enhance getNodePlacementPosition
-    const { x, y } = useConceptMapAITools(isViewOnlyMode).getNodePlacementPosition(useConceptMapStore.getState().mapData.nodes.length);
-    addStoreNode({ text: newNodeText, type: 'manual-node', position: { x, y } });
+    const { x, y } = aiToolsHook.getNodePlacementPosition(useConceptMapStore.getState().mapData.nodes.length);
+    aiToolsHook.addStoreNode({ text: newNodeText, type: 'manual-node', position: { x, y } });
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
-  }, [isViewOnlyMode, toast, addStoreNode, useConceptMapAITools]);
+  }, [isViewOnlyMode, toast, aiToolsHook]);
 
   const handleAddEdgeToData = useCallback(() => {
     if (isViewOnlyMode) return;
@@ -120,9 +121,9 @@ export default function ConceptMapEditorPage() {
     if (nodes.length < 2) { toast({ title: "Cannot Add Edge", variant: "default" }); return; }
     const sourceNode = nodes[nodes.length - 2]; const targetNode = nodes[nodes.length - 1];
     if (!sourceNode || !targetNode) { toast({ title: "Error Adding Edge", variant: "destructive"}); return; }
-    addStoreEdge({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
+    aiToolsHook.addStoreEdge({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
     toast({ title: "Edge Added" });
-  }, [isViewOnlyMode, toast, addStoreEdge]);
+  }, [isViewOnlyMode, toast, aiToolsHook]);
 
   const getRoleBasedDashboardLink = useCallback(() => { return user ? `/application/${user.role}/dashboard` : '/login'; }, [user]);
   const getBackLink = useCallback(() => { return "/application/student/concept-maps"; }, []);
@@ -171,13 +172,13 @@ export default function ConceptMapEditorPage() {
         throw new Error("Invalid map data structure in JSON file.");
       }
       importMapData(importedJson.mapData, importedJson.name || file.name.replace(/\.json$/i, ''));
-      clearTemporalHistory();
+      temporalStoreAPI.getState().clear();
       toast({ title: "Map Imported", description: `"${importedJson.name || file.name}" loaded successfully.`});
     } catch (e) {
       toast({ title: "Import Failed", description: `Error importing map: ${(e as Error).message}`, variant: "destructive"});
     }
     if(fileInputRef.current) fileInputRef.current.value = "";
-  }, [isViewOnlyMode, toast, importMapData, clearTemporalHistory]);
+  }, [isViewOnlyMode, toast, importMapData, temporalStoreAPI]);
 
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
     event.preventDefault(); if (isViewOnlyMode) return;
@@ -189,8 +190,8 @@ export default function ConceptMapEditorPage() {
   const handleSelectedElementPropertyUpdateInspector = useCallback((updates: any) => {
     if (isViewOnlyMode || !selectedElementId || !selectedElementType ) return;
     if (selectedElementType === 'node') updateStoreNode(selectedElementId, updates);
-    else if (selectedElementType === 'edge') updateStoreEdge(selectedElementId, updates);
-  }, [isViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
+    else if (selectedElementType === 'edge') updateEdge(selectedElementId, updates);
+  }, [isViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateEdge]);
 
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
   if (storeError) { return <div className="p-4 text-destructive"><AlertTriangle /> {storeError} <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
@@ -207,6 +208,7 @@ export default function ConceptMapEditorPage() {
           onNewMap={handleNewMap} onSaveMap={() => saveMap(isViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
           onExtractConcepts={() => openExtractConceptsModal()} onSuggestRelations={() => openSuggestRelationsModal()} onExpandConcept={() => openExpandConceptModal()}
           onQuickCluster={openQuickClusterModal} onGenerateSnippetFromText={openGenerateSnippetModal}
+          onSummarizeSelectedNodes={handleSummarizeSelectedNodes} // Pass new handler
           isViewOnlyMode={isViewOnlyMode} onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
           onToggleProperties={onTogglePropertiesInspector} onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
@@ -217,7 +219,7 @@ export default function ConceptMapEditorPage() {
               mapDataFromStore={storeMapData} isViewOnlyMode={isViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange} onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode} onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={deleteEdge} onConnectInStore={addStoreEdge}
+              onEdgesDeleteInStore={aiToolsHook.deleteEdge} onConnectInStore={aiToolsHook.addStoreEdge}
               onNodeContextMenu={handleNodeContextMenu}
               onNodeDragStop={ (event, node) => { if (!isViewOnlyMode && node.position && typeof node.position.x === 'number' && typeof node.position.y === 'number') updateStoreNode(node.id, { x: node.position.x, y: node.position.y }); }}
             />

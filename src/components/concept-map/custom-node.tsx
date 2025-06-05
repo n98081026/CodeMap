@@ -15,15 +15,16 @@ import {
   Users, // user_role
   Workflow, // core_process
   Brain, // ai-extracted-concept, ai-concept
-  Lightbulb, // ai-extracted-concept, ai-concept
-  Puzzle // manual-node
+  Lightbulb, // ai-expanded, ai-concept
+  Puzzle, // manual-node
+  AlignLeft // ai-summary-node
 } from 'lucide-react';
 
 // Data expected by our custom node
 export interface CustomNodeData {
   label: string;
   details?: string;
-  type?: string; // e.g., 'key_feature', 'service_component' - can be used for styling later
+  type?: string; 
 }
 
 const nodeTypeStyles: { [key: string]: string } = {
@@ -35,9 +36,12 @@ const nodeTypeStyles: { [key: string]: string } = {
   external_dependency: 'bg-pink-100 dark:bg-pink-900/50 border-pink-500 dark:border-pink-600 text-pink-900 dark:text-pink-200',
   user_role: 'bg-teal-100 dark:bg-teal-900/50 border-teal-500 dark:border-teal-600 text-teal-900 dark:text-teal-200',
   core_process: 'bg-orange-100 dark:bg-orange-800/50 border-orange-500 dark:border-orange-600 text-orange-900 dark:text-orange-200',
-  'ai-extracted-concept': 'bg-slate-100 dark:bg-slate-700/50 border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-300',
-  'ai-concept': 'bg-gray-100 dark:bg-gray-700/50 border-gray-400 dark:border-gray-500 text-gray-800 dark:text-gray-300',
+  'ai-concept': 'bg-slate-100 dark:bg-slate-700/50 border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-300',
+  'ai-expanded': 'bg-fuchsia-100 dark:bg-fuchsia-900/50 border-fuchsia-500 dark:border-fuchsia-600 text-fuchsia-900 dark:text-fuchsia-200',
+  'ai-summary-node': 'bg-cyan-100 dark:bg-cyan-900/50 border-cyan-500 dark:border-cyan-600 text-cyan-900 dark:text-cyan-200',
   'manual-node': 'bg-sky-100 dark:bg-sky-900/50 border-sky-500 dark:border-sky-600 text-sky-900 dark:text-sky-200',
+  'text-derived-concept': 'bg-lime-100 dark:bg-lime-900/50 border-lime-500 dark:border-lime-600 text-lime-900 dark:text-lime-200',
+  'ai-generated': 'bg-rose-100 dark:bg-rose-900/50 border-rose-500 dark:border-rose-600 text-rose-900 dark:text-rose-200',
   default: 'bg-card border-border text-card-foreground',
 };
 
@@ -50,9 +54,12 @@ const nodeTypeIcons: { [key: string]: React.ElementType } = {
   external_dependency: ExternalLink,
   user_role: Users,
   core_process: Workflow,
-  'ai-extracted-concept': Brain,
-  'ai-concept': Lightbulb,
+  'ai-concept': Brain,
+  'ai-expanded': Lightbulb,
+  'ai-summary-node': AlignLeft,
   'manual-node': Puzzle,
+  'text-derived-concept': FileCode2, 
+  'ai-generated': Brain,
   default: Box,
 };
 
@@ -82,7 +89,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
       <CardHeader 
         className={cn(
           "p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2",
-          data.type && nodeTypeStyles[data.type] ? 'bg-opacity-20' : ''
+          data.type && nodeTypeStyles[data.type] ? 'bg-opacity-20' : '' // Keep slight tint for header based on node type
         )}
         style={{ pointerEvents: 'all' }} 
       >
