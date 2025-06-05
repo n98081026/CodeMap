@@ -87,11 +87,24 @@
     - [x] Develop system settings interface (Admin Settings page now fetches and saves settings to Supabase via API. Linked from Admin Dashboard).
 
 ## GenAI & AI Features - In-Editor Enhancements (Whimsical-Inspired)
-- [x] **File Upload UI Adaptation for Project Analysis**: (Covered by general project submission section)
-- [ ] **API Endpoint & Backend Processing Pipeline for Project Analysis**: (Covered by general project submission section - User to implement)
-- [x] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`)**: (Covered by general project submission section - Mock logic, user to implement real parsing)
-- [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**: (Covered by general project submission section)
-- [x] **Output Handling & User Interaction for Project Analysis**: (Covered by general project submission section - Links to map view-only)
+- [x] **File Upload UI Adaptation for Project Analysis**:
+    - [x] Add `userGoals` input to `ProjectUploadForm`.
+    - [x] Use `AlertDialog` to confirm AI analysis post-submission record creation.
+- [x] **API Endpoint & Backend Processing Pipeline for Project Analysis**:
+    - [x] `ProjectSubmission` type and service now handle `fileStoragePath`.
+    - [x] Submission API route `POST /api/projects/submissions` now accepts `fileStoragePath`.
+    - [x] Frontend calls `generateMapFromProject` after user confirmation, passing `fileStoragePath` and `userGoals`.
+    - [x] Frontend handles saving the generated map (via API) and updating submission status.
+- [x] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`)**:
+    - [x] Input schema updated to `projectStoragePath` and `userHint`.
+    - [x] Mock logic acknowledges these inputs.
+- [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**:
+    - [x] Input schema updated to `projectStoragePath` and `userGoals`.
+    - [x] Prompt explicitly instructs use of `projectStructureAnalyzerTool` with these inputs.
+- [x] **Output Handling & User Interaction for Project Analysis**:
+    - [x] Submission process creates a new `ConceptMap` record from AI output.
+    - [x] Submission status updated to `COMPLETED` or `FAILED` with map ID or error.
+    - [x] Submission list item links to the generated map.
 
 - [x] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
     - [x] **Canvas-Integrated AI Brainstorming & Expansion:**
@@ -102,7 +115,7 @@
     - [x] **Enhanced Context for In-Editor AI Tools:**
         - [x] **`extractConcepts` Context:** Allows extraction from selected node text (single or multiple) or notes on the map.
         - [x] **`suggestRelations` Context:** Revise `SuggestRelationsModal` and underlying logic to better utilize multiple selected nodes from the canvas as primary input, or a single node and its neighbors.
-        - [x] **`expandConcept` Context:** Ensure clear visual feedback to the user about which node is being used for expansion, especially when triggered from toolbar vs. context menu. Allow expansion based on multiple selected nodes to find common themes or bridging concepts.
+        - [x] **`expandConcept` Context:** Ensure clear visual feedback to the user about which node is being used for expansion, especially when triggered from toolbar vs. context menu. Allow expansion based on multiple selected nodes to find common themes or bridging concepts. (Prompt enhanced for diversity).
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:**
         - [x] Continuously review and refine prompts for `extractConcepts`, `suggestRelations`, `expandConcept`, `generateQuickCluster`, `askQuestionAboutNode`, `generateMapSnippetFromText` in `src/ai/flows/` to improve the quality, relevance, conciseness, and actionability of suggestions. Aim for fewer, high-impact suggestions if current output is noisy or too generic. (Prompt for `expandConcept` enhanced for diversity).
         - [ ] Explore prompt strategies for more diverse types of suggestions (e.g., analogies, counter-arguments, examples) in other flows.
@@ -187,3 +200,4 @@ This section outlines tasks to fully migrate to Supabase. Many are now complete.
 - User needs to create the 'project_archives' bucket and add `file_storage_path TEXT NULLABLE` to `project_submissions` table, and set up RLS for the bucket.
 - Mock admin/student user profiles cannot be edited or passwords changed via the UI to prevent breaking the mock login flow. Real accounts created via Supabase registration can.
 - Dragging nodes and creating connections in the concept map editor should now be working correctly. If issues persist, further investigation into React Flow event handling or CSS conflicts might be needed.
+

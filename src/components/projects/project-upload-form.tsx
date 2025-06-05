@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea"; // Added for userGoals
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -72,7 +73,7 @@ const projectUploadSchema = z.object({
       `Accepted file types: ${ACCEPTED_FILE_EXTENSIONS_STRING}. If your .tar.gz or .tgz is not accepted, please try zipping it.`
     ),
   classroomId: z.string().optional(),
-  userGoals: z.string().optional().describe("Optional user goals for AI analysis"),
+  userGoals: z.string().max(500, "Goals/hints should be max 500 characters.").optional(), // Added userGoals field
 });
 
 export function ProjectUploadForm() {
@@ -344,14 +345,16 @@ export function ProjectUploadForm() {
               <FormItem>
                 <FormLabel>Analysis Goals/Hints (Optional)</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="e.g., Focus on API routes, or Main user authentication flow" 
-                    {...field} 
+                  <Textarea
+                    placeholder="e.g., Focus on API routes, user authentication flow, or key data models."
+                    {...field}
+                    rows={3}
+                    className="resize-none"
                     disabled={isBusy}
                   />
                 </FormControl>
                 <FormMessage />
-                <p className="text-sm text-muted-foreground">Provide any specific goals or hints for the AI to focus on during analysis.</p>
+                <p className="text-sm text-muted-foreground">Provide any specific goals or hints for the AI to focus on during analysis. Max 500 characters.</p>
               </FormItem>
             )}
           />

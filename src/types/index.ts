@@ -83,7 +83,7 @@ export interface ProjectSubmission {
   analysisStatus: ProjectSubmissionStatus;
   analysisError?: string | null;
   generatedConceptMapId?: string | null;
-  generatedConceptMap?: ConceptMap | null;
+  generatedConceptMap?: ConceptMap | null; // Optional: for cases where we might want to embed generated map details
 }
 
 // Interface for the EmptyState component props
@@ -121,3 +121,4 @@ export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>
 //     iconClassName?: string;
 //   }
 // }
+
