@@ -15,7 +15,7 @@
 - [x] **Classroom Management (Backend & Frontend Integration):**
     - [x] Create `classroomService.ts` with Supabase data management.
     - [x] API endpoint for creating classrooms (`POST /api/classrooms`).
-    - [x] API endpoint for listing classrooms by teacher (`GET /api/classrooms?teacherId=xxx`). (Supports pagination)
+    - [x] API endpoint for listing classrooms by teacher (`GET /api/classrooms?teacherId=xxx`). (Supports pagination & search)
     - [x] API endpoint for listing classrooms by student (`GET /api/classrooms?studentId=xxx`).
     - [x] API endpoint for getting classroom details (`GET /api/classrooms/[classroomId]`).
     - [x] API endpoints for student enrollment.
@@ -72,7 +72,7 @@
 - [x] **User Interface & User Experience (Desktop Focus):**
     - [x] Refine UI details for some pages, ensure consistency and professional design.
     - [x] Add more comprehensive loading states and error handling (Done for many list pages and dashboards with Supabase).
-    - [x] Enhance empty states for lists (Largely done with `EmptyState` component and specific icons).
+    - [x] Enhance empty states for lists (Largely done with `EmptyState` component and specific icons, including Teacher Classroom Detail).
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Change password functionality using Supabase Auth implemented. Linked from Navbar and Sidebar).
     - [x] Add pagination and filtering for lists (Admin User Management and Teacher classrooms pages have pagination and filtering with Supabase).
     - [x] Add loading spinner to Login/Register pages.
@@ -86,7 +86,7 @@
     - [x] Develop system settings interface (Admin Settings page fetches/saves to Supabase via API).
 
 ## GenAI & AI Features - In-Editor Enhancements (Whimsical-Inspired)
-- [x] **File Upload UI Adaptation for Project Analysis**:
+- [x] **File Upload UI Adaptation for Project Analysis**: (Input structure refined)
     - [x] Add `userGoals` input to `ProjectUploadForm`.
     - [x] Use `AlertDialog` to confirm AI analysis post-submission record creation.
 - [x] **API Endpoint & Backend Processing Pipeline for Project Analysis**:
@@ -105,16 +105,32 @@
     - [x] Submission status updated to `COMPLETED` or `FAILED` with map ID or error.
     - [x] Submission list item links to the generated map.
 
-- [x] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
+- [ ] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
     - [x] **Canvas-Integrated AI Brainstorming & Expansion:**
-        - [x] **Context Menu AI Actions:** Implement AI actions (Expand, Suggest Relations, Extract Concepts, Ask AI Question) on node context menus.
+        - [x] **Context Menu AI Actions:** Expand, Suggest Relations, Extract Concepts, Ask AI Question on node context menus.
         - [x] **"Quick AI Node/Cluster" on Canvas:** Implemented via Toolbar Modal (`QuickClusterModal`).
         - [x] **AI for Structuring Text into Map Snippets:** Implemented `GenerateSnippetModal` and flow.
-    - [x] **Enhanced Context for In-Editor AI Tools:**
-        - [x] **`extractConcepts` Context:** Allows extraction from selected node(s) text/details.
+    - [x] **Enhanced Context for In-Editor AI Tools:** (Context gathering for modals from selected nodes/neighbors is implemented)
+        - [x] **`extractConcepts` Context:** From selected node(s) text/details.
         - [x] **`suggestRelations` Context:** Uses multiple selected nodes or a node and its neighbors.
         - [x] **`expandConcept` Context:** Uses selected node and its neighbors.
-    - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools).
+    - [ ] **Refine "Generate Ideas" / "Expand Concept" Interaction:**
+        - [ ] Option A: Explore direct child node generation from an "Expand" or "Generate Ideas" action (e.g., new nodes automatically appear around the source node).
+        - [x] Option B: AI suggestions for "Expand Concept" populate `AISuggestionPanel` (current behavior).
+        - [ ] Option C: Allow user to refine prompts for "Generate Ideas" / "Expand Concept" within their respective modals.
+    - [ ] **Implement "Summarize Selected Nodes (AI)" Feature:**
+        - [ ] Trigger: Context menu on multi-selection and/or Toolbar button.
+        - [ ] Input: Text/details from selected nodes.
+        - [ ] Action: Create Genkit flow (`summarizeNodesFlow`) that takes an array of node contents and returns a summary text.
+        - [ ] Output: Create a new node with the summary, potentially linked to the summarized nodes or placed nearby. Mark as AI-generated.
+    - [ ] **Implement "Rewrite Node Content (AI)" Feature:**
+        - [ ] Trigger: Context menu on a node or dedicated AI icon on selected node.
+        - [ ] Input: Node text/details and target tone/style (e.g., from a sub-menu/select: Formal, Casual, Concise, Elaborate, Humorous).
+        - [ ] Action: Create Genkit flow (`rewriteNodeContentFlow`) for text rewriting.
+        - [ ] Output: Offer to update the selected node's text/details with the rewritten content (perhaps with preview/confirmation or by offering it as a suggestion in `AISuggestionPanel`). Mark as AI-generated if applied.
+    - [ ] **(Advanced - Future) Explore "AI Structure Suggestions":**
+        - [ ] Analyze map structure and content to propose new connections or organizational improvements (e.g., "These 3 nodes seem related, would you like to group them?" or "Consider linking Node A to Node B because...").
+    - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
     - [x] **Workflow Review**: Suggestions persist, update status, removed from panel after adding to map.
     - [x] **Visual Feedback on "Add to Map"**: Items persist, status updates.
@@ -122,12 +138,14 @@
     - [x] **Selective Addition**: "Add Selected" and "Add All New/Similar" implemented.
     - [x] **Edit Before Adding**: Suggestions can be edited.
     - [x] **Clearer Visual Cues**: Differentiates existing/similar suggestions.
-    - [x] **Panel Styling and Usability**: Improved layout, cards.
+    - [x/ ] **Panel Styling and Usability**: Improved layout, cards. (Sheet used for panel).
     - [x] **Toggleable Panel**: Panel is toggleable sheet. 
-
-- [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
+- [ ] **Improve General AI User Experience (UX) for In-Editor Tools:**
     - [x] **Tooltips & In-UI Guidance**: Modals updated, tooltips present.
-    - [x] **Loading & Feedback**: Consistent loading indicators, clearer error messages.
+    - [x] **Loading & Feedback**: Consistent loading indicators, clearer error messages for AI modals.
+    - [ ] **Visual Cues for AI-Generated Content:**
+        - [ ] Ensure AI-generated nodes (from panel or direct generation like "Summarize", "Rewrite") have a distinct visual style or icon via `CustomNodeComponent`.
+        - [ ] Define specific node `type`s (e.g., `ai-summary-node`, `ai-rewritten-node`, `ai-generated-child`) and map them to styles/icons in `CustomNodeComponent`.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
@@ -205,4 +223,3 @@ The main remaining area for full Supabase connection is:
 This covers a very large portion of the Supabase integration tasks. The application is now significantly more robust and data-driven.
 
 ```
-    
