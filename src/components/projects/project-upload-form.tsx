@@ -15,16 +15,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Added for userGoals
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types";
 import { ProjectSubmissionStatus } from "@/types";
-import { UploadCloud, Loader2, AlertTriangle, FileUp } from "lucide-react";
+import { UploadCloud, Loader2, AlertTriangle, FileUp, Brain } from "lucide-react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
 import { useAuth } from "@/contexts/auth-context";
-import { supabase } from "@/lib/supabaseClient"; // Import Supabase client
+import { supabase } from "@/lib/supabaseClient"; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,44 +36,44 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_FILE_SIZE_MB_FROM_ENV = parseInt(process.env.NEXT_PUBLIC_MAX_PROJECT_FILE_SIZE_MB || "10", 10);
+const MAX_FILE_SIZE = (MAX_FILE_SIZE_MB_FROM_ENV || 10) * 1024 * 1024; // Default 10MB if env var is missing/invalid
+
 const ACCEPTED_FILE_TYPES_MIME = [
-  "application/zip", 
-  "application/vnd.rar", 
-  "application/x-rar-compressed", 
-  "application/x-zip-compressed", 
-  "application/gzip", 
-  "application/x-tar", 
-  "application/octet-stream", 
+  "application/zip", "application/x-zip-compressed",
+  "application/vnd.rar", "application/x-rar-compressed", 
+  "application/gzip", "application/x-tar", 
+  "application/octet-stream", // Fallback for some archives
 ];
-const ACCEPTED_FILE_EXTENSIONS_STRING = ".zip, .rar, .tar.gz, .tgz";
+const ACCEPTED_FILE_EXTENSIONS_STRING = ".zip, .rar, .tar, .gz, .tgz";
 
 
 const NONE_CLASSROOM_VALUE = "_NONE_";
-const SUPABASE_PROJECT_ARCHIVES_BUCKET = 'project_archives'; // Define bucket name
+const SUPABASE_PROJECT_ARCHIVES_BUCKET = 'project_archives';
 
 const projectUploadSchema = z.object({
   projectFile: z
-    .custom<FileList>()
-    .refine((files) => files && files.length === 1, "Project archive file is required.")
+    .custom<FileList>((val) => val instanceof FileList, "Project archive file is required.")
+    .refine((files) => files && files.length === 1, "Exactly one project archive file is required.")
     .refine((files) => files && files[0].size <= MAX_FILE_SIZE, `Max file size is ${MAX_FILE_SIZE / (1024*1024)}MB.`)
     .refine(
       (files) => {
         if (!files || files.length === 0) return false;
         const file = files[0];
         const fileExtension = file.name.split('.').pop()?.toLowerCase();
-        const acceptedExtensions = ['zip', 'rar', 'gz', 'tgz', 'tar']; 
+        const acceptedExtensions = ['zip', 'rar', 'tar', 'gz', 'tgz']; 
         
-        if (ACCEPTED_FILE_TYPES_MIME.includes(file.type)) return true;
-        if (fileExtension && acceptedExtensions.includes(fileExtension)) return true;
-        if (file.name.endsWith('.tar.gz') && file.type === 'application/gzip') return true;
+        if (ACCEPTED_FILE_TYPES_MIME.includes(file.type)) return true; // Check MIME first
+        if (fileExtension && acceptedExtensions.includes(fileExtension)) return true; // Check extension
+        // Special case for .tar.gz or .tar.tgz where MIME might be just application/gzip
+        if ((file.name.endsWith('.tar.gz') || file.name.endsWith('.tar.tgz')) && file.type === 'application/gzip') return true;
 
         return false;
       },
-      `Accepted file types: ${ACCEPTED_FILE_EXTENSIONS_STRING}. If your .tar.gz or .tgz is not accepted, please try zipping it.`
+      `Accepted file types: ${ACCEPTED_FILE_EXTENSIONS_STRING}. Ensure your file has one of these extensions. If your .tar.gz or .tgz is not accepted, please try zipping it.`
     ),
   classroomId: z.string().optional(),
-  userGoals: z.string().max(500, "Goals/hints should be max 500 characters.").optional(), // Added userGoals field
+  userGoals: z.string().max(500, "Goals/hints should be max 500 characters.").optional(),
 });
 
 export function ProjectUploadForm() {
@@ -85,7 +85,6 @@ export function ProjectUploadForm() {
   const [availableClassrooms, setAvailableClassrooms] = useState<Classroom[]>([]);
   const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(false);
   const [errorLoadingClassrooms, setErrorLoadingClassrooms] = useState<string | null>(null);
-
 
   const [isConfirmAIDialogOpen, setIsConfirmAIDialogOpen] = useState(false);
   const [currentSubmissionForAI, setCurrentSubmissionForAI] = useState<ProjectSubmission | null>(null);
@@ -107,18 +106,16 @@ export function ProjectUploadForm() {
     } catch (err) {
       const errorMessage = (err as Error).message;
       setErrorLoadingClassrooms(errorMessage);
-      toast({ title: "Error Loading Classrooms", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoadingClassrooms(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       fetchAvailableClassrooms();
     }
   }, [user, fetchAvailableClassrooms]);
-
 
   const form = useForm<z.infer<typeof projectUploadSchema>>({
     resolver: zodResolver(projectUploadSchema),
@@ -144,7 +141,6 @@ export function ProjectUploadForm() {
         const errorData = await response.json();
         throw new Error(errorData.message || `Failed to update submission status to ${status}`);
       }
-      console.log(`Submission ${submissionId} status updated to ${status}`);
     } catch (error) {
       console.error(`Error updating submission status for ${submissionId}:`, error);
       throw error; 
@@ -153,35 +149,36 @@ export function ProjectUploadForm() {
 
   const onSubmit = useCallback(async (values: z.infer<typeof projectUploadSchema>) => {
     if (!user) {
-      toast({ title: "Authentication Error", description: "You must be logged in to submit a project.", variant: "destructive" });
+      toast({ title: "Authentication Error", description: "You must be logged in.", variant: "destructive" });
       return;
     }
-
+    if (!values.projectFile || values.projectFile.length === 0) {
+        toast({ title: "File Required", description: "Please select a project archive file.", variant: "destructive" });
+        return;
+    }
     const file = values.projectFile[0];
     let uploadedFilePath: string | null = null;
 
     setIsUploadingFile(true);
-    toast({ title: "Uploading File...", description: `Starting upload of "${file.name}".` });
+    toast({ title: "Uploading File...", description: `Starting upload of "${file.name}". Please wait.` });
     try {
-      const filePathInBucket = `user-${user.id}/${Date.now()}-${file.name}`; 
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'dat';
+      const filePathInBucket = `user-${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}.${fileExtension}`; 
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(SUPABASE_PROJECT_ARCHIVES_BUCKET)
-        .upload(filePathInBucket, file);
+        .upload(filePathInBucket, file, {
+          cacheControl: '3600',
+          upsert: false, 
+        });
 
-      if (uploadError) {
-        throw new Error(`Supabase Storage Error: ${uploadError.message}`);
-      }
-      if (!uploadData || !uploadData.path) {
-        throw new Error("File uploaded but no path returned from Supabase Storage.");
-      }
+      if (uploadError) throw new Error(`Supabase Storage Error: ${uploadError.message}`);
+      if (!uploadData || !uploadData.path) throw new Error("File uploaded but no path returned.");
+      
       uploadedFilePath = uploadData.path;
-      toast({ title: "File Upload Successful", description: `"${file.name}" uploaded to storage.` });
+      toast({ title: "File Upload Successful!", description: `"${file.name}" is securely stored.` });
     } catch (uploadError) {
-      toast({
-        title: "File Upload Failed",
-        description: (uploadError as Error).message,
-        variant: "destructive",
-      });
+      toast({ title: "File Upload Failed", description: (uploadError as Error).message, variant: "destructive" });
       setIsUploadingFile(false);
       return;
     }
@@ -202,100 +199,69 @@ export function ProjectUploadForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submissionPayload),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create submission record");
       }
-
       const newSubmission: ProjectSubmission = await response.json();
       
-      toast({
-        title: "Project Submission Record Created",
-        description: `Record for "${file.name}" created. Next, confirm AI analysis.`,
-      });
-      form.reset();
+      toast({ title: "Project Submitted", description: `Record for "${file.name}" created. Confirm AI analysis next.`});
+      form.reset(); 
       setCurrentSubmissionForAI(newSubmission);
-      setCurrentUserGoalsForAI(values.userGoals || undefined); // Store user goals for dialog
+      setCurrentUserGoalsForAI(values.userGoals || undefined);
       setIsConfirmAIDialogOpen(true);
-
     } catch (error) {
-      toast({
-        title: "Submission Record Creation Failed",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
+      toast({ title: "Submission Failed", description: (error as Error).message, variant: "destructive" });
     } finally {
       setIsSubmittingMetadata(false);
     }
-  }, [user, toast, form]);
+  }, [user, toast, form, router]); // Added router to dependencies
 
   const handleConfirmAIGeneration = useCallback(async () => {
     if (!currentSubmissionForAI || !user) return;
-
     setIsProcessingAIInDialog(true);
-    toast({ title: "AI Processing Started", description: `Analysis of "${currentSubmissionForAI.originalFileName}" is now processing...` });
+    toast({ title: "AI Processing Started", description: `Analysis of "${currentSubmissionForAI.originalFileName}" is starting...` });
 
     try {
       await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.PROCESSING);
-      
       const projectStoragePath = currentSubmissionForAI.fileStoragePath;
       if (!projectStoragePath) {
-          throw new Error("File storage path is missing from the submission record. Cannot proceed with AI analysis.");
+          throw new Error("File storage path is missing. Cannot proceed with AI analysis.");
       }
-      
-      // Use stored userGoals from the form, or a default if none were provided.
       const aiInputUserGoals = currentUserGoalsForAI || `Analyze the project: ${currentSubmissionForAI.originalFileName}`;
-
       const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals: aiInputUserGoals });
 
       let parsedMapData: ConceptMapData;
       try {
         parsedMapData = JSON.parse(mapResult.conceptMapData);
         if (!parsedMapData.nodes || !parsedMapData.edges) {
-            throw new Error("AI output is not in the expected map data format (missing nodes/edges).");
+            throw new Error("AI output format error (missing nodes/edges).");
         }
       } catch (parseError) {
-        throw new Error(`Failed to parse AI-generated map data: ${(parseError as Error).message}`);
+        throw new Error(`Failed to parse AI map data: ${(parseError as Error).message}`);
       }
 
       const newMapPayload = {
         name: `AI Map for ${currentSubmissionForAI.originalFileName.split('.')[0]}`,
-        ownerId: user.id,
-        mapData: parsedMapData,
-        isPublic: false,
+        ownerId: user.id, mapData: parsedMapData, isPublic: false,
         sharedWithClassroomId: currentSubmissionForAI.classroomId,
       };
-
       const mapCreateResponse = await fetch('/api/concept-maps', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMapPayload),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newMapPayload),
       });
-
       if (!mapCreateResponse.ok) {
         const errorData = await mapCreateResponse.json();
-        throw new Error(errorData.message || "Failed to save the AI-generated concept map.");
+        throw new Error(errorData.message || "Failed to save AI-generated map.");
       }
       const createdMap: ConceptMap = await mapCreateResponse.json();
-
       await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.COMPLETED, createdMap.id);
-
-      toast({
-        title: "AI Concept Map Generated",
-        description: `Map "${createdMap.name}" created from "${currentSubmissionForAI.originalFileName}" and linked.`,
-      });
-
+      toast({ title: "AI Map Generated!", description: `Map "${createdMap.name}" created and linked.`, duration: 7000 });
     } catch (aiError) {
-      console.error("AI Map Generation or Saving Error:", aiError);
+      console.error("AI Map Generation/Saving Error:", aiError);
       if (currentSubmissionForAI) {
-        await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing or map saving failed");
+        await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing failed");
       }
-      toast({
-        title: "AI Map Generation Failed",
-        description: (aiError as Error).message,
-        variant: "destructive",
-      });
+      toast({ title: "AI Map Generation Failed", description: (aiError as Error).message, variant: "destructive", duration: 7000 });
     } finally {
       setIsProcessingAIInDialog(false);
       setIsConfirmAIDialogOpen(false);
@@ -306,11 +272,12 @@ export function ProjectUploadForm() {
   }, [currentSubmissionForAI, user, toast, router, updateSubmissionStatusOnServer, currentUserGoalsForAI]);
 
   const handleDeclineAIGeneration = useCallback(() => {
+    toast({ title: "AI Analysis Skipped", description: `Your project "${currentSubmissionForAI?.originalFileName}" was submitted but AI analysis was not initiated. You can track it in 'My Submissions'.`, duration: 7000});
     setIsConfirmAIDialogOpen(false);
     setCurrentSubmissionForAI(null);
     setCurrentUserGoalsForAI(undefined);
     router.push("/application/student/projects/submissions");
-  }, [router]);
+  }, [router, currentSubmissionForAI?.originalFileName, toast]);
 
   const isBusy = isUploadingFile || isSubmittingMetadata || isProcessingAIInDialog;
 
@@ -321,15 +288,16 @@ export function ProjectUploadForm() {
           <FormField
             control={form.control}
             name="projectFile"
-            render={({ field }) => (
+            render={({ field: { onChange, ...fieldProps } }) => (
               <FormItem>
                 <FormLabel>Project Archive File</FormLabel>
                 <FormControl>
                   <Input
                     type="file"
                     accept={ACCEPTED_FILE_EXTENSIONS_STRING}
-                    onChange={(e) => field.onChange(e.target.files)}
+                    onChange={(e) => onChange(e.target.files)}
                     disabled={isBusy}
+                    {...fieldProps}
                   />
                 </FormControl>
                 <FormMessage />
@@ -354,7 +322,7 @@ export function ProjectUploadForm() {
                   />
                 </FormControl>
                 <FormMessage />
-                <p className="text-sm text-muted-foreground">Provide any specific goals or hints for the AI to focus on during analysis. Max 500 characters.</p>
+                <p className="text-sm text-muted-foreground">Provide hints for the AI. Max 500 characters.</p>
               </FormItem>
             )}
           />
@@ -364,32 +332,25 @@ export function ProjectUploadForm() {
             name="classroomId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Classroom (Optional)</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                  disabled={isBusy || isLoadingClassrooms || !!errorLoadingClassrooms}
-                >
+                <FormLabel>Share with Classroom (Optional)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || ""} disabled={isBusy || isLoadingClassrooms}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={
                         isLoadingClassrooms ? "Loading classrooms..." :
                         errorLoadingClassrooms ? "Error loading classrooms" :
+                        availableClassrooms.length === 0 ? "No classrooms enrolled" :
                         "Select a classroom (optional)"
                       } />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {isLoadingClassrooms ? (
-                      <SelectItem value="loading" disabled>Loading...</SelectItem>
-                    ) : errorLoadingClassrooms ? (
-                      <SelectItem value="error" disabled>Error loading</SelectItem>
-                    ) : (
+                    {isLoadingClassrooms && <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                    {errorLoadingClassrooms && <SelectItem value="error" disabled>Error loading</SelectItem>}
+                    {!isLoadingClassrooms && !errorLoadingClassrooms && (
                       <>
                         <SelectItem value={NONE_CLASSROOM_VALUE}>None (Personal Project)</SelectItem>
-                        {availableClassrooms.length === 0 && (
-                           <SelectItem value="no_classrooms" disabled>No classrooms enrolled</SelectItem>
-                        )}
+                        {availableClassrooms.length === 0 && <SelectItem value="no_classrooms_available" disabled>No classrooms enrolled in</SelectItem>}
                         {availableClassrooms.map((classroom) => (
                           <SelectItem key={classroom.id} value={classroom.id}>
                             {classroom.name}
@@ -411,31 +372,30 @@ export function ProjectUploadForm() {
           />
           <Button type="submit" className="w-full" disabled={isBusy || !form.formState.isValid}>
             {isUploadingFile ? <FileUp className="mr-2 h-4 w-4 animate-pulse" /> : isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-            {isUploadingFile ? "Uploading File..." : isSubmittingMetadata ? "Submitting Record..." : isProcessingAIInDialog ? "AI is Processing..." : "Submit Project Archive"}
+            {isUploadingFile ? "Uploading..." : isSubmittingMetadata ? "Submitting..." : isProcessingAIInDialog ? "AI Processing..." : "Submit Project"}
           </Button>
-          {isProcessingAIInDialog && <p className="text-sm text-center text-muted-foreground">AI analysis is processing via the dialog action. Please wait...</p>}
         </form>
       </Form>
 
       {currentSubmissionForAI && (
-        <AlertDialog open={isConfirmAIDialogOpen} onOpenChange={setIsConfirmAIDialogOpen}>
+        <AlertDialog open={isConfirmAIDialogOpen} onOpenChange={(open) => { if (!open && !isProcessingAIInDialog) { handleDeclineAIGeneration(); } setIsConfirmAIDialogOpen(open);}}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>AI Map Generation</AlertDialogTitle>
+              <AlertDialogTitle className="flex items-center"><Brain className="mr-2 h-5 w-5 text-primary"/> AI Concept Map Generation</AlertDialogTitle>
               <AlertDialogDescription>
-                Project archive record for "{currentSubmissionForAI.originalFileName}" created (and file uploaded).
-                {currentUserGoalsForAI && <span className="block mt-2 text-sm">Goals provided: "{currentUserGoalsForAI}"</span>}
-                Do you want to attempt to generate a concept map from this project? This may take a moment.
-                (Note: Analysis tool is currently mocked, but receives the real storage path and user goals).
+                Project archive "{currentSubmissionForAI.originalFileName}" has been successfully submitted (file uploaded to secure storage).
+                {currentUserGoalsForAI && <span className="block mt-2 text-sm">Analysis goals: "{currentUserGoalsForAI}"</span>}
+                <br/>Would you like to proceed with AI-powered concept map generation now? This may take a few moments.
+                <br/>(Note: The AI analysis tool is currently mocked, but it will receive the actual storage path and any user goals provided.)
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={handleDeclineAIGeneration} disabled={isProcessingAIInDialog}>
-                Later
+                No, Later
               </AlertDialogCancel>
               <AlertDialogAction onClick={handleConfirmAIGeneration} disabled={isProcessingAIInDialog}>
                 {isProcessingAIInDialog && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isProcessingAIInDialog ? "Generating..." : "Generate Map"}
+                {isProcessingAIInDialog ? "Generating..." : "Yes, Generate Map"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -444,4 +404,3 @@ export function ProjectUploadForm() {
     </>
   );
 }
-

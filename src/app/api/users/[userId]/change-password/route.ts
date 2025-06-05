@@ -1,8 +1,9 @@
+
 // src/app/api/users/[userId]/change-password/route.ts
 import { NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import type { Database } from '@/types/supabase'; // Make sure this path is correct
+import type { Database } from '@/types/supabase'; 
 
 export async function POST(request: Request, context: { params: { userId: string } }) {
   try {
@@ -29,15 +30,9 @@ export async function POST(request: Request, context: { params: { userId: string
     }
 
     if (authUser.id !== pathUserId) {
-      // For this app, only self-service password change is implemented for non-mock users.
-      // Mock users cannot change passwords via this endpoint.
+      // For this app, only self-service password change is implemented.
+      // Admins cannot change other users' passwords via this specific endpoint.
       return NextResponse.json({ message: "Forbidden: You can only change your own password." }, { status: 403 });
-    }
-
-    // Prevent password changes for predefined mock accounts (which don't exist in Supabase Auth anyway)
-    const mockUserIds = ["admin-mock-id", "student-test-id", "teacher-test-id"];
-    if (mockUserIds.includes(pathUserId)) {
-      return NextResponse.json({ message: "Forbidden: Password for pre-defined mock accounts cannot be changed." }, { status: 403 });
     }
     
     const { error: updateError } = await supabase.auth.updateUser({
@@ -52,7 +47,7 @@ export async function POST(request: Request, context: { params: { userId: string
       } else if (updateError.message.toLowerCase().includes("weak password")) {
         errorMessage = "Password is too weak. Please choose a stronger password.";
       }
-      return NextResponse.json({ message: errorMessage }, { status: 400 });
+      return NextResponse.json({ message: errorMessage }, { status: 400 }); // Use 400 for user input errors
     }
     
     return NextResponse.json({ message: "Password changed successfully." });

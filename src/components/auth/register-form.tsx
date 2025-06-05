@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -19,18 +20,21 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { UserRole } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  role: z.nativeEnum(UserRole),
+  role: z.nativeEnum(UserRole).refine(role => role !== UserRole.ADMIN, {
+    message: "Admin registration is not allowed through this form.", // Prevent client-side selection of Admin
+  }),
 });
 
 export function RegisterForm() {
-  const { register, isLoading } = useAuth();
+  const { register, isLoading: authIsLoading } = useAuth();
   const { toast } = useToast();
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,26 +42,36 @@ export function RegisterForm() {
       name: "",
       email: "",
       password: "",
-      role: UserRole.STUDENT,
+      role: UserRole.STUDENT, // Default to student, Admin role cannot be selected via UI
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (values.role === UserRole.ADMIN) {
+      toast({
+        title: "Registration Not Allowed",
+        description: "Admin accounts cannot be created through this form.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSubmittingForm(true);
     try {
       await register(values.name, values.email, values.password, values.role);
-      toast({
-        title: "Registration Successful",
-        description: "Your account has been created.",
-      });
-      // Redirect handled by AuthContext or page
+      // Toast for success/confirmation is handled in AuthContext or the page itself after redirect.
+      // AuthContext redirects to login page upon successful registration.
     } catch (error) {
       toast({
         title: "Registration Failed",
         description: (error as Error).message || "An unexpected error occurred.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmittingForm(false);
     }
   }
+
+  const currentLoadingState = authIsLoading || isSubmittingForm;
 
   return (
     <Form {...form}>
@@ -69,7 +83,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input placeholder="John Doe" {...field} disabled={currentLoadingState} autoComplete="name" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -82,7 +96,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="you@example.com" {...field} />
+                <Input placeholder="you@example.com" {...field} disabled={currentLoadingState} autoComplete="email"/>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -95,7 +109,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
+                <Input type="password" placeholder="•••••••• (min. 6 characters)" {...field} disabled={currentLoadingState} autoComplete="new-password"/>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -107,7 +121,11 @@ export function RegisterForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                onValueChange={(value) => field.onChange(value as UserRole)} 
+                defaultValue={field.value}
+                disabled={currentLoadingState}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your role" />
@@ -116,15 +134,16 @@ export function RegisterForm() {
                 <SelectContent>
                   <SelectItem value={UserRole.STUDENT}>Student</SelectItem>
                   <SelectItem value={UserRole.TEACHER}>Teacher</SelectItem>
-                  {/* <SelectItem value={UserRole.ADMIN}>Admin</SelectItem> */}
+                  {/* Admin role is intentionally omitted from public registration */}
                 </SelectContent>
               </Select>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Registering..." : <><UserPlus className="mr-2 h-4 w-4" /> Register</>}
+        <Button type="submit" className="w-full" disabled={currentLoadingState}>
+          {currentLoadingState ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+          {currentLoadingState ? "Registering..." : "Register"}
         </Button>
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}

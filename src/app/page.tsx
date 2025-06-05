@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -27,11 +28,11 @@ export default function HomePage() {
           default:
             // Fallback if role is somehow unknown, go to login
             console.warn("Authenticated user with unknown role, redirecting to login.");
-            router.replace('/login'); 
+            router.replace('/login'); // Assuming /login is the public auth page
         }
       } else {
         // Not authenticated and not loading, redirect to login page
-        router.replace('/login');
+        router.replace('/login'); // Assuming /login is the public auth page
       }
     }
   }, [isLoading, isAuthenticated, user, router]);

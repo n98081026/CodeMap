@@ -13,7 +13,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription, // Added FormDescription
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
@@ -25,14 +24,14 @@ import { LogIn, Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(1, { message: "Password is required." }), 
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }), 
   role: z.nativeEnum(UserRole),
 });
 
 export function LoginForm() {
   const { login, isLoading: authIsLoading } = useAuth(); 
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false); 
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false); 
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,29 +42,30 @@ export function LoginForm() {
     },
   });
 
-  const watchedRole = form.watch("role"); // Watch the role field
+  const watchedRole = form.watch("role");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true);
+    setIsSubmittingForm(true);
     try {
+      // The role from the form is used by AuthContext to verify against the fetched profile role.
       await login(values.email, values.password, values.role); 
       toast({
         title: "Login Successful",
-        description: "Welcome back!",
+        description: "Welcome back! Redirecting to your dashboard...",
       });
-      // Redirect handled by AuthContext or page effect
+      // Redirect is handled by AuthContext/page useEffect after successful Supabase sign-in & profile fetch.
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: (error as Error).message || "An unexpected error occurred.",
+        description: (error as Error).message || "An unexpected error occurred. Please check your credentials and role.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingForm(false);
     }
   }
   
-  const currentLoadingState = authIsLoading || isSubmitting;
+  const currentLoadingState = authIsLoading || isSubmittingForm;
 
   return (
     <Form {...form}>
@@ -77,7 +77,7 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="you@example.com" {...field} disabled={currentLoadingState} />
+                <Input placeholder="you@example.com" {...field} disabled={currentLoadingState} autoComplete="email" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -90,7 +90,7 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} disabled={currentLoadingState} />
+                <Input type="password" placeholder="••••••••" {...field} disabled={currentLoadingState} autoComplete="current-password" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -119,15 +119,17 @@ export function LoginForm() {
           )}
         />
 
+        {/* Note for Supabase login:
+            The email "admin@example.com" with password "adminpass" is for the MOCK admin if that's still in place.
+            For Supabase, users must be registered in your Supabase project.
+        */}
         {watchedRole === UserRole.ADMIN && (
           <div className="mt-2 text-xs text-muted-foreground p-3 border border-dashed rounded-md bg-background">
             <p className="font-semibold">Admin Login Note:</p>
-            <ul className="list-disc list-inside pl-2 mt-1 space-y-0.5">
-              <li>For the pre-configured mock admin, use email <code className="bg-muted px-1 py-0.5 rounded text-xs">admin@example.com</code> and password <code className="bg-muted px-1 py-0.5 rounded text-xs">adminpass</code>.</li>
-              <li>Other admin credentials must be registered in your Supabase project.</li>
-            </ul>
+            <p className="mt-1">Ensure your admin account is registered in the Supabase project with the 'admin' role.</p>
           </div>
         )}
+
 
         <Button type="submit" className="w-full" disabled={currentLoadingState}>
           {currentLoadingState ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}

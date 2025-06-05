@@ -1,3 +1,4 @@
+
 // src/services/projectSubmissions/projectSubmissionService.ts
 'use server';
 
@@ -125,7 +126,7 @@ export async function getSubmissionsByStudentId(studentId: string): Promise<Proj
 export async function getSubmissionsByClassroomId(classroomId: string): Promise<ProjectSubmission[]> {
   const { data, error } = await supabase
     .from('project_submissions')
-    .select('*')
+    .select('*, student:profiles(name)') // Example of fetching related student name
     .eq('classroom_id', classroomId)
     .order('submission_timestamp', { ascending: false });
 
@@ -136,6 +137,7 @@ export async function getSubmissionsByClassroomId(classroomId: string): Promise<
   return (data || []).map(s => ({
     id: s.id,
     studentId: s.student_id,
+    // studentName: (s.student as any)?.name || s.student_id, // Access related name
     originalFileName: s.original_file_name,
     fileSize: s.file_size,
     classroomId: s.classroom_id,
@@ -158,7 +160,7 @@ export async function updateSubmissionStatus(
 ): Promise<ProjectSubmission | null> {
   const updates: any = {
     analysis_status: status,
-    analysis_error: analysisError === undefined ? null : analysisError, // Handle undefined to set null explicitly
+    analysis_error: analysisError === undefined ? null : analysisError,
     generated_concept_map_id: generatedConceptMapId === undefined ? null : generatedConceptMapId,
     updated_at: new Date().toISOString(),
   };
@@ -192,20 +194,24 @@ export async function updateSubmissionStatus(
 
 /**
  * Retrieves all project submissions (e.g., for admin).
+ * Returns total count along with submissions for pagination.
  */
-export async function getAllSubmissions(): Promise<ProjectSubmission[]> {
-  const { data, error } = await supabase
+export async function getAllSubmissions(page: number = 1, limit: number = 10): Promise<{submissions: ProjectSubmission[], totalCount: number}> {
+  const { data, error, count } = await supabase
     .from('project_submissions')
-    .select('*')
-    .order('submission_timestamp', { ascending: false });
+    .select('*, student:profiles(name)', { count: 'exact' })
+    .order('submission_timestamp', { ascending: false })
+    .range((page - 1) * limit, page * limit - 1);
+
 
   if (error) {
     console.error('Supabase getAllSubmissions error:', error);
     throw new Error(`Failed to fetch all submissions: ${error.message}`);
   }
-  return (data || []).map(s => ({
+  const submissions = (data || []).map(s => ({
     id: s.id,
     studentId: s.student_id,
+    // studentName: (s.student as any)?.name || s.student_id,
     originalFileName: s.original_file_name,
     fileSize: s.file_size,
     classroomId: s.classroom_id,
@@ -215,4 +221,5 @@ export async function getAllSubmissions(): Promise<ProjectSubmission[]> {
     analysisError: s.analysis_error,
     generatedConceptMapId: s.generated_concept_map_id,
   }));
+  return {submissions, totalCount: count || 0};
 }

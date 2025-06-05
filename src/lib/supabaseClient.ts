@@ -6,10 +6,12 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl) {
-  throw new Error("Missing environment variable NEXT_PUBLIC_SUPABASE_URL");
+  console.error("CRITICAL: Missing environment variable NEXT_PUBLIC_SUPABASE_URL");
+  throw new Error("Missing environment variable NEXT_PUBLIC_SUPABASE_URL. Frontend cannot initialize Supabase.");
 }
 if (!supabaseAnonKey) {
-  throw new Error("Missing environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  console.error("CRITICAL: Missing environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  throw new Error("Missing environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY. Frontend cannot initialize Supabase.");
 }
 
 // Create a single supabase client for interacting with your database
@@ -19,3 +21,4 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 // after you define your database schema.
 // Run: npx supabase gen types typescript --project-id <your-project-id> --schema public > src/types/supabase.ts
 // Make sure to replace <your-project-id> with your actual project ID.
+// If you see type errors related to 'Database', it's likely because this file hasn't been generated or is incorrect.

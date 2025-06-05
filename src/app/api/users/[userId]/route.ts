@@ -1,24 +1,29 @@
+
 // src/app/api/users/[userId]/route.ts
 import { NextResponse } from 'next/server';
 import { getUserById, updateUser, deleteUser } from '@/services/users/userService';
-import type { UserRole } from '@/types'; // User type is implicitly handled by service
+import type { UserRole } from '@/types';
 // For enhanced security, verify session and admin role for PUT/DELETE
+// This would typically involve checking the session user's role from their profile.
+// Example (conceptual - AuthContext/middleware would handle this more robustly):
 // import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 // import { cookies } from 'next/headers';
-// import { UserRole as AppUserRole } from '@/types';
-
+// import { UserRole as AppUserRoleType } from '@/types';
 // async function isAdmin(request: Request): Promise<boolean> {
 //   const cookieStore = cookies();
 //   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 //   const { data: { user: authUser } } = await supabase.auth.getUser();
 //   if (!authUser) return false;
-//   const profile = await getUserById(authUser.id);
-//   return profile?.role === AppUserRole.ADMIN;
+//   const profile = await getUserById(authUser.id); // This service call is fine
+//   return profile?.role === AppUserRoleType.ADMIN;
 // }
 
 export async function GET(request: Request, context: { params: { userId: string } }) {
   try {
-    // Could add auth check here: if (!await isAdmin(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    // Authorization: Typically, only admins or the user themselves should get profile data.
+    // Supabase RLS policies should enforce this at the database level.
+    // Example check: if (!await isAdmin(request) && sessionUserId !== pathUserId) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+
     const { userId } = context.params;
     const user = await getUserById(userId);
     if (!user) {
@@ -33,7 +38,10 @@ export async function GET(request: Request, context: { params: { userId: string 
 
 export async function PUT(request: Request, context: { params: { userId: string } }) {
   try {
-    // if (!await isAdmin(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    // Authorization: Only admins or the user themselves should update profile data.
+    // RLS should be the primary enforcer.
+    // Example check: if (!await isAdmin(request) && sessionUserId !== pathUserId) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+
     const { userId } = context.params;
     const updates = await request.json() as { name?: string; email?: string; role?: UserRole };
 
@@ -41,11 +49,10 @@ export async function PUT(request: Request, context: { params: { userId: string 
         return NextResponse.json({ message: "No updates provided" }, { status: 400 });
     }
     
-    // The userService.updateUser has logic to prevent editing mock user emails/roles.
-    // It also handles checks for email uniqueness if email is being updated.
+    // The userService.updateUser has logic to handle specific update constraints (e.g., mock users).
     const updatedUser = await updateUser(userId, updates);
     if (!updatedUser) {
-      // This might occur if getUserById inside updateUser returns null, meaning user was deleted.
+      // This might occur if getUserById inside updateUser returns null, e.g., user was deleted concurrently.
       return NextResponse.json({ message: "User not found or update failed" }, { status: 404 });
     }
     return NextResponse.json(updatedUser);
@@ -55,7 +62,7 @@ export async function PUT(request: Request, context: { params: { userId: string 
       return NextResponse.json({ message: errorMessage }, { status: 409 }); // Conflict
     }
     if (errorMessage.includes("Cannot change email or role for pre-defined mock users")) {
-        return NextResponse.json({message: errorMessage}, {status: 403});
+        return NextResponse.json({message: errorMessage}, {status: 403}); // Forbidden
     }
     return NextResponse.json({ message: `Failed to update user: ${errorMessage}` }, { status: 500 });
   }
@@ -63,7 +70,10 @@ export async function PUT(request: Request, context: { params: { userId: string 
 
 export async function DELETE(request: Request, context: { params: { userId: string } }) {
   try {
-    // if (!await isAdmin(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    // Authorization: Only admins should typically delete users.
+    // RLS should enforce this.
+    // Example check: if (!await isAdmin(request)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    
     const { userId } = context.params;
     
     // userService.deleteUser has logic to prevent deleting mock users.
@@ -72,11 +82,12 @@ export async function DELETE(request: Request, context: { params: { userId: stri
       // This implies the user was not found by the service (or RLS prevented it).
       return NextResponse.json({ message: "User not found or deletion failed" }, { status: 404 });
     }
-    return NextResponse.json({ message: "User's profile deleted successfully. Associated auth user may need manual deletion if not cascaded." });
+    // Note: Deleting from 'profiles' doesn't delete from 'auth.users'. That requires Supabase Admin SDK or manual deletion.
+    return NextResponse.json({ message: "User's profile deleted successfully. Associated auth user may need separate handling." });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
      if (errorMessage.includes("Pre-defined test user profiles cannot be deleted")) {
-      return NextResponse.json({ message: errorMessage }, { status: 403 });
+      return NextResponse.json({ message: errorMessage }, { status: 403 }); // Forbidden
     }
     return NextResponse.json({ message: `Failed to delete user: ${errorMessage}` }, { status: 500 });
   }
