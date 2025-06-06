@@ -35,6 +35,7 @@ export interface ConceptMapNode {
   details?: string;
   x?: number; 
   y?: number; 
+  parentNode?: string; // Added for hierarchical relationships
 }
 
 export interface ConceptMapEdge {
@@ -107,3 +108,4 @@ export interface SystemSettings {
 }
 
 export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>;
+

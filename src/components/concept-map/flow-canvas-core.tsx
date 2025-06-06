@@ -2,10 +2,11 @@
 "use client";
 
 import React, { useEffect, useCallback } from 'react';
-import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes } from 'reactflow';
+import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes, useReactFlow } from 'reactflow';
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
+import useConceptMapStore from '@/stores/concept-map-store'; // Import the store
 
 export interface RFConceptMapEdgeData {
   label?: string;
@@ -26,6 +27,7 @@ interface FlowCanvasCoreProps {
   onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
   onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
+  // No onPaneDoubleClick prop here, it's handled internally by calling addNode from store
 }
 
 const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
@@ -42,6 +44,8 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 }) => {
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>([]);
+  const { addNode: addNodeToStore } = useConceptMapStore(); // Get addNode action
+  const reactFlowInstance = useReactFlow(); // Hook to get instance
 
   useEffect(() => {
     const transformedNodes = (mapDataFromStore.nodes || []).map(appNode => ({
@@ -50,9 +54,10 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       data: { label: appNode.text, details: appNode.details, type: appNode.type || 'default' },
       position: { x: appNode.x ?? Math.random() * 400, y: appNode.y ?? Math.random() * 300 },
       draggable: !isViewOnlyMode,
-      selectable: true, // Selection still allowed for properties view
+      selectable: true,
       connectable: !isViewOnlyMode,
       dragHandle: '.cursor-move',
+      parentNode: appNode.parentNode, // Pass parentNode
     }));
     setRfNodes(transformedNodes as RFNode<CustomNodeData>[]);
 
@@ -69,7 +74,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' },
       updatable: !isViewOnlyMode,
       deletable: !isViewOnlyMode,
-      selectable: true, // Selection still allowed
+      selectable: true,
     }));
     setRfEdges(transformedEdges as RFEdge<RFConceptMapEdgeData>[]);
   }, [mapDataFromStore, setRfNodes, setRfEdges, isViewOnlyMode]);
@@ -119,7 +124,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       target: params.target!,
       sourceHandle: params.sourceHandle,
       targetHandle: params.targetHandle,
-      label: "connects" // Default label, can be changed in PropertiesInspector
+      label: "connects" 
     });
   }, [isViewOnlyMode, onConnectInStore]);
 
@@ -140,6 +145,27 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     }
   }, [onSelectionChange, onMultiNodeSelectionChange]);
 
+  const handlePaneDoubleClickInternal = useCallback((event: React.MouseEvent) => {
+    if (isViewOnlyMode) return;
+    const position = reactFlowInstance.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+    const newNodeId = addNodeToStore({
+      text: `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`,
+      type: 'manual-node',
+      position,
+      details: '',
+      // parentNode will be undefined for floating nodes
+    });
+    // Optionally, select the new node
+     if (onSelectionChange) {
+        onSelectionChange(newNodeId, 'node');
+     }
+
+  }, [isViewOnlyMode, addNodeToStore, reactFlowInstance, onSelectionChange]);
+
+
   return (
     <InteractiveCanvas
       nodes={rfNodes}
@@ -154,6 +180,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       nodeTypes={nodeTypesConfig}
       onNodeContextMenu={onNodeContextMenu}
       onNodeDragStop={handleNodeDragStopInternal}
+      onPaneDoubleClick={handlePaneDoubleClickInternal} // Pass the internal handler
     />
   );
 };

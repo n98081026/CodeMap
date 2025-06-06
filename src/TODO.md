@@ -59,7 +59,7 @@
 ## Frontend Enhancements
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
-- [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
+- [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
 - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`.
 - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
     - [ ] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse, etc.) from `PropertiesInspector` or a context menu.
@@ -69,7 +69,7 @@
 - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
 
 ### Whimsical-Inspired Editor UX Enhancements
-- [ ] **Floating Node Creation**: Implement double-click on canvas to create a new node at mouse position. (Check React Flow's `onPaneDoubleClick` or similar). Node should auto-focus for text input.
+- [x] **Floating Node Creation**: Implement double-click on canvas to create a new node at mouse position. Node should auto-focus for text input (auto-focus pending).
 - [ ] **Child Node Creation via "+" Hover Buttons**:
     - [ ] Display "+" icons (or similar intuitive indicators) on node hover (e.g., all four sides, or specific connection points).
     - [ ] Clicking "+" adds a new child node in that direction, automatically connects it.
@@ -186,7 +186,7 @@
 - [ ] **Interactions:**
     - [ ] **Event Throttling/Debouncing:** For frequent events like `mousemove` (dragging) or `wheel` (zooming), ensure updates are throttled using `requestAnimationFrame` or similar techniques to prevent excessive re-renders. (React Flow likely handles this internally, verify for custom interactions).
 - [ ] **Data Handling & General:**
-    - [x] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate. (Task added to TODO, implementation pending user request)
+    - [ ] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
     - [ ] **Large List Rendering:** For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
     - [ ] **React Component Memoization:** Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (Some already done, can be an ongoing process).
     - [ ] **Code Splitting:** Use `next/dynamic` for heavy components or libraries not needed on initial load (already done for `FlowCanvasCore`, review for others).
@@ -221,7 +221,7 @@ This section outlines tasks to fully migrate to Supabase.
 
 **5. Project Submission & Analysis with Supabase**
 - [x] **`project_submissions` Table:** (User needs to create + RLS, and add `file_storage_path TEXT NULLABLE` column).
-- [x] **Supabase Storage Setup:** (User needs to create bucket `project_archives` + RLS that allows authenticated users to upload to path `user-&lt;user_id&gt;/*`).
+- [x] **Supabase Storage Setup:** (User needs to create bucket `project_archives` + RLS that allows authenticated users to upload to path `user-<user_id>/*`).
 - [x] **`projectSubmissionService.ts` Refactor:** (Complete: All submission service functions use Supabase, respects BYPASS_AUTH_FOR_TESTING, including `fileStoragePath`).
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete via `ProjectUploadForm` and `useSupabaseStorageUpload` hook).
 - [x] **Connect frontend student submissions list to live API.**
@@ -252,6 +252,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
+- Floating node creation via double-click on canvas is implemented. `parentNode` field added to `ConceptMapNode` type.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.

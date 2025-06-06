@@ -16,6 +16,8 @@ import ReactFlow, {
   type SelectionChanges,
   type Connection,
   type NodeTypes,
+  type Viewport,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
@@ -35,6 +37,7 @@ interface InteractiveCanvasProps {
   nodeTypes?: NodeTypes;
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
+  onPaneDoubleClick?: (event: React.MouseEvent) => void; // New prop
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -68,7 +71,16 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   nodeTypes,
   onNodeContextMenu,
   onNodeDragStop,
+  onPaneDoubleClick, // Destructure new prop
 }) => {
+  const { screenToFlowPosition } = useReactFlow(); // Hook for coordinate conversion
+
+  const handlePaneDoubleClick = (event: React.MouseEvent) => {
+    if (isViewOnlyMode || !onPaneDoubleClick) return;
+    // Use screenToFlowPosition if available, otherwise pass the raw event
+    // The core logic will use project if instance is available
+    onPaneDoubleClick(event);
+  };
 
   return (
     <Card className="h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden">
@@ -85,20 +97,19 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         fitViewOptions={fitViewOptions}
         nodesDraggable={!isViewOnlyMode}
         nodesConnectable={!isViewOnlyMode}
-        elementsSelectable={true} // Keep selectable for property viewing
+        elementsSelectable={true} 
         deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
         className="bg-background"
         proOptions={{ hideAttribution: true }}
         nodeTypes={nodeTypes}
         onNodeContextMenu={onNodeContextMenu}
         onNodeDragStop={onNodeDragStop}
-        // Allow pan and zoom in view-only mode for navigation
+        onPaneDoubleClick={handlePaneDoubleClick} // Pass to ReactFlow
         panOnDrag={true} 
         zoomOnScroll={true}
         zoomOnPinch={true}
-        zoomOnDoubleClick={!isViewOnlyMode} // Double click zoom might be an edit action
+        zoomOnDoubleClick={!isViewOnlyMode} 
         selectionOnDrag={!isViewOnlyMode}
-        // paneMoveable={true} // Always allow pane movement for navigation
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />

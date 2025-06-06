@@ -33,7 +33,6 @@ interface ConceptMapState {
 
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
-  // aiExpandedConcepts: string[]; // Removed as "Expand Concept" now adds directly
 
   // Actions
   setMapId: (id: string | null) => void;
@@ -53,12 +52,10 @@ interface ConceptMapState {
 
   setAiExtractedConcepts: (concepts: string[]) => void;
   setAiSuggestedRelations: (relations: Array<{ source: string; target: string; relation: string }>) => void;
-  // setAiExpandedConcepts: (concepts: string[]) => void; // Removed
   resetAiSuggestions: () => void;
   
   removeExtractedConceptsFromSuggestions: (conceptsToRemove: string[]) => void;
   removeSuggestedRelationsFromSuggestions: (relationsToRemove: Array<{ source: string; target: string; relation: string }>) => void;
-  // removeExpandedConceptsFromSuggestions: (conceptsToRemove: string[]) => void; // Removed
 
   initializeNewMap: (userId: string) => void;
   setLoadedMap: (map: ConceptMap) => void;
@@ -66,7 +63,7 @@ interface ConceptMapState {
   resetStore: () => void;
 
   // Granular actions for map data
-  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string }) => string; 
+  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string; parentNode?: string }) => string; 
   updateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   deleteNode: (nodeId: string) => void;
   
@@ -104,7 +101,6 @@ const initialStateBase: Omit<ConceptMapState,
   multiSelectedNodeIds: [], 
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
-  // aiExpandedConcepts: [], // Removed
 };
 
 
@@ -130,8 +126,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       
       setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
       setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
-      // setAiExpandedConcepts: (concepts) => set({ aiExpandedConcepts: concepts }), // Removed
-      resetAiSuggestions: () => set({ aiExtractedConcepts: [], aiSuggestedRelations: [] }), // Removed aiExpandedConcepts
+      resetAiSuggestions: () => set({ aiExtractedConcepts: [], aiSuggestedRelations: [] }),
 
       removeExtractedConceptsFromSuggestions: (conceptsToRemove) => set((state) => ({
         aiExtractedConcepts: state.aiExtractedConcepts.filter(concept => !conceptsToRemove.includes(concept))
@@ -143,9 +138,6 @@ export const useConceptMapStore = create<ConceptMapState>()(
           )
         )
       })),
-      // removeExpandedConceptsFromSuggestions: (conceptsToRemove) => set((state) => ({ // Removed
-      //   aiExpandedConcepts: state.aiExpandedConcepts.filter(concept => !conceptsToRemove.includes(concept))
-      // })),
 
       initializeNewMap: (userId) => {
         const newMapState = {
@@ -178,9 +170,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isLoading: false,
           error: null,
           multiSelectedNodeIds: [], 
-          aiExtractedConcepts: [], // Reset on load
-          aiSuggestedRelations: [], // Reset on load
-          // aiExpandedConcepts: [], // Removed
+          aiExtractedConcepts: [], 
+          aiSuggestedRelations: [], 
         });
         useConceptMapStore.temporal.getState().clear();
       },
@@ -196,7 +187,6 @@ export const useConceptMapStore = create<ConceptMapState>()(
           multiSelectedNodeIds: [], 
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
-          // aiExpandedConcepts: [], // Removed
           mapId: state.isNewMapMode ? 'new' : state.mapId, 
           isNewMapMode: state.isNewMapMode, 
           isLoading: false,
@@ -218,6 +208,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           x: options.position.x,
           y: options.position.y,
           details: options.details || '',
+          parentNode: options.parentNode, // Include parentNode
         };
         set((state) => ({ mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } }));
         return newNode.id; 
@@ -233,7 +224,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })),
 
       deleteNode: (nodeId) => set((state) => {
-        const newNodes = state.mapData.nodes.filter((node) => node.id !== nodeId);
+        const newNodes = state.mapData.nodes.filter((node) => node.id !== nodeId && node.parentNode !== nodeId); // Also remove children
         const newEdges = state.mapData.edges.filter(
           (edge) => edge.source !== nodeId && edge.target !== nodeId
         );

@@ -75,6 +75,7 @@ export default function ConceptMapEditorPage() {
 
   const { saveMap } = useConceptMapDataManager({ routeMapId, user });
 
+  const aiToolsHook = useConceptMapAITools(isViewOnlyMode);
   const {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen, conceptsForRelationSuggestion, openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
@@ -84,9 +85,10 @@ export default function ConceptMapEditorPage() {
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
     isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
     handleSummarizeSelectedNodes,
-    addStoreNode: addNodeFromHook, 
+    addStoreNode: addNodeFromHook, // Renamed for clarity, as store has its own addNode
     addStoreEdge: addEdgeFromHook,
-  } = useConceptMapAITools(isViewOnlyMode);
+    // getNodePlacementPosition // This comes from aiToolsHook directly
+  } = aiToolsHook;
 
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
@@ -109,15 +111,14 @@ export default function ConceptMapEditorPage() {
     setStoreMultiSelectedNodeIds(nodeIds);
   }, [setStoreMultiSelectedNodeIds]);
   
-  const aiToolsHook = useConceptMapAITools(isViewOnlyMode);
-
   const handleAddNodeToData = useCallback(() => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
+    // Use getNodePlacementPosition from the hook directly
     const { x, y } = aiToolsHook.getNodePlacementPosition(useConceptMapStore.getState().mapData.nodes.length, 1);
     addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
-  }, [isViewOnlyMode, toast, aiToolsHook, addNodeFromHook]);
+  }, [isViewOnlyMode, toast, aiToolsHook, addNodeFromHook]); // addNodeFromHook comes from aiToolsHook
 
   const handleAddEdgeToData = useCallback(() => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
@@ -127,7 +128,7 @@ export default function ConceptMapEditorPage() {
     if (!sourceNode || !targetNode) { toast({ title: "Error Adding Edge", description: "Source or target node for edge not found.", variant: "destructive"}); return; }
     addEdgeFromHook({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
     toast({ title: "Edge Added" });
-  }, [isViewOnlyMode, toast, addEdgeFromHook]);
+  }, [isViewOnlyMode, toast, addEdgeFromHook]); // addEdgeFromHook comes from aiToolsHook
 
   const getRoleBasedDashboardLink = useCallback(() => { return user ? `/application/${user.role}/dashboard` : '/login'; }, [user]);
   const getBackLink = useCallback(() => { return user && user.role === UserRole.TEACHER ? "/application/teacher/classrooms" : "/application/student/concept-maps"; }, [user]);
@@ -194,8 +195,8 @@ export default function ConceptMapEditorPage() {
   const handleSelectedElementPropertyUpdateInspector = useCallback((updates: any) => {
     if (isViewOnlyMode || !selectedElementId || !selectedElementType ) return;
     if (selectedElementType === 'node') updateStoreNode(selectedElementId, updates);
-    else if (selectedElementType === 'edge') updateStoreEdge(selectedElementId, updates);
-  }, [isViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
+    else if (selectedElementType === 'edge') updateEdge(selectedElementId, updates);
+  }, [isViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateEdge]);
 
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
   if (storeError) { return <div className="p-4 text-destructive flex flex-col items-center justify-center h-full gap-4"><AlertTriangle className="h-10 w-10" /> <p>{storeError}</p> <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
@@ -212,7 +213,7 @@ export default function ConceptMapEditorPage() {
         {!isViewOnlyMode && <Button onClick={() => saveMap(isViewOnlyMode)} disabled={isStoreSaving || isViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
         <Button asChild variant="outline"><Link href={getBackLink()}><ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}</Link></Button>
       </DashboardHeader>
-      <ReactFlowProvider>
+      <ReactFlowProvider> {/* Important: Wrap any component using useReactFlow (like FlowCanvasCore) */}
         <EditorToolbar
           onNewMap={handleNewMap} onSaveMap={() => saveMap(isViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
           onExtractConcepts={() => openExtractConceptsModal(selectedElementId || undefined)} 
@@ -230,7 +231,7 @@ export default function ConceptMapEditorPage() {
               mapDataFromStore={storeMapData} isViewOnlyMode={isViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange} onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode} onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={(edgeId) => { if (!isViewOnlyMode) updateStoreEdge(edgeId, {}); }} // Using update to trigger history for deletion
+              onEdgesDeleteInStore={(edgeId) => { if (!isViewOnlyMode) updateEdge(edgeId, {}); }} 
               onConnectInStore={addEdgeFromHook}
               onNodeContextMenu={handleNodeContextMenu}
               onNodeDragStop={ (event, node) => { if (!isViewOnlyMode && node.position && typeof node.position.x === 'number' && typeof node.position.y === 'number') updateStoreNode(node.id, { x: node.position.x, y: node.position.y }); }}
