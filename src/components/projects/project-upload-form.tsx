@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types";
 import { ProjectSubmissionStatus } from "@/types";
-import { UploadCloud, Loader2, AlertTriangle, FileUp, Brain, Zap } from "lucide-react";
+import { UploadCloud, Loader2, AlertTriangle, FileUp, Brain, Zap, TestTube } from "lucide-react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
 import { useAuth } from "@/contexts/auth-context";
 import { useSupabaseStorageUpload } from "@/hooks/useSupabaseStorageUpload"; 
@@ -35,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BYPASS_AUTH_FOR_TESTING } from '@/lib/config'; // Import bypass flag
+import { BYPASS_AUTH_FOR_TESTING } from '@/lib/config';
 
 const MAX_FILE_SIZE_MB_FROM_ENV = parseInt(process.env.NEXT_PUBLIC_MAX_PROJECT_FILE_SIZE_MB || "10", 10);
 const MAX_FILE_SIZE = (MAX_FILE_SIZE_MB_FROM_ENV || 10) * 1024 * 1024; 
@@ -51,6 +51,8 @@ const ACCEPTED_FILE_EXTENSIONS_STRING = ".zip, .rar, .tar, .gz, .tgz";
 
 const NONE_CLASSROOM_VALUE = "_NONE_";
 const SUPABASE_PROJECT_ARCHIVES_BUCKET = 'project_archives';
+const FIXED_MOCK_PROJECT_HINT = "_USE_FIXED_MOCK_PROJECT_A_";
+
 
 const projectUploadSchema = z.object({
   projectFile: z
@@ -71,7 +73,7 @@ const projectUploadSchema = z.object({
         return false;
       },
       `Accepted file types: ${ACCEPTED_FILE_EXTENSIONS_STRING}. Ensure your file has one of these extensions. If your .tar.gz or .tgz is not accepted, please try zipping it.`
-    ).optional(), // Make optional for dev button
+    ).optional(),
   classroomId: z.string().optional(),
   userGoals: z.string().max(500, "Goals/hints should be max 500 characters.").optional(),
 });
@@ -96,7 +98,7 @@ export function ProjectUploadForm() {
   const [currentSubmissionForAI, setCurrentSubmissionForAI] = useState<ProjectSubmission | null>(null);
   const [currentUserGoalsForAI, setCurrentUserGoalsForAI] = useState<string | undefined>(undefined);
   const [isProcessingAIInDialog, setIsProcessingAIInDialog] = useState(false);
-  const [isDevGenerating, setIsDevGenerating] = useState(false);
+  const [isDevGenerating, setIsDevGenerating] = useState(false); // For any dev button
 
   const fetchAvailableClassrooms = useCallback(async () => {
     if (!user) return;
@@ -165,6 +167,7 @@ export function ProjectUploadForm() {
       if (!projectStoragePath) {
           throw new Error("File storage path is missing. Cannot proceed with AI analysis.");
       }
+      
       const aiInputUserGoals = userGoals || `Analyze the project: ${submission.originalFileName}`;
       const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals: aiInputUserGoals });
 
@@ -221,7 +224,7 @@ export function ProjectUploadForm() {
     const uploadedFilePath = await uploadFile({ file, filePathInBucket });
 
     if (!uploadedFilePath) {
-      return;
+      return; // uploadFile hook handles toast for upload failure
     }
 
     setIsSubmittingMetadata(true);
@@ -279,15 +282,55 @@ export function ProjectUploadForm() {
     router.push("/application/student/projects/submissions");
   }, [router, currentSubmissionForAI?.originalFileName, toast]);
 
-  const handleDevGenerateAIMap = useCallback(async () => {
+  const handleDevTestFixedMock = useCallback(async () => {
     if (!user) {
       toast({ title: "Auth Error", description: "User not found for dev generation.", variant: "destructive" });
       return;
     }
     setIsDevGenerating(true);
-    const mockProjectName = "Dev Mock Project.zip";
-    const mockStoragePath = "mock/dev-test-project.zip"; 
-    const mockUserGoals = form.getValues("userGoals") || "Dev test: Analyze key components and data flow.";
+    const mockFileName = "Fixed E-Commerce Mock.zip";
+    const mockStoragePath = "fixed_mock/e_commerce_project.zip";
+    const userGoalsForFixedMock = FIXED_MOCK_PROJECT_HINT; // Use the special hint
+
+    const submissionPayload = {
+      studentId: user.id,
+      originalFileName: mockFileName,
+      fileSize: 2 * 1024 * 1024, // e.g., 2MB
+      classroomId: form.getValues("classroomId") === NONE_CLASSROOM_VALUE ? null : (form.getValues("classroomId") || null),
+      fileStoragePath: mockStoragePath,
+    };
+
+    try {
+      const subResponse = await fetch('/api/projects/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submissionPayload),
+      });
+      if (!subResponse.ok) {
+        const errorData = await subResponse.json();
+        throw new Error(errorData.message || "Failed to create fixed mock submission record");
+      }
+      const newSubmission: ProjectSubmission = await subResponse.json();
+      toast({ title: "Fixed Mock Submission Created", description: `ID: ${newSubmission.id}` });
+
+      await processAISteps(newSubmission, userGoalsForFixedMock);
+      router.push("/application/student/projects/submissions");
+    } catch (error) {
+      toast({ title: "Fixed Mock AI Map Gen Failed", description: (error as Error).message, variant: "destructive", duration: 8000 });
+    } finally {
+      setIsDevGenerating(false);
+    }
+  }, [user, toast, form, processAISteps, router]);
+
+  const handleDevGenerateAIMapWithHint = useCallback(async () => {
+    if (!user) {
+      toast({ title: "Auth Error", description: "User not found for dev generation.", variant: "destructive" });
+      return;
+    }
+    setIsDevGenerating(true);
+    const mockProjectName = "Dev Hint-Based Project.zip";
+    const mockStoragePath = "mock/dev-hint-project.zip"; 
+    const userGoalsFromForm = form.getValues("userGoals") || "Dev test: Analyze key components and data flow based on hint.";
 
     const submissionPayload = {
       studentId: user.id,
@@ -308,13 +351,13 @@ export function ProjectUploadForm() {
         throw new Error(errorData.message || "Failed to create mock submission record");
       }
       const newSubmission: ProjectSubmission = await subResponse.json();
-      toast({ title: "Mock Submission Created", description: `ID: ${newSubmission.id}` });
+      toast({ title: "Hint Mock Submission Created", description: `ID: ${newSubmission.id}` });
 
-      await processAISteps(newSubmission, mockUserGoals);
+      await processAISteps(newSubmission, userGoalsFromForm);
       router.push("/application/student/projects/submissions");
 
     } catch (error) {
-      toast({ title: "Dev AI Map Gen Failed", description: (error as Error).message, variant: "destructive", duration: 8000 });
+      toast({ title: "Dev Hint AI Map Gen Failed", description: (error as Error).message, variant: "destructive", duration: 8000 });
     } finally {
       setIsDevGenerating(false);
     }
@@ -356,7 +399,7 @@ export function ProjectUploadForm() {
                 <FormLabel>Analysis Goals/Hints (Optional)</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="e.g., Focus on API routes, user authentication flow, or key data models."
+                    placeholder="e.g., Focus on API routes, user authentication flow, or key data models. For Dev Hint Button, try 'e-commerce', 'data pipeline', 'ui library'."
                     {...field}
                     rows={3}
                     className="resize-none"
@@ -418,10 +461,17 @@ export function ProjectUploadForm() {
           </Button>
           
           {BYPASS_AUTH_FOR_TESTING && (
-            <Button type="button" variant="outline" className="w-full mt-4" onClick={handleDevGenerateAIMap} disabled={isBusyOverall}>
-              {isDevGenerating || isProcessingAIInDialog ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
-              Dev: Quick AI Map Gen (Mock Project)
-            </Button>
+            <div className="space-y-2 pt-4 border-t">
+                <p className="text-sm font-medium text-muted-foreground text-center">Developer Test Options (Bypass Mode)</p>
+                <Button type="button" variant="secondary" className="w-full" onClick={handleDevGenerateAIMapWithHint} disabled={isBusyOverall}>
+                    {isDevGenerating && !isProcessingAIInDialog ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+                    Dev: AI Map (Hint-Based Mock)
+                </Button>
+                <Button type="button" variant="secondary" className="w-full" onClick={handleDevTestFixedMock} disabled={isBusyOverall}>
+                    {isDevGenerating && isProcessingAIInDialog ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TestTube className="mr-2 h-4 w-4" />}
+                    Dev: AI Map (Fixed Mock Project)
+                </Button>
+            </div>
           )}
         </form>
       </Form>
@@ -432,7 +482,7 @@ export function ProjectUploadForm() {
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center"><Brain className="mr-2 h-5 w-5 text-primary"/> AI Concept Map Generation</AlertDialogTitle>
               <AlertDialogDescription>
-                Project archive "{currentSubmissionForAI.originalFileName}" has been successfully submitted (file uploaded to secure storage).
+                Project archive "{currentSubmissionForAI.originalFileName}" has been successfully submitted.
                 {currentUserGoalsForAI && <span className="block mt-2 text-sm">Analysis goals: "{currentUserGoalsForAI}"</span>}
                 <br/>Would you like to proceed with AI-powered concept map generation now? This may take a few moments.
               </AlertDialogDescription>
@@ -452,5 +502,3 @@ export function ProjectUploadForm() {
     </>
   );
 }
-
-    

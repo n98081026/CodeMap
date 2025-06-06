@@ -78,24 +78,73 @@ export const ProjectAnalysisOutputSchema = z.object({
 });
 export type ProjectAnalysisOutput = z.infer<typeof ProjectAnalysisOutputSchema>;
 
+// Define a detailed, fixed mock project analysis output
+const FIXED_MOCK_PROJECT_A_ANALYSIS: ProjectAnalysisOutput = {
+  projectName: "Fixed Mock E-Commerce API",
+  inferredLanguagesFrameworks: [
+    { name: "TypeScript", confidence: "high" },
+    { name: "Node.js", confidence: "high" },
+    { name: "Express.js", confidence: "medium" },
+  ],
+  projectSummary: "This is a fixed mock analysis for a standard E-Commerce API project. It includes typical components like User Service, Product Service, Order Service, and a Payment Gateway integration.",
+  dependencies: {
+    npm: ["express", "typescript", "pg", "jsonwebtoken", "bcryptjs", "stripe"],
+  },
+  directoryStructureSummary: [
+    { path: "src/controllers", fileCounts: { ".ts": 5 }, inferredPurpose: "API route handlers" },
+    { path: "src/services", fileCounts: { ".ts": 4 }, inferredPurpose: "Business logic services" },
+    { path: "src/models", fileCounts: { ".ts": 3 }, inferredPurpose: "Database models/entities" },
+    { path: "src/middleware", fileCounts: { ".ts": 2 }, inferredPurpose: "Request middleware" },
+    { path: "src/config", fileCounts: { ".ts": 1 }, inferredPurpose: "Application configuration" },
+  ],
+  keyFiles: [
+    { filePath: "src/server.ts", type: "entry_point", extractedSymbols: ["app", "startServer"], briefDescription: "Main application entry point and server setup." },
+    { filePath: "src/config/database.ts", type: "configuration", extractedSymbols: ["dbConfig"], briefDescription: "Database connection configuration." },
+    { filePath: "src/services/UserService.ts", type: "service_definition", extractedSymbols: ["UserService", "createUser", "getUser"], briefDescription: "Handles user creation, authentication, and profile management." },
+    { filePath: "src/services/ProductService.ts", type: "service_definition", extractedSymbols: ["ProductService", "getProduct", "listProducts"], briefDescription: "Manages product catalog." },
+    { filePath: "src/controllers/OrderController.ts", type: "service_definition", extractedSymbols: ["OrderController", "createOrder", "getOrderStatus"], briefDescription: "Handles order creation and status updates." },
+    { filePath: "src/models/UserModel.ts", type: "model", extractedSymbols: ["UserSchema"], briefDescription: "Defines the User data model." },
+    { filePath: "package.json", type: "manifest", briefDescription: "Project dependencies and scripts." },
+  ],
+  potentialArchitecturalComponents: [
+    { name: "User Authentication Service", type: "service", relatedFiles: ["src/services/UserService.ts", "src/middleware/auth.ts", "src/controllers/AuthController.ts"] },
+    { name: "Product Catalog Service", type: "service", relatedFiles: ["src/services/ProductService.ts", "src/models/ProductModel.ts"] },
+    { name: "Order Management Service", type: "service", relatedFiles: ["src/services/OrderService.ts", "src/controllers/OrderController.ts"] },
+    { name: "Payment Gateway Integration", type: "external_api", relatedFiles: ["src/services/PaymentService.ts"] },
+    { name: "API Router", type: "module", relatedFiles: ["src/routes/index.ts", "src/controllers"] },
+    { name: "PostgreSQL Database Interface", type: "data_store_interface", relatedFiles: ["src/config/database.ts", "src/models"] },
+  ],
+  parsingErrors: [],
+};
+
+
 // MOCK IMPLEMENTATION
 async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<ProjectAnalysisOutput> {
   console.log(`Mock projectStructureAnalyzerTool called with path: ${input.projectStoragePath}, hint: ${input.userHint}`);
-  // Simulate some delay
+  
+  if (input.userHint === "_USE_FIXED_MOCK_PROJECT_A_") {
+    console.log("Returning FIXED_MOCK_PROJECT_A_ANALYSIS");
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate short delay
+    return FIXED_MOCK_PROJECT_A_ANALYSIS;
+  }
+
   await new Promise(resolve => setTimeout(resolve, 1500));
 
-  const projectNameFromPath = input.projectStoragePath.split('/').pop()?.split('.')[0] || "MockProject";
+  const projectNameFromPath = input.projectStoragePath.split('/').pop()?.split('.')[0] || "MockProjectFromPath";
   const userHintIncorporated = input.userHint ? ` (User Hint: ${input.userHint})` : "";
 
-  let mainComponentType: "E-commerce Backend" | "Data Processing Pipeline" | "Frontend UI Library" = "E-commerce Backend";
-  if (input.userHint?.toLowerCase().includes("data")) {
+  let mainComponentType: "E-commerce Backend" | "Data Processing Pipeline" | "Frontend UI Library" | "Generic NextJS App" = "Generic NextJS App";
+  if (input.userHint?.toLowerCase().includes("e-commerce") || input.userHint?.toLowerCase().includes("shop")) {
+    mainComponentType = "E-commerce Backend";
+  } else if (input.userHint?.toLowerCase().includes("data") || input.userHint?.toLowerCase().includes("pipeline")) {
     mainComponentType = "Data Processing Pipeline";
-  } else if (input.userHint?.toLowerCase().includes("ui") || input.userHint?.toLowerCase().includes("frontend")) {
+  } else if (input.userHint?.toLowerCase().includes("ui") || input.userHint?.toLowerCase().includes("frontend") || input.userHint?.toLowerCase().includes("library")) {
     mainComponentType = "Frontend UI Library";
   }
 
+
   const baseArchitecturalComponents = [
-      { name: "Core Authentication Module", type: "service" as const, relatedFiles: ["src/services/auth.ts", "src/views/login.tsx"] },
+      { name: `Core ${mainComponentType} Module`, type: "service" as const, relatedFiles: ["src/services/core.ts", "src/views/main.tsx"] },
       { name: "Primary Data Store Interface", type: "data_store_interface" as const, relatedFiles: ["src/db/schema.ts", "src/services/data-access.ts"] },
   ];
 
@@ -105,9 +154,12 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
   } else if (mainComponentType === "Data Processing Pipeline") {
      baseArchitecturalComponents.push({ name: "Data Ingestion Unit", type: "module" as const, relatedFiles: ["src/ingestion/kafkaConsumer.ts"] });
      baseArchitecturalComponents.push({ name: "Transformation Engine", type: "service" as const, relatedFiles: ["src/transform/sparkJobs.scala"] });
-  } else { // Frontend UI Library
+  } else if (mainComponentType === "Frontend UI Library") {
      baseArchitecturalComponents.push({ name: "Reusable Button Component", type: "ui_area" as const, relatedFiles: ["src/components/Button.tsx"] });
      baseArchitecturalComponents.push({ name: "Theme Provider", type: "module" as const, relatedFiles: ["src/contexts/ThemeContext.tsx"] });
+  } else { // Generic NextJS App
+    baseArchitecturalComponents.push({ name: "NextJS Routing Module", type: "module" as const, relatedFiles: ["src/app/layout.tsx", "src/app/page.tsx"]});
+    baseArchitecturalComponents.push({ name: "ShadCN UI Components", type: "library" as const, relatedFiles: ["src/components/ui/button.tsx"]});
   }
 
 
@@ -116,18 +168,18 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
     inferredLanguagesFrameworks: [
       { name: "TypeScript", confidence: "high" },
       { name: "React", confidence: "high" },
-      { name: "Next.js", confidence: "medium" },
+      { name: "Next.js", confidence: mainComponentType === "Generic NextJS App" ? "high" : "medium" },
     ],
     projectSummary: `This is a mock AI-generated analysis for the project from '${input.projectStoragePath}'. ${userHintIncorporated}. The project appears to be a ${mainComponentType.toLowerCase()} application. The analysis highlights key architectural components and their interactions.`,
     dependencies: {
-      npm: ["react", "next", "zod", "lucide-react", mainComponentType === "E-commerce Backend" ? "stripe" : "apache-beam"],
+      npm: ["react", "next", "zod", "lucide-react", mainComponentType === "E-commerce Backend" ? "stripe" : (mainComponentType === "Data Processing Pipeline" ? "apache-beam" : "clsx")],
       maven: [],
       pip: mainComponentType === "Data Processing Pipeline" ? ["pandas", "numpy"] : [],
     },
     directoryStructureSummary: [
       { path: "src/components", fileCounts: { ".tsx": mainComponentType === "Frontend UI Library" ? 25 : 10, ".css": 5 }, inferredPurpose: "UI components" },
-      { path: "src/services", fileCounts: { ".ts": 8 }, inferredPurpose: "Business logic and API services" },
-      { path: "src/app", fileCounts: { ".tsx": 12, "route.ts": 5 }, inferredPurpose: "Application pages and API routes" },
+      { path: "src/services", fileCounts: { ".ts": mainComponentType === "Generic NextJS App" ? 2 : 8 }, inferredPurpose: "Business logic and API services" },
+      { path: "src/app", fileCounts: { ".tsx": 12, "route.ts": 5 }, inferredPurpose: "Application pages and API routes (App Router)" },
     ],
     keyFiles: [
       { filePath: "src/app/page.tsx", type: "entry_point", extractedSymbols: ["HomePage"], briefDescription: "Main application entry point or landing page." },
