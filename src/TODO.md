@@ -42,9 +42,9 @@
     - [x] API endpoint for getting submission details (`GET /api/projects/submissions/[submissionId]`).
     - [x] API endpoint for updating submission status (`PUT /api/projects/submissions/[submissionId]`).
     - [x] File storage integration (Supabase Storage). (User needs to create 'project_archives' bucket and configure RLS policies). Client-side upload implemented in `ProjectUploadForm` using `useSupabaseStorageUpload` hook.
-    - [ ] Message Queue setup (RabbitMQ, Redis, etc.). (Out of Scope).
+    - [ ] Message Queue setup (RabbitMQ, Redis, etc.). (Out of Scope for current iteration).
     - [ ] Develop Project Analysis Microservice:
-        - [ ] Task consumer from message queue. (Out of Scope).
+        - [ ] Task consumer from message queue. (Out of Scope for current iteration).
         - [ ] File downloader/unpacker from Supabase storage for AI tool. (Mocked by `projectStructureAnalyzerTool`; real processing is user's responsibility within the tool).
         - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` is mock, now accepts storage path and user goals, and special hints for predefined mock outputs).
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output, creates new ConceptMap record via Supabase service - handled in `ProjectUploadForm` flow after AI tool returns).
@@ -57,29 +57,42 @@
     - [x] Ensure navigation paths are consistent (e.g. `/application/...` prefix).
 
 ## Frontend Enhancements
-- [x] **Key Concept Map Editor Components & Functionality (Highly Modularized):**
-    - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
-    - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`.
-    - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
-    - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`.
-    - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
-    - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
-    - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
-- [ ] **Whimsical-Inspired Editor UX Enhancements:**
-    - [ ] **Floating Node Creation**: Implement double-click on canvas to create a new node at mouse position.
-    - [ ] **Child Node Creation via "+" Hover Buttons**: Display "+" icons on node hover (all four sides) to quickly add child nodes in that direction.
-        - [ ] New child node should be automatically positioned and connected.
-        - [ ] New child node should enter edit mode (if text is editable).
-    - [ ] **Keyboard-driven Node Creation**:
-        - [ ] Select node + `Tab` key: Create child node, auto-position and connect.
-        - [ ] Select node + `Enter` key: Create sibling node, auto-position and connect.
-    - [ ] **Hierarchical Node Movement**: Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions (React Flow's `parentNode` might help or need custom logic).
-    - [ ] **Improved Connector Experience**:
-        - [ ] Investigate/implement orthogonal (right-angle) connectors for cleaner layouts.
-        - [ ] (Advanced) Explore smart connector routing to avoid overlapping nodes.
-    - [ ] **Snapping Guides**: Implement visual guides and snapping behavior when dragging nodes to align with other nodes (edges or centers).
-- [x] **State Management:**
-    - [x] Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history). Context API for Auth.
+
+### Key Concept Map Editor Components & Functionality (Highly Modularized)
+- [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
+- [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`.
+- [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
+- [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`.
+- [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
+- [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
+- [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
+- [ ] **Node Data Structure:** Explicitly manage `parentId` and `childIds` in `ConceptMapNode` state if needed for advanced custom layouts beyond React Flow's `parentNode` grouping.
+
+### Whimsical-Inspired Editor UX Enhancements (New Section)
+- [ ] **Floating Node Creation**: Implement double-click on canvas to create a new node at mouse position. (Check React Flow's `onPaneDoubleClick` or similar).
+- [ ] **Child Node Creation via "+" Hover Buttons**:
+    - [ ] Display "+" icons (or similar) on node hover (e.g., all four sides).
+    - [ ] Clicking "+" adds a new child node in that direction, automatically connects it.
+    - [ ] New child node is auto-positioned (initial simple offset, later potentially via layout algorithm).
+    - [ ] New child node automatically enters edit mode for its label (if applicable).
+- [ ] **Keyboard-driven Node Creation**:
+    - [ ] Selected Node + `Tab` key: Create child node, auto-position and connect.
+    - [ ] Selected Node + `Enter` key: Create sibling node (at the same level as selected), auto-position and connect.
+- [ ] **Hierarchical Node Movement**:
+    - [ ] Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions. (Leverage/extend React Flow's `parentNode` feature or implement custom logic).
+- [ ] **Improved Connector Experience**:
+    - [ ] Verify/enhance manual connection dragging from explicit node handles.
+    - [ ] Investigate/implement orthogonal (right-angle) connectors for cleaner layouts (React Flow custom edge or existing packages).
+    - [ ] (Advanced) Explore smart connector routing to avoid overlapping nodes.
+- [ ] **Edge Style Editing**:
+    - [ ] Allow modifying edge color, line type (solid, dashed), and arrow styles from `PropertiesInspector` or a context menu.
+- [x] **Undo/Redo Robustness**: (Implemented with `zundo`)
+    - [ ] (Verify) Ensure all significant user actions (node/edge creation, deletion, move, property changes, GAI actions that modify map) are correctly captured by `zundo` and work as expected.
+- [ ] **Snapping Guides**:
+    - [ ] Implement visual guides and snapping behavior when dragging nodes to align with other nodes (edges or centers).
+
+### State Management & UI/UX
+- [x] **State Management:** Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history). Context API for Auth.
 - [ ] **Real-time Features (Optional - Future Consideration):**
     - [ ] Consider real-time collaboration on concept maps (e.g., using Supabase Realtime) - (High Complexity - Deferred).
     - [x] Real-time updates for project submission status (Basic polling in `SubmissionListItem` via `useSubmissionStatusPoller` hook).
@@ -120,7 +133,6 @@
     - [x] Submission process creates a new `ConceptMap` record from AI output.
     - [x] Submission status updated to `COMPLETED` or `FAILED` with map ID or error.
     - [x] Submission list item links to the generated map.
-
 - [x] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
     - [x] **Canvas-Integrated AI Brainstorming & Expansion:**
         - [x] **Context Menu AI Actions:** Expand, Suggest Relations, Extract Concepts, Ask AI Question, Rewrite Content on node context menus (handled by `useConceptMapAITools` and `NodeContextMenu`).
@@ -130,9 +142,9 @@
         - [x] **`extractConcepts` Context:** From selected node(s) text/details. Populates `AISuggestionPanel`.
         - [x] **`suggestRelations` Context:** Uses multiple selected nodes or a node and its neighbors. Populates `AISuggestionPanel`.
         - [x] **`expandConcept` Context:** Uses selected node and its neighbors.
-    - [x] **Refine "Generate Ideas" / "Expand Concept" Interaction:**
-        - [x] Option A: Direct child node generation from an "Expand" or "Generate Ideas" action (new nodes automatically appear around the source node, with relation labels). This is now the default for "Expand Concept".
-        - [x] Option C: Allow user to refine prompts for "Generate Ideas" / "Expand Concept" within their respective modals.
+    - [x] **Refine "Expand Concept" Interaction:**
+        - [x] Direct child node generation from an "Expand" action (new nodes automatically appear around the source node, with relation labels). This is now the default for "Expand Concept".
+        - [x] Option C: Allow user to refine prompts for "Expand Concept" within their respective modals.
         - [x] (Note: `AISuggestionPanel` population for "Expand Concept" was removed in favor of direct node addition.)
     - [x] **Implement "Summarize Selected Nodes (AI)" Feature:**
         - [x] Trigger: Toolbar button when multiple nodes are selected.
@@ -141,6 +153,10 @@
         - [x] Trigger: Context menu on a node.
         - [x] Uses `RewriteNodeContentModal` for tone selection and preview.
         - [x] Creates Genkit flow (`rewriteNodeContentFlow`). Updates node content and type to `ai-rewritten-node` directly on the map.
+    - [ ] **Alternative GAI Trigger Points (Future Consideration):**
+        - [ ] Floating "AI Expand" button on selected node.
+        - [ ] Slash commands (`/ai`) in node text editor.
+        - [ ] Global AI input box on canvas.
     - [ ] **(Advanced - Future) Explore "AI Structure Suggestions":**
         - [ ] Analyze map structure and content to propose new connections or organizational improvements (e.g., "These 3 nodes seem related, would you like to group them?" or "Consider linking Node A to Node B because...").
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
@@ -161,9 +177,17 @@
         - [x] Defined specific node types (`ai-summary-node`, `ai-rewritten-node`, `ai-expanded` for generated children, `ai-concept` from panel, `text-derived-concept`, `ai-generated`) and mapped them to styles/icons.
 
 ## Performance Optimizations
-- [ ] Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
-- [ ] Investigate large list rendering: For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
-- [ ] Conduct further React component memoization: Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial.
+- [ ] **Rendering:**
+    - [ ] **Virtualization (Occlusion Culling):** For very large maps, only render nodes/edges within the current viewport. (React Flow might have some built-in optimizations, but check for large maps).
+    - [ ] **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges.
+- [ ] **Interactions:**
+    - [ ] **Event Throttling/Debouncing:** For frequent events like `mousemove` (dragging) or `wheel` (zooming), ensure updates are throttled using `requestAnimationFrame` or similar techniques to prevent excessive re-renders. (React Flow likely handles this internally, verify for custom interactions).
+- [ ] **Data Handling & General:**
+    - [ ] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
+    - [ ] **Large List Rendering:** For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
+    - [ ] **React Component Memoization:** Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (Some already done, can be an ongoing process).
+    - [ ] **Code Splitting:** Use `next/dynamic` for heavy components or libraries not needed on initial load (already done for `FlowCanvasCore`, review for others).
+    - [ ] **Bundle Size Analysis:** Periodically analyze the application bundle size and identify areas for reduction.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
@@ -223,7 +247,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
-- AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints.
+- AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis uploads to Supabase Storage (bucket 'project_archives').
@@ -235,11 +259,10 @@ This section outlines tasks to fully migrate to Supabase.
 - View-only mode for concept map editor is implemented.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
+- `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
-
-    
