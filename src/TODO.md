@@ -65,6 +65,19 @@
     - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
     - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
+- [ ] **Whimsical-Inspired Editor UX Enhancements:**
+    - [ ] **Floating Node Creation**: Implement double-click on canvas to create a new node at mouse position.
+    - [ ] **Child Node Creation via "+" Hover Buttons**: Display "+" icons on node hover (all four sides) to quickly add child nodes in that direction.
+        - [ ] New child node should be automatically positioned and connected.
+        - [ ] New child node should enter edit mode (if text is editable).
+    - [ ] **Keyboard-driven Node Creation**:
+        - [ ] Select node + `Tab` key: Create child node, auto-position and connect.
+        - [ ] Select node + `Enter` key: Create sibling node, auto-position and connect.
+    - [ ] **Hierarchical Node Movement**: Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions (React Flow's `parentNode` might help or need custom logic).
+    - [ ] **Improved Connector Experience**:
+        - [ ] Investigate/implement orthogonal (right-angle) connectors for cleaner layouts.
+        - [ ] (Advanced) Explore smart connector routing to avoid overlapping nodes.
+    - [ ] **Snapping Guides**: Implement visual guides and snapping behavior when dragging nodes to align with other nodes (edges or centers).
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history). Context API for Auth.
 - [ ] **Real-time Features (Optional - Future Consideration):**
@@ -90,7 +103,7 @@
 - [x] **File Upload UI Adaptation for Project Analysis**:
     - [x] Add `userGoals` input to `ProjectUploadForm`.
     - [x] Use `AlertDialog` to confirm AI analysis post-submission record creation.
-    - [x] REMOVED: "Dev: Quick AI Map Gen (Mock Project)" and "Test AI Map (Fixed Mock Project)" buttons from `ProjectUploadForm` as they were causing confusion. Direct testing of AI flows can be done via Genkit dev UI or unit tests if needed.
+    - [x] REMOVED: Developer test buttons ("Dev: AI Map (Hint-Based Mock)", "Dev: AI Map (Fixed Mock Project)") from `ProjectUploadForm` for UI simplification. Genkit dev UI or unit tests can be used for direct flow testing.
 - [x] **API Endpoint & Backend Processing Pipeline for Project Analysis**:
     - [x] `ProjectSubmission` type and service now handle `fileStoragePath`.
     - [x] Submission API route `POST /api/projects/submissions` now accepts `fileStoragePath`.
@@ -229,10 +242,4 @@ The main remaining area for full Supabase connection is:
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
 
-This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
-The main remaining area for full Supabase connection is:
-*   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
-*   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
-*   Thorough testing and deployment preparations (out of scope).
-
-```
+    
