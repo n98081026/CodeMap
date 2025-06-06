@@ -22,11 +22,11 @@ interface QuickActionsCardProps {
   actions: QuickActionItem[];
 }
 
-export const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
+export const QuickActionsCard: React.FC<QuickActionsCardProps> = React.memo(function QuickActionsCard({
   title = "Quick Actions",
   description = "Get started with common tasks quickly.",
   actions,
-}) => {
+}) {
   if (!actions || actions.length === 0) {
     return null;
   }
@@ -54,4 +54,5 @@ export const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+QuickActionsCard.displayName = "QuickActionsCard";

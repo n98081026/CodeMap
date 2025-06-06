@@ -17,14 +17,14 @@ interface DashboardLinkCardProps {
   linkText: string;
 }
 
-export const DashboardLinkCard: React.FC<DashboardLinkCardProps> = ({
+export const DashboardLinkCard: React.FC<DashboardLinkCardProps> = React.memo(function DashboardLinkCard({
   title,
   description,
   count,
   icon: Icon,
   href,
   linkText,
-}) => {
+}) {
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -48,5 +48,6 @@ export const DashboardLinkCard: React.FC<DashboardLinkCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+DashboardLinkCard.displayName = "DashboardLinkCard";
 

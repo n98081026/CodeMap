@@ -12,12 +12,12 @@ interface EmptyStateProps {
   actionButton?: React.ReactNode;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({
+export const EmptyState: React.FC<EmptyStateProps> = React.memo(function EmptyState({
   icon: Icon,
   title,
   description,
   actionButton,
-}) => {
+}) {
   return (
     <Card className="shadow-md w-full max-w-lg mx-auto">
       <CardHeader className="items-center text-center">
@@ -32,4 +32,5 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       )}
     </Card>
   );
-};
+});
+EmptyState.displayName = "EmptyState";
