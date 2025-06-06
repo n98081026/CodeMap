@@ -62,6 +62,7 @@
 - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
 - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`.
 - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
+    - [ ] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse, etc.) from `PropertiesInspector` or a context menu.
 - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`.
 - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
 - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
@@ -70,17 +71,17 @@
 ### Whimsical-Inspired Editor UX Enhancements
 - [ ] **Floating Node Creation**: Implement double-click on canvas to create a new node at mouse position. (Check React Flow's `onPaneDoubleClick` or similar). Node should auto-focus for text input.
 - [ ] **Child Node Creation via "+" Hover Buttons**:
-    - [ ] Display "+" icons (or similar) on node hover (e.g., all four sides).
+    - [ ] Display "+" icons (or similar intuitive indicators) on node hover (e.g., all four sides, or specific connection points).
     - [ ] Clicking "+" adds a new child node in that direction, automatically connects it.
     - [ ] New child node is auto-positioned (initial simple offset, later potentially via layout algorithm).
     - [ ] New child node automatically enters edit mode for its label.
 - [ ] **Keyboard-driven Node Creation**:
-    - [ ] Selected Node + `Tab` key: Create child node, auto-position and connect. New node auto-focuses.
-    - [ ] Selected Node + `Enter` key: Create sibling node (at the same level as selected), auto-position and connect. New node auto-focuses.
+    - [ ] Selected Node + `Tab` key: Create child node, auto-position and connect. New node auto-focuses for text input.
+    - [ ] Selected Node + `Enter` key: Create sibling node (at the same level as selected), auto-position and connect. New node auto-focuses for text input.
 - [ ] **Hierarchical Node Movement**:
     - [ ] Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions. (Leverage/extend React Flow's `parentNode` feature or implement custom logic).
 - [ ] **Improved Connector Experience**:
-    - [ ] Verify/enhance manual connection dragging from explicit node handles.
+    - [ ] Verify/enhance manual connection dragging from explicit node handles (currently 4 per node).
     - [ ] Investigate/implement orthogonal (right-angle) connectors for cleaner layouts (React Flow custom edge or existing packages).
     - [ ] (Advanced) Explore smart connector routing to avoid overlapping nodes.
 - [ ] **Edge Style Editing**:
@@ -270,3 +271,5 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
+    
