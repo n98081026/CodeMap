@@ -3,8 +3,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { UserRole, type Classroom } from '@/types'; // Ensure Classroom is imported
+import { UserRole, type Classroom } from '@/types'; 
 import { useToast } from './use-toast';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_TEACHER_USER, MOCK_CLASSROOM_TEACHER_OWNED } from '@/lib/config';
+import { getClassroomsByTeacherId as getClassroomsService } from '@/services/classrooms/classroomService';
+
 
 interface MetricState {
   count: number | null;
@@ -33,6 +36,16 @@ export function useTeacherDashboardMetrics(): TeacherDashboardMetrics {
       return;
     }
 
+    if (BYPASS_AUTH_FOR_TESTING && user.id === MOCK_TEACHER_USER.id) {
+      const mockClassrooms = [MOCK_CLASSROOM_TEACHER_OWNED];
+      setManagedClassroomsMetric({ count: mockClassrooms.length, isLoading: false, error: null });
+      let studentCount = 0;
+      mockClassrooms.forEach(c => studentCount += (c.studentIds?.length || 0));
+      setTotalStudentsMetric({ count: studentCount, isLoading: false, error: null });
+      return;
+    }
+
+
     setManagedClassroomsMetric(prev => ({ ...prev, isLoading: true, error: null }));
     setTotalStudentsMetric(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -58,7 +71,7 @@ export function useTeacherDashboardMetrics(): TeacherDashboardMetrics {
       let currentTotalStudents = 0;
       if (allClassroomsData.classrooms && Array.isArray(allClassroomsData.classrooms)) {
          allClassroomsData.classrooms.forEach(c => {
-            currentTotalStudents += c.studentIds?.length || 0; // studentIds is now populated by service
+            currentTotalStudents += c.studentIds?.length || 0; 
         });
       }
       setTotalStudentsMetric({ count: currentTotalStudents, isLoading: false, error: null });
@@ -68,7 +81,6 @@ export function useTeacherDashboardMetrics(): TeacherDashboardMetrics {
       console.error("Error fetching teacher dashboard data:", errorMessage);
       setManagedClassroomsMetric(prev => ({ ...prev, isLoading: false, error: prev.error || errorMessage }));
       setTotalStudentsMetric(prev => ({ ...prev, isLoading: false, error: prev.error || errorMessage }));
-      // toast({ title: "Error Fetching Dashboard Data", description: errorMessage, variant: "destructive" });
     }
   }, [user, toast]);
 
@@ -88,3 +100,5 @@ export function useTeacherDashboardMetrics(): TeacherDashboardMetrics {
     fetchMetrics,
   };
 }
+
+    

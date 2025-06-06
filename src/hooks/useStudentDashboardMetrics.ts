@@ -4,6 +4,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from './use-toast';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_CLASSROOM_SHARED, MOCK_CONCEPT_MAP_STUDENT, MOCK_PROJECT_SUBMISSION_STUDENT } from '@/lib/config';
+import { getClassroomsByStudentId as getClassroomsService } from '@/services/classrooms/classroomService';
+import { getConceptMapsByOwnerId as getConceptMapsService } from '@/services/conceptMaps/conceptMapService';
+import { getSubmissionsByStudentId as getSubmissionsService } from '@/services/projectSubmissions/projectSubmissionService';
+
 
 interface MetricState {
   count: number | null;
@@ -34,6 +39,14 @@ export function useStudentDashboardMetrics(): StudentDashboardMetrics {
       setSubmissionsMetric({ count: null, isLoading: false, error: errorMsg });
       return;
     }
+
+    if (BYPASS_AUTH_FOR_TESTING && user.id === MOCK_STUDENT_USER.id) {
+      setClassroomsMetric({ count: [MOCK_CLASSROOM_SHARED].length, isLoading: false, error: null });
+      setConceptMapsMetric({ count: [MOCK_CONCEPT_MAP_STUDENT].length, isLoading: false, error: null });
+      setSubmissionsMetric({ count: [MOCK_PROJECT_SUBMISSION_STUDENT].length, isLoading: false, error: null });
+      return;
+    }
+
 
     // Fetch Classrooms Count
     setClassroomsMetric(prev => ({ ...prev, isLoading: true, error: null }));
@@ -100,3 +113,5 @@ export function useStudentDashboardMetrics(): StudentDashboardMetrics {
     fetchMetrics,
   };
 }
+
+    

@@ -5,6 +5,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 import { useToast } from './use-toast';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_ADMIN_USER, MOCK_USERS, MOCK_CLASSROOM_SHARED, MOCK_CLASSROOM_TEACHER_OWNED } from '@/lib/config';
+import { getAllUsers as getAllUsersService } from '@/services/users/userService';
+import { getAllClassrooms as getAllClassroomsService } from '@/services/classrooms/classroomService';
+
 
 interface MetricState {
   count: number | null;
@@ -32,6 +36,12 @@ export function useAdminDashboardMetrics(): AdminDashboardMetrics {
       return;
     }
 
+    if (BYPASS_AUTH_FOR_TESTING && user.id === MOCK_ADMIN_USER.id) {
+        setUsersMetric({ count: MOCK_USERS.length, isLoading: false, error: null });
+        setClassroomsMetric({ count: [MOCK_CLASSROOM_SHARED, MOCK_CLASSROOM_TEACHER_OWNED].length, isLoading: false, error: null });
+        return;
+    }
+
     // Fetch Users Count
     setUsersMetric(prev => ({ ...prev, isLoading: true, error: null }));
     try {
@@ -46,7 +56,6 @@ export function useAdminDashboardMetrics(): AdminDashboardMetrics {
       const errorMessage = (err as Error).message;
       console.error("Error fetching users count for admin dashboard:", errorMessage);
       setUsersMetric({ count: null, isLoading: false, error: errorMessage });
-      // toast({ title: "Error Fetching Users Count", description: errorMessage, variant: "destructive" });
     }
 
     // Fetch Classrooms Count
@@ -60,14 +69,13 @@ export function useAdminDashboardMetrics(): AdminDashboardMetrics {
       const classroomsData = await classroomsResponse.json();
       if (Array.isArray(classroomsData)) {
         setClassroomsMetric({ count: classroomsData.length, isLoading: false, error: null });
-      } else { // Assuming paginated structure if not array
+      } else { 
         setClassroomsMetric({ count: classroomsData.totalCount || 0, isLoading: false, error: null });
       }
     } catch (err) {
       const errorMessage = (err as Error).message;
       console.error("Error fetching classrooms count for admin dashboard:", errorMessage);
       setClassroomsMetric({ count: null, isLoading: false, error: errorMessage });
-      // toast({ title: "Error Fetching Classrooms Count", description: errorMessage, variant: "destructive" });
     }
   }, [user, toast]);
 
@@ -81,3 +89,5 @@ export function useAdminDashboardMetrics(): AdminDashboardMetrics {
     fetchMetrics,
   };
 }
+
+    

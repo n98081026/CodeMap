@@ -156,7 +156,7 @@ export function ProjectUploadForm() {
 
   const processAISteps = useCallback(async (submission: ProjectSubmission, userGoals?: string) => {
     if (!user) throw new Error("User not authenticated for AI processing.");
-    setIsProcessingAIInDialog(true); // Also use this for dev button visual cue
+    setIsProcessingAIInDialog(true); 
     toast({ title: "AI Processing Started", description: `Analysis of "${submission.originalFileName}" is starting...` });
 
     try {
@@ -197,7 +197,7 @@ export function ProjectUploadForm() {
     } catch (aiError) {
       console.error("AI Map Generation/Saving Error:", aiError);
       await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing failed");
-      throw aiError; // Re-throw to be caught by caller
+      throw aiError; 
     } finally {
       setIsProcessingAIInDialog(false);
     }
@@ -286,14 +286,13 @@ export function ProjectUploadForm() {
     }
     setIsDevGenerating(true);
     const mockProjectName = "Dev Mock Project.zip";
-    const mockStoragePath = "mock/dev-test-project.zip"; // Path for AI flow
+    const mockStoragePath = "mock/dev-test-project.zip"; 
     const mockUserGoals = form.getValues("userGoals") || "Dev test: Analyze key components and data flow.";
 
-    // 1. Create a submission record first
     const submissionPayload = {
       studentId: user.id,
       originalFileName: mockProjectName,
-      fileSize: 1024 * 1024, // Dummy size
+      fileSize: 1024 * 1024, 
       classroomId: form.getValues("classroomId") === NONE_CLASSROOM_VALUE ? null : (form.getValues("classroomId") || null),
       fileStoragePath: mockStoragePath, 
     };
@@ -311,7 +310,6 @@ export function ProjectUploadForm() {
       const newSubmission: ProjectSubmission = await subResponse.json();
       toast({ title: "Mock Submission Created", description: `ID: ${newSubmission.id}` });
 
-      // 2. Now process AI using this submission (which contains mockStoragePath)
       await processAISteps(newSubmission, mockUserGoals);
       router.push("/application/student/projects/submissions");
 
@@ -414,14 +412,14 @@ export function ProjectUploadForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isBusyOverall || !form.formState.isValid || !form.getValues("projectFile")}>
+          <Button type="submit" className="w-full" disabled={isBusyOverall || (!form.formState.isValid && !BYPASS_AUTH_FOR_TESTING) || (!form.getValues("projectFile") && !BYPASS_AUTH_FOR_TESTING)}>
             {isUploadingFileWithHook ? <FileUp className="mr-2 h-4 w-4 animate-pulse" /> : isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             {isUploadingFileWithHook ? "Uploading..." : isSubmittingMetadata ? "Submitting..." : isProcessingAIInDialog ? "AI Processing..." : "Submit Project"}
           </Button>
           
           {BYPASS_AUTH_FOR_TESTING && (
             <Button type="button" variant="outline" className="w-full mt-4" onClick={handleDevGenerateAIMap} disabled={isBusyOverall}>
-              {isDevGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+              {isDevGenerating || isProcessingAIInDialog ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
               Dev: Quick AI Map Gen (Mock Project)
             </Button>
           )}
@@ -454,3 +452,5 @@ export function ProjectUploadForm() {
     </>
   );
 }
+
+    
