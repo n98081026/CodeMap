@@ -16,7 +16,7 @@ import {
 } from '@/ai/flows';
 import type {
   AskQuestionAboutNodeOutput,
-  ExpandConceptOutput, 
+  ExpandConceptOutput,
   ExtractConceptsOutput,
   GenerateMapSnippetOutput,
   GenerateQuickClusterOutput,
@@ -71,54 +71,60 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const [isAskQuestionModalOpen, setIsAskQuestionModalOpen] = useState(false);
   const [nodeContextForQuestion, setNodeContextForQuestion] = useState<{ text: string; details?: string, id: string } | null>(null);
-  
+
   const [isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen] = useState(false);
   const [nodeContentToRewrite, setNodeContentToRewrite] = useState<NodeContentToRewrite | null>(null);
 
 
   const getNodePlacementPosition = useCallback((
-    index: number, 
-    totalNewNodes: number = 1, 
+    index: number,
+    totalNewNodes: number = 1,
     sourceNodePos?: { x: number, y: number } | null,
-    radius: number = 150, 
-    startAngle: number = -90 
+    radius: number = 150,
+    startAngle: number = -90
   ): { x: number; y: number } => {
-    
+
     if (sourceNodePos && totalNewNodes > 0) {
       if (totalNewNodes === 1) {
+        // Place single new node slightly offset from source
         return { x: sourceNodePos.x + radius, y: sourceNodePos.y };
       }
+      // Arrange multiple nodes in a circle around the source
       const angleStep = 360 / totalNewNodes;
       const angle = startAngle + index * angleStep;
       const radians = (angle * Math.PI) / 180;
       return {
-        x: sourceNodePos.x + radius * Math.cos(radians) + (Math.random() * 20 - 10), 
-        y: sourceNodePos.y + radius * Math.sin(radians) + (Math.random() * 20 - 10),
+        x: sourceNodePos.x + radius * Math.cos(radians) + (Math.random() * 20 - 10), // Add jitter
+        y: sourceNodePos.y + radius * Math.sin(radians) + (Math.random() * 20 - 10), // Add jitter
       };
     }
 
+    // Fallback placement if no source node or for general addition
     const currentStoreState = useConceptMapStore.getState();
     const { selectedElementId: currentSelectedId, mapData: currentMapData } = currentStoreState;
-    let baseX = 50 + Math.random() * 50; 
+    let baseX = 50 + Math.random() * 50; // Default base if no context
     let baseY = 50 + Math.random() * 50;
-    const offsetX = 200; 
-    const offsetY = 80;  
-    
+    const offsetX = 200; // Horizontal spacing for new nodes if placed generically
+    const offsetY = 80;  // Vertical spacing
+
+    // Try to place near selected node if one exists
     if (currentSelectedId && currentMapData.nodes.length > 0) {
       const selectedNode = currentMapData.nodes.find(n => n.id === currentSelectedId);
       if (selectedNode && typeof selectedNode.x === 'number' && typeof selectedNode.y === 'number') {
         baseX = selectedNode.x + offsetX;
-        baseY = selectedNode.y + (index * offsetY);
+        baseY = selectedNode.y + (index * offsetY); // Simple stacking if near selected
       }
     } else if (currentMapData.nodes.length > 0) {
+        // Place near the last added node if no selection
         const lastNode = currentMapData.nodes[currentMapData.nodes.length - 1];
         if (lastNode && typeof lastNode.x === 'number' && typeof lastNode.y === 'number') {
              baseX = lastNode.x + offsetX /2;
              baseY = lastNode.y + offsetY /2 + (index * (offsetY/2));
         }
     }
-    
-    const nodesPerRow = totalNewNodes > 1 ? Math.ceil(Math.sqrt(totalNewNodes)) : 3;
+
+    // Simple grid/cascade placement if not around a source node
+    const nodesPerRow = totalNewNodes > 1 ? Math.ceil(Math.sqrt(totalNewNodes)) : 3; // Adjust nodes per row as needed
     const rowIndex = Math.floor(index / nodesPerRow);
     const colIndex = index % nodesPerRow;
 
@@ -187,9 +193,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         });
         concepts.push(...Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 4));
     } else if (mapData.nodes.length > 0) {
+        // Fallback to a few existing nodes if no specific context
         concepts = mapData.nodes.slice(0, Math.min(5, mapData.nodes.length)).map(n => n.text);
     }
-    setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept A", "Example Concept B"]);
+    setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept A", "Example Concept B"]); // Provide example if no concepts found
     setIsSuggestRelationsModalOpen(true);
   }, [isViewOnlyMode, resetAiSuggestions, mapData, selectedElementId, multiSelectedNodeIds, toast]);
 
@@ -201,17 +208,17 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     if (isViewOnlyMode || selectedRelations.length === 0) return;
     let relationsAddedCount = 0; let conceptsAddedFromRelationsCount = 0;
     selectedRelations.forEach((rel, index) => {
-      const currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes];
+      const currentNodesSnapshot = [...useConceptMapStore.getState().mapData.nodes]; // Get fresh snapshot
       let sourceNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
       if (!sourceNode) {
-        const newSourceNodeId = addStoreNode({ text: rel.source, type: 'ai-concept', position: getNodePlacementPosition(conceptsAddedFromRelationsCount, selectedRelations.length) });
-        sourceNode = useConceptMapStore.getState().mapData.nodes.find(node => node.id === newSourceNodeId);
-        if (sourceNode) conceptsAddedFromRelationsCount++; else return;
+        const newSourceNodeId = addStoreNode({ text: rel.source, type: 'ai-concept', position: getNodePlacementPosition(conceptsAddedFromRelationsCount, selectedRelations.length * 2) }); // Adjust placement logic
+        sourceNode = useConceptMapStore.getState().mapData.nodes.find(node => node.id === newSourceNodeId); // Re-fetch after add
+        if (sourceNode) conceptsAddedFromRelationsCount++; else return; // Skip if node creation failed or not found
       }
       let targetNode = currentNodesSnapshot.find(node => node.text.toLowerCase().trim() === rel.target.toLowerCase().trim());
       if (!targetNode) {
-        const newTargetNodeId = addStoreNode({ text: rel.target, type: 'ai-concept', position: getNodePlacementPosition(conceptsAddedFromRelationsCount + 1, selectedRelations.length) }); 
-        targetNode = useConceptMapStore.getState().mapData.nodes.find(node => node.id === newTargetNodeId);
+        const newTargetNodeId = addStoreNode({ text: rel.target, type: 'ai-concept', position: getNodePlacementPosition(conceptsAddedFromRelationsCount + 1, selectedRelations.length * 2) }); // Adjust placement
+        targetNode = useConceptMapStore.getState().mapData.nodes.find(node => node.id === newTargetNodeId); // Re-fetch
         if (targetNode) conceptsAddedFromRelationsCount++; else return;
       }
       const currentEdgesSnapshot = useConceptMapStore.getState().mapData.edges;
@@ -232,7 +239,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   // --- Expand Concept (Direct Addition) ---
   const openExpandConceptModal = useCallback((nodeIdForContext?: string) => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
-    
+
     let conceptDetails: ConceptToExpandDetails | null = null;
     let context: string[] = [];
     const targetNodeId = nodeIdForContext || selectedElementId;
@@ -247,11 +254,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       });
       context = Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 5);
     } else if (mapData.nodes.length > 0) {
-      conceptDetails = { id: null, text: "General Map Topic" }; 
+      // If no specific node, maybe use the map name or a general prompt?
+      conceptDetails = { id: null, text: "General Map Topic" }; // Example fallback
     } else {
-        conceptDetails = {id: null, text: ""}; 
+        // No nodes, prompt for an initial concept
+        conceptDetails = {id: null, text: ""}; // Will prompt user for text in modal
     }
-    setConceptToExpandDetails(conceptDetails); 
+    setConceptToExpandDetails(conceptDetails);
     setMapContextForExpansion(context);
     setIsExpandConceptModalOpen(true);
   }, [isViewOnlyMode, mapData, selectedElementId, toast]);
@@ -273,7 +282,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     output.expandedIdeas.forEach((idea, index) => {
       const newNodeId = addStoreNode({
         text: idea.text,
-        type: 'ai-expanded',
+        type: 'ai-expanded', // Specific type for visual distinction
         position: getNodePlacementPosition(index, output.expandedIdeas.length, sourceNodePos),
       });
       addedNodesCount++;
@@ -281,7 +290,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         addStoreEdge({
           source: sourceNodeId,
           target: newNodeId,
-          label: idea.relationLabel || 'related to',
+          label: idea.relationLabel || 'related to', // Use AI provided label or default
         });
       }
     });
@@ -328,7 +337,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     const sourcePos = sourceNode && typeof sourceNode.x === 'number' && typeof sourceNode.y === 'number' ? { x: sourceNode.x, y: sourceNode.y } : null;
 
     output.nodes.forEach((aiNode, index) => {
-      const newNodeId = addStoreNode({ text: aiNode.text, type: aiNode.type || 'text-derived-concept', details: aiNode.details || '', position: getNodePlacementPosition(index, output.nodes.length, sourcePos, 200) });
+      const newNodeId = addStoreNode({ text: aiNode.text, type: aiNode.type || 'text-derived-concept', details: aiNode.details || '', position: getNodePlacementPosition(index, output.nodes.length, sourcePos, 200) }); // Larger radius for snippets
       newNodesMap.set(aiNode.text, newNodeId); addedNodesCount++;
     });
     output.edges?.forEach(aiEdge => {
@@ -347,9 +356,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   }, [isViewOnlyMode, mapData.nodes, toast]);
 
   const handleQuestionAnswered = useCallback((answer: string) => {
+    // Display the answer, perhaps in a new toast or a dedicated panel if complex.
     toast({ title: "AI Answer Received", description: answer.length > 150 ? `${answer.substring(0, 147)}...` : answer, duration: 10000 });
+    // Could also add the answer as details to the node or a new "AI Answer" node.
   }, [toast]);
-  
+
   // --- Rewrite Node Content ---
   const openRewriteNodeContentModal = useCallback((nodeId: string) => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
@@ -380,11 +391,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         toast({ title: "No Content", description: "Selected nodes have no text content to summarize.", variant: "default"});
         return;
     }
-    
+
     try {
         toast({ title: "AI Summarization", description: "Processing selected nodes...", duration: 3000});
         const result: SummarizeNodesOutput = await aiSummarizeNodes({ nodeContents });
-        
+
+        // Determine position for the new summary node (e.g., average of selected nodes' positions)
         let avgX = 0; let avgY = 0; let count = 0;
         multiSelectedNodeIds.forEach(id => {
             const node = mapData.nodes.find(n => n.id === id);
@@ -394,14 +406,14 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
                 count++;
             }
         });
-        const position = count > 0 
-            ? { x: avgX / count + 100, y: avgY / count + 50 } 
-            : getNodePlacementPosition(0, 1);
+        const position = count > 0
+            ? { x: avgX / count + 100, y: avgY / count + 50 } // Offset slightly
+            : getNodePlacementPosition(0, 1); // Fallback if no positions
 
 
         addStoreNode({
             text: `Summary of ${multiSelectedNodeIds.length} nodes`,
-            type: 'ai-summary-node',
+            type: 'ai-summary-node', // Specific type for visual distinction
             details: result.summary,
             position: position
         });
@@ -416,18 +428,20 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   return {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen, conceptsForRelationSuggestion, openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
-    isExpandConceptModalOpen, setIsExpandConceptModalOpen, 
-    conceptToExpandDetails, 
-    mapContextForExpansion, 
-    openExpandConceptModal, 
-    handleConceptExpanded, 
+    isExpandConceptModalOpen, setIsExpandConceptModalOpen,
+    conceptToExpandDetails,
+    mapContextForExpansion,
+    openExpandConceptModal,
+    handleConceptExpanded,
     isQuickClusterModalOpen, setIsQuickClusterModalOpen, openQuickClusterModal, handleClusterGenerated,
     isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen, openGenerateSnippetModal, handleSnippetGenerated,
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
     isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
-    handleSummarizeSelectedNodes, 
-    deleteEdge: addStoreEdge, 
-    addStoreNode, 
+    handleSummarizeSelectedNodes,
+    addStoreNode, // For direct additions from modals/actions
+    addStoreEdge,
+    getNodePlacementPosition, // Exporting this function
   };
 }
 
+    
