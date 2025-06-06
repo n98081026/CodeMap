@@ -62,7 +62,7 @@
     - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`.
     - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
     - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`.
-    - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
+    - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
     - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
 - [x] **State Management:**
@@ -90,9 +90,8 @@
 - [x] **File Upload UI Adaptation for Project Analysis**:
     - [x] Add `userGoals` input to `ProjectUploadForm`.
     - [x] Use `AlertDialog` to confirm AI analysis post-submission record creation.
-    - [x] Added "Dev: Quick AI Map Gen (Mock Project)" button to `ProjectUploadForm` for hint-based testing when `BYPASS_AUTH_FOR_TESTING` is true.
-    - [x] Added "Test AI Map (Fixed Mock Project)" button to `ProjectUploadForm` for testing with a predefined, hardcoded mock project analysis.
-- [x/ ] **API Endpoint & Backend Processing Pipeline for Project Analysis**:
+    - [x] REMOVED: "Dev: Quick AI Map Gen (Mock Project)" and "Test AI Map (Fixed Mock Project)" buttons from `ProjectUploadForm` as they were causing confusion. Direct testing of AI flows can be done via Genkit dev UI or unit tests if needed.
+- [x] **API Endpoint & Backend Processing Pipeline for Project Analysis**:
     - [x] `ProjectSubmission` type and service now handle `fileStoragePath`.
     - [x] Submission API route `POST /api/projects/submissions` now accepts `fileStoragePath`.
     - [x] Frontend calls `generateMapFromProject` after user confirmation, passing `fileStoragePath` and `userGoals`.
@@ -112,28 +111,28 @@
 - [x] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
     - [x] **Canvas-Integrated AI Brainstorming & Expansion:**
         - [x] **Context Menu AI Actions:** Expand, Suggest Relations, Extract Concepts, Ask AI Question, Rewrite Content on node context menus (handled by `useConceptMapAITools` and `NodeContextMenu`).
-        - [x] **"Quick AI Node/Cluster" on Canvas:** Implemented via Toolbar Modal (`QuickClusterModal`, managed by `useConceptMapAITools`).
-        - [x] **AI for Structuring Text into Map Snippets:** Implemented `GenerateSnippetModal` and flow (managed by `useConceptMapAITools`).
+        - [x] **"Quick AI Node/Cluster" on Canvas:** Implemented via Toolbar Modal (`QuickClusterModal`, managed by `useConceptMapAITools`). Generates nodes/edges directly on map.
+        - [x] **AI for Structuring Text into Map Snippets:** Implemented `GenerateSnippetModal` and flow (managed by `useConceptMapAITools`). Generates nodes/edges directly on map.
     - [x] **Enhanced Context for In-Editor AI Tools:** (Context gathering for modals from selected nodes/neighbors is implemented in `useConceptMapAITools`)
-        - [x] **`extractConcepts` Context:** From selected node(s) text/details.
-        - [x] **`suggestRelations` Context:** Uses multiple selected nodes or a node and its neighbors.
+        - [x] **`extractConcepts` Context:** From selected node(s) text/details. Populates `AISuggestionPanel`.
+        - [x] **`suggestRelations` Context:** Uses multiple selected nodes or a node and its neighbors. Populates `AISuggestionPanel`.
         - [x] **`expandConcept` Context:** Uses selected node and its neighbors.
     - [x] **Refine "Generate Ideas" / "Expand Concept" Interaction:**
-        - [x] Option A: Direct child node generation from an "Expand" or "Generate Ideas" action (new nodes automatically appear around the source node, with relation labels).
+        - [x] Option A: Direct child node generation from an "Expand" or "Generate Ideas" action (new nodes automatically appear around the source node, with relation labels). This is now the default for "Expand Concept".
         - [x] Option C: Allow user to refine prompts for "Generate Ideas" / "Expand Concept" within their respective modals.
-        - (Note: AISuggestionPanel population for "Expand Concept" was removed in favor of direct node addition.)
+        - [x] (Note: `AISuggestionPanel` population for "Expand Concept" was removed in favor of direct node addition.)
     - [x] **Implement "Summarize Selected Nodes (AI)" Feature:**
         - [x] Trigger: Toolbar button when multiple nodes are selected.
-        - [x] Creates Genkit flow (`summarizeNodesFlow`) and a new `ai-summary-node`.
+        - [x] Creates Genkit flow (`summarizeNodesFlow`) and a new `ai-summary-node` directly on the map.
     - [x] **Implement "Rewrite Node Content (AI) / Change Tone" Feature:**
         - [x] Trigger: Context menu on a node.
         - [x] Uses `RewriteNodeContentModal` for tone selection and preview.
-        - [x] Creates Genkit flow (`rewriteNodeContentFlow`). Updates node content and type to `ai-rewritten-node`.
+        - [x] Creates Genkit flow (`rewriteNodeContentFlow`). Updates node content and type to `ai-rewritten-node` directly on the map.
     - [ ] **(Advanced - Future) Explore "AI Structure Suggestions":**
         - [ ] Analyze map structure and content to propose new connections or organizational improvements (e.g., "These 3 nodes seem related, would you like to group them?" or "Consider linking Node A to Node B because...").
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
-    - [x] **Workflow Review**: Suggestions persist, update status, removed from panel after adding to map. "Expand Concept" no longer populates this panel.
+    - [x] **Workflow Review**: Suggestions (Extract Concepts, Suggest Relations) persist, update status, removed from panel after adding to map. "Expand Concept" no longer populates this panel.
     - [x] **Visual Feedback on "Add to Map"**: Items persist, status updates.
     - [x] **Smart Placement for Panel-Added Nodes**: Basic logic implemented in `useConceptMapAITools`.
     - [x] **Selective Addition**: "Add Selected" and "Add All New/Similar" implemented.
@@ -219,10 +218,10 @@ This section outlines tasks to fully migrate to Supabase.
 - Dashboard counts are fetched from Supabase-backed APIs using custom hooks, which also respect `BYPASS_AUTH_FOR_TESTING`.
 - Classroom management, Concept Map management, and Student Submissions list are connected to Supabase and use modular components.
 - The application is highly modular, with reusable components for UI patterns, custom hooks for complex logic, and service layers for backend interaction.
-- Core in-editor AI features (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) are implemented with specific visual cues for AI-generated/modified nodes.
+- Core in-editor AI features (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) are implemented with specific visual cues for AI-generated/modified nodes. "Expand Concept", "Summarize Selection", and "Rewrite Content" now directly add/modify content on the map.
 - View-only mode for concept map editor is implemented.
 - Developer role switcher added to profile page for easier testing.
-- Developer test buttons added to Project Upload Form for rapid GAI pipeline testing using mock data when `BYPASS_AUTH_FOR_TESTING` is true.
+- Developer test buttons previously on Project Upload Form have been removed for simplicity.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
@@ -236,3 +235,4 @@ The main remaining area for full Supabase connection is:
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
 
+```
