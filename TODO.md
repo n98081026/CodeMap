@@ -46,14 +46,14 @@
     - [ ] Develop Project Analysis Microservice:
         - [ ] Task consumer from message queue. (Out of Scope).
         - [ ] File downloader/unpacker from Supabase storage for AI tool. (Mocked by `projectStructureAnalyzerTool`; real processing is user's responsibility within the tool).
-        - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` is mock, now accepts storage path and user goals).
+        - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` is mock, now accepts storage path and user goals, and special hints for predefined mock outputs).
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output, creates new ConceptMap record via Supabase service - handled in `ProjectUploadForm` flow after AI tool returns).
         - [x] Map Data Formatter & Persister (saves generated map via Supabase service, updates submission status with real map ID - handled in `ProjectUploadForm` flow).
     - [x] Connect frontend project submission UI to live API (for metadata, client-side upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service - handled in `ProjectUploadForm`).
     - [x] Connect frontend student submissions list to live API. (Modularized with `SubmissionListItem` and `useSubmissionStatusPoller` hook).
-    - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states (using `useAdminDashboardMetrics` hook and `DashboardLinkCard` component).
-    - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states (using `useStudentDashboardMetrics` hook and `DashboardLinkCard` component).
-    - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states (using `useTeacherDashboardMetrics` hook and `DashboardLinkCard` component).
+    - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states (using `useAdminDashboardMetrics` hook and `DashboardLinkCard` component, respects BYPASS_AUTH).
+    - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states (using `useStudentDashboardMetrics` hook and `DashboardLinkCard` component, respects BYPASS_AUTH).
+    - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states (using `useTeacherDashboardMetrics` hook and `DashboardLinkCard` component, respects BYPASS_AUTH).
     - [x] Ensure navigation paths are consistent (e.g. `/application/...` prefix).
 
 ## Frontend Enhancements
@@ -90,14 +90,16 @@
 - [x] **File Upload UI Adaptation for Project Analysis**:
     - [x] Add `userGoals` input to `ProjectUploadForm`.
     - [x] Use `AlertDialog` to confirm AI analysis post-submission record creation.
-- [x/ ] **API Endpoint & Backend Processing Pipeline for Project Analysis**:
+    - [x] REMOVED: "Dev: Quick AI Map Gen (Mock Project)" and "Test AI Map (Fixed Mock Project)" buttons from `ProjectUploadForm` as they were causing confusion. Direct testing of AI flows can be done via Genkit dev UI or unit tests if needed.
+- [x] **API Endpoint & Backend Processing Pipeline for Project Analysis**:
     - [x] `ProjectSubmission` type and service now handle `fileStoragePath`.
     - [x] Submission API route `POST /api/projects/submissions` now accepts `fileStoragePath`.
     - [x] Frontend calls `generateMapFromProject` after user confirmation, passing `fileStoragePath` and `userGoals`.
     - [x] Frontend handles saving the generated map (via API) and updating submission status (within `ProjectUploadForm` and `useConceptMapAITools` for other AI-generated maps).
 - [x] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`)**:
     - [x] Input schema updated to `projectStoragePath` and `userHint`.
-    - [x] Mock logic acknowledges these inputs and slightly varies output based on hint. (Actual file processing from storage is user responsibility).
+    - [x] Mock logic acknowledges these inputs and varies output based on hint (e.g., "e-commerce", "data pipeline").
+    - [x] Mock logic supports a special hint (`_USE_FIXED_MOCK_PROJECT_A_`) to return a predefined, detailed project analysis object.
 - [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**:
     - [x] Input schema updated to `projectStoragePath` and `userGoals`.
     - [x] Prompt explicitly instructs use of `projectStructureAnalyzerTool` with these inputs.
@@ -145,6 +147,11 @@
         - [x] Ensured AI-generated nodes (from panel, direct generation like "Summarize", "Rewrite", or "Expand Concept") have distinct visual styles and icons via `CustomNodeComponent`.
         - [x] Defined specific node types (`ai-summary-node`, `ai-rewritten-node`, `ai-expanded` for generated children, `ai-concept` from panel, `text-derived-concept`, `ai-generated`) and mapped them to styles/icons.
 
+## Performance Optimizations
+- [ ] Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
+- [ ] Investigate large list rendering: For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
+- [ ] Conduct further React component memoization: Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial.
+
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
 **1. Supabase Setup & Initial Configuration**
@@ -155,25 +162,25 @@ This section outlines tasks to fully migrate to Supabase.
 
 **2. User Authentication & Profiles with Supabase Auth**
 - [x] **Users (`profiles`) Table:** (User needs to create this in their Supabase project + RLS).
-- [x] **`AuthContext` Refactor:** (Complete: Supabase login, register, logout, session, profile fetching & creation).
-- [x] **`userService.ts` Refactor:** (Complete: All user service functions use Supabase).
+- [x] **`AuthContext` Refactor:** (Complete: Supabase login, register, logout, session, profile fetching & creation, respects BYPASS_AUTH_FOR_TESTING).
+- [x] **`userService.ts` Refactor:** (Complete: All user service functions use Supabase, respects BYPASS_AUTH_FOR_TESTING).
 - [x] **API Routes (`/api/auth/*`) Review/Refactor:** (Marked deprecated).
 
 **3. Classroom Management with Supabase**
 - [x] **`classrooms` Table:** (User needs to create + RLS).
 - [x] **`classroom_students` Table (Junction):** (User needs to create + RLS).
-- [x] **`classroomService.ts` Refactor:** (Complete: All classroom service functions use Supabase).
+- [x] **`classroomService.ts` Refactor:** (Complete: All classroom service functions use Supabase, respects BYPASS_AUTH_FOR_TESTING).
 - [x] **Connect frontend classroom UI (teacher, student) to live API (with Supabase service).**
 
 **4. Concept Map Management with Supabase**
 - [x] **`concept_maps` Table:** (User needs to create + RLS).
-- [x] **`conceptMapService.ts` Refactor:** (Complete: All concept map service functions use Supabase).
+- [x] **`conceptMapService.ts` Refactor:** (Complete: All concept map service functions use Supabase, respects BYPASS_AUTH_FOR_TESTING).
 - [x] **Connect frontend concept map UI (student, editor) to live API (with Supabase service).**
 
 **5. Project Submission & Analysis with Supabase**
 - [x] **`project_submissions` Table:** (User needs to create + RLS, and add `file_storage_path TEXT NULLABLE` column).
 - [x] **Supabase Storage Setup:** (User needs to create bucket `project_archives` + RLS that allows authenticated users to upload to path `user-<user_id>/*`).
-- [x] **`projectSubmissionService.ts` Refactor:** (Complete: All submission service functions use Supabase, including `fileStoragePath`).
+- [x] **`projectSubmissionService.ts` Refactor:** (Complete: All submission service functions use Supabase, respects BYPASS_AUTH_FOR_TESTING, including `fileStoragePath`).
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete via `ProjectUploadForm` and `useSupabaseStorageUpload` hook).
 - [x] **Connect frontend student submissions list to live API.**
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
@@ -200,18 +207,21 @@ This section outlines tasks to fully migrate to Supabase.
     - [ ] Configure production environment for Next.js and Supabase.
 
 ## Known Issues / Current State
-- Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies.
-- AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table.
+- Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
+- AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
-- AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired.
+- AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis uploads to Supabase Storage (bucket 'project_archives').
 - Admin User Management page and Profile Page are connected to Supabase for CRUD and password changes.
-- Dashboard counts are fetched from Supabase-backed APIs using custom hooks.
+- Dashboard counts are fetched from Supabase-backed APIs using custom hooks, which also respect `BYPASS_AUTH_FOR_TESTING`.
 - Classroom management, Concept Map management, and Student Submissions list are connected to Supabase and use modular components.
 - The application is highly modular, with reusable components for UI patterns, custom hooks for complex logic, and service layers for backend interaction.
 - Core in-editor AI features (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) are implemented with specific visual cues for AI-generated/modified nodes.
+- View-only mode for concept map editor is implemented.
+- Developer role switcher added to profile page for easier testing.
+- Developer test buttons previously on Project Upload Form have been removed for simplicity.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
