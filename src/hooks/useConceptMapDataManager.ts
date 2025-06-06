@@ -6,13 +6,24 @@ from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { ConceptMap, User } from '@/types';
-import { UserRole } from '@/types';
 import useConceptMapStore from '@/stores/concept-map-store';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_CONCEPT_MAP_STUDENT } from '@/lib/config'; // Import shared config
 
 interface UseConceptMapDataManagerProps {
   routeMapId?: string;
   user: User | null;
 }
+
+// Update MOCK_USER_FOR_TESTING_MAPS to use the new MOCK_CONCEPT_MAP_STUDENT
+const MOCK_USER_FOR_TESTING_MAPS: { [key: string]: ConceptMap } = {
+    "map1": {
+        ...MOCK_CONCEPT_MAP_STUDENT, // Use the imported mock map
+        id: "map1", // Override id if needed for specific test cases
+        name: "Bypass Mock Map 1",
+    },
+    // Add more mock maps as needed for testing
+};
+
 
 export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapDataManagerProps) {
   const { toast } = useToast();
@@ -44,9 +55,9 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
         temporalStoreAPI.getState().clear();
         return;
     }
-    if (BYPASS_AUTH_FOR_TESTING && idToLoad === 'new' && MOCK_USER_FOR_TESTING) {
+    if (BYPASS_AUTH_FOR_TESTING && idToLoad === 'new' && MOCK_STUDENT_USER) {
         console.warn("BYPASS_AUTH: Initializing new mock map.");
-        initializeNewMap(MOCK_USER_FOR_TESTING.id);
+        initializeNewMap(MOCK_STUDENT_USER.id);
         setStoreIsLoading(false);
         temporalStoreAPI.getState().clear();
         return;
@@ -125,17 +136,23 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
     }
     if (BYPASS_AUTH_FOR_TESTING) {
         console.warn("BYPASS_AUTH: Simulating map save for map:", mapName);
-        MOCK_USER_FOR_TESTING_MAPS[storeMapId || `mock_map_${Date.now()}`] = {
-            id: storeMapId || `mock_map_${Date.now()}`,
+        const mapIdToSave = storeMapId || `mock_map_${Date.now()}`;
+        MOCK_USER_FOR_TESTING_MAPS[mapIdToSave] = { // Use an in-memory mock store for maps during bypass
+            id: mapIdToSave,
             name: mapName,
-            ownerId: MOCK_USER_FOR_TESTING.id,
+            ownerId: MOCK_STUDENT_USER.id,
             mapData,
             isPublic,
             sharedWithClassroomId,
-            createdAt: new Date().toISOString(),
+            createdAt: currentMapOwnerId ? new Date(currentMapOwnerId).toISOString() : new Date().toISOString(), // Reuse or set new
             updatedAt: new Date().toISOString(),
         };
-        toast({ title: "Map Saved (Mocked)", description: `"${mapName}" changes saved locally.` });
+        // Simulate updating the store with the "saved" map details, especially if it was a new map
+        setLoadedMap(MOCK_USER_FOR_TESTING_MAPS[mapIdToSave]);
+        if (isNewMapMode || storeMapId === 'new') {
+           router.replace(`/application/concept-maps/editor/${mapIdToSave}${isViewOnly ? '?viewOnly=true' : ''}`, { scroll: false });
+        }
+        toast({ title: "Map Saved (Mocked)", description: `"${mapName}" changes saved locally for bypass mode.` });
         return;
     }
     if (!user) {
@@ -214,23 +231,3 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
   
   return { saveMap, loadMapData };
 }
-
-
-// --- START OF AUTH BYPASS MOCK DATA ---
-const BYPASS_AUTH_FOR_TESTING = true; // Centralized bypass flag
-const MOCK_USER_FOR_TESTING = {
-  id: 'student-test-id',
-  name: 'Test Student (Bypass)',
-  email: 'teststudent.bypass@example.com',
-  role: UserRole.STUDENT,
-};
-const MOCK_USER_FOR_TESTING_MAPS: { [key: string]: ConceptMap } = {
-    "map1": {
-        id: "map1", name: "Bypass Mock Map 1", ownerId: MOCK_USER_FOR_TESTING.id,
-        mapData: { nodes: [{id: "n1", text: "Node 1", type: "default", x: 50, y: 50}], edges: []},
-        isPublic: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-    }
-};
-// --- END OF AUTH BYPASS MOCK DATA ---
-
-    

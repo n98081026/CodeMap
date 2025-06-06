@@ -10,18 +10,9 @@ import { supabase } from '@/lib/supabaseClient';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { getUserById as fetchSupabaseUserProfile, updateUser as updateUserProfileService, createUserProfile } from '@/services/users/userService';
 import { useToast } from '@/hooks/use-toast';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER } from '@/lib/config'; // Import shared constant and mock user
 
-// --- START OF AUTH BYPASS ---
-// Set this to true to bypass Supabase auth and use a mock student user.
-// REMEMBER TO SET TO FALSE FOR ACTUAL AUTH TESTING/PRODUCTION.
-const BYPASS_AUTH_FOR_TESTING = true;
-const MOCK_USER_FOR_TESTING: User = {
-  id: 'student-test-id', // Matches one of the mock user IDs
-  name: 'Test Student (Bypass)',
-  email: 'teststudent.bypass@example.com',
-  role: UserRole.STUDENT,
-};
-// --- END OF AUTH BYPASS ---
+// --- REMOVED AUTH BYPASS CONSTANTS from here, now imported ---
 
 interface AuthContextType {
   user: User | null;
@@ -96,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (BYPASS_AUTH_FOR_TESTING) {
       console.warn("AuthContext: BYPASS_AUTH_FOR_TESTING is TRUE. Using mock user.");
-      setUser(MOCK_USER_FOR_TESTING);
+      setUser(MOCK_STUDENT_USER); // Use imported mock user
       setIsLoading(false);
       initialAuthCheckCompleted.current = true;
       return; // Skip Supabase listeners and calls
@@ -196,10 +187,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(async (email: string, password: string, role: UserRole) => {
     if (BYPASS_AUTH_FOR_TESTING) {
       console.warn("Login attempt while BYPASS_AUTH_FOR_TESTING is true. No-op.");
-      setUser(MOCK_USER_FOR_TESTING); // Ensure mock user is set
+      setUser(MOCK_STUDENT_USER); // Ensure mock user is set
       setIsLoading(false);
       // Simulate redirect based on mock user's role
-      switch (MOCK_USER_FOR_TESTING.role) {
+      switch (MOCK_STUDENT_USER.role) {
           case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
           case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
           case UserRole.STUDENT: router.replace('/application/student/dashboard'); break;

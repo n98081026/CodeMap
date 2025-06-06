@@ -21,10 +21,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types";
 import { ProjectSubmissionStatus } from "@/types";
-import { UploadCloud, Loader2, AlertTriangle, FileUp, Brain } from "lucide-react";
+import { UploadCloud, Loader2, AlertTriangle, FileUp, Brain, Zap } from "lucide-react";
 import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
 import { useAuth } from "@/contexts/auth-context";
-import { useSupabaseStorageUpload } from "@/hooks/useSupabaseStorageUpload"; // Import the new hook
+import { useSupabaseStorageUpload } from "@/hooks/useSupabaseStorageUpload"; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { BYPASS_AUTH_FOR_TESTING } from '@/lib/config'; // Import bypass flag
 
 const MAX_FILE_SIZE_MB_FROM_ENV = parseInt(process.env.NEXT_PUBLIC_MAX_PROJECT_FILE_SIZE_MB || "10", 10);
 const MAX_FILE_SIZE = (MAX_FILE_SIZE_MB_FROM_ENV || 10) * 1024 * 1024; 
@@ -70,7 +71,7 @@ const projectUploadSchema = z.object({
         return false;
       },
       `Accepted file types: ${ACCEPTED_FILE_EXTENSIONS_STRING}. Ensure your file has one of these extensions. If your .tar.gz or .tgz is not accepted, please try zipping it.`
-    ),
+    ).optional(), // Make optional for dev button
   classroomId: z.string().optional(),
   userGoals: z.string().max(500, "Goals/hints should be max 500 characters.").optional(),
 });
@@ -95,6 +96,7 @@ export function ProjectUploadForm() {
   const [currentSubmissionForAI, setCurrentSubmissionForAI] = useState<ProjectSubmission | null>(null);
   const [currentUserGoalsForAI, setCurrentUserGoalsForAI] = useState<string | undefined>(undefined);
   const [isProcessingAIInDialog, setIsProcessingAIInDialog] = useState(false);
+  const [isDevGenerating, setIsDevGenerating] = useState(false);
 
   const fetchAvailableClassrooms = useCallback(async () => {
     if (!user) return;
@@ -152,6 +154,56 @@ export function ProjectUploadForm() {
     }
   }, []);
 
+  const processAISteps = useCallback(async (submission: ProjectSubmission, userGoals?: string) => {
+    if (!user) throw new Error("User not authenticated for AI processing.");
+    setIsProcessingAIInDialog(true); // Also use this for dev button visual cue
+    toast({ title: "AI Processing Started", description: `Analysis of "${submission.originalFileName}" is starting...` });
+
+    try {
+      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.PROCESSING);
+      const projectStoragePath = submission.fileStoragePath;
+      if (!projectStoragePath) {
+          throw new Error("File storage path is missing. Cannot proceed with AI analysis.");
+      }
+      const aiInputUserGoals = userGoals || `Analyze the project: ${submission.originalFileName}`;
+      const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals: aiInputUserGoals });
+
+      let parsedMapData: ConceptMapData;
+      try {
+        parsedMapData = JSON.parse(mapResult.conceptMapData);
+        if (!parsedMapData.nodes || !parsedMapData.edges) {
+            throw new Error("AI output format error (missing nodes/edges).");
+        }
+      } catch (parseError) {
+        throw new Error(`Failed to parse AI map data: ${(parseError as Error).message}`);
+      }
+
+      const newMapPayload = {
+        name: `AI Map for ${submission.originalFileName.split('.')[0]}`,
+        ownerId: user.id, mapData: parsedMapData, isPublic: false,
+        sharedWithClassroomId: submission.classroomId,
+      };
+      const mapCreateResponse = await fetch('/api/concept-maps', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newMapPayload),
+      });
+      if (!mapCreateResponse.ok) {
+        const errorData = await mapCreateResponse.json();
+        throw new Error(errorData.message || "Failed to save AI-generated map.");
+      }
+      const createdMap: ConceptMap = await mapCreateResponse.json();
+      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.COMPLETED, createdMap.id);
+      toast({ title: "AI Map Generated!", description: `Map "${createdMap.name}" created and linked.`, duration: 7000 });
+      return createdMap;
+    } catch (aiError) {
+      console.error("AI Map Generation/Saving Error:", aiError);
+      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing failed");
+      throw aiError; // Re-throw to be caught by caller
+    } finally {
+      setIsProcessingAIInDialog(false);
+    }
+  }, [user, toast, updateSubmissionStatusOnServer]);
+
+
   const onSubmit = useCallback(async (values: z.infer<typeof projectUploadSchema>) => {
     if (!user) {
       toast({ title: "Authentication Error", description: "You must be logged in.", variant: "destructive" });
@@ -169,7 +221,6 @@ export function ProjectUploadForm() {
     const uploadedFilePath = await uploadFile({ file, filePathInBucket });
 
     if (!uploadedFilePath) {
-      // Error handling is done within the hook (toast shown)
       return;
     }
 
@@ -204,61 +255,21 @@ export function ProjectUploadForm() {
     } finally {
       setIsSubmittingMetadata(false);
     }
-  }, [user, toast, form, router, uploadFile]);
+  }, [user, toast, form, uploadFile]);
 
   const handleConfirmAIGeneration = useCallback(async () => {
-    if (!currentSubmissionForAI || !user) return;
-    setIsProcessingAIInDialog(true);
-    toast({ title: "AI Processing Started", description: `Analysis of "${currentSubmissionForAI.originalFileName}" is starting...` });
-
+    if (!currentSubmissionForAI) return;
     try {
-      await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.PROCESSING);
-      const projectStoragePath = currentSubmissionForAI.fileStoragePath;
-      if (!projectStoragePath) {
-          throw new Error("File storage path is missing. Cannot proceed with AI analysis.");
-      }
-      const aiInputUserGoals = currentUserGoalsForAI || `Analyze the project: ${currentSubmissionForAI.originalFileName}`;
-      const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals: aiInputUserGoals });
-
-      let parsedMapData: ConceptMapData;
-      try {
-        parsedMapData = JSON.parse(mapResult.conceptMapData);
-        if (!parsedMapData.nodes || !parsedMapData.edges) {
-            throw new Error("AI output format error (missing nodes/edges).");
-        }
-      } catch (parseError) {
-        throw new Error(`Failed to parse AI map data: ${(parseError as Error).message}`);
-      }
-
-      const newMapPayload = {
-        name: `AI Map for ${currentSubmissionForAI.originalFileName.split('.')[0]}`,
-        ownerId: user.id, mapData: parsedMapData, isPublic: false,
-        sharedWithClassroomId: currentSubmissionForAI.classroomId,
-      };
-      const mapCreateResponse = await fetch('/api/concept-maps', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newMapPayload),
-      });
-      if (!mapCreateResponse.ok) {
-        const errorData = await mapCreateResponse.json();
-        throw new Error(errorData.message || "Failed to save AI-generated map.");
-      }
-      const createdMap: ConceptMap = await mapCreateResponse.json();
-      await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.COMPLETED, createdMap.id);
-      toast({ title: "AI Map Generated!", description: `Map "${createdMap.name}" created and linked.`, duration: 7000 });
+      await processAISteps(currentSubmissionForAI, currentUserGoalsForAI);
     } catch (aiError) {
-      console.error("AI Map Generation/Saving Error:", aiError);
-      if (currentSubmissionForAI) {
-        await updateSubmissionStatusOnServer(currentSubmissionForAI.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing failed");
-      }
       toast({ title: "AI Map Generation Failed", description: (aiError as Error).message, variant: "destructive", duration: 7000 });
     } finally {
-      setIsProcessingAIInDialog(false);
       setIsConfirmAIDialogOpen(false);
       setCurrentSubmissionForAI(null);
       setCurrentUserGoalsForAI(undefined);
       router.push("/application/student/projects/submissions");
     }
-  }, [currentSubmissionForAI, user, toast, router, updateSubmissionStatusOnServer, currentUserGoalsForAI]);
+  }, [currentSubmissionForAI, currentUserGoalsForAI, processAISteps, toast, router]);
 
   const handleDeclineAIGeneration = useCallback(() => {
     toast({ title: "AI Analysis Skipped", description: `Your project "${currentSubmissionForAI?.originalFileName}" was submitted but AI analysis was not initiated. You can track it in 'My Submissions'.`, duration: 7000});
@@ -268,7 +279,51 @@ export function ProjectUploadForm() {
     router.push("/application/student/projects/submissions");
   }, [router, currentSubmissionForAI?.originalFileName, toast]);
 
-  const isBusyOverall = isUploadingFileWithHook || isSubmittingMetadata || isProcessingAIInDialog;
+  const handleDevGenerateAIMap = useCallback(async () => {
+    if (!user) {
+      toast({ title: "Auth Error", description: "User not found for dev generation.", variant: "destructive" });
+      return;
+    }
+    setIsDevGenerating(true);
+    const mockProjectName = "Dev Mock Project.zip";
+    const mockStoragePath = "mock/dev-test-project.zip"; // Path for AI flow
+    const mockUserGoals = form.getValues("userGoals") || "Dev test: Analyze key components and data flow.";
+
+    // 1. Create a submission record first
+    const submissionPayload = {
+      studentId: user.id,
+      originalFileName: mockProjectName,
+      fileSize: 1024 * 1024, // Dummy size
+      classroomId: form.getValues("classroomId") === NONE_CLASSROOM_VALUE ? null : (form.getValues("classroomId") || null),
+      fileStoragePath: mockStoragePath, 
+    };
+
+    try {
+      const subResponse = await fetch('/api/projects/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submissionPayload),
+      });
+      if (!subResponse.ok) {
+        const errorData = await subResponse.json();
+        throw new Error(errorData.message || "Failed to create mock submission record");
+      }
+      const newSubmission: ProjectSubmission = await subResponse.json();
+      toast({ title: "Mock Submission Created", description: `ID: ${newSubmission.id}` });
+
+      // 2. Now process AI using this submission (which contains mockStoragePath)
+      await processAISteps(newSubmission, mockUserGoals);
+      router.push("/application/student/projects/submissions");
+
+    } catch (error) {
+      toast({ title: "Dev AI Map Gen Failed", description: (error as Error).message, variant: "destructive", duration: 8000 });
+    } finally {
+      setIsDevGenerating(false);
+    }
+  }, [user, toast, form, processAISteps, router]);
+
+
+  const isBusyOverall = isUploadingFileWithHook || isSubmittingMetadata || isProcessingAIInDialog || isDevGenerating;
 
   return (
     <>
@@ -359,10 +414,17 @@ export function ProjectUploadForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isBusyOverall || !form.formState.isValid}>
+          <Button type="submit" className="w-full" disabled={isBusyOverall || !form.formState.isValid || !form.getValues("projectFile")}>
             {isUploadingFileWithHook ? <FileUp className="mr-2 h-4 w-4 animate-pulse" /> : isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             {isUploadingFileWithHook ? "Uploading..." : isSubmittingMetadata ? "Submitting..." : isProcessingAIInDialog ? "AI Processing..." : "Submit Project"}
           </Button>
+          
+          {BYPASS_AUTH_FOR_TESTING && (
+            <Button type="button" variant="outline" className="w-full mt-4" onClick={handleDevGenerateAIMap} disabled={isBusyOverall}>
+              {isDevGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+              Dev: Quick AI Map Gen (Mock Project)
+            </Button>
+          )}
         </form>
       </Form>
 
@@ -375,7 +437,6 @@ export function ProjectUploadForm() {
                 Project archive "{currentSubmissionForAI.originalFileName}" has been successfully submitted (file uploaded to secure storage).
                 {currentUserGoalsForAI && <span className="block mt-2 text-sm">Analysis goals: "{currentUserGoalsForAI}"</span>}
                 <br/>Would you like to proceed with AI-powered concept map generation now? This may take a few moments.
-                <br/>(Note: The AI analysis tool is currently mocked, but it will receive the actual storage path and any user goals provided.)
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

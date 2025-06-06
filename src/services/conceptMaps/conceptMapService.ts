@@ -1,3 +1,4 @@
+
 // src/services/conceptMaps/conceptMapService.ts
 'use server';
 
@@ -8,15 +9,13 @@
 import type { ConceptMap, ConceptMapData } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService'; // To validate ownerId
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_TEACHER_USER, MOCK_CONCEPT_MAP_STUDENT, MOCK_CONCEPT_MAP_TEACHER, MOCK_CLASSROOM_SHARED } from '@/lib/config';
+
+// Mock data store for bypass mode
+let MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [MOCK_CONCEPT_MAP_STUDENT, MOCK_CONCEPT_MAP_TEACHER];
 
 /**
  * Creates a new concept map.
- * @param name The name of the concept map.
- * @param ownerId The ID of the user who owns the map.
- * @param mapData The actual concept map data (nodes, edges).
- * @param isPublic Whether the map is public.
- * @param sharedWithClassroomId Optional classroom ID if shared.
- * @returns The newly created concept map object.
  */
 export async function createConceptMap(
   name: string,
@@ -25,6 +24,21 @@ export async function createConceptMap(
   isPublic: boolean,
   sharedWithClassroomId?: string | null
 ): Promise<ConceptMap> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const newMap: ConceptMap = {
+      id: `map-bypass-${Date.now()}`,
+      name,
+      ownerId,
+      mapData: mapData || { nodes: [], edges: [] },
+      isPublic,
+      sharedWithClassroomId: sharedWithClassroomId || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    MOCK_CONCEPT_MAPS_STORE.push(newMap);
+    return newMap;
+  }
+
   const owner = await getUserById(ownerId);
   if (!owner) {
     throw new Error("Invalid owner ID. User does not exist.");
@@ -62,10 +76,12 @@ export async function createConceptMap(
 
 /**
  * Retrieves a concept map by its ID.
- * @param mapId The ID of the concept map.
- * @returns The concept map object if found, otherwise null.
  */
 export async function getConceptMapById(mapId: string): Promise<ConceptMap | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    return MOCK_CONCEPT_MAPS_STORE.find(m => m.id === mapId) || null;
+  }
+
   const { data, error } = await supabase
     .from('concept_maps')
     .select('*')
@@ -93,10 +109,14 @@ export async function getConceptMapById(mapId: string): Promise<ConceptMap | nul
 
 /**
  * Retrieves all concept maps owned by a specific user.
- * @param ownerId The ID of the owner.
- * @returns A list of concept maps.
  */
 export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptMap[]> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    if (ownerId === MOCK_STUDENT_USER.id) return MOCK_CONCEPT_MAPS_STORE.filter(m => m.ownerId === MOCK_STUDENT_USER.id);
+    if (ownerId === MOCK_TEACHER_USER.id) return MOCK_CONCEPT_MAPS_STORE.filter(m => m.ownerId === MOCK_TEACHER_USER.id);
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('concept_maps')
     .select('*')
@@ -121,10 +141,14 @@ export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptM
 
 /**
  * Retrieves all concept maps shared with a specific classroom.
- * @param classroomId The ID of the classroom.
- * @returns A list of concept maps.
  */
 export async function getConceptMapsByClassroomId(classroomId: string): Promise<ConceptMap[]> {
+   if (BYPASS_AUTH_FOR_TESTING) {
+    if (classroomId === MOCK_CLASSROOM_SHARED.id) return MOCK_CONCEPT_MAPS_STORE.filter(m => m.sharedWithClassroomId === MOCK_CLASSROOM_SHARED.id);
+    // Add other mock classroom checks if necessary
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('concept_maps')
     .select('*')
@@ -147,19 +171,22 @@ export async function getConceptMapsByClassroomId(classroomId: string): Promise<
   }));
 }
 
-
 /**
  * Updates an existing concept map.
- * The 'ownerId' in updates is used for authorization check here.
- * @param mapId The ID of the concept map to update.
- * @param updates An object containing the fields to update, including ownerId for auth.
- * @returns The updated concept map object or null if not found or not authorized.
- * @throws Error if the user is not authorized or update fails.
  */
 export async function updateConceptMap(
   mapId: string, 
-  updates: Partial<Omit<ConceptMap, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>> & { ownerId: string } // ownerId is required in updates for auth
+  updates: Partial<Omit<ConceptMap, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>> & { ownerId: string } 
 ): Promise<ConceptMap | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const index = MOCK_CONCEPT_MAPS_STORE.findIndex(m => m.id === mapId && m.ownerId === updates.ownerId);
+    if (index === -1) throw new Error("BYPASS_AUTH: Map not found or owner mismatch.");
+    const updatedMap = { ...MOCK_CONCEPT_MAPS_STORE[index], ...updates, updatedAt: new Date().toISOString() };
+    // Remove ownerId from updates before merging, as it's not part of the ConceptMap's own fields in DB for update
+    const { ownerId, ...restOfUpdates } = updates;
+    MOCK_CONCEPT_MAPS_STORE[index] = { ...MOCK_CONCEPT_MAPS_STORE[index], ...restOfUpdates, updatedAt: new Date().toISOString() };
+    return MOCK_CONCEPT_MAPS_STORE[index];
+  }
   
   const mapToUpdate = await getConceptMapById(mapId);
   if (!mapToUpdate) {
@@ -188,7 +215,7 @@ export async function updateConceptMap(
     .from('concept_maps')
     .update(supabaseUpdates)
     .eq('id', mapId)
-    .eq('owner_id', updates.ownerId) // Ensure only owner can update
+    .eq('owner_id', updates.ownerId) 
     .select()
     .single();
 
@@ -212,12 +239,14 @@ export async function updateConceptMap(
 
 /**
  * Deletes a concept map.
- * @param mapId The ID of the concept map to delete.
- * @param currentUserId The ID of the user attempting to delete, for ownership verification.
- * @returns True if deleted successfully.
- * @throws Error if map not found or user is not authorized to delete.
  */
 export async function deleteConceptMap(mapId: string, currentUserId: string): Promise<boolean> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const initialLength = MOCK_CONCEPT_MAPS_STORE.length;
+    MOCK_CONCEPT_MAPS_STORE = MOCK_CONCEPT_MAPS_STORE.filter(m => !(m.id === mapId && m.ownerId === currentUserId));
+    return MOCK_CONCEPT_MAPS_STORE.length < initialLength;
+  }
+
   const mapToDelete = await getConceptMapById(mapId);
   if (!mapToDelete) {
     throw new Error("Concept map not found.");

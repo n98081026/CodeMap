@@ -10,10 +10,13 @@ import type { ProjectSubmission } from '@/types';
 import { ProjectSubmissionStatus, UserRole } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_PROJECT_SUBMISSION_STUDENT, MOCK_PROJECT_SUBMISSION_PROCESSING, MOCK_CLASSROOM_SHARED } from '@/lib/config';
+
+// Mock data store for bypass mode
+let MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [MOCK_PROJECT_SUBMISSION_STUDENT, MOCK_PROJECT_SUBMISSION_PROCESSING];
 
 /**
  * Creates a new project submission record.
- * Includes the path to the file in Supabase Storage.
  */
 export async function createSubmission(
   studentId: string,
@@ -22,6 +25,25 @@ export async function createSubmission(
   classroomId?: string | null,
   fileStoragePath?: string | null 
 ): Promise<ProjectSubmission> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const student = await getUserById(studentId); // Uses mock if ID matches
+    if (!student || student.role !== UserRole.STUDENT) {
+      throw new Error("BYPASS_AUTH: Invalid student ID or user is not a student.");
+    }
+    const newSubmission: ProjectSubmission = {
+      id: `sub-bypass-${Date.now()}`,
+      studentId,
+      originalFileName,
+      fileSize,
+      classroomId: classroomId || null,
+      fileStoragePath: fileStoragePath || `mock/path/${originalFileName}`,
+      submissionTimestamp: new Date().toISOString(),
+      analysisStatus: ProjectSubmissionStatus.PENDING,
+    };
+    MOCK_SUBMISSIONS_STORE.push(newSubmission);
+    return newSubmission;
+  }
+
   const student = await getUserById(studentId);
   if (!student || student.role !== UserRole.STUDENT) {
     throw new Error("Invalid student ID or user is not a student.");
@@ -37,7 +59,6 @@ export async function createSubmission(
       file_storage_path: fileStoragePath || null, 
       submission_timestamp: new Date().toISOString(),
       analysis_status: ProjectSubmissionStatus.PENDING,
-      // updated_at will be handled by Supabase default or trigger
     })
     .select()
     .single();
@@ -66,6 +87,10 @@ export async function createSubmission(
  * Retrieves a project submission by its ID.
  */
 export async function getSubmissionById(submissionId: string): Promise<ProjectSubmission | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    return MOCK_SUBMISSIONS_STORE.find(s => s.id === submissionId) || null;
+  }
+
   const { data, error } = await supabase
     .from('project_submissions')
     .select('*')
@@ -96,6 +121,12 @@ export async function getSubmissionById(submissionId: string): Promise<ProjectSu
  * Retrieves all submissions for a specific student.
  */
 export async function getSubmissionsByStudentId(studentId: string): Promise<ProjectSubmission[]> {
+  if (BYPASS_AUTH_FOR_TESTING && studentId === MOCK_STUDENT_USER.id) {
+    return MOCK_SUBMISSIONS_STORE.filter(s => s.studentId === MOCK_STUDENT_USER.id)
+      .sort((a, b) => new Date(b.submissionTimestamp).getTime() - new Date(a.submissionTimestamp).getTime());
+  }
+  if (BYPASS_AUTH_FOR_TESTING) return [];
+
   const { data, error } = await supabase
     .from('project_submissions')
     .select('*')
@@ -124,9 +155,16 @@ export async function getSubmissionsByStudentId(studentId: string): Promise<Proj
  * Retrieves all submissions for a specific classroom.
  */
 export async function getSubmissionsByClassroomId(classroomId: string): Promise<ProjectSubmission[]> {
+  if (BYPASS_AUTH_FOR_TESTING && classroomId === MOCK_CLASSROOM_SHARED.id) {
+     return MOCK_SUBMISSIONS_STORE.filter(s => s.classroomId === MOCK_CLASSROOM_SHARED.id)
+      .sort((a,b) => new Date(b.submissionTimestamp).getTime() - new Date(a.submissionTimestamp).getTime());
+  }
+  if (BYPASS_AUTH_FOR_TESTING) return [];
+
+
   const { data, error } = await supabase
     .from('project_submissions')
-    .select('*, student:profiles(name)') // Example of fetching related student name
+    .select('*, student:profiles(name)') 
     .eq('classroom_id', classroomId)
     .order('submission_timestamp', { ascending: false });
 
@@ -137,7 +175,6 @@ export async function getSubmissionsByClassroomId(classroomId: string): Promise<
   return (data || []).map(s => ({
     id: s.id,
     studentId: s.student_id,
-    // studentName: (s.student as any)?.name || s.student_id, // Access related name
     originalFileName: s.original_file_name,
     fileSize: s.file_size,
     classroomId: s.classroom_id,
@@ -158,6 +195,18 @@ export async function updateSubmissionStatus(
   analysisError?: string | null,
   generatedConceptMapId?: string | null
 ): Promise<ProjectSubmission | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const index = MOCK_SUBMISSIONS_STORE.findIndex(s => s.id === submissionId);
+    if (index === -1) return null;
+    MOCK_SUBMISSIONS_STORE[index] = {
+      ...MOCK_SUBMISSIONS_STORE[index],
+      analysisStatus: status,
+      analysisError: analysisError === undefined ? MOCK_SUBMISSIONS_STORE[index].analysisError : analysisError,
+      generatedConceptMapId: generatedConceptMapId === undefined ? MOCK_SUBMISSIONS_STORE[index].generatedConceptMapId : generatedConceptMapId,
+    };
+    return MOCK_SUBMISSIONS_STORE[index];
+  }
+
   const updates: any = {
     analysis_status: status,
     analysis_error: analysisError === undefined ? null : analysisError,
@@ -194,9 +243,16 @@ export async function updateSubmissionStatus(
 
 /**
  * Retrieves all project submissions (e.g., for admin).
- * Returns total count along with submissions for pagination.
  */
 export async function getAllSubmissions(page: number = 1, limit: number = 10): Promise<{submissions: ProjectSubmission[], totalCount: number}> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const totalCount = MOCK_SUBMISSIONS_STORE.length;
+    const paginatedSubmissions = MOCK_SUBMISSIONS_STORE
+      .sort((a,b) => new Date(b.submissionTimestamp).getTime() - new Date(a.submissionTimestamp).getTime())
+      .slice((page - 1) * limit, page * limit);
+    return { submissions: paginatedSubmissions, totalCount };
+  }
+
   const { data, error, count } = await supabase
     .from('project_submissions')
     .select('*, student:profiles(name)', { count: 'exact' })
@@ -211,7 +267,6 @@ export async function getAllSubmissions(page: number = 1, limit: number = 10): P
   const submissions = (data || []).map(s => ({
     id: s.id,
     studentId: s.student_id,
-    // studentName: (s.student as any)?.name || s.student_id,
     originalFileName: s.original_file_name,
     fileSize: s.file_size,
     classroomId: s.classroom_id,

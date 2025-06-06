@@ -9,6 +9,7 @@
 import type { User } from '@/types';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabaseClient'; 
+import { BYPASS_AUTH_FOR_TESTING, MOCK_USERS, MOCK_STUDENT_USER, MOCK_TEACHER_USER, MOCK_ADMIN_USER } from '@/lib/config';
 
 /**
  * Creates a user profile in the 'profiles' table.
@@ -17,6 +18,13 @@ import { supabase } from '@/lib/supabaseClient';
  * It will also check if a profile already exists by ID or email to prevent duplicates.
  */
 export async function createUserProfile(userId: string, name: string, email: string, role: UserRole): Promise<User> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    console.warn(`BYPASS_AUTH: Simulating createUserProfile for ${email}. Data not persisted.`);
+    const newUser: User = { id: userId, name, email, role };
+    MOCK_USERS.push(newUser); // Add to in-memory mock users for this session
+    return newUser;
+  }
+
   // 1. Check if profile already exists for this userId
   const { data: existingById, error: errorById } = await supabase
     .from('profiles')
@@ -76,6 +84,9 @@ export async function createUserProfile(userId: string, name: string, email: str
 }
 
 export async function findUserByEmail(email: string): Promise<User | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    return MOCK_USERS.find(u => u.email === email) || null;
+  }
   const { data, error } = await supabase
     .from('profiles')
     .select('id, name, email, role')
@@ -91,6 +102,9 @@ export async function findUserByEmail(email: string): Promise<User | null> {
 }
 
 export async function getUserById(userId: string): Promise<User | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    return MOCK_USERS.find(u => u.id === userId) || null;
+  }
   const { data, error } = await supabase
     .from('profiles')
     .select('id, name, email, role')
@@ -105,6 +119,20 @@ export async function getUserById(userId: string): Promise<User | null> {
 }
 
 export async function getAllUsers(page: number = 1, limit: number = 10, searchTerm?: string): Promise<{ users: User[]; totalCount: number }> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    let filteredUsers = MOCK_USERS;
+    if (searchTerm && searchTerm.trim() !== '') {
+      const lowerSearchTerm = searchTerm.trim().toLowerCase();
+      filteredUsers = MOCK_USERS.filter(u => 
+        u.name.toLowerCase().includes(lowerSearchTerm) || 
+        u.email.toLowerCase().includes(lowerSearchTerm)
+      );
+    }
+    const totalCount = filteredUsers.length;
+    const paginatedUsers = filteredUsers.slice((page - 1) * limit, page * limit);
+    return { users: paginatedUsers, totalCount };
+  }
+
   let query = supabase
     .from('profiles')
     .select('id, name, email, role', { count: 'exact' })
@@ -132,12 +160,28 @@ export async function getAllUsers(page: number = 1, limit: number = 10, searchTe
  * Does NOT update Supabase Auth user details (like login email or password).
  */
 export async function updateUser(userId: string, updates: { name?: string; email?: string; role?: UserRole }): Promise<User | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const userIndex = MOCK_USERS.findIndex(u => u.id === userId);
+    if (userIndex === -1) throw new Error("Mock user not found for update.");
+    
+    const mockUserIdsToRestrict = [MOCK_ADMIN_USER.id, MOCK_STUDENT_USER.id, MOCK_TEACHER_USER.id];
+     if (mockUserIdsToRestrict.includes(userId)) {
+      if (updates.email && updates.email !== MOCK_USERS[userIndex].email) {
+          throw new Error("Cannot change email for pre-defined mock users.");
+      }
+      if (updates.role && updates.role !== MOCK_USERS[userIndex].role) {
+          throw new Error("Cannot change role for pre-defined mock users.");
+      }
+    }
+    MOCK_USERS[userIndex] = { ...MOCK_USERS[userIndex], ...updates };
+    return MOCK_USERS[userIndex];
+  }
+
   const userToUpdate = await getUserById(userId);
   if (!userToUpdate) {
     throw new Error("User profile not found for update.");
   }
   
-  // Prevent editing of mock user emails or roles through this service. Name can be changed.
   const mockUserIds = ["admin-mock-id", "student-test-id", "teacher-test-id"];
   if (mockUserIds.includes(userId)) {
       if (updates.email && updates.email !== userToUpdate.email) {
@@ -196,6 +240,16 @@ export async function updateUser(userId: string, updates: { name?: string; email
  * possibly via Supabase dashboard or admin SDK if cascade isn't set up.
  */
 export async function deleteUser(userId: string): Promise<boolean> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const mockUserIdsToRestrict = [MOCK_ADMIN_USER.id, MOCK_STUDENT_USER.id, MOCK_TEACHER_USER.id];
+    if (mockUserIdsToRestrict.includes(userId)) {
+      throw new Error("Pre-defined test user profiles cannot be deleted.");
+    }
+    const initialLength = MOCK_USERS.length;
+    MOCK_USERS = MOCK_USERS.filter(u => u.id !== userId);
+    return MOCK_USERS.length < initialLength;
+  }
+  
   const mockUserIds = ["admin-mock-id", "student-test-id", "teacher-test-id"];
   if (mockUserIds.includes(userId)) {
       throw new Error("Pre-defined test user profiles cannot be deleted.");
@@ -219,4 +273,3 @@ export async function deleteUser(userId: string): Promise<boolean> {
   console.log(`Profile for user ${userId} deleted. Associated auth.users entry needs separate handling if not cascaded.`);
   return true;
 }
-

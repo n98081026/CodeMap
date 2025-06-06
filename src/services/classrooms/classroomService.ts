@@ -10,6 +10,16 @@ import type { Classroom, User } from '@/types';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService'; 
+import { BYPASS_AUTH_FOR_TESTING, MOCK_CLASSROOM_SHARED, MOCK_CLASSROOM_TEACHER_OWNED, MOCK_STUDENT_USER, MOCK_TEACHER_USER, MOCK_USERS } from '@/lib/config';
+
+// Mock data store for bypass mode
+let MOCK_CLASSROOMS_STORE: Classroom[] = [MOCK_CLASSROOM_SHARED, MOCK_CLASSROOM_TEACHER_OWNED];
+let MOCK_CLASSROOM_STUDENTS_STORE: Array<{classroom_id: string, student_id: string}> = [
+    { classroom_id: MOCK_CLASSROOM_SHARED.id, student_id: MOCK_STUDENT_USER.id },
+    { classroom_id: MOCK_CLASSROOM_SHARED.id, student_id: 'another-mock-student-id'},
+    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED.id, student_id: 'mock-s1'},
+    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED.id, student_id: 'mock-s2'},
+];
 
 
 async function populateTeacherName(classroom: Classroom): Promise<void> {
@@ -24,6 +34,15 @@ async function populateTeacherName(classroom: Classroom): Promise<void> {
 }
 
 async function populateStudentDetailsForClassroom(classroom: Classroom): Promise<void> {
+    if (BYPASS_AUTH_FOR_TESTING) {
+        const studentEntries = MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id === classroom.id);
+        classroom.studentIds = studentEntries.map(entry => entry.student_id);
+        classroom.students = classroom.studentIds
+            .map(id => MOCK_USERS.find(u => u.id === id))
+            .filter(u => u !== undefined) as User[];
+        return;
+    }
+
   const { data: studentEntries, error: studentEntriesError } = await supabase
     .from('classroom_students')
     .select('student_id')
@@ -65,6 +84,28 @@ export async function createClassroom(
   difficulty?: "beginner" | "intermediate" | "advanced",
   enableStudentAiAnalysis?: boolean
 ): Promise<Classroom> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const teacher = MOCK_USERS.find(u => u.id === teacherId);
+    if (!teacher || (teacher.role !== UserRole.TEACHER && teacher.role !== UserRole.ADMIN)) {
+      throw new Error("BYPASS_AUTH: Invalid teacher ID or user is not authorized.");
+    }
+    const newClassroom: Classroom = {
+      id: `class-bypass-${Date.now()}`,
+      name,
+      description,
+      teacherId,
+      teacherName: teacher.name,
+      studentIds: [],
+      students:[],
+      inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+      subject,
+      difficulty,
+      enableStudentAiAnalysis: enableStudentAiAnalysis === undefined ? true : enableStudentAiAnalysis,
+    };
+    MOCK_CLASSROOMS_STORE.push(newClassroom);
+    return newClassroom;
+  }
+
   const teacher = await getUserById(teacherId);
   if (!teacher || (teacher.role !== UserRole.TEACHER && teacher.role !== UserRole.ADMIN)) {
     throw new Error("Invalid teacher ID or user is not authorized to create classrooms.");
@@ -81,7 +122,6 @@ export async function createClassroom(
 
   if (subject) classroomToInsert.subject = subject;
   if (difficulty) classroomToInsert.difficulty = difficulty;
-  // Default to true if undefined, or use the provided value
   classroomToInsert.enable_student_ai_analysis = enableStudentAiAnalysis === undefined ? true : enableStudentAiAnalysis;
 
   const { data, error } = await supabase
@@ -118,6 +158,20 @@ export async function getClassroomsByTeacherId(
   limit?: number,
   searchTerm?: string
 ): Promise<{ classrooms: Classroom[]; totalCount: number }> {
+  if (BYPASS_AUTH_FOR_TESTING && teacherId === MOCK_TEACHER_USER.id) {
+    let filtered = MOCK_CLASSROOMS_STORE.filter(c => c.teacherId === teacherId);
+    if (searchTerm) {
+      filtered = filtered.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+    const totalCount = filtered.length;
+    if (page && limit) {
+      filtered = filtered.slice((page - 1) * limit, page * limit);
+    }
+    return { classrooms: filtered.map(c => ({...c, studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id === c.id).map(cs => cs.student_id)})), totalCount };
+  }
+   if (BYPASS_AUTH_FOR_TESTING) return { classrooms: [], totalCount: 0 };
+
+
   let query = supabase
     .from('classrooms')
     .select('*, teacher:profiles!teacher_id(name)', { count: 'exact' }) 
@@ -154,7 +208,6 @@ export async function getClassroomsByTeacherId(
         difficulty: c.difficulty ?? undefined,
         enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
     };
-    // Fetch student count for each classroom
     const { count: studentCount, error: countError } = await supabase
       .from('classroom_students')
       .select('student_id', { count: 'exact', head: true })
@@ -162,9 +215,9 @@ export async function getClassroomsByTeacherId(
 
     if (countError) {
         console.warn(`Error counting students for classroom ${c.id}: ${countError.message}`);
-        classroom.studentIds = []; // Default to empty array on error
+        classroom.studentIds = [];
     } else {
-        classroom.studentIds = Array(studentCount || 0).fill(''); // Placeholder array of correct length
+        classroom.studentIds = Array(studentCount || 0).fill('');
     }
     return classroom;
   });
@@ -175,6 +228,15 @@ export async function getClassroomsByTeacherId(
 
 
 export async function getClassroomsByStudentId(studentId: string): Promise<Classroom[]> {
+    if (BYPASS_AUTH_FOR_TESTING && studentId === MOCK_STUDENT_USER.id) {
+        const enrolledClassroomIds = MOCK_CLASSROOM_STUDENTS_STORE
+            .filter(cs => cs.student_id === studentId)
+            .map(cs => cs.classroom_id);
+        return MOCK_CLASSROOMS_STORE.filter(c => enrolledClassroomIds.includes(c.id))
+                                   .map(c => ({...c, studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id === c.id).map(cs => cs.student_id)}));
+    }
+    if (BYPASS_AUTH_FOR_TESTING) return [];
+
   const { data: studentClassEntries, error: entriesError } = await supabase
     .from('classroom_students')
     .select('classroom_id')
@@ -228,6 +290,14 @@ export async function getClassroomsByStudentId(studentId: string): Promise<Class
 
 
 export async function getClassroomById(classroomId: string): Promise<Classroom | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const classroom = MOCK_CLASSROOMS_STORE.find(c => c.id === classroomId);
+    if (!classroom) return null;
+    const clonedClassroom = {...classroom}; // Avoid mutating mock store directly
+    await populateStudentDetailsForClassroom(clonedClassroom); // Populate mock students
+    return clonedClassroom;
+  }
+
   const { data, error } = await supabase
     .from('classrooms')
     .select('*, teacher:profiles!teacher_id(name)') 
@@ -260,6 +330,19 @@ export async function getClassroomById(classroomId: string): Promise<Classroom |
 
 
 export async function addStudentToClassroom(classroomId: string, studentId: string): Promise<Classroom | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const classroom = MOCK_CLASSROOMS_STORE.find(c => c.id === classroomId);
+    const student = MOCK_USERS.find(u => u.id === studentId && u.role === UserRole.STUDENT);
+    if (!classroom) throw new Error("BYPASS_AUTH: Classroom not found.");
+    if (!student) throw new Error("BYPASS_AUTH: Invalid student ID or user is not a student.");
+    if (!MOCK_CLASSROOM_STUDENTS_STORE.find(cs => cs.classroom_id === classroomId && cs.student_id === studentId)) {
+      MOCK_CLASSROOM_STUDENTS_STORE.push({ classroom_id: classroomId, student_id: studentId });
+    }
+    const clonedClassroom = {...classroom};
+    await populateStudentDetailsForClassroom(clonedClassroom);
+    return clonedClassroom;
+  }
+
   const classroomData = await getClassroomById(classroomId); 
   if (!classroomData) throw new Error("Classroom not found.");
 
@@ -280,8 +363,8 @@ export async function addStudentToClassroom(classroomId: string, studentId: stri
       throw new Error(`Failed to check enrollment: ${checkError.message}`);
   }
 
-  if (existingEntry) { // Student already enrolled
-    await populateStudentDetailsForClassroom(classroomData); // Ensure it's up-to-date
+  if (existingEntry) { 
+    await populateStudentDetailsForClassroom(classroomData); 
     return classroomData;
   }
 
@@ -300,6 +383,17 @@ export async function addStudentToClassroom(classroomId: string, studentId: stri
 
 
 export async function removeStudentFromClassroom(classroomId: string, studentId: string): Promise<Classroom | null> {
+   if (BYPASS_AUTH_FOR_TESTING) {
+    const classroom = MOCK_CLASSROOMS_STORE.find(c => c.id === classroomId);
+    if (!classroom) throw new Error("BYPASS_AUTH: Classroom not found.");
+    MOCK_CLASSROOM_STUDENTS_STORE = MOCK_CLASSROOM_STUDENTS_STORE.filter(
+      cs => !(cs.classroom_id === classroomId && cs.student_id === studentId)
+    );
+    const clonedClassroom = {...classroom};
+    await populateStudentDetailsForClassroom(clonedClassroom);
+    return clonedClassroom;
+  }
+
   const classroomData = await getClassroomById(classroomId); 
   if (!classroomData) throw new Error("Classroom not found.");
 
@@ -320,6 +414,15 @@ export async function removeStudentFromClassroom(classroomId: string, studentId:
 
 
 export async function updateClassroom(classroomId: string, updates: Partial<Pick<Classroom, 'name' | 'description' | 'subject' | 'difficulty' | 'enableStudentAiAnalysis'>>): Promise<Classroom | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const index = MOCK_CLASSROOMS_STORE.findIndex(c => c.id === classroomId);
+    if (index === -1) return null;
+    MOCK_CLASSROOMS_STORE[index] = { ...MOCK_CLASSROOMS_STORE[index], ...updates };
+    const clonedClassroom = {...MOCK_CLASSROOMS_STORE[index]};
+    await populateStudentDetailsForClassroom(clonedClassroom);
+    return clonedClassroom;
+  }
+  
   const classroomToUpdate = await getClassroomById(classroomId);
   if (!classroomToUpdate) return null; 
 
@@ -356,18 +459,25 @@ export async function updateClassroom(classroomId: string, updates: Partial<Pick
     teacherId: data.teacher_id,
     teacherName: (data.teacher as any)?.name || classroomToUpdate.teacherName, 
     studentIds: classroomToUpdate.studentIds, 
-    students: classroomToUpdate.students, // Students list needs re-population if studentIds changed
+    students: classroomToUpdate.students, 
     inviteCode: data.invite_code,
     subject: data.subject ?? undefined,
     difficulty: data.difficulty ?? undefined,
     enableStudentAiAnalysis: data.enable_student_ai_analysis ?? true,
   };
-  await populateStudentDetailsForClassroom(updatedClassroom); // Re-populate in case student list needs update
+  await populateStudentDetailsForClassroom(updatedClassroom); 
   return updatedClassroom;
 }
 
 
 export async function deleteClassroom(classroomId: string): Promise<boolean> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const initialLength = MOCK_CLASSROOMS_STORE.length;
+    MOCK_CLASSROOMS_STORE = MOCK_CLASSROOMS_STORE.filter(c => c.id !== classroomId);
+    MOCK_CLASSROOM_STUDENTS_STORE = MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id !== classroomId);
+    return MOCK_CLASSROOMS_STORE.length < initialLength;
+  }
+
   const { error: deleteEnrollmentsError } = await supabase
     .from('classroom_students')
     .delete()
@@ -377,10 +487,6 @@ export async function deleteClassroom(classroomId: string): Promise<boolean> {
     console.error('Supabase deleteClassroom (enrollments) error:', deleteEnrollmentsError);
     throw new Error(`Failed to delete student enrollments for classroom: ${deleteEnrollmentsError.message}`);
   }
-
-  // TODO: Consider what to do with concept maps shared with this classroom.
-  // For now, they will remain but shared_with_classroom_id will point to a non-existent classroom.
-  // Could set shared_with_classroom_id to NULL for those maps.
 
   const { error: deleteClassroomError, count } = await supabase
     .from('classrooms')
@@ -397,6 +503,10 @@ export async function deleteClassroom(classroomId: string): Promise<boolean> {
 
 
 export async function getAllClassrooms(): Promise<Classroom[]> {
+   if (BYPASS_AUTH_FOR_TESTING) {
+    return MOCK_CLASSROOMS_STORE.map(c => ({...c, studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id === c.id).map(cs => cs.student_id)}));
+  }
+
   const { data: classroomRows, error: classroomError } = await supabase
     .from('classrooms')
     .select('*, teacher:profiles!teacher_id(name)') 
