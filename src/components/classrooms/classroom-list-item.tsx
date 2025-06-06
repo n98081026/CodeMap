@@ -27,16 +27,16 @@ interface ClassroomListItemProps {
   userRole: UserRole;
   onEdit?: (classroom: Classroom) => void;
   onDelete?: (classroomId: string, classroomName: string) => void;
-  detailLinkHref?: string; // For student view, if applicable
+  detailLinkHref?: string; 
 }
 
-export const ClassroomListItem: React.FC<ClassroomListItemProps> = ({
+export const ClassroomListItem: React.FC<ClassroomListItemProps> = React.memo(function ClassroomListItem({
   classroom,
   userRole,
   onEdit,
   onDelete,
   detailLinkHref,
-}) => {
+}) {
   const isTeacherOrAdmin = userRole === UserRole.TEACHER || userRole === UserRole.ADMIN;
   const linkTarget = detailLinkHref || (isTeacherOrAdmin ? `/application/teacher/classrooms/${classroom.id}` : `/application/student/classrooms/${classroom.id}`);
 
@@ -98,4 +98,5 @@ export const ClassroomListItem: React.FC<ClassroomListItemProps> = ({
       </CardFooter>
     </Card>
   );
-};
+});
+ClassroomListItem.displayName = "ClassroomListItem";

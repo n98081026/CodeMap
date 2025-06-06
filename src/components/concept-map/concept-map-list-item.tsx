@@ -26,12 +26,12 @@ interface ConceptMapListItemProps {
   editLinkHref?: string;
 }
 
-export const ConceptMapListItem: React.FC<ConceptMapListItemProps> = ({
+export const ConceptMapListItem: React.FC<ConceptMapListItemProps> = React.memo(function ConceptMapListItem({
   map,
   onDelete,
   viewLinkHref,
   editLinkHref,
-}) => {
+}) {
   const defaultViewLink = `/application/concept-maps/editor/${map.id}?viewOnly=true`;
   const defaultEditLink = `/application/concept-maps/editor/${map.id}`;
   return (
@@ -83,4 +83,5 @@ export const ConceptMapListItem: React.FC<ConceptMapListItemProps> = ({
       </CardFooter>
     </Card>
   );
-};
+});
+ConceptMapListItem.displayName = "ConceptMapListItem";
