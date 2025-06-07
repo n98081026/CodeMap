@@ -1,3 +1,4 @@
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -210,7 +211,7 @@
 - [ ] **Data Handling & General:**
     - [ ] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
     - [ ] **Large List Rendering:** For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
-    - [ ] **React Component Memoization:** Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (Some already done, can be an ongoing process).
+    - [x] **React Component Memoization:** Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (Some already done, can be an ongoing process. Key callbacks in `ConceptMapEditorPage` memoized.)
     - [x] **Code Splitting:** Use `next/dynamic` for heavy components or libraries not needed on initial load (already done for `FlowCanvasCore`, review for others).
     - [ ] **Bundle Size Analysis:** Periodically analyze the application bundle size and identify areas for reduction.
 
@@ -296,3 +297,5 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
+```
