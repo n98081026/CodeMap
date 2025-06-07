@@ -38,6 +38,8 @@ export interface ConceptMapNode {
   parentNode?: string;
   backgroundColor?: string; // Custom background color for the node
   shape?: 'rectangle' | 'ellipse'; // Node shape
+  width?: number; // For dynamic sizing
+  height?: number; // For dynamic sizing
 }
 
 export interface ConceptMapEdge {
@@ -114,4 +116,5 @@ export interface SystemSettings {
 }
 
 export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>;
+
 

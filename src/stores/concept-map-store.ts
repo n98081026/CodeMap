@@ -18,7 +18,7 @@ interface ConceptMapState {
   isPublic: boolean;
   sharedWithClassroomId: string | null;
   isNewMapMode: boolean;
-  isViewOnlyMode: boolean; // Added for editor view state
+  isViewOnlyMode: boolean; 
 
   // Map Content
   mapData: ConceptMapData;
@@ -31,8 +31,8 @@ interface ConceptMapState {
   selectedElementId: string | null;
   selectedElementType: 'node' | 'edge' | null;
   multiSelectedNodeIds: string[]; 
-  editingNodeId: string | null; // ID of the node currently being edited for its label
-  aiProcessingNodeId: string | null; // ID of the node currently having an AI operation run via context menu
+  editingNodeId: string | null; 
+  aiProcessingNodeId: string | null; 
 
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
@@ -45,7 +45,7 @@ interface ConceptMapState {
   setIsPublic: (isPublic: boolean) => void;
   setSharedWithClassroomId: (classroomId: string | null) => void;
   setIsNewMapMode: (isNew: boolean) => void;
-  setIsViewOnlyMode: (isViewOnly: boolean) => void; // Action to set view only mode
+  setIsViewOnlyMode: (isViewOnly: boolean) => void; 
   
   setIsLoading: (loading: boolean) => void;
   setIsSaving: (saving: boolean) => void;
@@ -64,12 +64,11 @@ interface ConceptMapState {
   removeSuggestedRelationsFromSuggestions: (relationsToRemove: Array<{ source: string; target: string; relation: string }>) => void;
 
   initializeNewMap: (userId: string) => void;
-  setLoadedMap: (map: ConceptMap, viewOnly?: boolean) => void; // Added viewOnly flag
+  setLoadedMap: (map: ConceptMap, viewOnly?: boolean) => void; 
   importMapData: (importedData: ConceptMapData, fileName?: string) => void;
   resetStore: () => void;
 
-  // Granular actions for map data
-  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string; parentNode?: string; backgroundColor?: string; shape?: 'rectangle' | 'ellipse' }) => string; 
+  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string; parentNode?: string; backgroundColor?: string; shape?: 'rectangle' | 'ellipse'; width?: number; height?: number; }) => string; 
   updateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   deleteNode: (nodeId: string) => void;
   
@@ -99,7 +98,7 @@ const initialStateBase: Omit<ConceptMapState,
   isPublic: false,
   sharedWithClassroomId: null,
   isNewMapMode: true,
-  isViewOnlyMode: false, // Default to not view only
+  isViewOnlyMode: false, 
   mapData: { nodes: [], edges: [] },
   isLoading: false,
   isSaving: false,
@@ -207,7 +206,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           aiProcessingNodeId: null,
           mapId: state.isNewMapMode ? 'new' : state.mapId, 
           isNewMapMode: state.isNewMapMode, 
-          isViewOnlyMode: false, // Imported maps are editable by default
+          isViewOnlyMode: false, 
           isLoading: false,
           isSaving: false,
           error: null,
@@ -230,6 +229,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           parentNode: options.parentNode,
           backgroundColor: options.backgroundColor, 
           shape: options.shape || 'rectangle', 
+          width: options.width,
+          height: options.height,
         };
         set((state) => ({ mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } }));
         return newNode.id; 
@@ -246,17 +247,16 @@ export const useConceptMapStore = create<ConceptMapState>()(
 
       deleteNode: (nodeId) => set((state) => {
         const nodesToDelete = new Set<string>([nodeId]);
-        // Recursive function to find all descendants
         const findDescendants = (currentParentId: string) => {
           state.mapData.nodes.forEach(n => {
             if (n.parentNode === currentParentId && !nodesToDelete.has(n.id)) {
               nodesToDelete.add(n.id);
-              findDescendants(n.id); // Recursively find children of this child
+              findDescendants(n.id); 
             }
           });
         };
         
-        findDescendants(nodeId); // Populate nodesToDelete with all descendants
+        findDescendants(nodeId); 
 
         const newNodes = state.mapData.nodes.filter((node) => !nodesToDelete.has(node.id));
         const newEdges = state.mapData.edges.filter(
@@ -330,3 +330,4 @@ export const useConceptMapStore = create<ConceptMapState>()(
         
 
 export default useConceptMapStore;
+

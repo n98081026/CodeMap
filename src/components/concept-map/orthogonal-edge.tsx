@@ -8,8 +8,8 @@ import {
   Handle,
   Position,
   useReactFlow,
-  getSmoothStepPath, // Changed from getStraightPath
-  BaseEdge, // Import BaseEdge for direct path rendering
+  getSmoothStepPath, 
+  BaseEdge, 
 } from 'reactflow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,18 +34,19 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
   style = {},
   data,
   markerEnd,
+  markerStart, // Add markerStart here
   selected,
 }) => {
   const { setEdges, getEdge } = useReactFlow();
-  const updateEdgeLabelInStore = useConceptMapStore((state) => state.updateEdge);
+  const updateEdgeInStore = useConceptMapStore((state) => state.updateEdge);
   const isViewOnlyMode = useConceptMapStore(state => state.isViewOnlyMode);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentLabel, setCurrentLabel] = useState(data?.label || '');
+  const [isEditingLabel, setIsEditingLabel] = useState(false);
+  const [currentLabelValue, setCurrentLabelValue] = useState(data?.label || '');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setCurrentLabel(data?.label || '');
+    setCurrentLabelValue(data?.label || '');
   }, [data?.label]);
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
@@ -55,39 +56,45 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
     targetX,
     targetY,
     targetPosition,
-    borderRadius: 0, // For sharp corners
+    borderRadius: 0, 
   });
 
-  const handleLabelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentLabel(event.target.value);
+  const handleLabelInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCurrentLabelValue(event.target.value);
   };
 
-  const handleLabelSave = () => {
+  const commitLabelChange = () => {
     if (!isViewOnlyMode) {
-        updateEdgeLabelInStore(id, { label: currentLabel });
+        updateEdgeInStore(id, { label: currentLabelValue });
     }
-    setIsEditing(false);
+    setIsEditingLabel(false);
   };
 
-  const handleDoubleClick = () => {
+  const handleLabelDoubleClick = () => {
     if (!isViewOnlyMode) {
-        setIsEditing(true);
+        setIsEditingLabel(true);
     }
   };
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
+    if (isEditingLabel && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [isEditing]);
+  }, [isEditingLabel]);
   
-  const edgeColor = data?.color || 'hsl(var(--primary))'; // Fallback to primary color
+  const edgeColor = data?.color || 'hsl(var(--foreground))'; 
   const lineTypeStyle = data?.lineType === 'dashed' ? { strokeDasharray: '5,5' } : {};
 
   return (
     <>
-      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={{ ...style, stroke: edgeColor, ...lineTypeStyle, strokeWidth: selected ? 3: 2 }} />
+      <BaseEdge 
+        id={id} 
+        path={edgePath} 
+        markerStart={markerStart} 
+        markerEnd={markerEnd} 
+        style={{ ...style, stroke: edgeColor, ...lineTypeStyle, strokeWidth: selected ? 3: 2 }} 
+      />
       <EdgeLabelRenderer>
         <div
           style={{
@@ -95,33 +102,40 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
           }}
-          className={cn("nodrag nopan p-1 rounded-md", isEditing ? "bg-background shadow-lg border" : "hover:bg-muted/70", selected && !isEditing && "bg-muted/90")}
-          onDoubleClick={handleDoubleClick}
+          className={cn("nodrag nopan p-1 rounded-md group", isEditingLabel ? "bg-background shadow-lg border" : "hover:bg-muted/70", selected && !isEditingLabel && "bg-muted/90")}
+          onDoubleClick={handleLabelDoubleClick}
         >
-          {isEditing && !isViewOnlyMode ? (
+          {isEditingLabel && !isViewOnlyMode ? (
             <div className="flex items-center">
               <Input
                 ref={inputRef}
                 type="text"
-                value={currentLabel}
-                onChange={handleLabelChange}
-                onBlur={handleLabelSave}
+                value={currentLabelValue}
+                onChange={handleLabelInputChange}
+                onBlur={commitLabelChange}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleLabelSave();
+                  if (e.key === 'Enter') commitLabelChange();
                   if (e.key === 'Escape') {
-                    setCurrentLabel(data?.label || ''); // Revert
-                    setIsEditing(false);
+                    setCurrentLabelValue(data?.label || ''); 
+                    setIsEditingLabel(false);
                   }
                 }}
                 className="text-xs h-7 w-auto min-w-[60px] max-w-[150px] px-1 py-0.5"
               />
             </div>
           ) : (
-            currentLabel && (
+            currentLabelValue && (
               <div className="text-xs px-1 py-0.5 cursor-pointer min-h-[1rem]">
-                {currentLabel}
+                {currentLabelValue}
               </div>
             )
+          )}
+          {!isEditingLabel && currentLabelValue && !isViewOnlyMode && (
+            <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="icon" className="h-5 w-5 p-0.5 bg-background/80 hover:bg-muted" onClick={() => setIsEditingLabel(true)}>
+                <X className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            </div>
           )}
         </div>
       </EdgeLabelRenderer>
@@ -130,3 +144,4 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
 };
 
 export default OrthogonalEdge;
+

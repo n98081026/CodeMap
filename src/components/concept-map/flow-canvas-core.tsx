@@ -60,6 +60,8 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         isViewOnly: isViewOnlyMode,
         backgroundColor: appNode.backgroundColor,
         shape: appNode.shape,
+        width: appNode.width,
+        height: appNode.height,
       },
       position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
       draggable: !isViewOnlyMode,
@@ -67,15 +69,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       connectable: !isViewOnlyMode,
       dragHandle: '.cursor-move',
       parentNode: appNode.parentNode,
-      width: appNode.width, 
-      height: appNode.height,
     } as RFNode<CustomNodeData>)),
     [mapDataFromStore.nodes, isViewOnlyMode]
   );
 
   const getMarkerDefinition = useCallback((markerTypeString?: string, edgeColor?: string): RFEdge['markerEnd'] => {
     if (!markerTypeString || markerTypeString === 'none') return undefined;
-    const color = edgeColor || 'hsl(var(--primary))';
+    const color = edgeColor || 'hsl(var(--foreground))'; // Default to foreground if edgeColor not set
     switch (markerTypeString) {
         case 'arrow': return { type: MarkerType.Arrow, color, strokeWidth: 1 };
         case 'arrowclosed': return { type: MarkerType.ArrowClosed, color, strokeWidth: 1 };
@@ -92,7 +92,11 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       targetHandle: appEdge.targetHandle || null,
       label: appEdge.label,
       type: 'orthogonal',
-      data: { label: appEdge.label, color: appEdge.color, lineType: appEdge.lineType },
+      data: { 
+        label: appEdge.label, 
+        color: appEdge.color, 
+        lineType: appEdge.lineType 
+      },
       markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
       markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
       style: { strokeWidth: 2 },
@@ -117,86 +121,93 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       setActiveSnapLines([]);
       return;
     }
-
+  
     let currentDragSnapLines: typeof activeSnapLines = [];
     let snappedXPosition = draggedNode.position.x;
     let snappedYPosition = draggedNode.position.y;
     let xSnappedByNode = false;
     let ySnappedByNode = false;
-
+  
     const draggedNodeWidth = draggedNode.width;
     const draggedNodeHeight = draggedNode.height;
     
     const draggedTargetsX = [
-        draggedNode.position.x, 
-        draggedNode.position.x + draggedNodeWidth / 2, 
-        draggedNode.position.x + draggedNodeWidth, 
+      { type: 'left', value: draggedNode.position.x },
+      { type: 'center', value: draggedNode.position.x + draggedNodeWidth / 2 },
+      { type: 'right', value: draggedNode.position.x + draggedNodeWidth },
     ];
     const draggedTargetsY = [
-        draggedNode.position.y, 
-        draggedNode.position.y + draggedNodeHeight / 2, 
-        draggedNode.position.y + draggedNodeHeight, 
+      { type: 'top', value: draggedNode.position.y },
+      { type: 'center', value: draggedNode.position.y + draggedNodeHeight / 2 },
+      { type: 'bottom', value: draggedNode.position.y + draggedNodeHeight },
     ];
-
-    let minDeltaX = Infinity; let bestSnapX: number | null = null; let bestSnapLineX: typeof activeSnapLines[0] | null = null;
-    let minDeltaY = Infinity; let bestSnapY: number | null = null; let bestSnapLineY: typeof activeSnapLines[0] | null = null;
-
+  
+    let minDeltaX = Infinity; let bestSnapXInfo: { position: number, line: typeof activeSnapLines[0] } | null = null;
+    let minDeltaY = Infinity; let bestSnapYInfo: { position: number, line: typeof activeSnapLines[0] } | null = null;
+  
     nodes.forEach(otherNode => {
-      if (otherNode.id === draggedNode.id || !otherNode.width || !otherNode.height || !otherNode.position) return;
-
+      if (otherNode.id === draggedNode.id || !otherNode.width || !otherNode.height || !otherNode.positionAbsolute) return;
+  
       const otherWidth = otherNode.width;
       const otherHeight = otherNode.height;
+      const otherNodePosition = otherNode.positionAbsolute;
+
       const otherTargetsX = [
-        otherNode.position.x, 
-        otherNode.position.x + otherWidth / 2, 
-        otherNode.position.x + otherWidth,   
+        { type: 'left', value: otherNodePosition.x },
+        { type: 'center', value: otherNodePosition.x + otherWidth / 2 },
+        { type: 'right', value: otherNodePosition.x + otherWidth },
       ];
       const otherTargetsY = [
-        otherNode.position.y, 
-        otherNode.position.y + otherHeight / 2, 
-        otherNode.position.y + otherHeight, 
+        { type: 'top', value: otherNodePosition.y },
+        { type: 'center', value: otherNodePosition.y + otherHeight / 2 },
+        { type: 'bottom', value: otherNodePosition.y + otherHeight },
       ];
       
-      // Horizontal Snaps
       for (const dtX of draggedTargetsX) {
         for (const otX of otherTargetsX) {
-          const delta = Math.abs(dtX - otX);
+          const delta = Math.abs(dtX.value - otX.value);
           if (delta < SNAP_THRESHOLD && delta < minDeltaX) {
             minDeltaX = delta;
-            bestSnapX = otX - (dtX - draggedNode.position.x);
-            const lineY1 = Math.min(draggedNode.position.y, otherNode.position.y) - 20;
-            const lineY2 = Math.max(draggedNode.position.y + draggedNodeHeight, otherNode.position.y + otherHeight) + 20;
-            bestSnapLineX = { type: 'vertical', x1: otX, y1: lineY1, x2: otX, y2: lineY2 };
+            bestSnapXInfo = {
+              position: otX.value - (dtX.value - draggedNode.position.x),
+              line: {
+                type: 'vertical',
+                x1: otX.value, y1: Math.min(draggedNode.position.y, otherNodePosition.y) - 20,
+                x2: otX.value, y2: Math.max(draggedNode.position.y + draggedNodeHeight, otherNodePosition.y + otherHeight) + 20,
+              }
+            };
           }
         }
       }
-      // Vertical Snaps
       for (const dtY of draggedTargetsY) {
         for (const otY of otherTargetsY) {
-          const delta = Math.abs(dtY - otY);
+          const delta = Math.abs(dtY.value - otY.value);
           if (delta < SNAP_THRESHOLD && delta < minDeltaY) {
             minDeltaY = delta;
-            bestSnapY = otY - (dtY - draggedNode.position.y);
-            const lineX1 = Math.min(draggedNode.position.x, otherNode.position.x) - 20;
-            const lineX2 = Math.max(draggedNode.position.x + draggedNodeWidth, otherNode.position.x + otherWidth) + 20;
-            bestSnapLineY = { type: 'horizontal', x1: lineX1, y1: otY, x2: lineX2, y2: otY };
+            bestSnapYInfo = {
+              position: otY.value - (dtY.value - draggedNode.position.y),
+              line: {
+                type: 'horizontal',
+                x1: Math.min(draggedNode.position.x, otherNodePosition.x) - 20, y1: otY.value,
+                x2: Math.max(draggedNode.position.x + draggedNodeWidth, otherNodePosition.x + otherWidth) + 20, y2: otY.value,
+              }
+            };
           }
         }
       }
     });
-
-    if (bestSnapX !== null) {
-      snappedXPosition = bestSnapX;
+  
+    if (bestSnapXInfo !== null) {
+      snappedXPosition = bestSnapXInfo.position;
       xSnappedByNode = true;
-      if(bestSnapLineX) currentDragSnapLines.push(bestSnapLineX);
+      currentDragSnapLines.push(bestSnapXInfo.line);
     }
-    if (bestSnapY !== null) {
-      snappedYPosition = bestSnapY;
+    if (bestSnapYInfo !== null) {
+      snappedYPosition = bestSnapYInfo.position;
       ySnappedByNode = true;
-      if(bestSnapLineY) currentDragSnapLines.push(bestSnapLineY);
+      currentDragSnapLines.push(bestSnapYInfo.line);
     }
     
-    // Grid snapping if not snapped by another node
     if (!xSnappedByNode) {
       const gridSnappedX = Math.round(draggedNode.position.x / GRID_SIZE) * GRID_SIZE;
       if (Math.abs(draggedNode.position.x - gridSnappedX) < SNAP_THRESHOLD) {
@@ -209,7 +220,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         snappedYPosition = gridSnappedY;
       }
     }
-
 
     if (draggedNode.position.x !== snappedXPosition || draggedNode.position.y !== snappedYPosition) {
       onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: { x: snappedXPosition, y: snappedYPosition }, dragging: true }]);
@@ -229,7 +239,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       finalX = Math.round(finalX / GRID_SIZE) * GRID_SIZE;
       finalY = Math.round(finalY / GRID_SIZE) * GRID_SIZE;
 
-      onNodesChangeInStore(draggedNode.id, { x: finalX, y: finalY });
+      onNodesChangeInStore(draggedNode.id, { x: finalX, y: finalY, width: draggedNode.width, height: draggedNode.height });
     },
     [isViewOnlyMode, onNodesChangeInStore, GRID_SIZE]
   );
@@ -237,7 +247,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const handleRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
     onNodesChangeReactFlow(changes);
-  }, [isViewOnlyMode, onNodesChangeReactFlow]);
+    // If a node's dimensions change (e.g. due to label edit), update the store
+    changes.forEach(change => {
+        if (change.type === 'dimensions' && change.dimensions) {
+            onNodesChangeInStore(change.id, { width: change.dimensions.width, height: change.dimensions.height });
+        }
+    });
+  }, [isViewOnlyMode, onNodesChangeReactFlow, onNodesChangeInStore]);
 
   const handleRfEdgesChange: OnEdgesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
@@ -301,10 +317,9 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       if (isViewOnlyMode || (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA'))) return;
       
       const { selectedElementId, mapData } = useConceptMapStore.getState();
-      const selectedRfNode = selectedElementId ? reactFlowInstance.getNode(selectedElementId) : null;
       const selectedStoreNode = selectedElementId ? mapData.nodes.find(n => n.id === selectedElementId) : null;
 
-      if (selectedStoreNode && selectedRfNode && (event.key === 'Tab' || event.key === 'Enter')) {
+      if (selectedStoreNode && (event.key === 'Tab' || event.key === 'Enter')) {
         event.preventDefault();
         const currentNodes = mapData.nodes;
         let newNodeId: string;

@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser } from "lucide-react"; // Added Palette, CircleDot, Eraser
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser } from "lucide-react"; 
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select
-import { Button } from "@/components/ui/button"; // Added Button
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
+import { Button } from "@/components/ui/button"; 
 import { cn } from "@/lib/utils";
 
 interface PropertiesInspectorProps {
@@ -125,7 +125,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
 
   const clearEdgeColor = React.useCallback(() => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'edge' || !selectedElement) return;
-    onSelectedElementPropertyUpdate({ color: undefined }); // Revert to default
+    onSelectedElementPropertyUpdate({ color: undefined }); 
   }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
 
   const handleEdgeLineTypeChange = React.useCallback((value: 'solid' | 'dashed') => {
@@ -230,7 +230,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             <Input 
               id="nodeBackgroundColor" 
               type="color" 
-              value={nodeBackgroundColorValue || "#ffffff"} // Default to white if undefined for picker
+              value={nodeBackgroundColorValue || "#ffffff"} 
               onChange={handleNodeBackgroundColorChange}
               disabled={isViewOnlyMode}
               className={cn("h-8 w-16 p-1", isViewOnlyMode && "cursor-not-allowed border-muted/50")}
@@ -285,7 +285,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             <Input 
               id="edgeColor" 
               type="color" 
-              value={edgeColorValue || "#000000"} // Default to black if undefined for picker
+              value={edgeColorValue || "#000000"} 
               onChange={handleEdgeColorChange}
               disabled={isViewOnlyMode}
               className={cn("h-8 w-16 p-1", isViewOnlyMode && "cursor-not-allowed border-muted/50")}
