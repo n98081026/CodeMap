@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from 'react'; // Added useEffect, useState
@@ -146,6 +147,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         zoomOnPinch={true}
         zoomOnDoubleClick={!isViewOnlyMode}
         selectionOnDrag={!isViewOnlyMode}
+        minZoom={0.1}
+        maxZoom={4}
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />

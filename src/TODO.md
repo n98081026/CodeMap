@@ -1,3 +1,4 @@
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -110,7 +111,7 @@
 - [ ] **Refined Pan & Zoom**:
     - [ ] Verify/enhance pan/zoom interactions if default React Flow behavior needs tweaking.
         - [ ] Evaluate if panning extents (restricting pan range) are needed.
-        - [ ] Evaluate if min/max zoom levels need explicit setting.
+        - [x] Evaluate if min/max zoom levels need explicit setting. (Set to 0.1 - 4.0)
         - [ ] Consider zoom-to-center option vs. zoom-to-mouse.
         - [ ] (Highly Advanced) Explore Level of Detail (LOD) rendering for nodes/edges at different zoom levels.
     - [x] Consider adding modifier key for pan (e.g., Spacebar + drag).
@@ -272,9 +273,11 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
+- Min/max zoom levels are explicitly set for the React Flow canvas.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
