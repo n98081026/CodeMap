@@ -71,13 +71,13 @@
     - [x] New child node is selected.
 - [x] **Keyboard-driven Node Creation**:
     - [x] Selected Node + `Tab` key: Create child node, auto-position, connect, set `parentNode`. New node is selected.
-    - [x] Selected Node + `Enter` key: Create sibling node (at the same level as selected), auto-position. New node is selected.
+    - [x] SelectedNode + `Enter` key: Create sibling node (at the same level as selected), auto-position. New node is selected.
 - [x] **Auto-focus for New Nodes**:
     - [x] New nodes created via double-click, "+ hover buttons", or keyboard shortcuts (`Tab`/`Enter`) automatically enter label edit mode.
 - [x] **Hierarchical Node Movement**:
     - [x] Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions (Leveraging React Flow's `parentNode` feature - Verified).
     - [x] Recursive deletion of child nodes when parent is deleted.
-- [ ] **Improved Connector Experience**:
+- [x] **Improved Connector Experience**:
     - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using `getSmoothStepPath` with `borderRadius:0` for step-like lines with sharp corners.
     - [ ] (Advanced) Refine `OrthogonalEdge.tsx` path calculation for more robust true orthogonal routing:
         - [ ] Investigate/Implement simple Manhattan routing algorithm (or similar) for `OrthogonalEdge`.
@@ -87,7 +87,7 @@
     - [x] Allow modifying edge label directly on canvas (double-click).
     - [x] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
     - [x] Allow modifying arrow styles (start/end: none, arrow, arrowclosed) from `PropertiesInspector`.
-- [ ] **Snapping Guides**:
+- [x] **Snapping Guides**:
     - [x] Basic center-to-center snapping implemented with visual guides.
     - [x] Add snapping to node edges (top, bottom, left, right alignment).
     - [x] Implement visual guides for edge snapping.
@@ -98,7 +98,7 @@
     - [ ] Consider adding modifier key for pan (e.g., Spacebar + drag).
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
-- [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
+- [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
 - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`. Visual grid background added.
 - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
     - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
@@ -177,7 +177,7 @@
         - [x] Visual cues for AI-generated/modified nodes (type, icon).
         - [x] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or future floating buttons.
     - [ ] **(Advanced - Future) Explore "AI Structure Suggestions":**
-        - [ ] Develop Genkit flow to analyze map structure & content.
+        - [ ] Develop Genkit flow to analyze map structure &amp; content.
         - [ ] Define criteria for "good" structure suggestions (e.g., grouping related ideas, suggesting missing links).
         - [ ] Design UI for presenting structure suggestions (e.g., non-intrusive hints on canvas or in AI panel).
         - [ ] Implement user actions to accept/reject suggestions.
@@ -297,3 +297,4 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
