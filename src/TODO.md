@@ -59,7 +59,7 @@
 ## Frontend Enhancements
 
 ### Whimsical-Inspired Editor UX Enhancements
-- [x] **Node Data Structure:** 
+- [x] **Node Data Structure:**
     - [x] `parentNode` field added to `ConceptMapNode` type for hierarchy (used by React Flow).
     - [ ] (Advanced) Consider explicit `childIds` in `ConceptMapNode` state if needed for advanced custom layouts beyond React Flow's `parentNode` grouping.
 - [x] **Floating Node Creation**:
@@ -89,11 +89,11 @@
     - [x] Allow modifying arrow styles (start/end: none, arrow, arrowclosed) from `PropertiesInspector`.
 - [ ] **Snapping Guides**:
     - [x] Basic center-to-center snapping implemented with visual guides.
-    - [ ] Add snapping to node edges (top, bottom, left, right alignment).
-    - [ ] Implement visual guides for edge snapping.
-    - [ ] Consider snap-to-grid functionality.
+    - [x] Add snapping to node edges (top, bottom, left, right alignment).
+    - [x] Implement visual guides for edge snapping.
+    - [x] Consider snap-to-grid functionality. (Implemented)
 - [x] **Node Auto-Sizing**: Ensure custom nodes dynamically adjust size based on content (text length, details), within reasonable min/max bounds.
-- [ ] **Refined Pan & Zoom**: 
+- [ ] **Refined Pan & Zoom**:
     - [ ] Verify/enhance pan/zoom interactions if default React Flow behavior needs tweaking.
     - [ ] Consider adding modifier key for pan (e.g., Spacebar + drag).
 
@@ -105,7 +105,7 @@
 - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`.
 - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
 - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure.
-- [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic. `useLayoutUtils` for node placement.
+- [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic. `getNodePlacement` utility from `src/lib/layout-utils.ts` used for node placement.
 
 ### State Management & UI/UX
 - [x] **State Management:** Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history). Context API for Auth.
@@ -206,8 +206,8 @@
     - [ ] **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges.
 - [ ] **Interactions:**
     - [ ] **Event Throttling/Debouncing:**
-        - [ ] Verify React Flow's internal event handling for drag/zoom for common scenarios.
-        - [ ] If custom heavy interactions are added (e.g., complex snapping calculations), implement throttling/debouncing for them.
+        - [x] Verify React Flow's internal event handling for drag/zoom for common scenarios. (Basic node drag snapping logic is now in place, needs monitoring for complex maps).
+        - [ ] If custom heavy interactions are added (e.g., complex snapping calculations beyond current), implement throttling/debouncing for them.
 - [ ] **Data Handling & General:**
     - [ ] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
     - [ ] **Large List Rendering:** For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
@@ -273,7 +273,8 @@ This section outlines tasks to fully migrate to Supabase.
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
-- **Whimsical-style interactions implemented:** Floating node creation (double-click), child node creation via "+" hover buttons, keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode`), recursive deletion of children, basic center-to-center snapping guides.
+- **Whimsical-style interactions implemented:** Floating node creation (double-click), child node creation via "+" hover buttons, keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode`), recursive deletion of children.
+- **Snapping implemented:** Basic center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added.
 - Custom edge type `OrthogonalEdge` implemented, using `getSmoothStepPath` with `borderRadius:0` for step-like lines. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max).
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
@@ -295,4 +296,3 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
-

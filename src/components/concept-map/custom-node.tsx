@@ -1,6 +1,6 @@
 
 "use client";
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import {
   Box, Milestone, ServerCog, MonitorPlay, Database, FileCode2, ExternalLink, Users, Workflow,
   Brain, Lightbulb, Puzzle, AlignLeft, PenLine, PlusCircle
 } from 'lucide-react';
+import { getNodePlacement } from '@/lib/layout-utils'; // Import the utility
 
 // Data expected by our custom node
 export interface CustomNodeData {
@@ -19,6 +20,10 @@ export interface CustomNodeData {
   isViewOnly?: boolean;
   backgroundColor?: string;
   shape?: 'rectangle' | 'ellipse';
+  // width and height are typically managed by React Flow after render,
+  // but can be part of initial data if needed.
+  width?: number; 
+  height?: number;
 }
 
 const nodeTypeStyles: { [key: string]: string } = {
@@ -46,10 +51,9 @@ const nodeTypeIcons: { [key: string]: React.ElementType } = {
   'ai-summary-node': AlignLeft, 'ai-rewritten-node': PenLine, 'manual-node': Puzzle, 'text-derived-concept': FileCode2, 'ai-generated': Brain, default: Box,
 };
 
-const CHILD_X_OFFSET = 180;
-const CHILD_Y_OFFSET = 60;
+const GRID_SIZE_FOR_CHILD_PLACEMENT = 20; // Or get from a central config/store
 
-const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, selected, isConnectable, id, xPos, yPos }) => {
+const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, selected, isConnectable, id, xPos, yPos, width, height }) => {
   const { editingNodeId, setEditingNodeId, updateNode, addNode, addEdge } = useConceptMapStore();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -73,22 +77,29 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') handleLabelEditCommit();
     if (e.key === 'Escape') {
-      // Revert to original if needed, or just commit current
       setEditingNodeId(null);
     }
   };
 
   const handleCreateChild = (direction: 'top' | 'right' | 'bottom' | 'left') => {
     if (data.isViewOnly) return;
-    let newX = xPos;
-    let newY = yPos;
-    switch (direction) {
-      case 'top': newY -= CHILD_Y_OFFSET; break;
-      case 'bottom': newY += CHILD_Y_OFFSET; break;
-      case 'left': newX -= CHILD_X_OFFSET; break;
-      case 'right': newX += CHILD_X_OFFSET; break;
-    }
-    const newChildNodeId = addNode({ text: "New Child", type: 'manual-node', position: { x: newX, y: newY }, parentNode: id });
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const parentNode = currentNodes.find(n => n.id === id);
+    
+    if (!parentNode) return;
+
+    // Pass parentNode with its current dimensions to getNodePlacement
+    const parentNodeWithDimensions = {
+      ...parentNode,
+      x: xPos, // Use current position from props
+      y: yPos,
+      width: width, // Use current width from props
+      height: height, // Use current height from props
+    };
+
+    const childPosition = getNodePlacement(currentNodes, 'child', parentNodeWithDimensions, null, GRID_SIZE_FOR_CHILD_PLACEMENT);
+    
+    const newChildNodeId = addNode({ text: "New Child", type: 'manual-node', position: childPosition, parentNode: id });
     addEdge({ source: id, target: newChildNodeId, label: "connects" });
     setEditingNodeId(newChildNodeId);
   };
@@ -116,7 +127,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     { direction: 'right', style: { right: -12, top: '50%', transform: 'translateY(-50%)' } },
   ] as const;
 
-
   return (
     <Card
       className={cn(baseStyle, selectedStyle, typeClass, shapeClass, 'max-w-xs group relative')}
@@ -135,7 +145,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
             onBlur={handleLabelEditCommit}
             onKeyDown={handleKeyDown}
             className="text-sm font-semibold h-7 px-1 py-0.5 border-primary focus:ring-primary flex-grow min-w-0 bg-background/80"
-            autoFocus
           />
         ) : (
           <CardTitle

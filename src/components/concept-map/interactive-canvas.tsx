@@ -6,6 +6,7 @@ import ReactFlow, {
   MiniMap,
   Controls,
   Background,
+  BackgroundVariant, // Import BackgroundVariant
   type Node,
   type Edge,
   type FitViewOptions,
@@ -16,13 +17,13 @@ import ReactFlow, {
   type SelectionChanges,
   type Connection,
   type NodeTypes,
-  type Viewport,
+  type EdgeTypes, // Added EdgeTypes
   useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
 import type { CustomNodeData } from './custom-node';
-import type { RFConceptMapEdgeData } from './flow-canvas-core';
+import type { RFConceptMapEdgeData } from './flow-canvas-core'; // Assuming this path is correct
 
 interface InteractiveCanvasProps {
   nodes: Node<CustomNodeData>[];
@@ -35,9 +36,13 @@ interface InteractiveCanvasProps {
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
   nodeTypes?: NodeTypes;
+  edgeTypes?: EdgeTypes; // Added edgeTypes prop
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
+  onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void; // Added onNodeDrag
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClick?: (event: React.MouseEvent) => void; // New prop
+  onPaneDoubleClick?: (event: React.MouseEvent) => void;
+  activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
+  gridSize?: number; // Added gridSize prop
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -69,16 +74,18 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onConnect,
   isViewOnlyMode,
   nodeTypes,
+  edgeTypes, // Destructure edgeTypes
   onNodeContextMenu,
+  onNodeDrag, // Destructure onNodeDrag
   onNodeDragStop,
-  onPaneDoubleClick, // Destructure new prop
+  onPaneDoubleClick,
+  activeSnapLines = [],
+  gridSize = 20, // Default grid size
 }) => {
-  const { screenToFlowPosition } = useReactFlow(); // Hook for coordinate conversion
+  const { screenToFlowPosition } = useReactFlow(); 
 
   const handlePaneDoubleClick = (event: React.MouseEvent) => {
     if (isViewOnlyMode || !onPaneDoubleClick) return;
-    // Use screenToFlowPosition if available, otherwise pass the raw event
-    // The core logic will use project if instance is available
     onPaneDoubleClick(event);
   };
 
@@ -97,23 +104,41 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         fitViewOptions={fitViewOptions}
         nodesDraggable={!isViewOnlyMode}
         nodesConnectable={!isViewOnlyMode}
-        elementsSelectable={true} 
+        elementsSelectable={true}
         deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
         className="bg-background"
         proOptions={{ hideAttribution: true }}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes} // Pass edgeTypes to ReactFlow
         onNodeContextMenu={onNodeContextMenu}
+        onNodeDrag={onNodeDrag} // Pass onNodeDrag
         onNodeDragStop={onNodeDragStop}
-        onPaneDoubleClick={handlePaneDoubleClick} // Pass to ReactFlow
-        panOnDrag={true} 
+        onPaneDoubleClick={handlePaneDoubleClick}
+        panOnDrag={true}
         zoomOnScroll={true}
         zoomOnPinch={true}
-        zoomOnDoubleClick={!isViewOnlyMode} 
+        zoomOnDoubleClick={!isViewOnlyMode}
         selectionOnDrag={!isViewOnlyMode}
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
-        <Background gap={16} color="hsl(var(--border)/0.5)" />
+        <Background 
+          variant={BackgroundVariant.Dots} // Changed to Dots
+          gap={gridSize} 
+          size={1} // Smaller dots
+          color="hsl(var(--border)/0.7)" 
+        />
+        {activeSnapLines.map((line, index) => (
+          <svg key={`snapline-${index}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 100 }}>
+            <line
+              x1={line.x1} y1={line.y1}
+              x2={line.x2} y2={line.y2}
+              stroke="hsl(var(--destructive)/0.7)" // Red color for snap lines
+              strokeWidth="1"
+              strokeDasharray={line.type === 'vertical' || line.type === 'horizontal' ? "3,3" : undefined} // Dashed for clear visual
+            />
+          </svg>
+        ))}
       </ReactFlow>
     </Card>
   );
