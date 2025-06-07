@@ -18,6 +18,7 @@ interface ConceptMapState {
   isPublic: boolean;
   sharedWithClassroomId: string | null;
   isNewMapMode: boolean;
+  isViewOnlyMode: boolean; // Added for editor view state
 
   // Map Content
   mapData: ConceptMapData;
@@ -44,6 +45,7 @@ interface ConceptMapState {
   setIsPublic: (isPublic: boolean) => void;
   setSharedWithClassroomId: (classroomId: string | null) => void;
   setIsNewMapMode: (isNew: boolean) => void;
+  setIsViewOnlyMode: (isViewOnly: boolean) => void; // Action to set view only mode
   
   setIsLoading: (loading: boolean) => void;
   setIsSaving: (saving: boolean) => void;
@@ -62,7 +64,7 @@ interface ConceptMapState {
   removeSuggestedRelationsFromSuggestions: (relationsToRemove: Array<{ source: string; target: string; relation: string }>) => void;
 
   initializeNewMap: (userId: string) => void;
-  setLoadedMap: (map: ConceptMap) => void;
+  setLoadedMap: (map: ConceptMap, viewOnly?: boolean) => void; // Added viewOnly flag
   importMapData: (importedData: ConceptMapData, fileName?: string) => void;
   resetStore: () => void;
 
@@ -83,7 +85,7 @@ export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
 const initialStateBase: Omit<ConceptMapState, 
   'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 
-  'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
+  'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsViewOnlyMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
   'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setEditingNodeId' | 'setAiProcessingNodeId' | 
   'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 
   'resetAiSuggestions' | 'removeExtractedConceptsFromSuggestions' | 'removeSuggestedRelationsFromSuggestions' | 
@@ -97,6 +99,7 @@ const initialStateBase: Omit<ConceptMapState,
   isPublic: false,
   sharedWithClassroomId: null,
   isNewMapMode: true,
+  isViewOnlyMode: false, // Default to not view only
   mapData: { nodes: [], edges: [] },
   isLoading: false,
   isSaving: false,
@@ -123,6 +126,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setIsPublic: (isPublicStatus) => set({ isPublic: isPublicStatus }),
       setSharedWithClassroomId: (id) => set({ sharedWithClassroomId: id }),
       setIsNewMapMode: (isNew) => set({ isNewMapMode: isNew }),
+      setIsViewOnlyMode: (isViewOnly) => set({ isViewOnlyMode: isViewOnly }),
       
       setIsLoading: (loading) => set({ isLoading: loading }),
       setIsSaving: (saving) => set({ isSaving: saving }),
@@ -160,6 +164,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           currentMapOwnerId: userId,
           currentMapCreatedAt: new Date().toISOString(),
           isNewMapMode: true,
+          isViewOnlyMode: false,
           isLoading: false,
           multiSelectedNodeIds: [], 
           aiProcessingNodeId: null,
@@ -167,7 +172,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
         set(newMapState);
         useConceptMapStore.temporal.getState().clear();
       },
-      setLoadedMap: (map) => {
+      setLoadedMap: (map, viewOnly = false) => {
         set({
           mapId: map.id,
           mapName: map.name,
@@ -177,6 +182,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           sharedWithClassroomId: map.sharedWithClassroomId || null,
           mapData: map.mapData || { nodes: [], edges: [] },
           isNewMapMode: false,
+          isViewOnlyMode: viewOnly,
           isLoading: false,
           error: null,
           multiSelectedNodeIds: [], 
@@ -201,6 +207,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           aiProcessingNodeId: null,
           mapId: state.isNewMapMode ? 'new' : state.mapId, 
           isNewMapMode: state.isNewMapMode, 
+          isViewOnlyMode: false, // Imported maps are editable by default
           isLoading: false,
           isSaving: false,
           error: null,
@@ -239,15 +246,17 @@ export const useConceptMapStore = create<ConceptMapState>()(
 
       deleteNode: (nodeId) => set((state) => {
         const nodesToDelete = new Set<string>([nodeId]);
-        const findDescendants = (id: string) => {
+        // Recursive function to find all descendants
+        const findDescendants = (currentParentId: string) => {
           state.mapData.nodes.forEach(n => {
-            if (n.parentNode === id && !nodesToDelete.has(n.id)) {
+            if (n.parentNode === currentParentId && !nodesToDelete.has(n.id)) {
               nodesToDelete.add(n.id);
-              findDescendants(n.id);
+              findDescendants(n.id); // Recursively find children of this child
             }
           });
         };
-        findDescendants(nodeId);
+        
+        findDescendants(nodeId); // Populate nodesToDelete with all descendants
 
         const newNodes = state.mapData.nodes.filter((node) => !nodesToDelete.has(node.id));
         const newEdges = state.mapData.edges.filter(
