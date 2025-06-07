@@ -156,7 +156,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         ) : (
           <CardTitle
             className={cn("text-sm font-semibold text-center whitespace-normal break-words flex-grow min-w-0", data.isViewOnly ? "" : "cursor-text")}
-            onDoubleClick={() => !data.isViewOnly && setEditingNodeId(id)}
+            onDoubleClick={() => !data.isViewOnly && !isCurrentNodeAiProcessing && setEditingNodeId(id)}
           >
             {data.label || 'Node'}
           </CardTitle>
@@ -172,8 +172,8 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 
       {handlePositions.map(hp => (
         <React.Fragment key={hp.idSuffix}>
-          <Handle type="source" position={hp.position} id={`${id}-${hp.idSuffix}-source`} style={handleBaseStyle} isConnectable={isConnectable} className="react-flow__handle-custom" />
-          <Handle type="target" position={hp.position} id={`${id}-${hp.idSuffix}-target`} style={handleBaseStyle} isConnectable={isConnectable} className="react-flow__handle-custom" />
+          <Handle type="source" position={hp.position} id={`${id}-${hp.idSuffix}-source`} style={handleBaseStyle} isConnectable={isConnectable && !isCurrentNodeAiProcessing} className="react-flow__handle-custom" />
+          <Handle type="target" position={hp.position} id={`${id}-${hp.idSuffix}-target`} style={handleBaseStyle} isConnectable={isConnectable && !isCurrentNodeAiProcessing} className="react-flow__handle-custom" />
         </React.Fragment>
       ))}
 
@@ -193,3 +193,4 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
+

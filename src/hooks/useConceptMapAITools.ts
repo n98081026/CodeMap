@@ -54,7 +54,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     addNode: addStoreNode,
     updateNode: updateStoreNode,
     addEdge: addStoreEdge,
-    setAiProcessingNodeId, // Get the new action
+    setAiProcessingNodeId, 
   } = useConceptMapStore();
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
@@ -299,7 +299,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   }, [isViewOnlyMode, mapData.nodes, toast]);
 
   const handleQuestionAnswered = useCallback(async (question: string, nodeCtx: { text: string; details?: string; id: string; } ) => {
-    // This function is called FROM the modal when the user submits the question
     if (isViewOnlyMode || !nodeCtx) return;
     setAiProcessingNodeId(nodeCtx.id);
     try {
@@ -309,7 +308,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             question: question,
         });
         toast({ title: "AI Answer Received", description: result.answer.length > 150 ? `${result.answer.substring(0, 147)}...` : result.answer, duration: 10000 });
-        // No direct map modification, answer shown in toast.
     } catch (error) {
         toast({ title: "Error Getting Answer", description: (error as Error).message, variant: "destructive" });
     } finally {
@@ -327,11 +325,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleRewriteNodeContentConfirm = useCallback(async (nodeId: string, newText: string, newDetails?: string, tone?: string) => {
     if (isViewOnlyMode) return;
-    // The actual AI call should happen inside the modal's logic that calls this confirm function.
-    // This function is for *applying* the rewrite.
-    // For spinner on node: setAiProcessingNodeId(nodeId) should be called *before* the AI call in the modal.
-    // And setAiProcessingNodeId(null) *after* it.
-    // Here, we just update the store.
+    // The setAiProcessingNodeId is handled by the modal caller (RewriteNodeContentModal's own handler)
     updateStoreNode(nodeId, { text: newText, details: newDetails, type: 'ai-rewritten-node' });
     toast({ title: "Node Content Rewritten", description: `Node updated by AI (Tone: ${tone || 'Default'}).` });
   }, [isViewOnlyMode, updateStoreNode, toast]);
@@ -353,10 +347,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         return;
     }
     
-    // No specific node ID for processing spinner here, as it's a new node.
-    // Modal loader is sufficient for this action.
     try {
         toast({ title: "AI Summarization", description: "Processing selected nodes...", duration: 3000});
+        setAiProcessingNodeId('summarizing_selection'); // Use a generic ID or handle differently
         const result: SummarizeNodesOutput = await aiSummarizeNodes({ nodeContents });
         
         const currentNodes = useConceptMapStore.getState().mapData.nodes;
@@ -380,9 +373,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         toast({ title: "AI Summary Created", description: "A new node with the summary has been added to the map.", duration: 7000 });
     } catch (error) {
         toast({ title: "Error Summarizing Nodes", description: (error as Error).message, variant: "destructive" });
+    } finally {
+        setAiProcessingNodeId(null);
     }
 
-  }, [isViewOnlyMode, multiSelectedNodeIds, mapData.nodes, toast, addStoreNode]);
+  }, [isViewOnlyMode, multiSelectedNodeIds, mapData.nodes, toast, addStoreNode, setAiProcessingNodeId]);
 
 
   return {
@@ -392,13 +387,14 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     conceptToExpandDetails,
     mapContextForExpansion,
     openExpandConceptModal,
-    handleConceptExpanded, // This now has the setAiProcessingNodeId calls
+    handleConceptExpanded, 
     isQuickClusterModalOpen, setIsQuickClusterModalOpen, openQuickClusterModal, handleClusterGenerated,
     isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen, openGenerateSnippetModal, handleSnippetGenerated,
-    isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered, // handleQuestionAnswered needs to call setAiProcessingNodeId
-    isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm, // handleRewriteNodeContentConfirm needs to call setAiProcessingNodeId
+    isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered, 
+    isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm, 
     handleSummarizeSelectedNodes,
     addStoreNode, 
     addStoreEdge,
   };
 }
+
