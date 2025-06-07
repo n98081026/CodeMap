@@ -62,29 +62,40 @@
 - [x] **Node Data Structure:** 
     - [x] `parentNode` field added to `ConceptMapNode` type for hierarchy (used by React Flow).
     - [ ] (Advanced) Consider explicit `childIds` in `ConceptMapNode` state if needed for advanced custom layouts beyond React Flow's `parentNode` grouping.
-- [x] **Floating Node Creation**: Implement double-click on canvas to create a new node at mouse position.
+- [x] **Floating Node Creation**:
+    - [x] Implement double-click on canvas to create a new node at mouse position.
+    - [x] New node is selected.
 - [x] **Child Node Creation via "+" Hover Buttons**:
     - [x] Display "+" icons on node hover (top, right, bottom, left).
     - [x] Clicking "+" adds a new child node in that direction, automatically connects it, sets `parentNode`.
-    - [x] New child node is auto-positioned (current simple offset, needs refinement via layout algorithm).
+    - [x] New child node is selected.
 - [x] **Keyboard-driven Node Creation**:
     - [x] Selected Node + `Tab` key: Create child node, auto-position, connect, set `parentNode`. New node is selected.
     - [x] Selected Node + `Enter` key: Create sibling node (at the same level as selected), auto-position. New node is selected.
-- [x] **Auto-focus for New Nodes**: New nodes (created via keyboard or '+') auto-focus for text input.
+- [x] **Auto-focus for New Nodes**:
+    - [x] New nodes created via double-click, "+ hover buttons", or keyboard shortcuts (`Tab`/`Enter`) automatically enter label edit mode.
 - [x] **Hierarchical Node Movement**:
     - [x] Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions (Leveraging React Flow's `parentNode` feature - Verified).
     - [x] Recursive deletion of child nodes when parent is deleted.
-- [x] **Improved Connector Experience**:
-    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using `getSmoothStepPath` for cleaner, orthogonal-like lines with sharp corners. (Implemented, sharp corners with `borderRadius:0` on `getSmoothStepPath`).
-    - [ ] (Advanced) Refine `OrthogonalEdge.tsx` path calculation for more robust true orthogonal routing (e.g., ensure lines exit handles straight for a short distance before turning, avoid node overlaps).
+- [ ] **Improved Connector Experience**:
+    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using `getSmoothStepPath` with `borderRadius:0` for step-like lines with sharp corners.
+    - [ ] (Advanced) Refine `OrthogonalEdge.tsx` path calculation for more robust true orthogonal routing:
+        - [ ] Implement simple Manhattan routing algorithm (or similar) for `OrthogonalEdge`.
+        - [ ] Ensure lines exit handles straight for a short distance before turning.
+        - [ ] Add logic to avoid path overlaps with other nodes (highly advanced).
 - [x] **Edge Style Editing**:
     - [x] Allow modifying edge label directly on canvas (double-click).
     - [x] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
     - [x] Allow modifying arrow styles (start/end: none, arrow, arrowclosed) from `PropertiesInspector`.
 - [ ] **Snapping Guides**:
-    - [ ] Implement visual guides and snapping behavior when dragging nodes to align with other nodes (edges or centers).
+    - [x] Basic center-to-center snapping implemented with visual guides.
+    - [ ] Add snapping to node edges (top, bottom, left, right alignment).
+    - [ ] Implement visual guides for edge snapping.
+    - [ ] Consider snap-to-grid functionality.
 - [x] **Node Auto-Sizing**: Ensure custom nodes dynamically adjust size based on content (text length, details), within reasonable min/max bounds.
-- [ ] **Refined Pan & Zoom**: Verify/enhance pan/zoom interactions if default React Flow behavior needs tweaking (e.g., modifier keys like Spacebar for pan).
+- [ ] **Refined Pan & Zoom**: 
+    - [ ] Verify/enhance pan/zoom interactions if default React Flow behavior needs tweaking.
+    - [ ] Consider adding modifier key for pan (e.g., Spacebar + drag).
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
 - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
@@ -159,12 +170,17 @@
         - [x] Uses `RewriteNodeContentModal` for tone selection and preview.
         - [x] Creates Genkit flow (`rewriteNodeContentFlow`). Updates node content and type to `ai-rewritten-node` directly on the map.
     - [ ] **Alternative GAI Trigger Points (Future Consideration):**
-        - [ ] Floating "AI Expand" button on selected node.
-        - [ ] Slash commands (`/ai`) in node text editor.
-        - [ ] Global AI input box on canvas.
-    - [ ] **GAI Action Feedback**: Enhance visual feedback for AI actions triggered directly from nodes (e.g., context menu, future floating buttons) by showing a loading state on/near the node itself.
+        - [ ] Implement floating "AI Expand" button (or similar quick action) on selected node hover.
+        - [ ] Explore slash commands (`/ai ...`) in node text editor for GAI actions.
+        - [ ] Consider a global AI input box/panel on the canvas for broader queries/commands.
+    - [ ] **GAI Action Feedback**:
+        - [x] Visual cues for AI-generated/modified nodes (type, icon).
+        - [ ] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or future floating buttons.
     - [ ] **(Advanced - Future) Explore "AI Structure Suggestions":**
-        - [ ] Analyze map structure and content to propose new connections or organizational improvements (e.g., "These 3 nodes seem related, would you like to group them?" or "Consider linking Node A to Node B because...").
+        - [ ] Develop Genkit flow to analyze map structure & content.
+        - [ ] Define criteria for "good" structure suggestions (e.g., grouping related ideas, suggesting missing links).
+        - [ ] Design UI for presenting structure suggestions (e.g., non-intrusive hints on canvas or in AI panel).
+        - [ ] Implement user actions to accept/reject suggestions.
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
     - [x] **Workflow Review**: Suggestions (Extract Concepts, Suggest Relations) persist, update status, removed from panel after adding to map. "Expand Concept" no longer populates this panel.
@@ -184,10 +200,14 @@
 
 ## Performance Optimizations
 - [ ] **Rendering:**
-    - [ ] **Virtualization (Occlusion Culling):** For very large maps, only render nodes/edges within the current viewport. (React Flow might have some built-in optimizations, but check for large maps).
+    - [ ] **Virtualization (Occlusion Culling):**
+        - [ ] Investigate React Flow built-in virtualization/occlusion culling for large maps.
+        - [ ] If needed, implement custom occlusion culling for nodes/edges outside viewport.
     - [ ] **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges.
 - [ ] **Interactions:**
-    - [ ] **Event Throttling/Debouncing:** For frequent events like `mousemove` (dragging) or `wheel` (zooming), ensure updates are throttled using `requestAnimationFrame` or similar techniques to prevent excessive re-renders. (React Flow likely handles this internally, verify for custom interactions).
+    - [ ] **Event Throttling/Debouncing:**
+        - [ ] Verify React Flow's internal event handling for drag/zoom for common scenarios.
+        - [ ] If custom heavy interactions are added (e.g., complex snapping calculations), implement throttling/debouncing for them.
 - [ ] **Data Handling & General:**
     - [ ] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
     - [ ] **Large List Rendering:** For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
@@ -253,7 +273,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
-- **Whimsical-style interactions implemented:** Floating node creation (double-click), child node creation via "+" hover buttons, keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode`), recursive deletion of children.
+- **Whimsical-style interactions implemented:** Floating node creation (double-click), child node creation via "+" hover buttons, keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode`), recursive deletion of children, basic center-to-center snapping guides.
 - Custom edge type `OrthogonalEdge` implemented, using `getSmoothStepPath` with `borderRadius:0` for step-like lines. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max).
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
@@ -275,3 +295,4 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
