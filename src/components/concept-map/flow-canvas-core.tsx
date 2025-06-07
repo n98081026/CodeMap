@@ -75,7 +75,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   const getMarkerDefinition = useCallback((markerTypeString?: string, edgeColor?: string): RFEdge['markerEnd'] => {
     if (!markerTypeString || markerTypeString === 'none') return undefined;
-    const color = edgeColor || 'hsl(var(--foreground))'; // Default to foreground if edgeColor not set
+    const color = edgeColor || 'hsl(var(--foreground))';
     switch (markerTypeString) {
         case 'arrow': return { type: MarkerType.Arrow, color, strokeWidth: 1 };
         case 'arrowclosed': return { type: MarkerType.ArrowClosed, color, strokeWidth: 1 };
@@ -236,6 +236,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       let finalX = draggedNode.position.x;
       let finalY = draggedNode.position.y;
 
+      // Final snap to grid after node-to-node snapping might have slightly offset it
       finalX = Math.round(finalX / GRID_SIZE) * GRID_SIZE;
       finalY = Math.round(finalY / GRID_SIZE) * GRID_SIZE;
 
@@ -247,7 +248,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const handleRfNodesChange: OnNodesChange = useCallback((changes) => {
     if (isViewOnlyMode) return;
     onNodesChangeReactFlow(changes);
-    // If a node's dimensions change (e.g. due to label edit), update the store
     changes.forEach(change => {
         if (change.type === 'dimensions' && change.dimensions) {
             onNodesChangeInStore(change.id, { width: change.dimensions.width, height: change.dimensions.height });
@@ -373,3 +373,4 @@ const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => (
 
 export default React.memo(FlowCanvasCoreWrapper);
     
+

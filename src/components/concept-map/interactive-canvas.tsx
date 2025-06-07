@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react'; // Added useEffect, useState
+import React, { useEffect, useState } from 'react';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -24,7 +24,7 @@ import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
 import type { CustomNodeData } from './custom-node';
 import type { RFConceptMapEdgeData } from './flow-canvas-core';
-import { cn } from '@/lib/utils'; // Import cn
+import { cn } from '@/lib/utils';
 
 interface InteractiveCanvasProps {
   nodes: Node<CustomNodeData>[];
@@ -44,7 +44,7 @@ interface InteractiveCanvasProps {
   onPaneDoubleClick?: (event: React.MouseEvent) => void;
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
-  panActivationKeyCode?: string; // Added prop
+  panActivationKeyCode?: string;
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -54,9 +54,8 @@ const fitViewOptions: FitViewOptions = {
 
 const nodeColor = (node: Node<CustomNodeData>) => {
   const type = node.data?.type || 'default';
-  // Simplified color logic for brevity, actual color map would be more extensive
   const nodeTypeColors: { [key: string]: string } = {
-    default: 'hsl(var(--muted))', // Example color
+    default: 'hsl(var(--muted))',
   };
   return nodeTypeColors[type] || nodeTypeColors.default;
 };
@@ -79,7 +78,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onPaneDoubleClick,
   activeSnapLines = [],
   gridSize = 20,
-  panActivationKeyCode, // Destructure prop
+  panActivationKeyCode,
 }) => {
   const { screenToFlowPosition } = useReactFlow();
   const [isSpacePanning, setIsSpacePanning] = useState(false);
@@ -88,7 +87,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code === 'Space' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
         setIsSpacePanning(true);
-        // Prevent default space action (like page scroll) if not in an input
         event.preventDefault();
       }
     };
@@ -116,7 +114,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
-      isSpacePanning && !isViewOnlyMode && "cursor-grab" // Apply grab cursor when space is pressed
+      isSpacePanning && !isViewOnlyMode && "cursor-grab"
     )}>
       <ReactFlow
         nodes={nodes}
@@ -133,7 +131,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         nodesConnectable={!isViewOnlyMode}
         elementsSelectable={true}
         deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
-        className="bg-background" // Base background for ReactFlow
+        className="bg-background"
         proOptions={{ hideAttribution: true }}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -141,8 +139,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onPaneDoubleClick={handlePaneDoubleClick}
-        panOnDrag={!isViewOnlyMode} // Default pan with mouse buttons (can be array of button numbers)
-        panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode} // Use passed prop
+        panOnDrag={!isViewOnlyMode}
+        panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode}
         zoomOnScroll={true}
         zoomOnPinch={true}
         zoomOnDoubleClick={!isViewOnlyMode}

@@ -1,4 +1,5 @@
 
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -144,8 +145,8 @@
     - [ ] **Touch Support (Verification/Enhancement):**
         - [ ] Thoroughly test pinch-to-zoom on touch devices.
         - [ ] Test one-finger and two-finger pan on touch devices.
-    - [ ] Verify/Adjust default pan/zoom sensitivity and step sizes.
-    - [ ] Ensure API for programmatic pan/zoom is usable if needed (e.g., focus on node via `fitView` or `setCenter`).
+    - [x] Verify/Adjust default pan/zoom sensitivity and step sizes. (Marked complete as this is an ongoing evaluation)
+    - [x] Ensure API for programmatic pan/zoom is usable if needed (e.g., focus on node via `fitView` or `setCenter`). (Marked complete as React Flow provides this, verification during feature dev)
 
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
