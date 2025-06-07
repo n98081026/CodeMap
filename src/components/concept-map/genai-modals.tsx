@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // Added useCallback
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,12 +15,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, HelpCircle } from "lucide-react"; // Added HelpCircle
+import { Loader2, HelpCircle } from "lucide-react"; 
 
 import { extractConcepts as aiExtractConcepts } from "@/ai/flows/extract-concepts";
 import { suggestRelations as aiSuggestRelations } from "@/ai/flows/suggest-relations";
-import { expandConcept as aiExpandConcept, type ExpandConceptInput, type ExpandConceptOutput } from "@/ai/flows/expand-concept"; // Updated import
-import { askQuestionAboutNode as aiAskQuestionAboutNode, type AskQuestionAboutNodeOutput } from "@/ai/flows/ask-question-about-node"; // New import
+import { expandConcept as aiExpandConcept, type ExpandConceptInput, type ExpandConceptOutput } from "@/ai/flows/expand-concept"; 
+import { askQuestionAboutNode as aiAskQuestionAboutNode, type AskQuestionAboutNodeOutput, type AskQuestionAboutNodeInput } from "@/ai/flows/ask-question-about-node";
 
 interface ModalProps {
   onOpenChange: (isOpen: boolean) => void; 
@@ -166,8 +166,8 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
 }
 
 interface ExpandConceptModalProps extends ModalProps {
-  onConceptExpanded?: (output: ExpandConceptOutput) => void; // Updated to pass the full output
-  initialConceptText?: string; // Renamed to clarify it's just the text
+  onConceptExpanded?: (output: ExpandConceptOutput) => Promise<void>; // Changed to Promise for async application
+  initialConceptText?: string; 
   existingMapContext?: string[];
 }
 
@@ -194,8 +194,9 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
         input.userRefinementPrompt = refinementPrompt.trim();
       }
       const result = await aiExpandConcept(input);
-      // Callback now passes the full result for the hook to handle node/edge creation
-      onConceptExpanded?.(result); 
+      if (onConceptExpanded) {
+        await onConceptExpanded(result); // Await the application of changes
+      }
       onOpenChange(false);
     } catch (error) {
       toast({ title: "Error Expanding Concept", description: (error as Error).message, variant: "destructive" });
@@ -260,10 +261,9 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
   );
 }
 
-// New Modal for Asking Questions
 interface AskQuestionModalProps extends ModalProps {
-  nodeContext: { text: string; details?: string } | null;
-  onQuestionAnswered: (answer: string) => void;
+  nodeContext: { text: string; details?: string; id: string; } | null;
+  onQuestionAnswered: (question: string, nodeContext: { text: string; details?: string; id: string; }) => Promise<void>; // Now takes question and context
 }
 
 export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange }: AskQuestionModalProps) {
@@ -271,30 +271,26 @@ export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleAskQuestion = async () => {
+  const handleAskQuestion = useCallback(async () => {
     if (!question.trim() || !nodeContext) {
-      toast({ title: "Input Required", description: "Please enter your question.", variant: "destructive" });
+      toast({ title: "Input Required", description: "Please enter your question and ensure a node context is available.", variant: "destructive" });
       return;
     }
     setIsLoading(true);
     try {
-      const result: AskQuestionAboutNodeOutput = await aiAskQuestionAboutNode({
-        nodeText: nodeContext.text,
-        nodeDetails: nodeContext.details,
-        question: question,
-      });
-      onQuestionAnswered(result.answer);
-      onOpenChange(false); // Close modal on success
+      // onQuestionAnswered is now responsible for the AI call and setting the processing node ID
+      await onQuestionAnswered(question, nodeContext); 
+      onOpenChange(false); 
     } catch (error) {
-      toast({ title: "Error Getting Answer", description: (error as Error).message, variant: "destructive" });
+      // Error toast is handled in onQuestionAnswered (via useConceptMapAITools)
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [question, nodeContext, onQuestionAnswered, onOpenChange, toast]);
 
   return (
     <Dialog open={true} onOpenChange={(isOpen) => {
-      if (!isOpen) setQuestion(""); // Clear question on close
+      if (!isOpen) setQuestion(""); 
       onOpenChange(isOpen);
     }}>
       <DialogContent className="sm:max-w-lg">
@@ -332,4 +328,3 @@ export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange
     </Dialog>
   );
 }
-

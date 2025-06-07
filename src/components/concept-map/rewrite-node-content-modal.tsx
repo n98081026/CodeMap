@@ -16,15 +16,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wand2, Sparkles, ArrowRightLeft } from 'lucide-react';
-import type { NodeContentToRewrite } from '@/hooks/useConceptMapAITools';
-import { rewriteNodeContent as aiRewriteNodeContent } from '@/ai/flows'; // Ensure this path is correct
-import type { RewriteNodeContentOutput } from '@/ai/flows';
+import type { NodeContentToRewrite } from '@/hooks/useConceptMapAITools'; // Ensure this import if type is from hook
+import { rewriteNodeContent as aiRewriteNodeContent, type RewriteNodeContentOutput } from '@/ai/flows';
+import useConceptMapStore from '@/stores/concept-map-store'; // For setAiProcessingNodeId
+
 
 interface RewriteNodeContentModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   nodeContent: NodeContentToRewrite | null;
-  onRewriteConfirm: (nodeId: string, newText: string, newDetails?: string, tone?: string) => void;
+  onRewriteConfirm: (nodeId: string, newText: string, newDetails?: string, tone?: string) => Promise<void>; // Changed to Promise
 }
 
 type ToneOption = "formal" | "casual" | "concise" | "elaborate" | "humorous" | "professional" | "simple";
@@ -46,6 +47,7 @@ export function RewriteNodeContentModal({
   onRewriteConfirm,
 }: RewriteNodeContentModalProps) {
   const { toast } = useToast();
+  const { setAiProcessingNodeId } = useConceptMapStore(); // Get store action
   const [selectedTone, setSelectedTone] = useState<ToneOption>("concise");
   const [previewText, setPreviewText] = useState<string | null>(null);
   const [previewDetails, setPreviewDetails] = useState<string | null>(null);
@@ -55,12 +57,15 @@ export function RewriteNodeContentModal({
     if (isOpen && nodeContent) {
       setPreviewText(null); 
       setPreviewDetails(null);
+      // Reset tone to default when modal opens or nodeContent changes
+      setSelectedTone("concise");
     }
   }, [isOpen, nodeContent]);
 
   const handleGeneratePreview = useCallback(async () => {
     if (!nodeContent) return;
     setIsLoading(true);
+    setAiProcessingNodeId(nodeContent.id); // Set processing state on node
     setPreviewText(null);
     setPreviewDetails(null);
     try {
@@ -76,22 +81,39 @@ export function RewriteNodeContentModal({
       toast({ title: "Error Generating Preview", description: (error as Error).message, variant: "destructive" });
     } finally {
       setIsLoading(false);
+      // Do not clear AiProcessingNodeId here; only after confirm or cancel
     }
-  }, [nodeContent, selectedTone, toast]);
+  }, [nodeContent, selectedTone, toast, setAiProcessingNodeId]);
 
-  const handleApplyRewrite = () => {
+  const handleApplyRewrite = async () => {
     if (nodeContent && (previewText !== null || previewDetails !== null)) {
-      onRewriteConfirm(nodeContent.id, previewText ?? nodeContent.text, previewDetails ?? nodeContent.details, selectedTone);
-      onOpenChange(false);
+      setIsLoading(true); // Indicate saving
+      // setAiProcessingNodeId(nodeContent.id); // Already set by preview, or ensure it's set if preview was skipped
+      try {
+        await onRewriteConfirm(nodeContent.id, previewText ?? nodeContent.text, previewDetails ?? nodeContent.details, selectedTone);
+        onOpenChange(false);
+      } catch (error) {
+        toast({ title: "Error Applying Rewrite", description: (error as Error).message, variant: "destructive"});
+      } finally {
+        setIsLoading(false);
+        setAiProcessingNodeId(null); // Clear processing state
+      }
     } else {
       toast({ title: "No Preview Available", description: "Please generate a preview before applying.", variant: "default" });
     }
   };
+  
+  const handleCloseDialog = (openState: boolean) => {
+    if (!openState) { // If dialog is closing
+        setAiProcessingNodeId(null); // Ensure processing ID is cleared
+    }
+    onOpenChange(openState);
+  }
 
   if (!nodeContent) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5 text-primary" />Rewrite Node Content (AI)</DialogTitle>
@@ -143,7 +165,7 @@ export function RewriteNodeContentModal({
         </div>
 
         <DialogFooter className="mt-4 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+          <Button variant="outline" onClick={() => handleCloseDialog(false)} disabled={isLoading}>
             Cancel
           </Button>
           <Button onClick={handleGeneratePreview} disabled={isLoading} variant="secondary">

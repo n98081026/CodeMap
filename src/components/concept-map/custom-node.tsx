@@ -8,11 +8,10 @@ import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 import {
   Box, Milestone, ServerCog, MonitorPlay, Database, FileCode2, ExternalLink, Users, Workflow,
-  Brain, Lightbulb, Puzzle, AlignLeft, PenLine, PlusCircle
+  Brain, Lightbulb, Puzzle, AlignLeft, PenLine, PlusCircle, Loader2
 } from 'lucide-react';
-import { getNodePlacement } from '@/lib/layout-utils'; // Import the utility
+import { getNodePlacement } from '@/lib/layout-utils';
 
-// Data expected by our custom node
 export interface CustomNodeData {
   label: string;
   details?: string;
@@ -20,8 +19,6 @@ export interface CustomNodeData {
   isViewOnly?: boolean;
   backgroundColor?: string;
   shape?: 'rectangle' | 'ellipse';
-  // width and height are typically managed by React Flow after render,
-  // but can be part of initial data if needed.
   width?: number; 
   height?: number;
 }
@@ -51,13 +48,14 @@ const nodeTypeIcons: { [key: string]: React.ElementType } = {
   'ai-summary-node': AlignLeft, 'ai-rewritten-node': PenLine, 'manual-node': Puzzle, 'text-derived-concept': FileCode2, 'ai-generated': Brain, default: Box,
 };
 
-const GRID_SIZE_FOR_CHILD_PLACEMENT = 20; // Or get from a central config/store
+const GRID_SIZE_FOR_CHILD_PLACEMENT = 20;
 
 const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, selected, isConnectable, id, xPos, yPos, width, height }) => {
-  const { editingNodeId, setEditingNodeId, updateNode, addNode, addEdge } = useConceptMapStore();
+  const { editingNodeId, setEditingNodeId, updateNode, addNode, addEdge, aiProcessingNodeId } = useConceptMapStore();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isCurrentNodeEditing = editingNodeId === id && !data.isViewOnly;
+  const isCurrentNodeAiProcessing = aiProcessingNodeId === id;
 
   useEffect(() => {
     if (isCurrentNodeEditing && inputRef.current) {
@@ -88,13 +86,12 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     
     if (!parentNode) return;
 
-    // Pass parentNode with its current dimensions to getNodePlacement
     const parentNodeWithDimensions = {
       ...parentNode,
-      x: xPos, // Use current position from props
+      x: xPos, 
       y: yPos,
-      width: width, // Use current width from props
-      height: height, // Use current height from props
+      width: width, 
+      height: height,
     };
 
     const childPosition = getNodePlacement(currentNodes, 'child', parentNodeWithDimensions, null, GRID_SIZE_FOR_CHILD_PLACEMENT);
@@ -129,9 +126,14 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 
   return (
     <Card
-      className={cn(baseStyle, selectedStyle, typeClass, shapeClass, 'max-w-xs group relative')}
+      className={cn(baseStyle, selectedStyle, typeClass, shapeClass, 'max-w-xs group relative', isCurrentNodeAiProcessing && 'opacity-70')}
       style={customBgStyle}
     >
+      {isCurrentNodeAiProcessing && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm z-10 rounded-[inherit]">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
       <CardHeader
         className={cn("p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2", shapeClass === 'rounded-full' ? 'rounded-t-full' : 'rounded-t-lg')}
         style={{ pointerEvents: 'all' }}
@@ -168,7 +170,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         </React.Fragment>
       ))}
 
-      {!data.isViewOnly && plusButtonPositions.map(btn => (
+      {!data.isViewOnly && !isCurrentNodeAiProcessing && plusButtonPositions.map(btn => (
         <button
           key={btn.direction}
           onClick={() => handleCreateChild(btn.direction)}

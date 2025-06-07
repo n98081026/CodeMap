@@ -17,21 +17,19 @@ import {
 import type {
   AskQuestionAboutNodeOutput,
   ExpandConceptOutput,
-  // ExtractConceptsOutput, // Not directly used here, but its type is string[]
   GenerateMapSnippetOutput,
   GenerateQuickClusterOutput,
   SuggestRelationsOutput,
   SummarizeNodesOutput,
-  // RewriteNodeContentOutput // Not directly used, but its type has rewrittenText and rewrittenDetails
+  RewriteNodeContentOutput,
 } from '@/ai/flows';
-// import type { ConceptMapNode } from '@/types'; // Not strictly needed if only using store
-import { getNodePlacement } from '@/lib/layout-utils'; // Import the utility
+import type { ConceptMapNode } from '@/types';
+import { getNodePlacement } from '@/lib/layout-utils';
 
-// Define a more specific type for the concept to expand, including its ID
-interface ConceptToExpandDetails {
-  id: string | null; // ID of the source node, null if not expanding from a specific node
+export interface ConceptToExpandDetails {
+  id: string | null;
   text: string;
-  node?: ConceptMapNode; // Store the full node for position and dimensions
+  node?: ConceptMapNode;
 }
 
 export interface NodeContentToRewrite {
@@ -40,7 +38,7 @@ export interface NodeContentToRewrite {
     details?: string;
 }
 
-const GRID_SIZE_FOR_AI_PLACEMENT = 20; // Or get from a central config/store
+const GRID_SIZE_FOR_AI_PLACEMENT = 20;
 
 export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const { toast } = useToast();
@@ -56,6 +54,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     addNode: addStoreNode,
     updateNode: updateStoreNode,
     addEdge: addStoreEdge,
+    setAiProcessingNodeId, // Get the new action
   } = useConceptMapStore();
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
@@ -107,7 +106,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     if (isViewOnlyMode || selectedConcepts.length === 0) return;
     let addedCount = 0;
     const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    selectedConcepts.forEach((conceptText, index) => {
+    selectedConcepts.forEach((conceptText) => {
       addStoreNode({ text: conceptText, type: 'ai-concept', position: getNodePlacement(currentNodes, 'generic', null, null, GRID_SIZE_FOR_AI_PLACEMENT) });
       addedCount++;
     });
@@ -150,7 +149,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const addSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
     if (isViewOnlyMode || selectedRelations.length === 0) return;
     let relationsAddedCount = 0; let conceptsAddedFromRelationsCount = 0;
-    const currentNodes = useConceptMapStore.getState().mapData.nodes; // Get initial state for placement context
+    const currentNodes = useConceptMapStore.getState().mapData.nodes; 
 
     selectedRelations.forEach((rel) => {
       let sourceNode = useConceptMapStore.getState().mapData.nodes.find(node => node.text.toLowerCase().trim() === rel.source.toLowerCase().trim());
@@ -207,35 +206,43 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     setIsExpandConceptModalOpen(true);
   }, [isViewOnlyMode, mapData, selectedElementId, toast]);
 
-  const handleConceptExpanded = useCallback((output: ExpandConceptOutput) => {
+  const handleConceptExpanded = useCallback(async (output: ExpandConceptOutput) => {
     if (isViewOnlyMode || !conceptToExpandDetails) return;
+    
+    const sourceNodeIdForAI = conceptToExpandDetails.id;
+    if (sourceNodeIdForAI) setAiProcessingNodeId(sourceNodeIdForAI);
 
-    const sourceNodeId = conceptToExpandDetails.id;
-    const sourceNode = conceptToExpandDetails.node;
-    let addedNodesCount = 0;
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    try {
+        const sourceNode = conceptToExpandDetails.node;
+        let addedNodesCount = 0;
+        const currentNodes = useConceptMapStore.getState().mapData.nodes;
 
-    output.expandedIdeas.forEach((idea) => {
-      const newNodeId = addStoreNode({
-        text: idea.text,
-        type: 'ai-expanded',
-        position: getNodePlacement(currentNodes, 'child', sourceNode, null, GRID_SIZE_FOR_AI_PLACEMENT),
-        parentNode: sourceNodeId || undefined,
-      });
-      addedNodesCount++;
-      if (sourceNodeId && newNodeId) {
-        addStoreEdge({
-          source: sourceNodeId,
-          target: newNodeId,
-          label: idea.relationLabel || 'related to',
+        output.expandedIdeas.forEach((idea) => {
+        const newNodeId = addStoreNode({
+            text: idea.text,
+            type: 'ai-expanded',
+            position: getNodePlacement(currentNodes, 'child', sourceNode, null, GRID_SIZE_FOR_AI_PLACEMENT),
+            parentNode: sourceNodeIdForAI || undefined,
         });
-      }
-    });
+        addedNodesCount++;
+        if (sourceNodeIdForAI && newNodeId) {
+            addStoreEdge({
+            source: sourceNodeIdForAI,
+            target: newNodeId,
+            label: idea.relationLabel || 'related to',
+            });
+        }
+        });
 
-    if (addedNodesCount > 0) {
-      toast({ title: "Concept Expanded", description: `${addedNodesCount} new ideas directly added to the map.` });
+        if (addedNodesCount > 0) {
+        toast({ title: "Concept Expanded", description: `${addedNodesCount} new ideas directly added to the map.` });
+        }
+    } catch (error) {
+        toast({ title: "Error Applying Expansion", description: (error as Error).message, variant: "destructive" });
+    } finally {
+        if (sourceNodeIdForAI) setAiProcessingNodeId(null);
     }
-  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, conceptToExpandDetails]);
+  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, conceptToExpandDetails, setAiProcessingNodeId]);
 
   // --- Quick Cluster ---
   const openQuickClusterModal = useCallback(() => {
@@ -291,9 +298,24 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     else { toast({ title: "Error", description: "Node not found.", variant: "destructive" }); }
   }, [isViewOnlyMode, mapData.nodes, toast]);
 
-  const handleQuestionAnswered = useCallback((answer: string) => {
-    toast({ title: "AI Answer Received", description: answer.length > 150 ? `${answer.substring(0, 147)}...` : answer, duration: 10000 });
-  }, [toast]);
+  const handleQuestionAnswered = useCallback(async (question: string, nodeCtx: { text: string; details?: string; id: string; } ) => {
+    // This function is called FROM the modal when the user submits the question
+    if (isViewOnlyMode || !nodeCtx) return;
+    setAiProcessingNodeId(nodeCtx.id);
+    try {
+        const result: AskQuestionAboutNodeOutput = await aiAskQuestionAboutNode({
+            nodeText: nodeCtx.text,
+            nodeDetails: nodeCtx.details,
+            question: question,
+        });
+        toast({ title: "AI Answer Received", description: result.answer.length > 150 ? `${result.answer.substring(0, 147)}...` : result.answer, duration: 10000 });
+        // No direct map modification, answer shown in toast.
+    } catch (error) {
+        toast({ title: "Error Getting Answer", description: (error as Error).message, variant: "destructive" });
+    } finally {
+        setAiProcessingNodeId(null);
+    }
+  }, [isViewOnlyMode, toast, setAiProcessingNodeId]);
 
   // --- Rewrite Node Content ---
   const openRewriteNodeContentModal = useCallback((nodeId: string) => {
@@ -305,6 +327,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleRewriteNodeContentConfirm = useCallback(async (nodeId: string, newText: string, newDetails?: string, tone?: string) => {
     if (isViewOnlyMode) return;
+    // The actual AI call should happen inside the modal's logic that calls this confirm function.
+    // This function is for *applying* the rewrite.
+    // For spinner on node: setAiProcessingNodeId(nodeId) should be called *before* the AI call in the modal.
+    // And setAiProcessingNodeId(null) *after* it.
+    // Here, we just update the store.
     updateStoreNode(nodeId, { text: newText, details: newDetails, type: 'ai-rewritten-node' });
     toast({ title: "Node Content Rewritten", description: `Node updated by AI (Tone: ${tone || 'Default'}).` });
   }, [isViewOnlyMode, updateStoreNode, toast]);
@@ -325,7 +352,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         toast({ title: "No Content", description: "Selected nodes have no text content to summarize.", variant: "default"});
         return;
     }
-
+    
+    // No specific node ID for processing spinner here, as it's a new node.
+    // Modal loader is sufficient for this action.
     try {
         toast({ title: "AI Summarization", description: "Processing selected nodes...", duration: 3000});
         const result: SummarizeNodesOutput = await aiSummarizeNodes({ nodeContents });
@@ -363,15 +392,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     conceptToExpandDetails,
     mapContextForExpansion,
     openExpandConceptModal,
-    handleConceptExpanded,
+    handleConceptExpanded, // This now has the setAiProcessingNodeId calls
     isQuickClusterModalOpen, setIsQuickClusterModalOpen, openQuickClusterModal, handleClusterGenerated,
     isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen, openGenerateSnippetModal, handleSnippetGenerated,
-    isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
-    isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
+    isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered, // handleQuestionAnswered needs to call setAiProcessingNodeId
+    isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm, // handleRewriteNodeContentConfirm needs to call setAiProcessingNodeId
     handleSummarizeSelectedNodes,
     addStoreNode, 
     addStoreEdge,
-    // getNodePlacement is not directly returned as it's now an imported utility.
-    // Callers within this hook use the imported version.
   };
 }

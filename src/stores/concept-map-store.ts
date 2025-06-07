@@ -31,6 +31,7 @@ interface ConceptMapState {
   selectedElementType: 'node' | 'edge' | null;
   multiSelectedNodeIds: string[]; 
   editingNodeId: string | null; // ID of the node currently being edited for its label
+  aiProcessingNodeId: string | null; // ID of the node currently having an AI operation run via context menu
 
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
@@ -51,6 +52,7 @@ interface ConceptMapState {
   setSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => void;
   setMultiSelectedNodeIds: (ids: string[]) => void; 
   setEditingNodeId: (nodeId: string | null) => void;
+  setAiProcessingNodeId: (nodeId: string | null) => void;
 
   setAiExtractedConcepts: (concepts: string[]) => void;
   setAiSuggestedRelations: (relations: Array<{ source: string; target: string; relation: string }>) => void;
@@ -82,7 +84,8 @@ export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 const initialStateBase: Omit<ConceptMapState, 
   'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 
   'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
-  'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setEditingNodeId' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 
+  'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setEditingNodeId' | 'setAiProcessingNodeId' | 
+  'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 
   'resetAiSuggestions' | 'removeExtractedConceptsFromSuggestions' | 'removeSuggestedRelationsFromSuggestions' | 
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' | 
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
@@ -102,6 +105,7 @@ const initialStateBase: Omit<ConceptMapState,
   selectedElementType: null,
   multiSelectedNodeIds: [], 
   editingNodeId: null,
+  aiProcessingNodeId: null,
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
 };
@@ -127,6 +131,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setSelectedElement: (id, type) => set({ selectedElementId: id, selectedElementType: type }),
       setMultiSelectedNodeIds: (ids) => set({ multiSelectedNodeIds: ids }), 
       setEditingNodeId: (nodeId) => set({ editingNodeId: nodeId }),
+      setAiProcessingNodeId: (nodeId) => set({ aiProcessingNodeId: nodeId }),
       
       setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
       setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
@@ -143,7 +148,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
         )
       })),
 
-      initializeNewMap: (userId) => {
+      initializeNewMap: (userId: string) => {
         const newMapState = {
           ...initialStateBase,
           mapId: 'new',
@@ -157,6 +162,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: true,
           isLoading: false,
           multiSelectedNodeIds: [], 
+          aiProcessingNodeId: null,
         };
         set(newMapState);
         useConceptMapStore.temporal.getState().clear();
@@ -176,6 +182,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           multiSelectedNodeIds: [], 
           aiExtractedConcepts: [], 
           aiSuggestedRelations: [], 
+          aiProcessingNodeId: null,
         });
         useConceptMapStore.temporal.getState().clear();
       },
@@ -191,6 +198,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           multiSelectedNodeIds: [], 
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
+          aiProcessingNodeId: null,
           mapId: state.isNewMapMode ? 'new' : state.mapId, 
           isNewMapMode: state.isNewMapMode, 
           isLoading: false,
@@ -213,8 +221,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           y: options.position.y,
           details: options.details || '',
           parentNode: options.parentNode,
-          backgroundColor: options.backgroundColor, // Initialize with undefined
-          shape: options.shape || 'rectangle', // Default to rectangle
+          backgroundColor: options.backgroundColor, 
+          shape: options.shape || 'rectangle', 
         };
         set((state) => ({ mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } }));
         return newNode.id; 
@@ -259,6 +267,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           selectedElementId: newSelectedElementId,
           selectedElementType: newSelectedElementType,
           multiSelectedNodeIds: newMultiSelectedNodeIds,
+          aiProcessingNodeId: state.aiProcessingNodeId && nodesToDelete.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId,
         };
       }),
 
@@ -270,7 +279,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           sourceHandle: options.sourceHandle || null,
           targetHandle: options.targetHandle || null,
           label: options.label || 'connects',
-          color: options.color, // Default to theme if undefined in component
+          color: options.color, 
           lineType: options.lineType || 'solid',
           markerStart: options.markerStart || 'none',
           markerEnd: options.markerEnd || 'arrowclosed',
@@ -312,4 +321,3 @@ export const useConceptMapStore = create<ConceptMapState>()(
         
 
 export default useConceptMapStore;
-
