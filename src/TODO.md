@@ -59,26 +59,33 @@
 ## Frontend Enhancements
 
 ### Whimsical-Inspired Editor UX Enhancements
-- [x] **Node Data Structure:**
+- [ ] **Node Data Structure (Advanced Custom Layouts):**
     - [x] `parentNode` field added to `ConceptMapNode` type for hierarchy (used by React Flow).
-    - [ ] (Advanced) Consider explicit `childIds` in `ConceptMapNode` state if needed for advanced custom layouts beyond React Flow's `parentNode` grouping.
+    - [ ] **Explicit `childIds` for Advanced Custom Layouts:**
         - [ ] Extend node data structure with `childIds: string[]`.
-        - [ ] Implement logic to manage `childIds` order (e.g., drag to reorder).
-        - [ ] Develop custom layout hook/component (`useCustomLayout`) that:
-            - [ ] Identifies parent nodes needing custom layout.
-            - [ ] Listens to parent/child changes.
-            - [ ] Fetches/estimates child dimensions.
-            - [ ] Implements specific layout algorithms (e.g., fishbone, strict row/column).
-            - [ ] Calculates and applies child positions.
-        - [ ] Design UI for establishing/managing these specific parent-child relationships.
-        - [ ] Address performance for frequent recalculations.
-        - [ ] Define interaction between custom layout and React Flow's `parentNode` features.
+        - [ ] Implement logic to manage `childIds` order (e.g., drag to reorder, creation order).
+        - [ ] **Custom Layout Hook/Component (`useCustomLayout` or similar):**
+            - [ ] Identify parent nodes needing custom layout (e.g., via type or flag).
+            - [ ] Listen to parent/child changes (size, position, `childIds` list).
+            - [ ] Fetch/estimate child node dimensions for precise layout.
+            - [ ] Implement specific layout algorithms (e.g., fishbone branches, strict row/column within parent).
+            - [ ] Calculate and apply child node positions (relative to parent or absolute).
+            - [ ] Update child node positions via store/React Flow methods.
+        - [ ] **UI for Custom Parent-Child Relationships:**
+            - [ ] Design UI for establishing these specific layout relationships (e.g., context menu action "Add as fishbone child").
+            - [ ] Define child node drag behavior within custom layouts (constrained, free, or trigger re-layout).
+        - [ ] **Performance Considerations for Custom Layouts:**
+            - [ ] Employ memoization and optimized change detection.
+            - [ ] Investigate batch updates for node positions if performance issues arise.
+        - [ ] **Coordination with React Flow `parentNode`:**
+            - [ ] Clarify if `parentNode` is still used alongside `childIds` for custom layouts (likely yes, for grouping benefits).
+            - [ ] Define precedence if conflicts arise between default library layout and custom layout.
 - [x] **Floating Node Creation**:
     - [x] Implement double-click on canvas to create a new node at mouse position.
     - [x] New node is selected.
 - [x] **Child Node Creation via "+" Hover Buttons**:
     - [x] Display "+" icons on node hover (top, right, bottom, left).
-    - [x] Clicking "+" adds a new child node in that direction, automatically connects it, sets `parentNode`. (Current placement is spiral/offset, can be refined).
+    - [x] Clicking "+" adds a new child node in that direction (current placement is spiral/offset, can be refined for strict directionality), automatically connects it, sets `parentNode`.
     - [x] New child node is selected.
 - [x] **Keyboard-driven Node Creation**:
     - [x] Selected Node + `Tab` key: Create child node, auto-position, connect, set `parentNode`. New node is selected.
@@ -86,18 +93,25 @@
 - [x] **Auto-focus for New Nodes**:
     - [x] New nodes created via double-click, "+ hover buttons", or keyboard shortcuts (`Tab`/`Enter`) automatically enter label edit mode.
 - [x] **Hierarchical Node Movement**:
-    - [x] Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions (Verified: React Flow's `parentNode` feature handles this).
-    - [x] Recursive deletion of child nodes when parent is deleted.
-- [x] **Improved Connector Experience**:
-    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using a custom Manhattan path calculation for step-like lines with sharp corners and straight exits.
-    - [ ] (Advanced) Refine `OrthogonalEdge.tsx` path calculation for more robust true orthogonal routing:
-        - [x] Ensure lines exit handles straight for a short distance before turning.
-        - [ ] Investigate/Implement more advanced Manhattan routing algorithm (or similar) for `OrthogonalEdge` to handle more complex source/target orientations better.
-        - [ ] (Highly Advanced) Add logic to avoid path overlaps with other nodes (Obstacle Avoidance).
-            - [ ] Research A* or similar pathfinding for obstacle avoidance.
-            - [ ] Implement simplified collision detection for paths and node bounding boxes.
-            - [ ] Develop strategies for rerouting or adjusting paths to avoid collisions.
-            - [ ] Consider performance implications.
+    - [x] Verified: React Flow's `parentNode` feature handles moving descendants with parent.
+    - [x] Recursive deletion of child nodes when parent is deleted (Implemented in Zustand store).
+- [ ] **Improved Connector Experience (`OrthogonalEdge.tsx` and beyond):**
+    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using a custom Manhattan path calculation for step-like lines.
+    - [x] Edge lines exit handles straight for a defined distance (e.g., 20px) before turning.
+    - [ ] Investigate/Implement more advanced Manhattan routing algorithm for `OrthogonalEdge` to:
+        - [ ] Handle more complex source/target orientations more robustly.
+        - [ ] Potentially reduce unnecessary bends or offer more path choices.
+        - [ ] Consider different strategies (e.g., middle point connection, priority to horizontal/vertical segments).
+    - [ ] **(Highly Advanced) Edge Obstacle Avoidance for `OrthogonalEdge`:**
+        - [ ] Research pathfinding algorithms (e.g., A* variants suitable for grid/orthogonal paths) or simplified heuristics.
+        - [ ] Implement collision detection between edge segments and other node bounding boxes.
+        - [ ] Develop strategies for rerouting or adjusting paths (e.g., adding bends, "pushing" segments away from nodes).
+        - [ ] Requires access to all node positions/dimensions on the canvas.
+        - [ ] Evaluate performance implications thoroughly; may require debouncing or offloading calculation.
+        - [ ] Consider if existing pathfinding libraries can be adapted/integrated.
+    - [ ] **SVG Path Generation Refinements:**
+        - [ ] Option for rounded corners at bends (using SVG arc commands or approximated with short lines).
+        - [ ] Configurable minimum segment length to avoid visually awkward short segments.
 - [x] **Edge Style Editing**:
     - [x] Allow modifying edge label directly on canvas (double-click).
     - [x] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
@@ -106,18 +120,33 @@
     - [x] Basic center-to-center snapping implemented with visual guides.
     - [x] Add snapping to node edges (top, bottom, left, right alignment).
     - [x] Implement visual guides for edge snapping.
-    - [x] Consider snap-to-grid functionality. (Implemented)
-- [x] **Node Auto-Sizing**: Ensure custom nodes dynamically adjust size based on content (text length, details), within reasonable min/max bounds. (Implemented for basic content-driven sizing with Tailwind min/max and scrollable details).
+    - [x] Snap-to-grid functionality (nodes align to grid on creation and drag if not node-snapped).
+- [x] **Node Auto-Sizing**: Nodes dynamically adjust size based on content (label, details) within min/max Tailwind CSS constraints. Details section becomes scrollable if content exceeds `max-h`. Explicitly set dimensions from store override auto-sizing.
 - [ ] **Refined Pan & Zoom**:
-    - [ ] Verify/enhance pan/zoom interactions if default React Flow behavior needs tweaking.
-        - [ ] Evaluate if panning extents (restricting pan range) are needed.
-        - [x] Evaluate if min/max zoom levels need explicit setting. (Set to 0.1 - 4.0)
-        - [ ] Consider zoom-to-center option vs. zoom-to-mouse.
-        - [ ] (Highly Advanced) Explore Level of Detail (LOD) rendering for nodes/edges at different zoom levels.
-    - [x] Consider adding modifier key for pan (e.g., Spacebar + drag).
+    - [x] Min/max zoom levels explicitly set (0.1 - 4.0).
+    - [x] Modifier key for pan (Spacebar + drag) implemented.
+    - [ ] **Panning Extents (Optional Enhancement):**
+        - [ ] Calculate content bounding box.
+        - [ ] Prevent panning too far beyond content, or implement "elastic" edges.
+    - [ ] **Zoom Center (Verification/Enhancement):**
+        - [ ] Verify default zoom-to-mouse behavior.
+        - [ ] Consider an option or alternative for zoom-to-center if needed.
+    - [ ] **(Highly Advanced) Level of Detail (LOD) Rendering:**
+        - [ ] At small zoom levels, render simplified nodes (e.g., colored rectangles, hide text/details).
+        - [ ] Render thinner or simplified edges.
+        - [ ] Consider node/data aggregation at very distant zoom levels.
+    - [ ] **Tool Interaction with Pan/Zoom:**
+        - [ ] Verify selection mode vs. pan mode (Spacebar) is clear and functional.
+        - [ ] Test selection box tool behavior during pan/zoom operations.
+    - [ ] **Minimap/Navigator Enhancements (If React Flow's default needs more):**
+        - [ ] Ensure minimap syncs correctly with main canvas pan/zoom.
+        - [ ] Evaluate if custom styling or behavior for minimap is needed.
+    - [ ] **Touch Support (Verification/Enhancement):**
+        - [ ] Thoroughly test pinch-to-zoom on touch devices.
+        - [ ] Test one-finger and two-finger pan on touch devices.
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
-- [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
+- [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
 - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`. Visual grid background added.
 - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
     - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
@@ -166,7 +195,7 @@
     - [x] **GAI Action Feedback**:
         - [x] Visual cues for AI-generated/modified nodes (type, icon).
         - [x] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or future floating buttons.
-    - [ ] **(Advanced - Future) Explore "AI Structure Suggestions":**
+    - [ ] **(Highly Advanced - Future) Explore "AI Structure Suggestions":**
         - [ ] Develop Genkit flow to analyze map structure & content.
         - [ ] Define criteria for "good" structure suggestions (e.g., grouping related ideas, suggesting missing links).
         - [ ] Design UI for presenting structure suggestions (e.g., non-intrusive hints on canvas or in AI panel).
@@ -177,14 +206,14 @@
 
 ## Performance Optimizations
 - [ ] **Rendering:**
-    - [ ] **Virtualization (Occlusion Culling):**
+    - [ ] **Virtualization (Occlusion Culling for Canvas):**
         - [ ] Investigate React Flow built-in virtualization/occlusion culling for large maps.
-        - [ ] If needed, implement custom occlusion culling for nodes/edges outside viewport.
+        - [ ] If needed, implement custom occlusion culling for nodes/edges outside viewport (complex).
     - [ ] **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges.
 - [x] **Interactions:**
     - [x] **Event Throttling/Debouncing:**
         - [x] Verify React Flow's internal event handling for drag/zoom for common scenarios. (Basic node drag snapping logic is now in place, needs monitoring for complex maps).
-        - [ ] If custom heavy interactions are added (e.g., complex snapping calculations beyond current), implement throttling/debouncing for them.
+        - [ ] If custom heavy interactions are added (e.g., complex snapping calculations beyond current, or advanced orthogonal edge routing), implement throttling/debouncing for them.
 - [ ] **Data Handling & General:**
     - [x] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate. (Reviewed: App primarily uses icons and placeholders. `next/image` configured for placeholders. No immediate unoptimized content images identified.)
     - [x] **Large List Rendering:**
@@ -281,3 +310,7 @@ The main remaining area for full Supabase connection is:
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
 
+Advanced Editor Enhancements (From User Document):
+*   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
+
+    
