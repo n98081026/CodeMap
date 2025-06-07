@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
@@ -127,14 +128,14 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     const draggedNodeHeight = draggedNode.height;
     
     const draggedTargetsX = [
-        draggedNode.position.x, // left
-        draggedNode.position.x + draggedNodeWidth / 2, // center
-        draggedNode.position.x + draggedNodeWidth, // right
+        draggedNode.position.x, 
+        draggedNode.position.x + draggedNodeWidth / 2, 
+        draggedNode.position.x + draggedNodeWidth, 
     ];
     const draggedTargetsY = [
-        draggedNode.position.y, // top
-        draggedNode.position.y + draggedNodeHeight / 2, // center
-        draggedNode.position.y + draggedNodeHeight, // bottom
+        draggedNode.position.y, 
+        draggedNode.position.y + draggedNodeHeight / 2, 
+        draggedNode.position.y + draggedNodeHeight, 
     ];
 
     let minDeltaX = Infinity; let bestSnapX: number | null = null; let bestSnapLineX: typeof activeSnapLines[0] | null = null;
@@ -146,16 +147,17 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       const otherWidth = otherNode.width;
       const otherHeight = otherNode.height;
       const otherTargetsX = [
-        otherNode.position.x, // left
-        otherNode.position.x + otherWidth / 2, // center
-        otherNode.position.x + otherWidth,   // right
+        otherNode.position.x, 
+        otherNode.position.x + otherWidth / 2, 
+        otherNode.position.x + otherWidth,   
       ];
       const otherTargetsY = [
-        otherNode.position.y, // top
-        otherNode.position.y + otherHeight / 2, // center
-        otherNode.position.y + otherHeight, // bottom
+        otherNode.position.y, 
+        otherNode.position.y + otherHeight / 2, 
+        otherNode.position.y + otherHeight, 
       ];
-
+      
+      // Horizontal Snaps
       for (const dtX of draggedTargetsX) {
         for (const otX of otherTargetsX) {
           const delta = Math.abs(dtX - otX);
@@ -168,6 +170,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
           }
         }
       }
+      // Vertical Snaps
       for (const dtY of draggedTargetsY) {
         for (const otY of otherTargetsY) {
           const delta = Math.abs(dtY - otY);
@@ -193,6 +196,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       if(bestSnapLineY) currentDragSnapLines.push(bestSnapLineY);
     }
     
+    // Grid snapping if not snapped by another node
     if (!xSnappedByNode) {
       const gridSnappedX = Math.round(draggedNode.position.x / GRID_SIZE) * GRID_SIZE;
       if (Math.abs(draggedNode.position.x - gridSnappedX) < SNAP_THRESHOLD) {
@@ -205,6 +209,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         snappedYPosition = gridSnappedY;
       }
     }
+
 
     if (draggedNode.position.x !== snappedXPosition || draggedNode.position.y !== snappedYPosition) {
       onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: { x: snappedXPosition, y: snappedYPosition }, dragging: true }]);
@@ -276,14 +281,15 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   const handlePaneDoubleClickInternal = useCallback((event: React.MouseEvent) => {
     if (isViewOnlyMode) return;
-    const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const snappedPosition = getNodePlacement(currentNodes, 'generic', null, null, GRID_SIZE);
+    const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
+    const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
 
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
     const newNodeId = addNodeToStore({
       text: `Node ${currentNodes.length + 1}`,
       type: 'manual-node',
-      position: snappedPosition,
+      position: {x: snappedX, y: snappedY},
       details: '',
     });
     setSelectedElement(newNodeId, 'node');
@@ -293,21 +299,23 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isViewOnlyMode || (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA'))) return;
+      
       const { selectedElementId, mapData } = useConceptMapStore.getState();
-      const selectedNode = selectedElementId ? mapData.nodes.find(n => n.id === selectedElementId) : null;
+      const selectedRfNode = selectedElementId ? reactFlowInstance.getNode(selectedElementId) : null;
+      const selectedStoreNode = selectedElementId ? mapData.nodes.find(n => n.id === selectedElementId) : null;
 
-      if (selectedNode && (event.key === 'Tab' || event.key === 'Enter')) {
+      if (selectedStoreNode && selectedRfNode && (event.key === 'Tab' || event.key === 'Enter')) {
         event.preventDefault();
         const currentNodes = mapData.nodes;
         let newNodeId: string;
         
         if (event.key === 'Tab') { 
-          const childPosition = getNodePlacement(currentNodes, 'child', selectedNode, null, GRID_SIZE);
-          newNodeId = addNodeToStore({ text: "New Child", type: 'manual-node', position: childPosition, parentNode: selectedNode.id });
-          onConnectInStore({ source: selectedNode.id, target: newNodeId, label: "connects" });
-        } else { 
-          const siblingPosition = getNodePlacement(currentNodes, 'sibling', selectedNode.parentNode ? currentNodes.find(n => n.id === selectedNode.parentNode) : null, selectedNode, GRID_SIZE);
-          newNodeId = addNodeToStore({ text: "New Sibling", type: 'manual-node', position: siblingPosition, parentNode: selectedNode.parentNode });
+          const childPosition = getNodePlacement(currentNodes, 'child', selectedStoreNode, null, GRID_SIZE);
+          newNodeId = addNodeToStore({ text: "New Child", type: 'manual-node', position: childPosition, parentNode: selectedStoreNode.id });
+          onConnectInStore({ source: selectedStoreNode.id, target: newNodeId, label: "connects" });
+        } else { // Enter key
+          const siblingPosition = getNodePlacement(currentNodes, 'sibling', selectedStoreNode.parentNode ? currentNodes.find(n => n.id === selectedStoreNode.parentNode) : null, selectedStoreNode, GRID_SIZE);
+          newNodeId = addNodeToStore({ text: "New Sibling", type: 'manual-node', position: siblingPosition, parentNode: selectedStoreNode.parentNode });
         }
         setSelectedElement(newNodeId, 'node');
         setEditingNodeId(newNodeId);
@@ -315,7 +323,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isViewOnlyMode, addNodeToStore, onConnectInStore, setSelectedElement, setEditingNodeId, GRID_SIZE]);
+  }, [isViewOnlyMode, addNodeToStore, onConnectInStore, setSelectedElement, setEditingNodeId, GRID_SIZE, reactFlowInstance]);
 
   return (
     <InteractiveCanvas
@@ -336,7 +344,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onPaneDoubleClick={handlePaneDoubleClickInternal}
       activeSnapLines={activeSnapLines}
       gridSize={GRID_SIZE}
-      panActivationKeyCode="Space" // Pass the panActivationKeyCode
+      panActivationKeyCode="Space"
     />
   );
 };
