@@ -1,4 +1,5 @@
 
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -213,7 +214,7 @@
     - [x] **Large List Rendering:**
         - [x] Implement virtualization for Admin User Management page using `@tanstack/react-virtual`.
         - [ ] Evaluate other long lists (e.g., classroom student lists in teacher view) for virtualization.
-    - [x] **React Component Memoization:** Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (Some already done, can be an ongoing process. Key callbacks in `ConceptMapEditorPage` memoized.)
+    - [x] **React Component Memoization:** Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (Key callbacks in `ConceptMapEditorPage` memoized. Key reusable display components memoized.)
     - [x] **Code Splitting:** Use `next/dynamic` for heavy components or libraries not needed on initial load (already done for `FlowCanvasCore`, review for others).
     - [ ] **Bundle Size Analysis:** Periodically analyze the application bundle size and identify areas for reduction.
 
@@ -293,6 +294,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
+- Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
