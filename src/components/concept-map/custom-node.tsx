@@ -1,4 +1,3 @@
-
 "use client";
 import React, { memo, useEffect, useRef } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
@@ -19,8 +18,8 @@ export interface CustomNodeData {
   isViewOnly?: boolean;
   backgroundColor?: string;
   shape?: 'rectangle' | 'ellipse';
-  width?: number;
-  height?: number;
+  width?: number; // Explicit width from store/user
+  height?: number; // Explicit height from store/user
 }
 
 const nodeTypeStyles: { [key: string]: string } = {
@@ -83,22 +82,13 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     if (data.isViewOnly || isCurrentNodeAiProcessing) return;
 
     const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const parentNodeFromStore = currentNodes.find(n => n.id === id);
-    
-    if (!parentNodeFromStore) return;
-
-    // Use actual node dimensions and position for placement
-    const parentNodeWithLayout = {
-      ...parentNodeFromStore,
-      x: xPos, 
-      y: yPos,
-      width: width, 
-      height: height,
+    // Node dimensions for placement are taken from the props `width` and `height`,
+    // which React Flow provides after measuring the node.
+    const parentNodeFromProps = {
+      id, x: xPos, y: yPos, width, height, text: data.label, type: data.type || 'default'
     };
-
-    // Note: getNodePlacement might need refinement for strict directional placement.
-    // For now, we use 'child' type, which does a spiral/offset.
-    const childPosition = getNodePlacement(currentNodes, 'child', parentNodeWithLayout, null, GRID_SIZE_FOR_CHILD_PLACEMENT);
+    
+    const childPosition = getNodePlacement(currentNodes, 'child', parentNodeFromProps, null, GRID_SIZE_FOR_CHILD_PLACEMENT);
     
     const newChildNodeId = addNode({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: id });
     addEdge({ source: id, target: newChildNodeId, label: "connects" });
@@ -106,13 +96,19 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     setEditingNodeId(newChildNodeId);
   };
 
-  const baseStyle = "shadow-md transition-all duration-150 ease-in-out border-2";
+  const baseStyle = "shadow-md transition-all duration-150 ease-in-out border-2 flex flex-col"; // Added flex flex-col for height control
   const selectedStyle = selected ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-background shadow-2xl" : "hover:shadow-xl";
   
   const typeClass = nodeTypeStyles[data.type || 'default'] || nodeTypeStyles.default;
   const customBgStyle = data.backgroundColor ? { backgroundColor: data.backgroundColor } : {};
   
   const shapeClass = data.shape === 'ellipse' ? 'rounded-full' : 'rounded-lg';
+
+  // Apply explicit width/height from store if available, otherwise Tailwind classes control sizing
+  const explicitSizeStyle = {
+    width: data.width ? `${data.width}px` : undefined,
+    height: data.height ? `${data.height}px` : undefined,
+  };
   
   const IconComponent = nodeTypeIcons[data.type || 'default'] || nodeTypeIcons.default;
 
@@ -131,8 +127,14 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 
   return (
     <Card
-      className={cn(baseStyle, selectedStyle, typeClass, shapeClass, 'max-w-xs group relative', isCurrentNodeAiProcessing && 'opacity-70')}
-      style={{...customBgStyle, width: width, height: height }}
+      className={cn(
+        baseStyle, selectedStyle, typeClass, shapeClass, 
+        'group relative', // Keep group for hover effects on + buttons
+        isCurrentNodeAiProcessing && 'opacity-70',
+        !data.width && 'min-w-[150px] max-w-xs', // Default Tailwind width constraints if no explicit width
+        !data.height && 'min-h-[70px]' // Default Tailwind min-height if no explicit height
+      )}
+      style={{...customBgStyle, ...explicitSizeStyle }}
     >
       {isCurrentNodeAiProcessing && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm z-10 rounded-[inherit]">
@@ -140,7 +142,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         </div>
       )}
       <CardHeader
-        className={cn("p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2", shapeClass === 'rounded-full' ? 'rounded-t-full' : 'rounded-t-lg')}
+        className={cn("p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2 shrink-0", shapeClass === 'rounded-full' ? 'rounded-t-full' : 'rounded-t-lg')}
         style={{ pointerEvents: 'all' }}
       >
         <IconComponent className="h-4 w-4 text-[inherit] opacity-80 flex-shrink-0" />
@@ -163,10 +165,12 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         )}
       </CardHeader>
       {data.details && (
-        <CardContent className="p-2.5 text-xs text-[inherit] opacity-90 whitespace-normal break-words max-h-20 overflow-y-auto">
+        <CardContent className={cn("p-2.5 text-xs text-[inherit] opacity-90 whitespace-normal break-words flex-grow", !data.height && "max-h-32 overflow-y-auto")}>
           {data.details}
         </CardContent>
       )}
+      {!data.details && <div className="flex-grow"></div>} {/* Spacer to make node take min-height if no details */}
+
 
       {handlePositions.map(hp => (
         <React.Fragment key={hp.idSuffix}>
@@ -191,4 +195,3 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
-

@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { temporal } from 'zundo'; // Import temporal from zundo
 import type { TemporalState as ZundoTemporalState } from 'zundo'; // Import type from zundo
@@ -229,8 +228,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           parentNode: options.parentNode,
           backgroundColor: options.backgroundColor, 
           shape: options.shape || 'rectangle', 
-          width: options.width,
-          height: options.height,
+          width: options.width, // Initially undefined for auto-sizing
+          height: options.height, // Initially undefined for auto-sizing
         };
         set((state) => ({ mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } }));
         return newNode.id; 
@@ -288,8 +287,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           sourceHandle: options.sourceHandle || null,
           targetHandle: options.targetHandle || null,
           label: options.label || 'connects',
-          color: options.color, 
-          lineType: options.lineType || 'solid',
+          color: options.color, // Defaults to undefined
+          lineType: options.lineType || 'solid', // Defaults to solid
           markerStart: options.markerStart || 'none',
           markerEnd: options.markerEnd || 'arrowclosed',
         };
@@ -330,4 +329,3 @@ export const useConceptMapStore = create<ConceptMapState>()(
         
 
 export default useConceptMapStore;
-
