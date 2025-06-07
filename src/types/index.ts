@@ -35,7 +35,9 @@ export interface ConceptMapNode {
   details?: string;
   x?: number; 
   y?: number; 
-  parentNode?: string; // Added for hierarchical relationships
+  parentNode?: string;
+  backgroundColor?: string; // Custom background color for the node
+  shape?: 'rectangle' | 'ellipse'; // Node shape
 }
 
 export interface ConceptMapEdge {
@@ -45,6 +47,10 @@ export interface ConceptMapEdge {
   label: string; 
   sourceHandle?: string | null; 
   targetHandle?: string | null; 
+  color?: string;
+  lineType?: 'solid' | 'dashed';
+  markerStart?: string; // e.g., "none", "arrow", "arrowclosed"
+  markerEnd?: string;   // e.g., "none", "arrow", "arrowclosed"
 }
 
 export interface ConceptMapData {

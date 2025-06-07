@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings2, Box, Waypoints } from "lucide-react";
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser } from "lucide-react"; // Added Palette, CircleDot, Eraser
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select
+import { Button } from "@/components/ui/button"; // Added Button
 import { cn } from "@/lib/utils";
 
 interface PropertiesInspectorProps {
@@ -46,6 +48,13 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     : "";
   const elementDetailsValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.details : "") || "";
   const elementNodeTypeValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.type : "") || "default";
+  const nodeBackgroundColorValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.backgroundColor : undefined);
+  const nodeShapeValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.shape : 'rectangle') || 'rectangle';
+
+  const edgeColorValue = (selectedElementType === 'edge' ? (selectedElement as ConceptMapEdge)?.color : undefined);
+  const edgeLineTypeValue = (selectedElementType === 'edge' ? (selectedElement as ConceptMapEdge)?.lineType : 'solid') || 'solid';
+  const edgeMarkerStartValue = (selectedElementType === 'edge' ? (selectedElement as ConceptMapEdge)?.markerStart : 'none') || 'none';
+  const edgeMarkerEndValue = (selectedElementType === 'edge' ? (selectedElement as ConceptMapEdge)?.markerEnd : 'arrowclosed') || 'arrowclosed';
 
 
   const handleMapNameChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,6 +101,42 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const handleElementNodeTypeChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
     onSelectedElementPropertyUpdate({ type: e.target.value });
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+
+  const handleNodeBackgroundColorChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
+    onSelectedElementPropertyUpdate({ backgroundColor: e.target.value });
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+  
+  const clearNodeBackgroundColor = React.useCallback(() => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
+    onSelectedElementPropertyUpdate({ backgroundColor: undefined });
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+
+  const handleNodeShapeChange = React.useCallback((value: 'rectangle' | 'ellipse') => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
+    onSelectedElementPropertyUpdate({ shape: value });
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+
+  const handleEdgeColorChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'edge' || !selectedElement) return;
+    onSelectedElementPropertyUpdate({ color: e.target.value });
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+
+  const clearEdgeColor = React.useCallback(() => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'edge' || !selectedElement) return;
+    onSelectedElementPropertyUpdate({ color: undefined }); // Revert to default
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+
+  const handleEdgeLineTypeChange = React.useCallback((value: 'solid' | 'dashed') => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'edge' || !selectedElement) return;
+    onSelectedElementPropertyUpdate({ lineType: value });
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+
+  const handleEdgeMarkerChange = React.useCallback((markerEnd: 'start' | 'end', value: string) => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'edge' || !selectedElement) return;
+    if (markerEnd === 'start') onSelectedElementPropertyUpdate({ markerStart: value });
+    else onSelectedElementPropertyUpdate({ markerEnd: value });
   }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
 
 
@@ -177,6 +222,42 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
         /> 
       </div>
+      <div className="mt-2">
+        <Label htmlFor="nodeBackgroundColor" className="flex items-center gap-2">
+            <Palette className="h-4 w-4 text-muted-foreground" /> Background Color
+        </Label>
+        <div className="flex items-center gap-2">
+            <Input 
+              id="nodeBackgroundColor" 
+              type="color" 
+              value={nodeBackgroundColorValue || "#ffffff"} // Default to white if undefined for picker
+              onChange={handleNodeBackgroundColorChange}
+              disabled={isViewOnlyMode}
+              className={cn("h-8 w-16 p-1", isViewOnlyMode && "cursor-not-allowed border-muted/50")}
+            />
+            <Button variant="ghost" size="icon" onClick={clearNodeBackgroundColor} disabled={isViewOnlyMode || nodeBackgroundColorValue === undefined} title="Clear custom background color">
+                <Eraser className="h-4 w-4" />
+            </Button>
+        </div>
+      </div>
+      <div className="mt-2">
+        <Label htmlFor="nodeShape" className="flex items-center gap-2">
+          <CircleDot className="h-4 w-4 text-muted-foreground" /> Node Shape
+        </Label>
+        <Select 
+            value={nodeShapeValue} 
+            onValueChange={(value) => handleNodeShapeChange(value as 'rectangle' | 'ellipse')}
+            disabled={isViewOnlyMode}
+        >
+            <SelectTrigger className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}>
+                <SelectValue placeholder="Select shape" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="rectangle">Rectangle</SelectItem>
+                <SelectItem value="ellipse">Ellipse / Circle</SelectItem>
+            </SelectContent>
+        </Select>
+      </div>
     </>
   );
 
@@ -195,6 +276,74 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             disabled={isViewOnlyMode} 
             className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
         />
+      </div>
+      <div className="mt-2">
+        <Label htmlFor="edgeColor" className="flex items-center gap-2">
+            <Palette className="h-4 w-4 text-muted-foreground" /> Line Color
+        </Label>
+         <div className="flex items-center gap-2">
+            <Input 
+              id="edgeColor" 
+              type="color" 
+              value={edgeColorValue || "#000000"} // Default to black if undefined for picker
+              onChange={handleEdgeColorChange}
+              disabled={isViewOnlyMode}
+              className={cn("h-8 w-16 p-1", isViewOnlyMode && "cursor-not-allowed border-muted/50")}
+            />
+            <Button variant="ghost" size="icon" onClick={clearEdgeColor} disabled={isViewOnlyMode || edgeColorValue === undefined} title="Clear custom line color">
+                <Eraser className="h-4 w-4" />
+            </Button>
+        </div>
+      </div>
+      <div className="mt-2">
+        <Label htmlFor="edgeLineType">Line Type</Label>
+        <Select 
+            value={edgeLineTypeValue} 
+            onValueChange={(value) => handleEdgeLineTypeChange(value as 'solid' | 'dashed')}
+            disabled={isViewOnlyMode}
+        >
+            <SelectTrigger className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}>
+                <SelectValue placeholder="Select line type" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="solid">Solid</SelectItem>
+                <SelectItem value="dashed">Dashed</SelectItem>
+            </SelectContent>
+        </Select>
+      </div>
+      <div className="mt-2">
+        <Label htmlFor="edgeMarkerStart">Start Arrow</Label>
+        <Select 
+            value={edgeMarkerStartValue} 
+            onValueChange={(value) => handleEdgeMarkerChange('start', value)}
+            disabled={isViewOnlyMode}
+        >
+            <SelectTrigger className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}>
+                <SelectValue placeholder="Select start arrow" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="arrow">Arrow (Open)</SelectItem>
+                <SelectItem value="arrowclosed">Arrow (Closed)</SelectItem>
+            </SelectContent>
+        </Select>
+      </div>
+      <div className="mt-2">
+        <Label htmlFor="edgeMarkerEnd">End Arrow</Label>
+        <Select 
+            value={edgeMarkerEndValue} 
+            onValueChange={(value) => handleEdgeMarkerChange('end', value)}
+            disabled={isViewOnlyMode}
+        >
+            <SelectTrigger className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}>
+                <SelectValue placeholder="Select end arrow" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="arrow">Arrow (Open)</SelectItem>
+                <SelectItem value="arrowclosed">Arrow (Closed)</SelectItem>
+            </SelectContent>
+        </Select>
       </div>
     </>
   );

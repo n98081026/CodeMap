@@ -1,31 +1,24 @@
 
 "use client";
-import React, { memo } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import useConceptMapStore from '@/stores/concept-map-store';
 import {
-  Box, // Default
-  Milestone, // key_feature
-  ServerCog, // service_component
-  MonitorPlay, // ui_view
-  Database, // data_model
-  FileCode2, // code_module
-  ExternalLink, // external_dependency
-  Users, // user_role
-  Workflow, // core_process
-  Brain, // ai-extracted-concept, ai-concept
-  Lightbulb, // ai-expanded, ai-concept
-  Puzzle, // manual-node
-  AlignLeft, // ai-summary-node
-  PenLine // ai-rewritten-node
+  Box, Milestone, ServerCog, MonitorPlay, Database, FileCode2, ExternalLink, Users, Workflow,
+  Brain, Lightbulb, Puzzle, AlignLeft, PenLine, PlusCircle
 } from 'lucide-react';
 
 // Data expected by our custom node
 export interface CustomNodeData {
   label: string;
   details?: string;
-  type?: string; 
+  type?: string;
+  isViewOnly?: boolean;
+  backgroundColor?: string;
+  shape?: 'rectangle' | 'ellipse';
 }
 
 const nodeTypeStyles: { [key: string]: string } = {
@@ -48,100 +41,137 @@ const nodeTypeStyles: { [key: string]: string } = {
 };
 
 const nodeTypeIcons: { [key: string]: React.ElementType } = {
-  key_feature: Milestone,
-  service_component: ServerCog,
-  ui_view: MonitorPlay,
-  data_model: Database,
-  code_module: FileCode2,
-  external_dependency: ExternalLink,
-  user_role: Users,
-  core_process: Workflow,
-  'ai-concept': Brain,
-  'ai-expanded': Lightbulb,
-  'ai-summary-node': AlignLeft,
-  'ai-rewritten-node': PenLine,
-  'manual-node': Puzzle,
-  'text-derived-concept': FileCode2, 
-  'ai-generated': Brain,
-  default: Box,
+  key_feature: Milestone, service_component: ServerCog, ui_view: MonitorPlay, data_model: Database, code_module: FileCode2,
+  external_dependency: ExternalLink, user_role: Users, core_process: Workflow, 'ai-concept': Brain, 'ai-expanded': Lightbulb,
+  'ai-summary-node': AlignLeft, 'ai-rewritten-node': PenLine, 'manual-node': Puzzle, 'text-derived-concept': FileCode2, 'ai-generated': Brain, default: Box,
 };
 
+const CHILD_X_OFFSET = 180;
+const CHILD_Y_OFFSET = 60;
 
-const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, selected, isConnectable, id }) => {
-  const baseStyle = "shadow-md rounded-lg transition-all duration-150 ease-in-out border-2";
-  const selectedStyle = selected ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-background shadow-2xl" : "hover:shadow-xl";
-  const typeSpecificStyle = nodeTypeStyles[data.type || 'default'] || nodeTypeStyles['default'];
-  const IconComponent = nodeTypeIcons[data.type || 'default'] || nodeTypeIcons['default'];
+const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, selected, isConnectable, id, xPos, yPos }) => {
+  const { editingNodeId, setEditingNodeId, updateNode, addNode, addEdge } = useConceptMapStore();
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleBaseStyle = {
-    width: 8,
-    height: 8,
-    transition: 'all 0.2s ease',
-    pointerEvents: 'all' as React.CSSProperties['pointerEvents'], 
+  const isCurrentNodeEditing = editingNodeId === id && !data.isViewOnly;
+
+  useEffect(() => {
+    if (isCurrentNodeEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isCurrentNodeEditing]);
+
+  const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateNode(id, { text: e.target.value });
   };
 
+  const handleLabelEditCommit = () => {
+    setEditingNodeId(null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleLabelEditCommit();
+    if (e.key === 'Escape') {
+      // Revert to original if needed, or just commit current
+      setEditingNodeId(null);
+    }
+  };
+
+  const handleCreateChild = (direction: 'top' | 'right' | 'bottom' | 'left') => {
+    if (data.isViewOnly) return;
+    let newX = xPos;
+    let newY = yPos;
+    switch (direction) {
+      case 'top': newY -= CHILD_Y_OFFSET; break;
+      case 'bottom': newY += CHILD_Y_OFFSET; break;
+      case 'left': newX -= CHILD_X_OFFSET; break;
+      case 'right': newX += CHILD_X_OFFSET; break;
+    }
+    const newChildNodeId = addNode({ text: "New Child", type: 'manual-node', position: { x: newX, y: newY }, parentNode: id });
+    addEdge({ source: id, target: newChildNodeId, label: "connects" });
+    setEditingNodeId(newChildNodeId);
+  };
+
+  const baseStyle = "shadow-md transition-all duration-150 ease-in-out border-2";
+  const selectedStyle = selected ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-background shadow-2xl" : "hover:shadow-xl";
+  
+  const typeClass = nodeTypeStyles[data.type || 'default'] || nodeTypeStyles.default;
+  const customBgStyle = data.backgroundColor ? { backgroundColor: data.backgroundColor } : {};
+  
+  const shapeClass = data.shape === 'ellipse' ? 'rounded-full' : 'rounded-lg';
+  
+  const IconComponent = nodeTypeIcons[data.type || 'default'] || nodeTypeIcons.default;
+
+  const handleBaseStyle = { width: 8, height: 8, transition: 'all 0.2s ease', pointerEvents: 'all' as React.CSSProperties['pointerEvents'] };
   const handlePositions = [
-    { position: Position.Top, idSuffix: 'top' },
-    { position: Position.Bottom, idSuffix: 'bottom' },
-    { position: Position.Left, idSuffix: 'left' },
-    { position: Position.Right, idSuffix: 'right' },
+    { position: Position.Top, idSuffix: 'top' }, { position: Position.Bottom, idSuffix: 'bottom' },
+    { position: Position.Left, idSuffix: 'left' }, { position: Position.Right, idSuffix: 'right' },
   ];
 
+  const plusButtonPositions = [
+    { direction: 'top', style: { top: -12, left: '50%', transform: 'translateX(-50%)' } },
+    { direction: 'bottom', style: { bottom: -12, left: '50%', transform: 'translateX(-50%)' } },
+    { direction: 'left', style: { left: -12, top: '50%', transform: 'translateY(-50%)' } },
+    { direction: 'right', style: { right: -12, top: '50%', transform: 'translateY(-50%)' } },
+  ] as const;
+
+
   return (
-    <Card className={cn(baseStyle, selectedStyle, typeSpecificStyle, 'min-w-[160px] max-w-[280px] group')}>
-      <CardHeader 
-        className={cn(
-          "p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2",
-          data.type && nodeTypeStyles[data.type] ? 'bg-opacity-20' : '' // Keep slight tint for header based on node type
-        )}
-        style={{ pointerEvents: 'all' }} 
+    <Card
+      className={cn(baseStyle, selectedStyle, typeClass, shapeClass, 'max-w-xs group relative')}
+      style={customBgStyle}
+    >
+      <CardHeader
+        className={cn("p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2", shapeClass === 'rounded-full' ? 'rounded-t-full' : 'rounded-t-lg')}
+        style={{ pointerEvents: 'all' }}
       >
         <IconComponent className="h-4 w-4 text-[inherit] opacity-80 flex-shrink-0" />
-        <CardTitle className="text-sm font-semibold text-center truncate group-hover:whitespace-normal flex-grow min-w-0">
-          {data.label || 'Node'}
-        </CardTitle>
+        {isCurrentNodeEditing ? (
+          <Input
+            ref={inputRef}
+            value={data.label}
+            onChange={handleLabelChange}
+            onBlur={handleLabelEditCommit}
+            onKeyDown={handleKeyDown}
+            className="text-sm font-semibold h-7 px-1 py-0.5 border-primary focus:ring-primary flex-grow min-w-0 bg-background/80"
+            autoFocus
+          />
+        ) : (
+          <CardTitle
+            className={cn("text-sm font-semibold text-center whitespace-normal break-words flex-grow min-w-0", data.isViewOnly ? "" : "cursor-text")}
+            onDoubleClick={() => !data.isViewOnly && setEditingNodeId(id)}
+          >
+            {data.label || 'Node'}
+          </CardTitle>
+        )}
       </CardHeader>
       {data.details && (
-        <CardContent className="p-2.5 text-xs text-[inherit] opacity-90 truncate group-hover:whitespace-normal group-hover:overflow-visible group-hover:text-clip max-h-20 overflow-y-auto">
+        <CardContent className="p-2.5 text-xs text-[inherit] opacity-90 whitespace-normal break-words max-h-20 overflow-y-auto">
           {data.details}
         </CardContent>
       )}
 
       {handlePositions.map(hp => (
         <React.Fragment key={hp.idSuffix}>
-          <Handle
-            type="source"
-            position={hp.position}
-            id={`${id}-${hp.idSuffix}-source`}
-            style={{
-              ...handleBaseStyle,
-              ...(hp.position === Position.Top && { top: '-5px' }),
-              ...(hp.position === Position.Bottom && { bottom: '-5px' }),
-              ...(hp.position === Position.Left && { left: '-5px' }),
-              ...(hp.position === Position.Right && { right: '-5px' }),
-            }}
-            isConnectable={isConnectable}
-            className="react-flow__handle-custom"
-          />
-          <Handle
-            type="target"
-            position={hp.position}
-            id={`${id}-${hp.idSuffix}-target`}
-             style={{
-              ...handleBaseStyle,
-              ...(hp.position === Position.Top && { top: '-5px' }),
-              ...(hp.position === Position.Bottom && { bottom: '-5px' }),
-              ...(hp.position === Position.Left && { left: '-5px' }),
-              ...(hp.position === Position.Right && { right: '-5px' }),
-            }}
-            isConnectable={isConnectable}
-            className="react-flow__handle-custom"
-          />
+          <Handle type="source" position={hp.position} id={`${id}-${hp.idSuffix}-source`} style={handleBaseStyle} isConnectable={isConnectable} className="react-flow__handle-custom" />
+          <Handle type="target" position={hp.position} id={`${id}-${hp.idSuffix}-target`} style={handleBaseStyle} isConnectable={isConnectable} className="react-flow__handle-custom" />
         </React.Fragment>
+      ))}
+
+      {!data.isViewOnly && plusButtonPositions.map(btn => (
+        <button
+          key={btn.direction}
+          onClick={() => handleCreateChild(btn.direction)}
+          className="absolute z-10 flex items-center justify-center w-5 h-5 bg-primary text-primary-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+          style={btn.style as React.CSSProperties}
+          title={`Add child node ${btn.direction}`}
+        >
+          <PlusCircle className="w-3 h-3" />
+        </button>
       ))}
     </Card>
   );
 };
 
 export default memo(CustomNodeComponent);
-

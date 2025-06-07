@@ -30,6 +30,7 @@ interface ConceptMapState {
   selectedElementId: string | null;
   selectedElementType: 'node' | 'edge' | null;
   multiSelectedNodeIds: string[]; 
+  editingNodeId: string | null; // ID of the node currently being edited for its label
 
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
@@ -49,6 +50,7 @@ interface ConceptMapState {
 
   setSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => void;
   setMultiSelectedNodeIds: (ids: string[]) => void; 
+  setEditingNodeId: (nodeId: string | null) => void;
 
   setAiExtractedConcepts: (concepts: string[]) => void;
   setAiSuggestedRelations: (relations: Array<{ source: string; target: string; relation: string }>) => void;
@@ -63,16 +65,16 @@ interface ConceptMapState {
   resetStore: () => void;
 
   // Granular actions for map data
-  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string; parentNode?: string }) => string; 
+  addNode: (options: { text: string; type: string; position: { x: number; y: number }; details?: string; parentNode?: string; backgroundColor?: string; shape?: 'rectangle' | 'ellipse' }) => string; 
   updateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   deleteNode: (nodeId: string) => void;
   
-  addEdge: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
+  addEdge: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string; color?: string; lineType?: 'solid' | 'dashed'; markerStart?: string; markerEnd?: string; }) => void;
   updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
   deleteEdge: (edgeId: string) => void;
 }
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds'>;
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId'>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -80,7 +82,7 @@ export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 const initialStateBase: Omit<ConceptMapState, 
   'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 
   'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsLoading' | 'setIsSaving' | 'setError' | 
-  'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 
+  'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setEditingNodeId' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' | 
   'resetAiSuggestions' | 'removeExtractedConceptsFromSuggestions' | 'removeSuggestedRelationsFromSuggestions' | 
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' | 
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
@@ -99,6 +101,7 @@ const initialStateBase: Omit<ConceptMapState,
   selectedElementId: null,
   selectedElementType: null,
   multiSelectedNodeIds: [], 
+  editingNodeId: null,
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
 };
@@ -123,6 +126,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
 
       setSelectedElement: (id, type) => set({ selectedElementId: id, selectedElementType: type }),
       setMultiSelectedNodeIds: (ids) => set({ multiSelectedNodeIds: ids }), 
+      setEditingNodeId: (nodeId) => set({ editingNodeId: nodeId }),
       
       setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
       setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
@@ -208,7 +212,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
           x: options.position.x,
           y: options.position.y,
           details: options.details || '',
-          parentNode: options.parentNode, // Include parentNode
+          parentNode: options.parentNode,
+          backgroundColor: options.backgroundColor, // Initialize with undefined
+          shape: options.shape || 'rectangle', // Default to rectangle
         };
         set((state) => ({ mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } }));
         return newNode.id; 
@@ -224,13 +230,30 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })),
 
       deleteNode: (nodeId) => set((state) => {
-        const newNodes = state.mapData.nodes.filter((node) => node.id !== nodeId && node.parentNode !== nodeId); // Also remove children
+        const nodesToDelete = new Set<string>([nodeId]);
+        const findDescendants = (id: string) => {
+          state.mapData.nodes.forEach(n => {
+            if (n.parentNode === id && !nodesToDelete.has(n.id)) {
+              nodesToDelete.add(n.id);
+              findDescendants(n.id);
+            }
+          });
+        };
+        findDescendants(nodeId);
+
+        const newNodes = state.mapData.nodes.filter((node) => !nodesToDelete.has(node.id));
         const newEdges = state.mapData.edges.filter(
-          (edge) => edge.source !== nodeId && edge.target !== nodeId
+          (edge) => !nodesToDelete.has(edge.source) && !nodesToDelete.has(edge.target)
         );
-        const newSelectedElementId = state.selectedElementId === nodeId ? null : state.selectedElementId;
-        const newSelectedElementType = state.selectedElementId === nodeId ? null : state.selectedElementType;
-        const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => id !== nodeId);
+        
+        let newSelectedElementId = state.selectedElementId;
+        let newSelectedElementType = state.selectedElementType;
+        if (state.selectedElementId && nodesToDelete.has(state.selectedElementId)) {
+            newSelectedElementId = null;
+            newSelectedElementType = null;
+        }
+        const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDelete.has(id));
+
         return { 
           mapData: { nodes: newNodes, edges: newEdges },
           selectedElementId: newSelectedElementId,
@@ -247,6 +270,10 @@ export const useConceptMapStore = create<ConceptMapState>()(
           sourceHandle: options.sourceHandle || null,
           targetHandle: options.targetHandle || null,
           label: options.label || 'connects',
+          color: options.color, // Default to theme if undefined in component
+          lineType: options.lineType || 'solid',
+          markerStart: options.markerStart || 'none',
+          markerEnd: options.markerEnd || 'arrowclosed',
         };
         return { mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } };
       }),
@@ -275,8 +302,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId };
       },
       limit: 50, 
     }

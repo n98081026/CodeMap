@@ -59,36 +59,38 @@
 ## Frontend Enhancements
 
 ### Whimsical-Inspired Editor UX Enhancements
-- [x] **Node Data Structure:** `parentNode` field added to `ConceptMapNode` type for hierarchy.
+- [x] **Node Data Structure:** 
+    - [x] `parentNode` field added to `ConceptMapNode` type for hierarchy (used by React Flow).
+    - [ ] (Advanced) Consider explicit `childIds` in `ConceptMapNode` state if needed for advanced custom layouts beyond React Flow's `parentNode` grouping.
 - [x] **Floating Node Creation**: Implement double-click on canvas to create a new node at mouse position.
 - [x] **Child Node Creation via "+" Hover Buttons**:
     - [x] Display "+" icons on node hover (top, right, bottom, left).
     - [x] Clicking "+" adds a new child node in that direction, automatically connects it, sets `parentNode`.
-    - [ ] New child node is auto-positioned (current simple offset, needs refinement via layout algorithm).
+    - [x] New child node is auto-positioned (current simple offset, needs refinement via layout algorithm).
 - [x] **Keyboard-driven Node Creation**:
     - [x] Selected Node + `Tab` key: Create child node, auto-position, connect, set `parentNode`. New node is selected.
     - [x] Selected Node + `Enter` key: Create sibling node (at the same level as selected), auto-position. New node is selected.
-- [ ] **Auto-focus for New Nodes**: New nodes (created via keyboard or '+') auto-focus for text input.
+- [x] **Auto-focus for New Nodes**: New nodes (created via keyboard or '+') auto-focus for text input.
 - [x] **Hierarchical Node Movement**:
-    - [x] Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions (Leveraging React Flow's `parentNode` feature).
+    - [x] Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions (Leveraging React Flow's `parentNode` feature - Verified).
+    - [x] Recursive deletion of child nodes when parent is deleted.
 - [x] **Improved Connector Experience**:
-    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using `getSmoothStepPath` for cleaner, orthogonal-like lines with sharp corners.
-    - [ ] Refine `OrthogonalEdge.tsx` path calculation for more robust orthogonal routing (e.g., ensure lines exit handles straight before turning).
-    - [ ] (Advanced) Explore smart connector routing to avoid overlapping nodes.
+    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using `getSmoothStepPath` for cleaner, orthogonal-like lines with sharp corners. (Implemented, sharp corners with `borderRadius:0` on `getSmoothStepPath`).
+    - [ ] (Advanced) Refine `OrthogonalEdge.tsx` path calculation for more robust true orthogonal routing (e.g., ensure lines exit handles straight for a short distance before turning, avoid node overlaps).
 - [x] **Edge Style Editing**:
     - [x] Allow modifying edge label directly on canvas (double-click).
     - [x] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
-    - [ ] Allow modifying arrow styles from `PropertiesInspector` or a context menu.
+    - [x] Allow modifying arrow styles (start/end: none, arrow, arrowclosed) from `PropertiesInspector`.
 - [ ] **Snapping Guides**:
     - [ ] Implement visual guides and snapping behavior when dragging nodes to align with other nodes (edges or centers).
-- [ ] **Node Auto-Sizing**: Ensure custom nodes dynamically adjust size based on content (text length, details), within reasonable min/max bounds.
+- [x] **Node Auto-Sizing**: Ensure custom nodes dynamically adjust size based on content (text length, details), within reasonable min/max bounds.
 - [ ] **Refined Pan & Zoom**: Verify/enhance pan/zoom interactions if default React Flow behavior needs tweaking (e.g., modifier keys like Spacebar for pan).
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
 - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if <2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
 - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`.
-- [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type for nodes; label, color, lineType for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
-    - [ ] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse, etc.) from `PropertiesInspector` or a context menu.
+- [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
+    - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
 - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`.
 - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
 - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure.
@@ -190,11 +192,8 @@
     - [ ] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
     - [ ] **Large List Rendering:** For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
     - [ ] **React Component Memoization:** Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (Some already done, can be an ongoing process).
-    - [ ] **Code Splitting:** Use `next/dynamic` for heavy components or libraries not needed on initial load (already done for `FlowCanvasCore`, review for others).
+    - [x] **Code Splitting:** Use `next/dynamic` for heavy components or libraries not needed on initial load (already done for `FlowCanvasCore`, review for others).
     - [ ] **Bundle Size Analysis:** Periodically analyze the application bundle size and identify areas for reduction.
-- [x] **Node Data Structure:**
-    - [x] Explicitly manage `parentNode` in `ConceptMapNode` state for React Flow's built-in hierarchical grouping.
-    - [ ] Consider explicit `childIds` in `ConceptMapNode` state if needed for advanced custom layouts beyond React Flow's `parentNode` grouping.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
@@ -254,8 +253,9 @@ This section outlines tasks to fully migrate to Supabase.
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
-- **Whimsical-style interactions implemented:** Floating node creation (double-click), child node creation via "+" hover buttons (basic, no auto-focus yet), keyboard-driven node creation (Tab/Enter, no auto-focus yet), hierarchical node movement (via React Flow `parentNode`), recursive deletion of children.
-- Custom edge type `OrthogonalEdge` implemented, using `getSmoothStepPath` for improved line rendering. Edge label, color, and line type are editable.
+- **Whimsical-style interactions implemented:** Floating node creation (double-click), child node creation via "+" hover buttons, keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode`), recursive deletion of children.
+- Custom edge type `OrthogonalEdge` implemented, using `getSmoothStepPath` with `borderRadius:0` for step-like lines. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
+- **Node Style Customization:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max).
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
@@ -269,7 +269,6 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
-- Auto-focus for newly created nodes is NOT YET implemented.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
