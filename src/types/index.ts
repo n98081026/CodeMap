@@ -118,3 +118,4 @@ export interface SystemSettings {
 export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>;
 
 
+

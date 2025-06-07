@@ -1,3 +1,4 @@
+
 "use client";
 import React, { memo, useEffect, useRef } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
@@ -82,8 +83,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     if (data.isViewOnly || isCurrentNodeAiProcessing) return;
 
     const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    // Node dimensions for placement are taken from the props `width` and `height`,
-    // which React Flow provides after measuring the node.
     const parentNodeFromProps = {
       id, x: xPos, y: yPos, width, height, text: data.label, type: data.type || 'default'
     };
@@ -96,7 +95,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     setEditingNodeId(newChildNodeId);
   };
 
-  const baseStyle = "shadow-md transition-all duration-150 ease-in-out border-2 flex flex-col"; // Added flex flex-col for height control
+  const baseStyle = "shadow-md transition-all duration-150 ease-in-out border-2 flex flex-col";
   const selectedStyle = selected ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-background shadow-2xl" : "hover:shadow-xl";
   
   const typeClass = nodeTypeStyles[data.type || 'default'] || nodeTypeStyles.default;
@@ -104,7 +103,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   
   const shapeClass = data.shape === 'ellipse' ? 'rounded-full' : 'rounded-lg';
 
-  // Apply explicit width/height from store if available, otherwise Tailwind classes control sizing
   const explicitSizeStyle = {
     width: data.width ? `${data.width}px` : undefined,
     height: data.height ? `${data.height}px` : undefined,
@@ -129,10 +127,10 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     <Card
       className={cn(
         baseStyle, selectedStyle, typeClass, shapeClass, 
-        'group relative', // Keep group for hover effects on + buttons
+        'group relative', 
         isCurrentNodeAiProcessing && 'opacity-70',
-        !data.width && 'min-w-[150px] max-w-xs', // Default Tailwind width constraints if no explicit width
-        !data.height && 'min-h-[70px]' // Default Tailwind min-height if no explicit height
+        !data.width && 'min-w-[150px] max-w-xs', 
+        !data.height && 'min-h-[70px]' 
       )}
       style={{...customBgStyle, ...explicitSizeStyle }}
     >
@@ -169,7 +167,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
           {data.details}
         </CardContent>
       )}
-      {!data.details && <div className="flex-grow"></div>} {/* Spacer to make node take min-height if no details */}
+      {!data.details && <div className="flex-grow"></div>} 
 
 
       {handlePositions.map(hp => (

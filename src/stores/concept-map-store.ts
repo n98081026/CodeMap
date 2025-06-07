@@ -226,10 +226,10 @@ export const useConceptMapStore = create<ConceptMapState>()(
           y: options.position.y,
           details: options.details || '',
           parentNode: options.parentNode,
-          backgroundColor: options.backgroundColor, 
+          backgroundColor: options.backgroundColor || undefined, 
           shape: options.shape || 'rectangle', 
-          width: options.width, // Initially undefined for auto-sizing
-          height: options.height, // Initially undefined for auto-sizing
+          width: options.width, 
+          height: options.height, 
         };
         set((state) => ({ mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } }));
         return newNode.id; 
@@ -287,8 +287,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           sourceHandle: options.sourceHandle || null,
           targetHandle: options.targetHandle || null,
           label: options.label || 'connects',
-          color: options.color, // Defaults to undefined
-          lineType: options.lineType || 'solid', // Defaults to solid
+          color: options.color || undefined,
+          lineType: options.lineType || 'solid', 
           markerStart: options.markerStart || 'none',
           markerEnd: options.markerEnd || 'arrowclosed',
         };
