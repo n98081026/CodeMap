@@ -1,3 +1,4 @@
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -120,7 +121,7 @@
     - [x] Add loading spinner to Login/Register pages. (Verified, already implemented).
     - [x] Make header icons link to main dashboards. (Implemented for `DashboardHeader` icons and `Navbar` logo).
     - [x] Implement "View Only" mode for Concept Map Editor.
-    - [x] Refine `PropertiesInspector` in "View Only" mode.
+    - [x] Refine `PropertiesInspector` in "View Only" mode. (Verified: controls are disabled as expected).
     - [x] Implement change password functionality on profile page (uses Supabase Auth via API).
     - [x] Developer/Testing: Role switcher on Profile page for testing (local context update).
 - [x] **Admin Panel:**
@@ -208,7 +209,7 @@
         - [x] Verify React Flow's internal event handling for drag/zoom for common scenarios. (Basic node drag snapping logic is now in place, needs monitoring for complex maps).
         - [ ] If custom heavy interactions are added (e.g., complex snapping calculations beyond current), implement throttling/debouncing for them.
 - [ ] **Data Handling & General:**
-    - [ ] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
+    - [ ] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate. (Reviewed: App primarily uses icons and placeholders. `next/image` configured for placeholders. No immediate unoptimized content images identified.)
     - [x] **Large List Rendering:**
         - [x] Implement virtualization for Admin User Management page using `@tanstack/react-virtual`.
         - [ ] Evaluate other long lists (e.g., classroom student lists in teacher view) for virtualization.
