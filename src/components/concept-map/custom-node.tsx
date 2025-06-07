@@ -19,7 +19,7 @@ export interface CustomNodeData {
   isViewOnly?: boolean;
   backgroundColor?: string;
   shape?: 'rectangle' | 'ellipse';
-  width?: number; 
+  width?: number;
   height?: number;
 }
 
@@ -51,7 +51,7 @@ const nodeTypeIcons: { [key: string]: React.ElementType } = {
 const GRID_SIZE_FOR_CHILD_PLACEMENT = 20;
 
 const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, selected, isConnectable, id, xPos, yPos, width, height }) => {
-  const { editingNodeId, setEditingNodeId, updateNode, addNode, addEdge, aiProcessingNodeId } = useConceptMapStore();
+  const { editingNodeId, setEditingNodeId, updateNode, addNode, addEdge, aiProcessingNodeId, setSelectedElement } = useConceptMapStore();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isCurrentNodeEditing = editingNodeId === id && !data.isViewOnly;
@@ -80,24 +80,29 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   };
 
   const handleCreateChild = (direction: 'top' | 'right' | 'bottom' | 'left') => {
-    if (data.isViewOnly) return;
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const parentNode = currentNodes.find(n => n.id === id);
-    
-    if (!parentNode) return;
+    if (data.isViewOnly || isCurrentNodeAiProcessing) return;
 
-    const parentNodeWithDimensions = {
-      ...parentNode,
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const parentNodeFromStore = currentNodes.find(n => n.id === id);
+    
+    if (!parentNodeFromStore) return;
+
+    // Use actual node dimensions and position for placement
+    const parentNodeWithLayout = {
+      ...parentNodeFromStore,
       x: xPos, 
       y: yPos,
       width: width, 
       height: height,
     };
 
-    const childPosition = getNodePlacement(currentNodes, 'child', parentNodeWithDimensions, null, GRID_SIZE_FOR_CHILD_PLACEMENT);
+    // Note: getNodePlacement might need refinement for strict directional placement.
+    // For now, we use 'child' type, which does a spiral/offset.
+    const childPosition = getNodePlacement(currentNodes, 'child', parentNodeWithLayout, null, GRID_SIZE_FOR_CHILD_PLACEMENT);
     
-    const newChildNodeId = addNode({ text: "New Child", type: 'manual-node', position: childPosition, parentNode: id });
+    const newChildNodeId = addNode({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: id });
     addEdge({ source: id, target: newChildNodeId, label: "connects" });
+    setSelectedElement(newChildNodeId, 'node');
     setEditingNodeId(newChildNodeId);
   };
 
@@ -127,7 +132,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   return (
     <Card
       className={cn(baseStyle, selectedStyle, typeClass, shapeClass, 'max-w-xs group relative', isCurrentNodeAiProcessing && 'opacity-70')}
-      style={customBgStyle}
+      style={{...customBgStyle, width: width, height: height }}
     >
       {isCurrentNodeAiProcessing && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm z-10 rounded-[inherit]">
@@ -186,3 +191,4 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
+

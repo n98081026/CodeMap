@@ -66,10 +66,10 @@
 - [x] **Floating Node Creation**:
     - [x] Implement double-click on canvas to create a new node at mouse position.
     - [x] New node is selected.
-- [ ] **Child Node Creation via "+" Hover Buttons**:
-    - [ ] Display "+" icons on node hover (top, right, bottom, left).
-    - [ ] Clicking "+" adds a new child node in that direction, automatically connects it, sets `parentNode`.
-    - [ ] New child node is selected.
+- [x] **Child Node Creation via "+" Hover Buttons**:
+    - [x] Display "+" icons on node hover (top, right, bottom, left).
+    - [x] Clicking "+" adds a new child node in that direction, automatically connects it, sets `parentNode`.
+    - [x] New child node is selected.
 - [x] **Keyboard-driven Node Creation**:
     - [x] Selected Node + `Tab` key: Create child node, auto-position, connect, set `parentNode`. New node is selected.
     - [x] SelectedNode + `Enter` key: Create sibling node (at the same level as selected), auto-position. New node is selected.
@@ -276,7 +276,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
-- **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children. Spacebar + drag to pan implemented.
+- **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented.
 - **Snapping implemented:** Basic center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added.
 - Custom edge type `OrthogonalEdge` implemented, using `getSmoothStepPath` with `borderRadius:0` for step-like lines. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max).
@@ -301,6 +301,7 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
 
 
 
