@@ -78,7 +78,7 @@
     - [x] Ensure dragging a parent node correctly moves all its descendants while maintaining relative positions (Leveraging React Flow's `parentNode` feature - Verified).
     - [x] Recursive deletion of child nodes when parent is deleted.
 - [x] **Improved Connector Experience**:
-    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using `getSmoothStepPath` with `borderRadius:0` for step-like lines with sharp corners.
+    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using `getSmoothStepPath` with `borderRadius:0` for step-like lines with sharp corners. (Implemented)
     - [ ] (Advanced) Refine `OrthogonalEdge.tsx` path calculation for more robust true orthogonal routing:
         - [ ] Investigate/Implement simple Manhattan routing algorithm (or similar) for `OrthogonalEdge`.
         - [ ] Ensure lines exit handles straight for a short distance before turning.
@@ -95,7 +95,7 @@
 - [x] **Node Auto-Sizing**: Ensure custom nodes dynamically adjust size based on content (text length, details), within reasonable min/max bounds.
 - [x] **Refined Pan & Zoom**:
     - [ ] Verify/enhance pan/zoom interactions if default React Flow behavior needs tweaking.
-    - [x] Consider adding modifier key for pan (e.g., Spacebar + drag).
+    - [x] Consider adding modifier key for pan (e.g., Spacebar + drag). (Implemented)
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
 - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
@@ -103,7 +103,7 @@
 - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
     - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
 - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`.
-- [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
+- [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed from panel after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
 - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure. `aiProcessingNodeId` added for node-specific AI loading state.
 - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic. `getNodePlacement` utility from `src/lib/layout-utils.ts` used for node placement and supports grid snapping.
 
@@ -117,7 +117,7 @@
     - [x] Add more comprehensive loading states and error handling (Done for many list pages, dashboards, and API interactions with Supabase, often managed by custom hooks).
     - [x] Enhance empty states for lists (Largely done with `EmptyState` component and specific icons. Verified and improved for Teacher Classroom Detail tabs).
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Change password functionality using Supabase Auth implemented. Dialogs extracted: `EditProfileDialog`, `ChangePasswordDialog`).
-    - [x] Add pagination and filtering for lists (Admin User Management and Teacher classrooms pages have pagination and filtering with Supabase).
+    - [x] Add pagination and filtering for lists (Admin User Management and Teacher classrooms pages have pagination and filtering with Supabase; Admin Users now uses virtualization).
     - [x] Add loading spinner to Login/Register pages. (Verified, already implemented).
     - [x] Make header icons link to main dashboards. (Implemented for `DashboardHeader` icons and `Navbar` logo).
     - [x] Implement "View Only" mode for Concept Map Editor.
@@ -125,7 +125,7 @@
     - [x] Implement change password functionality on profile page (uses Supabase Auth via API).
     - [x] Developer/Testing: Role switcher on Profile page for testing (local context update).
 - [x] **Admin Panel:**
-    - [x] Implement CRUD operations for user management (view with pagination and filtering, delete, edit profile connected to Supabase; add user via register flow. `EditUserDialog` extracted).
+    - [x] Implement CRUD operations for user management (view with pagination and filtering, delete, edit profile connected to Supabase; add user via register flow. `EditUserDialog` extracted. List now virtualized).
     - [x] Develop system settings interface (Admin Settings page fetches/saves to Supabase via API).
 
 ## GenAI & AI Features - In-Editor Enhancements (Whimsical-Inspired)
@@ -204,13 +204,15 @@
         - [ ] Investigate React Flow built-in virtualization/occlusion culling for large maps.
         - [ ] If needed, implement custom occlusion culling for nodes/edges outside viewport.
     - [ ] **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges.
-- [ ] **Interactions:**
-    - [ ] **Event Throttling/Debouncing:**
+- [x] **Interactions:**
+    - [x] **Event Throttling/Debouncing:**
         - [x] Verify React Flow's internal event handling for drag/zoom for common scenarios. (Basic node drag snapping logic is now in place, needs monitoring for complex maps).
         - [ ] If custom heavy interactions are added (e.g., complex snapping calculations beyond current), implement throttling/debouncing for them.
 - [ ] **Data Handling & General:**
     - [ ] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
-    - [ ] **Large List Rendering:** For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
+    - [x] **Large List Rendering:**
+        - [x] Implement virtualization for Admin User Management page using `@tanstack/react-virtual`.
+        - [ ] Evaluate other long lists (e.g., classroom student lists in teacher view) for virtualization.
     - [x] **React Component Memoization:** Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (Some already done, can be an ongoing process. Key callbacks in `ConceptMapEditorPage` memoized.)
     - [x] **Code Splitting:** Use `next/dynamic` for heavy components or libraries not needed on initial load (already done for `FlowCanvasCore`, review for others).
     - [ ] **Bundle Size Analysis:** Periodically analyze the application bundle size and identify areas for reduction.
@@ -282,7 +284,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis uploads to Supabase Storage (bucket 'project_archives').
-- Admin User Management page and Profile Page are connected to Supabase for CRUD and password changes.
+- Admin User Management page and Profile Page are connected to Supabase for CRUD and password changes. Admin User list is virtualized.
 - Dashboard counts are fetched from Supabase-backed APIs using custom hooks, which also respect `BYPASS_AUTH_FOR_TESTING`.
 - Classroom management, Concept Map management, and Student Submissions list are connected to Supabase and use modular components.
 - The application is highly modular, with reusable components for UI patterns, custom hooks for complex logic, and service layers for backend interaction.
@@ -298,4 +300,3 @@ The main remaining area for full Supabase connection is:
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
 
-```

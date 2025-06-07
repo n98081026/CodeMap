@@ -12,17 +12,25 @@ export async function GET(request: Request) {
     const limitParam = searchParams.get('limit');
     const searchTerm = searchParams.get('search') || undefined;
 
+    // If page and limit are not provided, service layer should handle fetching all users.
+    // The service function getAllUsers itself needs to be adapted to handle optional pagination.
+    // For now, we assume the service will fetch all if page/limit are undefined.
+    const page = pageParam ? parseInt(pageParam, 10) : undefined;
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
-    const page = pageParam ? parseInt(pageParam, 10) : 1;
-    const limit = limitParam ? parseInt(limitParam, 10) : 10;
-
-
-    if (isNaN(page) || page < 1 || isNaN(limit) || limit < 1) {
+    if ((page !== undefined && (isNaN(page) || page < 1)) || (limit !== undefined && (isNaN(limit) || limit < 1))) {
       return NextResponse.json({ message: "Invalid page or limit parameters" }, { status: 400 });
     }
-
+    
+    // Pass page and limit as potentially undefined. The service layer will handle this.
     const { users, totalCount } = await getAllUsers(page, limit, searchTerm);
-    return NextResponse.json({ users, totalCount, page, limit, totalPages: Math.ceil(totalCount / limit) });
+    
+    // If paginating, include pagination info. Otherwise, just users and totalCount.
+    if (page !== undefined && limit !== undefined) {
+        return NextResponse.json({ users, totalCount, page, limit, totalPages: Math.ceil(totalCount / limit) });
+    } else {
+        return NextResponse.json({ users, totalCount });
+    }
 
   } catch (error) {
     console.error("Get All Users API error:", error);

@@ -21,7 +21,13 @@ export async function createUserProfile(userId: string, name: string, email: str
   if (BYPASS_AUTH_FOR_TESTING) {
     console.warn(`BYPASS_AUTH: Simulating createUserProfile for ${email}. Data not persisted.`);
     const newUser: User = { id: userId, name, email, role };
-    MOCK_USERS.push(newUser); // Add to in-memory mock users for this session
+    // Ensure not to duplicate if already in MOCK_USERS by ID or email
+    if (!MOCK_USERS.find(u => u.id === userId || u.email === email)) {
+        MOCK_USERS.push(newUser);
+    } else {
+        const existingIndex = MOCK_USERS.findIndex(u => u.id === userId);
+        if (existingIndex !== -1) MOCK_USERS[existingIndex] = newUser; // Update if ID matches
+    }
     return newUser;
   }
 
@@ -118,7 +124,7 @@ export async function getUserById(userId: string): Promise<User | null> {
   return data ? data as User : null;
 }
 
-export async function getAllUsers(page: number = 1, limit: number = 10, searchTerm?: string): Promise<{ users: User[]; totalCount: number }> {
+export async function getAllUsers(page?: number, limit?: number, searchTerm?: string): Promise<{ users: User[]; totalCount: number }> {
   if (BYPASS_AUTH_FOR_TESTING) {
     let filteredUsers = MOCK_USERS;
     if (searchTerm && searchTerm.trim() !== '') {
@@ -129,7 +135,7 @@ export async function getAllUsers(page: number = 1, limit: number = 10, searchTe
       );
     }
     const totalCount = filteredUsers.length;
-    const paginatedUsers = filteredUsers.slice((page - 1) * limit, page * limit);
+    const paginatedUsers = (page && limit) ? filteredUsers.slice((page - 1) * limit, page * limit) : filteredUsers;
     return { users: paginatedUsers, totalCount };
   }
 
@@ -143,7 +149,10 @@ export async function getAllUsers(page: number = 1, limit: number = 10, searchTe
     query = query.or(`name.ilike.%${cleanedSearchTerm}%,email.ilike.%${cleanedSearchTerm}%`);
   }
 
-  query = query.range((page - 1) * limit, page * limit - 1);
+  if (page && limit) {
+    query = query.range((page - 1) * limit, page * limit - 1);
+  }
+  // If page and limit are not provided, the query fetches all matching users.
 
   const { data, error, count } = await query;
 
