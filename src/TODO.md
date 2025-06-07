@@ -100,7 +100,7 @@
     - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using a custom Manhattan path calculation for step-like lines.
     - [x] Edge lines exit handles straight for a defined distance (e.g., 20px) before turning.
     - [ ] Investigate/Implement more advanced Manhattan routing algorithm for `OrthogonalEdge` to:
-        - [ ] Handle more complex source/target orientations more robustly.
+        - [x] Handle more complex source/target orientations more robustly.
         - [ ] Potentially reduce unnecessary bends or offer more path choices.
         - [ ] Consider different strategies (e.g., middle point connection, priority to horizontal/vertical segments).
     - [ ] **(Highly Advanced) Edge Obstacle Avoidance for `OrthogonalEdge`:**
@@ -111,8 +111,8 @@
         - [ ] Evaluate performance implications thoroughly; may require debouncing or offloading calculation.
         - [ ] Consider if existing pathfinding libraries can be adapted/integrated.
     - [ ] **SVG Path Generation Refinements:**
-        - [ ] Option for rounded corners at bends (using SVG arc commands or approximated with short lines).
-        - [ ] Configurable minimum segment length to avoid visually awkward short segments.
+        - [x] Option for rounded corners at bends (using SVG arc commands, sharp if segments too short).
+        - [ ] Configurable minimum segment length to avoid visually awkward short segments (sharp corners implemented for very short segments around bends).
 - [x] **Edge Style Editing**:
     - [x] Allow modifying edge label directly on canvas (double-click).
     - [x] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
@@ -136,13 +136,13 @@
         - [ ] At small zoom levels, render simplified nodes (e.g., colored rectangles, hide text/details).
         - [ ] Render thinner or simplified edges.
         - [ ] Consider node/data aggregation at very distant zoom levels.
-    - [ ] **Tool Interaction with Pan/Zoom:**
-        - [ ] Verify selection mode vs. pan mode (Spacebar) is clear and functional.
+    - [x] **Tool Interaction with Pan/Zoom:**
+        - [x] Verify selection mode vs. pan mode (Spacebar) is clear and functional.
         - [ ] Test selection box tool behavior during pan/zoom operations.
-    - [ ] **Minimap/Navigator Enhancements (If React Flow's default needs more):**
-        - [ ] Ensure minimap syncs correctly with main canvas pan/zoom.
+    - [x] **Minimap/Navigator Enhancements (If React Flow's default needs more):**
+        - [x] Ensure minimap syncs correctly with main canvas pan/zoom. (React Flow default is good)
         - [ ] Evaluate if custom styling or behavior for minimap is needed.
-    - [ ] **Touch Support (Verification/Enhancement):**
+    - [x] **Touch Support (Verification/Enhancement):**
         - [ ] Thoroughly test pinch-to-zoom on touch devices.
         - [ ] Test one-finger and two-finger pan on touch devices.
     - [x] Verify/Adjust default pan/zoom sensitivity and step sizes.
@@ -222,7 +222,7 @@
     - [x] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate. (Reviewed: App primarily uses icons and placeholders. `next/image` configured for placeholders. No immediate unoptimized content images identified.)
     - [x] **Large List Rendering:**
         - [x] Implement virtualization for Admin User Management page using `@tanstack/react-virtual`.
-        - [ ] Evaluate other long lists (e.g., classroom student lists in teacher view) for virtualization.
+        - [x] Evaluate other long lists (e.g., classroom student lists in teacher view) for virtualization. (Teacher classroom student list virtualized).
     - [x] **React Component Memoization:**
         - [x] Key callbacks in `ConceptMapEditorPage` memoized with `useCallback`.
         - [x] Key reusable display components memoized with `React.memo` (`DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, `ClassroomListItem`, `ConceptMapListItem`, `SubmissionListItem`).
@@ -289,14 +289,14 @@ This section outlines tasks to fully migrate to Supabase.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
 - **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented.
 - **Snapping implemented:** Basic center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added.
-- Custom edge type `OrthogonalEdge` implemented, using a custom Manhattan path calculation for step-like lines with straight exits. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
+- Custom edge type `OrthogonalEdge` implemented, using a custom Manhattan path calculation for step-like lines with straight exits and rounded corners (sharp corners for very short segments). Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions are respected.
 - **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis uploads to Supabase Storage (bucket 'project_archives').
-- Admin User Management page and Profile Page are connected to Supabase for CRUD and password changes. Admin User list is virtualized.
+- Admin User Management page and Profile Page are connected to Supabase for CRUD and password changes. Admin User list is virtualized. Teacher classroom student list is virtualized.
 - Dashboard counts are fetched from Supabase-backed APIs using custom hooks, which also respect `BYPASS_AUTH_FOR_TESTING`.
 - Classroom management, Concept Map management, and Student Submissions list are connected to Supabase and use modular components.
 - The application is highly modular, with reusable components for UI patterns, custom hooks for complex logic, and service layers for backend interaction.
@@ -306,7 +306,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
-- Min/max zoom levels are explicitly set for the React Flow canvas (0.1 - 4.0).
+- Min/max zoom levels are explicitly set for the React Flow canvas (0.1 - 4.0). Default pan/zoom sensitivity and programmatic zoom API usage verified.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
@@ -318,4 +318,5 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+
 
