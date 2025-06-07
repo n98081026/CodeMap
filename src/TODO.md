@@ -144,6 +144,9 @@
     - [ ] **Touch Support (Verification/Enhancement):**
         - [ ] Thoroughly test pinch-to-zoom on touch devices.
         - [ ] Test one-finger and two-finger pan on touch devices.
+    - [ ] Verify/Adjust default pan/zoom sensitivity and step sizes.
+    - [ ] Ensure API for programmatic pan/zoom is usable if needed (e.g., focus on node via `fitView` or `setCenter`).
+
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
 - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
@@ -302,7 +305,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
-- Min/max zoom levels are explicitly set for the React Flow canvas.
+- Min/max zoom levels are explicitly set for the React Flow canvas (0.1 - 4.0).
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
