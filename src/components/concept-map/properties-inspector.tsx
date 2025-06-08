@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser } from "lucide-react"; 
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight } from "lucide-react"; 
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
@@ -296,7 +296,9 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </div>
       </div>
       <div className="mt-2">
-        <Label htmlFor="edgeLineType">Line Type</Label>
+        <Label htmlFor="edgeLineType" className="flex items-center gap-2">
+            <Minus className="h-4 w-4 text-muted-foreground"/>Line Type
+        </Label>
         <Select 
             value={edgeLineTypeValue} 
             onValueChange={(value) => handleEdgeLineTypeChange(value as 'solid' | 'dashed')}
@@ -312,7 +314,9 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </Select>
       </div>
       <div className="mt-2">
-        <Label htmlFor="edgeMarkerStart">Start Arrow</Label>
+        <Label htmlFor="edgeMarkerStart" className="flex items-center gap-2">
+            <ArrowBigLeft className="h-4 w-4 text-muted-foreground" /> Start Arrow
+        </Label>
         <Select 
             value={edgeMarkerStartValue} 
             onValueChange={(value) => handleEdgeMarkerChange('start', value)}
@@ -329,7 +333,9 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </Select>
       </div>
       <div className="mt-2">
-        <Label htmlFor="edgeMarkerEnd">End Arrow</Label>
+        <Label htmlFor="edgeMarkerEnd" className="flex items-center gap-2">
+            <ArrowBigRight className="h-4 w-4 text-muted-foreground" /> End Arrow
+        </Label>
         <Select 
             value={edgeMarkerEndValue} 
             onValueChange={(value) => handleEdgeMarkerChange('end', value)}

@@ -7,6 +7,7 @@ import {
   EdgeProps,
   Position,
   BaseEdge,
+  MarkerType, // Import MarkerType
 } from 'reactflow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -179,6 +180,17 @@ const getManhattanPath = (
   return [d, finalLabelX, finalLabelY];
 };
 
+// Helper to convert string marker type to React Flow MarkerType object
+export const getMarkerDefinition = (markerTypeString?: string, edgeColor?: string): RFEdge['markerEnd'] => {
+  if (!markerTypeString || markerTypeString === 'none') return undefined;
+  const color = edgeColor || 'hsl(var(--foreground))'; // Use edge color or default
+  switch (markerTypeString.toLowerCase()) {
+      case 'arrow': return { type: MarkerType.Arrow, color, strokeWidth: 1 };
+      case 'arrowclosed': return { type: MarkerType.ArrowClosed, color, strokeWidth: 1 };
+      default: return undefined;
+  }
+};
+
 
 export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
   id,
@@ -190,8 +202,8 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
   targetPosition = Position.Top,
   style = {},
   data,
-  markerEnd,
-  markerStart,
+  markerStart: markerStartString, // Renamed to avoid conflict with React Flow's prop type
+  markerEnd: markerEndString,     // Renamed to avoid conflict with React Flow's prop type
   selected,
 }) => {
   const updateEdgeInStore = useConceptMapStore((state) => state.updateEdge);
@@ -237,13 +249,17 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
   const edgeColor = data?.color || 'hsl(var(--foreground))'; 
   const lineTypeStyle = data?.lineType === 'dashed' ? { strokeDasharray: '5,5' } : {};
 
+  // Convert string marker types from store to React Flow marker objects
+  const actualMarkerStart = getMarkerDefinition(markerStartString, edgeColor);
+  const actualMarkerEnd = getMarkerDefinition(markerEndString, edgeColor);
+
   return (
     <>
       <BaseEdge 
         id={id} 
         path={edgePath} 
-        markerStart={markerStart} 
-        markerEnd={markerEnd} 
+        markerStart={actualMarkerStart} 
+        markerEnd={actualMarkerEnd} 
         style={{ ...style, stroke: edgeColor, ...lineTypeStyle, strokeWidth: selected ? 3: 2 }} 
       />
       <EdgeLabelRenderer>

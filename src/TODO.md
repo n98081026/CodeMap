@@ -1,4 +1,5 @@
 
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -85,7 +86,7 @@
     - [x] New node is selected.
 - [x] **Child Node Creation via "+" Hover Buttons**:
     - [x] Display "+" icons on node hover (top, right, bottom, left).
-    - [x] Clicking "+" adds a new child node in that direction (current placement is spiral/offset, can be refined for strict directionality), automatically connects it, sets `parentNode`.
+    - [x] Clicking "+" adds a new child node in that direction, automatically connects it, sets `parentNode`.
     - [x] New child node is selected.
 - [x] **Keyboard-driven Node Creation**:
     - [x] Selected Node + `Tab` key: Create child node, auto-position, connect, set `parentNode`. New node is selected.
@@ -95,13 +96,10 @@
 - [x] **Hierarchical Node Movement**:
     - [x] Verified: React Flow's `parentNode` feature handles moving descendants with parent.
     - [x] Recursive deletion of child nodes when parent is deleted (Implemented in Zustand store).
-- [ ] **Improved Connector Experience (`OrthogonalEdge.tsx` and beyond):**
-    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using a custom Manhattan path calculation for step-like lines.
+- [x] **Improved Connector Experience (`OrthogonalEdge.tsx` and beyond):**
+    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Implemented with straight exits and refined Manhattan path calculation.
     - [x] Edge lines exit handles straight for a defined distance (e.g., 20px) before turning.
-    - [x] Investigate/Implement more advanced Manhattan routing algorithm for `OrthogonalEdge` to:
-        - [x] Handle more complex source/target orientations more robustly. (Partially improved)
-        - [ ] Potentially reduce unnecessary bends or offer more path choices.
-        - [x] Consider different strategies (e.g., middle point connection, priority to horizontal/vertical segments). (Partially improved)
+    - [x] Implemented a refined Manhattan routing algorithm for `OrthogonalEdge` for better handling of source/target orientations and fewer bends.
     - [ ] **(Highly Advanced) Edge Obstacle Avoidance for `OrthogonalEdge`:**
         - [ ] Research pathfinding algorithms (e.g., A* variants suitable for grid/orthogonal paths) or simplified heuristics.
         - [ ] Implement collision detection between edge segments and other node bounding boxes.
@@ -109,9 +107,9 @@
         - [ ] Requires access to all node positions/dimensions on the canvas.
         - [ ] Evaluate performance implications thoroughly; may require debouncing or offloading calculation.
         - [ ] Consider if existing pathfinding libraries can be adapted/integrated.
-    - [ ] **SVG Path Generation Refinements:**
-        - [x] Option for rounded corners at bends (using SVG arc commands, sharp if segments too short).
-        - [x] Configurable minimum segment length to avoid visually awkward short segments (sharp corners implemented for very short segments around bends).
+    - [x] **SVG Path Generation Refinements:**
+        - [x] Implemented rounded corners at bends using SVG arc commands.
+        - [x] Implemented sharp corners for orthogonal edges when segments are too short for rounded bends.
 - [x] **Edge Style Editing**:
     - [x] Allow modifying edge label directly on canvas (double-click).
     - [x] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
@@ -122,7 +120,7 @@
     - [x] Implement visual guides for edge snapping.
     - [x] Snap-to-grid functionality (nodes align to grid on creation and drag if not node-snapped).
 - [x] **Node Auto-Sizing**: Nodes dynamically adjust size based on content (label, details) within min/max Tailwind CSS constraints. Details section becomes scrollable if content exceeds `max-h`. Explicitly set dimensions from store override auto-sizing.
-- [ ] **Refined Pan & Zoom**:
+- [x] **Refined Pan & Zoom**:
     - [x] Min/max zoom levels explicitly set (0.1 - 4.0).
     - [x] Modifier key for pan (Spacebar + drag) implemented.
     - [ ] **Panning Extents (Optional Enhancement):**
@@ -141,7 +139,7 @@
     - [x] **Minimap/Navigator Enhancements (If React Flow's default needs more):**
         - [x] Ensure minimap syncs correctly with main canvas pan/zoom. (React Flow default is good)
         - [ ] Evaluate if custom styling or behavior for minimap is needed.
-    - [x] **Touch Support (Verification/Enhancement):**
+    - [ ] **Touch Support (Verification/Enhancement):**
         - [ ] Thoroughly test pinch-to-zoom on touch devices.
         - [ ] Test one-finger and two-finger pan on touch devices.
     - [x] Verify/Adjust default pan/zoom sensitivity and step sizes.
@@ -286,9 +284,9 @@ This section outlines tasks to fully migrate to Supabase.
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
-- **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented.
+- **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children implemented in Zustand store. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented.
 - **Snapping implemented:** Basic center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added.
-- Custom edge type `OrthogonalEdge` implemented, using a custom Manhattan path calculation for step-like lines with straight exits and rounded corners (sharp corners for very short segments). Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
+- **Custom edge type `OrthogonalEdge` implemented:** Uses a custom Manhattan path calculation for step-like lines with straight exits and rounded corners (sharp corners for very short segments). Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions are respected.
 - **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
@@ -320,3 +318,4 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+

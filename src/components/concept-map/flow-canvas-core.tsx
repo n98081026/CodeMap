@@ -6,7 +6,7 @@ import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edg
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
-import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
+import OrthogonalEdge, { type OrthogonalEdgeData, getMarkerDefinition } from './orthogonal-edge'; // Import getMarkerDefinition
 import useConceptMapStore from '@/stores/concept-map-store';
 import { getNodePlacement } from '@/lib/layout-utils';
 
@@ -72,16 +72,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     } as RFNode<CustomNodeData>)),
     [mapDataFromStore.nodes, isViewOnlyMode]
   );
-
-  const getMarkerDefinition = useCallback((markerTypeString?: string, edgeColor?: string): RFEdge['markerEnd'] => {
-    if (!markerTypeString || markerTypeString === 'none') return undefined;
-    const color = edgeColor || 'hsl(var(--foreground))';
-    switch (markerTypeString) {
-        case 'arrow': return { type: MarkerType.Arrow, color, strokeWidth: 1 };
-        case 'arrowclosed': return { type: MarkerType.ArrowClosed, color, strokeWidth: 1 };
-        default: return undefined;
-    }
-  }, []);
   
   const initialRfEdges = useMemo(() =>
     (mapDataFromStore.edges || []).map(appEdge => ({
@@ -97,14 +87,14 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         color: appEdge.color, 
         lineType: appEdge.lineType 
       },
-      markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
-      markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
+      markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color), // Use helper from orthogonal-edge
+      markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),     // Use helper from orthogonal-edge
       style: { strokeWidth: 2 },
       updatable: !isViewOnlyMode,
       deletable: !isViewOnlyMode,
       selectable: true,
     } as RFEdge<RFConceptMapEdgeData>)),
-    [mapDataFromStore.edges, isViewOnlyMode, getMarkerDefinition]
+    [mapDataFromStore.edges, isViewOnlyMode]
   );
 
 
@@ -325,7 +315,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         let newNodeId: string;
         
         if (event.key === 'Tab') { 
-          const childPosition = getNodePlacement(currentNodes, 'child', selectedStoreNode, null, GRID_SIZE);
+          const childPosition = getNodePlacement(currentNodes, 'child', selectedStoreNode, null, GRID_SIZE, 'right');
           newNodeId = addNodeToStore({ text: "New Child", type: 'manual-node', position: childPosition, parentNode: selectedStoreNode.id });
           onConnectInStore({ source: selectedStoreNode.id, target: newNodeId, label: "connects" });
         } else { // Enter key
@@ -373,4 +363,3 @@ const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => (
 
 export default React.memo(FlowCanvasCoreWrapper);
     
-
