@@ -187,9 +187,10 @@ export default function TeacherClassroomsPage() {
             <ClassroomListItem
               key={classroom.id}
               classroom={classroom}
-              userRole={user!.role} 
+              userRole={(user!.role as UserRole)} 
               onEdit={openEditModal}
               onDelete={handleDeleteClassroom}
+              detailLinkHref={`/application/teacher/classrooms/${classroom.id}`}
             />
           ))}
         </div>
@@ -234,4 +235,3 @@ export default function TeacherClassroomsPage() {
     </div>
   );
 }
-

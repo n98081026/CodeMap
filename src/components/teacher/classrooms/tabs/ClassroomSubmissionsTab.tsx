@@ -15,7 +15,7 @@ interface ClassroomSubmissionsTabProps {
   isLoading: boolean;
   error: string | null;
   submissions: ProjectSubmission[];
-  enrolledStudents: User[];
+  enrolledStudents: User[]; // For resolving student name
   onFetchRetry: () => void;
 }
 
@@ -93,6 +93,7 @@ export const ClassroomSubmissionsTab: React.FC<ClassroomSubmissionsTabProps> = (
                       ? "destructive"
                       : "secondary"
                   }
+                  className="capitalize"
                 >
                   {submission.analysisStatus}
                 </Badge>

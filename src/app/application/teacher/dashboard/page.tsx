@@ -47,7 +47,7 @@ export default function TeacherDashboardPage() {
     {
       label: "Create New Classroom",
       href: "/application/teacher/classrooms/new",
-      icon: Users, // Assuming Users icon is appropriate for creating a classroom
+      icon: Users, 
       size: "lg",
       className: "w-full sm:w-auto"
     }
@@ -82,7 +82,7 @@ export default function TeacherDashboardPage() {
           description="Students across all your classrooms."
           count={renderCount(totalStudentsMetric, "students")}
           icon={Users}
-          href="/application/teacher/classrooms"
+          href="/application/teacher/classrooms" // Link to classrooms page, student lists are per classroom
           linkText="View Student Lists"
         />
       </div>

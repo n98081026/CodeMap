@@ -13,7 +13,7 @@ interface ClassroomMapsTabProps {
   isLoading: boolean;
   error: string | null;
   maps: ConceptMap[];
-  enrolledStudents: User[];
+  enrolledStudents: User[]; // For resolving owner name
   onFetchRetry: () => void;
 }
 
@@ -51,7 +51,7 @@ export const ClassroomMapsTab: React.FC<ClassroomMapsTabProps> = ({
   if (!isLoading && !error && maps.length === 0) {
     return (
       <EmptyState
-        icon={Share2Icon}
+        icon={Share2Icon} // Using Share2Icon as Library might be confusing with classroom resources
         title="No Shared Maps"
         description="No concept maps have been shared with this classroom yet by students or the teacher."
       />

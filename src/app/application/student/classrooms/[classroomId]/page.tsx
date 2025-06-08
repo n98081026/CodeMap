@@ -12,6 +12,7 @@ import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { EmptyState } from "@/components/layout/empty-state";
 
 export default function StudentClassroomDetailPage() {
   const paramsHook = useParams(); 
@@ -166,19 +167,19 @@ export default function StudentClassroomDetailPage() {
             </div>
           )}
           {errorMaps && !isLoadingMaps && (
-            <div className="text-destructive p-4 border border-destructive rounded-md flex flex-col items-center text-center">
-              <AlertTriangle className="h-8 w-8 mb-2"/>
-              <p className="font-semibold">Error loading shared maps</p>
-              <p className="text-sm mb-3">{errorMaps}</p>
-              <Button onClick={fetchSharedMaps} variant="outline" size="sm">Try Again</Button>
-            </div>
+            <EmptyState 
+                icon={AlertTriangle} 
+                title="Error Loading Shared Maps" 
+                description={errorMaps}
+                actionButton={<Button onClick={fetchSharedMaps} variant="outline" size="sm">Try Again</Button>}
+             />
           )}
           {!isLoadingMaps && !errorMaps && sharedMaps.length === 0 && (
-            <div className="text-center py-10">
-                <Library className="mx-auto h-12 w-12 text-muted-foreground/70 mb-4" />
-                <h3 className="text-xl font-semibold text-muted-foreground">No Shared Maps</h3>
-                <p className="text-sm text-muted-foreground">No concept maps have been shared with this classroom yet by the teacher or other students.</p>
-            </div>
+             <EmptyState 
+                icon={Library} 
+                title="No Shared Maps" 
+                description="No concept maps have been shared with this classroom yet by the teacher or other students."
+             />
           )}
           {!isLoadingMaps && !errorMaps && sharedMaps.length > 0 && (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -207,5 +208,3 @@ export default function StudentClassroomDetailPage() {
     </div>
   );
 }
-
-

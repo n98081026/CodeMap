@@ -45,7 +45,7 @@ export default function AdminSettingsPage() {
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsFormSchema),
-    defaultValues: defaultFormValues, // Initialize with defaults, will be overwritten by fetched data
+    defaultValues: defaultFormValues, 
     mode: "onChange",
   });
 
@@ -59,12 +59,12 @@ export default function AdminSettingsPage() {
         throw new Error(errorData.message || "Failed to fetch settings");
       }
       const fetchedSettings: SystemSettings = await response.json();
-      form.reset(fetchedSettings); // Reset form with fetched values
+      form.reset(fetchedSettings); 
     } catch (err) {
       const errorMessage = (err as Error).message;
       setErrorLoadingSettings(errorMessage);
       toast({ title: "Error Loading Settings", description: `${errorMessage}. Using default values.`, variant: "destructive" });
-      form.reset(defaultFormValues); // Fallback to defaults on error
+      form.reset(defaultFormValues); 
     } finally {
       setIsLoadingSettings(false);
     }
@@ -85,12 +85,12 @@ export default function AdminSettingsPage() {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to save settings");
       }
-      await response.json(); // Contains updated settings, can use if needed
+      await response.json(); 
       toast({
         title: "Settings Saved",
         description: "Your configuration has been successfully updated.",
       });
-      form.reset(data, { keepValues: true, keepDirty: false, keepDefaultValues: false }); // Resets dirty state
+      form.reset(data, { keepValues: true, keepDirty: false, keepDefaultValues: false }); 
     } catch (error) {
       toast({
         title: "Error Saving Settings",
@@ -189,7 +189,7 @@ export default function AdminSettingsPage() {
                     <FormLabel>Default New Map Visibility</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value} // Ensure value prop is used for controlled component
+                      value={field.value} 
                       disabled={form.formState.isSubmitting}
                     >
                       <FormControl>
@@ -260,5 +260,3 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
-
-

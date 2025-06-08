@@ -26,21 +26,23 @@ export const DashboardLinkCard: React.FC<DashboardLinkCardProps> = React.memo(fu
   linkText,
 }) {
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-lg font-medium">{title}</CardTitle>
         <Icon className="h-6 w-6 text-primary" />
       </CardHeader>
-      <CardContent>
-        {typeof count === 'number' || typeof count === 'string' ? (
-          <div className="text-3xl font-bold">{count}</div>
-        ) : (
-          count // Render loading/error component directly
-        )}
-        <p className="text-xs text-muted-foreground mb-4 h-10 line-clamp-2"> {/* Adjusted height and line-clamp */}
-          {description}
-        </p>
-        <Button asChild variant="outline" size="sm" className="w-full">
+      <CardContent className="flex-grow flex flex-col">
+        <div className="flex-grow">
+            {typeof count === 'number' || typeof count === 'string' ? (
+            <div className="text-3xl font-bold">{count}</div>
+            ) : (
+            count // Render loading/error component directly
+            )}
+            <p className="text-xs text-muted-foreground mb-4 min-h-[2.5rem] line-clamp-2"> {/* min-h ensure space, h-10 was too much */}
+            {description}
+            </p>
+        </div>
+        <Button asChild variant="outline" size="sm" className="w-full mt-auto">
           <Link href={href}>
             {linkText} <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
@@ -50,4 +52,3 @@ export const DashboardLinkCard: React.FC<DashboardLinkCardProps> = React.memo(fu
   );
 });
 DashboardLinkCard.displayName = "DashboardLinkCard";
-

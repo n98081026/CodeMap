@@ -20,7 +20,7 @@ export default function AdminDashboardPage() {
       if (!user) {
         router.replace('/login');
       } else if (user.role !== UserRole.ADMIN) {
-        router.replace('/login'); // Or a more appropriate unauthorized page
+        router.replace('/login'); 
       }
     }
   }, [user, authIsLoading, router]);
@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
         title="Admin Dashboard"
         description="System overview and management tools."
         icon={LayoutDashboard}
-        iconLinkHref="/application/admin/dashboard"
+        iconLinkHref="/application/admin/dashboard" // Link icon to itself or a higher admin page
       />
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -65,8 +65,8 @@ export default function AdminDashboardPage() {
         />
         <DashboardLinkCard
           title="System Settings"
-          description="Active classrooms. Configure system parameters here."
-          count={renderCount(classroomsMetric, "classrooms")}
+          description="Active classrooms. Configure system parameters here." // Description can be improved for settings
+          count={renderCount(classroomsMetric, "classrooms")} // This count is for classrooms, settings don't have a "count"
           icon={Settings}
           href="/application/admin/settings"
           linkText="Configure Settings"
@@ -75,4 +75,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-

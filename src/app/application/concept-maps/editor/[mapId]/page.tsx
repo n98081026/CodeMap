@@ -110,7 +110,6 @@ export default function ConceptMapEditorPage() {
     setStoreMultiSelectedNodeIds(nodeIds);
   }, [setStoreMultiSelectedNodeIds]);
   
-  // Not memoizing handleAddNodeToData and handleAddEdgeToData yet due to direct store access for node count inside them.
   const handleAddNodeToData = () => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
@@ -219,12 +218,12 @@ export default function ConceptMapEditorPage() {
         title={mapName} 
         description={isViewOnlyMode ? "Currently in view-only mode." : "Create, edit, and visualize your ideas."} 
         icon={isViewOnlyMode ? EyeOff : (isNewMapMode || storeMapId === 'new') ? Compass : Share2} 
-        iconLinkHref={getRoleBasedDashboardLink()}
+        iconLinkHref={getRoleBasedDashboardLink()} // Use dynamic link based on user role
       >
         {!isViewOnlyMode && <Button onClick={() => saveMap(isViewOnlyMode)} disabled={isStoreSaving || isViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
         <Button asChild variant="outline"><Link href={getBackLink()}><ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}</Link></Button>
       </DashboardHeader>
-      <ReactFlowProvider> {/* Important: Wrap any component using useReactFlow (like FlowCanvasCore) */}
+      <ReactFlowProvider> 
         <EditorToolbar
           onNewMap={handleNewMap} onSaveMap={() => saveMap(isViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
           onExtractConcepts={() => openExtractConceptsModal(selectedElementId || undefined)} 
@@ -243,7 +242,7 @@ export default function ConceptMapEditorPage() {
               onSelectionChange={handleFlowSelectionChange} onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode} 
               onNodesDeleteInStore={deleteStoreNode} 
-              onEdgesDeleteInStore={updateStoreEdge} // Pass updateStoreEdge for deletion, it will be handled internally
+              onEdgesDeleteInStore={(edgeId) => useConceptMapStore.getState().deleteEdge(edgeId)} 
               onConnectInStore={addEdgeFromHook}
               onNodeContextMenu={handleNodeContextMenu}
             />
@@ -294,4 +293,3 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
-

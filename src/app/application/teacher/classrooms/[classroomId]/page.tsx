@@ -7,13 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types";
-import { ArrowLeft, Users, Share2, FolderKanban, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Users, Share2, FolderKanban, Loader2, AlertTriangle, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
-import { EmptyState } from "@/components/layout/empty-state"; // Kept for main error state
+import { EmptyState } from "@/components/layout/empty-state"; 
 
 // Import new tab components
 import { ClassroomStudentsTab } from "@/components/teacher/classrooms/tabs/ClassroomStudentsTab";
@@ -175,7 +175,7 @@ export default function ClassroomDetailPage() {
       <DashboardHeader
         title={classroom.name}
         description={`Teacher: ${classroom.teacherName || 'N/A'} | Invite Code: ${classroom.inviteCode} | Manage students, maps, and submissions.`}
-        icon={isLoadingClassroom ? Loader2 : Users}
+        icon={BookOpen} // Changed from Users to BookOpen for general classroom icon
         iconClassName={isLoadingClassroom ? "animate-spin" : ""}
         iconLinkHref={headerIconLink}
       >
@@ -221,7 +221,7 @@ export default function ClassroomDetailPage() {
                     isLoading={isLoadingMaps}
                     error={errorMaps}
                     maps={classroomMaps}
-                    enrolledStudents={enrolledStudents} // Pass for owner name resolution
+                    enrolledStudents={enrolledStudents} 
                     onFetchRetry={fetchClassroomMaps}
                 />
             </CardContent>
@@ -239,7 +239,7 @@ export default function ClassroomDetailPage() {
                     isLoading={isLoadingSubmissions}
                     error={errorSubmissions}
                     submissions={classroomSubmissions}
-                    enrolledStudents={enrolledStudents} // Pass for student name resolution
+                    enrolledStudents={enrolledStudents} 
                     onFetchRetry={fetchClassroomSubmissions}
                 />
             </CardContent>
@@ -250,4 +250,3 @@ export default function ClassroomDetailPage() {
   );
 }
     
-

@@ -1,5 +1,4 @@
 
-
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -99,10 +98,10 @@
 - [ ] **Improved Connector Experience (`OrthogonalEdge.tsx` and beyond):**
     - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Basic setup using a custom Manhattan path calculation for step-like lines.
     - [x] Edge lines exit handles straight for a defined distance (e.g., 20px) before turning.
-    - [ ] Investigate/Implement more advanced Manhattan routing algorithm for `OrthogonalEdge` to:
-        - [x] Handle more complex source/target orientations more robustly.
+    - [x] Investigate/Implement more advanced Manhattan routing algorithm for `OrthogonalEdge` to:
+        - [x] Handle more complex source/target orientations more robustly. (Partially improved)
         - [ ] Potentially reduce unnecessary bends or offer more path choices.
-        - [ ] Consider different strategies (e.g., middle point connection, priority to horizontal/vertical segments).
+        - [x] Consider different strategies (e.g., middle point connection, priority to horizontal/vertical segments). (Partially improved)
     - [ ] **(Highly Advanced) Edge Obstacle Avoidance for `OrthogonalEdge`:**
         - [ ] Research pathfinding algorithms (e.g., A* variants suitable for grid/orthogonal paths) or simplified heuristics.
         - [ ] Implement collision detection between edge segments and other node bounding boxes.
@@ -112,7 +111,7 @@
         - [ ] Consider if existing pathfinding libraries can be adapted/integrated.
     - [ ] **SVG Path Generation Refinements:**
         - [x] Option for rounded corners at bends (using SVG arc commands, sharp if segments too short).
-        - [ ] Configurable minimum segment length to avoid visually awkward short segments (sharp corners implemented for very short segments around bends).
+        - [x] Configurable minimum segment length to avoid visually awkward short segments (sharp corners implemented for very short segments around bends).
 - [x] **Edge Style Editing**:
     - [x] Allow modifying edge label directly on canvas (double-click).
     - [x] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
@@ -129,8 +128,8 @@
     - [ ] **Panning Extents (Optional Enhancement):**
         - [ ] Calculate content bounding box.
         - [ ] Prevent panning too far beyond content, or implement "elastic" edges.
-    - [ ] **Zoom Center (Verification/Enhancement):**
-        - [ ] Verify default zoom-to-mouse behavior.
+    - [x] **Zoom Center (Verification/Enhancement):**
+        - [x] Verify default zoom-to-mouse behavior.
         - [ ] Consider an option or alternative for zoom-to-center if needed.
     - [ ] **(Highly Advanced) Level of Detail (LOD) Rendering:**
         - [ ] At small zoom levels, render simplified nodes (e.g., colored rectangles, hide text/details).
@@ -222,7 +221,7 @@
     - [x] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate. (Reviewed: App primarily uses icons and placeholders. `next/image` configured for placeholders. No immediate unoptimized content images identified.)
     - [x] **Large List Rendering:**
         - [x] Implement virtualization for Admin User Management page using `@tanstack/react-virtual`.
-        - [x] Evaluate other long lists (e.g., classroom student lists in teacher view) for virtualization. (Teacher classroom student list virtualized).
+        - [x] Implement virtualization for Teacher Classroom Student List using `@tanstack/react-virtual`.
     - [x] **React Component Memoization:**
         - [x] Key callbacks in `ConceptMapEditorPage` memoized with `useCallback`.
         - [x] Key reusable display components memoized with `React.memo` (`DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, `ClassroomListItem`, `ConceptMapListItem`, `SubmissionListItem`).
@@ -247,7 +246,7 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **`classrooms` Table:** (User needs to create + RLS).
 - [x] **`classroom_students` Table (Junction):** (User needs to create + RLS).
 - [x] **`classroomService.ts` Refactor:** (Complete: All classroom service functions use Supabase, respects BYPASS_AUTH_FOR_TESTING).
-- [x] **Connect frontend classroom UI (teacher, student) to live API (with Supabase service).**
+- [x] **Connect frontend classroom UI (teacher, student) to live API (with Supabase service).** (Teacher detail page modularized with tabs.)
 
 **4. Concept Map Management with Supabase**
 - [x] **`concept_maps` Table:** (User needs to create + RLS).
@@ -307,6 +306,9 @@ This section outlines tasks to fully migrate to Supabase.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
 - Min/max zoom levels are explicitly set for the React Flow canvas (0.1 - 4.0). Default pan/zoom sensitivity and programmatic zoom API usage verified.
+- Teacher Classroom Detail Page has been modularized with separate tab components for Students, Maps, and Submissions.
+- `DashboardHeader` component now supports a linkable icon via `iconLinkHref`.
+- `DashboardLinkCard` description paragraph height has been standardized.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
@@ -318,5 +320,3 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
-
-

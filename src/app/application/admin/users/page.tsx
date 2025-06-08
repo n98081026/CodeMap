@@ -39,7 +39,7 @@ export default function AdminUsersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
-  const [totalUsers, setTotalUsers] = useState(0); // Total users matching search
+  const [totalUsers, setTotalUsers] = useState(0); 
 
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearchTerm = useDeferredValue(searchTerm);
@@ -50,7 +50,7 @@ export default function AdminUsersPage() {
   const rowVirtualizer = useVirtualizer({
     count: users.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 53, // Approximate height of a row
+    estimateSize: () => 53, 
     overscan: 10,
   });
 
@@ -62,7 +62,7 @@ export default function AdminUsersPage() {
       if (search.trim()) {
         searchParams.append('search', search.trim());
       }
-      // Fetch all users matching search, no API pagination for virtualization
+      
       const response = await fetch(`/api/users?${searchParams.toString()}`);
       if (!response.ok) {
         const errorData = await response.json();
@@ -70,11 +70,11 @@ export default function AdminUsersPage() {
       }
       const data = await response.json() as { users: User[], totalCount: number };
       setUsers(data.users);
-      setTotalUsers(data.totalCount); // This is total matching users in DB
+      setTotalUsers(data.totalCount); 
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
-      setUsers([]); // Clear users on error
+      setUsers([]); 
       setTotalUsers(0);
     } finally {
       setIsLoading(false);
@@ -97,7 +97,7 @@ export default function AdminUsersPage() {
         throw new Error(errorData.message || "Failed to delete user");
       }
       toast({ title: "User Deleted", description: `User "${userName}" has been deleted.` });
-      fetchUsers(deferredSearchTerm); // Re-fetch to update list and count
+      fetchUsers(deferredSearchTerm); 
     } catch (err) {
       toast({ title: "Error Deleting User", description: (err as Error).message, variant: "destructive" });
     }
@@ -182,7 +182,7 @@ export default function AdminUsersPage() {
             <CardTitle>All Users ({totalUsers})</CardTitle>
             <CardDescription>A list of all registered users. Test users, the main admin, and your own account cannot be edited or deleted directly here.</CardDescription>
           </CardHeader>
-          <CardContent ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 350px)' }}> {/* Adjust maxHeight as needed */}
+          <CardContent ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 350px)' }}> 
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>

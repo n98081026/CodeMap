@@ -45,7 +45,7 @@ export default function ProfilePage() {
       case UserRole.ADMIN: return "/application/admin/dashboard";
       case UserRole.TEACHER: return "/application/teacher/dashboard";
       case UserRole.STUDENT: return "/application/student/dashboard";
-      default: return "/application/login"; 
+      default: return "/login"; 
     }
   }, [user?.role]);
 
@@ -62,7 +62,7 @@ export default function ProfilePage() {
         case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
         case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
         case UserRole.STUDENT: router.replace('/application/student/dashboard'); break;
-        default: router.replace('/application/login'); 
+        default: router.replace('/login'); 
       }
     }
   };
