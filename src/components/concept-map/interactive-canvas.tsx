@@ -19,6 +19,7 @@ import ReactFlow, {
   type NodeTypes,
   type EdgeTypes,
   useReactFlow,
+  type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
@@ -80,8 +81,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   gridSize = 20,
   panActivationKeyCode,
 }) => {
-  const { screenToFlowPosition } = useReactFlow();
+  const { viewport } = useReactFlow(); 
   const [isSpacePanning, setIsSpacePanning] = useState(false);
+  const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -104,6 +106,49 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
+
+  useEffect(() => {
+    if (nodes.length === 0) {
+      setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
+      return;
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    nodes.forEach(node => {
+      const nodeWidth = node.width || 150; 
+      const nodeHeight = node.height || 70; 
+      const posX = node.positionAbsolute?.x ?? node.position.x;
+      const posY = node.positionAbsolute?.y ?? node.position.y;
+      
+      minX = Math.min(minX, posX);
+      minY = Math.min(minY, posY);
+      maxX = Math.max(maxX, posX + nodeWidth);
+      maxY = Math.max(maxY, posY + nodeHeight);
+    });
+
+    if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
+      // No valid nodes with positions/dimensions, allow infinite pan
+      setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
+      return;
+    }
+
+    const PADDING = Math.max(viewport.width, viewport.height) * 0.3; // Allow panning some fraction of viewport beyond content
+
+    const extentMinX = -(maxX + PADDING - (viewport.width / viewport.zoom));
+    const extentMaxX = -(minX - PADDING);
+    const extentMinY = -(maxY + PADDING - (viewport.height / viewport.zoom));
+    const extentMaxY = -(minY - PADDING);
+    
+    setCalculatedTranslateExtent([
+      [Math.min(extentMinX, extentMaxX), Math.min(extentMinY, extentMaxY)],
+      [Math.max(extentMinX, extentMaxX), Math.max(extentMinY, extentMaxY)]
+    ]);
+
+  }, [nodes, viewport.width, viewport.height, viewport.zoom]);
 
 
   const handlePaneDoubleClick = (event: React.MouseEvent) => {
@@ -142,11 +187,12 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         panOnDrag={!isViewOnlyMode}
         panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode}
         zoomOnScroll={true}
-        zoomOnPinch={true}
+        zoomOnPinch={true} 
         zoomOnDoubleClick={!isViewOnlyMode}
         selectionOnDrag={!isViewOnlyMode}
         minZoom={0.1}
         maxZoom={4}
+        translateExtent={calculatedTranslateExtent}
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />

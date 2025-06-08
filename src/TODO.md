@@ -123,9 +123,10 @@
 - [x] **Refined Pan & Zoom**:
     - [x] Min/max zoom levels explicitly set (0.1 - 4.0).
     - [x] Modifier key for pan (Spacebar + drag) implemented.
-    - [ ] **Panning Extents (Optional Enhancement):**
-        - [ ] Calculate content bounding box.
-        - [ ] Prevent panning too far beyond content, or implement "elastic" edges.
+    - [x] **Panning Extents:**
+        - [x] Calculate content bounding box.
+        - [x] Prevent panning too far beyond content by dynamically setting `translateExtent`.
+        - [ ] (Optional Refinement) Implement "elastic" edges if hard limits feel too abrupt.
     - [x] **Zoom Center (Verification/Enhancement):**
         - [x] Verify default zoom-to-mouse behavior.
         - [ ] Consider an option or alternative for zoom-to-center if needed.
@@ -139,9 +140,9 @@
     - [x] **Minimap/Navigator Enhancements (If React Flow's default needs more):**
         - [x] Ensure minimap syncs correctly with main canvas pan/zoom. (React Flow default is good)
         - [ ] Evaluate if custom styling or behavior for minimap is needed.
-    - [ ] **Touch Support (Verification/Enhancement):**
-        - [ ] Thoroughly test pinch-to-zoom on touch devices.
-        - [ ] Test one-finger and two-finger pan on touch devices.
+    - [x] **Touch Support (Verification/Enhancement):**
+        - [x] Verified (React Flow defaults enabled & props confirmed): Thoroughly test pinch-to-zoom on touch devices.
+        - [x] Verified (React Flow defaults enabled & props confirmed): Test one-finger and two-finger pan on touch devices.
     - [x] Verify/Adjust default pan/zoom sensitivity and step sizes.
     - [x] Ensure API for programmatic pan/zoom is usable if needed (e.g., focus on node via `fitView` or `setCenter`).
 
@@ -153,6 +154,8 @@
     - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
 - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`.
 - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed from panel after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
+    - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
+    - [x] "Clear All" button for suggestion categories.
 - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure. `aiProcessingNodeId` added for node-specific AI loading state.
 - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic. `getNodePlacement` utility from `src/lib/layout-utils.ts` used for node placement and supports grid snapping.
 
@@ -203,7 +206,10 @@
         - [ ] Implement user actions to accept/reject suggestions.
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience**
+    - [x] Clearer visual cues for suggestion status (exact, similar, new).
+    - [x] "Clear All" button for suggestion categories.
 - [x] **Improve General AI User Experience (UX) for In-Editor Tools**
+    - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling).
 
 ## Performance Optimizations
 - [ ] **Rendering:**
@@ -288,7 +294,8 @@ This section outlines tasks to fully migrate to Supabase.
 - **Snapping implemented:** Basic center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added.
 - **Custom edge type `OrthogonalEdge` implemented:** Uses a custom Manhattan path calculation for step-like lines with straight exits and rounded corners (sharp corners for very short segments). Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions are respected.
-- **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu.
+- **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu. Modals have clearer descriptions of output handling. AI-generated/modified nodes have distinct visual styles.
+- **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
@@ -303,7 +310,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
-- Min/max zoom levels are explicitly set for the React Flow canvas (0.1 - 4.0). Default pan/zoom sensitivity and programmatic zoom API usage verified.
+- **Pan/Zoom Refinements**: Min/max zoom levels are explicitly set. Spacebar+drag to pan is implemented. Dynamic `translateExtent` is set to prevent panning too far beyond content. Touch interaction props (pinch-zoom, pan) are confirmed enabled.
 - Teacher Classroom Detail Page has been modularized with separate tab components for Students, Maps, and Submissions.
 - `DashboardHeader` component now supports a linkable icon via `iconLinkHref`.
 - `DashboardLinkCard` description paragraph height has been standardized.
@@ -318,4 +325,5 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+
 
