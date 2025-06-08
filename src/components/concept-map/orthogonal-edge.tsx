@@ -7,7 +7,8 @@ import {
   EdgeProps,
   Position,
   BaseEdge,
-  MarkerType, // Import MarkerType
+  MarkerType, 
+  type EdgeMarkerType,
 } from 'reactflow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,67 +41,54 @@ const getManhattanPath = (
   let currentX = sourceX;
   let currentY = sourceY;
 
-  // 1. Source Anchor (after straight exit)
   let sourceAnchor: Point;
   if (sourcePosition === Position.Left) sourceAnchor = { x: currentX - STRAIGHT_EXIT_LENGTH, y: currentY };
   else if (sourcePosition === Position.Right) sourceAnchor = { x: currentX + STRAIGHT_EXIT_LENGTH, y: currentY };
   else if (sourcePosition === Position.Top) sourceAnchor = { x: currentX, y: currentY - STRAIGHT_EXIT_LENGTH };
-  else /* Position.Bottom */ sourceAnchor = { x: currentX, y: currentY + STRAIGHT_EXIT_LENGTH };
+  else sourceAnchor = { x: currentX, y: currentY + STRAIGHT_EXIT_LENGTH };
   pathPoints.push(sourceAnchor);
   currentX = sourceAnchor.x;
   currentY = sourceAnchor.y;
 
-  // 2. Target Anchor (before straight entry)
   let targetAnchor: Point;
   if (targetPosition === Position.Left) targetAnchor = { x: targetX - STRAIGHT_EXIT_LENGTH, y: targetY };
   else if (targetPosition === Position.Right) targetAnchor = { x: targetX + STRAIGHT_EXIT_LENGTH, y: targetY };
   else if (targetPosition === Position.Top) targetAnchor = { x: targetX, y: targetY - STRAIGHT_EXIT_LENGTH };
-  else /* Position.Bottom */ targetAnchor = { x: targetX, y: targetY + STRAIGHT_EXIT_LENGTH };
+  else targetAnchor = { x: targetX, y: targetY + STRAIGHT_EXIT_LENGTH };
 
-  // Intermediate points - attempt a simple HVH or VHV structure
-  const midX = (currentX + targetAnchor.x) / 2;
-  const midY = (currentY + targetAnchor.y) / 2;
-
-  // Determine primary direction based on source handle, then secondary
-  if (sourcePosition === Position.Left || sourcePosition === Position.Right) { // Horizontal first
-    if (currentX !== targetAnchor.x && currentY !== targetAnchor.y) { // Needs a bend
-      pathPoints.push({ x: currentX, y: targetAnchor.y }); // Bend 1 (Vertical segment first)
+  if (sourcePosition === Position.Left || sourcePosition === Position.Right) { 
+    if (currentX !== targetAnchor.x && currentY !== targetAnchor.y) { 
+      pathPoints.push({ x: currentX, y: targetAnchor.y }); 
     }
-    // Path will then go to targetAnchor.x, targetAnchor.y
-  } else { // Vertical first
-     if (currentX !== targetAnchor.x && currentY !== targetAnchor.y) { // Needs a bend
-      pathPoints.push({ x: targetAnchor.x, y: currentY }); // Bend 1 (Horizontal segment first)
+  } else { 
+     if (currentX !== targetAnchor.x && currentY !== targetAnchor.y) { 
+      pathPoints.push({ x: targetAnchor.x, y: currentY }); 
     }
-    // Path will then go to targetAnchor.x, targetAnchor.y
   }
   
   pathPoints.push(targetAnchor);
   pathPoints.push({ x: targetX, y: targetY });
 
 
-  // Build SVG path string with rounded corners
   let d = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
-  let labelPointsForCalc: Point[] = []; // For label calculation
+  let labelPointsForCalc: Point[] = []; 
 
   for (let i = 1; i < pathPoints.length; i++) {
     const p1 = pathPoints[i-1];
     const p2 = pathPoints[i];
     
-    if (i < pathPoints.length -1) { // Potential corner point
+    if (i < pathPoints.length -1) { 
         const p3 = pathPoints[i+1];
         
         const seg1Length = getDistance(p1, p2);
         const seg2Length = getDistance(p2, p3);
 
         if (seg1Length >= CORNER_RADIUS && seg2Length >= CORNER_RADIUS && CORNER_RADIUS > 0) {
-            // Vector p1 -> p2
             const dx1 = p2.x - p1.x;
             const dy1 = p2.y - p1.y;
-            // Vector p2 -> p3
             const dx2 = p3.x - p2.x;
             const dy2 = p3.y - p2.y;
 
-            // Normalize vectors
             const len1 = Math.sqrt(dx1*dx1 + dy1*dy1);
             const ndx1 = dx1/len1;
             const ndy1 = dy1/len1;
@@ -109,35 +97,31 @@ const getManhattanPath = (
             const ndx2 = dx2/len2;
             const ndy2 = dy2/len2;
             
-            // Point on segment 1 where arc starts
             const arcStartX = p2.x - ndx1 * CORNER_RADIUS;
             const arcStartY = p2.y - ndy1 * CORNER_RADIUS;
             d += ` L ${arcStartX} ${arcStartY}`;
             labelPointsForCalc.push({x: arcStartX, y: arcStartY});
 
 
-            // Point on segment 2 where arc ends
             const arcEndX = p2.x + ndx2 * CORNER_RADIUS;
             const arcEndY = p2.y + ndy2 * CORNER_RADIUS;
             
-            // Determine sweep flag
             const crossProduct = dx1 * dy2 - dy1 * dx2;
             const sweepFlag = crossProduct > 0 ? 1 : 0;
 
             d += ` A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 ${sweepFlag} ${arcEndX} ${arcEndY}`;
             labelPointsForCalc.push({x: arcEndX, y: arcEndY});
 
-        } else { // Segment too short for rounded corner, make it sharp
+        } else { 
             d += ` L ${p2.x} ${p2.y}`;
             labelPointsForCalc.push({x:p2.x, y:p2.y});
         }
-    } else { // Last segment, just a line to the end
+    } else { 
         d += ` L ${p2.x} ${p2.y}`;
         labelPointsForCalc.push({x:p2.x, y:p2.y});
     }
   }
   
-  // Calculate label position on the middle-most, longest segment
   let finalLabelX = (sourceX + targetX) / 2;
   let finalLabelY = (sourceY + targetY) / 2;
 
@@ -145,8 +129,6 @@ const getManhattanPath = (
     let longestSegmentLength = -1;
     let segmentStartIndex = -1;
 
-    // Consider segments between pathPoints[1] and pathPoints[pathPoints.length - 2]
-    // This avoids the initial straight exit and final straight entry for label placement
     const eligibleLabelPoints = pathPoints.slice(1, pathPoints.length -1);
 
     if (eligibleLabelPoints.length >= 2) {
@@ -162,7 +144,7 @@ const getManhattanPath = (
             const pB = eligibleLabelPoints[segmentStartIndex + 1];
             finalLabelX = (pA.x + pB.x) / 2;
             finalLabelY = (pA.y + pB.y) / 2;
-        } else if (pathPoints.length > 1) { // Fallback if no eligible middle segments
+        } else if (pathPoints.length > 1) { 
             const firstSegMidX = (pathPoints[0].x + pathPoints[1].x) /2;
             const firstSegMidY = (pathPoints[0].y + pathPoints[1].y) /2;
             const lastSegMidX = (pathPoints[pathPoints.length-2].x + pathPoints[pathPoints.length-1].x) /2;
@@ -170,7 +152,7 @@ const getManhattanPath = (
             finalLabelX = (firstSegMidX + lastSegMidX)/2;
             finalLabelY = (firstSegMidY + lastSegMidY)/2;
         }
-    } else if (pathPoints.length > 1){ // Only one segment (likely sourceAnchor to targetAnchor)
+    } else if (pathPoints.length > 1){ 
          finalLabelX = (pathPoints[0].x + pathPoints[pathPoints.length-1].x) /2;
          finalLabelY = (pathPoints[0].y + pathPoints[pathPoints.length-1].y) /2;
     }
@@ -180,10 +162,9 @@ const getManhattanPath = (
   return [d, finalLabelX, finalLabelY];
 };
 
-// Helper to convert string marker type to React Flow MarkerType object
-export const getMarkerDefinition = (markerTypeString?: string, edgeColor?: string): RFEdge['markerEnd'] => {
+export const getMarkerDefinition = (markerTypeString?: string, edgeColor?: string): EdgeMarkerType | undefined => {
   if (!markerTypeString || markerTypeString === 'none') return undefined;
-  const color = edgeColor || 'hsl(var(--foreground))'; // Use edge color or default
+  const color = edgeColor || 'hsl(var(--foreground))'; 
   switch (markerTypeString.toLowerCase()) {
       case 'arrow': return { type: MarkerType.Arrow, color, strokeWidth: 1 };
       case 'arrowclosed': return { type: MarkerType.ArrowClosed, color, strokeWidth: 1 };
@@ -202,8 +183,8 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
   targetPosition = Position.Top,
   style = {},
   data,
-  markerStart: markerStartString, // Renamed to avoid conflict with React Flow's prop type
-  markerEnd: markerEndString,     // Renamed to avoid conflict with React Flow's prop type
+  markerStart, 
+  markerEnd,   
   selected,
 }) => {
   const updateEdgeInStore = useConceptMapStore((state) => state.updateEdge);
@@ -249,9 +230,9 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
   const edgeColor = data?.color || 'hsl(var(--foreground))'; 
   const lineTypeStyle = data?.lineType === 'dashed' ? { strokeDasharray: '5,5' } : {};
 
-  // Convert string marker types from store to React Flow marker objects
-  const actualMarkerStart = getMarkerDefinition(markerStartString, edgeColor);
-  const actualMarkerEnd = getMarkerDefinition(markerEndString, edgeColor);
+  const actualMarkerStart = typeof markerStart === 'string' ? getMarkerDefinition(markerStart, edgeColor) : markerStart;
+  const actualMarkerEnd = typeof markerEnd === 'string' ? getMarkerDefinition(markerEnd, edgeColor) : markerEnd;
+
 
   return (
     <>

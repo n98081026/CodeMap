@@ -1,16 +1,14 @@
 
 import { create } from 'zustand';
-import { temporal } from 'zundo'; // Import temporal from zundo
-import type { TemporalState as ZundoTemporalState } from 'zundo'; // Import type from zundo
+import { temporal } from 'zundo'; 
+import type { TemporalState as ZundoTemporalState } from 'zundo'; 
 
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 
-// --- Unique ID Generation ---
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 interface ConceptMapState {
-  // Map Identification & Core Properties
   mapId: string | null;
   mapName: string;
   currentMapOwnerId: string | null;
@@ -20,10 +18,8 @@ interface ConceptMapState {
   isNewMapMode: boolean;
   isViewOnlyMode: boolean; 
 
-  // Map Content
   mapData: ConceptMapData;
 
-  // UI & Interaction States
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
@@ -37,7 +33,6 @@ interface ConceptMapState {
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
 
-  // Actions
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
   setCurrentMapOwnerId: (ownerId: string | null) => void;
@@ -245,22 +240,24 @@ export const useConceptMapStore = create<ConceptMapState>()(
         },
       })),
 
-      deleteNode: (nodeId) => set((state) => {
-        const nodesToDelete = new Set<string>([nodeId]);
-        const findDescendants = (currentParentId: string) => {
-          state.mapData.nodes.forEach(n => {
-            if (n.parentNode === currentParentId && !nodesToDelete.has(n.id)) {
-              nodesToDelete.add(n.id);
-              findDescendants(n.id); 
+      deleteNode: (nodeIdToDelete) => set((state) => {
+        const nodesToDelete = new Set<string>([nodeIdToDelete]);
+        const queue = [nodeIdToDelete];
+      
+        // Find all descendants
+        while (queue.length > 0) {
+          const currentParentId = queue.shift()!;
+          state.mapData.nodes.forEach(node => {
+            if (node.parentNode === currentParentId && !nodesToDelete.has(node.id)) {
+              nodesToDelete.add(node.id);
+              queue.push(node.id);
             }
           });
-        };
-        
-        findDescendants(nodeId); 
-
-        const newNodes = state.mapData.nodes.filter((node) => !nodesToDelete.has(node.id));
+        }
+      
+        const newNodes = state.mapData.nodes.filter(node => !nodesToDelete.has(node.id));
         const newEdges = state.mapData.edges.filter(
-          (edge) => !nodesToDelete.has(edge.source) && !nodesToDelete.has(edge.target)
+          edge => !nodesToDelete.has(edge.source) && !nodesToDelete.has(edge.target)
         );
         
         let newSelectedElementId = state.selectedElementId;
@@ -270,13 +267,14 @@ export const useConceptMapStore = create<ConceptMapState>()(
             newSelectedElementType = null;
         }
         const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDelete.has(id));
+        const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDelete.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
 
         return { 
           mapData: { nodes: newNodes, edges: newEdges },
           selectedElementId: newSelectedElementId,
           selectedElementType: newSelectedElementType,
           multiSelectedNodeIds: newMultiSelectedNodeIds,
-          aiProcessingNodeId: state.aiProcessingNodeId && nodesToDelete.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId,
+          aiProcessingNodeId: newAiProcessingNodeId,
         };
       }),
 
