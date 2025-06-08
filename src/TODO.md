@@ -1,5 +1,4 @@
 
-
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -56,6 +55,7 @@
     - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states (using `useStudentDashboardMetrics` hook and `DashboardLinkCard` component, respects BYPASS_AUTH).
     - [x] Connect frontend Teacher Dashboard to fetch classroom & student counts dynamically with individual loading/error states (using `useTeacherDashboardMetrics` hook and `DashboardLinkCard` component, respects BYPASS_AUTH).
     - [x] Ensure navigation paths are consistent (e.g. `/application/...` prefix).
+    - [x] Removed redundant `/application/layout.tsx`.
 
 ## Frontend Enhancements
 
@@ -84,12 +84,12 @@
 - [x] **Floating Node Creation**: Implemented: Double-click on canvas to create a new node at mouse position. New node is selected and label auto-focused.
 - [x] **Child Node Creation via "+" Hover Buttons**: Implemented: "+" icons on node hover (top, right, bottom, left). Clicking "+" adds a new child node in that direction, connects it, sets `parentNode`, selects, and auto-focuses label.
 - [x] **Keyboard-driven Node Creation**: Implemented: Selected Node + `Tab` key creates child node. Selected Node + `Enter` key creates sibling node. New nodes are auto-positioned, connected (for child), parented, selected, and label auto-focused.
-- [x] **Auto-focus for New Nodes**: Implemented: New nodes created via double-click, "+ hover buttons", or keyboard shortcuts (`Tab`/`Enter`) automatically enter label edit mode.
+- [x] **Auto-focus for New Nodes**: Implemented & Verified: New nodes created via double-click, "+ hover buttons", or keyboard shortcuts (`Tab`/`Enter`) automatically enter label edit mode.
 - [x] **Hierarchical Node Movement**: Verified: React Flow's `parentNode` feature handles moving descendants with parent.
 - [x] **Recursive deletion of child nodes when parent is deleted**: Implemented in Zustand store's `deleteNode` action.
 - [x] **Improved Connector Experience (`OrthogonalEdge.tsx` and beyond):**
     - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Path calculation reviewed and confirmed to produce robust Manhattan-style (HVH/VHV) paths with straight exits/entries and clear label placement across various handle orientations. Sharp/rounded corners logic remains.
-    - [ ] **(Highly Advanced) Edge Obstacle Avoidance for `OrthogonalEdge`:**
+    - [ ] **(Highly Advanced - Future Consideration) Edge Obstacle Avoidance for `OrthogonalEdge`:**
         - [ ] Research pathfinding algorithms (e.g., A* variants suitable for grid/orthogonal paths) or simplified heuristics.
         - [ ] Implement collision detection between edge segments and other node bounding boxes.
         - [ ] Develop strategies for rerouting or adjusting paths (e.g., adding bends, "pushing" segments away from nodes).
@@ -117,8 +117,8 @@
         - [ ] (Optional Refinement) Implement "elastic" edges if hard limits feel too abrupt.
     - [x] **Zoom Center (Verification/Enhancement):**
         - [x] Verified default zoom-to-mouse behavior.
-        - [ ] Consider an option or alternative for zoom-to-center if needed.
-    - [ ] **(Highly Advanced) Level of Detail (LOD) Rendering:**
+        - [ ] (Future Consideration) Consider an option or alternative for zoom-to-center if needed.
+    - [ ] **(Highly Advanced - Future Consideration) Level of Detail (LOD) Rendering:**
         - [ ] At small zoom levels, render simplified nodes (e.g., colored rectangles, hide text/details).
         - [ ] Render thinner or simplified edges.
         - [ ] Consider node/data aggregation at very distant zoom levels.
@@ -127,7 +127,7 @@
         - [x] Test selection box tool behavior during pan/zoom operations - Verified, React Flow default with `selectionOnDrag={true}` works as expected.
     - [x] **Minimap/Navigator Enhancements (If React Flow's default needs more):**
         - [x] Ensure minimap syncs correctly with main canvas pan/zoom. (React Flow default is good) - Verified.
-        - [ ] Evaluate if custom styling or behavior for minimap is needed.
+        - [ ] (Future Consideration) Evaluate if custom styling or behavior for minimap is needed.
     - [x] **Touch Support (Verification/Enhancement):**
         - [x] Verified (React Flow defaults enabled & props confirmed): Thoroughly test pinch-to-zoom on touch devices.
         - [x] Verified (React Flow defaults enabled & props confirmed): Test one-finger and two-finger pan on touch devices.
@@ -140,11 +140,12 @@
 - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`. Visual grid background added and verified.
 - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type, width, height for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
     - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
-- [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`. Modal descriptions updated for clarity.
+- [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`. Modal descriptions updated for clarity on output handling.
 - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed from panel after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
     - [x] "Clear All" button for suggestion categories.
     - [x] Clearer visual cues for suggestion status (exact, similar, new).
+    - [x] Empty states are context-aware (general panel, per-category).
 - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure. `aiProcessingNodeId` added for node-specific AI loading state.
 - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic. `getNodePlacement` utility from `src/lib/layout-utils.ts` used for node placement and supports grid snapping.
 
@@ -183,12 +184,12 @@
     - [x] **Implement "Rewrite Node Content (AI) / Change Tone" Feature**
     - [ ] **Alternative GAI Trigger Points (Future Consideration):**
         - [x] Implement floating "AI Expand" button (or similar quick action) on selected node hover.
-        - [ ] Explore slash commands (`/ai ...`) in node text editor for GAI actions.
-        - [ ] Consider a global AI input box/panel on the canvas for broader queries/commands.
+        - [ ] (Future Consideration) Explore slash commands (`/ai ...`) in node text editor for GAI actions.
+        - [ ] (Future Consideration) Consider a global AI input box/panel on the canvas for broader queries/commands.
     - [x] **GAI Action Feedback**:
         - [x] Visual cues for AI-generated/modified nodes (type, icon).
         - [x] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or floating buttons.
-    - [ ] **(Highly Advanced - Future) Explore "AI Structure Suggestions":**
+    - [ ] **(Highly Advanced - Future Consideration) Explore "AI Structure Suggestions":**
         - [ ] Develop Genkit flow to analyze map structure & content.
         - [ ] Define criteria for "good" structure suggestions (e.g., grouping related ideas, suggesting missing links).
         - [ ] Design UI for presenting structure suggestions (e.g., non-intrusive hints on canvas or in AI panel).
@@ -198,27 +199,31 @@
     - [x] Clearer visual cues for suggestion status (exact, similar, new).
     - [x] "Clear All" button for suggestion categories.
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
+    - [x] Empty states are context-aware.
 - [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
     - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling. Toolbar button tooltips and disable states refined).
 
 ## Performance Optimizations
-- [ ] **Rendering:**
+- [x] **Rendering:**
     - [x] **Virtualization (Occlusion Culling for Canvas):** Investigated and `onlyRenderVisibleElements` applied.
-    - [ ] **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges.
+    - [ ] (Future Consideration) **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges. (React Flow's approach offers some implicit layering).
 - [ ] **Interactions:**
     - [ ] **Event Throttling/Debouncing:**
-        - [x] Verify React Flow's internal event handling for drag/zoom for common scenarios. (Basic node drag snapping logic is now in place, needs monitoring for complex maps).
-        - [ ] If custom heavy interactions are added (e.g., complex snapping calculations beyond current, or advanced orthogonal edge routing), implement throttling/debouncing for them.
-- [ ] **Data Handling & General:**
-    - [x] **Image Optimization:** Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate. (Reviewed: App primarily uses icons and placeholders. `next/image` configured for placeholders. No immediate unoptimized content images identified.)
+        - [x] Verified React Flow's internal event handling for drag/zoom for common scenarios. Snapping logic is lightweight.
+        - [ ] (Future Consideration) If custom heavy interactions are added (e.g., advanced orthogonal edge routing), implement throttling/debouncing for them.
+- [x] **Data Handling & General:**
+    - [x] **Image Optimization:** Review and optimize image usage: App primarily uses icons and placeholders. `next/image` configured for placeholders. No immediate unoptimized content images identified.
     - [x] **Large List Rendering:**
         - [x] Implement virtualization for Admin User Management page using `@tanstack/react-virtual`.
         - [x] Implement virtualization for Teacher Classroom Student List using `@tanstack/react-virtual`.
     - [x] **React Component Memoization:**
         - [x] Key callbacks in `ConceptMapEditorPage` memoized with `useCallback`.
         - [x] Key reusable display components memoized with `React.memo` (`DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, `ClassroomListItem`, `ConceptMapListItem`, `SubmissionListItem`).
-    - [x] **Code Splitting:** Use `next/dynamic` for heavy components or libraries not needed on initial load (already done for `FlowCanvasCore`, review for others).
-    - [ ] **Bundle Size Analysis:** Periodically analyze the application bundle size and identify areas for reduction.
+    - [x] **Code Splitting:**
+        - [x] Use `next/dynamic` for `FlowCanvasCore`.
+        - [ ] (Reviewed - No Action) `AISuggestionPanel` and `PropertiesInspector` reviewed for dynamic import. Current complexity does not strongly warrant it yet, but can be revisited.
+    - [ ] **Bundle Size Analysis:** (Future Task) Periodically analyze the application bundle size and identify areas for reduction.
+    - [x] Removed redundant `CanvasPlaceholder.tsx`.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
@@ -303,6 +308,7 @@ This section outlines tasks to fully migrate to Supabase.
 - `DashboardHeader` component now supports a linkable icon via `iconLinkHref`.
 - `DashboardLinkCard` description paragraph height has been standardized.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps.
+- Redundant `CanvasPlaceholder.tsx` and `/application/layout.tsx` files have been removed.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:

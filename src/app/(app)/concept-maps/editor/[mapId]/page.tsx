@@ -1,98 +1,303 @@
+
 "use client";
 
-import { CanvasPlaceholder } from "@/components/concept-map/canvas-placeholder";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import type { Node as RFNode } from 'reactflow';
+import { ReactFlowProvider } from 'reactflow';
+import dynamic from 'next/dynamic';
+
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
+import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Compass, Share2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save, EyeOff } from "lucide-react";
 import {
   ExtractConceptsModal,
   SuggestRelationsModal,
   ExpandConceptModal,
-} from "@/components/concept-map/genai-modals"; // Ensure correct path
+  AskQuestionModal,
+} from "@/components/concept-map/genai-modals";
+import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal";
+import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
+import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
 import { useToast } from "@/hooks/use-toast";
+import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
+import { UserRole } from "@/types";
+import { useAuth } from "@/contexts/auth-context";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
+import type { CustomNodeData } from '@/components/concept-map/custom-node';
+
+import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
+import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 
 
-export default function ConceptMapEditorPage({ params }: { params: { mapId: string } }) {
+const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
+  ssr: false,
+  loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
+});
+
+
+export default function ConceptMapEditorPage() {
+  const paramsHook = useParams();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const mapName = params.mapId === "new" ? "New Concept Map" : `Concept Map: ${params.mapId}`; // Placeholder name
+  const { user } = useAuth();
+  const router = useRouter();
 
-  // State to control modal visibility
-  const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
-  const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
-  const [isExpandConceptModalOpen, setIsExpandConceptModalOpen] = useState(false);
-  
-  // State for GenAI results (example)
-  const [extractedConcepts, setExtractedConcepts] = useState<string[]>([]);
-  const [suggestedRelations, setSuggestedRelations] = useState<any[]>([]);
-  const [expandedConcepts, setExpandedConcepts] = useState<string[]>([]);
+  const routeMapId = paramsHook.mapId as string;
+  const isViewOnlyModeQueryParam = searchParams.get('viewOnly') === 'true';
 
-  const handleConceptsExtracted = (concepts: string[]) => {
-    console.log("Extracted Concepts:", concepts);
-    setExtractedConcepts(concepts); // Store or use these concepts
-    toast({ title: "AI: Concepts Ready", description: `Found ${concepts.length} concepts.` });
-    // Further logic: add concepts to map, display them, etc.
+  const {
+    mapId: storeMapId, mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode, isViewOnlyMode: storeIsViewOnlyMode,
+    mapData: storeMapData, isLoading: isStoreLoading, isSaving: isStoreSaving, error: storeError,
+    selectedElementId, selectedElementType, multiSelectedNodeIds,
+    aiExtractedConcepts, aiSuggestedRelations,
+    setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
+    deleteNode: deleteStoreNode, updateNode: updateStoreNode,
+    updateEdge: updateStoreEdge,
+    setSelectedElement: setStoreSelectedElement, setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
+    importMapData,
+    setIsViewOnlyMode: setStoreIsViewOnlyMode,
+  } = useConceptMapStore();
+
+  useEffect(() => {
+    setStoreIsViewOnlyMode(isViewOnlyModeQueryParam);
+  }, [isViewOnlyModeQueryParam, setStoreIsViewOnlyMode]);
+
+  const temporalStoreAPI = useConceptMapStore.temporal;
+  const [temporalState, setTemporalState] = useState(temporalStoreAPI.getState());
+  useEffect(() => {
+    const unsubscribe = temporalStoreAPI.subscribe(setTemporalState, (state) => state);
+    return unsubscribe;
+  }, [temporalStoreAPI]);
+  const canUndo = temporalState.pastStates.length > 0;
+  const canRedo = temporalState.futureStates.length > 0;
+
+  const { saveMap } = useConceptMapDataManager({ routeMapId, user });
+
+  const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
+  const {
+    isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
+    isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen, conceptsForRelationSuggestion, openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
+    isExpandConceptModalOpen, setIsExpandConceptModalOpen, conceptToExpandDetails, mapContextForExpansion, openExpandConceptModal, handleConceptExpanded,
+    isQuickClusterModalOpen, setIsQuickClusterModalOpen, openQuickClusterModal, handleClusterGenerated,
+    isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen, openGenerateSnippetModal, handleSnippetGenerated,
+    isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
+    isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
+    handleSummarizeSelectedNodes,
+    addStoreNode: addNodeFromHook,
+    addStoreEdge: addEdgeFromHook,
+  } = aiToolsHook;
+
+
+  const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; nodeId: string | null; } | null>(null);
+
+  const handleMapPropertiesChange = useCallback((properties: { name: string; isPublic: boolean; sharedWithClassroomId: string | null; }) => {
+    if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", description: "Map properties cannot be changed.", variant: "default"}); return; }
+    setStoreMapName(properties.name);
+    setStoreIsPublic(properties.isPublic);
+    setStoreSharedWithClassroomId(properties.sharedWithClassroomId);
+  }, [storeIsViewOnlyMode, toast, setStoreMapName, setStoreIsPublic, setStoreSharedWithClassroomId]);
+
+  const handleFlowSelectionChange = useCallback((elementId: string | null, elementType: 'node' | 'edge' | null) => {
+    setStoreSelectedElement(elementId, elementType);
+  }, [setStoreSelectedElement]);
+
+  const handleMultiNodeSelectionChange = useCallback((nodeIds: string[]) => {
+    setStoreMultiSelectedNodeIds(nodeIds);
+  }, [setStoreMultiSelectedNodeIds]);
+
+  const handleAddNodeToData = () => {
+    if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
+    const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
+    const { x, y } = aiToolsHook.getNodePlacement(useConceptMapStore.getState().mapData.nodes.length, 'generic', null, null, 20);
+    addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
+    toast({ title: "Node Added", description: `"${newNodeText}" added.`});
   };
 
-  const handleRelationsSuggested = (relations: any[]) => {
-    console.log("Suggested Relations:", relations);
-    setSuggestedRelations(relations);
-    toast({ title: "AI: Relations Ready", description: `Found ${relations.length} relations.` });
-    // Further logic: display suggestions, allow user to add to map
+  const handleAddEdgeToData = () => {
+    if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
+    const nodes = useConceptMapStore.getState().mapData.nodes;
+    if (nodes.length < 2) { toast({ title: "Cannot Add Edge", description: "At least two nodes are required to add an edge.", variant: "default" }); return; }
+    const sourceNode = nodes[nodes.length - 2]; const targetNode = nodes[nodes.length - 1];
+    if (!sourceNode || !targetNode) { toast({ title: "Error Adding Edge", description: "Source or target node for edge not found.", variant: "destructive"}); return; }
+    addEdgeFromHook({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
+    toast({ title: "Edge Added" });
   };
 
-  const handleConceptExpanded = (newConcepts: string[]) => {
-    console.log("Expanded Concepts:", newConcepts);
-    setExpandedConcepts(newConcepts);
-    toast({ title: "AI: Expansion Ready", description: `Found ${newConcepts.length} new ideas.` });
-    // Further logic: display new concepts, allow user to add to map
-  };
+  const getRoleBasedDashboardLink = useCallback(() => { return user ? `/application/${user.role}/dashboard` : '/login'; }, [user]);
+  const getBackLink = useCallback(() => { return user && user.role === UserRole.TEACHER ? "/application/teacher/classrooms" : "/application/student/concept-maps"; }, [user]);
+  const getBackButtonText = useCallback(() => { return user && user.role === UserRole.TEACHER ? "Back to Classrooms" : "Back to My Maps"; }, [user]);
 
+  const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
+  const onToggleAiPanel = useCallback(() => setIsAiPanelOpen(prev => !prev), []);
+
+  let mapForInspector: ConceptMap | null = (storeMapId && storeMapId !== 'new' && currentMapOwnerId) ? {
+    id: storeMapId, name: mapName, ownerId: currentMapOwnerId, mapData: storeMapData, isPublic: isPublic,
+    sharedWithClassroomId: sharedWithClassroomId, createdAt: currentMapCreatedAt || "", updatedAt: new Date().toISOString(),
+  } : null;
+  if ((isNewMapMode || storeMapId === 'new') && !mapForInspector && user) {
+      mapForInspector = { id: 'new', name: mapName, ownerId: user.id, mapData: storeMapData, isPublic: isPublic,
+                          sharedWithClassroomId: sharedWithClassroomId, createdAt: currentMapCreatedAt || "", updatedAt: new Date().toISOString() };
+  }
+  let actualSelectedElementForInspector: ConceptMapNode | ConceptMapEdge | null = null;
+  if (selectedElementId && selectedElementType) {
+    actualSelectedElementForInspector = selectedElementType === 'node' ? storeMapData.nodes.find(n => n.id === selectedElementId) || null : storeMapData.edges.find(e => e.id === selectedElementId) || null;
+  }
+  const canAddEdge = storeMapData.nodes.length >= 2;
+
+  const handleNewMap = useCallback(() => { router.push('/application/concept-maps/editor/new'); }, [router]);
+
+  const handleExportMap = useCallback(() => {
+    const mapToExport = {
+        name: mapName,
+        mapData: storeMapData,
+        isPublic: isPublic,
+        sharedWithClassroomId: sharedWithClassroomId,
+    };
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(mapToExport, null, 2))}`;
+    const link = document.createElement('a');
+    link.href = jsonString;
+    link.download = `${mapName.replace(/\s+/g, '_') || 'concept_map'}.json`;
+    link.click();
+    toast({title: "Map Exported", description: `${mapName}.json has been downloaded.`});
+  }, [mapName, storeMapData, isPublic, sharedWithClassroomId, toast]);
+
+  const handleTriggerImport = useCallback(() => {
+    if (!storeIsViewOnlyMode) fileInputRef.current?.click();
+    else toast({title: "View Only Mode", description: "Import disabled."})
+  }, [storeIsViewOnlyMode, toast]);
+
+  const handleFileSelectedForImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (storeIsViewOnlyMode) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const fileContent = await file.text();
+      const importedJson = JSON.parse(fileContent);
+      if (typeof importedJson.mapData !== 'object' || !Array.isArray(importedJson.mapData.nodes) || !Array.isArray(importedJson.mapData.edges)) {
+        throw new Error("Invalid map data structure in JSON file.");
+      }
+      importMapData(importedJson.mapData, importedJson.name || file.name.replace(/\.json$/i, ''));
+      temporalStoreAPI.getState().clear();
+      toast({ title: "Map Imported", description: `"${importedJson.name || file.name}" loaded successfully.`});
+    } catch (e) {
+      toast({ title: "Import Failed", description: `Error importing map: ${(e as Error).message}`, variant: "destructive"});
+    }
+    if(fileInputRef.current) fileInputRef.current.value = "";
+  }, [storeIsViewOnlyMode, toast, importMapData, temporalStoreAPI]);
+
+  const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
+    event.preventDefault();
+    setContextMenu({ isOpen: true, x: event.clientX, y: event.clientY, nodeId: node.id });
+  }, []);
+
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+  const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => {
+    if(!storeIsViewOnlyMode) deleteStoreNode(nodeId);
+    closeContextMenu();
+  }, [storeIsViewOnlyMode, deleteStoreNode, closeContextMenu]);
+
+  const handleSelectedElementPropertyUpdateInspector = useCallback((updates: any) => {
+    if (storeIsViewOnlyMode || !selectedElementId || !selectedElementType ) return;
+    if (selectedElementType === 'node') updateStoreNode(selectedElementId, updates);
+    else if (selectedElementType === 'edge') updateStoreEdge(selectedElementId, updates);
+  }, [storeIsViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
+
+  if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
+  if (storeError) { return <div className="p-4 text-destructive flex flex-col items-center justify-center h-full gap-4"><AlertTriangle className="h-10 w-10" /> <p>{storeError}</p> <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
 
   return (
-    <div className="flex h-full flex-col space-y-4">
+    <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col">
+      <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileSelectedForImport} style={{ display: 'none' }} disabled={storeIsViewOnlyMode} />
       <DashboardHeader
         title={mapName}
-        description="Create, edit, and visualize your ideas."
-        icon={params.mapId === "new" ? Compass : Share2}
+        description={storeIsViewOnlyMode ? "Currently in view-only mode." : "Create, edit, and visualize your ideas."}
+        icon={storeIsViewOnlyMode ? EyeOff : (isNewMapMode || storeMapId === 'new') ? Compass : Share2}
+        iconLinkHref={getRoleBasedDashboardLink()}
       >
-        <Button asChild variant="outline">
-          <Link href="/student/concept-maps"> {/* Adjust link based on role or context */}
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Maps
-          </Link>
-        </Button>
+        {!storeIsViewOnlyMode && <Button onClick={() => saveMap(storeIsViewOnlyMode)} disabled={isStoreSaving || storeIsViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
+        <Button asChild variant="outline"><Link href={getBackLink()}><ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}</Link></Button>
       </DashboardHeader>
-
-      <EditorToolbar
-        onExtractConcepts={() => setIsExtractConceptsModalOpen(true)}
-        onSuggestRelations={() => setIsSuggestRelationsModalOpen(true)}
-        onExpandConcept={() => setIsExpandConceptModalOpen(true)}
-      />
-
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        <div className="flex-grow">
-          <CanvasPlaceholder />
+      <ReactFlowProvider>
+        <EditorToolbar
+          onNewMap={handleNewMap} onSaveMap={() => saveMap(storeIsViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
+          onExtractConcepts={() => openExtractConceptsModal(selectedElementId || undefined)}
+          onSuggestRelations={() => openSuggestRelationsModal(selectedElementId || undefined)}
+          onExpandConcept={() => openExpandConceptModal(selectedElementId || undefined)}
+          onQuickCluster={openQuickClusterModal} onGenerateSnippetFromText={openGenerateSnippetModal}
+          onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
+          isViewOnlyMode={storeIsViewOnlyMode} onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
+          onToggleProperties={onTogglePropertiesInspector} onToggleAiPanel={onToggleAiPanel}
+          isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
+          onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
+          selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
+          numMultiSelectedNodes={multiSelectedNodeIds.length}
+        />
+        <div className="flex-grow relative overflow-hidden">
+            <FlowCanvasCore
+              mapDataFromStore={storeMapData} isViewOnlyMode={storeIsViewOnlyMode}
+              onSelectionChange={handleFlowSelectionChange} onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
+              onNodesChangeInStore={updateStoreNode}
+              onNodesDeleteInStore={deleteStoreNode}
+              onEdgesDeleteInStore={(edgeId) => useConceptMapStore.getState().deleteEdge(edgeId)}
+              onConnectInStore={addEdgeFromHook}
+              onNodeContextMenu={handleNodeContextMenu}
+              onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
+            />
         </div>
-        <aside className="hidden w-80 flex-shrink-0 lg:block">
-          <PropertiesInspector />
-        </aside>
-      </div>
-
-      {/* GenAI Modals - controlled by state */}
-      {isExtractConceptsModalOpen && (
-        <ExtractConceptsModal onConceptsExtracted={handleConceptsExtracted} />
-      )}
-      {isSuggestRelationsModalOpen && (
-        // Pass selected concepts from map if available
-        <SuggestRelationsModal onRelationsSuggested={handleRelationsSuggested} initialConcepts={extractedConcepts.slice(0,3)} />
-      )}
-      {isExpandConceptModalOpen && (
-        // Pass selected concept from map if available
-        <ExpandConceptModal onConceptExpanded={handleConceptExpanded} initialConcept={extractedConcepts.length > 0 ? extractedConcepts[0] : ""} />
-      )}
+        {contextMenu?.isOpen && contextMenu.nodeId && (
+          <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu}
+            onDeleteNode={handleDeleteNodeFromContextMenu}
+            onExpandConcept={() => { openExpandConceptModal(contextMenu.nodeId!); closeContextMenu(); }}
+            onSuggestRelations={() => { openSuggestRelationsModal(contextMenu.nodeId!); closeContextMenu(); }}
+            onExtractConcepts={() => { openExtractConceptsModal(contextMenu.nodeId!); closeContextMenu(); }}
+            onAskQuestion={() => { openAskQuestionModal(contextMenu.nodeId!); closeContextMenu(); }}
+            onRewriteContent={() => { openRewriteNodeContentModal(contextMenu.nodeId!); closeContextMenu(); }}
+            isViewOnlyMode={storeIsViewOnlyMode} />
+        )}
+        <Sheet open={isPropertiesInspectorOpen} onOpenChange={setIsPropertiesInspectorOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+            <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
+              selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType}
+              onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
+              isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} />
+          </SheetContent>
+        </Sheet>
+        <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
+          <SheetContent side="bottom" className="h-[40vh] sm:h-1/3">
+            <AISuggestionPanel currentMapNodes={storeMapData.nodes}
+              extractedConcepts={aiExtractedConcepts} suggestedRelations={aiSuggestedRelations}
+              onAddExtractedConcepts={addExtractedConceptsToMap} onAddSuggestedRelations={addSuggestedRelationsToMap}
+              onClearExtractedConcepts={() => useConceptMapStore.getState().setAiExtractedConcepts([])}
+              onClearSuggestedRelations={() => useConceptMapStore.getState().setAiSuggestedRelations([])}
+              isViewOnlyMode={storeIsViewOnlyMode} />
+          </SheetContent>
+        </Sheet>
+        {isExtractConceptsModalOpen && !storeIsViewOnlyMode && <ExtractConceptsModal initialText={textForExtraction} onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />}
+        {isSuggestRelationsModalOpen && !storeIsViewOnlyMode && <SuggestRelationsModal initialConcepts={conceptsForRelationSuggestion} onRelationsSuggested={handleRelationsSuggested} onOpenChange={setIsSuggestRelationsModalOpen} />}
+        {isExpandConceptModalOpen && !storeIsViewOnlyMode && conceptToExpandDetails && (
+          <ExpandConceptModal
+            initialConceptText={conceptToExpandDetails.text}
+            existingMapContext={mapContextForExpansion}
+            onConceptExpanded={handleConceptExpanded}
+            onOpenChange={setIsExpandConceptModalOpen}
+          />
+        )}
+        {isQuickClusterModalOpen && !storeIsViewOnlyMode && <QuickClusterModal isOpen={isQuickClusterModalOpen} onOpenChange={setIsQuickClusterModalOpen} onClusterGenerated={handleClusterGenerated} />}
+        {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
+        {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
+        {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
+      </ReactFlowProvider>
     </div>
   );
 }
