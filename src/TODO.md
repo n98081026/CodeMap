@@ -1,5 +1,4 @@
 
-
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -193,7 +192,7 @@
     - [x] **Implement "Summarize Selected Nodes (AI)" Feature**
     - [x] **Implement "Rewrite Node Content (AI) / Change Tone" Feature**
     - [ ] **Alternative GAI Trigger Points (Future Consideration):**
-        - [ ] Implement floating "AI Expand" button (or similar quick action) on selected node hover.
+        - [x] Implement floating "AI Expand" button (or similar quick action) on selected node hover.
         - [ ] Explore slash commands (`/ai ...`) in node text editor for GAI actions.
         - [ ] Consider a global AI input box/panel on the canvas for broader queries/commands.
     - [x] **GAI Action Feedback**:
@@ -217,8 +216,8 @@
         - [ ] Investigate React Flow built-in virtualization/occlusion culling for large maps.
         - [ ] If needed, implement custom occlusion culling for nodes/edges outside viewport (complex).
     - [ ] **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges.
-- [x] **Interactions:**
-    - [x] **Event Throttling/Debouncing:**
+- [ ] **Interactions:**
+    - [ ] **Event Throttling/Debouncing:**
         - [x] Verify React Flow's internal event handling for drag/zoom for common scenarios. (Basic node drag snapping logic is now in place, needs monitoring for complex maps).
         - [ ] If custom heavy interactions are added (e.g., complex snapping calculations beyond current, or advanced orthogonal edge routing), implement throttling/debouncing for them.
 - [ ] **Data Handling & General:**
@@ -290,11 +289,11 @@ This section outlines tasks to fully migrate to Supabase.
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
-- **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children implemented in Zustand store. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented.
+- **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children implemented in Zustand store. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented. Floating "AI Expand" button on selected hovered nodes.
 - **Snapping implemented:** Basic center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added.
 - **Custom edge type `OrthogonalEdge` implemented:** Uses a custom Manhattan path calculation for step-like lines with straight exits and rounded corners (sharp corners for very short segments). Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions are respected.
-- **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu. Modals have clearer descriptions of output handling. AI-generated/modified nodes have distinct visual styles.
+- **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu or floating button. Modals have clearer descriptions of output handling. AI-generated/modified nodes have distinct visual styles.
 - **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
@@ -325,7 +324,4 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
-
-
-
 

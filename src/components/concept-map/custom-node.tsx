@@ -1,9 +1,9 @@
-
 "use client";
-import React, { memo, useEffect, useRef } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 import {
@@ -19,8 +19,9 @@ export interface CustomNodeData {
   isViewOnly?: boolean;
   backgroundColor?: string;
   shape?: 'rectangle' | 'ellipse';
-  width?: number; 
-  height?: number; 
+  width?: number;
+  height?: number;
+  onTriggerAIExpand?: (nodeId: string) => void; // New prop for triggering AI
 }
 
 const nodeTypeStyles: { [key: string]: string } = {
@@ -44,14 +45,14 @@ const nodeTypeStyles: { [key: string]: string } = {
 
 const nodeTypeIcons: { [key: string]: React.ElementType } = {
   key_feature: Milestone, service_component: ServerCog, ui_view: MonitorPlay, data_model: Database, code_module: FileCode2,
-  external_dependency: ExternalLink, user_role: Users, core_process: Workflow, 
-  'ai-concept': Brain, 
+  external_dependency: ExternalLink, user_role: Users, core_process: Workflow,
+  'ai-concept': Brain,
   'ai-expanded': Lightbulb,
-  'ai-summary-node': AlignLeft, 
-  'ai-rewritten-node': PenLine, 
-  'manual-node': Puzzle, 
-  'text-derived-concept': FileCode2, 
-  'ai-generated': Sparkles, 
+  'ai-summary-node': AlignLeft,
+  'ai-rewritten-node': PenLine,
+  'manual-node': Puzzle,
+  'text-derived-concept': FileCode2,
+  'ai-generated': Sparkles,
   default: Box,
 };
 
@@ -60,6 +61,7 @@ const GRID_SIZE_FOR_CHILD_PLACEMENT = 20;
 const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, selected, isConnectable, id, xPos, yPos, width, height }) => {
   const { editingNodeId, setEditingNodeId, updateNode, addNode, addEdge, aiProcessingNodeId, setSelectedElement } = useConceptMapStore();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   const isCurrentNodeEditing = editingNodeId === id && !data.isViewOnly;
   const isCurrentNodeAiProcessing = aiProcessingNodeId === id;
@@ -93,28 +95,33 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     const parentNodeFromProps = {
       id, x: xPos, y: yPos, width, height, text: data.label, type: data.type || 'default'
     };
-    
+
     const childPosition = getNodePlacement(currentNodes, 'child', parentNodeFromProps, null, GRID_SIZE_FOR_CHILD_PLACEMENT, direction);
-    
+
     const newChildNodeId = addNode({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: id });
     addEdge({ source: id, target: newChildNodeId, label: "connects" });
     setSelectedElement(newChildNodeId, 'node');
     setEditingNodeId(newChildNodeId);
   };
 
+  const handleAIExpandClick = (event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent node selection/drag start
+    data.onTriggerAIExpand?.(id);
+  };
+
   const baseStyle = "shadow-md transition-all duration-150 ease-in-out border-2 flex flex-col";
   const selectedStyle = selected ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-background shadow-2xl" : "hover:shadow-xl";
-  
+
   const typeClass = nodeTypeStyles[data.type || 'default'] || nodeTypeStyles.default;
   const customBgStyle = data.backgroundColor ? { backgroundColor: data.backgroundColor } : {};
-  
+
   const shapeClass = data.shape === 'ellipse' ? 'rounded-full' : 'rounded-lg';
 
   const explicitSizeStyle = {
     width: data.width ? `${data.width}px` : undefined,
     height: data.height ? `${data.height}px` : undefined,
   };
-  
+
   const IconComponent = nodeTypeIcons[data.type || 'default'] || nodeTypeIcons.default;
 
   const handleBaseStyle = { width: 8, height: 8, transition: 'all 0.2s ease', pointerEvents: 'all' as React.CSSProperties['pointerEvents'] };
@@ -133,18 +140,31 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   return (
     <Card
       className={cn(
-        baseStyle, selectedStyle, typeClass, shapeClass, 
-        'group relative', 
+        baseStyle, selectedStyle, typeClass, shapeClass,
+        'group relative',
         isCurrentNodeAiProcessing && 'opacity-70',
-        !data.width && 'min-w-[150px] max-w-xs', 
-        !data.height && 'min-h-[70px]' 
+        !data.width && 'min-w-[150px] max-w-xs',
+        !data.height && 'min-h-[70px]'
       )}
       style={{...customBgStyle, ...explicitSizeStyle }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {isCurrentNodeAiProcessing && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm z-10 rounded-[inherit]">
+        <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm z-20 rounded-[inherit]">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
+      )}
+      {selected && isHovered && !data.isViewOnly && !isCurrentNodeAiProcessing && data.onTriggerAIExpand && (
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute -top-3 -right-3 z-10 h-7 w-7 rounded-full shadow-md bg-background hover:bg-accent"
+          onClick={handleAIExpandClick}
+          title="Expand Concept (AI)"
+        >
+          <Brain className="h-4 w-4 text-primary" />
+        </Button>
       )}
       <CardHeader
         className={cn("p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2 shrink-0", shapeClass === 'rounded-full' ? 'rounded-t-full' : 'rounded-t-lg')}
@@ -174,7 +194,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
           {data.details}
         </CardContent>
       )}
-      {!data.details && <div className="flex-grow"></div>} 
+      {!data.details && <div className="flex-grow"></div>}
 
 
       {handlePositions.map(hp => (
@@ -200,5 +220,3 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
-
-
