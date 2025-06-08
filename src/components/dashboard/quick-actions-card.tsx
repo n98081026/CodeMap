@@ -56,3 +56,4 @@ export const QuickActionsCard: React.FC<QuickActionsCardProps> = React.memo(func
   );
 });
 QuickActionsCard.displayName = "QuickActionsCard";
+
