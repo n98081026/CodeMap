@@ -133,6 +133,7 @@
         - [x] Verified (React Flow defaults enabled & props confirmed): Test one-finger and two-finger pan on touch devices.
     - [x] Verify/Adjust default pan/zoom sensitivity and step sizes - Verified, React Flow defaults acceptable.
     - [x] Ensure API for programmatic pan/zoom is usable if needed (e.g., focus on node via `fitView` or `setCenter`) - Verified, React Flow provides.
+    - [x] Visual grid background added and verified.
 
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
@@ -321,4 +322,3 @@ The main remaining area for full Supabase connection is:
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
-```

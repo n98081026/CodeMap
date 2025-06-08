@@ -87,7 +87,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeDragStop,
   onPaneDoubleClick,
   activeSnapLines = [],
-  gridSize = 20, // Ensure gridSize is available
+  gridSize = 20, 
   panActivationKeyCode,
 }) => {
   const { viewport, getViewport, setViewport } = useReactFlow(); 
