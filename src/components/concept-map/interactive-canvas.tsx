@@ -54,12 +54,22 @@ const fitViewOptions: FitViewOptions = {
 };
 
 const nodeColor = (node: Node<CustomNodeData>) => {
+  // Use node's custom background color if set, otherwise type-based or default
+  if (node.data?.backgroundColor) {
+    return node.data.backgroundColor;
+  }
   const type = node.data?.type || 'default';
+  // Simplified example: you might have a more complex mapping or use CSS variables
   const nodeTypeColors: { [key: string]: string } = {
+    key_feature: 'hsl(var(--chart-1))',
+    service_component: 'hsl(var(--chart-2))',
+    ui_view: 'hsl(var(--chart-3))',
+    data_model: 'hsl(var(--chart-4))',
     default: 'hsl(var(--muted))',
   };
   return nodeTypeColors[type] || nodeTypeColors.default;
 };
+
 
 const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   nodes,
@@ -81,7 +91,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   gridSize = 20,
   panActivationKeyCode,
 }) => {
-  const { viewport } = useReactFlow(); 
+  const { viewport, getViewport, setViewport } = useReactFlow(); 
   const [isSpacePanning, setIsSpacePanning] = useState(false);
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
@@ -112,6 +122,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
+    
+    const currentViewport = getViewport(); // Use getViewport for latest values
 
     let minX = Infinity;
     let minY = Infinity;
@@ -131,16 +143,15 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     });
 
     if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
-      // No valid nodes with positions/dimensions, allow infinite pan
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
 
-    const PADDING = Math.max(viewport.width, viewport.height) * 0.3; // Allow panning some fraction of viewport beyond content
+    const PADDING = Math.max(currentViewport.width, currentViewport.height) * 0.3; 
 
-    const extentMinX = -(maxX + PADDING - (viewport.width / viewport.zoom));
+    const extentMinX = -(maxX + PADDING - (currentViewport.width / currentViewport.zoom));
     const extentMaxX = -(minX - PADDING);
-    const extentMinY = -(maxY + PADDING - (viewport.height / viewport.zoom));
+    const extentMinY = -(maxY + PADDING - (currentViewport.height / currentViewport.zoom));
     const extentMaxY = -(minY - PADDING);
     
     setCalculatedTranslateExtent([
@@ -148,7 +159,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       [Math.max(extentMinX, extentMaxX), Math.max(extentMinY, extentMaxY)]
     ]);
 
-  }, [nodes, viewport.width, viewport.height, viewport.zoom]);
+  }, [nodes, getViewport, setViewport]); // Added getViewport, setViewport as dependencies
 
 
   const handlePaneDoubleClick = (event: React.MouseEvent) => {
@@ -193,6 +204,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         minZoom={0.1}
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
+        onlyRenderVisibleElements={true} // Performance optimization
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
@@ -200,16 +212,16 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
           variant={BackgroundVariant.Dots}
           gap={gridSize}
           size={1}
-          color="hsl(var(--border)/0.7)"
+          color="hsl(var(--border)/0.7)" // Theme-aware grid color
         />
         {activeSnapLines.map((line, index) => (
           <svg key={`snapline-${index}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 100 }}>
             <line
               x1={line.x1} y1={line.y1}
               x2={line.x2} y2={line.y2}
-              stroke="hsl(var(--destructive)/0.7)"
+              stroke="hsl(var(--primary)/0.7)" // Theme-aware snap line color
               strokeWidth="1"
-              strokeDasharray={line.type === 'vertical' || line.type === 'horizontal' ? "3,3" : undefined}
+              strokeDasharray="3,3"
             />
           </svg>
         ))}

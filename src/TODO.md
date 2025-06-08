@@ -1,4 +1,5 @@
 
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -80,25 +81,15 @@
         - [ ] **Coordination with React Flow `parentNode`:**
             - [ ] Clarify if `parentNode` is still used alongside `childIds` for custom layouts (likely yes, for grouping benefits).
             - [ ] Define precedence if conflicts arise between default library layout and custom layout.
-- [x] **Floating Node Creation**:
-    - [x] Implement double-click on canvas to create a new node at mouse position.
-    - [x] New node is selected.
-- [x] **Child Node Creation via "+" Hover Buttons**:
-    - [x] Display "+" icons on node hover (top, right, bottom, left).
-    - [x] Clicking "+" adds a new child node in that direction, automatically connects it, sets `parentNode`.
-    - [x] New child node is selected.
-- [x] **Keyboard-driven Node Creation**:
-    - [x] Selected Node + `Tab` key: Create child node, auto-position, connect, set `parentNode`. New node is selected.
-    - [x] SelectedNode + `Enter` key: Create sibling node (at the same level as selected), auto-position. New node is selected.
-- [x] **Auto-focus for New Nodes**:
-    - [x] New nodes created via double-click, "+ hover buttons", or keyboard shortcuts (`Tab`/`Enter`) automatically enter label edit mode.
-- [x] **Hierarchical Node Movement**:
-    - [x] Verified: React Flow's `parentNode` feature handles moving descendants with parent.
-    - [x] Recursive deletion of child nodes when parent is deleted (Implemented in Zustand store).
+- [x] **Floating Node Creation**: Implemented: Double-click on canvas to create a new node at mouse position. New node is selected and label auto-focused.
+- [x] **Child Node Creation via "+" Hover Buttons**: Implemented: "+" icons on node hover (top, right, bottom, left). Clicking "+" adds a new child node in that direction, connects it, sets `parentNode`, selects, and auto-focuses label.
+- [x] **Keyboard-driven Node Creation**: Implemented: Selected Node + `Tab` key creates child node. Selected Node + `Enter` key creates sibling node. New nodes are auto-positioned, connected (for child), parented, selected, and label auto-focused.
+- [x] **Auto-focus for New Nodes**: Implemented: New nodes created via double-click, "+ hover buttons", or keyboard shortcuts (`Tab`/`Enter`) automatically enter label edit mode.
+- [x] **Hierarchical Node Movement**: Verified: React Flow's `parentNode` feature handles moving descendants with parent.
+- [x] **Recursive deletion of child nodes when parent is deleted**: Implemented in Zustand store's `deleteNode` action.
 - [x] **Improved Connector Experience (`OrthogonalEdge.tsx` and beyond):**
-    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Implemented with straight exits and refined Manhattan path calculation.
+    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Implemented with straight exits and refined Manhattan path calculation for better handling of source/target orientations and fewer bends.
     - [x] Edge lines exit handles straight for a defined distance (e.g., 20px) before turning.
-    - [x] Implemented a refined Manhattan routing algorithm for `OrthogonalEdge` for better handling of source/target orientations and fewer bends.
     - [ ] **(Highly Advanced) Edge Obstacle Avoidance for `OrthogonalEdge`:**
         - [ ] Research pathfinding algorithms (e.g., A* variants suitable for grid/orthogonal paths) or simplified heuristics.
         - [ ] Implement collision detection between edge segments and other node bounding boxes.
@@ -115,26 +106,26 @@
     - [x] Allow modifying arrow styles (start/end: none, arrow, arrowclosed) from `PropertiesInspector`.
 - [x] **Snapping Guides**:
     - [x] Basic center-to-center snapping implemented with visual guides.
-    - [x] Add snapping to node edges (top, bottom, left, right alignment).
-    - [x] Implement visual guides for edge snapping.
-    - [x] Snap-to-grid functionality (nodes align to grid on creation and drag if not node-snapped).
-- [x] **Node Auto-Sizing**: Nodes dynamically adjust size based on content (label, details) within min/max Tailwind CSS constraints. Details section becomes scrollable if content exceeds `max-h`. Explicitly set dimensions from store override auto-sizing.
+    - [x] Add snapping to node edges (top, bottom, left, right alignment) - Implemented.
+    - [x] Implement visual guides for edge snapping - Implemented.
+    - [x] Snap-to-grid functionality (nodes align to grid on creation and drag if not node-snapped) - Implemented and verified.
+- [x] **Node Auto-Sizing**: Implemented: Nodes dynamically adjust size based on content (label, details) within min/max Tailwind CSS constraints. Details section becomes scrollable if content exceeds `max-h`. Explicitly set dimensions from store override auto-sizing.
 - [x] **Refined Pan & Zoom**:
     - [x] Min/max zoom levels explicitly set (0.1 - 4.0).
     - [x] Modifier key for pan (Spacebar + drag) implemented.
     - [x] **Panning Extents:**
-        - [x] Calculate content bounding box.
-        - [x] Prevent panning too far beyond content by dynamically setting `translateExtent`.
+        - [x] Calculate content bounding box - Implemented.
+        - [x] Prevent panning too far beyond content by dynamically setting `translateExtent` - Implemented.
         - [ ] (Optional Refinement) Implement "elastic" edges if hard limits feel too abrupt.
     - [x] **Zoom Center (Verification/Enhancement):**
-        - [x] Verify default zoom-to-mouse behavior.
+        - [x] Verified default zoom-to-mouse behavior.
         - [ ] Consider an option or alternative for zoom-to-center if needed.
     - [ ] **(Highly Advanced) Level of Detail (LOD) Rendering:**
         - [ ] At small zoom levels, render simplified nodes (e.g., colored rectangles, hide text/details).
         - [ ] Render thinner or simplified edges.
         - [ ] Consider node/data aggregation at very distant zoom levels.
     - [x] **Tool Interaction with Pan/Zoom:**
-        - [x] Verify selection mode vs. pan mode (Spacebar) is clear and functional.
+        - [x] Verified selection mode vs. pan mode (Spacebar) is clear and functional.
         - [ ] Test selection box tool behavior during pan/zoom operations.
     - [x] **Minimap/Navigator Enhancements (If React Flow's default needs more):**
         - [x] Ensure minimap syncs correctly with main canvas pan/zoom. (React Flow default is good)
@@ -147,11 +138,11 @@
 
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
-- [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector.
-- [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`. Visual grid background added.
+- [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector. "Expand Concept" and "Summarize Selected Nodes" buttons have context-aware disabling and tooltips.
+- [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`. Visual grid background added and verified.
 - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
     - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
-- [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`.
+- [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`. Modal descriptions updated for clarity.
 - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed from panel after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
     - [x] "Clear All" button for suggestion categories.
@@ -212,9 +203,7 @@
 
 ## Performance Optimizations
 - [ ] **Rendering:**
-    - [ ] **Virtualization (Occlusion Culling for Canvas):**
-        - [ ] Investigate React Flow built-in virtualization/occlusion culling for large maps.
-        - [ ] If needed, implement custom occlusion culling for nodes/edges outside viewport (complex).
+    - [x] **Virtualization (Occlusion Culling for Canvas):** Investigated and `onlyRenderVisibleElements` applied.
     - [ ] **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges.
 - [ ] **Interactions:**
     - [ ] **Event Throttling/Debouncing:**
@@ -290,10 +279,10 @@ This section outlines tasks to fully migrate to Supabase.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
 - **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children implemented in Zustand store. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented. Floating "AI Expand" button on selected hovered nodes.
-- **Snapping implemented:** Basic center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added.
+- **Snapping implemented:** Full center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added and verified.
 - **Custom edge type `OrthogonalEdge` implemented:** Uses a custom Manhattan path calculation for step-like lines with straight exits and rounded corners (sharp corners for very short segments). Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions are respected.
-- **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu or floating button. Modals have clearer descriptions of output handling. AI-generated/modified nodes have distinct visual styles.
+- **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu or floating button. Modals have clearer descriptions of output handling. AI-generated/modified nodes have distinct visual styles. Toolbar AI buttons ("Expand Concept", "Summarize Selection") have context-aware disabling and tooltips.
 - **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
@@ -313,6 +302,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Teacher Classroom Detail Page has been modularized with separate tab components for Students, Maps, and Submissions.
 - `DashboardHeader` component now supports a linkable icon via `iconLinkHref`.
 - `DashboardLinkCard` description paragraph height has been standardized.
+- React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
@@ -324,4 +314,5 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+
 
