@@ -40,7 +40,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
   const rowVirtualizer = useVirtualizer({
     count: students.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 53, 
+    estimateSize: () => 53, // Approximate row height
     overscan: 10,
   });
 
@@ -79,7 +79,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
   }
 
   return (
-    <div ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+    <div ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}> {/* Adjust maxHeight as needed */}
       <Table>
         <TableHeader className="sticky top-0 bg-card z-10">
           <TableRow>
@@ -105,7 +105,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                   ref={rowVirtualizer.measureElement}
-                  data-index={virtualRow.index} 
+                  data-index={virtualRow.index} // For debugging or advanced use
                 >
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>

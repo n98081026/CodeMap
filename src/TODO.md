@@ -297,7 +297,7 @@ This section outlines tasks to fully migrate to Supabase.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
 - **Pan/Zoom Refinements**: Min/max zoom levels are explicitly set. Spacebar+drag to pan is implemented. Dynamic `translateExtent` is set to prevent panning too far beyond content. Touch interaction props (pinch-zoom, pan) are confirmed enabled. Selection box tool behavior with pan/zoom verified.
-- Teacher Classroom Detail Page has been modularized with separate tab components for Students, Maps, and Submissions.
+- **Teacher Classroom Detail Page has been modularized with separate tab components for Students, Maps, and Submissions.**
 - `DashboardHeader` component now supports a linkable icon via `iconLinkHref`.
 - `DashboardLinkCard` description paragraph height has been standardized.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps.
@@ -312,6 +312,7 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+
 
 
 
