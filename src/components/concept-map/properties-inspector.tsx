@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight } from "lucide-react"; 
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler } from "lucide-react"; 
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
@@ -48,8 +48,12 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     : "";
   const elementDetailsValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.details : "") || "";
   const elementNodeTypeValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.type : "") || "default";
+  
   const nodeBackgroundColorValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.backgroundColor : undefined);
   const nodeShapeValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.shape : 'rectangle') || 'rectangle';
+  const nodeWidthValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.width : undefined);
+  const nodeHeightValue = (selectedElementType === 'node' ? (selectedElement as ConceptMapNode)?.height : undefined);
+
 
   const edgeColorValue = (selectedElementType === 'edge' ? (selectedElement as ConceptMapEdge)?.color : undefined);
   const edgeLineTypeValue = (selectedElementType === 'edge' ? (selectedElement as ConceptMapEdge)?.lineType : 'solid') || 'solid';
@@ -117,6 +121,19 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
     onSelectedElementPropertyUpdate({ shape: value });
   }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+
+  const handleNodeDimensionChange = React.useCallback((dimension: 'width' | 'height', value: string) => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
+    const numValue = parseInt(value, 10);
+    const updateValue = !isNaN(numValue) && numValue > 0 ? numValue : undefined;
+    onSelectedElementPropertyUpdate({ [dimension]: updateValue });
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+
+  const handleClearNodeDimensions = React.useCallback(() => {
+    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
+    onSelectedElementPropertyUpdate({ width: undefined, height: undefined });
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+
 
   const handleEdgeColorChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'edge' || !selectedElement) return;
@@ -257,6 +274,46 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
                 <SelectItem value="ellipse">Ellipse / Circle</SelectItem>
             </SelectContent>
         </Select>
+      </div>
+      <div className="mt-3 space-y-2">
+         <Label className={cn("flex items-center gap-2", isViewOnlyMode && "text-muted-foreground/70")}>
+            <Ruler className="h-4 w-4 text-muted-foreground" /> Dimensions (px)
+        </Label>
+        <div className="grid grid-cols-2 gap-2">
+            <div>
+                <Label htmlFor="nodeWidth" className="text-xs text-muted-foreground">Width</Label>
+                <Input 
+                    id="nodeWidth" 
+                    type="number" 
+                    value={nodeWidthValue === undefined ? "" : nodeWidthValue} 
+                    onChange={(e) => handleNodeDimensionChange('width', e.target.value)}
+                    placeholder="Auto"
+                    disabled={isViewOnlyMode}
+                    className={cn("h-9", isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
+                />
+            </div>
+            <div>
+                <Label htmlFor="nodeHeight" className="text-xs text-muted-foreground">Height</Label>
+                <Input 
+                    id="nodeHeight" 
+                    type="number" 
+                    value={nodeHeightValue === undefined ? "" : nodeHeightValue} 
+                    onChange={(e) => handleNodeDimensionChange('height', e.target.value)}
+                    placeholder="Auto"
+                    disabled={isViewOnlyMode}
+                    className={cn("h-9", isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
+                />
+            </div>
+        </div>
+        <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleClearNodeDimensions} 
+            disabled={isViewOnlyMode || (nodeWidthValue === undefined && nodeHeightValue === undefined)}
+            className="w-full text-xs"
+        >
+            Reset to Auto-Size
+        </Button>
       </div>
     </>
   );

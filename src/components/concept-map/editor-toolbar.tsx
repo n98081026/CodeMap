@@ -65,7 +65,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   canRedo,
 }: EditorToolbarProps) {
   const { toast } = useToast();
-  const { multiSelectedNodeIds } = useConceptMapStore(); 
+  const { selectedElementId, selectedElementType, multiSelectedNodeIds } = useConceptMapStore(); 
+  const isSingleNodeSelected = selectedElementId && selectedElementType === 'node' && multiSelectedNodeIds.length <= 1;
+
 
   const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
     if (isViewOnlyMode) {
@@ -75,7 +77,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
     actionCallback();
   }, [isViewOnlyMode, toast]);
 
-  const isMultiSelectionActive = multiSelectedNodeIds.length > 1;
+  const isMultiNodeSelectionActive = multiSelectedNodeIds.length > 1;
+  const isAnyNodeSelected = selectedElementId && selectedElementType === 'node';
+
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -171,7 +175,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <TextSearch className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Generate Snippet from Text (Disabled)" : "Generate Map Snippet from Text (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Generate Snippet (Disabled)" : "Generate Map Snippet from Text (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -179,7 +183,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <SearchCode className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Extract Concepts from Text (AI) (Disabled)" : "Extract Concepts from Text (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Extract Concepts (Disabled)" : "Extract Concepts from Text or Selection (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -187,23 +191,27 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Lightbulb className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Suggest Relations (AI) (Disabled)" : "Suggest Relations (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Suggest Relations (Disabled)" : "Suggest Relations for Selection (AI)"}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onExpandConcept, "Expand Concept")} disabled={isViewOnlyMode}>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onExpandConcept, "Expand Concept")} disabled={isViewOnlyMode || !isAnyNodeSelected}>
               <Brain className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Expand Concept (AI) (Disabled)" : "Expand Concept (AI)"}</TooltipContent>
+          <TooltipContent>
+            {isViewOnlyMode ? "Expand Concept (Disabled in View Mode)" : 
+             !isAnyNodeSelected ? "Expand Concept (Select a node first)" : 
+             "Expand Selected Concept (AI)"}
+          </TooltipContent>
         </Tooltip>
          <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onSummarizeSelectedNodes, "Summarize Selection")} disabled={isViewOnlyMode || !isMultiSelectionActive}>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onSummarizeSelectedNodes, "Summarize Selection")} disabled={isViewOnlyMode || !isMultiNodeSelectionActive}>
               <ListCollapse className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Summarize Selection (Disabled)" : !isMultiSelectionActive ? "Summarize Selection (Select 2+ nodes)" : "Summarize Selection (AI)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Summarize Selection (Disabled)" : !isMultiNodeSelectionActive ? "Summarize Selection (Select 2+ nodes)" : "Summarize Selection (AI)"}</TooltipContent>
         </Tooltip>
 
 
