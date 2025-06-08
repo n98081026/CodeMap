@@ -30,7 +30,7 @@ export function GenerateSnippetModal({ isOpen, onOpenChange, onSnippetGenerated 
   const { toast } = useToast();
 
   const handleGenerateSnippet = async () => {
-    if (inputText.trim().length < 50) { // Basic length check, schema has min 50
+    if (inputText.trim().length < 50) { 
       toast({ title: "Input Too Short", description: "Please provide more text (at least 50 characters) to generate a meaningful snippet.", variant: "destructive" });
       return;
     }
@@ -69,7 +69,7 @@ export function GenerateSnippetModal({ isOpen, onOpenChange, onSnippetGenerated 
             Generate Map Snippet from Text
           </DialogTitle>
           <DialogDescription>
-            Paste a block of text (e.g., meeting notes, documentation, article paragraph). The AI will analyze it and generate a small, interconnected concept map snippet.
+            Paste a block of text (e.g., meeting notes, documentation). The AI will analyze it and generate a small concept map snippet, which will be added directly to your map.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -99,4 +99,5 @@ export function GenerateSnippetModal({ isOpen, onOpenChange, onSnippetGenerated 
     </Dialog>
   );
 }
+
 

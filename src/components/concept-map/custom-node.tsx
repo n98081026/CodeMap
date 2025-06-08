@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 import {
   Box, Milestone, ServerCog, MonitorPlay, Database, FileCode2, ExternalLink, Users, Workflow,
-  Brain, Lightbulb, Puzzle, AlignLeft, PenLine, PlusCircle, Loader2
+  Brain, Lightbulb, Puzzle, AlignLeft, PenLine, PlusCircle, Loader2, Sparkles
 } from 'lucide-react';
 import { getNodePlacement } from '@/lib/layout-utils';
 
@@ -19,8 +19,8 @@ export interface CustomNodeData {
   isViewOnly?: boolean;
   backgroundColor?: string;
   shape?: 'rectangle' | 'ellipse';
-  width?: number; // Explicit width from store/user
-  height?: number; // Explicit height from store/user
+  width?: number; 
+  height?: number; 
 }
 
 const nodeTypeStyles: { [key: string]: string } = {
@@ -44,8 +44,15 @@ const nodeTypeStyles: { [key: string]: string } = {
 
 const nodeTypeIcons: { [key: string]: React.ElementType } = {
   key_feature: Milestone, service_component: ServerCog, ui_view: MonitorPlay, data_model: Database, code_module: FileCode2,
-  external_dependency: ExternalLink, user_role: Users, core_process: Workflow, 'ai-concept': Brain, 'ai-expanded': Lightbulb,
-  'ai-summary-node': AlignLeft, 'ai-rewritten-node': PenLine, 'manual-node': Puzzle, 'text-derived-concept': FileCode2, 'ai-generated': Brain, default: Box,
+  external_dependency: ExternalLink, user_role: Users, core_process: Workflow, 
+  'ai-concept': Brain, 
+  'ai-expanded': Lightbulb,
+  'ai-summary-node': AlignLeft, 
+  'ai-rewritten-node': PenLine, 
+  'manual-node': Puzzle, 
+  'text-derived-concept': FileCode2, 
+  'ai-generated': Sparkles, 
+  default: Box,
 };
 
 const GRID_SIZE_FOR_CHILD_PLACEMENT = 20;
@@ -87,7 +94,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
       id, x: xPos, y: yPos, width, height, text: data.label, type: data.type || 'default'
     };
     
-    const childPosition = getNodePlacement(currentNodes, 'child', parentNodeFromProps, null, GRID_SIZE_FOR_CHILD_PLACEMENT);
+    const childPosition = getNodePlacement(currentNodes, 'child', parentNodeFromProps, null, GRID_SIZE_FOR_CHILD_PLACEMENT, direction);
     
     const newChildNodeId = addNode({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: id });
     addEdge({ source: id, target: newChildNodeId, label: "connects" });
@@ -193,4 +200,5 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
+
 

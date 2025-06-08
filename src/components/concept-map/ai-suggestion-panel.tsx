@@ -18,13 +18,10 @@ interface AISuggestionPanelProps {
   currentMapNodes?: ConceptMapNode[];
   extractedConcepts?: string[];
   suggestedRelations?: Array<{ source: string; target: string; relation: string }>;
-  // expandedConcepts?: string[]; // Removed: Expand Concept now adds directly
   onAddExtractedConcepts?: (concepts: string[]) => void;
   onAddSuggestedRelations?: (relations: Array<{ source: string; target: string; relation: string }>) => void;
-  // onAddExpandedConcepts?: (concepts: string[]) => void; // Removed
   onClearExtractedConcepts?: () => void;
   onClearSuggestedRelations?: () => void;
-  // onClearExpandedConcepts?: () => void; // Removed
   isViewOnlyMode?: boolean;
 }
 
@@ -49,23 +46,18 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   currentMapNodes = [],
   extractedConcepts = [],
   suggestedRelations = [],
-  // expandedConcepts = [], // Removed
   onAddExtractedConcepts,
   onAddSuggestedRelations,
-  // onAddExpandedConcepts, // Removed
   onClearExtractedConcepts,
   onClearSuggestedRelations,
-  // onClearExpandedConcepts, // Removed
   isViewOnlyMode
 }: AISuggestionPanelProps) {
 
   const [editableExtracted, setEditableExtracted] = useState<EditableSuggestion[]>([]);
   const [editableRelations, setEditableRelations] = useState<EditableRelationSuggestion[]>([]);
-  // const [editableExpanded, setEditableExpanded] = useState<EditableSuggestion[]>([]); // Removed
 
   const [selectedExtractedIndices, setSelectedExtractedIndices] = useState<Set<number>>(new Set());
   const [selectedRelationIndices, setSelectedRelationIndices] = useState<Set<number>>(new Set());
-  // const [selectedExpandedIndices, setSelectedExpandedIndices] = useState<Set<number>>(new Set()); // Removed
 
   const existingNodeTexts = useMemo(() => {
     return new Set(currentMapNodes.map(n => n.text.toLowerCase().trim()));
@@ -89,13 +81,8 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     setSelectedRelationIndices(new Set());
   }, [suggestedRelations, mapRelationsToEditable]);
 
-  // useEffect(() => { // Removed
-  //   setEditableExpanded(mapToEditable(expandedConcepts));
-  //   setSelectedExpandedIndices(new Set());
-  // }, [expandedConcepts, mapToEditable]);
 
-
-  const handleToggleEdit = (type: 'extracted' | 'relation'/* | 'expanded'*/, index: number, field?: 'source' | 'target' | 'relation') => {
+  const handleToggleEdit = (type: 'extracted' | 'relation', index: number, field?: 'source' | 'target' | 'relation') => {
     if (isViewOnlyMode) return;
     const setStateAction = (setter: React.Dispatch<React.SetStateAction<any[]>>, items: any[]) => {
       setter(items.map((item, idx) => {
@@ -110,10 +97,9 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     };
     if (type === 'extracted') setStateAction(setEditableExtracted, editableExtracted);
     else if (type === 'relation') setStateAction(setEditableRelations, editableRelations);
-    // else if (type === 'expanded') setStateAction(setEditableExpanded, editableExpanded); // Removed
   };
 
-  const handleInputChange = (type: 'extracted' | 'relation'/* | 'expanded'*/, index: number, value: string, field?: 'source' | 'target' | 'relation') => {
+  const handleInputChange = (type: 'extracted' | 'relation', index: number, value: string, field?: 'source' | 'target' | 'relation') => {
      const setStateAction = (setter: React.Dispatch<React.SetStateAction<any[]>>, items: any[]) => {
         setter(items.map((item, idx) => {
             if (idx === index) {
@@ -127,20 +113,17 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     };
     if (type === 'extracted') setStateAction(setEditableExtracted, editableExtracted);
     else if (type === 'relation') setStateAction(setEditableRelations, editableRelations);
-    // else if (type === 'expanded') setStateAction(setEditableExpanded, editableExpanded); // Removed
   };
 
-  const handleConfirmEdit = (type: 'extracted' | 'relation'/* | 'expanded'*/, index: number) => {
+  const handleConfirmEdit = (type: 'extracted' | 'relation', index: number) => {
     handleToggleEdit(type, index); 
   };
 
 
-  const handleSelectionToggleFactory = (type: 'extracted' | 'relation'/* | 'expanded'*/) => (index: number, checked: boolean) => {
+  const handleSelectionToggleFactory = (type: 'extracted' | 'relation') => (index: number, checked: boolean) => {
     const setIndices =
         type === 'extracted' ? setSelectedExtractedIndices :
-        type === 'relation' ? setSelectedRelationIndices :
-        // setSelectedExpandedIndices; // Removed
-        () => {}; // Placeholder if needed, or ensure this path isn't hit
+        setSelectedRelationIndices;
 
     setIndices(prev => {
         const next = new Set(prev);
@@ -151,7 +134,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   };
 
 
-  const hasAiOutput = editableExtracted.length > 0 || editableRelations.length > 0 /*|| editableExpanded.length > 0*/; // Removed expanded
+  const hasAiOutput = editableExtracted.length > 0 || editableRelations.length > 0;
   const hasMapDataNodes = currentMapNodes && currentMapNodes.length > 0;
 
   const renderSuggestionSection = (
@@ -163,7 +146,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     renderItemContent: (item: any, index: number, itemStatus: ItemStatus, relationNodeExistence?: { source?: boolean, target?: boolean }) => React.ReactNode,
     getItemStatus: (itemValue: string | { source: string, target: string }) => ItemStatus,
     checkIfRelationNodesExistOnMap: (relation: { source: string; target: string }) => { source?: boolean, target?: boolean },
-    onAddSelectedItems: ((selectedItems: any[]) => void) | undefined, // Make onAddSelectedItems optional
+    onAddSelectedItems: ((selectedItems: any[]) => void) | undefined,
     onClearCategory?: () => void,
     cardClassName?: string,
     titleClassName?: string
@@ -201,7 +184,6 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     const clearSelectionForCategory = () => {
       if (itemKeyPrefix.startsWith('extracted-')) setSelectedExtractedIndices(new Set());
       else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(new Set());
-      // else if (itemKeyPrefix.startsWith('expanded-')) setSelectedExpandedIndices(new Set()); // Removed
     };
 
     const handleAddSelected = () => {
@@ -233,7 +215,6 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         }
         if (itemKeyPrefix.startsWith('extracted-')) setSelectedExtractedIndices(newSelectedIndices);
         else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(newSelectedIndices);
-        // else if (itemKeyPrefix.startsWith('expanded-')) setSelectedExpandedIndices(newSelectedIndices); // Removed
     };
 
     const allSelectableAreChecked = selectableItems.length > 0 && selectedIndicesSet.size >= selectableItems.length &&
@@ -294,17 +275,14 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                 <div key={displayId} className={cn(
                     "flex items-start space-x-3 p-2 border-b last:border-b-0",
                     itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-') && "opacity-60 bg-muted/30", 
-                    itemStatus === 'similar-match' && !itemKeyPrefix.startsWith('relation-') && "bg-yellow-500/10 border-yellow-500/20"
+                    itemStatus === 'similar-match' && !itemKeyPrefix.startsWith('relation-') && "bg-yellow-500/5 border-yellow-500/20"
                 )}>
                   {!isViewOnlyMode && onAddSelectedItems && (
                     <Checkbox
                       id={displayId}
                       checked={selectedIndicesSet.has(index)}
                       onCheckedChange={(checked) => handleSelectionToggleFactory(
-                        itemKeyPrefix.startsWith('extracted-') ? 'extracted' :
-                        itemKeyPrefix.startsWith('relation-') ? 'relation' : 
-                        // 'expanded' // Removed
-                        'extracted' // Fallback, should not be hit if expanded section is removed
+                        itemKeyPrefix.startsWith('extracted-') ? 'extracted' : 'relation'
                       )(index, Boolean(checked))}
                       disabled={(itemStatus === 'exact-match' && !itemKeyPrefix.startsWith('relation-')) || item.isEditing || isViewOnlyMode}
                     />
@@ -348,7 +326,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     );
   };
 
-  const renderEditableConceptLabel = (item: EditableSuggestion, index: number, type: 'extracted' /*| 'expanded'*/, itemStatus: ItemStatus) => {
+  const renderEditableConceptLabel = (item: EditableSuggestion, index: number, type: 'extracted', itemStatus: ItemStatus) => {
     const isExactMatch = itemStatus === 'exact-match';
     const isSimilarMatch = itemStatus === 'similar-match';
 
@@ -489,7 +467,6 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             onAddSuggestedRelations, onClearSuggestedRelations, 
             "bg-yellow-500/5 border-yellow-500/20", "text-yellow-700 dark:text-yellow-400"
           )}
-          {/* Expanded Ideas section removed */}
            {!hasAiOutput && hasMapDataNodes && ( 
             <div className="text-center py-6">
                 <EmptyState
@@ -513,4 +490,5 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   );
 });
 AISuggestionPanel.displayName = "AISuggestionPanel";
+
 

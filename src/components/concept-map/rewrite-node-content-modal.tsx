@@ -121,7 +121,7 @@ export function RewriteNodeContentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5 text-primary" />Rewrite Node Content (AI)</DialogTitle>
           <DialogDescription>
-            Refine the text and details of the node &quot;{nodeContent.text}&quot; using AI. Choose a tone and preview the changes.
+            Refine the text and details of the node "{nodeContent.text}" using AI. Choose a tone, generate a preview, and then apply the changes to update the node.
           </DialogDescription>
         </DialogHeader>
         

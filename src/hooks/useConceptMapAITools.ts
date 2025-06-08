@@ -325,7 +325,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleRewriteNodeContentConfirm = useCallback(async (nodeId: string, newText: string, newDetails?: string, tone?: string) => {
     if (isViewOnlyMode) return;
-    // The setAiProcessingNodeId is handled by the modal caller (RewriteNodeContentModal's own handler)
     updateStoreNode(nodeId, { text: newText, details: newDetails, type: 'ai-rewritten-node' });
     toast({ title: "Node Content Rewritten", description: `Node updated by AI (Tone: ${tone || 'Default'}).` });
   }, [isViewOnlyMode, updateStoreNode, toast]);
@@ -349,7 +348,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     
     try {
         toast({ title: "AI Summarization", description: "Processing selected nodes...", duration: 3000});
-        setAiProcessingNodeId('summarizing_selection'); // Use a generic ID or handle differently
+        setAiProcessingNodeId('summarizing_selection'); 
         const result: SummarizeNodesOutput = await aiSummarizeNodes({ nodeContents });
         
         const currentNodes = useConceptMapStore.getState().mapData.nodes;
@@ -397,4 +396,5 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     addStoreEdge,
   };
 }
+
 

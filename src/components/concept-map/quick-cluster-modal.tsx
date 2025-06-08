@@ -43,12 +43,11 @@ export function QuickClusterModal({ isOpen, onOpenChange, onClusterGenerated }: 
         toast({ title: "AI: Cluster Ready", description: `Generated ${result.nodes.length} nodes and ${result.edges?.length || 0} relations.` });
         onClusterGenerated(result);
       }
-      onOpenChange(false); // Close modal on success or no result
-      setPromptText(""); // Clear prompt for next time
+      onOpenChange(false); 
+      setPromptText(""); 
     } catch (error) {
       console.error("Error generating quick cluster:", error);
       toast({ title: "Error Generating Cluster", description: (error as Error).message, variant: "destructive" });
-      // Don't close modal on error so user can retry or copy prompt
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +55,7 @@ export function QuickClusterModal({ isOpen, onOpenChange, onClusterGenerated }: 
 
   const handleDialogStateChange = (open: boolean) => {
     if (!open) {
-        setPromptText(""); // Clear text if dialog is closed externally (e.g. Esc key)
+        setPromptText(""); 
     }
     onOpenChange(open);
   };
@@ -71,7 +70,7 @@ export function QuickClusterModal({ isOpen, onOpenChange, onClusterGenerated }: 
             Quick AI Node Cluster
           </DialogTitle>
           <DialogDescription>
-            Enter a topic, question, or idea. The AI will generate a small cluster of related concept nodes and suggest connections between them.
+            Enter a topic, question, or idea. The AI will generate a small cluster of related concept nodes and suggest connections. These will be added directly to your map.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -101,3 +100,4 @@ export function QuickClusterModal({ isOpen, onOpenChange, onClusterGenerated }: 
     </Dialog>
   );
 }
+

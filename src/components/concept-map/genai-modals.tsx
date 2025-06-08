@@ -67,7 +67,7 @@ export function ExtractConceptsModal({ onConceptsExtracted, initialText = "", on
         <DialogHeader>
           <DialogTitle>Extract Concepts with AI</DialogTitle>
           <DialogDescription>
-            Paste text below, or use text from selected map nodes. The AI will identify and extract key concepts. These will appear in the AI Suggestions panel.
+            Paste text below, or use text from selected map nodes. The AI will identify key concepts. Suggestions will appear in the AI Panel.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -137,7 +137,7 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
         <DialogHeader>
           <DialogTitle>Suggest Relations with AI</DialogTitle>
           <DialogDescription>
-            The AI will suggest relationships based on the provided concepts. These concepts may be derived from your current selection, a specific node, or an overview of your map.
+            The AI will suggest relationships based on provided concepts (e.g., from selected nodes). Suggestions will appear in the AI Panel.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -166,7 +166,7 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
 }
 
 interface ExpandConceptModalProps extends ModalProps {
-  onConceptExpanded?: (output: ExpandConceptOutput) => Promise<void>; // Changed to Promise for async application
+  onConceptExpanded?: (output: ExpandConceptOutput) => Promise<void>; 
   initialConceptText?: string; 
   existingMapContext?: string[];
 }
@@ -195,7 +195,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
       }
       const result = await aiExpandConcept(input);
       if (onConceptExpanded) {
-        await onConceptExpanded(result); // Await the application of changes
+        await onConceptExpanded(result); 
       }
       onOpenChange(false);
     } catch (error) {
@@ -217,7 +217,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
         <DialogHeader>
           <DialogTitle>Expand Concept with AI</DialogTitle>
           <DialogDescription>
-            Enter a concept. Optionally, add a refinement to guide the AI. New ideas will be added directly to the map.
+            Enter a concept. Optionally, add a refinement to guide the AI. New ideas will be added directly to the map as child nodes of the expanded concept.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -263,7 +263,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
 
 interface AskQuestionModalProps extends ModalProps {
   nodeContext: { text: string; details?: string; id: string; } | null;
-  onQuestionAnswered: (question: string, nodeContext: { text: string; details?: string; id: string; }) => Promise<void>; // Now takes question and context
+  onQuestionAnswered: (question: string, nodeContext: { text: string; details?: string; id: string; }) => Promise<void>;
 }
 
 export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange }: AskQuestionModalProps) {
@@ -278,7 +278,6 @@ export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange
     }
     setIsLoading(true);
     try {
-      // onQuestionAnswered is now responsible for the AI call and setting the processing node ID
       await onQuestionAnswered(question, nodeContext); 
       onOpenChange(false); 
     } catch (error) {
@@ -302,6 +301,7 @@ export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange
             <DialogDescription>
               Node: <strong className="text-foreground">{nodeContext.text}</strong>
               {nodeContext.details && <span className="block text-xs text-muted-foreground mt-1">Details: {nodeContext.details}</span>}
+              <br />The AI's answer will be shown in a toast notification. The node itself will not be modified by this action.
             </DialogDescription>
           )}
         </DialogHeader>
@@ -328,3 +328,4 @@ export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange
     </Dialog>
   );
 }
+

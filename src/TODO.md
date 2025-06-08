@@ -205,10 +205,10 @@
         - [ ] Design UI for presenting structure suggestions (e.g., non-intrusive hints on canvas or in AI panel).
         - [ ] Implement user actions to accept/reject suggestions.
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
-- [x] **Refine `AISuggestionPanel` Workflow & User Experience**
+- [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
     - [x] Clearer visual cues for suggestion status (exact, similar, new).
     - [x] "Clear All" button for suggestion categories.
-- [x] **Improve General AI User Experience (UX) for In-Editor Tools**
+- [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
     - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling).
 
 ## Performance Optimizations
@@ -325,5 +325,6 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+
 
 
