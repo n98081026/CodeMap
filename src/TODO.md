@@ -196,6 +196,7 @@
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
     - [x] Clearer visual cues for suggestion status (exact, similar, new).
     - [x] "Clear All" button for suggestion categories.
+    - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
 - [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
     - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling. Toolbar button tooltips and disable states refined).
 
@@ -281,7 +282,7 @@ This section outlines tasks to fully migrate to Supabase.
 - **Custom edge type `OrthogonalEdge` implemented:** Path calculation reviewed and confirmed to produce robust Manhattan-style paths with straight exits/entries and clear label placement across various handle orientations. Sharp/rounded corners logic remains. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions are respected. Details section scrolls if content exceeds `max-h` when auto-sizing.
 - **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu or floating button. Modals have clearer descriptions of output handling. AI-generated/modified nodes have distinct visual styles. Toolbar AI buttons ("Expand Concept", "Summarize Selection") have context-aware disabling and tooltips.
-- **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined.
+- **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined. Empty states are context-aware.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
@@ -312,13 +313,3 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
-
-
-
-
-
-
-
-
-
-

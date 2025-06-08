@@ -177,7 +177,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
 
     const selectableItems = items.filter((item) => {
       const value = getComparableItemValue(item);
-      const status = getItemStatus(value as string); 
+      const status = getItemStatus(value as string | {source: string; target: string}); 
       return status !== 'exact-match';
     });
     
@@ -192,7 +192,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         .filter((_item, index) => selectedIndicesSet.has(index))
         .map(item => (item as EditableRelationSuggestion).original ? (item as EditableRelationSuggestion).current : (item as EditableSuggestion).current)
         .filter(itemValue => {
-             const status = getItemStatus(itemValue as string);
+             const status = getItemStatus(itemValue as string | {source: string; target: string});
              return status !== 'exact-match';
         });
 
@@ -207,7 +207,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         if (checked) {
             items.forEach((item, index) => {
                 const value = getComparableItemValue(item);
-                const status = getItemStatus(value as string);
+                const status = getItemStatus(value as string | {source: string; target: string});
                 if (status !== 'exact-match') { 
                     newSelectedIndices.add(index);
                 }
@@ -220,7 +220,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     const allSelectableAreChecked = selectableItems.length > 0 && selectedIndicesSet.size >= selectableItems.length &&
         items.every((item, index) => {
             const value = getComparableItemValue(item);
-            const status = getItemStatus(value as string);
+            const status = getItemStatus(value as string | {source: string; target: string});
             if (status !== 'exact-match') { 
                 return selectedIndicesSet.has(index);
             }
@@ -229,7 +229,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
 
     const countOfSelectedAndNew = items.filter((item, index) => {
         const value = getComparableItemValue(item);
-        const status = getItemStatus(value as string);
+        const status = getItemStatus(value as string | {source: string; target: string});
         return selectedIndicesSet.has(index) && status !== 'exact-match';
       }).length;
 
@@ -268,7 +268,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             {items.map((item, index) => {
               const displayId = `${itemKeyPrefix}-${index}`;
               const itemValue = getComparableItemValue(item);
-              const itemStatus = getItemStatus(itemValue as string);
+              const itemStatus = getItemStatus(itemValue as string | {source: string; target: string});
               const relationNodeExistence = itemKeyPrefix.startsWith('relation-') ? checkIfRelationNodesExistOnMap(itemValue as { source: string; target: string }) : undefined;
 
               return (
@@ -490,5 +490,6 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   );
 });
 AISuggestionPanel.displayName = "AISuggestionPanel";
+
 
 
