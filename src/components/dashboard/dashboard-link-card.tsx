@@ -38,7 +38,7 @@ export const DashboardLinkCard: React.FC<DashboardLinkCardProps> = React.memo(fu
             ) : (
             count // Render loading/error component directly
             )}
-            <p className="text-xs text-muted-foreground mb-4 min-h-[2.5rem] line-clamp-2"> {/* min-h ensure space, h-10 was too much */}
+            <p className="text-xs text-muted-foreground mb-4 min-h-[2.5rem] line-clamp-2"> {/* min-h ensure space for 2 lines */}
             {description}
             </p>
         </div>
