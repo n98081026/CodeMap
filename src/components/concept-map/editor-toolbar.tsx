@@ -37,6 +37,8 @@ interface EditorToolbarProps {
   onRedo: () => void; 
   canUndo: boolean;   
   canRedo: boolean;   
+  selectedNodeId: string | null; // Added for Expand Concept disabling
+  numMultiSelectedNodes: number; // Added for Expand/Summarize disabling
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({ 
@@ -63,10 +65,12 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onRedo,
   canUndo,
   canRedo,
+  selectedNodeId,
+  numMultiSelectedNodes,
 }: EditorToolbarProps) {
   const { toast } = useToast();
-  const { selectedElementId, selectedElementType, multiSelectedNodeIds } = useConceptMapStore(); 
-  const isSingleNodeSelected = selectedElementId && selectedElementType === 'node' && multiSelectedNodeIds.length <= 1;
+  // const { selectedElementId, selectedElementType, multiSelectedNodeIds } = useConceptMapStore(); // Not needed if props are passed
+  // const isSingleNodeSelected = selectedNodeId && numMultiSelectedNodes <= 1; // Correct logic for single selection
 
 
   const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
@@ -77,8 +81,20 @@ export const EditorToolbar = React.memo(function EditorToolbar({
     actionCallback();
   }, [isViewOnlyMode, toast]);
 
-  const isMultiNodeSelectionActive = multiSelectedNodeIds.length > 1;
-  const isAnyNodeSelected = selectedElementId && selectedElementType === 'node';
+  const isExpandConceptDisabled = isViewOnlyMode || !selectedNodeId || numMultiSelectedNodes > 1;
+  const getExpandConceptTooltip = () => {
+    if (isViewOnlyMode) return "Expand Concept (Disabled in View Mode)";
+    if (!selectedNodeId) return "Expand Concept (Select a node first)";
+    if (numMultiSelectedNodes > 1) return "Expand Concept (Select a single node)";
+    return "Expand Selected Concept (AI)";
+  };
+
+  const isSummarizeNodesDisabled = isViewOnlyMode || numMultiSelectedNodes < 2;
+  const getSummarizeNodesTooltip = () => {
+    if (isViewOnlyMode) return "Summarize Selection (Disabled in View Mode)";
+    if (numMultiSelectedNodes < 2) return "Summarize Selection (Select 2+ nodes)";
+    return "Summarize Selection (AI)";
+  };
 
 
   return (
@@ -195,23 +211,21 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onExpandConcept, "Expand Concept")} disabled={isViewOnlyMode || !isAnyNodeSelected}>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onExpandConcept, "Expand Concept")} disabled={isExpandConceptDisabled}>
               <Brain className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            {isViewOnlyMode ? "Expand Concept (Disabled in View Mode)" : 
-             !isAnyNodeSelected ? "Expand Concept (Select a node first)" : 
-             "Expand Selected Concept (AI)"}
+            {getExpandConceptTooltip()}
           </TooltipContent>
         </Tooltip>
          <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onSummarizeSelectedNodes, "Summarize Selection")} disabled={isViewOnlyMode || !isMultiNodeSelectionActive}>
+            <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onSummarizeSelectedNodes, "Summarize Selection")} disabled={isSummarizeNodesDisabled}>
               <ListCollapse className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Summarize Selection (Disabled)" : !isMultiNodeSelectionActive ? "Summarize Selection (Select 2+ nodes)" : "Summarize Selection (AI)"}</TooltipContent>
+          <TooltipContent>{getSummarizeNodesTooltip()}</TooltipContent>
         </Tooltip>
 
 
