@@ -112,7 +112,7 @@
     - [x] Modifier key for pan (Spacebar + drag) implemented - Verified.
     - [x] **Panning Extents:**
         - [x] Calculate content bounding box - Implemented via dynamic `translateExtent`.
-        - [x] Prevent panning too far beyond content by dynamically setting `translateExtent` - Implemented.
+        - [x] Prevent panning too far beyond content by dynamically setting `translateExtent` - Implemented and verified.
         - [ ] (Optional Refinement) Implement "elastic" edges if hard limits feel too abrupt.
     - [x] **Zoom Center (Verification/Enhancement):**
         - [x] Verified default zoom-to-mouse behavior.
@@ -186,7 +186,7 @@
         - [ ] Consider a global AI input box/panel on the canvas for broader queries/commands.
     - [x] **GAI Action Feedback**:
         - [x] Visual cues for AI-generated/modified nodes (type, icon).
-        - [x] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or future floating buttons.
+        - [x] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or floating buttons.
     - [ ] **(Highly Advanced - Future) Explore "AI Structure Suggestions":**
         - [ ] Develop Genkit flow to analyze map structure & content.
         - [ ] Define criteria for "good" structure suggestions (e.g., grouping related ideas, suggesting missing links).

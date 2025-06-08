@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -44,15 +45,15 @@ const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canva
 export default function ConceptMapEditorPage() {
   const paramsHook = useParams();
   const searchParams = useSearchParams();
-  const { toast } } from useToast();
+  const { toast } } = useToast();
   const { user } = useAuth();
   const router = useRouter();
 
   const routeMapId = paramsHook.mapId as string;
-  const isViewOnlyMode = searchParams.get('viewOnly') === 'true';
+  const isViewOnlyModeQueryParam = searchParams.get('viewOnly') === 'true';
 
   const {
-    mapId: storeMapId, mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode,
+    mapId: storeMapId, mapName, currentMapOwnerId, currentMapCreatedAt, isPublic, sharedWithClassroomId, isNewMapMode, isViewOnlyMode: storeIsViewOnlyMode,
     mapData: storeMapData, isLoading: isStoreLoading, isSaving: isStoreSaving, error: storeError,
     selectedElementId, selectedElementType, multiSelectedNodeIds,
     aiExtractedConcepts, aiSuggestedRelations,
@@ -61,7 +62,12 @@ export default function ConceptMapEditorPage() {
     updateEdge: updateStoreEdge,
     setSelectedElement: setStoreSelectedElement, setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
     importMapData,
+    setIsViewOnlyMode: setStoreIsViewOnlyMode,
   } = useConceptMapStore();
+
+  useEffect(() => {
+    setStoreIsViewOnlyMode(isViewOnlyModeQueryParam);
+  }, [isViewOnlyModeQueryParam, setStoreIsViewOnlyMode]);
 
   const temporalStoreAPI = useConceptMapStore.temporal;
   const [temporalState, setTemporalState] = useState(temporalStoreAPI.getState());
@@ -74,7 +80,7 @@ export default function ConceptMapEditorPage() {
 
   const { saveMap } = useConceptMapDataManager({ routeMapId, user });
 
-  const aiToolsHook = useConceptMapAITools(isViewOnlyMode);
+  const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
   const {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen, conceptsForRelationSuggestion, openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
@@ -95,11 +101,11 @@ export default function ConceptMapEditorPage() {
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; nodeId: string | null; } | null>(null);
 
   const handleMapPropertiesChange = useCallback((properties: { name: string; isPublic: boolean; sharedWithClassroomId: string | null; }) => {
-    if (isViewOnlyMode) { toast({ title: "View Only Mode", description: "Map properties cannot be changed.", variant: "default"}); return; }
+    if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", description: "Map properties cannot be changed.", variant: "default"}); return; }
     setStoreMapName(properties.name);
     setStoreIsPublic(properties.isPublic);
     setStoreSharedWithClassroomId(properties.sharedWithClassroomId);
-  }, [isViewOnlyMode, toast, setStoreMapName, setStoreIsPublic, setStoreSharedWithClassroomId]);
+  }, [storeIsViewOnlyMode, toast, setStoreMapName, setStoreIsPublic, setStoreSharedWithClassroomId]);
 
   const handleFlowSelectionChange = useCallback((elementId: string | null, elementType: 'node' | 'edge' | null) => {
     setStoreSelectedElement(elementId, elementType);
@@ -110,7 +116,7 @@ export default function ConceptMapEditorPage() {
   }, [setStoreMultiSelectedNodeIds]);
 
   const handleAddNodeToData = () => {
-    if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
+    if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
     const { x, y } = aiToolsHook.getNodePlacement(useConceptMapStore.getState().mapData.nodes.length, 'generic', null, null, 20);
     addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
@@ -118,7 +124,7 @@ export default function ConceptMapEditorPage() {
   };
 
   const handleAddEdgeToData = () => {
-    if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
+    if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const nodes = useConceptMapStore.getState().mapData.nodes;
     if (nodes.length < 2) { toast({ title: "Cannot Add Edge", description: "At least two nodes are required to add an edge.", variant: "default" }); return; }
     const sourceNode = nodes[nodes.length - 2]; const targetNode = nodes[nodes.length - 1];
@@ -166,12 +172,12 @@ export default function ConceptMapEditorPage() {
   }, [mapName, storeMapData, isPublic, sharedWithClassroomId, toast]);
 
   const handleTriggerImport = useCallback(() => {
-    if (!isViewOnlyMode) fileInputRef.current?.click();
+    if (!storeIsViewOnlyMode) fileInputRef.current?.click();
     else toast({title: "View Only Mode", description: "Import disabled."})
-  }, [isViewOnlyMode, toast]);
+  }, [storeIsViewOnlyMode, toast]);
 
   const handleFileSelectedForImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (isViewOnlyMode) return;
+    if (storeIsViewOnlyMode) return;
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -187,7 +193,7 @@ export default function ConceptMapEditorPage() {
       toast({ title: "Import Failed", description: `Error importing map: ${(e as Error).message}`, variant: "destructive"});
     }
     if(fileInputRef.current) fileInputRef.current.value = "";
-  }, [isViewOnlyMode, toast, importMapData, temporalStoreAPI]);
+  }, [storeIsViewOnlyMode, toast, importMapData, temporalStoreAPI]);
 
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
     event.preventDefault();
@@ -197,54 +203,56 @@ export default function ConceptMapEditorPage() {
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
   const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => {
-    if(!isViewOnlyMode) deleteStoreNode(nodeId);
+    if(!storeIsViewOnlyMode) deleteStoreNode(nodeId);
     closeContextMenu();
-  }, [isViewOnlyMode, deleteStoreNode, closeContextMenu]);
+  }, [storeIsViewOnlyMode, deleteStoreNode, closeContextMenu]);
 
   const handleSelectedElementPropertyUpdateInspector = useCallback((updates: any) => {
-    if (isViewOnlyMode || !selectedElementId || !selectedElementType ) return;
+    if (storeIsViewOnlyMode || !selectedElementId || !selectedElementType ) return;
     if (selectedElementType === 'node') updateStoreNode(selectedElementId, updates);
     else if (selectedElementType === 'edge') updateStoreEdge(selectedElementId, updates);
-  }, [isViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
+  }, [storeIsViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
 
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
   if (storeError) { return <div className="p-4 text-destructive flex flex-col items-center justify-center h-full gap-4"><AlertTriangle className="h-10 w-10" /> <p>{storeError}</p> <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col">
-      <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileSelectedForImport} style={{ display: 'none' }} disabled={isViewOnlyMode} />
+      <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileSelectedForImport} style={{ display: 'none' }} disabled={storeIsViewOnlyMode} />
       <DashboardHeader
         title={mapName}
-        description={isViewOnlyMode ? "Currently in view-only mode." : "Create, edit, and visualize your ideas."}
-        icon={isViewOnlyMode ? EyeOff : (isNewMapMode || storeMapId === 'new') ? Compass : Share2}
+        description={storeIsViewOnlyMode ? "Currently in view-only mode." : "Create, edit, and visualize your ideas."}
+        icon={storeIsViewOnlyMode ? EyeOff : (isNewMapMode || storeMapId === 'new') ? Compass : Share2}
         iconLinkHref={getRoleBasedDashboardLink()}
       >
-        {!isViewOnlyMode && <Button onClick={() => saveMap(isViewOnlyMode)} disabled={isStoreSaving || isViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
+        {!storeIsViewOnlyMode && <Button onClick={() => saveMap(storeIsViewOnlyMode)} disabled={isStoreSaving || storeIsViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
         <Button asChild variant="outline"><Link href={getBackLink()}><ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}</Link></Button>
       </DashboardHeader>
       <ReactFlowProvider>
         <EditorToolbar
-          onNewMap={handleNewMap} onSaveMap={() => saveMap(isViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
+          onNewMap={handleNewMap} onSaveMap={() => saveMap(storeIsViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
           onExtractConcepts={() => openExtractConceptsModal(selectedElementId || undefined)}
           onSuggestRelations={() => openSuggestRelationsModal(selectedElementId || undefined)}
           onExpandConcept={() => openExpandConceptModal(selectedElementId || undefined)}
           onQuickCluster={openQuickClusterModal} onGenerateSnippetFromText={openGenerateSnippetModal}
           onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
-          isViewOnlyMode={isViewOnlyMode} onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
+          isViewOnlyMode={storeIsViewOnlyMode} onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
           onToggleProperties={onTogglePropertiesInspector} onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
           onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
+          selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
+          numMultiSelectedNodes={multiSelectedNodeIds.length}
         />
         <div className="flex-grow relative overflow-hidden">
             <FlowCanvasCore
-              mapDataFromStore={storeMapData} isViewOnlyMode={isViewOnlyMode}
+              mapDataFromStore={storeMapData} isViewOnlyMode={storeIsViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange} onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode}
               onNodesDeleteInStore={deleteStoreNode}
               onEdgesDeleteInStore={(edgeId) => useConceptMapStore.getState().deleteEdge(edgeId)}
               onConnectInStore={addEdgeFromHook}
               onNodeContextMenu={handleNodeContextMenu}
-              onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)} // Pass the handler
+              onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
             />
         </div>
         {contextMenu?.isOpen && contextMenu.nodeId && (
@@ -255,14 +263,14 @@ export default function ConceptMapEditorPage() {
             onExtractConcepts={() => { openExtractConceptsModal(contextMenu.nodeId!); closeContextMenu(); }}
             onAskQuestion={() => { openAskQuestionModal(contextMenu.nodeId!); closeContextMenu(); }}
             onRewriteContent={() => { openRewriteNodeContentModal(contextMenu.nodeId!); closeContextMenu(); }}
-            isViewOnlyMode={isViewOnlyMode} />
+            isViewOnlyMode={storeIsViewOnlyMode} />
         )}
         <Sheet open={isPropertiesInspectorOpen} onOpenChange={setIsPropertiesInspectorOpen}>
           <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
             <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
               selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType}
               onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
-              isNewMapMode={isNewMapMode} isViewOnlyMode={isViewOnlyMode} />
+              isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} />
           </SheetContent>
         </Sheet>
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
@@ -272,12 +280,12 @@ export default function ConceptMapEditorPage() {
               onAddExtractedConcepts={addExtractedConceptsToMap} onAddSuggestedRelations={addSuggestedRelationsToMap}
               onClearExtractedConcepts={() => useConceptMapStore.getState().setAiExtractedConcepts([])}
               onClearSuggestedRelations={() => useConceptMapStore.getState().setAiSuggestedRelations([])}
-              isViewOnlyMode={isViewOnlyMode} />
+              isViewOnlyMode={storeIsViewOnlyMode} />
           </SheetContent>
         </Sheet>
-        {isExtractConceptsModalOpen && !isViewOnlyMode && <ExtractConceptsModal initialText={textForExtraction} onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />}
-        {isSuggestRelationsModalOpen && !isViewOnlyMode && <SuggestRelationsModal initialConcepts={conceptsForRelationSuggestion} onRelationsSuggested={handleRelationsSuggested} onOpenChange={setIsSuggestRelationsModalOpen} />}
-        {isExpandConceptModalOpen && !isViewOnlyMode && conceptToExpandDetails && (
+        {isExtractConceptsModalOpen && !storeIsViewOnlyMode && <ExtractConceptsModal initialText={textForExtraction} onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />}
+        {isSuggestRelationsModalOpen && !storeIsViewOnlyMode && <SuggestRelationsModal initialConcepts={conceptsForRelationSuggestion} onRelationsSuggested={handleRelationsSuggested} onOpenChange={setIsSuggestRelationsModalOpen} />}
+        {isExpandConceptModalOpen && !storeIsViewOnlyMode && conceptToExpandDetails && (
           <ExpandConceptModal
             initialConceptText={conceptToExpandDetails.text}
             existingMapContext={mapContextForExpansion}
@@ -285,11 +293,12 @@ export default function ConceptMapEditorPage() {
             onOpenChange={setIsExpandConceptModalOpen}
           />
         )}
-        {isQuickClusterModalOpen && !isViewOnlyMode && <QuickClusterModal isOpen={isQuickClusterModalOpen} onOpenChange={setIsQuickClusterModalOpen} onClusterGenerated={handleClusterGenerated} />}
-        {isGenerateSnippetModalOpen && !isViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
-        {isAskQuestionModalOpen && !isViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
-        {isRewriteNodeContentModalOpen && !isViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
+        {isQuickClusterModalOpen && !storeIsViewOnlyMode && <QuickClusterModal isOpen={isQuickClusterModalOpen} onOpenChange={setIsQuickClusterModalOpen} onClusterGenerated={handleClusterGenerated} />}
+        {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
+        {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
+        {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
       </ReactFlowProvider>
     </div>
   );
 }
+
