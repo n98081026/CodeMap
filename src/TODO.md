@@ -221,7 +221,7 @@
         - [x] Key reusable display components memoized with `React.memo` (`DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, `ClassroomListItem`, `ConceptMapListItem`, `SubmissionListItem`).
     - [x] **Code Splitting:**
         - [x] Use `next/dynamic` for `FlowCanvasCore`.
-        - [ ] (Reviewed - No Action) `AISuggestionPanel` and `PropertiesInspector` reviewed for dynamic import. Current complexity does not strongly warrant it yet, but can be revisited.
+        - [x] Use `next/dynamic` for `AISuggestionPanel` and `PropertiesInspector` in `ConceptMapEditorPage`.
     - [ ] **Bundle Size Analysis:** (Future Task) Periodically analyze the application bundle size and identify areas for reduction.
     - [x] Removed redundant `CanvasPlaceholder.tsx`.
 
@@ -308,6 +308,7 @@ This section outlines tasks to fully migrate to Supabase.
 - `DashboardHeader` component now supports a linkable icon via `iconLinkHref`.
 - `DashboardLinkCard` description paragraph height has been standardized.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps.
+- `PropertiesInspector` and `AISuggestionPanel` are now dynamically imported in `ConceptMapEditorPage`.
 - Redundant `CanvasPlaceholder.tsx` and `/application/layout.tsx` files have been removed.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
@@ -320,3 +321,4 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+

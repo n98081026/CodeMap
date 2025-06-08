@@ -8,8 +8,8 @@ import { ReactFlowProvider } from 'reactflow';
 import dynamic from 'next/dynamic';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
-import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
-import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel";
+// import { PropertiesInspector } from "@/components/concept-map/properties-inspector"; // Replaced with dynamic import
+// import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"; // Replaced with dynamic import
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -41,11 +41,21 @@ const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canva
   loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
 });
 
+const PropertiesInspector = dynamic(() => import('@/components/concept-map/properties-inspector').then(mod => mod.PropertiesInspector), { 
+  ssr: false, 
+  loading: () => <div className="p-4 text-center text-sm text-muted-foreground">Loading Properties...</div> 
+});
+
+const AISuggestionPanel = dynamic(() => import('@/components/concept-map/ai-suggestion-panel').then(mod => mod.AISuggestionPanel), { 
+  ssr: false, 
+  loading: () => <div className="p-4 text-center text-sm text-muted-foreground">Loading AI Suggestions...</div> 
+});
+
 
 export default function ConceptMapEditorPage() {
   const paramsHook = useParams();
   const searchParams = useSearchParams();
-  const { toast } } = useToast();
+  const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
 
