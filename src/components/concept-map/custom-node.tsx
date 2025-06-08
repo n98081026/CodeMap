@@ -1,3 +1,4 @@
+
 "use client";
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
@@ -21,7 +22,7 @@ export interface CustomNodeData {
   shape?: 'rectangle' | 'ellipse';
   width?: number;
   height?: number;
-  onTriggerAIExpand?: (nodeId: string) => void; // New prop for triggering AI
+  onTriggerAIExpand?: (nodeId: string) => void;
 }
 
 const nodeTypeStyles: { [key: string]: string } = {
@@ -105,7 +106,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
   };
 
   const handleAIExpandClick = (event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent node selection/drag start
+    event.stopPropagation(); 
     data.onTriggerAIExpand?.(id);
   };
 
@@ -151,7 +152,10 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
       onMouseLeave={() => setIsHovered(false)}
     >
       {isCurrentNodeAiProcessing && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm z-20 rounded-[inherit]">
+        <div className={cn(
+          "absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm z-20",
+           shapeClass === 'rounded-full' ? 'rounded-full' : 'rounded-lg' // Ensure spinner overlay respects shape
+        )}>
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       )}
@@ -179,10 +183,11 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
             onBlur={handleLabelEditCommit}
             onKeyDown={handleKeyDown}
             className="text-sm font-semibold h-7 px-1 py-0.5 border-primary focus:ring-primary flex-grow min-w-0 bg-background/80"
+            disabled={isCurrentNodeAiProcessing}
           />
         ) : (
           <CardTitle
-            className={cn("text-sm font-semibold text-center whitespace-normal break-words flex-grow min-w-0", data.isViewOnly ? "" : "cursor-text")}
+            className={cn("text-sm font-semibold text-center whitespace-normal break-words flex-grow min-w-0", data.isViewOnly || isCurrentNodeAiProcessing ? "" : "cursor-text")}
             onDoubleClick={() => !data.isViewOnly && !isCurrentNodeAiProcessing && setEditingNodeId(id)}
           >
             {data.label || 'Node'}
@@ -220,3 +225,4 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
+

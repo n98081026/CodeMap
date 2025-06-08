@@ -183,13 +183,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const openExpandConceptModal = useCallback((nodeIdForContext?: string) => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
 
-    let conceptDetails: ConceptToExpandDetails | null = null;
+    let conceptDetailsToSet: ConceptToExpandDetails | null = null;
     let context: string[] = [];
     const targetNodeId = nodeIdForContext || selectedElementId;
     const selectedNode = targetNodeId ? mapData.nodes.find(n => n.id === targetNodeId) : null;
 
     if (selectedNode) {
-      conceptDetails = { id: selectedNode.id, text: selectedNode.text, node: selectedNode };
+      conceptDetailsToSet = { id: selectedNode.id, text: selectedNode.text, node: selectedNode };
       const neighborIds = new Set<string>();
       mapData.edges?.forEach(edge => {
         if (edge.source === selectedNode.id) neighborIds.add(edge.target);
@@ -197,11 +197,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       });
       context = Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 5);
     } else if (mapData.nodes.length > 0) {
-      conceptDetails = { id: null, text: "General Map Topic", node: undefined };
+      conceptDetailsToSet = { id: null, text: "General Map Topic", node: undefined };
     } else {
-        conceptDetails = {id: null, text: "", node: undefined};
+        conceptDetailsToSet = {id: null, text: "", node: undefined};
     }
-    setConceptToExpandDetails(conceptDetails);
+    setConceptToExpandDetails(conceptDetailsToSet);
     setMapContextForExpansion(context);
     setIsExpandConceptModalOpen(true);
   }, [isViewOnlyMode, mapData, selectedElementId, toast]);
@@ -325,9 +325,16 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleRewriteNodeContentConfirm = useCallback(async (nodeId: string, newText: string, newDetails?: string, tone?: string) => {
     if (isViewOnlyMode) return;
-    updateStoreNode(nodeId, { text: newText, details: newDetails, type: 'ai-rewritten-node' });
-    toast({ title: "Node Content Rewritten", description: `Node updated by AI (Tone: ${tone || 'Default'}).` });
-  }, [isViewOnlyMode, updateStoreNode, toast]);
+    setAiProcessingNodeId(nodeId);
+    try {
+      updateStoreNode(nodeId, { text: newText, details: newDetails, type: 'ai-rewritten-node' });
+      toast({ title: "Node Content Rewritten", description: `Node updated by AI (Tone: ${tone || 'Default'}).` });
+    } catch (error) {
+      toast({ title: "Error Applying Rewrite", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setAiProcessingNodeId(null);
+    }
+  }, [isViewOnlyMode, updateStoreNode, toast, setAiProcessingNodeId]);
 
   // --- Summarize Selected Nodes ---
   const handleSummarizeSelectedNodes = useCallback(async () => {
@@ -346,9 +353,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         return;
     }
     
+    setAiProcessingNodeId('summarizing_selection'); 
     try {
         toast({ title: "AI Summarization", description: "Processing selected nodes...", duration: 3000});
-        setAiProcessingNodeId('summarizing_selection'); 
         const result: SummarizeNodesOutput = await aiSummarizeNodes({ nodeContents });
         
         const currentNodes = useConceptMapStore.getState().mapData.nodes;

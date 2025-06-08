@@ -88,8 +88,7 @@
 - [x] **Hierarchical Node Movement**: Verified: React Flow's `parentNode` feature handles moving descendants with parent.
 - [x] **Recursive deletion of child nodes when parent is deleted**: Implemented in Zustand store's `deleteNode` action.
 - [x] **Improved Connector Experience (`OrthogonalEdge.tsx` and beyond):**
-    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Implemented with straight exits and refined Manhattan path calculation for better handling of source/target orientations and fewer bends.
-    - [x] Edge lines exit handles straight for a defined distance (e.g., 20px) before turning.
+    - [x] Custom Edge Type (`OrthogonalEdge.tsx`): Implemented with straight exits and refined Manhattan path calculation for better handling of source/target orientations and fewer bends. Implemented sharp corners when segments are too short for rounded bends.
     - [ ] **(Highly Advanced) Edge Obstacle Avoidance for `OrthogonalEdge`:**
         - [ ] Research pathfinding algorithms (e.g., A* variants suitable for grid/orthogonal paths) or simplified heuristics.
         - [ ] Implement collision detection between edge segments and other node bounding boxes.
@@ -199,7 +198,7 @@
     - [x] Clearer visual cues for suggestion status (exact, similar, new).
     - [x] "Clear All" button for suggestion categories.
 - [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
-    - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling).
+    - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling. Toolbar button tooltips and disable states refined).
 
 ## Performance Optimizations
 - [ ] **Rendering:**
@@ -314,5 +313,6 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+
 
 

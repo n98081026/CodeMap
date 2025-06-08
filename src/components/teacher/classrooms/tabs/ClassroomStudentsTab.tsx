@@ -40,7 +40,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
   const rowVirtualizer = useVirtualizer({
     count: students.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 53, // Approximate height of a row
+    estimateSize: () => 53, 
     overscan: 10,
   });
 
@@ -79,7 +79,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
   }
 
   return (
-    <div ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}> {/* Adjust maxHeight as needed */}
+    <div ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
       <Table>
         <TableHeader className="sticky top-0 bg-card z-10">
           <TableRow>
@@ -89,7 +89,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
           </TableRow>
         </TableHeader>
         {students.length > 0 ? (
-          <tbody style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+          <TableBody style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
               const student = students[virtualRow.index];
               if (!student) return null;
@@ -105,6 +105,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                   ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index} 
                 >
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
@@ -137,15 +138,15 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
                 </TableRow>
               );
             })}
-          </tbody>
+          </TableBody>
         ) : (
-           <tbody>
+           <TableBody>
               <TableRow>
                   <TableCell colSpan={3} className="h-24 text-center">
                       No students to display.
                   </TableCell>
               </TableRow>
-           </tbody>
+           </TableBody>
         )}
       </Table>
     </div>
