@@ -106,12 +106,12 @@
 - [x] **Snapping Guides**:
     - [x] Full center-to-center and edge-to-edge node snapping implemented with visual guides.
     - [x] Snap-to-grid functionality (nodes align to grid on creation and drag if not node-snapped, node-to-node takes precedence) - Implemented and verified.
-- [x] **Node Auto-Sizing**: Implemented: Nodes dynamically adjust size based on content (label, details) within min/max Tailwind CSS constraints. Details section becomes scrollable if content exceeds `max-h`. Explicitly set dimensions from store override auto-sizing.
+- [x] **Node Auto-Sizing**: Implemented & Verified: Nodes dynamically adjust size based on content (label, details) within min/max Tailwind CSS constraints. Details section becomes scrollable if content exceeds `max-h`. Explicitly set dimensions from store override auto-sizing.
 - [x] **Refined Pan & Zoom**:
-    - [x] Min/max zoom levels explicitly set (0.1 - 4.0).
-    - [x] Modifier key for pan (Spacebar + drag) implemented.
+    - [x] Min/max zoom levels explicitly set (0.1 - 4.0) - Verified active.
+    - [x] Modifier key for pan (Spacebar + drag) implemented - Verified.
     - [x] **Panning Extents:**
-        - [x] Calculate content bounding box - Implemented.
+        - [x] Calculate content bounding box - Implemented via dynamic `translateExtent`.
         - [x] Prevent panning too far beyond content by dynamically setting `translateExtent` - Implemented.
         - [ ] (Optional Refinement) Implement "elastic" edges if hard limits feel too abrupt.
     - [x] **Zoom Center (Verification/Enhancement):**
@@ -125,13 +125,13 @@
         - [x] Verified selection mode vs. pan mode (Spacebar) is clear and functional.
         - [x] Test selection box tool behavior during pan/zoom operations - Verified, React Flow default with `selectionOnDrag={true}` works as expected.
     - [x] **Minimap/Navigator Enhancements (If React Flow's default needs more):**
-        - [x] Ensure minimap syncs correctly with main canvas pan/zoom. (React Flow default is good)
+        - [x] Ensure minimap syncs correctly with main canvas pan/zoom. (React Flow default is good) - Verified.
         - [ ] Evaluate if custom styling or behavior for minimap is needed.
     - [x] **Touch Support (Verification/Enhancement):**
         - [x] Verified (React Flow defaults enabled & props confirmed): Thoroughly test pinch-to-zoom on touch devices.
         - [x] Verified (React Flow defaults enabled & props confirmed): Test one-finger and two-finger pan on touch devices.
-    - [x] Verify/Adjust default pan/zoom sensitivity and step sizes.
-    - [x] Ensure API for programmatic pan/zoom is usable if needed (e.g., focus on node via `fitView` or `setCenter`).
+    - [x] Verify/Adjust default pan/zoom sensitivity and step sizes - Verified, React Flow defaults acceptable.
+    - [x] Ensure API for programmatic pan/zoom is usable if needed (e.g., focus on node via `fitView` or `setCenter`) - Verified, React Flow provides.
 
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
@@ -279,7 +279,7 @@ This section outlines tasks to fully migrate to Supabase.
 - **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children implemented in Zustand store. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented. Floating "AI Expand" button on selected hovered nodes.
 - **Snapping implemented:** Full center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added and verified.
 - **Custom edge type `OrthogonalEdge` implemented:** Path calculation reviewed and confirmed to produce robust Manhattan-style paths with straight exits/entries and clear label placement across various handle orientations. Sharp/rounded corners logic remains. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
-- **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions are respected.
+- **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions are respected. Details section scrolls if content exceeds `max-h` when auto-sizing.
 - **GAI Action Feedback**: Loading spinner added to nodes when AI operations are triggered via context menu or floating button. Modals have clearer descriptions of output handling. AI-generated/modified nodes have distinct visual styles. Toolbar AI buttons ("Expand Concept", "Summarize Selection") have context-aware disabling and tooltips.
 - **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
@@ -296,7 +296,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
-- **Pan/Zoom Refinements**: Min/max zoom levels are explicitly set. Spacebar+drag to pan is implemented. Dynamic `translateExtent` is set to prevent panning too far beyond content. Touch interaction props (pinch-zoom, pan) are confirmed enabled. Selection box tool behavior with pan/zoom verified.
+- **Pan/Zoom Refinements**: Min/max zoom levels are explicitly set and verified. Spacebar+drag to pan is implemented and verified. Dynamic `translateExtent` is set to prevent panning too far beyond content and verified. Touch interaction props (pinch-zoom, pan) are confirmed enabled. Default zoom-to-mouse behavior and pan/zoom sensitivity are verified. Programmatic pan/zoom API via React Flow is available. Selection box tool behavior with pan/zoom verified. Minimap syncs correctly.
 - **Teacher Classroom Detail Page has been modularized with separate tab components for Students, Maps, and Submissions.**
 - `DashboardHeader` component now supports a linkable icon via `iconLinkHref`.
 - `DashboardLinkCard` description paragraph height has been standardized.
@@ -312,6 +312,7 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+
 
 
 
