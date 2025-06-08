@@ -19,6 +19,7 @@ import { Loader2 } from "lucide-react";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
 import { useToast } from '@/hooks/use-toast';
+import { MOCK_ADMIN_USER, MOCK_STUDENT_USER, MOCK_TEACHER_USER } from '@/lib/config';
 
 interface EditUserDialogProps {
   isOpen: boolean;
@@ -27,10 +28,15 @@ interface EditUserDialogProps {
   onUserUpdateSuccess: () => void; // Callback to refresh user list
 }
 
+const PREDEFINED_MOCK_USER_IDS_FOR_DIALOG = [MOCK_STUDENT_USER.id, MOCK_TEACHER_USER.id, MOCK_ADMIN_USER.id];
+
 export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateSuccess }: EditUserDialogProps) {
   const { toast } = useToast();
   const [editFormData, setEditFormData] = useState({ name: "", email: "", role: UserRole.STUDENT });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const isPredefinedUser = userToEdit ? PREDEFINED_MOCK_USER_IDS_FOR_DIALOG.includes(userToEdit.id) : false;
+
 
   useEffect(() => {
     if (userToEdit && isOpen) {
@@ -40,7 +46,6 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
         role: userToEdit.role,
       });
     } else if (!isOpen) {
-      // Reset form when dialog closes
       setEditFormData({ name: "", email: "", role: UserRole.STUDENT });
     }
   }, [userToEdit, isOpen]);
@@ -56,6 +61,11 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
 
   const handleUpdateUser = useCallback(async () => {
     if (!userToEdit) return;
+    if (isPredefinedUser) {
+        toast({ title: "Operation Denied", description: "Details for pre-defined test accounts cannot be edited here.", variant: "destructive" });
+        return;
+    }
+
 
     if (!editFormData.name.trim()) {
       toast({ title: "Name Required", description: "User name cannot be empty.", variant: "destructive" });
@@ -69,10 +79,29 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
 
     setIsSavingEdit(true);
     try {
+      const payload = {
+        name: editFormData.name,
+        email: editFormData.email,
+        role: editFormData.role,
+      };
+      // Filter out fields that haven't changed from original userToEdit to avoid unnecessary updates
+      const changes: Partial<User> = {};
+      if (payload.name !== userToEdit.name) changes.name = payload.name;
+      if (payload.email !== userToEdit.email) changes.email = payload.email;
+      if (payload.role !== userToEdit.role) changes.role = payload.role;
+
+      if (Object.keys(changes).length === 0) {
+        toast({ title: "No Changes", description: "No changes were made to the user's profile." });
+        onOpenChange(false);
+        setIsSavingEdit(false);
+        return;
+      }
+
+
       const response = await fetch(`/api/users/${userToEdit.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData), // Send only changed fields if preferred
+        body: JSON.stringify(changes), 
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -80,16 +109,14 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
       }
       toast({ title: "User Updated", description: `User "${editFormData.name}" has been updated.` });
       onOpenChange(false);
-      onUserUpdateSuccess(); // Call callback to refresh
+      onUserUpdateSuccess(); 
     } catch (err) {
       toast({ title: "Error Updating User", description: (err as Error).message, variant: "destructive" });
     } finally {
       setIsSavingEdit(false);
     }
-  }, [userToEdit, editFormData, toast, onOpenChange, onUserUpdateSuccess]);
+  }, [userToEdit, editFormData, toast, onOpenChange, onUserUpdateSuccess, isPredefinedUser]);
   
-  const isPredefinedMockUser = userToEdit?.id === "admin-mock-id" || userToEdit?.id === "student-test-id" || userToEdit?.id === "teacher-test-id";
-
 
   if (!userToEdit) return null;
 
@@ -98,7 +125,7 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
       <DialogContent className="sm:max-w-[425px]">
         <FormDialogHeader>
           <FormDialogTitle>Edit User: {userToEdit.name}</FormDialogTitle>
-          <FormDialogDescription>Modify the user's details below. Pre-defined mock users have some restrictions.</FormDialogDescription>
+          <FormDialogDescription>Modify the user's details below. Pre-defined test users have restricted editing.</FormDialogDescription>
         </FormDialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -109,7 +136,7 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
               value={editFormData.name}
               onChange={handleEditFormChange}
               className="col-span-3"
-              disabled={isSavingEdit || isPredefinedMockUser}
+              disabled={isSavingEdit || isPredefinedUser}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -121,7 +148,7 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
               value={editFormData.email}
               onChange={handleEditFormChange}
               className="col-span-3"
-              disabled={isSavingEdit || isPredefinedMockUser}
+              disabled={isSavingEdit || isPredefinedUser}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -130,7 +157,7 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
               name="role"
               value={editFormData.role}
               onValueChange={(value) => handleEditFormChange(value, "role")}
-              disabled={isSavingEdit || isPredefinedMockUser}
+              disabled={isSavingEdit || isPredefinedUser}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select role" />
@@ -142,9 +169,9 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
               </SelectContent>
             </Select>
           </div>
-           {isPredefinedMockUser && (
+           {isPredefinedUser && (
             <p className="col-span-4 text-xs text-muted-foreground p-2 border border-dashed rounded-md bg-muted/50">
-              Note: Name, email, and role for pre-defined mock accounts are primarily managed for testing purposes and may have edit restrictions here.
+              Note: Name, email, and role for pre-defined test accounts cannot be changed.
             </p>
           )}
         </div>
@@ -152,7 +179,7 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
           <DialogClose asChild>
             <Button type="button" variant="outline" disabled={isSavingEdit}>Cancel</Button>
           </DialogClose>
-          <Button onClick={handleUpdateUser} disabled={isSavingEdit || isPredefinedMockUser}>
+          <Button onClick={handleUpdateUser} disabled={isSavingEdit || isPredefinedUser}>
             {isSavingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSavingEdit ? "Saving..." : "Save Changes"}
           </Button>

@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, Search } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Users, Loader2, AlertTriangle, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -28,6 +28,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { EmptyState } from "@/components/layout/empty-state";
 import { EditUserDialog } from '@/components/admin/users/edit-user-dialog';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { MOCK_ADMIN_USER, MOCK_STUDENT_USER, MOCK_TEACHER_USER } from '@/lib/config';
+
+const USERS_PER_PAGE = 15;
+const PREDEFINED_MOCK_USER_IDS = [MOCK_STUDENT_USER.id, MOCK_TEACHER_USER.id, MOCK_ADMIN_USER.id];
+
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -40,6 +45,8 @@ export default function AdminUsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
   const [totalUsers, setTotalUsers] = useState(0); 
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearchTerm = useDeferredValue(searchTerm);
@@ -50,15 +57,18 @@ export default function AdminUsersPage() {
   const rowVirtualizer = useVirtualizer({
     count: users.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 53, 
+    estimateSize: () => 53, // Approximate height of a TableRow
     overscan: 10,
   });
 
-  const fetchUsers = useCallback(async (search: string) => {
+  const fetchUsers = useCallback(async (page: number, search: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const searchParams = new URLSearchParams();
+      const searchParams = new URLSearchParams({
+        page: page.toString(),
+        limit: USERS_PER_PAGE.toString(),
+      });
       if (search.trim()) {
         searchParams.append('search', search.trim());
       }
@@ -82,12 +92,17 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    fetchUsers(deferredSearchTerm);
-  }, [deferredSearchTerm, fetchUsers]);
+    fetchUsers(currentPage, deferredSearchTerm);
+  }, [currentPage, deferredSearchTerm, fetchUsers]);
+
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [deferredSearchTerm]);
   
   const handleDeleteUser = useCallback(async (userId: string, userName: string) => {
-     if (userId === "student-test-id" || userId === "teacher-test-id" || userId === "admin-mock-id" || userId === adminUser?.id) {
-      toast({ title: "Operation Denied", description: "Pre-defined test users, the main mock admin, or your own account cannot be deleted.", variant: "destructive" });
+     if (PREDEFINED_MOCK_USER_IDS.includes(userId) || userId === adminUser?.id) {
+      toast({ title: "Operation Denied", description: "Pre-defined test users, or your own account cannot be deleted.", variant: "destructive" });
       return;
     }
     try {
@@ -97,15 +112,19 @@ export default function AdminUsersPage() {
         throw new Error(errorData.message || "Failed to delete user");
       }
       toast({ title: "User Deleted", description: `User "${userName}" has been deleted.` });
-      fetchUsers(deferredSearchTerm); 
+      if (users.length === 1 && currentPage > 1) { // If last user on a page, go to prev page
+        setCurrentPage(prev => prev -1);
+      } else {
+        fetchUsers(currentPage, deferredSearchTerm); // Re-fetch current page
+      }
     } catch (err) {
       toast({ title: "Error Deleting User", description: (err as Error).message, variant: "destructive" });
     }
-  }, [toast, fetchUsers, adminUser?.id, deferredSearchTerm]);
+  }, [toast, fetchUsers, adminUser?.id, deferredSearchTerm, users.length, currentPage]);
 
   const openEditModal = useCallback((userToEdit: User) => {
-    if (userToEdit.id === "student-test-id" || userToEdit.id === "teacher-test-id" || userToEdit.id === "admin-mock-id" || userToEdit.id === adminUser?.id) {
-       toast({ title: "Operation Denied", description: "Pre-defined test users, the main mock admin, or your own account cannot be edited.", variant: "destructive" });
+    if (PREDEFINED_MOCK_USER_IDS.includes(userToEdit.id) || userToEdit.id === adminUser?.id) {
+       toast({ title: "Operation Denied", description: "Pre-defined test users, or your own account cannot be edited.", variant: "destructive" });
        return;
     }
     setEditingUser(userToEdit);
@@ -113,8 +132,15 @@ export default function AdminUsersPage() {
   }, [toast, adminUser?.id]);
 
   const handleUserUpdateSuccess = useCallback(() => {
-    fetchUsers(deferredSearchTerm);
-  }, [deferredSearchTerm, fetchUsers]);
+    fetchUsers(currentPage, deferredSearchTerm);
+  }, [currentPage, deferredSearchTerm, fetchUsers]);
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
 
   return (
     <div className="space-y-6">
@@ -165,24 +191,25 @@ export default function AdminUsersPage() {
             icon={AlertTriangle}
             title="Error Loading Users"
             description={error}
-            actionButton={<Button onClick={() => fetchUsers(deferredSearchTerm)} variant="outline" size="sm">Try Again</Button>}
+            actionButton={<Button onClick={() => fetchUsers(currentPage, deferredSearchTerm)} variant="outline" size="sm">Try Again</Button>}
         />
       )}
 
-      {!isLoading && !error && (
-        users.length === 0 && totalUsers === 0 ? (
+      {!isLoading && !error && users.length === 0 && (
            <EmptyState
              icon={Users}
              title="No Users Found"
              description={deferredSearchTerm ? "No users match your search criteria." : "There are no users in the system yet. New users can register through the public registration page."}
            />
-        ) : (
+      )}
+      
+      {!isLoading && !error && users.length > 0 && (
          <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>All Users ({totalUsers})</CardTitle>
-            <CardDescription>A list of all registered users. Test users, the main admin, and your own account cannot be edited or deleted directly here.</CardDescription>
+            <CardDescription>A list of all registered users. Predefined test users and your own account have restricted actions.</CardDescription>
           </CardHeader>
-          <CardContent ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 350px)' }}> 
+          <CardContent ref={parentRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 420px)' }}> 
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
@@ -192,11 +219,11 @@ export default function AdminUsersPage() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              {users.length > 0 ? (
                 <tbody style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
                   {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                     const userRow = users[virtualRow.index];
                     if (!userRow) return null;
+                    const isRestricted = PREDEFINED_MOCK_USER_IDS.includes(userRow.id) || userRow.id === adminUser?.id;
                     return (
                       <TableRow
                         key={userRow.id}
@@ -209,6 +236,7 @@ export default function AdminUsersPage() {
                           transform: `translateY(${virtualRow.start}px)`,
                         }}
                         ref={rowVirtualizer.measureElement}
+                        data-index={virtualRow.index}
                       >
                         <TableCell className="font-medium">{userRow.name}</TableCell>
                         <TableCell>{userRow.email}</TableCell>
@@ -222,9 +250,9 @@ export default function AdminUsersPage() {
                             variant="ghost"
                             size="icon"
                             className="mr-2"
-                            title="Edit user"
+                            title={isRestricted ? "Cannot edit this user" : "Edit user"}
                             onClick={() => openEditModal(userRow)}
-                            disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin-mock-id" || userRow.id === adminUser?.id}
+                            disabled={isRestricted}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -233,8 +261,8 @@ export default function AdminUsersPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                title="Delete user"
-                                disabled={userRow.id === "student-test-id" || userRow.id === "teacher-test-id" || userRow.id === "admin-mock-id" || userRow.id === adminUser?.id}
+                                title={isRestricted ? "Cannot delete this user" : "Delete user"}
+                                disabled={isRestricted}
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -243,13 +271,14 @@ export default function AdminUsersPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete the user "{userRow.name}".
+                                  This action cannot be undone. This will permanently delete the user "{userRow.name}". 
+                                  Associated authentication user in Supabase will need to be handled separately.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction onClick={() => handleDeleteUser(userRow.id, userRow.name)}>
-                                  Delete User
+                                  Delete User Profile
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -259,25 +288,38 @@ export default function AdminUsersPage() {
                     );
                   })}
                 </tbody>
-              ) : (
-                 <tbody>
-                    <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
-                            {deferredSearchTerm ? "No users match your search." : "No users available."}
-                        </TableCell>
-                    </TableRow>
-                 </tbody>
-              )}
             </Table>
           </CardContent>
-          <CardFooter className="flex items-center justify-between border-t pt-4">
-              <span className="text-sm text-muted-foreground">
-                Total users matching search: {totalUsers}
-              </span>
+           {totalPages > 0 && (
+             <CardFooter className="flex items-center justify-between border-t pt-4">
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages} ({totalUsers} users)
+                </span>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1 || isLoading}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages || isLoading}
+                >
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </CardFooter>
+           )}
         </Card>
         )
-      )}
+      }
 
       {editingUser && (
         <EditUserDialog
@@ -290,4 +332,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-

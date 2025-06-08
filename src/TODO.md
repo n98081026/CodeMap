@@ -161,7 +161,7 @@
     - [x] Implement user profile page and settings (Profile page created, edit name/email working. Change password functionality using Supabase Auth implemented. Dialogs extracted: `EditProfileDialog`, `ChangePasswordDialog`).
     - [x] Add pagination and filtering for lists (Admin User Management and Teacher classrooms pages have pagination and filtering with Supabase; Admin Users now uses virtualization).
     - [x] Add loading spinner to Login/Register pages. (Verified, already implemented).
-    - [x] Make header icons link to main dashboards. (Implemented for `DashboardHeader` icons and `Navbar` logo).
+    - [x] Make header icons link to main dashboards. (Implemented for `DashboardHeader` icons and `Navbar` logo via `iconLinkHref`).
     - [x] Implement "View Only" mode for Concept Map Editor.
     - [x] Refine `PropertiesInspector` in "View Only" mode. (Verified: controls are disabled as expected).
     - [x] Implement change password functionality on profile page (uses Supabase Auth via API).
@@ -321,4 +321,4 @@ The main remaining area for full Supabase connection is:
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
-    
+```

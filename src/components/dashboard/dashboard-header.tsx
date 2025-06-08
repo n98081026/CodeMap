@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import React from 'react';
 
-interface DashboardHeaderProps {
+export interface DashboardHeaderProps {
   title: string;
   description?: string;
   icon?: LucideIcon;
@@ -46,4 +46,3 @@ export const DashboardHeader = React.memo(function DashboardHeader({ title, desc
   );
 });
 DashboardHeader.displayName = "DashboardHeader";
-
