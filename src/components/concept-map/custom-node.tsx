@@ -93,9 +93,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
     if (data.isViewOnly || isCurrentNodeAiProcessing) return;
 
     const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const parentNodeFromProps = {
-      id, x: xPos, y: yPos, width, height, text: data.label, type: data.type || 'default'
-    };
+    const parentNodeFromProps = currentNodes.find(n => n.id === id);
+    if (!parentNodeFromProps) return;
+
 
     const childPosition = getNodePlacement(currentNodes, 'child', parentNodeFromProps, null, GRID_SIZE_FOR_CHILD_PLACEMENT, direction);
 
@@ -212,8 +212,12 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
       {!data.isViewOnly && !isCurrentNodeAiProcessing && plusButtonPositions.map(btn => (
         <button
           key={btn.direction}
-          onClick={() => handleCreateChild(btn.direction)}
-          className="absolute z-10 flex items-center justify-center w-5 h-5 bg-primary text-primary-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+          onClick={(e) => { e.stopPropagation(); handleCreateChild(btn.direction); }}
+          className={cn(
+            "absolute z-10 flex items-center justify-center w-5 h-5 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+            isHovered ? "opacity-100" : "opacity-0", // Controlled by isHovered state
+            "transition-opacity"
+          )}
           style={btn.style as React.CSSProperties}
           title={`Add child node ${btn.direction}`}
         >
@@ -225,4 +229,3 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
-

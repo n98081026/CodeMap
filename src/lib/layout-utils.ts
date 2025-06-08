@@ -3,18 +3,18 @@
 
 import type { ConceptMapNode } from '@/types';
 
-const CHILD_X_OFFSET = 180;
-const CHILD_Y_OFFSET = 90; // Increased Y offset for better child visibility
-const SIBLING_Y_OFFSET = 120; // Y offset for new siblings
+const CHILD_X_OFFSET_DIRECT = 180; 
+const CHILD_Y_OFFSET_DIRECT = 0;  // For direct right/left, try to align vertically
+const CHILD_Y_OFFSET_VERTICAL = 100; // For direct top/bottom
+const CHILD_X_OFFSET_VERTICAL = 0; 
+
+const CHILD_X_OFFSET_SPIRAL = 180;
+const CHILD_Y_OFFSET_SPIRAL = 90;
+const SIBLING_Y_OFFSET = 120;
 
 interface NodePosition {
   x: number;
   y: number;
-}
-
-interface NodeDimensions {
-  width?: number;
-  height?: number;
 }
 
 export function getNodePlacement(
@@ -22,44 +22,65 @@ export function getNodePlacement(
   type: 'child' | 'sibling' | 'generic',
   parentNode?: ConceptMapNode | null,
   selectedNode?: ConceptMapNode | null,
-  gridSize?: number
+  gridSize?: number,
+  direction?: 'top' | 'right' | 'bottom' | 'left' // Added direction for specific child placement
 ): NodePosition {
   let finalX: number;
   let finalY: number;
+  const defaultNodeWidth = 160;
+  const defaultNodeHeight = 70; // A rough estimate for new node height
 
   if (type === 'child' && parentNode && typeof parentNode.x === 'number' && typeof parentNode.y === 'number') {
-    // Attempt to place new child nodes in a somewhat circular or offset pattern
-    const childrenOfParent = existingNodes.filter(n => n.parentNode === parentNode.id);
-    const childIndex = childrenOfParent.length;
-    const angleStep = Math.PI / 3; // Approx 60 degrees, adjust for more/less spread
-    const radius = CHILD_X_OFFSET * 0.8; // Base radius
-
-    if (childIndex === 0) { // First child directly to the right
-        finalX = parentNode.x + (parentNode.width || 160) + 60; // Position relative to parent width
-        finalY = parentNode.y;
+    const parentW = parentNode.width || defaultNodeWidth;
+    const parentH = parentNode.height || defaultNodeHeight;
+    
+    if (direction) {
+        switch (direction) {
+            case 'top':
+                finalX = parentNode.x + (parentW / 2) - (defaultNodeWidth / 2) + CHILD_X_OFFSET_VERTICAL;
+                finalY = parentNode.y - CHILD_Y_OFFSET_VERTICAL - defaultNodeHeight;
+                break;
+            case 'bottom':
+                finalX = parentNode.x + (parentW / 2) - (defaultNodeWidth / 2) + CHILD_X_OFFSET_VERTICAL;
+                finalY = parentNode.y + parentH + CHILD_Y_OFFSET_VERTICAL;
+                break;
+            case 'left':
+                finalX = parentNode.x - CHILD_X_OFFSET_DIRECT - defaultNodeWidth;
+                finalY = parentNode.y + (parentH / 2) - (defaultNodeHeight / 2) + CHILD_Y_OFFSET_DIRECT;
+                break;
+            case 'right':
+            default: // Default to right if direction is invalid or not 'top'/'bottom'/'left'
+                finalX = parentNode.x + parentW + CHILD_X_OFFSET_DIRECT;
+                finalY = parentNode.y + (parentH / 2) - (defaultNodeHeight / 2) + CHILD_Y_OFFSET_DIRECT;
+                break;
+        }
     } else {
-        // Simple spiral/offset placement for subsequent children
-        const angle = childIndex * angleStep;
-        finalX = parentNode.x + (parentNode.width || 160)/2 + radius * Math.cos(angle);
-        finalY = parentNode.y + (parentNode.height || 80)/2 + radius * Math.sin(angle);
+        // Fallback to existing spiral/offset logic if no direction
+        const childrenOfParent = existingNodes.filter(n => n.parentNode === parentNode.id);
+        const childIndex = childrenOfParent.length;
+        const angleStep = Math.PI / 3; 
+        const radius = CHILD_X_OFFSET_SPIRAL * 0.8;
 
-        // Try to avoid direct overlap with parent
-        if (Math.abs(finalX - (parentNode.x + (parentNode.width || 160)/2)) < (parentNode.width || 160)/2 &&
-            Math.abs(finalY - (parentNode.y + (parentNode.height || 80)/2)) < (parentNode.height || 80)/2) {
-            finalY += CHILD_Y_OFFSET; // Shift down if too close
+        if (childIndex === 0) { 
+            finalX = parentNode.x + parentW + 60; 
+            finalY = parentNode.y;
+        } else {
+            const angle = childIndex * angleStep;
+            finalX = parentNode.x + (parentW / 2) + radius * Math.cos(angle);
+            finalY = parentNode.y + (parentH / 2) + radius * Math.sin(angle);
+            if (Math.abs(finalX - (parentNode.x + parentW/2)) < parentW/2 &&
+                Math.abs(finalY - (parentNode.y + parentH/2)) < parentH/2) {
+                finalY += CHILD_Y_OFFSET_SPIRAL; 
+            }
         }
     }
-
-
   } else if (type === 'sibling' && selectedNode && typeof selectedNode.x === 'number' && typeof selectedNode.y === 'number') {
     finalX = selectedNode.x;
-    finalY = selectedNode.y + (selectedNode.height || 80) + 40; // Place below the current sibling
+    finalY = selectedNode.y + (selectedNode.height || defaultNodeHeight) + SIBLING_Y_OFFSET;
   } else if (type === 'generic' && selectedNode && typeof selectedNode.x === 'number' && typeof selectedNode.y === 'number') {
-    // Generic placement near the selected node if available
-    finalX = selectedNode.x + CHILD_X_OFFSET * 0.5 + (Math.random() * 50 - 25);
-    finalY = selectedNode.y + CHILD_Y_OFFSET * 0.5 + (Math.random() * 50 - 25);
+    finalX = selectedNode.x + CHILD_X_OFFSET_SPIRAL * 0.5 + (Math.random() * 50 - 25);
+    finalY = selectedNode.y + CHILD_Y_OFFSET_SPIRAL * 0.5 + (Math.random() * 50 - 25);
   } else {
-    // Fallback: Cascade new nodes if no parent/selected context or for AI panel additions
     const lastNode = existingNodes.length > 0 ? existingNodes[existingNodes.length - 1] : null;
     const baseRandomOffset = () => Math.random() * 20 - 10;
     if (lastNode && typeof lastNode.x === 'number' && typeof lastNode.y === 'number') {
