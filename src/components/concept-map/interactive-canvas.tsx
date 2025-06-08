@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -88,7 +87,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeDragStop,
   onPaneDoubleClick,
   activeSnapLines = [],
-  gridSize = 20,
+  gridSize = 20, // Ensure gridSize is available
   panActivationKeyCode,
 }) => {
   const { viewport, getViewport, setViewport } = useReactFlow(); 
@@ -123,7 +122,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       return;
     }
     
-    const currentViewport = getViewport(); // Use getViewport for latest values
+    const currentViewport = getViewport(); 
 
     let minX = Infinity;
     let minY = Infinity;
@@ -159,7 +158,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       [Math.max(extentMinX, extentMaxX), Math.max(extentMinY, extentMaxY)]
     ]);
 
-  }, [nodes, getViewport, setViewport]); // Added getViewport, setViewport as dependencies
+  }, [nodes, getViewport, setViewport]); 
 
 
   const handlePaneDoubleClick = (event: React.MouseEvent) => {
@@ -204,22 +203,22 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         minZoom={0.1}
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
-        onlyRenderVisibleElements={true} // Performance optimization
+        onlyRenderVisibleElements={true} 
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
         <Background
           variant={BackgroundVariant.Dots}
-          gap={gridSize}
+          gap={gridSize} 
           size={1}
-          color="hsl(var(--border)/0.7)" // Theme-aware grid color
+          color="hsl(var(--border)/0.7)" 
         />
         {activeSnapLines.map((line, index) => (
           <svg key={`snapline-${index}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 100 }}>
             <line
               x1={line.x1} y1={line.y1}
               x2={line.x2} y2={line.y2}
-              stroke="hsl(var(--primary)/0.7)" // Theme-aware snap line color
+              stroke="hsl(var(--primary)/0.7)" 
               strokeWidth="1"
               strokeDasharray="3,3"
             />

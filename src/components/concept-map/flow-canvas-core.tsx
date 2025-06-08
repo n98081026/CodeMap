@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
@@ -201,9 +200,10 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       currentDragSnapLines.push(bestSnapYInfo.line);
     }
 
+    // Apply grid snapping only if not snapped to another node for that axis
     if (!xSnappedByNode) {
       const gridSnappedX = Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
-      if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) {
+      if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) { // Use a small threshold for grid snap activation
         snappedXPosition = gridSnappedX;
       }
     }
@@ -229,9 +229,10 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       let finalX = draggedNode.positionAbsolute.x;
       let finalY = draggedNode.positionAbsolute.y;
 
+      // Ensure final position is also snapped to grid after node-to-node checks are done
       finalX = Math.round(finalX / GRID_SIZE) * GRID_SIZE;
       finalY = Math.round(finalY / GRID_SIZE) * GRID_SIZE;
-
+      
       onNodesChangeInStore(draggedNode.id, { x: finalX, y: finalY, width: draggedNode.width, height: draggedNode.height });
     },
     [isViewOnlyMode, onNodesChangeInStore, GRID_SIZE]
@@ -316,13 +317,14 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         const currentNodes = mapData.nodes;
         let newNodeId: string;
 
-        if (event.key === 'Tab') {
+        if (event.key === 'Tab') { // Create Child Node
           const childPosition = getNodePlacement(currentNodes, 'child', selectedStoreNode, null, GRID_SIZE, 'right');
-          newNodeId = addNodeToStore({ text: "New Child", type: 'manual-node', position: childPosition, parentNode: selectedStoreNode.id });
+          newNodeId = addNodeToStore({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: selectedStoreNode.id });
           onConnectInStore({ source: selectedStoreNode.id, target: newNodeId, label: "connects" });
-        } else { 
+        } else { // Create Sibling Node (Enter key)
           const siblingPosition = getNodePlacement(currentNodes, 'sibling', selectedStoreNode.parentNode ? currentNodes.find(n => n.id === selectedStoreNode.parentNode) : null, selectedStoreNode, GRID_SIZE);
           newNodeId = addNodeToStore({ text: "New Sibling", type: 'manual-node', position: siblingPosition, parentNode: selectedStoreNode.parentNode });
+           // Optionally connect siblings if part of the same parent, or handle groups later
         }
         setSelectedElement(newNodeId, 'node');
         setEditingNodeId(newNodeId);
@@ -364,4 +366,3 @@ const FlowCanvasCoreWrapper: React.FC<Omit<FlowCanvasCoreProps, 'onNodeDrag' | '
 );
 
 export default React.memo(FlowCanvasCoreWrapper);
-

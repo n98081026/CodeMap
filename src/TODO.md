@@ -1,4 +1,3 @@
-
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -224,6 +223,7 @@
         - [x] Use `next/dynamic` for `AISuggestionPanel` and `PropertiesInspector` in `ConceptMapEditorPage`.
     - [ ] **Bundle Size Analysis:** (Future Task) Periodically analyze the application bundle size and identify areas for reduction.
     - [x] Removed redundant `CanvasPlaceholder.tsx`.
+    - [x] Removed redundant `/application/layout.tsx`.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
@@ -321,4 +321,3 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
-
