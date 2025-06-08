@@ -291,7 +291,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Classroom management, Concept Map management, and Student Submissions list are connected to Supabase and use modular components.
 - The application is highly modular, with reusable components for UI patterns, custom hooks for complex logic, and service layers for backend interaction.
 - Core in-editor AI features (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) are implemented with specific visual cues for AI-generated/modified nodes. "Expand Concept", "Summarize Selection", and "Rewrite Content" now directly add/modify content on the map.
-- View-only mode for concept map editor is implemented.
+- View-only mode for concept map editor is implemented. `PropertiesInspector` is fully refined for view-only mode.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
@@ -312,6 +312,7 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
     
+
 
 
 

@@ -143,7 +143,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const renderMapProperties = () => (
     <>
       <div>
-        <Label htmlFor="mapNameInspector" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Map Name</Label>
+        <Label htmlFor="mapNameInspector" className={cn((isViewOnlyMode || !currentMap) && "text-muted-foreground/70")}>Map Name</Label>
         <Input 
           id="mapNameInspector" 
           value={mapNameValue} 
@@ -160,7 +160,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
                   checked={isPublicValue} 
                   onCheckedChange={handleIsPublicChange}
                   disabled={isViewOnlyMode || !currentMap}
-                  className={cn((isViewOnlyMode || !currentMap) && "cursor-not-allowed data-[state=checked]:bg-muted-foreground/30 data-[state=unchecked]:bg-muted/30")}
+                  className={cn((isViewOnlyMode || !currentMap) && "data-[state=checked]:bg-muted-foreground/30 data-[state=unchecked]:bg-muted/30")}
               />
               <Label 
                 htmlFor="isPublicSwitch" 
@@ -171,7 +171,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           </div>
       </div>
         <div className="mt-2">
-        <Label htmlFor="sharedClassroomId" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Share with Classroom ID (Optional)</Label>
+        <Label htmlFor="sharedClassroomId" className={cn((isViewOnlyMode || !currentMap) && "text-muted-foreground/70")}>Share with Classroom ID (Optional)</Label>
         <Input 
           id="sharedClassroomId" 
           value={sharedWithClassroomIdValue || ""} 
@@ -223,7 +223,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         /> 
       </div>
       <div className="mt-2">
-        <Label htmlFor="nodeBackgroundColor" className="flex items-center gap-2">
+        <Label htmlFor="nodeBackgroundColor" className={cn("flex items-center gap-2", isViewOnlyMode && "text-muted-foreground/70")}>
             <Palette className="h-4 w-4 text-muted-foreground" /> Background Color
         </Label>
         <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
               value={nodeBackgroundColorValue || "#ffffff"} 
               onChange={handleNodeBackgroundColorChange}
               disabled={isViewOnlyMode}
-              className={cn("h-8 w-16 p-1", isViewOnlyMode && "cursor-not-allowed border-muted/50")}
+              className={cn("h-8 w-16 p-1", isViewOnlyMode && "cursor-not-allowed border-muted/50 bg-muted/50")}
             />
             <Button variant="ghost" size="icon" onClick={clearNodeBackgroundColor} disabled={isViewOnlyMode || nodeBackgroundColorValue === undefined} title="Clear custom background color">
                 <Eraser className="h-4 w-4" />
@@ -241,7 +241,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </div>
       </div>
       <div className="mt-2">
-        <Label htmlFor="nodeShape" className="flex items-center gap-2">
+        <Label htmlFor="nodeShape" className={cn("flex items-center gap-2", isViewOnlyMode && "text-muted-foreground/70")}>
           <CircleDot className="h-4 w-4 text-muted-foreground" /> Node Shape
         </Label>
         <Select 
@@ -278,7 +278,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         />
       </div>
       <div className="mt-2">
-        <Label htmlFor="edgeColor" className="flex items-center gap-2">
+        <Label htmlFor="edgeColor" className={cn("flex items-center gap-2", isViewOnlyMode && "text-muted-foreground/70")}>
             <Palette className="h-4 w-4 text-muted-foreground" /> Line Color
         </Label>
          <div className="flex items-center gap-2">
@@ -288,7 +288,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
               value={edgeColorValue || "#000000"} 
               onChange={handleEdgeColorChange}
               disabled={isViewOnlyMode}
-              className={cn("h-8 w-16 p-1", isViewOnlyMode && "cursor-not-allowed border-muted/50")}
+              className={cn("h-8 w-16 p-1", isViewOnlyMode && "cursor-not-allowed border-muted/50 bg-muted/50")}
             />
             <Button variant="ghost" size="icon" onClick={clearEdgeColor} disabled={isViewOnlyMode || edgeColorValue === undefined} title="Clear custom line color">
                 <Eraser className="h-4 w-4" />
@@ -296,7 +296,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </div>
       </div>
       <div className="mt-2">
-        <Label htmlFor="edgeLineType" className="flex items-center gap-2">
+        <Label htmlFor="edgeLineType" className={cn("flex items-center gap-2", isViewOnlyMode && "text-muted-foreground/70")}>
             <Minus className="h-4 w-4 text-muted-foreground"/>Line Type
         </Label>
         <Select 
@@ -314,7 +314,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </Select>
       </div>
       <div className="mt-2">
-        <Label htmlFor="edgeMarkerStart" className="flex items-center gap-2">
+        <Label htmlFor="edgeMarkerStart" className={cn("flex items-center gap-2", isViewOnlyMode && "text-muted-foreground/70")}>
             <ArrowBigLeft className="h-4 w-4 text-muted-foreground" /> Start Arrow
         </Label>
         <Select 
@@ -333,7 +333,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </Select>
       </div>
       <div className="mt-2">
-        <Label htmlFor="edgeMarkerEnd" className="flex items-center gap-2">
+        <Label htmlFor="edgeMarkerEnd" className={cn("flex items-center gap-2", isViewOnlyMode && "text-muted-foreground/70")}>
             <ArrowBigRight className="h-4 w-4 text-muted-foreground" /> End Arrow
         </Label>
         <Select 
