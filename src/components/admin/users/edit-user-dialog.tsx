@@ -19,7 +19,7 @@ import { Loader2 } from "lucide-react";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
 import { useToast } from '@/hooks/use-toast';
-import { MOCK_ADMIN_USER, MOCK_STUDENT_USER, MOCK_TEACHER_USER } from '@/lib/config';
+import { MOCK_ADMIN_USER_V2, MOCK_STUDENT_USER_V2, MOCK_TEACHER_USER_V2 } from '@/lib/config'; // Use new V2 mocks
 
 interface EditUserDialogProps {
   isOpen: boolean;
@@ -28,7 +28,7 @@ interface EditUserDialogProps {
   onUserUpdateSuccess: () => void; // Callback to refresh user list
 }
 
-const PREDEFINED_MOCK_USER_IDS_FOR_DIALOG = [MOCK_STUDENT_USER.id, MOCK_TEACHER_USER.id, MOCK_ADMIN_USER.id];
+const PREDEFINED_MOCK_USER_IDS_FOR_DIALOG = [MOCK_STUDENT_USER_V2.id, MOCK_TEACHER_USER_V2.id, MOCK_ADMIN_USER_V2.id];
 
 export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateSuccess }: EditUserDialogProps) {
   const { toast } = useToast();
@@ -188,3 +188,5 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
     </Dialog>
   );
 }
+
+    

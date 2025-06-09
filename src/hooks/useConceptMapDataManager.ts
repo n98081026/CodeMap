@@ -7,20 +7,20 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { ConceptMap, User } from '@/types';
 import useConceptMapStore from '@/stores/concept-map-store';
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_CONCEPT_MAP_STUDENT } from '@/lib/config';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_CONCEPT_MAP_STUDENT, MOCK_CONCEPT_MAP_STUDENT_V2 } from '@/lib/config'; // Use V2 for more distinct testing
 
 interface UseConceptMapDataManagerProps {
   routeMapId?: string;
   user: User | null;
 }
 
+// MOCK_USER_FOR_TESTING_MAPS now uses the new V2 mock map.
+// The key 'map-student-bypass-1' is kept if old URLs might still use it, pointing to the new V2 data.
+// Or, change the key to MOCK_CONCEPT_MAP_STUDENT_V2.id if you want to ensure only new IDs are used.
 const MOCK_USER_FOR_TESTING_MAPS: { [key: string]: ConceptMap } = {
-    "map1": {
-        ...MOCK_CONCEPT_MAP_STUDENT, 
-        id: "map1", 
-        name: "Bypass Mock Map 1",
-    },
-    "map-student-bypass-1": MOCK_CONCEPT_MAP_STUDENT,
+    [MOCK_CONCEPT_MAP_STUDENT_V2.id]: MOCK_CONCEPT_MAP_STUDENT_V2, 
+    // Example: If you still want "map1" to load something for tests, map it to a V2 map
+    // "map1": MOCK_CONCEPT_MAP_STUDENT_V2, 
 };
 
 
@@ -130,11 +130,12 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
   
     const currentStoreMapId = useConceptMapStore.getState().mapId;
     const currentIsNewMapMode = useConceptMapStore.getState().isNewMapMode;
+    const currentOwnerIdInStore = useConceptMapStore.getState().currentMapOwnerId;
 
-    if (routeMapId && routeMapId.trim() !== "") { // routeMapId is present and not empty
+
+    if (routeMapId && routeMapId.trim() !== "") {
       if (routeMapId === 'new') {
-        // Explicitly creating a new map
-        if (currentStoreMapId !== 'new' || !currentIsNewMapMode || (currentMapOwnerId !== effectiveUserId && !BYPASS_AUTH_FOR_TESTING) || (BYPASS_AUTH_FOR_TESTING && currentMapOwnerId !== MOCK_STUDENT_USER.id)) {
+        if (currentStoreMapId !== 'new' || !currentIsNewMapMode || currentOwnerIdInStore !== (BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER.id : effectiveUserId) ) {
           const userIdToInit = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER.id : effectiveUserId;
           if (userIdToInit) {
             initializeNewMap(userIdToInit);
@@ -145,25 +146,23 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
         } else {
            if (currentIsLoading) setStoreIsLoading(false);
         }
-      } else {
-        // routeMapId is a specific map ID (not 'new')
+      } else { // routeMapId is a specific map ID
         if (routeMapId !== currentStoreMapId || currentIsNewMapMode) {
-          // If route ID is different from store, OR if store is in newMapMode (needs to load actual map)
           loadMapData(routeMapId);
         } else {
-          // routeMapId matches storeMapId and not in newMapMode (already loaded)
-          if (currentIsLoading) setStoreIsLoading(false);
+          // Map ID matches and not in new mode, should be loaded.
+           if (currentIsLoading) setStoreIsLoading(false);
         }
       }
-    } else { 
-      // No routeMapId, or it's empty (e.g., base editor path, should be treated as 'new')
-      if (currentStoreMapId !== 'new' || !currentIsNewMapMode) {
+    } else { // No routeMapId or empty string
+      // This case should ideally not lead to initializing a new map if one is already in the store,
+      // unless the store explicitly has no mapId or is in newMapMode.
+      // For safety, if store has a map, keep it. If store indicates new/no map, then initialize.
+      if (!currentStoreMapId || currentStoreMapId === 'new' || currentIsNewMapMode) {
         const userIdToInit = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER.id : effectiveUserId;
         if (userIdToInit) {
             initializeNewMap(userIdToInit);
             temporalStoreAPI.getState().clear();
-        } else {
-           if (currentIsLoading) setStoreIsLoading(false);
         }
       } else {
          if (currentIsLoading) setStoreIsLoading(false);
@@ -181,7 +180,7 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
 
     if (BYPASS_AUTH_FOR_TESTING && effectiveUser) {
         console.warn("BYPASS_AUTH: Simulating map save for map:", mapName);
-        const mapIdToSave = storeMapId && storeMapId !== 'new' ? storeMapId : `mock_map_${Date.now()}`;
+        const mapIdToSave = storeMapId && storeMapId !== 'new' ? storeMapId : `mock_map_v2_${Date.now()}`;
         
         MOCK_USER_FOR_TESTING_MAPS[mapIdToSave] = { 
             id: mapIdToSave,
@@ -190,7 +189,7 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
             mapData,
             isPublic,
             sharedWithClassroomId,
-            createdAt: currentMapOwnerId ? new Date(currentMapCreatedAt || Date.now()).toISOString() : new Date().toISOString(),
+            createdAt: currentMapCreatedAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
         setLoadedMap(MOCK_USER_FOR_TESTING_MAPS[mapIdToSave]); 
@@ -274,3 +273,5 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
   return { saveMap, loadMapData };
 }
 
+
+    

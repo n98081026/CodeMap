@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabaseClient';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { getUserById as fetchSupabaseUserProfile, updateUser as updateUserProfileService, createUserProfile } from '@/services/users/userService';
 import { useToast } from '@/hooks/use-toast';
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER } from '@/lib/config'; // Import shared constant and mock user
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V2 as MOCK_STUDENT_USER } from '@/lib/config'; // Import new V2 mock user
 
 // --- REMOVED AUTH BYPASS CONSTANTS from here, now imported ---
 
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (BYPASS_AUTH_FOR_TESTING) {
       console.warn("AuthContext: BYPASS_AUTH_FOR_TESTING is TRUE. Using mock user.");
-      setUser(MOCK_STUDENT_USER); // Use imported mock user
+      setUser(MOCK_STUDENT_USER); // Use imported V2 mock user
       setIsLoading(false);
       initialAuthCheckCompleted.current = true;
       return; // Skip Supabase listeners and calls
@@ -359,3 +359,5 @@ export const useAuth = () => {
   return context;
 };
 
+
+    
