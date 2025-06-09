@@ -43,7 +43,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: OnPaneDoubleClick; // Renamed to avoid conflict with ReactFlow's own prop
+  onPaneDoubleClickProp?: OnPaneDoubleClick; 
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -85,7 +85,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeContextMenu,
   onNodeDrag,
   onNodeDragStop,
-  onPaneDoubleClickProp,
+  onPaneDoubleClickProp, // Prop still received
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
@@ -163,6 +163,15 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
   }, [nodes, viewport]); 
 
+  // TEMPORARY: For debugging the onPaneDoubleClick warning
+  const handleNoOpDoubleClickForTest = useCallback((event: React.MouseEvent) => {
+    // console.log("Pane double-clicked (TEST HANDLER in InteractiveCanvas)", event);
+    // If not in view only mode, and the actual prop handler exists, call it
+    if (!isViewOnlyMode && typeof onPaneDoubleClickProp === 'function') {
+      onPaneDoubleClickProp(event);
+    }
+  }, [isViewOnlyMode, onPaneDoubleClickProp]);
+
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
@@ -199,7 +208,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
         onlyRenderVisibleElements={true}
-        onPaneDoubleClick={onPaneDoubleClickProp} // Directly pass the prop. It's already a callback or undefined from FlowCanvasCore.
+        // Pass the new test handler. It internally calls the original prop if conditions met.
+        onPaneDoubleClick={handleNoOpDoubleClickForTest}
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
@@ -227,4 +237,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
 export const InteractiveCanvas = React.memo(InteractiveCanvasComponent);
 InteractiveCanvas.displayName = 'InteractiveCanvas';
+    
+
     
