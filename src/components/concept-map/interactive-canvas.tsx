@@ -19,9 +19,9 @@ import ReactFlow, {
   type NodeTypes,
   type EdgeTypes,
   useReactFlow,
-  type OnPaneDoubleClick, // Ensured type is imported
+  type OnPaneDoubleClick,
   type Viewport,
-  type ReactFlowProps, // Import ReactFlowProps
+  type ReactFlowProps,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
@@ -44,7 +44,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: OnPaneDoubleClick; 
+  onPaneDoubleClickProp?: OnPaneDoubleClick;
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -164,7 +164,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
   }, [nodes, viewport]); 
 
-  const reactFlowBaseProps = {
+  const reactFlowBaseProps: Omit<ReactFlowProps, 'onPaneDoubleClick'> = {
     nodes,
     edges,
     onNodesChange,
@@ -198,13 +198,10 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onlyRenderVisibleElements: true,
   };
 
-  const finalReactFlowProps: ReactFlowProps = {
-    ...reactFlowBaseProps,
-    // Conditionally add onPaneDoubleClick.
-    // If the condition (!isViewOnlyMode && onPaneDoubleClickProp) is false,
-    // the spread of `false` or `null` results in no properties being added.
-    ...(!isViewOnlyMode && onPaneDoubleClickProp && { onPaneDoubleClick: onPaneDoubleClickProp }),
-  };
+  const finalReactFlowProps: ReactFlowProps = { ...reactFlowBaseProps };
+  if (!isViewOnlyMode && typeof onPaneDoubleClickProp === 'function') {
+    finalReactFlowProps.onPaneDoubleClick = onPaneDoubleClickProp;
+  }
 
 
   return (
