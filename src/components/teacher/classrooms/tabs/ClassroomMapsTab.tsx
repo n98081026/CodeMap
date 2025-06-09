@@ -17,13 +17,13 @@ interface ClassroomMapsTabProps {
   onFetchRetry: () => void;
 }
 
-export const ClassroomMapsTab: React.FC<ClassroomMapsTabProps> = ({
+export const ClassroomMapsTab: React.FC<ClassroomMapsTabProps> = React.memo(function ClassroomMapsTab({
   isLoading,
   error,
   maps,
   enrolledStudents,
   onFetchRetry,
-}) => {
+}) {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-4">
@@ -91,5 +91,6 @@ export const ClassroomMapsTab: React.FC<ClassroomMapsTabProps> = ({
       </TableBody>
     </Table>
   );
-};
+});
+ClassroomMapsTab.displayName = "ClassroomMapsTab";
     

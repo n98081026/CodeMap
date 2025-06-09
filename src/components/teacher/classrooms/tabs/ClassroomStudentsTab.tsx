@@ -28,13 +28,13 @@ interface ClassroomStudentsTabProps {
   onFetchRetry: () => void;
 }
 
-export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
+export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = React.memo(function ClassroomStudentsTab({
   isLoading,
   error,
   students,
   onRemoveStudent,
   onFetchRetry,
-}) => {
+}) {
   const parentRef = React.useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
@@ -151,5 +151,6 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = ({
       </Table>
     </div>
   );
-};
+});
+ClassroomStudentsTab.displayName = "ClassroomStudentsTab";
     

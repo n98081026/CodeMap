@@ -19,13 +19,13 @@ interface ClassroomSubmissionsTabProps {
   onFetchRetry: () => void;
 }
 
-export const ClassroomSubmissionsTab: React.FC<ClassroomSubmissionsTabProps> = ({
+export const ClassroomSubmissionsTab: React.FC<ClassroomSubmissionsTabProps> = React.memo(function ClassroomSubmissionsTab({
   isLoading,
   error,
   submissions,
   enrolledStudents,
   onFetchRetry,
-}) => {
+}) {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-4">
@@ -120,5 +120,6 @@ export const ClassroomSubmissionsTab: React.FC<ClassroomSubmissionsTabProps> = (
       </TableBody>
     </Table>
   );
-};
+});
+ClassroomSubmissionsTab.displayName = "ClassroomSubmissionsTab";
     
