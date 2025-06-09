@@ -34,6 +34,7 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
     mapId: storeMapId,
     mapName,
     currentMapOwnerId,
+    currentMapCreatedAt, // Added missing destructuring
     isPublic,
     sharedWithClassroomId,
     isNewMapMode,
@@ -43,7 +44,6 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
     setIsLoading: setStoreIsLoading,
     setIsSaving: setStoreIsSaving,
     setError: setStoreError,
-    clearTemporalHistory,
   } = useConceptMapStore();
   
   const temporalStoreAPI = useConceptMapStore.temporal;
@@ -66,13 +66,13 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
         return;
     }
 
-    if (!effectiveUser && !BYPASS_AUTH_FOR_TESTING) {
+    if (!effectiveUser?.id && !BYPASS_AUTH_FOR_TESTING) {
       setStoreError("User not authenticated. Cannot load or initialize map.");
       setStoreIsLoading(false);
       return;
     }
     
-    if (!idToLoad || idToLoad.trim() === '') { // Should be caught by 'new' case mostly
+    if (!idToLoad || idToLoad.trim() === '') { 
       if (effectiveUser?.id) {
         initializeNewMap(effectiveUser.id);
         temporalStoreAPI.getState().clear();
@@ -120,14 +120,12 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
     } finally {
       setStoreIsLoading(false);
     }
-  }, [user, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, temporalStoreAPI]);
+  }, [user?.id, initializeNewMap, setLoadedMap, setStoreError, setStoreIsLoading, toast, temporalStoreAPI, BYPASS_AUTH_FOR_TESTING]); // Added user.id and BYPASS_AUTH
 
   useEffect(() => {
-    const effectiveUser = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER : user;
+    const effectiveUserId = user?.id; // Use a stable primitive for dependency
 
-    if (!effectiveUser?.id && !BYPASS_AUTH_FOR_TESTING) {
-      // If not bypassing and no user, ensure loading is false if it was somehow true.
-      // This case is mostly handled by AuthContext redirecting, but good for safety.
+    if (!effectiveUserId && !BYPASS_AUTH_FOR_TESTING) {
       if (useConceptMapStore.getState().isLoading) {
         setStoreIsLoading(false);
       }
@@ -139,35 +137,38 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
 
     if (routeMapId) {
       if (routeMapId === 'new') {
-        // If route is 'new', but store is already 'new' and in newMapMode, do nothing to prevent re-init.
-        // Otherwise, initialize.
         if (currentStoreMapId !== 'new' || !currentIsNewMapMode) {
-          initializeNewMap(effectiveUser!.id);
-          temporalStoreAPI.getState().clear();
+          if(effectiveUserId) {
+            initializeNewMap(effectiveUserId);
+            temporalStoreAPI.getState().clear();
+          } else if (BYPASS_AUTH_FOR_TESTING && MOCK_STUDENT_USER.id) {
+             initializeNewMap(MOCK_STUDENT_USER.id);
+             temporalStoreAPI.getState().clear();
+          }
         } else {
            if (useConceptMapStore.getState().isLoading) setStoreIsLoading(false);
         }
       } else if (routeMapId !== currentStoreMapId) {
-        // If routeMapId is specific and different from store, load it.
         loadMapData(routeMapId);
       } else {
-        // routeMapId matches storeMapId, means map is likely already loaded or being loaded.
-        // Ensure isLoading is false if loadMapData isn't running.
-        // loadMapData itself sets isLoading to false in its finally block.
-        // If it was already loaded, and isLoading is somehow true, this ensures it's reset.
         if (useConceptMapStore.getState().isLoading && currentStoreMapId === routeMapId && !currentIsNewMapMode) {
              setStoreIsLoading(false);
         }
       }
-    } else { // No routeMapId, implies should be a new map
+    } else { 
       if (currentStoreMapId !== 'new' || !currentIsNewMapMode) {
-        initializeNewMap(effectiveUser!.id);
-        temporalStoreAPI.getState().clear();
+        if(effectiveUserId) {
+            initializeNewMap(effectiveUserId);
+            temporalStoreAPI.getState().clear();
+        } else if (BYPASS_AUTH_FOR_TESTING && MOCK_STUDENT_USER.id) {
+            initializeNewMap(MOCK_STUDENT_USER.id);
+            temporalStoreAPI.getState().clear();
+        }
       } else {
          if (useConceptMapStore.getState().isLoading) setStoreIsLoading(false);
       }
     }
-  }, [routeMapId, user, initializeNewMap, loadMapData, temporalStoreAPI, setStoreIsLoading]);
+  }, [routeMapId, user?.id, initializeNewMap, loadMapData, temporalStoreAPI, setStoreIsLoading, BYPASS_AUTH_FOR_TESTING]); // Added user.id and BYPASS_AUTH
 
 
   const saveMap = useCallback(async (isViewOnly: boolean) => {
@@ -266,8 +267,9 @@ export function useConceptMapDataManager({ routeMapId, user }: UseConceptMapData
   }, [
     user, mapName, mapData, isPublic, sharedWithClassroomId,
     isNewMapMode, currentMapOwnerId, currentMapCreatedAt, storeMapId,
-    router, toast, setStoreIsSaving, setLoadedMap, setStoreError, temporalStoreAPI
-  ]);
+    router, toast, setStoreIsSaving, setLoadedMap, setStoreError, temporalStoreAPI, BYPASS_AUTH_FOR_TESTING
+  ]); // Added BYPASS_AUTH
   
   return { saveMap, loadMapData };
 }
+
