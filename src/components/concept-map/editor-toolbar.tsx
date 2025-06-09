@@ -5,62 +5,66 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { 
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, 
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse
+import {
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline,
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import useConceptMapStore from '@/stores/concept-map-store'; 
+import useConceptMapStore from '@/stores/concept-map-store';
 
 interface EditorToolbarProps {
   onNewMap: () => void;
   onSaveMap: () => void;
   isSaving: boolean;
   onExportMap: () => void;
-  onTriggerImport: () => void; 
+  onTriggerImport: () => void;
   onExtractConcepts: () => void;
   onSuggestRelations: () => void;
   onExpandConcept: () => void;
-  onQuickCluster: () => void; 
-  onGenerateSnippetFromText: () => void; 
-  onSummarizeSelectedNodes: () => void; 
+  onQuickCluster: () => void;
+  onGenerateSnippetFromText: () => void;
+  onSummarizeSelectedNodes: () => void;
   isViewOnlyMode?: boolean;
   onAddNodeToData?: () => void;
   onAddEdgeToData?: () => void;
   canAddEdge?: boolean;
   onToggleProperties: () => void;
   onToggleAiPanel: () => void;
+  onToggleDebugLogViewer: () => void; // New prop
   isPropertiesPanelOpen?: boolean;
   isAiPanelOpen?: boolean;
-  onUndo: () => void; 
-  onRedo: () => void; 
-  canUndo: boolean;   
-  canRedo: boolean;   
-  selectedNodeId: string | null; // Added for Expand Concept disabling
-  numMultiSelectedNodes: number; // Added for Expand/Summarize disabling
+  isDebugLogViewerOpen?: boolean; // New prop
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  selectedNodeId: string | null;
+  numMultiSelectedNodes: number;
 }
 
-export const EditorToolbar = React.memo(function EditorToolbar({ 
+export const EditorToolbar = React.memo(function EditorToolbar({
   onNewMap,
-  onSaveMap, 
-  isSaving, 
+  onSaveMap,
+  isSaving,
   onExportMap,
-  onTriggerImport, 
-  onExtractConcepts, 
-  onSuggestRelations, 
+  onTriggerImport,
+  onExtractConcepts,
+  onSuggestRelations,
   onExpandConcept,
-  onQuickCluster, 
-  onGenerateSnippetFromText, 
-  onSummarizeSelectedNodes, 
+  onQuickCluster,
+  onGenerateSnippetFromText,
+  onSummarizeSelectedNodes,
   isViewOnlyMode,
   onAddNodeToData,
   onAddEdgeToData,
   canAddEdge,
   onToggleProperties,
   onToggleAiPanel,
+  onToggleDebugLogViewer, // New prop
   isPropertiesPanelOpen,
   isAiPanelOpen,
+  isDebugLogViewerOpen, // New prop
   onUndo,
   onRedo,
   canUndo,
@@ -69,9 +73,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   numMultiSelectedNodes,
 }: EditorToolbarProps) {
   const { toast } = useToast();
-  // const { selectedElementId, selectedElementType, multiSelectedNodeIds } = useConceptMapStore(); // Not needed if props are passed
-  // const isSingleNodeSelected = selectedNodeId && numMultiSelectedNodes <= 1; // Correct logic for single selection
-
 
   const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
     if (isViewOnlyMode) {
@@ -85,14 +86,14 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const getExpandConceptTooltip = () => {
     if (isViewOnlyMode) return "Expand Concept (Disabled in View Mode)";
     if (!selectedNodeId) return "Expand Concept (Select a node first)";
-    if (numMultiSelectedNodes > 1) return "Expand Concept (Select a single node)";
+    if (numMultiSelectedNodeIds > 1) return "Expand Concept (Select a single node)";
     return "Expand Selected Concept (AI)";
   };
 
   const isSummarizeNodesDisabled = isViewOnlyMode || numMultiSelectedNodes < 2;
   const getSummarizeNodesTooltip = () => {
     if (isViewOnlyMode) return "Summarize Selection (Disabled in View Mode)";
-    if (numMultiSelectedNodes < 2) return "Summarize Selection (Select 2+ nodes)";
+    if (numMultiSelectedNodeIds < 2) return "Summarize Selection (Select 2+ nodes)";
     return "Summarize Selection (AI)";
   };
 
@@ -127,7 +128,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onExportMap}> 
+            <Button variant="ghost" size="icon" onClick={onExportMap}>
               <Download className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
@@ -173,7 +174,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           </TooltipTrigger>
           <TooltipContent>{isViewOnlyMode ? "Add Edge (Disabled)" : !canAddEdge ? "Add Edge (Requires 2+ nodes)" : "Add Edge"}</TooltipContent>
         </Tooltip>
-        
+
         <Separator orientation="vertical" className="mx-1 h-full" />
 
         {/* GenAI Tools */}
@@ -236,10 +237,23 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         <Separator orientation="vertical" className="mx-1 h-full" />
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={onToggleProperties} 
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleDebugLogViewer}
+              className={cn(isDebugLogViewerOpen && "bg-accent text-accent-foreground")}
+            >
+              <ScrollText className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isDebugLogViewerOpen ? "Hide Debug Logs" : "Show Debug Logs"}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleProperties}
               className={cn(isPropertiesPanelOpen && "bg-accent text-accent-foreground")}
             >
               <Settings2 className="h-5 w-5" />
@@ -249,9 +263,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onToggleAiPanel}
               className={cn(isAiPanelOpen && "bg-accent text-accent-foreground")}
             >
@@ -265,4 +279,4 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   );
 });
 EditorToolbar.displayName = "EditorToolbar";
-    
+

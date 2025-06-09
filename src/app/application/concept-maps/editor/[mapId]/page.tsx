@@ -26,6 +26,9 @@ import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { getNodePlacement } from '@/lib/layout-utils';
 
+// Import the new DebugLogViewerDialog
+import { DebugLogViewerDialog } from '@/components/debug/debug-log-viewer-dialog';
+
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
   ssr: false,
@@ -94,6 +97,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const [isDebugLogViewerOpen, setIsDebugLogViewerOpen] = useState(false); // State for debug log viewer
 
   useEffect(() => {
     setStoreIsViewOnlyMode(isViewOnlyModeQueryParam);
@@ -108,7 +112,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   const canUndo = temporalState.pastStates.length > 0;
   const canRedo = temporalState.futureStates.length > 0;
 
-  const { saveMap } = useConceptMapDataManager({ routeMapId, user: currentUser });
+  const { saveMap } = useConceptMapDataManager({ routeMapIdFromProps: routeMapId, user: currentUser });
 
   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
   const {
@@ -138,7 +142,6 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   const handleFlowSelectionChange = useCallback((elementId: string | null, elementType: 'node' | 'edge' | null) => {
     setStoreSelectedElement(elementId, elementType);
     if (elementId) {
-      // Use setTimeout to allow other event phases or state updates to complete
       setTimeout(() => setIsPropertiesInspectorOpen(true), 0);
     }
   }, [setStoreSelectedElement, setIsPropertiesInspectorOpen]);
@@ -171,6 +174,8 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), [setIsPropertiesInspectorOpen]);
   const onToggleAiPanel = useCallback(() => setIsAiPanelOpen(prev => !prev), [setIsAiPanelOpen]);
+  const onToggleDebugLogViewer = useCallback(() => setIsDebugLogViewerOpen(prev => !prev), [setIsDebugLogViewerOpen]);
+
 
   let mapForInspector: ConceptMap | null = (storeMapId && storeMapId !== 'new' && currentMapOwnerId) ? {
     id: storeMapId, name: mapName, ownerId: currentMapOwnerId, mapData: storeMapData, isPublic: isPublic,
@@ -252,7 +257,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   const handleUndoCallback = useCallback(() => temporalStoreAPI.getState().undo(), [temporalStoreAPI]);
   const handleRedoCallback = useCallback(() => temporalStoreAPI.getState().redo(), [temporalStoreAPI]);
   const handleEdgesDeleteCallback = useCallback((edgeId: string) => useConceptMapStore.getState().deleteEdge(edgeId), []);
-  
+
   const handleNodeAIExpandTriggeredCallback = useCallback((nodeId: string) => {
     aiToolsHook.openExpandConceptModal(nodeId);
   }, [aiToolsHook.openExpandConceptModal]);
@@ -311,8 +316,8 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
           onQuickCluster={openQuickClusterModal} onGenerateSnippetFromText={openGenerateSnippetModal}
           onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
           isViewOnlyMode={storeIsViewOnlyMode} onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
-          onToggleProperties={onTogglePropertiesInspector} onToggleAiPanel={onToggleAiPanel}
-          isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
+          onToggleProperties={onTogglePropertiesInspector} onToggleAiPanel={onToggleAiPanel} onToggleDebugLogViewer={onToggleDebugLogViewer}
+          isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen} isDebugLogViewerOpen={isDebugLogViewerOpen}
           onUndo={handleUndoCallback} onRedo={handleRedoCallback} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
@@ -358,6 +363,11 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
           </SheetContent>
         </Sheet>
 
+        <DebugLogViewerDialog
+            isOpen={isDebugLogViewerOpen}
+            onOpenChange={setIsDebugLogViewerOpen}
+        />
+
         {isExtractConceptsModalOpen && !storeIsViewOnlyMode && <DynamicExtractConceptsModal initialText={textForExtraction} onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />}
         {isSuggestRelationsModalOpen && !storeIsViewOnlyMode && <DynamicSuggestRelationsModal initialConcepts={conceptsForRelationSuggestion} onRelationsSuggested={handleRelationsSuggested} onOpenChange={setIsSuggestRelationsModalOpen} />}
         {isExpandConceptModalOpen && !storeIsViewOnlyMode && conceptToExpandDetails && (
@@ -388,20 +398,18 @@ export default function ConceptMapEditorPageOuter() {
     }
   }, [authIsLoading, user, router]);
 
-  if (authIsLoading || (!user && !authIsLoading)) { 
+  if (authIsLoading || (!user && !authIsLoading)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
-  
+
   if (user) {
     return <ConceptMapEditorPageContent currentUser={user} />;
   }
 
-  return null; 
+  return null;
 }
 
-
-    
