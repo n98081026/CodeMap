@@ -8,15 +8,13 @@ import { ReactFlowProvider } from 'reactflow';
 import dynamic from 'next/dynamic';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
-// import { PropertiesInspector } from "@/components/concept-map/properties-inspector"; // Replaced with dynamic import
-// import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"; // Replaced with dynamic import
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save, EyeOff } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
-import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
+import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge, User } from "@/types";
 import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -67,11 +65,15 @@ const DynamicRewriteNodeContentModal = dynamic(() =>
 );
 
 
-export default function ConceptMapEditorPage() {
+interface ConceptMapEditorPageContentProps {
+  currentUser: User;
+}
+
+function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageContentProps) {
   const paramsHook = useParams();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user } = useAuth();
+  // const { user } = useAuth(); // currentUser is passed as prop
   const router = useRouter();
 
   const routeMapId = paramsHook.mapId as string;
@@ -103,7 +105,7 @@ export default function ConceptMapEditorPage() {
   const canUndo = temporalState.pastStates.length > 0;
   const canRedo = temporalState.futureStates.length > 0;
 
-  const { saveMap } = useConceptMapDataManager({ routeMapId, user });
+  const { saveMap } = useConceptMapDataManager({ routeMapId, user: currentUser });
 
   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
   const {
@@ -158,9 +160,9 @@ export default function ConceptMapEditorPage() {
     toast({ title: "Edge Added" });
   }, [storeIsViewOnlyMode, toast, addEdgeFromHook]);
 
-  const getRoleBasedDashboardLink = useCallback(() => { return user ? `/application/${user.role}/dashboard` : '/login'; }, [user]);
-  const getBackLink = useCallback(() => { return user && user.role === UserRole.TEACHER ? "/application/teacher/classrooms" : "/application/student/concept-maps"; }, [user]);
-  const getBackButtonText = useCallback(() => { return user && user.role === UserRole.TEACHER ? "Back to Classrooms" : "Back to My Maps"; }, [user]);
+  const getRoleBasedDashboardLink = useCallback(() => { return currentUser ? `/application/${currentUser.role}/dashboard` : '/login'; }, [currentUser]);
+  const getBackLink = useCallback(() => { return currentUser && currentUser.role === UserRole.TEACHER ? "/application/teacher/classrooms" : "/application/student/concept-maps"; }, [currentUser]);
+  const getBackButtonText = useCallback(() => { return currentUser && currentUser.role === UserRole.TEACHER ? "Back to Classrooms" : "Back to My Maps"; }, [currentUser]);
 
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
   const onToggleAiPanel = useCallback(() => setIsAiPanelOpen(prev => !prev), []);
@@ -169,8 +171,8 @@ export default function ConceptMapEditorPage() {
     id: storeMapId, name: mapName, ownerId: currentMapOwnerId, mapData: storeMapData, isPublic: isPublic,
     sharedWithClassroomId: sharedWithClassroomId, createdAt: currentMapCreatedAt || "", updatedAt: new Date().toISOString(),
   } : null;
-  if ((isNewMapMode || storeMapId === 'new') && !mapForInspector && user) {
-      mapForInspector = { id: 'new', name: mapName, ownerId: user.id, mapData: storeMapData, isPublic: isPublic,
+  if ((isNewMapMode || storeMapId === 'new') && !mapForInspector && currentUser) {
+      mapForInspector = { id: 'new', name: mapName, ownerId: currentUser.id, mapData: storeMapData, isPublic: isPublic,
                           sharedWithClassroomId: sharedWithClassroomId, createdAt: currentMapCreatedAt || "", updatedAt: new Date().toISOString() };
   }
   let actualSelectedElementForInspector: ConceptMapNode | ConceptMapEdge | null = null;
@@ -365,3 +367,27 @@ export default function ConceptMapEditorPage() {
   );
 }
 
+
+export default function ConceptMapEditorPageOuter() {
+  const { user, isLoading: authIsLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authIsLoading && !user) {
+      router.replace('/login');
+    }
+  }, [authIsLoading, user, router]);
+
+  if (authIsLoading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  return <ConceptMapEditorPageContent currentUser={user} />;
+}
+
+
+    
