@@ -32,14 +32,14 @@ const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canva
   loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
 });
 
-const PropertiesInspector = dynamic(() => import('@/components/concept-map/properties-inspector').then(mod => mod.PropertiesInspector), { 
-  ssr: false, 
-  loading: () => <div className="p-4 text-center text-sm text-muted-foreground">Loading Properties...</div> 
+const PropertiesInspector = dynamic(() => import('@/components/concept-map/properties-inspector').then(mod => mod.PropertiesInspector), {
+  ssr: false,
+  loading: () => <div className="p-4 text-center text-sm text-muted-foreground">Loading Properties...</div>
 });
 
-const AISuggestionPanel = dynamic(() => import('@/components/concept-map/ai-suggestion-panel').then(mod => mod.AISuggestionPanel), { 
-  ssr: false, 
-  loading: () => <div className="p-4 text-center text-sm text-muted-foreground">Loading AI Suggestions...</div> 
+const AISuggestionPanel = dynamic(() => import('@/components/concept-map/ai-suggestion-panel').then(mod => mod.AISuggestionPanel), {
+  ssr: false,
+  loading: () => <div className="p-4 text-center text-sm text-muted-foreground">Loading AI Suggestions...</div>
 });
 
 // Dynamically import modals
@@ -74,7 +74,6 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   const paramsHook = useParams();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  // const { user } = useAuth(); // currentUser is passed as prop
   const router = useRouter();
 
   const routeMapId = paramsHook.mapId as string;
@@ -92,6 +91,9 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
   } = useConceptMapStore();
+
+  const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
 
   useEffect(() => {
     setStoreIsViewOnlyMode(isViewOnlyModeQueryParam);
@@ -123,8 +125,6 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   } = aiToolsHook;
 
 
-  const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
-  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; nodeId: string | null; } | null>(null);
 
@@ -137,7 +137,10 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
 
   const handleFlowSelectionChange = useCallback((elementId: string | null, elementType: 'node' | 'edge' | null) => {
     setStoreSelectedElement(elementId, elementType);
-  }, [setStoreSelectedElement]);
+    if (elementId) { // If an element is selected
+      setIsPropertiesInspectorOpen(true); // Open the inspector
+    }
+  }, [setStoreSelectedElement, setIsPropertiesInspectorOpen]);
 
   const handleMultiNodeSelectionChange = useCallback((nodeIds: string[]) => {
     setStoreMultiSelectedNodeIds(nodeIds);
@@ -149,7 +152,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
     const { x, y } = getNodePlacement(useConceptMapStore.getState().mapData.nodes, 'generic', null, null, 20);
     addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
-  }, [storeIsViewOnlyMode, toast, addNodeFromHook, aiToolsHook]); // aiToolsHook might still be needed if addNodeFromHook is from it
+  }, [storeIsViewOnlyMode, toast, addNodeFromHook]);
 
   const handleAddEdgeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
@@ -165,8 +168,8 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   const getBackLink = useCallback(() => { return currentUser && currentUser.role === UserRole.TEACHER ? "/application/teacher/classrooms" : "/application/student/concept-maps"; }, [currentUser]);
   const getBackButtonText = useCallback(() => { return currentUser && currentUser.role === UserRole.TEACHER ? "Back to Classrooms" : "Back to My Maps"; }, [currentUser]);
 
-  const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
-  const onToggleAiPanel = useCallback(() => setIsAiPanelOpen(prev => !prev), []);
+  const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), [setIsPropertiesInspectorOpen]);
+  const onToggleAiPanel = useCallback(() => setIsAiPanelOpen(prev => !prev), [setIsAiPanelOpen]);
 
   let mapForInspector: ConceptMap | null = (storeMapId && storeMapId !== 'new' && currentMapOwnerId) ? {
     id: storeMapId, name: mapName, ownerId: currentMapOwnerId, mapData: storeMapData, isPublic: isPublic,
@@ -251,30 +254,30 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   const handleNodeAIExpandTriggeredCallback = useCallback((nodeId: string) => aiToolsHook.openExpandConceptModal(nodeId), [aiToolsHook]);
   const handleClearExtractedConceptsCallback = useCallback(() => useConceptMapStore.getState().setAiExtractedConcepts([]), []);
   const handleClearSuggestedRelationsCallback = useCallback(() => useConceptMapStore.getState().setAiSuggestedRelations([]), []);
-  
-  const handleExpandConceptFromContextMenuCallback = useCallback(() => { 
-    if (contextMenu?.nodeId) openExpandConceptModal(contextMenu.nodeId); 
-    closeContextMenu(); 
+
+  const handleExpandConceptFromContextMenuCallback = useCallback(() => {
+    if (contextMenu?.nodeId) openExpandConceptModal(contextMenu.nodeId);
+    closeContextMenu();
   }, [openExpandConceptModal, contextMenu, closeContextMenu]);
 
-  const handleSuggestRelationsFromContextMenuCallback = useCallback(() => { 
-    if (contextMenu?.nodeId) openSuggestRelationsModal(contextMenu.nodeId); 
-    closeContextMenu(); 
+  const handleSuggestRelationsFromContextMenuCallback = useCallback(() => {
+    if (contextMenu?.nodeId) openSuggestRelationsModal(contextMenu.nodeId);
+    closeContextMenu();
   }, [openSuggestRelationsModal, contextMenu, closeContextMenu]);
 
-  const handleExtractConceptsFromContextMenuCallback = useCallback(() => { 
-    if (contextMenu?.nodeId) openExtractConceptsModal(contextMenu.nodeId); 
-    closeContextMenu(); 
+  const handleExtractConceptsFromContextMenuCallback = useCallback(() => {
+    if (contextMenu?.nodeId) openExtractConceptsModal(contextMenu.nodeId);
+    closeContextMenu();
   }, [openExtractConceptsModal, contextMenu, closeContextMenu]);
 
-  const handleAskQuestionFromContextMenuCallback = useCallback(() => { 
-    if (contextMenu?.nodeId) openAskQuestionModal(contextMenu.nodeId); 
-    closeContextMenu(); 
+  const handleAskQuestionFromContextMenuCallback = useCallback(() => {
+    if (contextMenu?.nodeId) openAskQuestionModal(contextMenu.nodeId);
+    closeContextMenu();
   }, [openAskQuestionModal, contextMenu, closeContextMenu]);
 
-  const handleRewriteContentFromContextMenuCallback = useCallback(() => { 
-    if (contextMenu?.nodeId) openRewriteNodeContentModal(contextMenu.nodeId); 
-    closeContextMenu(); 
+  const handleRewriteContentFromContextMenuCallback = useCallback(() => {
+    if (contextMenu?.nodeId) openRewriteNodeContentModal(contextMenu.nodeId);
+    closeContextMenu();
   }, [openRewriteNodeContentModal, contextMenu, closeContextMenu]);
 
 
@@ -386,9 +389,10 @@ export default function ConceptMapEditorPageOuter() {
       </div>
     );
   }
-  
+
   return <ConceptMapEditorPageContent currentUser={user} />;
 }
 
 
-    
+
+
