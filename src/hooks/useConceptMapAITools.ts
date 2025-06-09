@@ -13,8 +13,8 @@ import {
   generateMapSnippetFromText as aiGenerateMapSnippetFromText,
   summarizeNodes as aiSummarizeNodes
 } from '@/ai/flows';
-// Changed from alias to relative path for rewriteNodeContent
-import { rewriteNodeContent as aiRewriteNodeContent } from '../ai/flows/rewrite-node-content-flow'; 
+// Import directly from the flow file using alias and NO .ts extension
+import { rewriteNodeContent as aiRewriteNodeContent } from '@/ai/flows/rewrite-node-content-flow'; 
 
 import type {
   AskQuestionAboutNodeOutput,
@@ -405,4 +405,3 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     addStoreEdge,
   };
 }
-
