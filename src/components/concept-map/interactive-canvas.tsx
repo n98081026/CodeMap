@@ -19,9 +19,9 @@ import ReactFlow, {
   type NodeTypes,
   type EdgeTypes,
   useReactFlow,
-  type OnPaneDoubleClick, // Ensure OnPaneDoubleClick is imported
+  type OnPaneDoubleClick,
   type Viewport,
-  type ReactFlowProps,
+  type ReactFlowProps, // Keep for reference if needed, but we'll pass props directly
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
@@ -44,7 +44,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: OnPaneDoubleClick; // Use the specific type
+  onPaneDoubleClickProp?: OnPaneDoubleClick;
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -164,48 +164,48 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
   }, [nodes, viewport]); 
 
-  const reactFlowProps: ReactFlowProps = {
-    nodes,
-    edges,
-    onNodesChange,
-    onEdgesChange,
-    onNodesDelete,
-    onEdgesDelete,
-    onSelectionChange,
-    onConnect,
-    fitView: true,
-    fitViewOptions,
-    nodesDraggable: !isViewOnlyMode,
-    nodesConnectable: !isViewOnlyMode,
-    elementsSelectable: true,
-    deleteKeyCode: isViewOnlyMode ? null : ['Backspace', 'Delete'],
-    className: "bg-background",
-    proOptions: { hideAttribution: true },
-    nodeTypes,
-    edgeTypes,
-    onNodeContextMenu,
-    onNodeDrag,
-    onNodeDragStop,
-    panOnDrag: !isViewOnlyMode,
-    panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode,
-    zoomOnScroll: true,
-    zoomOnPinch: true,
-    zoomOnDoubleClick: !isViewOnlyMode,
-    selectionOnDrag: !isViewOnlyMode,
-    minZoom: 0.1,
-    maxZoom: 4,
-    translateExtent: calculatedTranslateExtent,
-    onlyRenderVisibleElements: true,
-    // Conditionally add onPaneDoubleClick using spread syntax
-    ...(!isViewOnlyMode && typeof onPaneDoubleClickProp === 'function' && { onPaneDoubleClick: onPaneDoubleClickProp }),
-  };
-
-
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
     )}>
-      <ReactFlow {...reactFlowProps}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodesDelete={onNodesDelete}
+        onEdgesDelete={onEdgesDelete}
+        onSelectionChange={onSelectionChange}
+        onConnect={onConnect}
+        fitView={true}
+        fitViewOptions={fitViewOptions}
+        nodesDraggable={!isViewOnlyMode}
+        nodesConnectable={!isViewOnlyMode}
+        elementsSelectable={true}
+        deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
+        className="bg-background"
+        proOptions={{ hideAttribution: true }}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        onNodeContextMenu={onNodeContextMenu}
+        onNodeDrag={onNodeDrag}
+        onNodeDragStop={onNodeDragStop}
+        panOnDrag={!isViewOnlyMode}
+        panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode}
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={!isViewOnlyMode}
+        selectionOnDrag={!isViewOnlyMode}
+        minZoom={0.1}
+        maxZoom={4}
+        translateExtent={calculatedTranslateExtent}
+        onlyRenderVisibleElements={true}
+        onPaneDoubleClick={ // Explicitly pass onPaneDoubleClick or undefined
+          !isViewOnlyMode && typeof onPaneDoubleClickProp === 'function'
+            ? onPaneDoubleClickProp
+            : undefined
+        }
+      >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
         <Background
