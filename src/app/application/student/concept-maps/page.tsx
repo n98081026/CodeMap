@@ -12,6 +12,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/layout/empty-state";
 import { ConceptMapListItem } from "@/components/concept-map/concept-map-list-item";
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V2 } from '@/lib/config';
 
 
 export default function StudentConceptMapsPage() {
@@ -24,18 +25,20 @@ export default function StudentConceptMapsPage() {
   const studentDashboardLink = "/application/student/dashboard";
 
   const fetchUserMaps = useCallback(async () => {
-    if (!user) {
+    const userIdToFetch = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER_V2.id : user?.id;
+
+    if (!userIdToFetch) {
+      setError("User ID not available for fetching maps.");
       setIsLoading(false);
       return;
     }
+
     setIsLoading(true);
     setError(null);
     try {
-      const targetOwnerId = user.id;
-      
-      let apiUrl = `/api/concept-maps?ownerId=${targetOwnerId}`;
-
+      const apiUrl = `/api/concept-maps?ownerId=${userIdToFetch}`;
       const response = await fetch(apiUrl);
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch concept maps");
@@ -49,20 +52,29 @@ export default function StudentConceptMapsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, BYPASS_AUTH_FOR_TESTING]);
 
   useEffect(() => {
-    fetchUserMaps();
-  }, [fetchUserMaps]);
+    if (user || BYPASS_AUTH_FOR_TESTING) {
+      fetchUserMaps();
+    } else {
+      setIsLoading(false); 
+      //setError("Waiting for user authentication..."); // Avoid setting error if auth is just loading
+    }
+  }, [user, fetchUserMaps, BYPASS_AUTH_FOR_TESTING]);
 
 
   const handleDeleteMap = useCallback(async (mapId: string, mapName: string) => {
-    if (!user) return;
+    const currentUserId = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER_V2.id : user?.id;
+    if (!currentUserId) {
+        toast({ title: "Authentication Error", description: "Cannot delete map.", variant: "destructive" });
+        return;
+    }
     try {
       const response = await fetch(`/api/concept-maps/${mapId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ownerId: user.id }), 
+        body: JSON.stringify({ ownerId: currentUserId }), 
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -73,7 +85,7 @@ export default function StudentConceptMapsPage() {
     } catch (err) {
       toast({ title: "Error Deleting Map", description: (err as Error).message, variant: "destructive" });
     }
-  }, [user, toast, fetchUserMaps]);
+  }, [user, toast, fetchUserMaps, BYPASS_AUTH_FOR_TESTING]);
 
   return (
     <div className="space-y-6">

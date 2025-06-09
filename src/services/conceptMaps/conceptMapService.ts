@@ -9,10 +9,10 @@
 import type { ConceptMap, ConceptMapData } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService'; // To validate ownerId
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_TEACHER_USER, MOCK_CONCEPT_MAP_STUDENT, MOCK_CONCEPT_MAP_TEACHER, MOCK_CLASSROOM_SHARED } from '@/lib/config';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_TEACHER_USER, MOCK_CONCEPT_MAP_STUDENT_V2, MOCK_CONCEPT_MAP_TEACHER_V2, MOCK_CLASSROOM_SHARED_V2 } from '@/lib/config';
 
 // Mock data store for bypass mode
-let MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [MOCK_CONCEPT_MAP_STUDENT, MOCK_CONCEPT_MAP_TEACHER];
+let MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [MOCK_CONCEPT_MAP_STUDENT_V2, MOCK_CONCEPT_MAP_TEACHER_V2];
 
 /**
  * Creates a new concept map.
@@ -99,9 +99,9 @@ export async function getConceptMapById(mapId: string): Promise<ConceptMap | nul
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: data.map_data as ConceptMapData,
-    isPublic: data.is_public,
-    sharedWithClassroomId: data.shared_with_classroom_id,
+    mapData: (data.map_data as ConceptMapData) || { nodes: [], edges: [] },
+    isPublic: data.is_public ?? false,
+    sharedWithClassroomId: data.shared_with_classroom_id ?? null,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -124,19 +124,34 @@ export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptM
     .order('updated_at', { ascending: false });
 
   if (error) {
-    console.error('Supabase getConceptMapsByOwnerId error:', error);
+    console.error('[Service Error] Supabase getConceptMapsByOwnerId error:', error);
     throw new Error(`Failed to fetch concept maps for owner: ${error.message}`);
   }
-  return (data || []).map(m => ({
-    id: m.id,
-    name: m.name,
-    ownerId: m.owner_id,
-    mapData: m.map_data as ConceptMapData,
-    isPublic: m.is_public,
-    sharedWithClassroomId: m.shared_with_classroom_id,
-    createdAt: m.created_at,
-    updatedAt: m.updated_at,
-  }));
+  
+  if (!data) {
+    return [];
+  }
+
+  return data.map(m => {
+    if (!m) {
+      console.error('[Service Error] Encountered a null/undefined item in Supabase response for concept_maps. Skipping item.');
+      throw new Error("Corrupted data received from database: null item in list during getConceptMapsByOwnerId.");
+    }
+    if (typeof m.owner_id === 'undefined') {
+      console.error(`[Service Error] Concept map row with id ${m.id} is missing 'owner_id'. Data:`, m);
+      throw new Error(`Corrupted data: Concept map ${m.id} missing owner_id during getConceptMapsByOwnerId.`);
+    }
+    return {
+      id: m.id,
+      name: m.name,
+      ownerId: m.owner_id,
+      mapData: (m.map_data as ConceptMapData) || { nodes: [], edges: [] },
+      isPublic: m.is_public ?? false,
+      sharedWithClassroomId: m.shared_with_classroom_id ?? null,
+      createdAt: m.created_at,
+      updatedAt: m.updated_at,
+    };
+  });
 }
 
 /**
@@ -144,8 +159,7 @@ export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptM
  */
 export async function getConceptMapsByClassroomId(classroomId: string): Promise<ConceptMap[]> {
    if (BYPASS_AUTH_FOR_TESTING) {
-    if (classroomId === MOCK_CLASSROOM_SHARED.id) return MOCK_CONCEPT_MAPS_STORE.filter(m => m.sharedWithClassroomId === MOCK_CLASSROOM_SHARED.id);
-    // Add other mock classroom checks if necessary
+    if (classroomId === MOCK_CLASSROOM_SHARED_V2.id) return MOCK_CONCEPT_MAPS_STORE.filter(m => m.sharedWithClassroomId === MOCK_CLASSROOM_SHARED_V2.id);
     return [];
   }
 
@@ -156,19 +170,34 @@ export async function getConceptMapsByClassroomId(classroomId: string): Promise<
     .order('updated_at', { ascending: false });
   
   if (error) {
-    console.error('Supabase getConceptMapsByClassroomId error:', error);
+    console.error('[Service Error] Supabase getConceptMapsByClassroomId error:', error);
     throw new Error(`Failed to fetch concept maps for classroom: ${error.message}`);
   }
-  return (data || []).map(m => ({
-    id: m.id,
-    name: m.name,
-    ownerId: m.owner_id,
-    mapData: m.map_data as ConceptMapData,
-    isPublic: m.is_public,
-    sharedWithClassroomId: m.shared_with_classroom_id,
-    createdAt: m.created_at,
-    updatedAt: m.updated_at,
-  }));
+  
+  if (!data) {
+    return [];
+  }
+
+  return data.map(m => {
+    if (!m) {
+      console.error('[Service Error] Encountered a null/undefined item in Supabase response for concept_maps (classroom). Skipping item.');
+      throw new Error("Corrupted data received from database: null item in list during getConceptMapsByClassroomId.");
+    }
+     if (typeof m.owner_id === 'undefined') {
+      console.error(`[Service Error] Concept map row with id ${m.id} (classroom) is missing 'owner_id'. Data:`, m);
+      throw new Error(`Corrupted data: Concept map ${m.id} (classroom) missing owner_id during getConceptMapsByClassroomId.`);
+    }
+    return {
+      id: m.id,
+      name: m.name,
+      ownerId: m.owner_id,
+      mapData: (m.map_data as ConceptMapData) || { nodes: [], edges: [] },
+      isPublic: m.is_public ?? false,
+      sharedWithClassroomId: m.shared_with_classroom_id ?? null,
+      createdAt: m.created_at,
+      updatedAt: m.updated_at,
+    };
+  });
 }
 
 /**
@@ -181,8 +210,6 @@ export async function updateConceptMap(
   if (BYPASS_AUTH_FOR_TESTING) {
     const index = MOCK_CONCEPT_MAPS_STORE.findIndex(m => m.id === mapId && m.ownerId === updates.ownerId);
     if (index === -1) throw new Error("BYPASS_AUTH: Map not found or owner mismatch.");
-    const updatedMap = { ...MOCK_CONCEPT_MAPS_STORE[index], ...updates, updatedAt: new Date().toISOString() };
-    // Remove ownerId from updates before merging, as it's not part of the ConceptMap's own fields in DB for update
     const { ownerId, ...restOfUpdates } = updates;
     MOCK_CONCEPT_MAPS_STORE[index] = { ...MOCK_CONCEPT_MAPS_STORE[index], ...restOfUpdates, updatedAt: new Date().toISOString() };
     return MOCK_CONCEPT_MAPS_STORE[index];
@@ -210,7 +237,6 @@ export async function updateConceptMap(
   }
   supabaseUpdates.updated_at = new Date().toISOString();
 
-
   const { data, error } = await supabase
     .from('concept_maps')
     .update(supabaseUpdates)
@@ -229,9 +255,9 @@ export async function updateConceptMap(
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: data.map_data as ConceptMapData,
-    isPublic: data.is_public,
-    sharedWithClassroomId: data.shared_with_classroom_id,
+    mapData: (data.map_data as ConceptMapData) || { nodes: [], edges: [] },
+    isPublic: data.is_public ?? false,
+    sharedWithClassroomId: data.shared_with_classroom_id ?? null,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
