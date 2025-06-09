@@ -108,16 +108,11 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   useEffect(() => setRfEdges(initialRfEdges), [initialRfEdges, setRfEdges]);
 
   useEffect(() => {
-    // This effect attempts to fit the view whenever the nodes array (rfNodes) changes.
-    // This covers map loading, import, node addition, and node deletion.
     if (rfNodes.length > 0 && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
-      // Using a timeout gives React Flow a chance to render new nodes and calculate dimensions,
-      // making fitView more reliable, especially with custom nodes or dynamic content.
       const timerId = setTimeout(() => {
-        // console.log("Fitting view due to rfNodes change. Number of nodes:", rfNodes.length);
         reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
-      }, 100); // Slightly longer timeout for potentially complex updates
-      return () => clearTimeout(timerId); // Cleanup timer on unmount or if effect re-runs
+      }, 100);
+      return () => clearTimeout(timerId);
     }
   }, [rfNodes, reactFlowInstance]);
 
@@ -346,9 +341,14 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isViewOnlyMode, addNodeToStore, onConnectInStore, setSelectedElement, setEditingNodeId, GRID_SIZE, reactFlowInstance]);
+  
+  // Create a key that changes when isViewOnlyMode changes, or when mapData changes significantly (e.g., different map loaded)
+  const canvasKey = `${isViewOnlyMode}-${mapDataFromStore.nodes.length}-${mapDataFromStore.edges.length}-${mapDataFromStore.nodes[0]?.id || 'no-nodes'}`;
+
 
   return (
     <InteractiveCanvas
+      key={canvasKey} // Add this key prop
       nodes={rfNodes}
       edges={rfEdges}
       onNodesChange={handleRfNodesChange}
