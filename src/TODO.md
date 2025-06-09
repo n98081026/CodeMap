@@ -1,5 +1,4 @@
 
-
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -216,7 +215,7 @@
         - [x] Verified React Flow's internal event handling for drag/zoom for common scenarios. Snapping logic is lightweight.
         - [ ] (Future Consideration) If custom heavy interactions are added (e.g., advanced orthogonal edge routing), implement throttling/debouncing for them.
 - [x] **Data Handling & General:**
-    - [x] **Image Optimization:** Review and optimize image usage: App primarily uses icons and placeholders. `next/image` configured for placeholders. No immediate unoptimized content images identified.
+    - [x] **Image Optimization:** Reviewed and confirmed that important images use `next/image` with necessary props or are SVGs. Generic `<img>` tags are not prevalent for content images.
     - [x] **Large List Rendering:**
         - [x] Implement virtualization for Admin User Management page using `@tanstack/react-virtual`.
         - [x] Implement virtualization for Teacher Classroom Student List using `@tanstack/react-virtual`.
@@ -326,7 +325,3 @@ The main remaining area for full Supabase connection is:
 
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
-
-
-
-
