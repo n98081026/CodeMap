@@ -2,11 +2,11 @@
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo, useRef } from 'react';
-import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes, type EdgeTypes, useReactFlow, ReactFlowProvider, type OnPaneDoubleClick } from 'reactflow'; 
+import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes, type EdgeTypes, useReactFlow, ReactFlowProvider, type OnPaneDoubleClick } from 'reactflow';
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
-import OrthogonalEdge, { type OrthogonalEdgeData, getMarkerDefinition } from './orthogonal-edge'; 
+import OrthogonalEdge, { type OrthogonalEdgeData, getMarkerDefinition } from './orthogonal-edge';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { getNodePlacement } from '@/lib/layout-utils';
 
@@ -64,7 +64,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         shape: appNode.shape,
         width: appNode.width,
         height: appNode.height,
-        onTriggerAIExpand: onNodeAIExpandTriggered, 
+        onTriggerAIExpand: onNodeAIExpandTriggered,
       } as CustomNodeData,
       position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
       draggable: !isViewOnlyMode,
@@ -73,7 +73,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       dragHandle: '.cursor-move',
       parentNode: appNode.parentNode,
     } as RFNode<CustomNodeData>)),
-    [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered] 
+    [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered]
   );
 
   const initialRfEdges = useMemo(() =>
@@ -89,14 +89,14 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         label: appEdge.label,
         color: appEdge.color,
         lineType: appEdge.lineType
-      } as OrthogonalEdgeData, 
-      markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color), 
-      markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),     
-      style: { strokeWidth: 2 }, 
+      } as OrthogonalEdgeData,
+      markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
+      markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
+      style: { strokeWidth: 2 },
       updatable: !isViewOnlyMode,
       deletable: !isViewOnlyMode,
       selectable: true,
-    } as RFEdge<OrthogonalEdgeData>)), 
+    } as RFEdge<OrthogonalEdgeData>)),
     [mapDataFromStore.edges, isViewOnlyMode]
   );
 
@@ -106,16 +106,18 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   useEffect(() => setRfNodes(initialRfNodes), [initialRfNodes, setRfNodes]);
   useEffect(() => setRfEdges(initialRfEdges), [initialRfEdges, setRfEdges]);
-  
-  const prevNodeCountRef = useRef(rfNodes.length);
+
   useEffect(() => {
-    if (rfNodes.length !== prevNodeCountRef.current) {
-      if (rfNodes.length > 0 && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
-        setTimeout(() => {
-          reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
-        }, 50); 
-      }
-      prevNodeCountRef.current = rfNodes.length;
+    // This effect attempts to fit the view whenever the nodes array (rfNodes) changes.
+    // This covers map loading, import, node addition, and node deletion.
+    if (rfNodes.length > 0 && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
+      // Using a timeout gives React Flow a chance to render new nodes and calculate dimensions,
+      // making fitView more reliable, especially with custom nodes or dynamic content.
+      const timerId = setTimeout(() => {
+        // console.log("Fitting view due to rfNodes change. Number of nodes:", rfNodes.length);
+        reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
+      }, 100); // Slightly longer timeout for potentially complex updates
+      return () => clearTimeout(timerId); // Cleanup timer on unmount or if effect re-runs
     }
   }, [rfNodes, reactFlowInstance]);
 
@@ -129,7 +131,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     }
 
     let currentDragSnapLines: typeof activeSnapLines = [];
-    let snappedXPosition = draggedNode.positionAbsolute.x; 
+    let snappedXPosition = draggedNode.positionAbsolute.x;
     let snappedYPosition = draggedNode.positionAbsolute.y;
     let xSnappedByNode = false;
     let ySnappedByNode = false;
@@ -216,7 +218,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
     if (!xSnappedByNode) {
       const gridSnappedX = Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
-      if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) { 
+      if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) {
         snappedXPosition = gridSnappedX;
       }
     }
@@ -226,7 +228,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         snappedYPosition = gridSnappedY;
       }
     }
-    
+
     if (draggedNode.positionAbsolute.x !== snappedXPosition || draggedNode.positionAbsolute.y !== snappedYPosition) {
       onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: { x: snappedXPosition, y: snappedYPosition }, dragging: true }]);
     }
@@ -236,7 +238,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   const handleNodeDragStopInternal = useCallback(
     (_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>) => {
-      if (isViewOnlyMode || !draggedNode.positionAbsolute) return; 
+      if (isViewOnlyMode || !draggedNode.positionAbsolute) return;
       setActiveSnapLines([]);
 
       let finalX = draggedNode.positionAbsolute.x;
@@ -244,7 +246,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
       finalX = Math.round(finalX / GRID_SIZE) * GRID_SIZE;
       finalY = Math.round(finalY / GRID_SIZE) * GRID_SIZE;
-      
+
       onNodesChangeInStore(draggedNode.id, { x: finalX, y: finalY, width: draggedNode.width, height: draggedNode.height });
     },
     [isViewOnlyMode, onNodesChangeInStore, GRID_SIZE]
@@ -277,12 +279,12 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   const handleRfConnect: OnConnect = useCallback((params: Connection) => {
     if (isViewOnlyMode) return;
-    onConnectInStore({ 
+    onConnectInStore({
       source: params.source!,
       target: params.target!,
       sourceHandle: params.sourceHandle,
       targetHandle: params.targetHandle,
-      label: "connects", 
+      label: "connects",
     });
   }, [isViewOnlyMode, onConnectInStore]);
 
@@ -329,11 +331,11 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         const currentNodes = mapData.nodes;
         let newNodeId: string;
 
-        if (event.key === 'Tab') { 
+        if (event.key === 'Tab') {
           const childPosition = getNodePlacement(currentNodes, 'child', selectedStoreNode, null, GRID_SIZE, 'right');
           newNodeId = addNodeToStore({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: selectedStoreNode.id });
           onConnectInStore({ source: selectedStoreNode.id, target: newNodeId, label: "connects" });
-        } else { 
+        } else {
           const siblingPosition = getNodePlacement(currentNodes, 'sibling', selectedStoreNode.parentNode ? currentNodes.find(n => n.id === selectedStoreNode.parentNode) : null, selectedStoreNode, GRID_SIZE);
           newNodeId = addNodeToStore({ text: "New Sibling", type: 'manual-node', position: siblingPosition, parentNode: selectedStoreNode.parentNode });
         }
