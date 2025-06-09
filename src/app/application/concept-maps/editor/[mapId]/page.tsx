@@ -24,6 +24,7 @@ import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+import { getNodePlacement } from '@/lib/layout-utils'; // Import getNodePlacement
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -145,10 +146,10 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   const handleAddNodeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
-    const { x, y } = aiToolsHook.getNodePlacement(useConceptMapStore.getState().mapData.nodes.length, 'generic', null, null, 20);
+    const { x, y } = getNodePlacement(useConceptMapStore.getState().mapData.nodes, 'generic', null, null, 20);
     addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
-  }, [storeIsViewOnlyMode, toast, addNodeFromHook, aiToolsHook]);
+  }, [storeIsViewOnlyMode, toast, addNodeFromHook, aiToolsHook]); // aiToolsHook might still be needed if addNodeFromHook is from it
 
   const handleAddEdgeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
