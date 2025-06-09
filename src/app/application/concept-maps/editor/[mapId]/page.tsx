@@ -24,7 +24,7 @@ import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
-import { getNodePlacement } from '@/lib/layout-utils'; // Import getNodePlacement
+import { getNodePlacement } from '@/lib/layout-utils';
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -137,8 +137,9 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
 
   const handleFlowSelectionChange = useCallback((elementId: string | null, elementType: 'node' | 'edge' | null) => {
     setStoreSelectedElement(elementId, elementType);
-    if (elementId) { // If an element is selected
-      setIsPropertiesInspectorOpen(true); // Open the inspector
+    if (elementId) {
+      // Use setTimeout to allow other event phases or state updates to complete
+      setTimeout(() => setIsPropertiesInspectorOpen(true), 0);
     }
   }, [setStoreSelectedElement, setIsPropertiesInspectorOpen]);
 
@@ -392,7 +393,3 @@ export default function ConceptMapEditorPageOuter() {
 
   return <ConceptMapEditorPageContent currentUser={user} />;
 }
-
-
-
-
