@@ -43,7 +43,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: OnPaneDoubleClick;
+  onPaneDoubleClickProp?: OnPaneDoubleClick; // Renamed to avoid conflict with ReactFlow's own prop
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -199,11 +199,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
         onlyRenderVisibleElements={true}
-        onPaneDoubleClick={
-          (!isViewOnlyMode && typeof onPaneDoubleClickProp === 'function')
-            ? onPaneDoubleClickProp
-            : () => {} // Pass a no-op function if not applicable
-        }
+        onPaneDoubleClick={onPaneDoubleClickProp} // Directly pass the prop. It's already a callback or undefined from FlowCanvasCore.
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
