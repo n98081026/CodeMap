@@ -19,7 +19,7 @@ import { Loader2 } from "lucide-react";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
 import { useToast } from '@/hooks/use-toast';
-import { MOCK_ADMIN_USER_V2, MOCK_STUDENT_USER_V2, MOCK_TEACHER_USER_V2 } from '@/lib/config'; // Use new V2 mocks
+import { MOCK_ADMIN_USER_V3, MOCK_STUDENT_USER_V3, MOCK_TEACHER_USER_V3 } from '@/lib/config'; // Updated import
 
 interface EditUserDialogProps {
   isOpen: boolean;
@@ -28,7 +28,7 @@ interface EditUserDialogProps {
   onUserUpdateSuccess: () => void; // Callback to refresh user list
 }
 
-const PREDEFINED_MOCK_USER_IDS_FOR_DIALOG = [MOCK_STUDENT_USER_V2.id, MOCK_TEACHER_USER_V2.id, MOCK_ADMIN_USER_V2.id];
+const PREDEFINED_MOCK_USER_IDS_FOR_DIALOG = [MOCK_STUDENT_USER_V3.id, MOCK_TEACHER_USER_V3.id, MOCK_ADMIN_USER_V3.id]; // Updated to V3
 
 export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateSuccess }: EditUserDialogProps) {
   const { toast } = useToast();
@@ -101,7 +101,7 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
       const response = await fetch(`/api/users/${userToEdit.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(changes), 
+        body: JSON.stringify(changes),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -109,14 +109,14 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
       }
       toast({ title: "User Updated", description: `User "${editFormData.name}" has been updated.` });
       onOpenChange(false);
-      onUserUpdateSuccess(); 
+      onUserUpdateSuccess();
     } catch (err) {
       toast({ title: "Error Updating User", description: (err as Error).message, variant: "destructive" });
     } finally {
       setIsSavingEdit(false);
     }
   }, [userToEdit, editFormData, toast, onOpenChange, onUserUpdateSuccess, isPredefinedUser]);
-  
+
 
   if (!userToEdit) return null;
 
@@ -188,5 +188,3 @@ export function EditUserDialog({ isOpen, onOpenChange, userToEdit, onUserUpdateS
     </Dialog>
   );
 }
-
-    
