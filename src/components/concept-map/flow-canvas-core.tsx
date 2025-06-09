@@ -64,7 +64,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         shape: appNode.shape,
         width: appNode.width,
         height: appNode.height,
-        onTriggerAIExpand: (nodeId: string) => onNodeAIExpandTriggered?.(nodeId),
+        onTriggerAIExpand: onNodeAIExpandTriggered, // Pass the stable prop directly
       } as CustomNodeData,
       position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
       draggable: !isViewOnlyMode,
@@ -73,7 +73,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       dragHandle: '.cursor-move',
       parentNode: appNode.parentNode,
     } as RFNode<CustomNodeData>)),
-    [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered]
+    [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered] // Dependency remains the same
   );
 
   const initialRfEdges = useMemo(() =>
@@ -89,14 +89,14 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         label: appEdge.label,
         color: appEdge.color,
         lineType: appEdge.lineType
-      } as OrthogonalEdgeData, // Ensure this matches data type
+      } as OrthogonalEdgeData, 
       markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color), 
       markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),     
-      style: { strokeWidth: 2 }, // Base strokeWidth, color/dash handled by OrthogonalEdge
+      style: { strokeWidth: 2 }, 
       updatable: !isViewOnlyMode,
       deletable: !isViewOnlyMode,
       selectable: true,
-    } as RFEdge<OrthogonalEdgeData>)), // Use OrthogonalEdgeData here
+    } as RFEdge<OrthogonalEdgeData>)), 
     [mapDataFromStore.edges, isViewOnlyMode]
   );
 
@@ -264,13 +264,12 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   const handleRfConnect: OnConnect = useCallback((params: Connection) => {
     if (isViewOnlyMode) return;
-    onConnectInStore({ // Pass all necessary fields for a new edge
+    onConnectInStore({ 
       source: params.source!,
       target: params.target!,
       sourceHandle: params.sourceHandle,
       targetHandle: params.targetHandle,
-      label: "connects", // Default label
-      // Defaults for new styles will be applied by the addEdge action in the store
+      label: "connects", 
     });
   }, [isViewOnlyMode, onConnectInStore]);
 
@@ -349,7 +348,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onNodeContextMenu={onNodeContextMenu}
       onNodeDrag={onNodeDrag}
       onNodeDragStop={handleNodeDragStopInternal}
-      onPaneDoubleClick={handlePaneDoubleClickInternal}
+      onPaneDoubleClickProp={handlePaneDoubleClickInternal}
       activeSnapLines={activeSnapLines}
       gridSize={GRID_SIZE}
       panActivationKeyCode="Space"
@@ -358,10 +357,11 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 };
 
 
-const FlowCanvasCoreWrapper: React.FC<Omit<FlowCanvasCoreProps, 'onNodeDrag' | 'onNodeDragStop' | 'onPaneDoubleClick' | 'activeSnapLines' | 'gridSize'>> = (props) => (
+const FlowCanvasCoreWrapper: React.FC<Omit<FlowCanvasCoreProps, 'onNodeDrag' | 'onNodeDragStop' | 'onPaneDoubleClickProp' | 'activeSnapLines' | 'gridSize'>> = (props) => (
   <ReactFlowProvider>
     <FlowCanvasCore {...props} />
   </ReactFlowProvider>
 );
 
 export default React.memo(FlowCanvasCoreWrapper);
+
