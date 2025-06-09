@@ -189,7 +189,7 @@
         - [ ] (Future Consideration) Consider a global AI input box/panel on the canvas for broader queries/commands.
     - [x] **GAI Action Feedback**:
         - [x] Visual cues for AI-generated/modified nodes (type, icon).
-        - [x] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or floating buttons.
+        - [x] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or floating "AI Expand" button.
     - [ ] **(Highly Advanced - Future Consideration) Explore "AI Structure Suggestions":**
         - [ ] Develop Genkit flow to analyze map structure & content.
         - [ ] Define criteria for "good" structure suggestions (e.g., grouping related ideas, suggesting missing links).
