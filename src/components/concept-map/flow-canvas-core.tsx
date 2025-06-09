@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
-import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes, useReactFlow, ReactFlowProvider } from 'reactflow';
+import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes, type EdgeTypes, useReactFlow, ReactFlowProvider, type OnPaneDoubleClick } from 'reactflow'; // Import OnPaneDoubleClick
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
@@ -64,7 +64,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         shape: appNode.shape,
         width: appNode.width,
         height: appNode.height,
-        onTriggerAIExpand: onNodeAIExpandTriggered, // Pass the stable prop directly
+        onTriggerAIExpand: onNodeAIExpandTriggered, 
       } as CustomNodeData,
       position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
       draggable: !isViewOnlyMode,
@@ -73,7 +73,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       dragHandle: '.cursor-move',
       parentNode: appNode.parentNode,
     } as RFNode<CustomNodeData>)),
-    [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered] // Dependency remains the same
+    [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered] 
   );
 
   const initialRfEdges = useMemo(() =>
@@ -287,7 +287,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     }
   }, [onSelectionChange, onMultiNodeSelectionChange]);
 
-  const handlePaneDoubleClickInternal = useCallback((event: React.MouseEvent) => {
+  const handlePaneDoubleClickInternal: OnPaneDoubleClick = useCallback((event) => {
     if (isViewOnlyMode) return;
     const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
     const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
@@ -357,7 +357,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 };
 
 
-const FlowCanvasCoreWrapper: React.FC<Omit<FlowCanvasCoreProps, 'onNodeDrag' | 'onNodeDragStop' | 'onPaneDoubleClickProp' | 'activeSnapLines' | 'gridSize'>> = (props) => (
+const FlowCanvasCoreWrapper: React.FC<Omit<FlowCanvasCoreProps, 'onNodeDrag' | 'onNodeDragStop' | 'activeSnapLines' | 'gridSize'>> = (props) => (
   <ReactFlowProvider>
     <FlowCanvasCore {...props} />
   </ReactFlowProvider>

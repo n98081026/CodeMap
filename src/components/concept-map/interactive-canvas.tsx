@@ -20,6 +20,7 @@ import ReactFlow, {
   type EdgeTypes,
   useReactFlow,
   type Viewport,
+  type OnPaneDoubleClick, // Import React Flow's specific type
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
@@ -42,7 +43,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: (event: React.MouseEvent) => void;
+  onPaneDoubleClickProp?: OnPaneDoubleClick; // Use React Flow's OnPaneDoubleClick type
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -95,9 +96,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   useEffect(() => {
     if (
       !viewport ||
-      typeof viewport.width !== 'number' || viewport.width === 0 || isNaN(viewport.width) ||
-      typeof viewport.height !== 'number' || viewport.height === 0 || isNaN(viewport.height) ||
-      typeof viewport.zoom !== 'number' || viewport.zoom === 0 || isNaN(viewport.zoom)
+      typeof viewport.width !== 'number' || viewport.width <= 0 || isNaN(viewport.width) ||
+      typeof viewport.height !== 'number' || viewport.height <= 0 || isNaN(viewport.height) ||
+      typeof viewport.zoom !== 'number' || viewport.zoom <= 0 || isNaN(viewport.zoom)
     ) {
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
@@ -160,7 +161,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       [maxViewportX, maxViewportY]
     ]);
 
-  }, [nodes, viewport]); // Depend on the viewport object directly
+  }, [nodes, viewport]); 
 
   const reactFlowBaseProps = {
     nodes,
@@ -201,6 +202,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   if (!isViewOnlyMode && onPaneDoubleClickProp) {
     finalReactFlowProps.onPaneDoubleClick = onPaneDoubleClickProp;
   }
+
 
   return (
     <Card className={cn(
