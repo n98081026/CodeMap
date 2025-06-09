@@ -64,8 +64,8 @@
 - [x] **Node Data Structure (Advanced Custom Layouts):**
     - [x] `parentNode` field added to `ConceptMapNode` type for hierarchy (used by React Flow).
     - [x] **Explicit `childIds` for Advanced Custom Layouts:**
-        - [x] Extend node data structure with `childIds: string[]`.
-        - [x] Implement basic store logic (`addNode`, `deleteNode`) to manage `childIds` for parent-child relationships.
+        - [x] Extend node data structure with `childIds: string[]`. (Implemented in `src/types/index.ts`)
+        - [x] Implement basic store logic (`addNode`, `deleteNode`) to manage `childIds` for parent-child relationships. (Implemented in `src/stores/concept-map-store.ts`)
         - [ ] Implement UI logic to manage `childIds` order (e.g., drag to reorder, creation order). (Future Consideration)
         - [ ] **Custom Layout Hook/Component (`useCustomLayout` or similar):** (Future Consideration)
             - [ ] Identify parent nodes needing custom layout (e.g., via type or flag).
@@ -211,8 +211,8 @@
 - [x] **Rendering:**
     - [x] **Virtualization (Occlusion Culling for Canvas):** Investigated and `onlyRenderVisibleElements` applied.
     - [ ] (Future Consideration) **Layered Rendering:** Consider separating static elements (like complex backgrounds or many edges) from interactive elements (nodes) if performance degrades with many edges. (React Flow's approach offers some implicit layering).
-- [ ] **Interactions:**
-    - [ ] **Event Throttling/Debouncing:**
+- [x] **Interactions:**
+    - [x] **Event Throttling/Debouncing:**
         - [x] Verified React Flow's internal event handling for drag/zoom for common scenarios. Snapping logic is lightweight.
         - [ ] (Future Consideration) If custom heavy interactions are added (e.g., advanced orthogonal edge routing), implement throttling/debouncing for them.
 - [x] **Data Handling & General:**
@@ -222,7 +222,7 @@
         - [x] Implement virtualization for Teacher Classroom Student List using `@tanstack/react-virtual`.
     - [x] **React Component Memoization:**
         - [x] Key callbacks in `ConceptMapEditorPage` memoized with `useCallback`.
-        - [x] Key reusable display components memoized with `React.memo` (`DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, `ClassroomListItem`, `ConceptMapListItem`, `SubmissionListItem`).
+        - [x] Key reusable display components memoized with `React.memo` (`DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, `ClassroomListItem`, `ConceptMapListItem`, `SubmissionListItem`, `CustomNodeComponent`, `OrthogonalEdge`).
     - [x] **Code Splitting:**
         - [x] Use `next/dynamic` for `FlowCanvasCore`.
         - [x] Use `next/dynamic` for `AISuggestionPanel` and `PropertiesInspector` in `ConceptMapEditorPage`.
@@ -315,6 +315,7 @@ This section outlines tasks to fully migrate to Supabase.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps.
 - `PropertiesInspector` and `AISuggestionPanel` are dynamically imported in `ConceptMapEditorPage`.
 - Redundant `CanvasPlaceholder.tsx` and `/application/layout.tsx` files have been removed.
+- **Performance Optimizations**: Key components like `DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, list items, `CustomNodeComponent`, and `OrthogonalEdge` have been memoized using `React.memo`. Callbacks in `ConceptMapEditorPage` passed to children are memoized with `useCallback`.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
@@ -324,5 +325,6 @@ The main remaining area for full Supabase connection is:
 
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
+
 
 

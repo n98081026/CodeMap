@@ -125,15 +125,15 @@ export default function ConceptMapEditorPage() {
     setStoreMultiSelectedNodeIds(nodeIds);
   }, [setStoreMultiSelectedNodeIds]);
 
-  const handleAddNodeToData = () => {
+  const handleAddNodeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
     const { x, y } = aiToolsHook.getNodePlacement(useConceptMapStore.getState().mapData.nodes.length, 'generic', null, null, 20);
     addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
-  };
+  }, [storeIsViewOnlyMode, toast, addNodeFromHook, aiToolsHook]);
 
-  const handleAddEdgeToData = () => {
+  const handleAddEdgeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const nodes = useConceptMapStore.getState().mapData.nodes;
     if (nodes.length < 2) { toast({ title: "Cannot Add Edge", description: "At least two nodes are required to add an edge.", variant: "default" }); return; }
@@ -141,7 +141,7 @@ export default function ConceptMapEditorPage() {
     if (!sourceNode || !targetNode) { toast({ title: "Error Adding Edge", description: "Source or target node for edge not found.", variant: "destructive"}); return; }
     addEdgeFromHook({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
     toast({ title: "Edge Added" });
-  };
+  }, [storeIsViewOnlyMode, toast, addEdgeFromHook]);
 
   const getRoleBasedDashboardLink = useCallback(() => { return user ? `/application/${user.role}/dashboard` : '/login'; }, [user]);
   const getBackLink = useCallback(() => { return user && user.role === UserRole.TEACHER ? "/application/teacher/classrooms" : "/application/student/concept-maps"; }, [user]);
@@ -240,16 +240,16 @@ export default function ConceptMapEditorPage() {
       </DashboardHeader>
       <ReactFlowProvider>
         <EditorToolbar
-          onNewMap={handleNewMap} onSaveMap={() => saveMap(storeIsViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
-          onExtractConcepts={() => openExtractConceptsModal(selectedElementId || undefined)}
-          onSuggestRelations={() => openSuggestRelationsModal(selectedElementId || undefined)}
-          onExpandConcept={() => openExpandConceptModal(selectedElementId || undefined)}
+          onNewMap={handleNewMap} onSaveMap={useCallback(() => saveMap(storeIsViewOnlyMode), [saveMap, storeIsViewOnlyMode])} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
+          onExtractConcepts={useCallback(() => openExtractConceptsModal(selectedElementId || undefined), [openExtractConceptsModal, selectedElementId])}
+          onSuggestRelations={useCallback(() => openSuggestRelationsModal(selectedElementId || undefined), [openSuggestRelationsModal, selectedElementId])}
+          onExpandConcept={useCallback(() => openExpandConceptModal(selectedElementId || undefined), [openExpandConceptModal, selectedElementId])}
           onQuickCluster={openQuickClusterModal} onGenerateSnippetFromText={openGenerateSnippetModal}
           onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
           isViewOnlyMode={storeIsViewOnlyMode} onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
           onToggleProperties={onTogglePropertiesInspector} onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
-          onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
+          onUndo={useCallback(() => temporalStoreAPI.getState().undo(), [temporalStoreAPI])} onRedo={useCallback(() => temporalStoreAPI.getState().redo(), [temporalStoreAPI])} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
         />
@@ -259,20 +259,20 @@ export default function ConceptMapEditorPage() {
               onSelectionChange={handleFlowSelectionChange} onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode}
               onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={(edgeId) => useConceptMapStore.getState().deleteEdge(edgeId)}
+              onEdgesDeleteInStore={useCallback((edgeId: string) => useConceptMapStore.getState().deleteEdge(edgeId), [])}
               onConnectInStore={addEdgeFromHook}
               onNodeContextMenu={handleNodeContextMenu}
-              onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
+              onNodeAIExpandTriggered={useCallback((nodeId: string) => aiToolsHook.openExpandConceptModal(nodeId), [aiToolsHook])}
             />
         </div>
         {contextMenu?.isOpen && contextMenu.nodeId && (
           <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu}
             onDeleteNode={handleDeleteNodeFromContextMenu}
-            onExpandConcept={() => { openExpandConceptModal(contextMenu.nodeId!); closeContextMenu(); }}
-            onSuggestRelations={() => { openSuggestRelationsModal(contextMenu.nodeId!); closeContextMenu(); }}
-            onExtractConcepts={() => { openExtractConceptsModal(contextMenu.nodeId!); closeContextMenu(); }}
-            onAskQuestion={() => { openAskQuestionModal(contextMenu.nodeId!); closeContextMenu(); }}
-            onRewriteContent={() => { openRewriteNodeContentModal(contextMenu.nodeId!); closeContextMenu(); }}
+            onExpandConcept={useCallback(() => { openExpandConceptModal(contextMenu.nodeId!); closeContextMenu(); }, [openExpandConceptModal, contextMenu.nodeId, closeContextMenu])}
+            onSuggestRelations={useCallback(() => { openSuggestRelationsModal(contextMenu.nodeId!); closeContextMenu(); }, [openSuggestRelationsModal, contextMenu.nodeId, closeContextMenu])}
+            onExtractConcepts={useCallback(() => { openExtractConceptsModal(contextMenu.nodeId!); closeContextMenu(); }, [openExtractConceptsModal, contextMenu.nodeId, closeContextMenu])}
+            onAskQuestion={useCallback(() => { openAskQuestionModal(contextMenu.nodeId!); closeContextMenu(); }, [openAskQuestionModal, contextMenu.nodeId, closeContextMenu])}
+            onRewriteContent={useCallback(() => { openRewriteNodeContentModal(contextMenu.nodeId!); closeContextMenu(); }, [openRewriteNodeContentModal, contextMenu.nodeId, closeContextMenu])}
             isViewOnlyMode={storeIsViewOnlyMode} />
         )}
         <Sheet open={isPropertiesInspectorOpen} onOpenChange={setIsPropertiesInspectorOpen}>
@@ -288,8 +288,8 @@ export default function ConceptMapEditorPage() {
             <AISuggestionPanel currentMapNodes={storeMapData.nodes}
               extractedConcepts={aiExtractedConcepts} suggestedRelations={aiSuggestedRelations}
               onAddExtractedConcepts={addExtractedConceptsToMap} onAddSuggestedRelations={addSuggestedRelationsToMap}
-              onClearExtractedConcepts={() => useConceptMapStore.getState().setAiExtractedConcepts([])}
-              onClearSuggestedRelations={() => useConceptMapStore.getState().setAiSuggestedRelations([])}
+              onClearExtractedConcepts={useCallback(() => useConceptMapStore.getState().setAiExtractedConcepts([]), [])}
+              onClearSuggestedRelations={useCallback(() => useConceptMapStore.getState().setAiSuggestedRelations([]), [])}
               isViewOnlyMode={storeIsViewOnlyMode} />
           </SheetContent>
         </Sheet>

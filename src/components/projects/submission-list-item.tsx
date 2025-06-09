@@ -19,13 +19,13 @@ export const SubmissionListItem = React.memo(function SubmissionListItem({ submi
   const { currentSubmission, isPolling: isAutoPollingActive, manualRefresh } = useSubmissionStatusPoller(initialSubmission);
   const [isManualRefreshing, setIsManualRefreshing] = React.useState(false);
 
-  const handleManualRefresh = async () => {
+  const handleManualRefresh = React.useCallback(async () => {
     setIsManualRefreshing(true);
     await manualRefresh();
     setIsManualRefreshing(false);
-  };
+  }, [manualRefresh]);
   
-  const getStatusIconAndColor = () => {
+  const getStatusIconAndColor = React.useCallback(() => {
     switch (currentSubmission.analysisStatus) {
       case ProjectSubmissionStatus.COMPLETED:
         return { icon: CheckCircle2, color: "text-green-500" };
@@ -37,7 +37,7 @@ export const SubmissionListItem = React.memo(function SubmissionListItem({ submi
       default: // PENDING
         return { icon: FileArchive, color: "text-muted-foreground" };
     }
-  };
+  }, [currentSubmission.analysisStatus]);
 
   const { icon: StatusIcon, color: statusColor } = getStatusIconAndColor();
 

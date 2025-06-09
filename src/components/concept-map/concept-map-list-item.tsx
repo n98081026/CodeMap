@@ -71,7 +71,7 @@ export const ConceptMapListItem: React.FC<ConceptMapListItemProps> = React.memo(
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the concept map "{map.name}".
               </AlertDialogDescription>
-            </AlertDialogHeader>
+              </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={() => onDelete(map.id, map.name)}>
