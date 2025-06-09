@@ -147,6 +147,10 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })),
 
       initializeNewMap: (userId: string) => {
+        const previousMapId = get().mapId; 
+        const previousIsNewMapMode = get().isNewMapMode;
+        console.error(`[STORE] INITIALIZE_NEW_MAP CALLED! User: ${userId}. Previous mapId: ${previousMapId}, previousIsNewMapMode: ${previousIsNewMapMode}. Stack:`, new Error().stack);
+        
         const newMapState = {
           ...initialStateBase,
           mapId: 'new',
@@ -162,6 +166,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isLoading: false,
           multiSelectedNodeIds: [], 
           aiProcessingNodeId: null,
+          isPublic: initialStateBase.isPublic, 
+          sharedWithClassroomId: initialStateBase.sharedWithClassroomId,
         };
         set(newMapState);
         useConceptMapStore.temporal.getState().clear();
@@ -222,7 +228,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           y: options.position.y,
           details: options.details || '',
           parentNode: options.parentNode,
-          childIds: [], // Initialize childIds
+          childIds: [], 
           backgroundColor: options.backgroundColor || undefined, 
           shape: options.shape || 'rectangle', 
           width: options.width, 
@@ -281,12 +287,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       
         let newNodes = state.mapData.nodes.filter(node => !nodesToDeleteSet.has(node.id));
         if (parentNodeToUpdate && parentNodeIndex !== -1) {
-           // Re-filter to ensure we use the updated parent if it wasn't part of nodesToDeleteSet
            newNodes = newNodes.map(n => n.id === parentNodeToUpdate!.id ? parentNodeToUpdate! : n);
-           // If the parent node itself was targeted for deletion initially, this map might not find it if it's already filtered.
-           // However, the previous filtering `newNodes = state.mapData.nodes.filter(node => !nodesToDeleteSet.has(node.id));`
-           // should correctly remove the parent if it was in nodesToDeleteSet.
-           // If parent was NOT in nodesToDeleteSet, we ensure its childIds is updated.
            const stillExistsParentIndex = newNodes.findIndex(n => n.id === parentNodeToUpdate!.id);
            if(stillExistsParentIndex !== -1) {
                newNodes[stillExistsParentIndex] = parentNodeToUpdate;
