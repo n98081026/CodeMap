@@ -1,4 +1,5 @@
 
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -146,7 +147,7 @@
 - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed from panel after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel. Scroll behavior improved (removed nested scrolls).
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
     - [x] "Clear All" button for suggestion categories.
-    - [x] Clearer visual cues for suggestion status (exact, similar, new).
+    - [x] Clearer visual cues for suggestion status (exact, similar, new - icons added).
     - [x] Empty states are context-aware.
 - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure. `childIds` added to node structure and managed on add/delete. `aiProcessingNodeId` added for node-specific AI loading state. Recursive node deletion logic implemented. Edge style properties (color, lineType, markerStart, markerEnd) added.
 - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic. `getNodePlacement` utility from `src/lib/layout-utils.ts` used for node placement and supports grid snapping and directional child placement.
@@ -198,7 +199,7 @@
         - [ ] Implement user actions to accept/reject suggestions.
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
-    - [x] Clearer visual cues for suggestion status (exact, similar, new).
+    - [x] Clearer visual cues for suggestion status (exact, similar, new - icons added).
     - [x] "Clear All" button for suggestion categories.
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
     - [x] Empty states are context-aware.
@@ -292,7 +293,7 @@ This section outlines tasks to fully migrate to Supabase.
 - **Custom edge type `OrthogonalEdge` implemented:** Path calculation reviewed and confirmed to produce robust Manhattan-style paths with straight exits/entries and clear label placement across various handle orientations. Sharp/rounded corners logic implemented. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions (width/height) from PropertiesInspector override auto-sizing and are persisted.
 - **GAI Action Feedback**: Visual cues for AI-generated/modified nodes (type, icon) implemented. Loading state/spinner on/near a node when a GAI action is triggered from its context menu or floating "AI Expand" button is implemented (spinner respects node shape). Toolbar button tooltips and disable states for AI actions (Expand Concept, Summarize Selection) are context-aware. Floating node AI button tooltip improved.
-- **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined. Empty states are context-aware. Scroll behavior for suggestion categories improved (no nested scrollbars for categories).
+- **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact - icons added) refined. Empty states are context-aware. Scroll behavior for suggestion categories improved (no nested scrollbars for categories).
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
@@ -323,4 +324,5 @@ The main remaining area for full Supabase connection is:
 
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
+
 

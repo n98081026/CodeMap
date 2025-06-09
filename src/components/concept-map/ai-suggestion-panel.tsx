@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -262,7 +263,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             </div>
           </div>
         </CardHeader>
-        <CardContent> {/* Removed max-h-48 overflow-y-auto */}
+        <CardContent> 
           <div className="space-y-1">
             {items.map((item, index) => {
               const displayId = `${itemKeyPrefix}-${index}`;
@@ -351,7 +352,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       <div className="flex items-center justify-between w-full group">
         <Label htmlFor={`${type}-${index}`} className={cn("text-sm font-normal flex-grow cursor-pointer", (isExactMatch || isViewOnlyMode) && "cursor-default")}>
           {item.current}
-          {isExactMatch && <span className="ml-2 text-xs text-muted-foreground italic">(already on map)</span>}
+          {isExactMatch && <span className="ml-2 text-xs text-muted-foreground italic flex items-center"><CheckSquare className="h-3 w-3 mr-1 text-green-600"/>(already on map)</span>}
           {isSimilarMatch && <span className="ml-2 text-xs text-yellow-700 dark:text-yellow-400 italic flex items-center"><Zap className="h-3 w-3 mr-1"/>(similar to existing)</span>}
         </Label>
         {!isViewOnlyMode && !isExactMatch && (
@@ -364,7 +365,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   };
 
   const renderEditableRelationLabel = (item: EditableRelationSuggestion, index: number, _itemStatus: ItemStatus, relationNodeExistence?: { source?: boolean, target?: boolean }) => {
-    const renderField = (field: 'source' | 'target' | 'relation') => {
+    const renderField = (field: 'source' | 'target' | 'relation', nodeExists?: boolean) => {
       if (item.isEditing && item.editingField === field && !isViewOnlyMode) {
         return (
           <Input
@@ -381,20 +382,19 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       return (
         <span
           onClick={isViewOnlyMode ? undefined : () => handleToggleEdit('relation', index, field)}
-          className={cn("hover:bg-muted/50 px-1 rounded", !isViewOnlyMode && "cursor-pointer")}
+          className={cn("hover:bg-muted/50 px-1 rounded inline-flex items-center", !isViewOnlyMode && "cursor-pointer")}
         >
           {item.current[field]}
+          {nodeExists && <CheckSquare className="h-3 w-3 ml-1 text-green-600 inline-block" title="This node exists on the map"/>}
         </span>
       );
     };
 
     return (
       <div className="flex items-center text-sm group w-full">
-        {renderField('source')}
-        {relationNodeExistence?.source && <span className="text-xs text-muted-foreground italic ml-1">(exists)</span>}
+        {renderField('source', relationNodeExistence?.source)}
         <span className="mx-1">→</span>
-        {renderField('target')}
-        {relationNodeExistence?.target && <span className="text-xs text-muted-foreground italic ml-1">(exists)</span>}
+        {renderField('target', relationNodeExistence?.target)}
         <span className="mx-1 text-muted-foreground">({renderField('relation')})</span>
       </div>
     );
@@ -489,5 +489,6 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   );
 });
 AISuggestionPanel.displayName = "AISuggestionPanel";
+
 
 
