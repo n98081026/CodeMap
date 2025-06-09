@@ -10,9 +10,8 @@ import { supabase } from '@/lib/supabaseClient';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { getUserById as fetchSupabaseUserProfile, updateUser as updateUserProfileService, createUserProfile } from '@/services/users/userService';
 import { useToast } from '@/hooks/use-toast';
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V2 as MOCK_STUDENT_USER } from '@/lib/config'; // Import new V2 mock user
-
-// --- REMOVED AUTH BYPASS CONSTANTS from here, now imported ---
+// Updated import to use MOCK_ADMIN_USER_V3 as the default for bypass
+import { BYPASS_AUTH_FOR_TESTING, MOCK_ADMIN_USER_V3 as DEFAULT_BYPASS_USER } from '@/lib/config';
 
 interface AuthContextType {
   user: User | null;
@@ -86,8 +85,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (BYPASS_AUTH_FOR_TESTING) {
-      console.warn("AuthContext: BYPASS_AUTH_FOR_TESTING is TRUE. Using mock user.");
-      setUser(MOCK_STUDENT_USER); // Use imported V2 mock user
+      console.warn("AuthContext: BYPASS_AUTH_FOR_TESTING is TRUE. Using mock admin user.");
+      setUser(DEFAULT_BYPASS_USER); // Use imported MOCK_ADMIN_USER_V3
       setIsLoading(false);
       initialAuthCheckCompleted.current = true;
       return; // Skip Supabase listeners and calls
@@ -186,11 +185,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = useCallback(async (email: string, password: string, role: UserRole) => {
     if (BYPASS_AUTH_FOR_TESTING) {
-      console.warn("Login attempt while BYPASS_AUTH_FOR_TESTING is true. No-op.");
-      setUser(MOCK_STUDENT_USER); // Ensure mock user is set
+      console.warn("Login attempt while BYPASS_AUTH_FOR_TESTING is true. Using default bypass user.");
+      setUser(DEFAULT_BYPASS_USER); // Use imported MOCK_ADMIN_USER_V3
       setIsLoading(false);
       // Simulate redirect based on mock user's role
-      switch (MOCK_STUDENT_USER.role) {
+      switch (DEFAULT_BYPASS_USER.role) {
           case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
           case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
           case UserRole.STUDENT: router.replace('/application/student/dashboard'); break;
@@ -358,6 +357,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-
-    
