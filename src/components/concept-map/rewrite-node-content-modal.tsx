@@ -17,11 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wand2, Sparkles, ArrowRightLeft } from 'lucide-react';
 import type { NodeContentToRewrite } from '@/hooks/useConceptMapAITools'; 
-// Import directly from the flow file, using alias and ensuring NO .ts extension for standard resolution
+// Import directly from the flow file, using alias and ensuring .ts extension
 import { 
   rewriteNodeContent as aiRewriteNodeContent, 
   type RewriteNodeContentOutput 
-} from '@/ai/flows/rewrite-node-content-flow'; 
+} from '@/ai/flows/rewrite-node-content-flow.ts'; 
 import useConceptMapStore from '@/stores/concept-map-store'; 
 
 

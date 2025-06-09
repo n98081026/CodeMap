@@ -13,8 +13,8 @@ import {
   generateMapSnippetFromText as aiGenerateMapSnippetFromText,
   summarizeNodes as aiSummarizeNodes
 } from '@/ai/flows';
-// Import directly from the flow file using alias and NO .ts extension
-import { rewriteNodeContent as aiRewriteNodeContent } from '@/ai/flows/rewrite-node-content-flow'; 
+// Import directly from the flow file, using alias and ensuring .ts extension
+import { rewriteNodeContent as aiRewriteNodeContent } from '@/ai/flows/rewrite-node-content-flow.ts'; 
 
 import type {
   AskQuestionAboutNodeOutput,
