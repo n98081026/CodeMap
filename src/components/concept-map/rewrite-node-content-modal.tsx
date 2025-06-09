@@ -17,7 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wand2, Sparkles, ArrowRightLeft } from 'lucide-react';
 import type { NodeContentToRewrite } from '@/hooks/useConceptMapAITools'; 
-import { rewriteNodeContent as aiRewriteNodeContent, type RewriteNodeContentOutput } from '@/ai/flows';
+// Import directly from the flow file
+import { 
+  rewriteNodeContent as aiRewriteNodeContent, 
+  type RewriteNodeContentOutput 
+} from '@/ai/flows/rewrite-node-content-flow';
 import useConceptMapStore from '@/stores/concept-map-store'; 
 
 
@@ -182,4 +186,3 @@ export function RewriteNodeContentModal({
     </Dialog>
   );
 }
-

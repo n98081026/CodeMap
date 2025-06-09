@@ -9,13 +9,14 @@ export * from './suggest-relations';
 export * from './summarize-nodes-flow';
 
 // Explicitly import and re-export for rewrite-node-content-flow
+// Changed from './rewrite-node-content-flow' to '@/ai/flows/rewrite-node-content-flow'
 import {
   RewriteNodeContentInputSchema,
   type RewriteNodeContentInput,
   RewriteNodeContentOutputSchema,
   type RewriteNodeContentOutput,
   rewriteNodeContent
-} from './rewrite-node-content-flow'; // Standard module path (no .ts extension)
+} from '@/ai/flows/rewrite-node-content-flow'; 
 
 export {
   RewriteNodeContentInputSchema,
