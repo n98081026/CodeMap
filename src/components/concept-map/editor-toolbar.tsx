@@ -70,7 +70,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   canUndo,
   canRedo,
   selectedNodeId,
-  numMultiSelectedNodes,
+  numMultiSelectedNodes, // Correctly destructured prop
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -86,14 +86,14 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const getExpandConceptTooltip = () => {
     if (isViewOnlyMode) return "Expand Concept (Disabled in View Mode)";
     if (!selectedNodeId) return "Expand Concept (Select a node first)";
-    if (numMultiSelectedNodeIds > 1) return "Expand Concept (Select a single node)";
+    if (numMultiSelectedNodes > 1) return "Expand Concept (Select a single node)";
     return "Expand Selected Concept (AI)";
   };
 
-  const isSummarizeNodesDisabled = isViewOnlyMode || numMultiSelectedNodes < 2;
+  const isSummarizeNodesDisabled = isViewOnlyMode || numMultiSelectedNodes < 2; // CORRECTED: Used numMultiSelectedNodes
   const getSummarizeNodesTooltip = () => {
     if (isViewOnlyMode) return "Summarize Selection (Disabled in View Mode)";
-    if (numMultiSelectedNodeIds < 2) return "Summarize Selection (Select 2+ nodes)";
+    if (numMultiSelectedNodes < 2) return "Summarize Selection (Select 2+ nodes)"; // CORRECTED: Used numMultiSelectedNodes
     return "Summarize Selection (AI)";
   };
 
