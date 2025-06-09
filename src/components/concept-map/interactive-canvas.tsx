@@ -21,7 +21,6 @@ import ReactFlow, {
   useReactFlow,
   type OnPaneDoubleClick,
   type Viewport,
-  type ReactFlowProps, // Keep for reference if needed, but we'll pass props directly
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
@@ -200,10 +199,10 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
         onlyRenderVisibleElements={true}
-        onPaneDoubleClick={ // Explicitly pass onPaneDoubleClick or undefined
-          !isViewOnlyMode && typeof onPaneDoubleClickProp === 'function'
+        onPaneDoubleClick={
+          (!isViewOnlyMode && typeof onPaneDoubleClickProp === 'function')
             ? onPaneDoubleClickProp
-            : undefined
+            : () => {} // Pass a no-op function if not applicable
         }
       >
         <Controls showInteractive={!isViewOnlyMode} />
@@ -233,4 +232,3 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 export const InteractiveCanvas = React.memo(InteractiveCanvasComponent);
 InteractiveCanvas.displayName = 'InteractiveCanvas';
     
-
