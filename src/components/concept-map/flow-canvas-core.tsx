@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
@@ -30,7 +31,7 @@ interface FlowCanvasCoreProps {
   onNodesChangeInStore: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   onNodesDeleteInStore: (nodeId: string) => void;
   onEdgesDeleteInStore: (edgeId: string) => void;
-  onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string }) => void;
+  onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string; color?: string; lineType?: 'solid' | 'dashed'; markerStart?: string; markerEnd?: string; }) => void;
   onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
   onNodeAIExpandTriggered?: (nodeId: string) => void;
 }
@@ -88,20 +89,20 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         label: appEdge.label,
         color: appEdge.color,
         lineType: appEdge.lineType
-      },
+      } as OrthogonalEdgeData, // Ensure this matches data type
       markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color), 
       markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),     
-      style: { strokeWidth: 2 },
+      style: { strokeWidth: 2 }, // Base strokeWidth, color/dash handled by OrthogonalEdge
       updatable: !isViewOnlyMode,
       deletable: !isViewOnlyMode,
       selectable: true,
-    } as RFEdge<RFConceptMapEdgeData>)),
+    } as RFEdge<OrthogonalEdgeData>)), // Use OrthogonalEdgeData here
     [mapDataFromStore.edges, isViewOnlyMode]
   );
 
 
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>(initialRfNodes);
-  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<RFConceptMapEdgeData>(initialRfEdges);
+  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>(initialRfEdges);
 
   useEffect(() => setRfNodes(initialRfNodes), [initialRfNodes, setRfNodes]);
   useEffect(() => setRfEdges(initialRfEdges), [initialRfEdges, setRfEdges]);
@@ -200,10 +201,9 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       currentDragSnapLines.push(bestSnapYInfo.line);
     }
 
-    // Apply grid snapping only if not snapped to another node for that axis
     if (!xSnappedByNode) {
       const gridSnappedX = Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
-      if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) { // Use a small threshold for grid snap activation
+      if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) { 
         snappedXPosition = gridSnappedX;
       }
     }
@@ -229,7 +229,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       let finalX = draggedNode.positionAbsolute.x;
       let finalY = draggedNode.positionAbsolute.y;
 
-      // Ensure final position is also snapped to grid after node-to-node checks are done
       finalX = Math.round(finalX / GRID_SIZE) * GRID_SIZE;
       finalY = Math.round(finalY / GRID_SIZE) * GRID_SIZE;
       
@@ -265,12 +264,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   const handleRfConnect: OnConnect = useCallback((params: Connection) => {
     if (isViewOnlyMode) return;
-    onConnectInStore({
+    onConnectInStore({ // Pass all necessary fields for a new edge
       source: params.source!,
       target: params.target!,
       sourceHandle: params.sourceHandle,
       targetHandle: params.targetHandle,
-      label: "connects"
+      label: "connects", // Default label
+      // Defaults for new styles will be applied by the addEdge action in the store
     });
   }, [isViewOnlyMode, onConnectInStore]);
 
@@ -317,14 +317,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         const currentNodes = mapData.nodes;
         let newNodeId: string;
 
-        if (event.key === 'Tab') { // Create Child Node
+        if (event.key === 'Tab') { 
           const childPosition = getNodePlacement(currentNodes, 'child', selectedStoreNode, null, GRID_SIZE, 'right');
           newNodeId = addNodeToStore({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: selectedStoreNode.id });
           onConnectInStore({ source: selectedStoreNode.id, target: newNodeId, label: "connects" });
-        } else { // Create Sibling Node (Enter key)
+        } else { 
           const siblingPosition = getNodePlacement(currentNodes, 'sibling', selectedStoreNode.parentNode ? currentNodes.find(n => n.id === selectedStoreNode.parentNode) : null, selectedStoreNode, GRID_SIZE);
           newNodeId = addNodeToStore({ text: "New Sibling", type: 'manual-node', position: siblingPosition, parentNode: selectedStoreNode.parentNode });
-           // Optionally connect siblings if part of the same parent, or handle groups later
         }
         setSelectedElement(newNodeId, 'node');
         setEditingNodeId(newNodeId);
@@ -366,4 +365,3 @@ const FlowCanvasCoreWrapper: React.FC<Omit<FlowCanvasCoreProps, 'onNodeDrag' | '
 );
 
 export default React.memo(FlowCanvasCoreWrapper);
-

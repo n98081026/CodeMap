@@ -244,7 +244,6 @@ export const useConceptMapStore = create<ConceptMapState>()(
         const nodesToDelete = new Set<string>([nodeIdToDelete]);
         const queue = [nodeIdToDelete];
       
-        // Find all descendants
         while (queue.length > 0) {
           const currentParentId = queue.shift()!;
           state.mapData.nodes.forEach(node => {
@@ -286,10 +285,10 @@ export const useConceptMapStore = create<ConceptMapState>()(
           sourceHandle: options.sourceHandle || null,
           targetHandle: options.targetHandle || null,
           label: options.label || 'connects',
-          color: options.color || undefined,
+          color: options.color || undefined, // Default to undefined (theme default)
           lineType: options.lineType || 'solid', 
           markerStart: options.markerStart || 'none',
-          markerEnd: options.markerEnd || 'arrowclosed',
+          markerEnd: options.markerEnd || 'arrowclosed', // Default to arrowclosed for new edges
         };
         return { mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } };
       }),
@@ -328,4 +327,3 @@ export const useConceptMapStore = create<ConceptMapState>()(
         
 
 export default useConceptMapStore;
-

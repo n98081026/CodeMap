@@ -292,4 +292,3 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
 };
 
 export default OrthogonalEdge;
-
