@@ -9,120 +9,125 @@ export const BYPASS_AUTH_FOR_TESTING = true;
 import type { User, Classroom, ConceptMap, ProjectSubmission } from '@/types';
 import { UserRole, ProjectSubmissionStatus } from '@/types';
 
-export const MOCK_STUDENT_USER_V2: User = {
-  id: 'student-mock-v2-a1b2', // New ID
-  name: 'Beta Student (Bypass V2)', // New Name
-  email: 'betastudent.bypass.v2@example.com', // New Email
+export const MOCK_STUDENT_USER_V3: User = {
+  id: 'student-mock-v3-s001',
+  name: 'Alpha Student (Bypass V3)',
+  email: 'alphastudent.bypass.v3@example.com',
   role: UserRole.STUDENT,
 };
 
-export const MOCK_TEACHER_USER_V2: User = {
-  id: 'teacher-mock-v2-c3d4', // New ID
-  name: 'Gamma Teacher (Bypass V2)', // New Name
-  email: 'gammateacher.bypass.v2@example.com', // New Email
+export const MOCK_TEACHER_USER_V3: User = {
+  id: 'teacher-mock-v3-t001',
+  name: 'Bravo Teacher (Bypass V3)',
+  email: 'bravoteacher.bypass.v3@example.com',
   role: UserRole.TEACHER,
 };
 
-export const MOCK_ADMIN_USER_V2: User = {
-  id: 'admin-mock-v2-e5f6', // New ID
-  name: 'Delta Admin (Bypass V2)', // New Name
-  email: 'deltaadmin.bypass.v2@example.com', // New Email
+export const MOCK_ADMIN_USER_V3: User = {
+  id: 'admin-mock-v3-a001',
+  name: 'Charlie Admin (Bypass V3)',
+  email: 'charlieadmin.bypass.v3@example.com',
   role: UserRole.ADMIN,
 };
 
-// Use the new versions for the main export if needed by AuthContext directly
-export const MOCK_STUDENT_USER = MOCK_STUDENT_USER_V2;
-export const MOCK_TEACHER_USER = MOCK_TEACHER_USER_V2;
-export const MOCK_ADMIN_USER = MOCK_ADMIN_USER_V2;
+// Default exports for easier use in AuthContext if only one set of mocks is primarily used
+export const MOCK_STUDENT_USER = MOCK_STUDENT_USER_V3;
+export const MOCK_TEACHER_USER = MOCK_TEACHER_USER_V3;
+export const MOCK_ADMIN_USER = MOCK_ADMIN_USER_V3;
 
+export const MOCK_USERS: User[] = [MOCK_STUDENT_USER_V3, MOCK_TEACHER_USER_V3, MOCK_ADMIN_USER_V3];
 
-export const MOCK_USERS: User[] = [MOCK_STUDENT_USER_V2, MOCK_TEACHER_USER_V2, MOCK_ADMIN_USER_V2];
-
-export const MOCK_CLASSROOM_SHARED_V2: Classroom = {
-  id: 'class-shared-v2-g7h8', // New ID
-  name: 'Bypass Shared Classroom V2', // New Name
-  teacherId: MOCK_TEACHER_USER_V2.id,
-  teacherName: MOCK_TEACHER_USER_V2.name,
-  studentIds: [MOCK_STUDENT_USER_V2.id, 'another-mock-student-v2-id'],
-  inviteCode: 'BYPASSV2', // New Code
-  description: 'A V2 classroom for bypass testing where student is enrolled.',
-  subject: 'Advanced Bypassology',
+export const MOCK_CLASSROOM_SHARED_V3: Classroom = {
+  id: 'class-shared-v3-cs01',
+  name: 'Bypass Shared Classroom V3',
+  teacherId: MOCK_TEACHER_USER_V3.id,
+  teacherName: MOCK_TEACHER_USER_V3.name,
+  studentIds: [MOCK_STUDENT_USER_V3.id, 'another-mock-student-v3-s002'],
+  inviteCode: 'BYPASSV3',
+  description: 'A V3 classroom for bypass testing where student is enrolled.',
+  subject: 'Advanced Bypassology V3',
   difficulty: 'advanced',
   enableStudentAiAnalysis: false,
 };
 
-export const MOCK_CLASSROOM_TEACHER_OWNED_V2: Classroom = {
-  id: 'class-teacher-owned-v2-i9j0', // New ID
-  name: 'Bypass Teacher Classroom V2', // New Name
-  teacherId: MOCK_TEACHER_USER_V2.id,
-  teacherName: MOCK_TEACHER_USER_V2.name,
-  studentIds: ['mock-s1-v2', 'mock-s2-v2'],
-  inviteCode: 'TEACHV2', // New Code
-  description: 'A V2 classroom owned by the mock teacher.',
-  subject: 'Modern Pedagogy',
+export const MOCK_CLASSROOM_TEACHER_OWNED_V3: Classroom = {
+  id: 'class-teacher-owned-v3-ct01',
+  name: 'Bypass Teacher Classroom V3',
+  teacherId: MOCK_TEACHER_USER_V3.id,
+  teacherName: MOCK_TEACHER_USER_V3.name,
+  studentIds: ['mock-v3-s003', 'mock-v3-s004'],
+  inviteCode: 'TEACHV3',
+  description: 'A V3 classroom owned by the mock teacher.',
+  subject: 'Modern Pedagogy V3',
   difficulty: 'beginner',
   enableStudentAiAnalysis: true,
 };
 
+export let MOCK_CLASSROOMS_STORE: Classroom[] = [MOCK_CLASSROOM_SHARED_V3, MOCK_CLASSROOM_TEACHER_OWNED_V3];
+export let MOCK_CLASSROOM_STUDENTS_STORE: Array<{classroom_id: string, student_id: string}> = [
+    { classroom_id: MOCK_CLASSROOM_SHARED_V3.id, student_id: MOCK_STUDENT_USER_V3.id },
+    { classroom_id: MOCK_CLASSROOM_SHARED_V3.id, student_id: 'another-mock-student-v3-s002'},
+    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED_V3.id, student_id: 'mock-v3-s003'},
+    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED_V3.id, student_id: 'mock-v3-s004'},
+];
 
-export const MOCK_CONCEPT_MAP_STUDENT_V2: ConceptMap = {
-  id: 'map-student-v2-k1l2', // New ID
-  name: 'Student Bypass Map V2', // New Name
-  ownerId: MOCK_STUDENT_USER_V2.id,
-  mapData: { nodes: [{id: 'n1-v2', text: 'Bypass Node V2', type: 'default', x: 70, y:70}], edges: [] }, // Slightly different data
+export const MOCK_CONCEPT_MAP_STUDENT_V3: ConceptMap = {
+  id: 'map-student-v3-ms01',
+  name: 'Student Bypass Map V3 Alpha',
+  ownerId: MOCK_STUDENT_USER_V3.id,
+  mapData: { nodes: [{id: 'n1-v3-alpha', text: 'Bypass Node V3 Alpha', type: 'default', x: 70, y:70}], edges: [] },
   isPublic: true,
-  sharedWithClassroomId: MOCK_CLASSROOM_SHARED_V2.id,
-  createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-  updatedAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+  sharedWithClassroomId: MOCK_CLASSROOM_SHARED_V3.id,
+  createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+  updatedAt: new Date(Date.now() - 86400000).toISOString(),
 };
 
-export const MOCK_CONCEPT_MAP_TEACHER_V2: ConceptMap = {
-  id: 'map-teacher-v2-m3n4', // New ID
-  name: 'Teacher Bypass Map V2', // New Name
-  ownerId: MOCK_TEACHER_USER_V2.id,
-  mapData: { nodes: [{id: 'nt1-v2', text: 'Teacher Node V2', type: 'important', x: 100, y:100}], edges: [] }, // Slightly different data
+export const MOCK_CONCEPT_MAP_TEACHER_V3: ConceptMap = {
+  id: 'map-teacher-v3-mt01',
+  name: 'Teacher Bypass Map V3 Beta',
+  ownerId: MOCK_TEACHER_USER_V3.id,
+  mapData: { nodes: [{id: 'nt1-v3-beta', text: 'Teacher Node V3 Beta', type: 'important', x: 100, y:100}], edges: [] },
   isPublic: false,
-  sharedWithClassroomId: MOCK_CLASSROOM_TEACHER_OWNED_V2.id,
-  createdAt: new Date(Date.now() - 86400000 * 3).toISOString(), // 3 days ago
+  sharedWithClassroomId: MOCK_CLASSROOM_TEACHER_OWNED_V3.id,
+  createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
   updatedAt: new Date().toISOString(),
 };
 
+export let MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [MOCK_CONCEPT_MAP_STUDENT_V3, MOCK_CONCEPT_MAP_TEACHER_V3];
 // This is the specific map used by useConceptMapDataManager's MOCK_USER_FOR_TESTING_MAPS
-export const MOCK_CONCEPT_MAP_STUDENT = MOCK_CONCEPT_MAP_STUDENT_V2;
+export const MOCK_CONCEPT_MAP_STUDENT = MOCK_CONCEPT_MAP_STUDENT_V3;
 
 
-export const MOCK_PROJECT_SUBMISSION_STUDENT_V2: ProjectSubmission = {
-  id: 'sub-student-v2-q7r8', // New ID
-  studentId: MOCK_STUDENT_USER_V2.id,
-  originalFileName: 'final_bypass_project_v2.zip', // New filename
+export const MOCK_PROJECT_SUBMISSION_STUDENT_V3: ProjectSubmission = {
+  id: 'sub-student-v3-sps01',
+  studentId: MOCK_STUDENT_USER_V3.id,
+  originalFileName: 'final_bypass_project_v3.zip',
   fileSize: 234567,
-  fileStoragePath: 'mock/final_bypass_project_v2.zip',
-  submissionTimestamp: new Date(Date.now() - 86400000 * 3).toISOString(), // 3 days ago
+  fileStoragePath: 'mock/final_bypass_project_v3.zip',
+  submissionTimestamp: new Date(Date.now() - 86400000 * 3).toISOString(),
   analysisStatus: ProjectSubmissionStatus.COMPLETED,
-  generatedConceptMapId: 'map-from-submission-v2-o5p6', // New related map ID
-  classroomId: MOCK_CLASSROOM_SHARED_V2.id,
+  generatedConceptMapId: 'map-from-submission-v3-sgs01',
+  classroomId: MOCK_CLASSROOM_SHARED_V3.id,
 };
 
-export const MOCK_PROJECT_SUBMISSION_PROCESSING_V2: ProjectSubmission = {
-  id: 'sub-processing-v2-s9t0', // New ID
-  studentId: MOCK_STUDENT_USER_V2.id,
-  originalFileName: 'alpha_bypass_project_v2.rar', // New filename
+export const MOCK_PROJECT_SUBMISSION_PROCESSING_V3: ProjectSubmission = {
+  id: 'sub-processing-v3-spp01',
+  studentId: MOCK_STUDENT_USER_V3.id,
+  originalFileName: 'alpha_bypass_project_v3.rar',
   fileSize: 789000,
-  fileStoragePath: 'mock/alpha_bypass_project_v2.rar',
-  submissionTimestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+  fileStoragePath: 'mock/alpha_bypass_project_v3.rar',
+  submissionTimestamp: new Date(Date.now() - 86400000).toISOString(),
   analysisStatus: ProjectSubmissionStatus.PROCESSING,
-  classroomId: MOCK_CLASSROOM_SHARED_V2.id,
+  classroomId: MOCK_CLASSROOM_SHARED_V3.id,
 };
 
-// For direct use by services in bypass mode
-export let MOCK_CLASSROOMS_STORE: Classroom[] = [MOCK_CLASSROOM_SHARED_V2, MOCK_CLASSROOM_TEACHER_OWNED_V2];
-export let MOCK_CLASSROOM_STUDENTS_STORE: Array<{classroom_id: string, student_id: string}> = [
-    { classroom_id: MOCK_CLASSROOM_SHARED_V2.id, student_id: MOCK_STUDENT_USER_V2.id },
-    { classroom_id: MOCK_CLASSROOM_SHARED_V2.id, student_id: 'another-mock-student-v2-id'},
-    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED_V2.id, student_id: 'mock-s1-v2'},
-    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED_V2.id, student_id: 'mock-s2-v2'},
-];
-export let MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [MOCK_CONCEPT_MAP_STUDENT_V2, MOCK_CONCEPT_MAP_TEACHER_V2];
-export let MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [MOCK_PROJECT_SUBMISSION_STUDENT_V2, MOCK_PROJECT_SUBMISSION_PROCESSING_V2];
+export let MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [MOCK_PROJECT_SUBMISSION_STUDENT_V3, MOCK_PROJECT_SUBMISSION_PROCESSING_V3];
 
-    
+// This is the critical object for useConceptMapDataManager bypass logic
+export const MOCK_USER_FOR_TESTING_MAPS: { [key: string]: ConceptMap } = {
+  [MOCK_CONCEPT_MAP_STUDENT_V3.id]: MOCK_CONCEPT_MAP_STUDENT_V3,
+  [MOCK_CONCEPT_MAP_TEACHER_V3.id]: MOCK_CONCEPT_MAP_TEACHER_V3,
+  // Add other specific mock maps here by their ID if needed for testing other routes
+  // e.g., if you had map-from-submission-v3-sgs01 defined as a full ConceptMap object:
+  // 'map-from-submission-v3-sgs01': { id: 'map-from-submission-v3-sgs01', name: 'AI Map from Submission V3', ... }
+};
