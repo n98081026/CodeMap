@@ -14,7 +14,10 @@ import {
   summarizeNodes as aiSummarizeNodes
 } from '@/ai/flows';
 // Import directly from the flow file, using alias and ensuring .ts extension
-import { rewriteNodeContent as aiRewriteNodeContent } from '@/ai/flows/rewrite-node-content-flow.ts'; 
+import { 
+    rewriteNodeContent as aiRewriteNodeContent,
+    type RewriteNodeContentOutput // Ensure type is imported if needed elsewhere by this hook or its consumers
+} from '@/ai/flows/rewrite-node-content-flow.ts'; 
 
 import type {
   AskQuestionAboutNodeOutput,
@@ -22,8 +25,8 @@ import type {
   GenerateMapSnippetOutput,
   GenerateQuickClusterOutput,
   SuggestRelationsOutput,
-  SummarizeNodesOutput,
-  RewriteNodeContentOutput 
+  SummarizeNodesOutput
+  // RewriteNodeContentOutput is already imported above
 } from '@/ai/flows'; 
 import type { ConceptMapNode } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
