@@ -1,4 +1,3 @@
-
 "use client";
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
@@ -12,6 +11,7 @@ import {
   Brain, Lightbulb, Puzzle, AlignLeft, PenLine, PlusCircle, Loader2, Sparkles
 } from 'lucide-react';
 import { getNodePlacement } from '@/lib/layout-utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface CustomNodeData {
   label: string;
@@ -160,15 +160,23 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
         </div>
       )}
       {selected && isHovered && !data.isViewOnly && !isCurrentNodeAiProcessing && data.onTriggerAIExpand && (
-        <Button
-          variant="outline"
-          size="icon"
-          className="absolute -top-3 -right-3 z-10 h-7 w-7 rounded-full shadow-md bg-background hover:bg-accent"
-          onClick={handleAIExpandClick}
-          title="Expand Concept (AI)"
-        >
-          <Brain className="h-4 w-4 text-primary" />
-        </Button>
+        <TooltipProvider delayDuration={100}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute -top-3 -right-3 z-10 h-7 w-7 rounded-full shadow-md bg-background hover:bg-accent"
+                onClick={handleAIExpandClick}
+              >
+                <Brain className="h-4 w-4 text-primary" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="center">
+              <p>Expand Selected Concept (AI)</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
       <CardHeader
         className={cn("p-2.5 border-b border-[inherit] cursor-move flex flex-row items-center space-x-2 shrink-0", shapeClass === 'rounded-full' ? 'rounded-t-full' : 'rounded-t-lg')}
@@ -215,7 +223,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
           onClick={(e) => { e.stopPropagation(); handleCreateChild(btn.direction); }}
           className={cn(
             "absolute z-10 flex items-center justify-center w-5 h-5 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
-            isHovered ? "opacity-100" : "opacity-0", // Controlled by isHovered state
+            isHovered ? "opacity-100" : "opacity-0", 
             "transition-opacity"
           )}
           style={btn.style as React.CSSProperties}
@@ -229,4 +237,3 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, select
 };
 
 export default memo(CustomNodeComponent);
-

@@ -1,4 +1,3 @@
-
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -60,26 +59,26 @@
 ## Frontend Enhancements
 
 ### Whimsical-Inspired Editor UX Enhancements
-- [ ] **Node Data Structure (Advanced Custom Layouts):**
+- [x] **Node Data Structure (Advanced Custom Layouts):**
     - [x] `parentNode` field added to `ConceptMapNode` type for hierarchy (used by React Flow).
     - [x] **Explicit `childIds` for Advanced Custom Layouts:**
         - [x] Extend node data structure with `childIds: string[]`.
         - [x] Implement basic store logic (`addNode`, `deleteNode`) to manage `childIds` for parent-child relationships.
-        - [ ] Implement UI logic to manage `childIds` order (e.g., drag to reorder, creation order).
-        - [ ] **Custom Layout Hook/Component (`useCustomLayout` or similar):**
+        - [ ] Implement UI logic to manage `childIds` order (e.g., drag to reorder, creation order). (Future Consideration)
+        - [ ] **Custom Layout Hook/Component (`useCustomLayout` or similar):** (Future Consideration)
             - [ ] Identify parent nodes needing custom layout (e.g., via type or flag).
             - [ ] Listen to parent/child changes (size, position, `childIds` list).
             - [ ] Fetch/estimate child node dimensions for precise layout.
             - [ ] Implement specific layout algorithms (e.g., fishbone branches, strict row/column within parent).
             - [ ] Calculate and apply child node positions (relative to parent or absolute).
             - [ ] Update child node positions via store/React Flow methods.
-        - [ ] **UI for Custom Parent-Child Relationships:**
+        - [ ] **UI for Custom Parent-Child Relationships:** (Future Consideration)
             - [ ] Design UI for establishing these specific layout relationships (e.g., context menu action "Add as fishbone child").
             - [ ] Define child node drag behavior within custom layouts (constrained, free, or trigger re-layout).
-        - [ ] **Performance Considerations for Custom Layouts:**
+        - [ ] **Performance Considerations for Custom Layouts:** (Future Consideration - dependent on custom layouts)
             - [ ] Employ memoization and optimized change detection.
             - [ ] Investigate batch updates for node positions if performance issues arise.
-        - [ ] **Coordination with React Flow `parentNode`:**
+        - [ ] **Coordination with React Flow `parentNode`:** (Future Consideration - dependent on custom layouts)
             - [ ] Clarify if `parentNode` is still used alongside `childIds` for custom layouts (likely yes, for grouping benefits).
             - [ ] Define precedence if conflicts arise between default library layout and custom layout.
 - [x] **Floating Node Creation**: Implemented: Double-click on canvas to create a new node at mouse position. New node is selected and label auto-focused.
@@ -115,7 +114,7 @@
     - [x] **Panning Extents:**
         - [x] Calculate content bounding box - Implemented via dynamic `translateExtent`.
         - [x] Prevent panning too far beyond content by dynamically setting `translateExtent` - Implemented and verified.
-        - [ ] (Optional Refinement) Implement "elastic" edges if hard limits feel too abrupt.
+        - [ ] (Optional Refinement) Implement "elastic" edges if hard limits feel too abrupt. (Future Consideration)
     - [x] **Zoom Center (Verification/Enhancement):**
         - [x] Verified default zoom-to-mouse behavior.
         - [ ] (Future Consideration) Consider an option or alternative for zoom-to-center if needed.
@@ -185,12 +184,12 @@
     - [x] **Implement "Summarize Selected Nodes (AI)" Feature**
     - [x] **Implement "Rewrite Node Content (AI) / Change Tone" Feature**
     - [ ] **Alternative GAI Trigger Points (Future Consideration):**
-        - [x] Implement floating "AI Expand" button (or similar quick action) on selected node hover.
+        - [x] Implement floating "AI Expand" button (or similar quick action) on selected node hover (Tooltip improved).
         - [ ] (Future Consideration) Explore slash commands (`/ai ...`) in node text editor for GAI actions.
         - [ ] (Future Consideration) Consider a global AI input box/panel on the canvas for broader queries/commands.
     - [x] **GAI Action Feedback**:
         - [x] Visual cues for AI-generated/modified nodes (type, icon).
-        - [x] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or floating "AI Expand" button.
+        - [x] Implement loading state/spinner directly on/near a node when a GAI action is triggered from its context menu or floating "AI Expand" button (Spinner respects node shape).
     - [ ] **(Highly Advanced - Future Consideration) Explore "AI Structure Suggestions":**
         - [ ] Develop Genkit flow to analyze map structure & content.
         - [ ] Define criteria for "good" structure suggestions (e.g., grouping related ideas, suggesting missing links).
@@ -203,7 +202,7 @@
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
     - [x] Empty states are context-aware.
 - [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
-    - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling. Toolbar button tooltips and disable states refined).
+    - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling. Toolbar button tooltips and disable states refined. Floating node AI button tooltip improved).
 
 ## Performance Optimizations
 - [x] **Rendering:**
@@ -224,7 +223,7 @@
     - [x] **Code Splitting:**
         - [x] Use `next/dynamic` for `FlowCanvasCore`.
         - [x] Use `next/dynamic` for `AISuggestionPanel` and `PropertiesInspector` in `ConceptMapEditorPage`.
-    - [ ] **Bundle Size Analysis:** (Future Task) Periodically analyze the application bundle size and identify areas for reduction.
+    - [ ] **Bundle Size Analysis:** (Future Task - Out of Scope for AI Agent) Periodically analyze the application bundle size and identify areas for reduction.
     - [x] Removed redundant `CanvasPlaceholder.tsx`.
     - [x] Removed redundant `/application/layout.tsx`.
 
@@ -286,19 +285,19 @@ This section outlines tasks to fully migrate to Supabase.
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
 - Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks.
-- **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children implemented in Zustand store. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented. Floating "AI Expand" button on selected hovered nodes.
+- **Whimsical-style interactions implemented:** Floating node creation (double-click), keyboard-driven node creation (Tab/Enter), auto-focus for new nodes, hierarchical node movement (via React Flow `parentNode` - Verified), recursive deletion of children implemented in Zustand store. Spacebar + drag to pan implemented. Child node creation via "+" hover buttons on nodes is implemented. Floating "AI Expand" button on selected hovered nodes (tooltip improved).
 - **Snapping implemented:** Full center-to-center and edge-to-edge node snapping with visual guides. Snap-to-grid implemented for node creation and dragging (node-to-node takes precedence). Visual grid background added and verified.
 - **Custom edge type `OrthogonalEdge` implemented:** Path calculation reviewed and confirmed to produce robust Manhattan-style paths with straight exits/entries and clear label placement across various handle orientations. Sharp/rounded corners logic implemented. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions (width/height) from PropertiesInspector override auto-sizing and are persisted.
-- **GAI Action Feedback**: Visual cues for AI-generated/modified nodes (type, icon) implemented. Loading state/spinner on/near a node when a GAI action is triggered from its context menu or floating "AI Expand" button is implemented. Toolbar button tooltips and disable states for AI actions (Expand Concept, Summarize Selection) are context-aware.
+- **GAI Action Feedback**: Visual cues for AI-generated/modified nodes (type, icon) implemented. Loading state/spinner on/near a node when a GAI action is triggered from its context menu or floating "AI Expand" button is implemented (spinner respects node shape). Toolbar button tooltips and disable states for AI actions (Expand Concept, Summarize Selection) are context-aware. Floating node AI button tooltip improved.
 - **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined. Empty states are context-aware.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
 - Client-side file upload for project analysis uploads to Supabase Storage (bucket 'project_archives').
 - Admin User Management page and Profile Page are connected to Supabase for CRUD and password changes. Admin User list is virtualized. Teacher classroom student list is virtualized.
-- Dashboard counts are fetched from Supabase-backed APIs using custom hooks, which also respect `BYPASS_AUTH_FOR_TESTING`.
-- Classroom management, Concept Map management, and Student Submissions list are connected to Supabase and use modular components.
+- Dashboard counts are fetched from Supabase-backed APIs using custom hooks, which also respect `BYPASS_AUTH_FOR_TESTING`. `QuickActionsCard` integrated.
+- Classroom management, Concept Map management, and Student Submissions list are connected to Supabase and use modular components. Student Classroom Detail page implemented.
 - The application is highly modular, with reusable components for UI patterns, custom hooks for complex logic, and service layers for backend interaction.
 - Core in-editor AI features (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) are implemented with specific visual cues for AI-generated/modified nodes. "Expand Concept", "Summarize Selection", and "Rewrite Content" now directly add/modify content on the map.
 - View-only mode for concept map editor is implemented. `PropertiesInspector` is fully refined for view-only mode.
@@ -308,10 +307,10 @@ This section outlines tasks to fully migrate to Supabase.
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
 - **Pan/Zoom Refinements**: Min/max zoom levels are explicitly set and verified. Spacebar+drag to pan is implemented and verified. Dynamic `translateExtent` is set to prevent panning too far beyond content and verified. Touch interaction props (pinch-zoom, pan) are confirmed enabled. Default zoom-to-mouse behavior and pan/zoom sensitivity are verified. Programmatic pan/zoom API via React Flow is available. Selection box tool behavior with pan/zoom verified. Minimap syncs correctly.
 - **Teacher Classroom Detail Page has been modularized with separate tab components for Students, Maps, and Submissions.**
-- `DashboardHeader` component now supports a linkable icon via `iconLinkHref`.
+- `DashboardHeader` component now supports a linkable icon via `iconLinkHref`. This is used consistently across relevant pages.
 - `DashboardLinkCard` description paragraph height has been standardized.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps.
-- `PropertiesInspector` and `AISuggestionPanel` are now dynamically imported in `ConceptMapEditorPage`.
+- `PropertiesInspector` and `AISuggestionPanel` are dynamically imported in `ConceptMapEditorPage`.
 - Redundant `CanvasPlaceholder.tsx` and `/application/layout.tsx` files have been removed.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
@@ -322,4 +321,3 @@ The main remaining area for full Supabase connection is:
 
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
-
