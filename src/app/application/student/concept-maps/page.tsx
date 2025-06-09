@@ -12,7 +12,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/layout/empty-state";
 import { ConceptMapListItem } from "@/components/concept-map/concept-map-list-item";
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V2 } from '@/lib/config';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V3 } from '@/lib/config';
 
 
 export default function StudentConceptMapsPage() {
@@ -25,7 +25,7 @@ export default function StudentConceptMapsPage() {
   const studentDashboardLink = "/application/student/dashboard";
 
   const fetchUserMaps = useCallback(async () => {
-    const userIdToFetch = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER_V2.id : user?.id;
+    const userIdToFetch = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER_V3.id : user?.id;
 
     if (!userIdToFetch) {
       setError("User ID not available for fetching maps.");
@@ -52,20 +52,21 @@ export default function StudentConceptMapsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, toast, BYPASS_AUTH_FOR_TESTING]);
+  }, [user, toast]); // Removed BYPASS_AUTH_FOR_TESTING from deps as it's a const
 
   useEffect(() => {
+    // Check for user OR if bypass is active (which means user might be mocked)
     if (user || BYPASS_AUTH_FOR_TESTING) {
       fetchUserMaps();
     } else {
       setIsLoading(false); 
       //setError("Waiting for user authentication..."); // Avoid setting error if auth is just loading
     }
-  }, [user, fetchUserMaps, BYPASS_AUTH_FOR_TESTING]);
+  }, [user, fetchUserMaps]); // Removed BYPASS_AUTH_FOR_TESTING from deps
 
 
   const handleDeleteMap = useCallback(async (mapId: string, mapName: string) => {
-    const currentUserId = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER_V2.id : user?.id;
+    const currentUserId = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER_V3.id : user?.id;
     if (!currentUserId) {
         toast({ title: "Authentication Error", description: "Cannot delete map.", variant: "destructive" });
         return;
@@ -85,7 +86,7 @@ export default function StudentConceptMapsPage() {
     } catch (err) {
       toast({ title: "Error Deleting Map", description: (err as Error).message, variant: "destructive" });
     }
-  }, [user, toast, fetchUserMaps, BYPASS_AUTH_FOR_TESTING]);
+  }, [user, toast, fetchUserMaps]); // Removed BYPASS_AUTH_FOR_TESTING
 
   return (
     <div className="space-y-6">
