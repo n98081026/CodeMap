@@ -42,7 +42,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: (event: React.MouseEvent) => void; // Renamed to avoid conflict with ReactFlow's own prop
+  onPaneDoubleClickProp?: (event: React.MouseEvent) => void;
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -93,7 +93,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
   useEffect(() => {
-    // Guard against undefined viewport or invalid viewport properties early in the effect
     if (!viewport || 
         typeof viewport.width !== 'number' || 
         typeof viewport.height !== 'number' || 
@@ -162,46 +161,51 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       [maxViewportX, maxViewportY]
     ]);
 
-  }, [nodes, viewport]); // Depend on the viewport object itself and nodes
+  }, [nodes, viewport]);
+
+  const reactFlowProps: any = {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onNodesDelete,
+    onEdgesDelete,
+    onSelectionChange,
+    onConnect,
+    fitView: true,
+    fitViewOptions,
+    nodesDraggable: !isViewOnlyMode,
+    nodesConnectable: !isViewOnlyMode,
+    elementsSelectable: true,
+    deleteKeyCode: isViewOnlyMode ? null : ['Backspace', 'Delete'],
+    className: "bg-background",
+    proOptions: { hideAttribution: true },
+    nodeTypes,
+    edgeTypes,
+    onNodeContextMenu,
+    onNodeDrag,
+    onNodeDragStop,
+    panOnDrag: !isViewOnlyMode,
+    panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode,
+    zoomOnScroll: true,
+    zoomOnPinch: true,
+    zoomOnDoubleClick: !isViewOnlyMode,
+    selectionOnDrag: !isViewOnlyMode,
+    minZoom: 0.1,
+    maxZoom: 4,
+    translateExtent: calculatedTranslateExtent,
+    onlyRenderVisibleElements: true,
+  };
+
+  if (!isViewOnlyMode && onPaneDoubleClickProp) {
+    reactFlowProps.onPaneDoubleClick = onPaneDoubleClickProp;
+  }
 
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
     )}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodesDelete={onNodesDelete}
-        onEdgesDelete={onEdgesDelete}
-        onSelectionChange={onSelectionChange}
-        onConnect={onConnect}
-        fitView
-        fitViewOptions={fitViewOptions}
-        nodesDraggable={!isViewOnlyMode}
-        nodesConnectable={!isViewOnlyMode}
-        elementsSelectable={true}
-        deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
-        className="bg-background"
-        proOptions={{ hideAttribution: true }}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodeContextMenu={onNodeContextMenu}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
-        onPaneDoubleClick={isViewOnlyMode ? undefined : onPaneDoubleClickProp}
-        panOnDrag={!isViewOnlyMode}
-        panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
-        zoomOnDoubleClick={!isViewOnlyMode}
-        selectionOnDrag={!isViewOnlyMode}
-        minZoom={0.1}
-        maxZoom={4}
-        translateExtent={calculatedTranslateExtent}
-        onlyRenderVisibleElements={true}
-      >
+      <ReactFlow {...reactFlowProps}>
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
         <Background
