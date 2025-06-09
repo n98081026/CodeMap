@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { ConceptMap, User } from '@/types';
 import useConceptMapStore from '@/stores/concept-map-store';
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V3 as MOCK_STUDENT_USER, MOCK_USER_FOR_TESTING_MAPS } from '@/lib/config';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V3, MOCK_USER_FOR_TESTING_MAPS } from '@/lib/config';
 
 interface UseConceptMapDataManagerProps {
-  routeMapIdFromProps?: string; // This comes from page props, derived from useParams
+  routeMapIdFromProps?: string;
   user: User | null;
 }
 
@@ -25,39 +25,38 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
     isPublic,
     sharedWithClassroomId,
     isNewMapMode,
-    // isViewOnlyMode, // Not directly used by saveMap's core logic, but by its parameter
+    isViewOnlyMode,
     mapData,
     isLoading,
     initializeNewMap,
     setLoadedMap,
-    setIsLoading, // Changed from setStoreIsLoading to setIsLoading for consistency
-    setError: setStoreError, // Aliased to avoid conflict if local setError is needed
+    setIsLoading,
+    setError,
     temporalStoreAPI,
   } = useConceptMapStore();
 
-  const effectiveUserId = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER.id : user?.id;
+  const effectiveUserId = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER_V3.id : user?.id;
 
   const loadMapDataInternal = useCallback(async (idToLoad: string) => {
+    console.log(`[DataManager loadMapDataInternal] Attempting to load map ID: '${idToLoad}'. User: ${effectiveUserId}`);
     setIsLoading(true);
-    setStoreError(null);
+    setError(null);
 
-    const effectiveUserForLoadHook = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER : user;
-    console.log(`[DataManager loadMapDataInternal] Called for ID: '${idToLoad}'. User: ${effectiveUserForLoadHook?.id}`);
+    const effectiveUserForLoadHook = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER_V3 : user;
 
     try {
       if (BYPASS_AUTH_FOR_TESTING && idToLoad !== 'new' && MOCK_USER_FOR_TESTING_MAPS[idToLoad]) {
-          console.log(`[DataManager loadMapDataInternal] BYPASS: Loading mock map for ID: ${idToLoad}`);
-          setLoadedMap(MOCK_USER_FOR_TESTING_MAPS[idToLoad]); // This sets isLoading to false
-          temporalStoreAPI.getState().clear();
-          return;
+        console.log(`[DataManager loadMapDataInternal] BYPASS: Loading mock map for ID: ${idToLoad}`);
+        setLoadedMap(MOCK_USER_FOR_TESTING_MAPS[idToLoad], useConceptMapStore.getState().isViewOnlyMode);
+        temporalStoreAPI.getState().clear();
+        return; // setIsLoading(false) is handled by setLoadedMap
       }
 
       if (!effectiveUserForLoadHook?.id && !BYPASS_AUTH_FOR_TESTING) {
-        console.error("[DataManager loadMapDataInternal] User not authenticated. Cannot load map.");
-        setStoreError("User not authenticated. Cannot load map.");
-        // Explicitly set isLoading false if we're erroring out here
-        setIsLoading(false);
-        return;
+        const authErrorMsg = "User not authenticated. Cannot load map.";
+        console.error(`[DataManager loadMapDataInternal] ${authErrorMsg}`);
+        setError(authErrorMsg);
+        throw new Error(authErrorMsg); // Throw to ensure finally block sets isLoading false
       }
 
       const response = await fetch(`/api/concept-maps/${idToLoad}`);
@@ -66,37 +65,45 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
         const errorMsg = `Map Load Failed for '${idToLoad}': ${errData.message || response.statusText}`;
         console.error(`[DataManager loadMapDataInternal] ${errorMsg}`);
         
-        // If user is present, try to initialize a new map instead of just showing error
         if (effectiveUserForLoadHook?.id) {
           toast({ title: "Map Load Failed", description: `Could not load map '${idToLoad}'. Displaying a new map. Reason: ${errData.message || response.statusText}`, variant: "destructive"});
-          initializeNewMap(effectiveUserForLoadHook.id); // This action sets isLoading to false.
+          initializeNewMap(effectiveUserForLoadHook.id);
           temporalStoreAPI.getState().clear();
         } else {
-          setStoreError(errorMsg);
-          setIsLoading(false); // Set loading false if no user to initialize for
+          setError(errorMsg);
+          throw new Error(errorMsg); // Ensure finally block is hit
         }
-        return;
+        return; // setIsLoading(false) handled by initializeNewMap or finally
       }
       const data: ConceptMap = await response.json();
       console.log(`[DataManager loadMapDataInternal] Successfully loaded map ID: '${idToLoad}', Name: '${data.name}'`);
-      setLoadedMap(data); // This sets isLoading to false
+      setLoadedMap(data, useConceptMapStore.getState().isViewOnlyMode);
       temporalStoreAPI.getState().clear();
+      // setIsLoading(false) handled by setLoadedMap
     } catch (err) {
       const errorMsg = (err as Error).message;
       console.error(`[DataManager loadMapDataInternal] Catch block error for ID '${idToLoad}': ${errorMsg}`);
-      setStoreError(errorMsg);
+      // Avoid setting error if initializeNewMap was called, as it handles its own state.
+      if (!(errorMsg.includes("User not authenticated") && effectiveUserForLoadHook?.id)) {
+          setError(errorMsg); // Only set error if not handled by initializeNewMap or a specific auth error that was thrown
+      }
       toast({ title: "Error Loading Map", description: errorMsg, variant: "destructive" });
-      setIsLoading(false); // Ensure isLoading is false on error
+      // setIsLoading(false) will be handled by the finally block
+    } finally {
+        // Ensure isLoading is set to false if not already handled by setLoadedMap or initializeNewMap
+        if (useConceptMapStore.getState().isLoading) {
+            setIsLoading(false);
+        }
     }
   }, [
-    user, // Depends on the user object for auth status
+    user, // Now using full user object as effectiveUserId derives from it
     setIsLoading,
-    setStoreError,
+    setError,
     setLoadedMap,
     temporalStoreAPI,
     toast,
-    initializeNewMap, // Because it's called in error handling
-    // BYPASS_AUTH_FOR_TESTING and MOCK_USER_FOR_TESTING_MAPS are stable constants
+    initializeNewMap,
+    // BYPASS_AUTH_FOR_TESTING & MOCK_USER_FOR_TESTING_MAPS are constants
   ]);
 
   const loadMapDataInternalRef = useRef(loadMapDataInternal);
@@ -104,69 +111,88 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
     loadMapDataInternalRef.current = loadMapDataInternal;
   }, [loadMapDataInternal]);
 
-
   useEffect(() => {
-    const currentRouteMapId = routeMapIdFromProps; // Use a local const for clarity within this effect
-    
-    console.log(`[DataManager useEffect RUNNING] routeMapIdProp: '${currentRouteMapId}', Store (mapId:'${storeMapId}', isNew:${isNewMapMode}, owner:'${currentMapOwnerId}', isLoading:${isLoading}, effectiveUserId: '${effectiveUserId}')`);
+    console.log(`[DataManager useEffect RUNNING] routeMapIdProp: '${routeMapIdFromProps}'. Store (mapId:'${storeMapId}', isNew:${isNewMapMode}, isLoading:${isLoading}, owner:'${currentMapOwnerId}') User: ${effectiveUserId}`);
 
-    // --- Critical Guard Clause ---
-    // If routeMapId is not yet available from the router (transient state during page transitions) OR
-    // if user is not yet available (and not bypassing auth), DO NOTHING.
-    // The effect will re-run once these values are stable.
-    if ((!currentRouteMapId || currentRouteMapId.trim() === "") || (!effectiveUserId && !BYPASS_AUTH_FOR_TESTING)) {
-      console.log(`[DataManager useEffect] Guard: routeMapId ('${currentRouteMapId}') or effectiveUserId ('${effectiveUserId}') not ready. Waiting...`);
-      // Do not call initializeNewMap or setIsLoading(false) here.
-      // Let subsequent runs handle it once routeId/userId are stable.
-      // If isLoading is true due to a previous op, it will be reset by that op's finally block or next valid run.
-      return;
-    }
-
-    // At this point, currentRouteMapId IS defined (not empty) AND effectiveUserId IS defined (or bypassing)
-
-    // Case 1: The URL is EXPLICITLY for a new map.
-    if (currentRouteMapId === 'new') {
-      const isAlreadyInCorrectNewMapState = isNewMapMode && 
-                                          (storeMapId === 'new' || storeMapId === null) && 
-                                          currentMapOwnerId === effectiveUserId;
-      if (!isAlreadyInCorrectNewMapState) {
-        console.log(`[DataManager useEffect] Action: Initializing NEW map for user: '${effectiveUserId}'. currentRouteMapId is 'new'. Store (mapId: ${storeMapId}, isNew: ${isNewMapMode}, owner: ${currentMapOwnerId})`);
-        initializeNewMap(effectiveUserId); // This sets isLoading: false internally
-        temporalStoreAPI.getState().clear();
-      } else {
-        console.log(`[DataManager useEffect] Info: Already in NEW map state for user: '${effectiveUserId}'. No re-initialization. currentRouteMapId is 'new'. isLoading: ${isLoading}`);
-        if (isLoading) setIsLoading(false); // Ensure loading is off if already in correct state
-      }
-    }
-    // Case 2: The URL is for a specific, existing map.
-    else { // currentRouteMapId is a specific ID, not 'new' and not empty/falsy
-      const needsToLoad = storeMapId !== currentRouteMapId || isNewMapMode;
-      if (needsToLoad) {
-        console.log(`[DataManager useEffect] Action: Loading map ID: '${currentRouteMapId}'. Current store (mapId: ${storeMapId}, isNew: ${isNewMapMode}, owner: ${currentMapOwnerId})`);
-        if (loadMapDataInternalRef.current) {
-          loadMapDataInternalRef.current(currentRouteMapId); // This sets isLoading true, then false in finally
-        } else {
-            console.error("[DataManager useEffect] CRITICAL: loadMapDataInternalRef.current is null! Cannot load map.");
-            if(isLoading) setIsLoading(false); // Safety for isLoading
+    // --- ABSOLUTE GUARD for routeMapIdFromProps ---
+    if (!routeMapIdFromProps || routeMapIdFromProps.trim() === "") {
+        console.log('[DataManager useEffect] GUARD: routeMapIdFromProps is falsy or empty. DOING NOTHING until it stabilizes.');
+        // If isLoading is true here, it means a previous operation might have started it.
+        // We should not turn it off prematurely unless we know for sure the store is in a stable, non-loading state
+        // and this effect run is simply because routeMapIdFromProps became transiently undefined.
+        // Example: if storeMapId is valid and !isNewMapMode, then the map is loaded.
+        if (isLoading && storeMapId && storeMapId !== 'new' && !isNewMapMode) {
+           // console.log('[DataManager useEffect] routeMapId missing, but store has a specific map. Setting isLoading false.');
+           // setIsLoading(false); // This might be too aggressive if a load WAS in progress
         }
-      } else {
-        console.log(`[DataManager useEffect] Info: Map ID '${currentRouteMapId}' correctly loaded in store. No re-load. Store (mapId: ${storeMapId}, isNew: ${isNewMapMode}, owner: ${currentMapOwnerId}). isLoading: ${isLoading}`);
-        if (isLoading) setIsLoading(false); // Ensure loading is off if map already correct
-      }
+        return; // Wait for a valid routeMapIdFromProps
+    }
+
+    // --- USER GUARD ---
+    // This guard is after routeMapId check, because routeMapId 'new' might not strictly need a user right away
+    // for BYPASS_AUTH_FOR_TESTING, but any actual load/save ops will.
+    if (!effectiveUserId && !BYPASS_AUTH_FOR_TESTING) { // Only enforce if not bypassing auth
+        console.log('[DataManager useEffect] USER GUARD: No effectiveUserId and not bypassing auth. Setting error.');
+        setError("User not authenticated. Cannot perform map operations.");
+        if (isLoading) setIsLoading(false); // Stop loading as we can't proceed
+        return;
+    }
+    
+    // --- MAIN LOGIC ---
+    if (routeMapIdFromProps === 'new') {
+        console.log(`[DataManager useEffect] Case: routeMapId is 'new'. Store (mapId: ${storeMapId}, isNew: ${isNewMapMode}, owner: ${currentMapOwnerId}) User: ${effectiveUserId}`);
+        const isAlreadyCorrectNewMapState =
+            isNewMapMode &&
+            (storeMapId === 'new' || storeMapId === null) &&
+            currentMapOwnerId === effectiveUserId;
+
+        if (!isAlreadyCorrectNewMapState) {
+            console.log(`[DataManager useEffect] Action: Initializing NEW map for user '${effectiveUserId}'.`);
+            if (effectiveUserId) { // Ensure user ID for new map init
+                initializeNewMap(effectiveUserId); // This sets isLoading: false and resets temporal
+                temporalStoreAPI.getState().clear();
+            } else if (!BYPASS_AUTH_FOR_TESTING){ // If not bypassing and no user, this is an issue
+                console.error("[DataManager useEffect] Attempted to initialize new map without effectiveUserId and not bypassing auth.");
+                setError("Cannot initialize a new map without a user.");
+                if(isLoading) setIsLoading(false);
+            } else { // Bypassing auth, user might be implicit (MOCK_STUDENT_USER_V3.id)
+                 initializeNewMap(MOCK_STUDENT_USER_V3.id);
+                 temporalStoreAPI.getState().clear();
+            }
+        } else {
+            console.log(`[DataManager useEffect] Info: Already in NEW map state for user '${effectiveUserId}'. No re-initialization. isLoading: ${isLoading}`);
+            if (isLoading) setIsLoading(false);
+        }
+    } else { // routeMapIdFromProps is a specific ID
+        console.log(`[DataManager useEffect] Case: routeMapId is specific ('${routeMapIdFromProps}'). Store (mapId: ${storeMapId}, isNew: ${isNewMapMode}, owner: ${currentMapOwnerId})`);
+        const needsToLoad = storeMapId !== routeMapIdFromProps || isNewMapMode;
+
+        if (needsToLoad) {
+            console.log(`[DataManager useEffect] Action: Loading map ID: '${routeMapIdFromProps}'.`);
+            if (loadMapDataInternalRef.current) {
+                loadMapDataInternalRef.current(routeMapIdFromProps); // This handles its own isLoading
+            } else {
+                console.error("[DataManager useEffect] CRITICAL: loadMapDataInternalRef.current is null! Cannot load map.");
+                if(isLoading) setIsLoading(false);
+            }
+        } else {
+            console.log(`[DataManager useEffect] Info: Map ID '${routeMapIdFromProps}' correctly loaded in store. No re-load. isLoading: ${isLoading}`);
+            if (isLoading) setIsLoading(false);
+        }
     }
   }, [
-    routeMapIdFromProps, // Primary trigger for map identity
-    effectiveUserId,     // Derived from user and BYPASS_AUTH_FOR_TESTING
-    // Store state that determines if action is needed:
+    routeMapIdFromProps,
+    effectiveUserId, // Derived from user?.id and BYPASS_AUTH_FOR_TESTING
     storeMapId,
     isNewMapMode,
     currentMapOwnerId,
-    isLoading,          // To allow setting it to false if no action is taken but it was true
-    // Store actions (stable references from zustand, but needed if called):
+    isLoading, // Only to conditionally set it false if no other action is taken
     initializeNewMap,
-    setIsLoading,        // Direct calls to setIsLoading
+    setError,
+    setIsLoading,
     temporalStoreAPI,
-    // loadMapDataInternalRef itself is stable, its .current points to the memoized loadMapDataInternal
+    // loadMapDataInternalRef is stable and its .current is used inside.
+    // BYPASS_AUTH_FOR_TESTING is a constant.
   ]);
 
 
@@ -175,7 +201,7 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
         toast({ title: "View Only Mode", description: "Cannot save changes in view-only mode.", variant: "default"});
         return;
     }
-    const effectiveUserForSave = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER : user;
+    const effectiveUserForSave = BYPASS_AUTH_FOR_TESTING ? MOCK_STUDENT_USER_V3 : user;
 
     if (BYPASS_AUTH_FOR_TESTING && effectiveUserForSave) {
         const mapIdToSave = storeMapId && storeMapId !== 'new' ? storeMapId : `mock_map_v3_${Date.now()}`;
@@ -190,7 +216,7 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
             createdAt: currentMapCreatedAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
-        setLoadedMap(MOCK_USER_FOR_TESTING_MAPS[mapIdToSave]);
+        setLoadedMap(MOCK_USER_FOR_TESTING_MAPS[mapIdToSave], useConceptMapStore.getState().isViewOnlyMode);
         if (isNewMapMode || storeMapId === 'new') {
            router.replace(`/application/concept-maps/editor/${mapIdToSave}${useConceptMapStore.getState().isViewOnlyMode ? '?viewOnly=true' : ''}`, { scroll: false });
         }
@@ -206,7 +232,7 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
         toast({ title: "Map Name Required", description: "Please provide a name for your concept map.", variant: "destructive"});
         return;
     }
-    setIsLoading(true);
+    setIsLoading(true); // Use store's setIsLoading
     console.log(`[DataManager saveMap] Attempting to save map. isNewMapMode: ${isNewMapMode}, storeMapId: ${storeMapId}, mapName: ${mapName}`);
 
     const payloadOwnerId = (isNewMapMode || !currentMapOwnerId || currentMapOwnerId === 'new') ? effectiveUserForSave.id : currentMapOwnerId;
@@ -234,7 +260,7 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
       } else {
         const updatePayload = {
             name: mapName, mapData: mapData, isPublic: isPublic,
-            sharedWithClassroomId: sharedWithClassroomId, ownerId: payloadOwnerId, // ownerId for auth check by service
+            sharedWithClassroomId: sharedWithClassroomId, ownerId: payloadOwnerId,
         };
         console.log(`[DataManager saveMap] Updating EXISTING map via PUT /api/concept-maps/${currentMapIdForAPI}`, updatePayload);
         response = await fetch(`/api/concept-maps/${currentMapIdForAPI}`, {
@@ -251,7 +277,7 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
       }
       const savedMapData: ConceptMap = await response.json();
       console.log("[DataManager saveMap] Save successful. Saved map data:", savedMapData);
-      setLoadedMap(savedMapData);
+      setLoadedMap(savedMapData, useConceptMapStore.getState().isViewOnlyMode); // This will set isLoading to false
       temporalStoreAPI.getState().clear();
       toast({ title: "Map Saved", description: `"${savedMapData.name}" has been saved successfully.` });
 
@@ -262,17 +288,21 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
     } catch (err) {
       const errorMsg = (err as Error).message;
       console.error("[DataManager saveMap] Catch block error:", errorMsg);
-      setStoreError(errorMsg);
+      setError(errorMsg); // Use store's setError
       toast({ title: "Error Saving Map", description: errorMsg, variant: "destructive" });
+      setIsLoading(false); // Explicitly set isLoading false on error
     } finally {
-      setIsLoading(false); // Ensure isLoading is false after save attempt
+        // Ensure isLoading is false if not already handled by setLoadedMap
+        if (useConceptMapStore.getState().isLoading) {
+             setIsLoading(false);
+        }
     }
   }, [
-    user, mapName, mapData, isPublic, sharedWithClassroomId, // State from store used in save logic
-    isNewMapMode, currentMapOwnerId, storeMapId, currentMapCreatedAt, // More store state
-    router, toast, setIsLoading, setLoadedMap, setStoreError, temporalStoreAPI, // Hooks and store setters
-    // BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_USER_FOR_TESTING_MAPS are stable
+    user, mapName, mapData, isPublic, sharedWithClassroomId,
+    isNewMapMode, currentMapOwnerId, storeMapId, currentMapCreatedAt, // Removed isViewOnlyMode from here
+    router, toast, setIsLoading, setLoadedMap, setError, temporalStoreAPI, BYPASS_AUTH_FOR_TESTING
   ]);
-
-  return { saveMap, loadMapData: loadMapDataInternalRef.current }; // Return the function from the ref for direct calls
+  
+  return { saveMap, loadMapData: loadMapDataInternalRef.current };
 }
+
