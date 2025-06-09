@@ -260,7 +260,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
 
   const handleNodeAIExpandTriggeredCallback = useCallback((nodeId: string) => {
     aiToolsHook.openExpandConceptModal(nodeId);
-  }, [aiToolsHook.openExpandConceptModal]);
+  }, [aiToolsHook]);
 
 
   const handleClearExtractedConceptsCallback = useCallback(() => useConceptMapStore.getState().setAiExtractedConcepts([]), []);
@@ -349,7 +349,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
             <SheetHeader>
               <SheetTitle>Element & Map Properties</SheetTitle>
               <SheetDescription>
-                {isViewOnlyMode ? "Viewing properties. Editing is disabled." : "Edit properties for the selected element or the map."}
+                {storeIsViewOnlyMode ? "Viewing properties. Editing is disabled." : "Edit properties for the selected element or the map."}
               </SheetDescription>
             </SheetHeader>
             <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
