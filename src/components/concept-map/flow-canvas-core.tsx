@@ -12,11 +12,12 @@ import { getNodePlacement } from '@/lib/layout-utils';
 
 export interface RFConceptMapEdgeData extends OrthogonalEdgeData {}
 
+// Define outside the component to prevent re-creation on each render
 const nodeTypesConfig: NodeTypes = {
   customConceptNode: CustomNodeComponent,
 };
 
-const edgeTypesConfig = {
+const edgeTypesConfig: EdgeTypes = { // Ensure correct type
   orthogonal: OrthogonalEdge,
 };
 
@@ -51,12 +52,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
   const reactFlowInstance = useReactFlow();
 
-  // Initial empty state for nodes and edges
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>([]);
+  const [activeSnapLines, setActiveSnapLines] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
-  // Effect to update rfNodes when mapDataFromStore.nodes or isViewOnlyMode changes
   useEffect(() => {
+    console.log(`[FlowCanvasCore] Node Effect Triggered. isViewOnlyMode: ${isViewOnlyMode}`);
+    console.log("[FlowCanvasCore] mapDataFromStore.nodes:", mapDataFromStore.nodes);
     const newReactFlowNodes = (mapDataFromStore.nodes || []).map(appNode => ({
       id: appNode.id,
       type: 'customConceptNode',
@@ -64,7 +66,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         label: appNode.text,
         details: appNode.details,
         type: appNode.type || 'default',
-        isViewOnly: isViewOnlyMode, // Directly use current isViewOnlyMode
+        isViewOnly: isViewOnlyMode,
         backgroundColor: appNode.backgroundColor,
         shape: appNode.shape,
         width: appNode.width,
@@ -72,17 +74,19 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         onTriggerAIExpand: onNodeAIExpandTriggered,
       } as CustomNodeData,
       position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
-      draggable: !isViewOnlyMode, // Directly use current isViewOnlyMode
+      draggable: !isViewOnlyMode,
       selectable: true,
-      connectable: !isViewOnlyMode, // Directly use current isViewOnlyMode
+      connectable: !isViewOnlyMode,
       dragHandle: '.cursor-move',
       parentNode: appNode.parentNode,
     } as RFNode<CustomNodeData>));
+    console.log("[FlowCanvasCore] Generated newReactFlowNodes:", newReactFlowNodes);
     setRfNodes(newReactFlowNodes);
   }, [mapDataFromStore.nodes, isViewOnlyMode, setRfNodes, onNodeAIExpandTriggered]);
 
-  // Effect to update rfEdges when mapDataFromStore.edges or isViewOnlyMode changes
   useEffect(() => {
+    console.log(`[FlowCanvasCore] Edge Effect Triggered. isViewOnlyMode: ${isViewOnlyMode}`);
+    console.log("[FlowCanvasCore] mapDataFromStore.edges:", mapDataFromStore.edges);
     const newReactFlowEdges = (mapDataFromStore.edges || []).map(appEdge => ({
       id: appEdge.id,
       source: appEdge.source,
@@ -99,10 +103,11 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
       markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
       style: { strokeWidth: 2 },
-      updatable: !isViewOnlyMode, // Directly use current isViewOnlyMode
-      deletable: !isViewOnlyMode, // Directly use current isViewOnlyMode
+      updatable: !isViewOnlyMode,
+      deletable: !isViewOnlyMode,
       selectable: true,
     } as RFEdge<OrthogonalEdgeData>));
+    console.log("[FlowCanvasCore] Generated newReactFlowEdges:", newReactFlowEdges);
     setRfEdges(newReactFlowEdges);
   }, [mapDataFromStore.edges, isViewOnlyMode, setRfEdges]);
 
@@ -111,13 +116,11 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     if (rfNodes.length > 0 && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
       const timerId = setTimeout(() => {
         reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
-      }, 100); // Increased delay slightly
+      }, 100);
       return () => clearTimeout(timerId);
     }
-  }, [rfNodes, reactFlowInstance]); // rfNodes dependency is fine here
+  }, [rfNodes, reactFlowInstance]);
 
-
-  const [activeSnapLines, setActiveSnapLines] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
   const onNodeDrag = useCallback((_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>, allNodes: RFNode<CustomNodeData>[]) => {
     if (isViewOnlyMode || !draggedNode.dragging || !draggedNode.width || !draggedNode.height || !draggedNode.positionAbsolute) {
@@ -354,8 +357,8 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onSelectionChange={handleRfSelectionChange}
       onConnect={handleRfConnect}
       isViewOnlyMode={isViewOnlyMode}
-      nodeTypes={nodeTypesConfig}
-      edgeTypes={edgeTypesConfig}
+      nodeTypes={nodeTypesConfig} // Use the one defined outside
+      edgeTypes={edgeTypesConfig} // Use the one defined outside
       onNodeContextMenu={onNodeContextMenu}
       onNodeDrag={onNodeDrag}
       onNodeDragStop={handleNodeDragStopInternal}
