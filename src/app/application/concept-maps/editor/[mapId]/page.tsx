@@ -252,7 +252,12 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   const handleUndoCallback = useCallback(() => temporalStoreAPI.getState().undo(), [temporalStoreAPI]);
   const handleRedoCallback = useCallback(() => temporalStoreAPI.getState().redo(), [temporalStoreAPI]);
   const handleEdgesDeleteCallback = useCallback((edgeId: string) => useConceptMapStore.getState().deleteEdge(edgeId), []);
-  const handleNodeAIExpandTriggeredCallback = useCallback((nodeId: string) => aiToolsHook.openExpandConceptModal(nodeId), [aiToolsHook]);
+  
+  const handleNodeAIExpandTriggeredCallback = useCallback((nodeId: string) => {
+    aiToolsHook.openExpandConceptModal(nodeId);
+  }, [aiToolsHook.openExpandConceptModal]);
+
+
   const handleClearExtractedConceptsCallback = useCallback(() => useConceptMapStore.getState().setAiExtractedConcepts([]), []);
   const handleClearSuggestedRelationsCallback = useCallback(() => useConceptMapStore.getState().setAiSuggestedRelations([]), []);
 
@@ -383,13 +388,20 @@ export default function ConceptMapEditorPageOuter() {
     }
   }, [authIsLoading, user, router]);
 
-  if (authIsLoading || !user) {
+  if (authIsLoading || (!user && !authIsLoading)) { 
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
+  
+  if (user) {
+    return <ConceptMapEditorPageContent currentUser={user} />;
+  }
 
-  return <ConceptMapEditorPageContent currentUser={user} />;
+  return null; 
 }
+
+
+    
