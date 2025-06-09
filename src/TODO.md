@@ -62,9 +62,10 @@
 ### Whimsical-Inspired Editor UX Enhancements
 - [ ] **Node Data Structure (Advanced Custom Layouts):**
     - [x] `parentNode` field added to `ConceptMapNode` type for hierarchy (used by React Flow).
-    - [ ] **Explicit `childIds` for Advanced Custom Layouts:**
-        - [ ] Extend node data structure with `childIds: string[]`.
-        - [ ] Implement logic to manage `childIds` order (e.g., drag to reorder, creation order).
+    - [x] **Explicit `childIds` for Advanced Custom Layouts:**
+        - [x] Extend node data structure with `childIds: string[]`.
+        - [x] Implement basic store logic (`addNode`, `deleteNode`) to manage `childIds` for parent-child relationships.
+        - [ ] Implement UI logic to manage `childIds` order (e.g., drag to reorder, creation order).
         - [ ] **Custom Layout Hook/Component (`useCustomLayout` or similar):**
             - [ ] Identify parent nodes needing custom layout (e.g., via type or flag).
             - [ ] Listen to parent/child changes (size, position, `childIds` list).
@@ -139,7 +140,7 @@
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
 - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector. "Expand Concept" and "Summarize Selected Nodes" buttons have context-aware disabling and tooltips.
 - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`. Visual grid background added and verified.
-- [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type, width, height, background color, shape for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented. Toggleable via Sheet.
+- [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type, width, height, background color, shape for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented.
     - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
 - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`. Modal descriptions updated for clarity on output handling.
 - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed from panel after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
@@ -147,7 +148,7 @@
     - [x] "Clear All" button for suggestion categories.
     - [x] Clearer visual cues for suggestion status (exact, similar, new).
     - [x] Empty states are context-aware (general panel, per-category).
-- [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure. `aiProcessingNodeId` added for node-specific AI loading state. Recursive node deletion logic implemented. Edge style properties (color, lineType, markerStart, markerEnd) added.
+- [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure. `childIds` added to node structure and managed on add/delete. `aiProcessingNodeId` added for node-specific AI loading state. Recursive node deletion logic implemented. Edge style properties (color, lineType, markerStart, markerEnd) added.
 - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic. `getNodePlacement` utility from `src/lib/layout-utils.ts` used for node placement and supports grid snapping and directional child placement.
 
 ### State Management & UI/UX
@@ -321,3 +322,4 @@ The main remaining area for full Supabase connection is:
 
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
+

@@ -222,12 +222,25 @@ export const useConceptMapStore = create<ConceptMapState>()(
           y: options.position.y,
           details: options.details || '',
           parentNode: options.parentNode,
+          childIds: [], // Initialize childIds
           backgroundColor: options.backgroundColor || undefined, 
           shape: options.shape || 'rectangle', 
           width: options.width, 
           height: options.height, 
         };
-        set((state) => ({ mapData: { ...state.mapData, nodes: [...state.mapData.nodes, newNode] } }));
+        
+        set((state) => {
+          const newNodes = [...state.mapData.nodes, newNode];
+          if (options.parentNode) {
+            const parentIndex = newNodes.findIndex(n => n.id === options.parentNode);
+            if (parentIndex !== -1) {
+              const parentNode = { ...newNodes[parentIndex] };
+              parentNode.childIds = [...(parentNode.childIds || []), newNode.id];
+              newNodes[parentIndex] = parentNode;
+            }
+          }
+          return { mapData: { ...state.mapData, nodes: newNodes } };
+        });
         return newNode.id; 
       },
 
@@ -241,32 +254,57 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })),
 
       deleteNode: (nodeIdToDelete) => set((state) => {
-        const nodesToDelete = new Set<string>([nodeIdToDelete]);
+        const nodeToDelete = state.mapData.nodes.find(n => n.id === nodeIdToDelete);
+        let parentNodeToUpdate: ConceptMapNode | undefined;
+        let parentNodeIndex = -1;
+
+        if (nodeToDelete?.parentNode) {
+          parentNodeIndex = state.mapData.nodes.findIndex(n => n.id === nodeToDelete.parentNode);
+          if (parentNodeIndex !== -1) {
+            parentNodeToUpdate = { ...state.mapData.nodes[parentNodeIndex] };
+            parentNodeToUpdate.childIds = (parentNodeToUpdate.childIds || []).filter(id => id !== nodeIdToDelete);
+          }
+        }
+
+        const nodesToDeleteSet = new Set<string>([nodeIdToDelete]);
         const queue = [nodeIdToDelete];
       
         while (queue.length > 0) {
           const currentParentId = queue.shift()!;
           state.mapData.nodes.forEach(node => {
-            if (node.parentNode === currentParentId && !nodesToDelete.has(node.id)) {
-              nodesToDelete.add(node.id);
+            if (node.parentNode === currentParentId && !nodesToDeleteSet.has(node.id)) {
+              nodesToDeleteSet.add(node.id);
               queue.push(node.id);
             }
           });
         }
       
-        const newNodes = state.mapData.nodes.filter(node => !nodesToDelete.has(node.id));
+        let newNodes = state.mapData.nodes.filter(node => !nodesToDeleteSet.has(node.id));
+        if (parentNodeToUpdate && parentNodeIndex !== -1) {
+           // Re-filter to ensure we use the updated parent if it wasn't part of nodesToDeleteSet
+           newNodes = newNodes.map(n => n.id === parentNodeToUpdate!.id ? parentNodeToUpdate! : n);
+           // If the parent node itself was targeted for deletion initially, this map might not find it if it's already filtered.
+           // However, the previous filtering `newNodes = state.mapData.nodes.filter(node => !nodesToDeleteSet.has(node.id));`
+           // should correctly remove the parent if it was in nodesToDeleteSet.
+           // If parent was NOT in nodesToDeleteSet, we ensure its childIds is updated.
+           const stillExistsParentIndex = newNodes.findIndex(n => n.id === parentNodeToUpdate!.id);
+           if(stillExistsParentIndex !== -1) {
+               newNodes[stillExistsParentIndex] = parentNodeToUpdate;
+           }
+        }
+
         const newEdges = state.mapData.edges.filter(
-          edge => !nodesToDelete.has(edge.source) && !nodesToDelete.has(edge.target)
+          edge => !nodesToDeleteSet.has(edge.source) && !nodesToDeleteSet.has(edge.target)
         );
         
         let newSelectedElementId = state.selectedElementId;
         let newSelectedElementType = state.selectedElementType;
-        if (state.selectedElementId && nodesToDelete.has(state.selectedElementId)) {
+        if (state.selectedElementId && nodesToDeleteSet.has(state.selectedElementId)) {
             newSelectedElementId = null;
             newSelectedElementType = null;
         }
-        const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDelete.has(id));
-        const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDelete.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
+        const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDeleteSet.has(id));
+        const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDeleteSet.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
 
         return { 
           mapData: { nodes: newNodes, edges: newEdges },
@@ -285,10 +323,10 @@ export const useConceptMapStore = create<ConceptMapState>()(
           sourceHandle: options.sourceHandle || null,
           targetHandle: options.targetHandle || null,
           label: options.label || 'connects',
-          color: options.color || undefined, // Default to undefined (theme default)
+          color: options.color || undefined, 
           lineType: options.lineType || 'solid', 
           markerStart: options.markerStart || 'none',
-          markerEnd: options.markerEnd || 'arrowclosed', // Default to arrowclosed for new edges
+          markerEnd: options.markerEnd || 'arrowclosed', 
         };
         return { mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } };
       }),
@@ -327,3 +365,4 @@ export const useConceptMapStore = create<ConceptMapState>()(
         
 
 export default useConceptMapStore;
+
