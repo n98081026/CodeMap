@@ -42,7 +42,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClick?: (event: React.MouseEvent) => void;
+  onPaneDoubleClickProp?: (event: React.MouseEvent) => void; // Renamed to avoid conflict with ReactFlow's own prop
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -84,7 +84,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeContextMenu,
   onNodeDrag,
   onNodeDragStop,
-  onPaneDoubleClick: onPaneDoubleClickProp,
+  onPaneDoubleClickProp,
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
@@ -93,20 +93,23 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
   useEffect(() => {
-    // Use viewport directly from useReactFlow() for current dimensions and zoom
-    const currentVp = viewport;
-
-    if (
-      currentVp.zoom === 0 || currentVp.width === 0 || currentVp.height === 0 ||
-      isNaN(currentVp.width) || isNaN(currentVp.height) || isNaN(currentVp.zoom)
+    // Guard against undefined viewport or invalid viewport properties early in the effect
+    if (!viewport || 
+        typeof viewport.width !== 'number' || 
+        typeof viewport.height !== 'number' || 
+        typeof viewport.zoom !== 'number' ||
+        viewport.width === 0 || viewport.height === 0 || viewport.zoom === 0 ||
+        isNaN(viewport.width) || isNaN(viewport.height) || isNaN(viewport.zoom)
     ) {
-      // Viewport not ready or invalid, reset to default to avoid NaN propagation
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
     
+    const currentVpWidth = viewport.width;
+    const currentVpHeight = viewport.height;
+    const currentVpZoom = viewport.zoom;
+    
     if (nodes.length === 0) {
-      // No nodes, allow infinite panning
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
@@ -117,9 +120,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     let maxY = -Infinity;
 
     nodes.forEach(node => {
-      const nodeWidth = node.width || 150; // Use a default if node.width is not yet available
-      const nodeHeight = node.height || 70; // Use a default
-      const posX = node.position.x; // Use relative position from store
+      const nodeWidth = node.width || 150; 
+      const nodeHeight = node.height || 70;
+      const posX = node.position.x; 
       const posY = node.position.y;
       
       minX = Math.min(minX, posX);
@@ -129,23 +132,19 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     });
 
     if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
-      // This can happen if nodes array is manipulated mid-calculation or positions are invalid
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
 
     const MIN_PADDING = 150;
     const VIEWPORT_PADDING_FACTOR = 0.15; 
-    const PADDING_X = Math.max(MIN_PADDING, currentVp.width * VIEWPORT_PADDING_FACTOR);
-    const PADDING_Y = Math.max(MIN_PADDING, currentVp.height * VIEWPORT_PADDING_FACTOR);
+    const PADDING_X = Math.max(MIN_PADDING, currentVpWidth * VIEWPORT_PADDING_FACTOR);
+    const PADDING_Y = Math.max(MIN_PADDING, currentVpHeight * VIEWPORT_PADDING_FACTOR);
 
-    // Calculate the allowed range for viewport's top-left (viewport.x, viewport.y)
-    // minViewportX ensures the right edge of content (maxX + PADDING_X) doesn't go past the right edge of viewport
-    const minViewportX = -(maxX + PADDING_X - (currentVp.width / currentVp.zoom));
-    // maxViewportX ensures the left edge of content (minX - PADDING_X) doesn't go past the left edge of viewport
+    const minViewportX = -(maxX + PADDING_X - (currentVpWidth / currentVpZoom));
     const maxViewportX = -(minX - PADDING_X);
     
-    const minViewportY = -(maxY + PADDING_Y - (currentVp.height / currentVp.zoom));
+    const minViewportY = -(maxY + PADDING_Y - (currentVpHeight / currentVpZoom));
     const maxViewportY = -(minY - PADDING_Y);
 
     if (
@@ -154,7 +153,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       !isFinite(minViewportX) || !isFinite(maxViewportX) ||
       !isFinite(minViewportY) || !isFinite(maxViewportY)
     ) {
-      // console.warn("Calculated translateExtent contained NaN/Infinity, resetting to default.");
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
@@ -164,8 +162,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       [maxViewportX, maxViewportY]
     ]);
 
-  }, [nodes, viewport.width, viewport.height, viewport.zoom]);
-
+  }, [nodes, viewport]); // Depend on the viewport object itself and nodes
 
   return (
     <Card className={cn(
