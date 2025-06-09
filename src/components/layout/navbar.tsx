@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { CodeXml, UserCircle, LogIn, LogOut, Sun, Moon, Settings, LayoutDashboard } from 'lucide-react';
+import { CodeXml, UserCircle, LogIn, LogOut, Sun, Moon, Settings, LayoutDashboard, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState, useCallback } from 'react';
 import { UserRole } from '@/types';
 import { usePathname } from 'next/navigation'; 
+import { SidebarTrigger } from '@/components/ui/sidebar'; // Import SidebarTrigger
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -42,40 +43,48 @@ export function Navbar() {
   }, [user]);
 
   const getLogoLink = useCallback(() => {
-    if (isAuthenticated && user) { // Ensure user is also available for role check
+    if (isAuthenticated && user) { 
       return getRoleBasedDashboardLink();
     }
-    // For unauthenticated users, always link to /login
     return '/login';
   }, [isAuthenticated, user, getRoleBasedDashboardLink]);
 
 
   if (!mounted) {
-    // Avoid rendering mismatch during hydration for theme toggle
-    // Ensure placeholder dimensions match rendered content to prevent layout shift
     return (
       <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-6">
-        <Link href={getLogoLink()} className="flex items-center space-x-2">
-          <CodeXml className="h-7 w-7 text-primary" />
-          <span className="font-headline text-xl font-semibold">CodeMap</span>
-        </Link>
-        <div className="flex items-center space-x-3">
-            <div className="h-9 w-9"></div> {/* Placeholder for theme toggle */}
-            <div className="h-9 w-9"></div> {/* Placeholder for user dropdown/login button */}
+        <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-6">
+          <div className="flex items-center space-x-2">
+            <div className="h-7 w-7 md:hidden"></div> {/* Placeholder for SidebarTrigger on mobile */}
+            <Link href={getLogoLink()} className="flex items-center space-x-2">
+              <CodeXml className="h-7 w-7 text-primary" />
+              <span className="font-headline text-xl font-semibold">CodeMap</span>
+            </Link>
+          </div>
+          <div className="flex items-center space-x-3">
+              <div className="h-9 w-9"></div> {/* Placeholder for theme toggle */}
+              <div className="h-9 w-9"></div> {/* Placeholder for user dropdown/login button */}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
     );
   }
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-6">
-        <Link href={getLogoLink()} className="flex items-center space-x-2">
-          <CodeXml className="h-7 w-7 text-primary" />
-          <span className="font-headline text-xl font-semibold">CodeMap</span>
-        </Link>
+        <div className="flex items-center space-x-2">
+          {isAuthenticated && ( /* Show trigger only when authenticated and sidebar is relevant */
+            <SidebarTrigger className="md:hidden mr-2" /> /* Mobile trigger */
+          )}
+          <Link href={getLogoLink()} className="flex items-center space-x-2">
+            <CodeXml className="h-7 w-7 text-primary" />
+            <span className="font-headline text-xl font-semibold">CodeMap</span>
+          </Link>
+          {isAuthenticated && ( /* Desktop trigger, typically placed here or near logo */
+            <SidebarTrigger className="hidden md:flex ml-4" />
+          )}
+        </div>
 
         <div className="flex items-center space-x-3">
           <Button
@@ -135,4 +144,3 @@ export function Navbar() {
     </nav>
   );
 }
-
