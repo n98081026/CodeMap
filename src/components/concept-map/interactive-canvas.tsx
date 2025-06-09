@@ -19,7 +19,7 @@ import ReactFlow, {
   type NodeTypes,
   type EdgeTypes,
   useReactFlow,
-  type OnPaneDoubleClick,
+  type OnPaneDoubleClick, // Ensure OnPaneDoubleClick is imported
   type Viewport,
   type ReactFlowProps,
 } from 'reactflow';
@@ -44,7 +44,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: OnPaneDoubleClick;
+  onPaneDoubleClickProp?: OnPaneDoubleClick; // Use the specific type
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -164,7 +164,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
   }, [nodes, viewport]); 
 
-  const reactFlowBaseProps: Omit<ReactFlowProps, 'onPaneDoubleClick'> = {
+  const reactFlowProps: ReactFlowProps = {
     nodes,
     edges,
     onNodesChange,
@@ -196,19 +196,16 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     maxZoom: 4,
     translateExtent: calculatedTranslateExtent,
     onlyRenderVisibleElements: true,
+    // Conditionally add onPaneDoubleClick using spread syntax
+    ...(!isViewOnlyMode && typeof onPaneDoubleClickProp === 'function' && { onPaneDoubleClick: onPaneDoubleClickProp }),
   };
-
-  const finalReactFlowProps: ReactFlowProps = { ...reactFlowBaseProps };
-  if (!isViewOnlyMode && typeof onPaneDoubleClickProp === 'function') {
-    finalReactFlowProps.onPaneDoubleClick = onPaneDoubleClickProp;
-  }
 
 
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
     )}>
-      <ReactFlow {...finalReactFlowProps}>
+      <ReactFlow {...reactFlowProps}>
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
         <Background
@@ -236,3 +233,4 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 export const InteractiveCanvas = React.memo(InteractiveCanvasComponent);
 InteractiveCanvas.displayName = 'InteractiveCanvas';
     
+
