@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useEffect, useCallback, useState, useMemo } from 'react';
-import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes, type EdgeTypes, useReactFlow, ReactFlowProvider, type OnPaneDoubleClick } from 'reactflow'; // Import OnPaneDoubleClick
+import React, { useEffect, useCallback, useState, useMemo, useRef } from 'react';
+import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes, type EdgeTypes, useReactFlow, ReactFlowProvider, type OnPaneDoubleClick } from 'reactflow'; 
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
@@ -106,6 +106,19 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 
   useEffect(() => setRfNodes(initialRfNodes), [initialRfNodes, setRfNodes]);
   useEffect(() => setRfEdges(initialRfEdges), [initialRfEdges, setRfEdges]);
+  
+  const prevNodeCountRef = useRef(rfNodes.length);
+  useEffect(() => {
+    if (rfNodes.length !== prevNodeCountRef.current) {
+      if (rfNodes.length > 0 && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
+        setTimeout(() => {
+          reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
+        }, 50); 
+      }
+      prevNodeCountRef.current = rfNodes.length;
+    }
+  }, [rfNodes, reactFlowInstance]);
+
 
   const [activeSnapLines, setActiveSnapLines] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
