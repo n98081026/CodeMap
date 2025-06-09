@@ -1,3 +1,4 @@
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -113,7 +114,7 @@
     - [x] Modifier key for pan (Spacebar + drag) implemented - Verified.
     - [x] **Panning Extents:**
         - [x] Calculate content bounding box - Implemented via dynamic `translateExtent`.
-        - [x] Prevent panning too far beyond content by dynamically setting `translateExtent` - Implemented and verified.
+        - [x] Prevent panning too far beyond content by dynamically setting `translateExtent` - Implemented and verified (padding calculation refined for consistency).
         - [ ] (Optional Refinement) Implement "elastic" edges if hard limits feel too abrupt. (Future Consideration)
     - [x] **Zoom Center (Verification/Enhancement):**
         - [x] Verified default zoom-to-mouse behavior.
@@ -146,7 +147,7 @@
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
     - [x] "Clear All" button for suggestion categories.
     - [x] Clearer visual cues for suggestion status (exact, similar, new).
-    - [x] Empty states are context-aware (general panel, per-category).
+    - [x] Empty states are context-aware.
 - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure. `childIds` added to node structure and managed on add/delete. `aiProcessingNodeId` added for node-specific AI loading state. Recursive node deletion logic implemented. Edge style properties (color, lineType, markerStart, markerEnd) added.
 - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic. `getNodePlacement` utility from `src/lib/layout-utils.ts` used for node placement and supports grid snapping and directional child placement.
 
@@ -291,7 +292,7 @@ This section outlines tasks to fully migrate to Supabase.
 - **Custom edge type `OrthogonalEdge` implemented:** Path calculation reviewed and confirmed to produce robust Manhattan-style paths with straight exits/entries and clear label placement across various handle orientations. Sharp/rounded corners logic implemented. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions (width/height) from PropertiesInspector override auto-sizing and are persisted.
 - **GAI Action Feedback**: Visual cues for AI-generated/modified nodes (type, icon) implemented. Loading state/spinner on/near a node when a GAI action is triggered from its context menu or floating "AI Expand" button is implemented (spinner respects node shape). Toolbar button tooltips and disable states for AI actions (Expand Concept, Summarize Selection) are context-aware. Floating node AI button tooltip improved.
-- **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined. Empty states are context-aware. Scroll behavior for suggestion categories improved (no nested scrollbars).
+- **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined. Empty states are context-aware. Scroll behavior for suggestion categories improved (no nested scrollbars for categories).
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
@@ -306,7 +307,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`.
-- **Pan/Zoom Refinements**: Min/max zoom levels are explicitly set and verified. Spacebar+drag to pan is implemented and verified. Dynamic `translateExtent` is set to prevent panning too far beyond content and verified. Touch interaction props (pinch-zoom, pan) are confirmed enabled. Default zoom-to-mouse behavior and pan/zoom sensitivity are verified. Programmatic pan/zoom API via React Flow is available. Selection box tool behavior with pan/zoom verified. Minimap syncs correctly.
+- **Pan/Zoom Refinements**: Min/max zoom levels are explicitly set and verified. Spacebar+drag to pan is implemented and verified. Dynamic `translateExtent` is set to prevent panning too far beyond content and verified (padding calculation refined). Touch interaction props (pinch-zoom, pan) are confirmed enabled. Default zoom-to-mouse behavior and pan/zoom sensitivity are verified. Programmatic pan/zoom API via React Flow is available. Selection box tool behavior with pan/zoom verified. Minimap syncs correctly.
 - **Teacher Classroom Detail Page has been modularized with separate tab components for Students, Maps, and Submissions.**
 - `DashboardHeader` component now supports a linkable icon via `iconLinkHref`. This is used consistently across relevant pages.
 - `DashboardLinkCard` description paragraph height has been standardized.
@@ -322,3 +323,4 @@ The main remaining area for full Supabase connection is:
 
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
+

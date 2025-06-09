@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -146,19 +147,23 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       return;
     }
 
-    const PADDING = Math.max(currentViewport.width, currentViewport.height) * 0.3; 
+    const MIN_PADDING = 150; 
+    const VIEWPORT_PADDING_FACTOR = 0.15; 
+    const PADDING_X = Math.max(MIN_PADDING, currentViewport.width * VIEWPORT_PADDING_FACTOR);
+    const PADDING_Y = Math.max(MIN_PADDING, currentViewport.height * VIEWPORT_PADDING_FACTOR);
 
-    const extentMinX = -(maxX + PADDING - (currentViewport.width / currentViewport.zoom));
-    const extentMaxX = -(minX - PADDING);
-    const extentMinY = -(maxY + PADDING - (currentViewport.height / currentViewport.zoom));
-    const extentMaxY = -(minY - PADDING);
+
+    const extentMinX = -(maxX + PADDING_X - (currentViewport.width / currentViewport.zoom));
+    const extentMaxX = -(minX - PADDING_X);
+    const extentMinY = -(maxY + PADDING_Y - (currentViewport.height / currentViewport.zoom));
+    const extentMaxY = -(minY - PADDING_Y);
     
     setCalculatedTranslateExtent([
       [Math.min(extentMinX, extentMaxX), Math.min(extentMinY, extentMaxY)],
       [Math.max(extentMinX, extentMaxX), Math.max(extentMinY, extentMaxY)]
     ]);
 
-  }, [nodes, getViewport, setViewport]); 
+  }, [nodes, getViewport, setViewport]); // Added setViewport to dependency array as it's used indirectly via getViewport in subsequent renders
 
 
   const handlePaneDoubleClick = (event: React.MouseEvent) => {
