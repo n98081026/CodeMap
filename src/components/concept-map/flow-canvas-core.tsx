@@ -12,12 +12,11 @@ import { getNodePlacement } from '@/lib/layout-utils';
 
 export interface RFConceptMapEdgeData extends OrthogonalEdgeData {}
 
-// Define outside the component to prevent re-creation on each render
 const nodeTypesConfig: NodeTypes = {
   customConceptNode: CustomNodeComponent,
 };
 
-const edgeTypesConfig: EdgeTypes = { // Ensure correct type
+const edgeTypesConfig: EdgeTypes = { 
   orthogonal: OrthogonalEdge,
 };
 
@@ -57,8 +56,8 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const [activeSnapLines, setActiveSnapLines] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
   useEffect(() => {
-    console.log(`[FlowCanvasCore] Node Effect Triggered. isViewOnlyMode: ${isViewOnlyMode}`);
-    console.log("[FlowCanvasCore] mapDataFromStore.nodes:", mapDataFromStore.nodes);
+    // console.log(`[FlowCanvasCore] Node Effect Triggered. isViewOnlyMode: ${isViewOnlyMode}`);
+    // console.log("[FlowCanvasCore] mapDataFromStore.nodes:", mapDataFromStore.nodes);
     const newReactFlowNodes = (mapDataFromStore.nodes || []).map(appNode => ({
       id: appNode.id,
       type: 'customConceptNode',
@@ -80,13 +79,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       dragHandle: '.cursor-move',
       parentNode: appNode.parentNode,
     } as RFNode<CustomNodeData>));
-    console.log("[FlowCanvasCore] Generated newReactFlowNodes:", newReactFlowNodes);
+    // console.log("[FlowCanvasCore] Generated newReactFlowNodes:", newReactFlowNodes);
     setRfNodes(newReactFlowNodes);
   }, [mapDataFromStore.nodes, isViewOnlyMode, setRfNodes, onNodeAIExpandTriggered]);
 
   useEffect(() => {
-    console.log(`[FlowCanvasCore] Edge Effect Triggered. isViewOnlyMode: ${isViewOnlyMode}`);
-    console.log("[FlowCanvasCore] mapDataFromStore.edges:", mapDataFromStore.edges);
+    // console.log(`[FlowCanvasCore] Edge Effect Triggered. isViewOnlyMode: ${isViewOnlyMode}`);
+    // console.log("[FlowCanvasCore] mapDataFromStore.edges:", mapDataFromStore.edges);
     const newReactFlowEdges = (mapDataFromStore.edges || []).map(appEdge => ({
       id: appEdge.id,
       source: appEdge.source,
@@ -107,7 +106,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       deletable: !isViewOnlyMode,
       selectable: true,
     } as RFEdge<OrthogonalEdgeData>));
-    console.log("[FlowCanvasCore] Generated newReactFlowEdges:", newReactFlowEdges);
+    // console.log("[FlowCanvasCore] Generated newReactFlowEdges:", newReactFlowEdges);
     setRfEdges(newReactFlowEdges);
   }, [mapDataFromStore.edges, isViewOnlyMode, setRfEdges]);
 
@@ -357,8 +356,8 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onSelectionChange={handleRfSelectionChange}
       onConnect={handleRfConnect}
       isViewOnlyMode={isViewOnlyMode}
-      nodeTypes={nodeTypesConfig} // Use the one defined outside
-      edgeTypes={edgeTypesConfig} // Use the one defined outside
+      nodeTypes={nodeTypesConfig} 
+      edgeTypes={edgeTypesConfig} 
       onNodeContextMenu={onNodeContextMenu}
       onNodeDrag={onNodeDrag}
       onNodeDragStop={handleNodeDragStopInternal}
@@ -378,4 +377,4 @@ const FlowCanvasCoreWrapper: React.FC<Omit<FlowCanvasCoreProps, 'onNodeDrag' | '
 );
 
 export default React.memo(FlowCanvasCoreWrapper);
-
+    
