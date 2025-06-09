@@ -14,15 +14,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save, EyeOff } from "lucide-react";
-import {
-  ExtractConceptsModal,
-  SuggestRelationsModal,
-  ExpandConceptModal,
-  AskQuestionModal,
-} from "@/components/concept-map/genai-modals";
-import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal";
-import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
-import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
+
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { UserRole } from "@/types";
@@ -50,6 +42,29 @@ const AISuggestionPanel = dynamic(() => import('@/components/concept-map/ai-sugg
   ssr: false, 
   loading: () => <div className="p-4 text-center text-sm text-muted-foreground">Loading AI Suggestions...</div> 
 });
+
+// Dynamically import modals
+const DynamicExtractConceptsModal = dynamic(() =>
+  import('@/components/concept-map/genai-modals').then((mod) => mod.ExtractConceptsModal), { ssr: false }
+);
+const DynamicSuggestRelationsModal = dynamic(() =>
+  import('@/components/concept-map/genai-modals').then((mod) => mod.SuggestRelationsModal), { ssr: false }
+);
+const DynamicExpandConceptModal = dynamic(() =>
+  import('@/components/concept-map/genai-modals').then((mod) => mod.ExpandConceptModal), { ssr: false }
+);
+const DynamicAskQuestionModal = dynamic(() =>
+  import('@/components/concept-map/genai-modals').then((mod) => mod.AskQuestionModal), { ssr: false }
+);
+const DynamicQuickClusterModal = dynamic(() =>
+  import('@/components/concept-map/quick-cluster-modal').then((mod) => mod.QuickClusterModal), { ssr: false }
+);
+const DynamicGenerateSnippetModal = dynamic(() =>
+  import('@/components/concept-map/generate-snippet-modal').then((mod) => mod.GenerateSnippetModal), { ssr: false }
+);
+const DynamicRewriteNodeContentModal = dynamic(() =>
+  import('@/components/concept-map/rewrite-node-content-modal').then((mod) => mod.RewriteNodeContentModal), { ssr: false }
+);
 
 
 export default function ConceptMapEditorPage() {
@@ -293,20 +308,21 @@ export default function ConceptMapEditorPage() {
               isViewOnlyMode={storeIsViewOnlyMode} />
           </SheetContent>
         </Sheet>
-        {isExtractConceptsModalOpen && !storeIsViewOnlyMode && <ExtractConceptsModal initialText={textForExtraction} onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />}
-        {isSuggestRelationsModalOpen && !storeIsViewOnlyMode && <SuggestRelationsModal initialConcepts={conceptsForRelationSuggestion} onRelationsSuggested={handleRelationsSuggested} onOpenChange={setIsSuggestRelationsModalOpen} />}
+
+        {isExtractConceptsModalOpen && !storeIsViewOnlyMode && <DynamicExtractConceptsModal initialText={textForExtraction} onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />}
+        {isSuggestRelationsModalOpen && !storeIsViewOnlyMode && <DynamicSuggestRelationsModal initialConcepts={conceptsForRelationSuggestion} onRelationsSuggested={handleRelationsSuggested} onOpenChange={setIsSuggestRelationsModalOpen} />}
         {isExpandConceptModalOpen && !storeIsViewOnlyMode && conceptToExpandDetails && (
-          <ExpandConceptModal
+          <DynamicExpandConceptModal
             initialConceptText={conceptToExpandDetails.text}
             existingMapContext={mapContextForExpansion}
             onConceptExpanded={handleConceptExpanded}
             onOpenChange={setIsExpandConceptModalOpen}
           />
         )}
-        {isQuickClusterModalOpen && !storeIsViewOnlyMode && <QuickClusterModal isOpen={isQuickClusterModalOpen} onOpenChange={setIsQuickClusterModalOpen} onClusterGenerated={handleClusterGenerated} />}
-        {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
-        {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
-        {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
+        {isQuickClusterModalOpen && !storeIsViewOnlyMode && <DynamicQuickClusterModal isOpen={isQuickClusterModalOpen} onOpenChange={setIsQuickClusterModalOpen} onClusterGenerated={handleClusterGenerated} />}
+        {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <DynamicGenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
+        {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <DynamicAskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
+        {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <DynamicRewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
       </ReactFlowProvider>
     </div>
   );
