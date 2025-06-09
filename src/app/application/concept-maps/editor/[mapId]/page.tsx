@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge, User } from "@/types";
 import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"; // Added SheetHeader, SheetTitle, SheetDescription
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
 
@@ -320,7 +320,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen} isDebugLogViewerOpen={isDebugLogViewerOpen}
           onUndo={handleUndoCallback} onRedo={handleRedoCallback} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
-          numMultiSelectedNodes={multiSelectedNodeIds.length}
+          numMultiSelectedNodeIds={multiSelectedNodeIds.length}
         />
         <div className="flex-grow relative overflow-hidden">
             <FlowCanvasCore
@@ -346,6 +346,12 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
         )}
         <Sheet open={isPropertiesInspectorOpen} onOpenChange={setIsPropertiesInspectorOpen}>
           <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Element & Map Properties</SheetTitle>
+              <SheetDescription>
+                {isViewOnlyMode ? "Viewing properties. Editing is disabled." : "Edit properties for the selected element or the map."}
+              </SheetDescription>
+            </SheetHeader>
             <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
               selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType}
               onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
@@ -354,6 +360,12 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
         </Sheet>
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
           <SheetContent side="bottom" className="h-[40vh] sm:h-1/3">
+            <SheetHeader>
+              <SheetTitle>AI Suggestions Panel</SheetTitle>
+              <SheetDescription>
+                Review and add AI-generated concepts and relations to your map.
+              </SheetDescription>
+            </SheetHeader>
             <AISuggestionPanel currentMapNodes={storeMapData.nodes}
               extractedConcepts={aiExtractedConcepts} suggestedRelations={aiSuggestedRelations}
               onAddExtractedConcepts={addExtractedConceptsToMap} onAddSuggestedRelations={addSuggestedRelationsToMap}
@@ -413,3 +425,5 @@ export default function ConceptMapEditorPageOuter() {
   return null;
 }
 
+
+    
