@@ -51,15 +51,20 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
   const reactFlowInstance = useReactFlow();
 
-  const initialRfNodes = useMemo(() =>
-    (mapDataFromStore.nodes || []).map(appNode => ({
+  // Initial empty state for nodes and edges
+  const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
+  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>([]);
+
+  // Effect to update rfNodes when mapDataFromStore.nodes or isViewOnlyMode changes
+  useEffect(() => {
+    const newReactFlowNodes = (mapDataFromStore.nodes || []).map(appNode => ({
       id: appNode.id,
       type: 'customConceptNode',
       data: {
         label: appNode.text,
         details: appNode.details,
         type: appNode.type || 'default',
-        isViewOnly: isViewOnlyMode,
+        isViewOnly: isViewOnlyMode, // Directly use current isViewOnlyMode
         backgroundColor: appNode.backgroundColor,
         shape: appNode.shape,
         width: appNode.width,
@@ -67,17 +72,18 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
         onTriggerAIExpand: onNodeAIExpandTriggered,
       } as CustomNodeData,
       position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
-      draggable: !isViewOnlyMode,
+      draggable: !isViewOnlyMode, // Directly use current isViewOnlyMode
       selectable: true,
-      connectable: !isViewOnlyMode,
+      connectable: !isViewOnlyMode, // Directly use current isViewOnlyMode
       dragHandle: '.cursor-move',
       parentNode: appNode.parentNode,
-    } as RFNode<CustomNodeData>)),
-    [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered]
-  );
+    } as RFNode<CustomNodeData>));
+    setRfNodes(newReactFlowNodes);
+  }, [mapDataFromStore.nodes, isViewOnlyMode, setRfNodes, onNodeAIExpandTriggered]);
 
-  const initialRfEdges = useMemo(() =>
-    (mapDataFromStore.edges || []).map(appEdge => ({
+  // Effect to update rfEdges when mapDataFromStore.edges or isViewOnlyMode changes
+  useEffect(() => {
+    const newReactFlowEdges = (mapDataFromStore.edges || []).map(appEdge => ({
       id: appEdge.id,
       source: appEdge.source,
       target: appEdge.target,
@@ -93,28 +99,22 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
       markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
       style: { strokeWidth: 2 },
-      updatable: !isViewOnlyMode,
-      deletable: !isViewOnlyMode,
+      updatable: !isViewOnlyMode, // Directly use current isViewOnlyMode
+      deletable: !isViewOnlyMode, // Directly use current isViewOnlyMode
       selectable: true,
-    } as RFEdge<OrthogonalEdgeData>)),
-    [mapDataFromStore.edges, isViewOnlyMode]
-  );
+    } as RFEdge<OrthogonalEdgeData>));
+    setRfEdges(newReactFlowEdges);
+  }, [mapDataFromStore.edges, isViewOnlyMode, setRfEdges]);
 
-
-  const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>(initialRfNodes);
-  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>(initialRfEdges);
-
-  useEffect(() => setRfNodes(initialRfNodes), [initialRfNodes, setRfNodes]);
-  useEffect(() => setRfEdges(initialRfEdges), [initialRfEdges, setRfEdges]);
 
   useEffect(() => {
     if (rfNodes.length > 0 && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
       const timerId = setTimeout(() => {
         reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
-      }, 100);
+      }, 100); // Increased delay slightly
       return () => clearTimeout(timerId);
     }
-  }, [rfNodes, reactFlowInstance]);
+  }, [rfNodes, reactFlowInstance]); // rfNodes dependency is fine here
 
 
   const [activeSnapLines, setActiveSnapLines] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
@@ -342,13 +342,9 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isViewOnlyMode, addNodeToStore, onConnectInStore, setSelectedElement, setEditingNodeId, GRID_SIZE, reactFlowInstance]);
   
-  // Create a key that changes when isViewOnlyMode changes, or when mapData changes significantly (e.g., different map loaded)
-  const canvasKey = `${isViewOnlyMode}-${mapDataFromStore.nodes.length}-${mapDataFromStore.edges.length}-${mapDataFromStore.nodes[0]?.id || 'no-nodes'}`;
-
 
   return (
     <InteractiveCanvas
-      key={canvasKey} // Add this key prop
       nodes={rfNodes}
       edges={rfEdges}
       onNodesChange={handleRfNodesChange}
