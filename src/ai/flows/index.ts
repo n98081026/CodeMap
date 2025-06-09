@@ -1,4 +1,3 @@
-
 // src/ai/flows/index.ts
 export * from './ask-question-about-node';
 export * from './expand-concept';
@@ -8,5 +7,21 @@ export * from './generate-map-snippet-from-text';
 export * from './generate-quick-cluster';
 export * from './suggest-relations';
 export * from './summarize-nodes-flow';
-export * from './rewrite-node-content-flow'; // Added this export
+
+// Explicitly import and re-export for rewrite-node-content-flow
+import {
+  RewriteNodeContentInputSchema,
+  type RewriteNodeContentInput,
+  RewriteNodeContentOutputSchema,
+  type RewriteNodeContentOutput,
+  rewriteNodeContent
+} from './rewrite-node-content-flow'; // Standard module path (no .ts extension)
+
+export {
+  RewriteNodeContentInputSchema,
+  type RewriteNodeContentInput,
+  RewriteNodeContentOutputSchema,
+  type RewriteNodeContentOutput,
+  rewriteNodeContent
+};
     
