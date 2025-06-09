@@ -19,13 +19,14 @@ import ReactFlow, {
   type NodeTypes,
   type EdgeTypes,
   useReactFlow,
-  type OnPaneDoubleClick, // Ensure this is imported
+  type OnPaneDoubleClick,
   type Viewport,
+  type ReactFlowProps, // Import ReactFlowProps
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
 import type { CustomNodeData } from './custom-node';
-import type { RFConceptMapEdgeData } from './flow-canvas-core'; // Ensure this type is correctly defined/exported
+import type { RFConceptMapEdgeData } from './flow-canvas-core';
 import { cn } from '@/lib/utils';
 
 interface InteractiveCanvasProps {
@@ -43,7 +44,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: OnPaneDoubleClick; // Prop received from FlowCanvasCore
+  onPaneDoubleClickProp?: OnPaneDoubleClick;
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -85,7 +86,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeContextMenu,
   onNodeDrag,
   onNodeDragStop,
-  onPaneDoubleClickProp, // Use this prop
+  onPaneDoubleClickProp,
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
@@ -163,8 +164,16 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
   }, [nodes, viewport]); 
 
-  // Determine if custom pane double click should be active
   const useCustomPaneDoubleClick = !isViewOnlyMode && typeof onPaneDoubleClickProp === 'function';
+  
+  const interactiveProps: Partial<ReactFlowProps> = {};
+  if (useCustomPaneDoubleClick) {
+    interactiveProps.onPaneDoubleClick = onPaneDoubleClickProp;
+    interactiveProps.zoomOnDoubleClick = false;
+  } else {
+    interactiveProps.zoomOnDoubleClick = true;
+    // onPaneDoubleClick is implicitly not passed
+  }
 
   return (
     <Card className={cn(
@@ -196,15 +205,11 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode}
         zoomOnScroll={true}
         zoomOnPinch={true}
-        
-        // Logic for mutually exclusive double click behaviors
-        zoomOnDoubleClick={!useCustomPaneDoubleClick} // Enable zoomOnDoubleClick if custom handler is NOT active
-        onPaneDoubleClick={useCustomPaneDoubleClick ? onPaneDoubleClickProp : undefined} // Use custom handler if active
-
         minZoom={0.1}
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
         onlyRenderVisibleElements={true}
+        {...interactiveProps} 
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
@@ -232,4 +237,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
 export const InteractiveCanvas = React.memo(InteractiveCanvasComponent);
 InteractiveCanvas.displayName = 'InteractiveCanvas';
+    
+
     
