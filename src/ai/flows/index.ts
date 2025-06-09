@@ -7,5 +7,6 @@ export * from './generate-map-from-project';
 export * from './generate-map-snippet-from-text';
 export * from './generate-quick-cluster';
 export * from './suggest-relations';
-export * from './summarize-nodes-flow'; // Export the new flow
+export * from './summarize-nodes-flow';
+export * from './rewrite-node-content-flow'; // Added this export
     
