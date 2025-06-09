@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react'; // Removed unused useState
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -88,34 +88,11 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeDragStop,
   onPaneDoubleClick,
   activeSnapLines = [],
-  gridSize = 20, 
+  gridSize = 20,
   panActivationKeyCode,
 }) => {
-  const { viewport, getViewport, setViewport } = useReactFlow(); 
-  const [isSpacePanning, setIsSpacePanning] = useState(false);
+  const { viewport, getViewport, setViewport } = useReactFlow();
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code === 'Space' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
-        setIsSpacePanning(true);
-        event.preventDefault();
-      }
-    };
-    const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.code === 'Space') {
-        setIsSpacePanning(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
 
   useEffect(() => {
     if (nodes.length === 0) {
@@ -123,7 +100,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       return;
     }
     
-    const currentViewport = getViewport(); 
+    const currentViewport = getViewport();
 
     let minX = Infinity;
     let minY = Infinity;
@@ -131,8 +108,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     let maxY = -Infinity;
 
     nodes.forEach(node => {
-      const nodeWidth = node.width || 150; 
-      const nodeHeight = node.height || 70; 
+      const nodeWidth = node.width || 150;
+      const nodeHeight = node.height || 70;
       const posX = node.positionAbsolute?.x ?? node.position.x;
       const posY = node.positionAbsolute?.y ?? node.position.y;
       
@@ -147,8 +124,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       return;
     }
 
-    const MIN_PADDING = 150; 
-    const VIEWPORT_PADDING_FACTOR = 0.15; 
+    const MIN_PADDING = 150;
+    const VIEWPORT_PADDING_FACTOR = 0.15;
     const PADDING_X = Math.max(MIN_PADDING, currentViewport.width * VIEWPORT_PADDING_FACTOR);
     const PADDING_Y = Math.max(MIN_PADDING, currentViewport.height * VIEWPORT_PADDING_FACTOR);
 
@@ -163,18 +140,12 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       [Math.max(extentMinX, extentMaxX), Math.max(extentMinY, extentMaxY)]
     ]);
 
-  }, [nodes, getViewport, setViewport]); // Added setViewport to dependency array as it's used indirectly via getViewport in subsequent renders
-
-
-  const handlePaneDoubleClick = (event: React.MouseEvent) => {
-    if (isViewOnlyMode || !onPaneDoubleClick) return;
-    onPaneDoubleClick(event);
-  };
+  }, [nodes, getViewport, setViewport]);
 
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
-      isSpacePanning && !isViewOnlyMode && "cursor-grab"
+      // Removed isSpacePanning logic as panActivationKeyCode handles cursor
     )}>
       <ReactFlow
         nodes={nodes}
@@ -198,32 +169,32 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         onNodeContextMenu={onNodeContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
-        onPaneDoubleClick={handlePaneDoubleClick}
+        onPaneDoubleClick={onPaneDoubleClick} // Pass the received prop directly
         panOnDrag={!isViewOnlyMode}
         panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode}
         zoomOnScroll={true}
-        zoomOnPinch={true} 
+        zoomOnPinch={true}
         zoomOnDoubleClick={!isViewOnlyMode}
         selectionOnDrag={!isViewOnlyMode}
         minZoom={0.1}
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
-        onlyRenderVisibleElements={true} 
+        onlyRenderVisibleElements={true}
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
         <Background
           variant={BackgroundVariant.Dots}
-          gap={gridSize} 
+          gap={gridSize}
           size={1}
-          color="hsl(var(--border)/0.7)" 
+          color="hsl(var(--border)/0.7)"
         />
         {activeSnapLines.map((line, index) => (
           <svg key={`snapline-${index}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 100 }}>
             <line
               x1={line.x1} y1={line.y1}
               x2={line.x2} y2={line.y2}
-              stroke="hsl(var(--primary)/0.7)" 
+              stroke="hsl(var(--primary)/0.7)"
               strokeWidth="1"
               strokeDasharray="3,3"
             />
