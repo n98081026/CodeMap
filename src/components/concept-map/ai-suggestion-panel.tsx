@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -263,7 +262,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="max-h-48 overflow-y-auto">
+        <CardContent> {/* Removed max-h-48 overflow-y-auto */}
           <div className="space-y-1">
             {items.map((item, index) => {
               const displayId = `${itemKeyPrefix}-${index}`;
@@ -490,6 +489,5 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   );
 });
 AISuggestionPanel.displayName = "AISuggestionPanel";
-
 
 

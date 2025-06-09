@@ -142,7 +142,7 @@
 - [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type, width, height, background color, shape for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented.
     - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
 - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`. Modal descriptions updated for clarity on output handling.
-- [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed from panel after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
+- [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed from panel after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel. Scroll behavior improved (removed nested scrolls).
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
     - [x] "Clear All" button for suggestion categories.
     - [x] Clearer visual cues for suggestion status (exact, similar, new).
@@ -201,6 +201,7 @@
     - [x] "Clear All" button for suggestion categories.
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
     - [x] Empty states are context-aware.
+    - [x] Scroll behavior improved (removed nested scrollbars for categories).
 - [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
     - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling. Toolbar button tooltips and disable states refined. Floating node AI button tooltip improved).
 
@@ -290,7 +291,7 @@ This section outlines tasks to fully migrate to Supabase.
 - **Custom edge type `OrthogonalEdge` implemented:** Path calculation reviewed and confirmed to produce robust Manhattan-style paths with straight exits/entries and clear label placement across various handle orientations. Sharp/rounded corners logic implemented. Edge label, color, line type, and start/end arrow styles are editable via PropertiesInspector and direct label edit on canvas.
 - **Node Style Customization & Auto-Sizing:** Individual node background color and shape (rectangle/ellipse) are editable via PropertiesInspector. Nodes auto-size based on content (label wrapping, details contributing to height, dynamic width up to a max), with min/max Tailwind constraints. Explicitly set dimensions (width/height) from PropertiesInspector override auto-sizing and are persisted.
 - **GAI Action Feedback**: Visual cues for AI-generated/modified nodes (type, icon) implemented. Loading state/spinner on/near a node when a GAI action is triggered from its context menu or floating "AI Expand" button is implemented (spinner respects node shape). Toolbar button tooltips and disable states for AI actions (Expand Concept, Summarize Selection) are context-aware. Floating node AI button tooltip improved.
-- **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined. Empty states are context-aware.
+- **AISuggestionPanel**: Includes "Add Selected", "Add All New/Similar", and "Clear All" functionality for suggestion categories. Visual cues for suggestion status (new, similar, exact) refined. Empty states are context-aware. Scroll behavior for suggestion categories improved (no nested scrollbars).
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
