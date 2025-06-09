@@ -3,10 +3,9 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
-import { UserRole } from "@/types";
+import { UserRole, type User } from "@/types";
 import { BookOpen, Users, LayoutDashboard, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { useEffect } from "react";
 import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
 import { useTeacherDashboardMetrics } from "@/hooks/useTeacherDashboardMetrics";
 import { QuickActionsCard, type QuickActionItem } from "@/components/dashboard/quick-actions-card";
@@ -17,21 +16,13 @@ const LoadingSpinner = () => (
   </div>
 );
 
-export default function TeacherDashboardPage() {
-  const { user, isLoading: authIsLoading } = useAuth();
+function TeacherDashboardContent({ user }: { user: User }) {
   const {
     managedClassrooms: managedClassroomsMetric,
     totalStudents: totalStudentsMetric,
   } = useTeacherDashboardMetrics();
-
+  
   const adminDashboardLink = "/application/admin/dashboard";
-
-  useEffect(() => {
-    // Hook handles fetching based on user role and availability
-  }, [user]);
-
-  if (authIsLoading || (!user && !authIsLoading)) return <LoadingSpinner />;
-  if (!user || (user.role !== UserRole.TEACHER && user.role !== UserRole.ADMIN) ) return null;
 
   const renderCount = (metric: { count: number | null, isLoading: boolean, error: string | null }, itemName: string) => {
     if (metric.isLoading) {
@@ -82,11 +73,10 @@ export default function TeacherDashboardPage() {
           description="Students across all your classrooms."
           count={renderCount(totalStudentsMetric, "students")}
           icon={Users}
-          href="/application/teacher/classrooms" // Link to classrooms page, student lists are per classroom
+          href="/application/teacher/classrooms"
           linkText="View Student Lists"
         />
       </div>
-
       <QuickActionsCard
         actions={teacherQuickActions}
         title="Quick Actions"
@@ -94,4 +84,20 @@ export default function TeacherDashboardPage() {
       />
     </div>
   );
+}
+
+export default function TeacherDashboardPage() {
+  const { user, isLoading: authIsLoading } = useAuth();
+
+  if (authIsLoading || (!user && !authIsLoading)) {
+    return <LoadingSpinner />;
+  }
+  
+  if (!user || (user.role !== UserRole.TEACHER && user.role !== UserRole.ADMIN)) {
+    // AppLayout should handle redirect if role is completely wrong or not authenticated.
+    // This is a safeguard.
+    return null; 
+  }
+
+  return <TeacherDashboardContent user={user} />;
 }

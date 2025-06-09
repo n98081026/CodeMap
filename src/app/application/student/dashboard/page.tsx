@@ -2,9 +2,9 @@
 "use client";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
+import type { User } from "@/types";
 import { BookOpen, FileText, Share2, FolderKanban, LayoutDashboard, Compass, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { useEffect } from "react";
 import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
 import { useStudentDashboardMetrics } from "@/hooks/useStudentDashboardMetrics";
 import { QuickActionsCard, type QuickActionItem } from "@/components/dashboard/quick-actions-card";
@@ -15,20 +15,12 @@ const LoadingSpinner = () => (
   </div>
 );
 
-export default function StudentDashboardPage() {
-  const { user, isLoading: authIsLoading } = useAuth();
+function StudentDashboardContent({ user }: { user: User }) {
   const {
     classrooms: classroomsMetric,
     conceptMaps: conceptMapsMetric,
     submissions: submissionsMetric,
   } = useStudentDashboardMetrics();
-
-  useEffect(() => {
-    // The hook handles fetching based on user availability
-  }, [user]);
-
-  if (authIsLoading || (!user && !authIsLoading)) return <LoadingSpinner />;
-  if (!user) return null;
 
   const renderCount = (metric: { count: number | null, isLoading: boolean, error: string | null }, itemName: string) => {
     if (metric.isLoading) {
@@ -93,8 +85,26 @@ export default function StudentDashboardPage() {
           linkText="View Submissions"
         />
       </div>
-
       <QuickActionsCard actions={studentQuickActions} />
     </div>
   );
+}
+
+export default function StudentDashboardPage() {
+  const { user, isLoading: authIsLoading } = useAuth();
+
+  if (authIsLoading || (!user && !authIsLoading)) {
+    // AppLayout also handles redirects if !isAuthenticated after loading,
+    // but this ensures StudentDashboardPage doesn't try to render content prematurely.
+    return <LoadingSpinner />;
+  }
+  
+  if (!user) {
+    // This case should ideally be handled by AppLayout's redirect.
+    // If reached, it means auth loaded, but user is null (not authenticated).
+    return null; 
+  }
+
+  // At this point, user is authenticated.
+  return <StudentDashboardContent user={user} />;
 }
