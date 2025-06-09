@@ -145,7 +145,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
-      // Removed isSpacePanning logic as panActivationKeyCode handles cursor
     )}>
       <ReactFlow
         nodes={nodes}
@@ -169,7 +168,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         onNodeContextMenu={onNodeContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
-        onPaneDoubleClick={onPaneDoubleClick} // Pass the received prop directly
+        onPaneDoubleClick={isViewOnlyMode ? undefined : onPaneDoubleClick}
         panOnDrag={!isViewOnlyMode}
         panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode}
         zoomOnScroll={true}
