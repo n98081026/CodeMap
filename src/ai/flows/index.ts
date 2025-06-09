@@ -8,21 +8,7 @@ export * from './generate-quick-cluster';
 export * from './suggest-relations';
 export * from './summarize-nodes-flow';
 
-// Explicitly import and re-export for rewrite-node-content-flow
-// Changed from './rewrite-node-content-flow' to '@/ai/flows/rewrite-node-content-flow'
-import {
-  RewriteNodeContentInputSchema,
-  type RewriteNodeContentInput,
-  RewriteNodeContentOutputSchema,
-  type RewriteNodeContentOutput,
-  rewriteNodeContent
-} from '@/ai/flows/rewrite-node-content-flow'; 
-
-export {
-  RewriteNodeContentInputSchema,
-  type RewriteNodeContentInput,
-  RewriteNodeContentOutputSchema,
-  type RewriteNodeContentOutput,
-  rewriteNodeContent
-};
-    
+// IMPORTANT: rewrite-node-content-flow.ts and its exports
+// are NOT exported from this barrel file due to persistent resolution issues.
+// Components or hooks needing `rewriteNodeContent` (e.g., RewriteNodeContentModal, useConceptMapAITools)
+// MUST import it directly from '@/ai/flows/rewrite-node-content-flow'.

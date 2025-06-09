@@ -11,9 +11,11 @@ import {
   askQuestionAboutNode as aiAskQuestionAboutNode,
   generateQuickCluster as aiGenerateQuickCluster,
   generateMapSnippetFromText as aiGenerateMapSnippetFromText,
-  summarizeNodes as aiSummarizeNodes,
-  rewriteNodeContent as aiRewriteNodeContent
+  summarizeNodes as aiSummarizeNodes
 } from '@/ai/flows';
+// Changed from alias to relative path for rewriteNodeContent
+import { rewriteNodeContent as aiRewriteNodeContent } from '../ai/flows/rewrite-node-content-flow'; 
+
 import type {
   AskQuestionAboutNodeOutput,
   ExpandConceptOutput,
@@ -21,8 +23,8 @@ import type {
   GenerateQuickClusterOutput,
   SuggestRelationsOutput,
   SummarizeNodesOutput,
-  RewriteNodeContentOutput,
-} from '@/ai/flows';
+  RewriteNodeContentOutput 
+} from '@/ai/flows'; 
 import type { ConceptMapNode } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
 
@@ -403,5 +405,4 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     addStoreEdge,
   };
 }
-
 
