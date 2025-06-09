@@ -93,12 +93,11 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
   useEffect(() => {
-    if (!viewport || 
-        typeof viewport.width !== 'number' || 
-        typeof viewport.height !== 'number' || 
-        typeof viewport.zoom !== 'number' ||
-        viewport.width === 0 || viewport.height === 0 || viewport.zoom === 0 ||
-        isNaN(viewport.width) || isNaN(viewport.height) || isNaN(viewport.zoom)
+    if (
+      !viewport ||
+      typeof viewport.width !== 'number' || viewport.width === 0 || isNaN(viewport.width) ||
+      typeof viewport.height !== 'number' || viewport.height === 0 || isNaN(viewport.height) ||
+      typeof viewport.zoom !== 'number' || viewport.zoom === 0 || isNaN(viewport.zoom)
     ) {
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
@@ -161,9 +160,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       [maxViewportX, maxViewportY]
     ]);
 
-  }, [nodes, viewport]);
+  }, [nodes, viewport]); // Depend on the viewport object directly
 
-  const reactFlowProps: any = {
+  const reactFlowBaseProps = {
     nodes,
     edges,
     onNodesChange,
@@ -197,15 +196,17 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onlyRenderVisibleElements: true,
   };
 
+  const finalReactFlowProps: any = { ...reactFlowBaseProps };
+
   if (!isViewOnlyMode && onPaneDoubleClickProp) {
-    reactFlowProps.onPaneDoubleClick = onPaneDoubleClickProp;
+    finalReactFlowProps.onPaneDoubleClick = onPaneDoubleClickProp;
   }
 
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
     )}>
-      <ReactFlow {...reactFlowProps}>
+      <ReactFlow {...finalReactFlowProps}>
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
         <Background
