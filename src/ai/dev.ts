@@ -11,5 +11,5 @@ import '@/ai/flows/generate-quick-cluster.ts';
 import '@/ai/flows/ask-question-about-node.ts';
 import '@/ai/flows/generate-map-snippet-from-text.ts';
 import '@/ai/flows/summarize-nodes-flow.ts';
-import '@/ai/flows/rewrite-node-content-flow.ts'; // Added this import
+import '@/ai/flows/rewrite-node-content-logic.ts'; // Updated import
 

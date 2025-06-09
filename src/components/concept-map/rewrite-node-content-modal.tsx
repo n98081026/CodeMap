@@ -21,7 +21,7 @@ import type { NodeContentToRewrite } from '@/hooks/useConceptMapAITools';
 import { 
   rewriteNodeContent as aiRewriteNodeContent, 
   type RewriteNodeContentOutput 
-} from '@/ai/flows/rewrite-node-content-flow.ts'; 
+} from '@/ai/flows/rewrite-node-content-logic.ts'; 
 import useConceptMapStore from '@/stores/concept-map-store'; 
 
 

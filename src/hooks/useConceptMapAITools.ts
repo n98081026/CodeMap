@@ -17,7 +17,7 @@ import {
 import { 
     rewriteNodeContent as aiRewriteNodeContent,
     type RewriteNodeContentOutput // Ensure type is imported if needed elsewhere by this hook or its consumers
-} from '@/ai/flows/rewrite-node-content-flow.ts'; 
+} from '@/ai/flows/rewrite-node-content-logic.ts'; 
 
 import type {
   AskQuestionAboutNodeOutput,
