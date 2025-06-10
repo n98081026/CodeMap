@@ -9,10 +9,9 @@
 import type { ConceptMap, ConceptMapData } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService'; // To validate ownerId
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER, MOCK_TEACHER_USER, MOCK_CONCEPT_MAP_STUDENT_V2, MOCK_CONCEPT_MAP_TEACHER_V2, MOCK_CLASSROOM_SHARED_V2 } from '@/lib/config';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V3, MOCK_TEACHER_USER_V3, MOCK_CONCEPT_MAPS_STORE, MOCK_CLASSROOM_SHARED_V2 } from '@/lib/config'; // Use MOCK_CONCEPT_MAPS_STORE
 
-// Mock data store for bypass mode
-let MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [MOCK_CONCEPT_MAP_STUDENT_V2, MOCK_CONCEPT_MAP_TEACHER_V2];
+// Mock data store for bypass mode is now primarily from MOCK_CONCEPT_MAPS_STORE in config.ts
 
 /**
  * Creates a new concept map.
@@ -35,7 +34,11 @@ export async function createConceptMap(
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    MOCK_CONCEPT_MAPS_STORE.push(newMap);
+    // Note: This will not persist if the service module reloads without MOCK_CONCEPT_MAPS_STORE being updated in config.ts
+    // For more robust mock creation, consider updating MOCK_CONCEPT_MAPS_STORE in config.ts if it's mutable
+    // or handle mock mutations in a dedicated mock service layer.
+    // For now, we assume MOCK_CONCEPT_MAPS_STORE is the source of truth for reads.
+    console.warn(`BYPASS_AUTH: Mock map "${name}" created in-memory for this request only. It won't be in MOCK_CONCEPT_MAPS_STORE unless added there.`);
     return newMap;
   }
 
@@ -79,7 +82,19 @@ export async function createConceptMap(
  */
 export async function getConceptMapById(mapId: string): Promise<ConceptMap | null> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    return MOCK_CONCEPT_MAPS_STORE.find(m => m.id === mapId) || null;
+    const foundMap = (MOCK_CONCEPT_MAPS_STORE || []).find(m => m && m.id === mapId);
+    if (!foundMap) return null;
+    // Return a well-formed map, even if mock data is partial
+    return {
+      id: foundMap.id,
+      name: foundMap.name || "Untitled Mock Map",
+      ownerId: foundMap.ownerId || "unknown-mock-owner",
+      mapData: foundMap.mapData && typeof foundMap.mapData === 'object' ? foundMap.mapData : { nodes: [], edges: [] },
+      isPublic: typeof foundMap.isPublic === 'boolean' ? foundMap.isPublic : false,
+      sharedWithClassroomId: foundMap.sharedWithClassroomId === undefined ? null : foundMap.sharedWithClassroomId,
+      createdAt: foundMap.createdAt || new Date().toISOString(),
+      updatedAt: foundMap.updatedAt || new Date().toISOString(),
+    };
   }
 
   const { data, error } = await supabase
@@ -112,9 +127,24 @@ export async function getConceptMapById(mapId: string): Promise<ConceptMap | nul
  */
 export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptMap[]> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    if (ownerId === MOCK_STUDENT_USER.id) return MOCK_CONCEPT_MAPS_STORE.filter(m => m.ownerId === MOCK_STUDENT_USER.id);
-    if (ownerId === MOCK_TEACHER_USER.id) return MOCK_CONCEPT_MAPS_STORE.filter(m => m.ownerId === MOCK_TEACHER_USER.id);
-    return [];
+    const allMockMaps = MOCK_CONCEPT_MAPS_STORE || [];
+    const userMaps = allMockMaps.filter(m => {
+      if (m && typeof m.ownerId === 'string') {
+        return m.ownerId === ownerId;
+      }
+      console.warn(`[Mock Service] Skipping mock map due to missing/invalid ownerId:`, m);
+      return false;
+    });
+    return userMaps.map(m => ({ // Ensure returned structure is complete
+      id: m.id || `mock-map-id-${Date.now()}-${Math.random()}`,
+      name: m.name || "Untitled Mock Map",
+      ownerId: m.ownerId,
+      mapData: m.mapData && typeof m.mapData === 'object' ? m.mapData : { nodes: [], edges: [] },
+      isPublic: typeof m.isPublic === 'boolean' ? m.isPublic : false,
+      sharedWithClassroomId: m.sharedWithClassroomId === undefined ? null : m.sharedWithClassroomId,
+      createdAt: m.createdAt || new Date().toISOString(),
+      updatedAt: m.updatedAt || new Date().toISOString(),
+    }));
   }
 
   const { data, error } = await supabase
@@ -159,8 +189,23 @@ export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptM
  */
 export async function getConceptMapsByClassroomId(classroomId: string): Promise<ConceptMap[]> {
    if (BYPASS_AUTH_FOR_TESTING) {
-    if (classroomId === MOCK_CLASSROOM_SHARED_V2.id) return MOCK_CONCEPT_MAPS_STORE.filter(m => m.sharedWithClassroomId === MOCK_CLASSROOM_SHARED_V2.id);
-    return [];
+    const allMockMaps = MOCK_CONCEPT_MAPS_STORE || [];
+    const classroomMaps = allMockMaps.filter(m => {
+        if (m && typeof m.sharedWithClassroomId === 'string') {
+            return m.sharedWithClassroomId === classroomId;
+        }
+        return false;
+    });
+    return classroomMaps.map(m => ({ // Ensure returned structure is complete
+      id: m.id || `mock-classroom-map-id-${Date.now()}-${Math.random()}`,
+      name: m.name || "Untitled Mock Classroom Map",
+      ownerId: m.ownerId || "unknown-mock-owner",
+      mapData: m.mapData && typeof m.mapData === 'object' ? m.mapData : { nodes: [], edges: [] },
+      isPublic: typeof m.isPublic === 'boolean' ? m.isPublic : false,
+      sharedWithClassroomId: m.sharedWithClassroomId,
+      createdAt: m.createdAt || new Date().toISOString(),
+      updatedAt: m.updatedAt || new Date().toISOString(),
+    }));
   }
 
   const { data, error } = await supabase
@@ -269,8 +314,16 @@ export async function updateConceptMap(
 export async function deleteConceptMap(mapId: string, currentUserId: string): Promise<boolean> {
   if (BYPASS_AUTH_FOR_TESTING) {
     const initialLength = MOCK_CONCEPT_MAPS_STORE.length;
-    MOCK_CONCEPT_MAPS_STORE = MOCK_CONCEPT_MAPS_STORE.filter(m => !(m.id === mapId && m.ownerId === currentUserId));
-    return MOCK_CONCEPT_MAPS_STORE.length < initialLength;
+    const originalMaps = [...MOCK_CONCEPT_MAPS_STORE]; // Create a copy for modification
+    const filteredMaps = originalMaps.filter(m => !(m.id === mapId && m.ownerId === currentUserId));
+    if (filteredMaps.length < originalMaps.length) {
+      // This is tricky; MOCK_CONCEPT_MAPS_STORE is imported. Reassigning it here won't affect other modules using the original import.
+      // For true mock deletion, the MOCK_CONCEPT_MAPS_STORE in config.ts would need to be mutable and operations would modify it directly.
+      // This simplified version just checks if a deletion *would* occur.
+      console.warn(`BYPASS_AUTH: Mock map delete for ${mapId} simulated. Actual MOCK_CONCEPT_MAPS_STORE in config.ts is not modified by this service.`);
+      return true;
+    }
+    return false;
   }
 
   const mapToDelete = await getConceptMapById(mapId);
@@ -292,7 +345,10 @@ export async function deleteConceptMap(mapId: string, currentUserId: string): Pr
     throw new Error(`Failed to delete concept map: ${error.message}`);
   }
   if (count === 0) {
-    throw new Error("Failed to delete concept map: Map not found (owned by this user) or RLS prevented deletion.");
+    // This could happen if RLS prevents deletion even if owner_id matches, or map was deleted concurrently.
+    console.warn(`Attempted to delete map ${mapId} for user ${currentUserId}, but no rows were affected. Might be RLS or concurrent deletion.`);
+    return false; 
   }
   return true;
 }
+

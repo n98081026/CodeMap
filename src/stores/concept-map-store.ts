@@ -17,6 +17,7 @@ interface ConceptMapState {
   sharedWithClassroomId: string | null;
   isNewMapMode: boolean;
   isViewOnlyMode: boolean;
+  initialLoadComplete: boolean; // New state
 
   mapData: ConceptMapData;
 
@@ -33,7 +34,7 @@ interface ConceptMapState {
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
 
-  debugLogs: string[]; // New state for debug logs
+  debugLogs: string[];
 
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
@@ -43,6 +44,7 @@ interface ConceptMapState {
   setSharedWithClassroomId: (classroomId: string | null) => void;
   setIsNewMapMode: (isNew: boolean) => void;
   setIsViewOnlyMode: (isViewOnly: boolean) => void;
+  setInitialLoadComplete: (complete: boolean) => void; // New action
 
   setIsLoading: (loading: boolean) => void;
   setIsSaving: (saving: boolean) => void;
@@ -60,8 +62,8 @@ interface ConceptMapState {
   removeExtractedConceptsFromSuggestions: (conceptsToRemove: string[]) => void;
   removeSuggestedRelationsFromSuggestions: (relationsToRemove: Array<{ source: string; target: string; relation: string }>) => void;
 
-  addDebugLog: (log: string) => void; // New action
-  clearDebugLogs: () => void; // New action
+  addDebugLog: (log: string) => void;
+  clearDebugLogs: () => void;
 
   initializeNewMap: (userId: string) => void;
   setLoadedMap: (map: ConceptMap, viewOnly?: boolean) => void;
@@ -84,11 +86,11 @@ export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
 const initialStateBase: Omit<ConceptMapState,
   'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' |
-  'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsViewOnlyMode' | 'setIsLoading' | 'setIsSaving' | 'setError' |
+  'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsViewOnlyMode' | 'setInitialLoadComplete' | 'setIsLoading' | 'setIsSaving' | 'setError' |
   'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setEditingNodeId' | 'setAiProcessingNodeId' |
   'setAiExtractedConcepts' | 'setAiSuggestedRelations' |
   'resetAiSuggestions' | 'removeExtractedConceptsFromSuggestions' | 'removeSuggestedRelationsFromSuggestions' |
-  'addDebugLog' | 'clearDebugLogs' | // Added new actions here
+  'addDebugLog' | 'clearDebugLogs' |
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
 > = {
@@ -100,6 +102,7 @@ const initialStateBase: Omit<ConceptMapState,
   sharedWithClassroomId: null,
   isNewMapMode: true,
   isViewOnlyMode: false,
+  initialLoadComplete: false, // Initialize new state
   mapData: { nodes: [], edges: [] },
   isLoading: false,
   isSaving: false,
@@ -111,7 +114,7 @@ const initialStateBase: Omit<ConceptMapState,
   aiProcessingNodeId: null,
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
-  debugLogs: [], // Initialized debugLogs
+  debugLogs: [],
 };
 
 
@@ -128,6 +131,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setSharedWithClassroomId: (id) => set({ sharedWithClassroomId: id }),
       setIsNewMapMode: (isNew) => set({ isNewMapMode: isNew }),
       setIsViewOnlyMode: (isViewOnly) => set({ isViewOnlyMode: isViewOnly }),
+      setInitialLoadComplete: (complete) => set({ initialLoadComplete: complete }), // Define new action
 
       setIsLoading: (loading) => set({ isLoading: loading }),
       setIsSaving: (saving) => set({ isSaving: saving }),
@@ -154,7 +158,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })),
 
       addDebugLog: (log) => set((state) => ({
-        debugLogs: [...state.debugLogs, `${new Date().toISOString()}: ${log}`].slice(-100) // Keep last 100 logs
+        debugLogs: [...state.debugLogs, `${new Date().toISOString()}: ${log}`].slice(-100)
       })),
       clearDebugLogs: () => set({ debugLogs: [] }),
 
@@ -176,11 +180,12 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: true,
           isViewOnlyMode: false,
           isLoading: false,
+          initialLoadComplete: true, // Set on successful initialization
           multiSelectedNodeIds: [],
           aiProcessingNodeId: null,
           isPublic: initialStateBase.isPublic,
           sharedWithClassroomId: initialStateBase.sharedWithClassroomId,
-          debugLogs: get().debugLogs, // Preserve existing logs
+          debugLogs: get().debugLogs,
         };
         set(newMapState);
         useConceptMapStore.temporal.getState().clear();
@@ -198,12 +203,13 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: false,
           isViewOnlyMode: viewOnly,
           isLoading: false,
+          initialLoadComplete: true, // Set on successful load
           error: null,
           multiSelectedNodeIds: [],
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
           aiProcessingNodeId: null,
-          debugLogs: get().debugLogs, // Preserve existing logs
+          debugLogs: get().debugLogs,
         });
         useConceptMapStore.temporal.getState().clear();
       },
@@ -225,15 +231,16 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: state.isNewMapMode,
           isViewOnlyMode: false,
           isLoading: false,
+          initialLoadComplete: true, // Assume import means it's "loaded"
           isSaving: false,
           error: null,
-          debugLogs: get().debugLogs, // Preserve existing logs
+          debugLogs: get().debugLogs,
         }));
         useConceptMapStore.temporal.getState().clear();
       },
       resetStore: () => {
         get().addDebugLog(`[STORE] RESET_STORE CALLED!`);
-        set({ ...initialStateBase, debugLogs: [] }); // Clear logs on full reset
+        set({ ...initialStateBase, initialLoadComplete: false, debugLogs: [] });
         useConceptMapStore.temporal.getState().clear();
       },
 
