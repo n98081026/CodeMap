@@ -10,8 +10,11 @@ import { supabase } from '@/lib/supabaseClient';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { getUserById as fetchSupabaseUserProfile, updateUser as updateUserProfileService, createUserProfile } from '@/services/users/userService';
 import { useToast } from '@/hooks/use-toast';
-// Updated import to use MOCK_STUDENT_USER_V3 as the default for bypass
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V3 as DEFAULT_BYPASS_USER, MOCK_TEACHER_USER_V3, MOCK_ADMIN_USER_V3 } from '@/lib/config';
+// Ensure V3 is the default for bypass
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V3, MOCK_TEACHER_USER_V3, MOCK_ADMIN_USER_V3 } from '@/lib/config';
+
+// DEFAULT_BYPASS_USER is now MOCK_STUDENT_USER_V3 for student testing
+const DEFAULT_BYPASS_USER = MOCK_STUDENT_USER_V3;
 
 interface AuthContextType {
   user: User | null;
@@ -85,8 +88,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (BYPASS_AUTH_FOR_TESTING) {
-      console.warn("AuthContext: BYPASS_AUTH_FOR_TESTING is TRUE. Using mock student user for concept map testing.");
-      setUser(DEFAULT_BYPASS_USER); // DEFAULT_BYPASS_USER is MOCK_STUDENT_USER_V3
+      console.warn(`AuthContext: BYPASS_AUTH_FOR_TESTING is TRUE. Using mock user: ${DEFAULT_BYPASS_USER.role}`);
+      setUser(DEFAULT_BYPASS_USER);
       setIsLoading(false);
       initialAuthCheckCompleted.current = true;
       return; // Skip Supabase listeners and calls
@@ -186,9 +189,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(async (email: string, password: string, role: UserRole) => {
     if (BYPASS_AUTH_FOR_TESTING) {
       console.warn("Login attempt while BYPASS_AUTH_FOR_TESTING is true. Using default bypass user.");
-      setUser(DEFAULT_BYPASS_USER); // Use imported MOCK_STUDENT_USER_V3
+      setUser(DEFAULT_BYPASS_USER);
       setIsLoading(false);
-      // Simulate redirect based on mock user's role
       switch (DEFAULT_BYPASS_USER.role) {
           case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
           case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
@@ -271,7 +273,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (BYPASS_AUTH_FOR_TESTING) {
       console.warn("Logout attempt while BYPASS_AUTH_FOR_TESTING is true. Simulating logout.");
       setUser(null);
-      setIsLoading(false); // Important to set loading false
+      setIsLoading(false); 
       router.replace('/login');
       return;
     }
@@ -323,12 +325,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const setTestUserRole = useCallback((newRole: UserRole) => {
     setUser(prevUser => {
       if (prevUser) {
-        let targetMockUser = MOCK_STUDENT_USER_V3; // Default to student
+        let targetMockUser = MOCK_STUDENT_USER_V3; 
         if (newRole === UserRole.ADMIN) targetMockUser = MOCK_ADMIN_USER_V3;
         else if (newRole === UserRole.TEACHER) targetMockUser = MOCK_TEACHER_USER_V3;
         
         console.warn(`Locally overriding user to MOCK ${newRole.toUpperCase()} USER for testing. (Bypass_Auth: ${BYPASS_AUTH_FOR_TESTING})`);
-        return { ...targetMockUser }; // Completely replace with the target mock user
+        return { ...targetMockUser }; 
       }
       return null;
     });
@@ -361,5 +363,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    
