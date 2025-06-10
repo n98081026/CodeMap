@@ -63,8 +63,8 @@ export const MOCK_CLASSROOM_TEACHER_OWNED_V3: Classroom = {
   enableStudentAiAnalysis: true,
 };
 
-export let MOCK_CLASSROOMS_STORE: Classroom[] = [MOCK_CLASSROOM_SHARED_V3, MOCK_CLASSROOM_TEACHER_OWNED_V3];
-export let MOCK_CLASSROOM_STUDENTS_STORE: Array<{classroom_id: string, student_id: string}> = [
+export const MOCK_CLASSROOMS_STORE: Classroom[] = [MOCK_CLASSROOM_SHARED_V3, MOCK_CLASSROOM_TEACHER_OWNED_V3];
+export const MOCK_CLASSROOM_STUDENTS_STORE: Array<{classroom_id: string, student_id: string}> = [
     { classroom_id: MOCK_CLASSROOM_SHARED_V3.id, student_id: MOCK_STUDENT_USER_V3.id },
     { classroom_id: MOCK_CLASSROOM_SHARED_V3.id, student_id: 'another-mock-student-v3-s002'},
     { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED_V3.id, student_id: 'mock-v3-s003'},
@@ -93,7 +93,7 @@ export const MOCK_CONCEPT_MAP_TEACHER_V3: ConceptMap = {
   updatedAt: new Date().toISOString(),
 };
 
-export let MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [MOCK_CONCEPT_MAP_STUDENT_V3, MOCK_CONCEPT_MAP_TEACHER_V3];
+export const MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [MOCK_CONCEPT_MAP_STUDENT_V3, MOCK_CONCEPT_MAP_TEACHER_V3];
 // This is the specific map used by useConceptMapDataManager's MOCK_USER_FOR_TESTING_MAPS
 export const MOCK_CONCEPT_MAP_STUDENT = MOCK_CONCEPT_MAP_STUDENT_V3;
 
@@ -121,7 +121,7 @@ export const MOCK_PROJECT_SUBMISSION_PROCESSING_V3: ProjectSubmission = {
   classroomId: MOCK_CLASSROOM_SHARED_V3.id,
 };
 
-export let MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [MOCK_PROJECT_SUBMISSION_STUDENT_V3, MOCK_PROJECT_SUBMISSION_PROCESSING_V3];
+export const MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [MOCK_PROJECT_SUBMISSION_STUDENT_V3, MOCK_PROJECT_SUBMISSION_PROCESSING_V3];
 
 // This is the critical object for useConceptMapDataManager bypass logic
 export const MOCK_USER_FOR_TESTING_MAPS: { [key: string]: ConceptMap } = {
