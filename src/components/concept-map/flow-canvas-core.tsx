@@ -12,10 +12,12 @@ import { getNodePlacement } from '@/lib/layout-utils';
 
 export interface RFConceptMapEdgeData extends OrthogonalEdgeData {}
 
+// Define nodeTypesConfig outside the component to ensure stable reference
 const nodeTypesConfig: NodeTypes = {
   customConceptNode: CustomNodeComponent,
 };
 
+// Define edgeTypesConfig outside the component to ensure stable reference
 const edgeTypesConfig: EdgeTypes = { 
   orthogonal: OrthogonalEdge,
 };
@@ -56,8 +58,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const [activeSnapLines, setActiveSnapLines] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
   useEffect(() => {
-    // console.log(`[FlowCanvasCore] Node Effect Triggered. isViewOnlyMode: ${isViewOnlyMode}`);
-    // console.log("[FlowCanvasCore] mapDataFromStore.nodes:", mapDataFromStore.nodes);
     const newReactFlowNodes = (mapDataFromStore.nodes || []).map(appNode => ({
       id: appNode.id,
       type: 'customConceptNode',
@@ -79,13 +79,10 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       dragHandle: '.cursor-move',
       parentNode: appNode.parentNode,
     } as RFNode<CustomNodeData>));
-    // console.log("[FlowCanvasCore] Generated newReactFlowNodes:", newReactFlowNodes);
     setRfNodes(newReactFlowNodes);
   }, [mapDataFromStore.nodes, isViewOnlyMode, setRfNodes, onNodeAIExpandTriggered]);
 
   useEffect(() => {
-    // console.log(`[FlowCanvasCore] Edge Effect Triggered. isViewOnlyMode: ${isViewOnlyMode}`);
-    // console.log("[FlowCanvasCore] mapDataFromStore.edges:", mapDataFromStore.edges);
     const newReactFlowEdges = (mapDataFromStore.edges || []).map(appEdge => ({
       id: appEdge.id,
       source: appEdge.source,
@@ -106,7 +103,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       deletable: !isViewOnlyMode,
       selectable: true,
     } as RFEdge<OrthogonalEdgeData>));
-    // console.log("[FlowCanvasCore] Generated newReactFlowEdges:", newReactFlowEdges);
     setRfEdges(newReactFlowEdges);
   }, [mapDataFromStore.edges, isViewOnlyMode, setRfEdges]);
 
@@ -361,7 +357,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onNodeContextMenu={onNodeContextMenu}
       onNodeDrag={onNodeDrag}
       onNodeDragStop={handleNodeDragStopInternal}
-      onPaneDoubleClickProp={handlePaneDoubleClickInternal}
+      onPaneDoubleClick={handlePaneDoubleClickInternal} // Corrected prop name
       activeSnapLines={activeSnapLines}
       gridSize={GRID_SIZE}
       panActivationKeyCode="Space"

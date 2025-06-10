@@ -21,7 +21,7 @@ import ReactFlow, {
   useReactFlow,
   type OnPaneDoubleClick,
   type Viewport,
-  type ReactFlowProps, // Import ReactFlowProps
+  type ReactFlowProps,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
@@ -44,7 +44,7 @@ interface InteractiveCanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: OnPaneDoubleClick;
+  onPaneDoubleClick?: OnPaneDoubleClick; // Changed from onPaneDoubleClickProp
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -86,7 +86,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeContextMenu,
   onNodeDrag,
   onNodeDragStop,
-  onPaneDoubleClickProp,
+  onPaneDoubleClick, // Changed from onPaneDoubleClickProp
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
@@ -163,16 +163,13 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     ]);
 
   }, [nodes, viewport]); 
-
-  const useCustomPaneDoubleClick = !isViewOnlyMode && typeof onPaneDoubleClickProp === 'function';
   
-  const interactiveProps: Partial<ReactFlowProps> = {};
-  if (useCustomPaneDoubleClick) {
-    interactiveProps.onPaneDoubleClick = onPaneDoubleClickProp;
-    interactiveProps.zoomOnDoubleClick = false;
+  const reactFlowProps: Partial<ReactFlowProps> = {};
+  if (!isViewOnlyMode && typeof onPaneDoubleClick === 'function') {
+    reactFlowProps.onPaneDoubleClick = onPaneDoubleClick;
+    reactFlowProps.zoomOnDoubleClick = false;
   } else {
-    interactiveProps.zoomOnDoubleClick = true;
-    // onPaneDoubleClick is implicitly not passed
+    reactFlowProps.zoomOnDoubleClick = !isViewOnlyMode; 
   }
 
   return (
@@ -209,7 +206,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
         onlyRenderVisibleElements={true}
-        {...interactiveProps} 
+        {...reactFlowProps} 
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
