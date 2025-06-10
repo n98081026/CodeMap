@@ -16,8 +16,8 @@ import ReactFlow, {
   type OnEdgesDelete,
   type SelectionChanges,
   type Connection,
-  type NodeTypes,
-  type EdgeTypes,
+  type NodeTypes, // Keep type import
+  type EdgeTypes, // Keep type import
   useReactFlow,
   type OnPaneDoubleClick,
   type Viewport,
@@ -29,7 +29,7 @@ import CustomNodeComponent, { type CustomNodeData } from './custom-node';
 import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
 import { cn } from '@/lib/utils';
 
-// Define nodeTypesConfig and edgeTypesConfig directly in this file as top-level constants
+// Define nodeTypesConfig and edgeTypesConfig as top-level constants here
 const nodeTypesConfig: NodeTypes = {
   customConceptNode: CustomNodeComponent,
 };
@@ -55,6 +55,7 @@ interface InteractiveCanvasProps {
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
+  // Removed nodeTypes and edgeTypes from props
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -190,8 +191,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
         className="bg-background"
         proOptions={{ hideAttribution: true }}
-        nodeTypes={nodeTypesConfig} 
-        edgeTypes={edgeTypesConfig} 
+        nodeTypes={nodeTypesConfig} // Use the static config defined in this file
+        edgeTypes={edgeTypesConfig} // Use the static config defined in this file
         onNodeContextMenu={onNodeContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
@@ -232,6 +233,4 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
 export const InteractiveCanvas = React.memo(InteractiveCanvasComponent);
 InteractiveCanvas.displayName = 'InteractiveCanvas';
-    
-
     
