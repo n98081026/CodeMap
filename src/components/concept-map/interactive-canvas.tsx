@@ -26,7 +26,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
-import OrthogonalEdge, { type OrthogonalEdgeData, getMarkerDefinition } from './orthogonal-edge';
+import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
 import { cn } from '@/lib/utils';
 
 // Define nodeTypesConfig and edgeTypesConfig directly in this file as top-level constants
@@ -48,7 +48,6 @@ interface InteractiveCanvasProps {
   onSelectionChange?: (params: SelectionChanges) => void;
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
-  // nodeTypes and edgeTypes are no longer props here
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
@@ -89,8 +88,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onSelectionChange,
   onConnect,
   isViewOnlyMode,
-  // nodeTypes, // Removed from props
-  // edgeTypes, // Removed from props
   onNodeContextMenu,
   onNodeDrag,
   onNodeDragStop,
@@ -172,14 +169,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
   }, [nodes, viewport]); 
   
-  const reactFlowSpecificProps: Partial<ReactFlowProps> = {};
-  if (!isViewOnlyMode && typeof onPaneDoubleClick === 'function') {
-    reactFlowSpecificProps.onPaneDoubleClick = onPaneDoubleClick;
-    reactFlowSpecificProps.zoomOnDoubleClick = false;
-  } else {
-    reactFlowSpecificProps.zoomOnDoubleClick = !isViewOnlyMode; 
-  }
-
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
@@ -201,8 +190,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
         className="bg-background"
         proOptions={{ hideAttribution: true }}
-        nodeTypes={nodeTypesConfig} // Use the constant defined in this file
-        edgeTypes={edgeTypesConfig} // Use the constant defined in this file
+        nodeTypes={nodeTypesConfig} 
+        edgeTypes={edgeTypesConfig} 
         onNodeContextMenu={onNodeContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
@@ -214,7 +203,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
         onlyRenderVisibleElements={true}
-        {...reactFlowSpecificProps} 
+        onPaneDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? onPaneDoubleClick : undefined}
+        zoomOnDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? false : !isViewOnlyMode}
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
