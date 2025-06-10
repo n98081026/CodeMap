@@ -25,13 +25,22 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
-import type { CustomNodeData } from './custom-node';
-import type { RFConceptMapEdgeData } from './flow-canvas-core';
+import CustomNodeComponent, { type CustomNodeData } from './custom-node';
+import OrthogonalEdge, { type OrthogonalEdgeData, getMarkerDefinition } from './orthogonal-edge';
 import { cn } from '@/lib/utils';
+
+// Define nodeTypesConfig and edgeTypesConfig directly in this file as top-level constants
+const nodeTypesConfig: NodeTypes = {
+  customConceptNode: CustomNodeComponent,
+};
+
+const edgeTypesConfig: EdgeTypes = {
+  orthogonal: OrthogonalEdge,
+};
 
 interface InteractiveCanvasProps {
   nodes: Node<CustomNodeData>[];
-  edges: Edge<RFConceptMapEdgeData>[];
+  edges: Edge<OrthogonalEdgeData>[];
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onNodesDelete?: OnNodesDelete;
@@ -39,12 +48,11 @@ interface InteractiveCanvasProps {
   onSelectionChange?: (params: SelectionChanges) => void;
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
-  nodeTypes?: NodeTypes;
-  edgeTypes?: EdgeTypes;
+  // nodeTypes and edgeTypes are no longer props here
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
-  onPaneDoubleClick?: OnPaneDoubleClick; // Changed from onPaneDoubleClickProp
+  onPaneDoubleClick?: OnPaneDoubleClick;
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
@@ -81,12 +89,12 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onSelectionChange,
   onConnect,
   isViewOnlyMode,
-  nodeTypes,
-  edgeTypes,
+  // nodeTypes, // Removed from props
+  // edgeTypes, // Removed from props
   onNodeContextMenu,
   onNodeDrag,
   onNodeDragStop,
-  onPaneDoubleClick, // Changed from onPaneDoubleClickProp
+  onPaneDoubleClick,
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
@@ -164,12 +172,12 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
   }, [nodes, viewport]); 
   
-  const reactFlowProps: Partial<ReactFlowProps> = {};
+  const reactFlowSpecificProps: Partial<ReactFlowProps> = {};
   if (!isViewOnlyMode && typeof onPaneDoubleClick === 'function') {
-    reactFlowProps.onPaneDoubleClick = onPaneDoubleClick;
-    reactFlowProps.zoomOnDoubleClick = false;
+    reactFlowSpecificProps.onPaneDoubleClick = onPaneDoubleClick;
+    reactFlowSpecificProps.zoomOnDoubleClick = false;
   } else {
-    reactFlowProps.zoomOnDoubleClick = !isViewOnlyMode; 
+    reactFlowSpecificProps.zoomOnDoubleClick = !isViewOnlyMode; 
   }
 
   return (
@@ -193,8 +201,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
         className="bg-background"
         proOptions={{ hideAttribution: true }}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        nodeTypes={nodeTypesConfig} // Use the constant defined in this file
+        edgeTypes={edgeTypesConfig} // Use the constant defined in this file
         onNodeContextMenu={onNodeContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
@@ -206,7 +214,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
         onlyRenderVisibleElements={true}
-        {...reactFlowProps} 
+        {...reactFlowSpecificProps} 
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />

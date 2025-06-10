@@ -5,22 +5,21 @@ import React, { useEffect, useCallback, useState, useMemo, useRef } from 'react'
 import { useNodesState, useEdgesState, MarkerType, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, type NodeTypes, type EdgeTypes, useReactFlow, ReactFlowProvider, type OnPaneDoubleClick } from 'reactflow';
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
-import CustomNodeComponent, { type CustomNodeData } from './custom-node';
-import OrthogonalEdge, { type OrthogonalEdgeData, getMarkerDefinition } from './orthogonal-edge';
+// CustomNodeComponent and OrthogonalEdge are used by InteractiveCanvas internally via its nodeTypes/edgeTypes constants
+import type { CustomNodeData } from './custom-node';
+import type { RFConceptMapEdgeData } from './flow-canvas-core'; // This seems self-referential, check if type is defined elsewhere or if it should be OrthogonalEdgeData
 import useConceptMapStore from '@/stores/concept-map-store';
 import { getNodePlacement } from '@/lib/layout-utils';
 
-export interface RFConceptMapEdgeData extends OrthogonalEdgeData {}
+export interface RFConceptMapEdgeDataFromCore extends OrthogonalEdgeData {} // Renamed to avoid conflict if intended to be different
 
-// Define nodeTypesConfig outside the component to ensure stable reference
-const nodeTypesConfig: NodeTypes = {
-  customConceptNode: CustomNodeComponent,
-};
-
-// Define edgeTypesConfig outside the component to ensure stable reference
-const edgeTypesConfig: EdgeTypes = { 
-  orthogonal: OrthogonalEdge,
-};
+// nodeTypesConfig and edgeTypesConfig are now defined and managed within InteractiveCanvas.tsx
+// const nodeTypesConfig: NodeTypes = {
+//   customConceptNode: CustomNodeComponent,
+// };
+// const edgeTypesConfig: EdgeTypes = { 
+//   orthogonal: OrthogonalEdge,
+// };
 
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8;
@@ -54,13 +53,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const reactFlowInstance = useReactFlow();
 
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
-  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>([]);
+  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>([]); // Use OrthogonalEdgeData directly
   const [activeSnapLines, setActiveSnapLines] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
   useEffect(() => {
     const newReactFlowNodes = (mapDataFromStore.nodes || []).map(appNode => ({
       id: appNode.id,
-      type: 'customConceptNode',
+      type: 'customConceptNode', // This type must match a key in nodeTypesConfig inside InteractiveCanvas
       data: {
         label: appNode.text,
         details: appNode.details,
@@ -90,7 +89,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       sourceHandle: appEdge.sourceHandle || null,
       targetHandle: appEdge.targetHandle || null,
       label: appEdge.label,
-      type: 'orthogonal',
+      type: 'orthogonal', // This type must match a key in edgeTypesConfig inside InteractiveCanvas
       data: {
         label: appEdge.label,
         color: appEdge.color,
@@ -340,6 +339,14 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isViewOnlyMode, addNodeToStore, onConnectInStore, setSelectedElement, setEditingNodeId, GRID_SIZE, reactFlowInstance]);
   
+  // Console logs for debugging data flow
+  useEffect(() => {
+    console.log("FlowCanvasCore: mapDataFromStore.nodes received from store:", mapDataFromStore.nodes);
+    console.log("FlowCanvasCore: mapDataFromStore.edges received from store:", mapDataFromStore.edges);
+    console.log("FlowCanvasCore: rfNodes passed to InteractiveCanvas:", rfNodes);
+    console.log("FlowCanvasCore: rfEdges passed to InteractiveCanvas:", rfEdges);
+  }, [mapDataFromStore, rfNodes, rfEdges]);
+
 
   return (
     <InteractiveCanvas
@@ -352,12 +359,11 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onSelectionChange={handleRfSelectionChange}
       onConnect={handleRfConnect}
       isViewOnlyMode={isViewOnlyMode}
-      nodeTypes={nodeTypesConfig} 
-      edgeTypes={edgeTypesConfig} 
+      // nodeTypes and edgeTypes are now handled internally by InteractiveCanvas
       onNodeContextMenu={onNodeContextMenu}
       onNodeDrag={onNodeDrag}
       onNodeDragStop={handleNodeDragStopInternal}
-      onPaneDoubleClick={handlePaneDoubleClickInternal} // Corrected prop name
+      onPaneDoubleClick={handlePaneDoubleClickInternal}
       activeSnapLines={activeSnapLines}
       gridSize={GRID_SIZE}
       panActivationKeyCode="Space"
