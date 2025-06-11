@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
-import { useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, useReactFlow, ReactFlowProvider, type OnPaneDoubleClick } from 'reactflow';
+import { useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, useReactFlow, type OnPaneDoubleClick, type Viewport } from 'reactflow';
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import type { CustomNodeData } from './custom-node';
@@ -106,20 +106,17 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>(initialRfEdges);
 
   useEffect(() => {
-    console.log("FlowCanvasCore: mapDataFromStore.nodes received from store:", mapDataFromStore.nodes);
-    console.log("FlowCanvasCore: initialRfNodes computed:", initialRfNodes);
     setRfNodes(initialRfNodes);
-  }, [initialRfNodes, setRfNodes, mapDataFromStore.nodes]);
+  }, [initialRfNodes, setRfNodes]);
 
   useEffect(() => {
-    console.log("FlowCanvasCore: mapDataFromStore.edges received from store:", mapDataFromStore.edges);
-    console.log("FlowCanvasCore: initialRfEdges computed:", initialRfEdges);
     setRfEdges(initialRfEdges);
-  }, [initialRfEdges, setRfEdges, mapDataFromStore.edges]);
+  }, [initialRfEdges, setRfEdges]);
   
   useEffect(() => {
-    console.log("FlowCanvasCore: rfNodes passed to InteractiveCanvas:", rfNodes);
-    console.log("FlowCanvasCore: rfEdges passed to InteractiveCanvas:", rfEdges);
+    // This log is for observing the data flow
+    // console.log("FlowCanvasCore: rfNodes passed to InteractiveCanvas:", rfNodes);
+    // console.log("FlowCanvasCore: rfEdges passed to InteractiveCanvas:", rfEdges);
   }, [rfNodes, rfEdges]);
   
   useEffect(() => {
@@ -382,10 +379,9 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
 };
 
 
+// Remove ReactFlowProvider from here as it's already in the parent page component
 const FlowCanvasCoreWrapper: React.FC<Omit<FlowCanvasCoreProps, 'onNodeDrag' | 'onNodeDragStop' | 'activeSnapLines' | 'gridSize'>> = (props) => (
-  <ReactFlowProvider>
-    <FlowCanvasCore {...props} />
-  </ReactFlowProvider>
+  <FlowCanvasCore {...props} />
 );
 
 export default React.memo(FlowCanvasCoreWrapper);
