@@ -41,7 +41,7 @@ const navItems: NavItem[] = [
   { href: '/application/profile', label: 'My Profile', icon: UserCircle, roles: ['student', 'teacher', 'admin'], exact: true },
 ];
 
-export function SidebarNav() {
+export const SidebarNav = React.memo(function SidebarNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
@@ -72,5 +72,5 @@ export function SidebarNav() {
       })}
     </nav>
   );
-}
-
+});
+SidebarNav.displayName = "SidebarNav";

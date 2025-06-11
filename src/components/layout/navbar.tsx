@@ -13,12 +13,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from 'next-themes'; 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react'; // Added React import
 import { UserRole } from '@/types';
 import { usePathname } from 'next/navigation'; 
 import { SidebarTrigger } from '@/components/ui/sidebar'; // Import SidebarTrigger
 
-export function Navbar() {
+export const Navbar = React.memo(function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -143,4 +143,5 @@ export function Navbar() {
       </div>
     </nav>
   );
-}
+});
+Navbar.displayName = "Navbar";

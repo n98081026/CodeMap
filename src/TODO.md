@@ -221,11 +221,12 @@
         - [x] Implement virtualization for Teacher Classroom Student List using `@tanstack/react-virtual`.
     - [x] **React Component Memoization:**
         - [x] Key callbacks in `ConceptMapEditorPage` memoized with `useCallback`.
-        - [x] Key reusable display components memoized with `React.memo` (`DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, list items, `CustomNodeComponent`, `OrthogonalEdge`).
+        - [x] Key reusable display components memoized with `React.memo` (`DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, list items, `CustomNodeComponent`, `OrthogonalEdge`, `EditorToolbar`, `Navbar`, `SidebarNav`).
         - [x] Tab components in Teacher Classroom Detail page (`ClassroomStudentsTab`, `ClassroomMapsTab`, `ClassroomSubmissionsTab`) memoized with `React.memo`.
     - [x] **Code Splitting:**
         - [x] Use `next/dynamic` for `FlowCanvasCore`.
         - [x] Use `next/dynamic` for `AISuggestionPanel` and `PropertiesInspector` in `ConceptMapEditorPage`.
+        - [x] Use `next/dynamic` for GenAI modals in `ConceptMapEditorPage`.
     - [ ] **Bundle Size Analysis:** (Future Task - Out of Scope for AI Agent) Periodically analyze the application bundle size and identify areas for reduction.
     - [x] Removed redundant `CanvasPlaceholder.tsx`.
     - [x] Removed redundant `/application/layout.tsx`.
@@ -307,15 +308,14 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
-- Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`. Components within teacher classroom detail tabs are also memoized.
+- Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`. Components within teacher classroom detail tabs are also memoized. `EditorToolbar`, `Navbar`, `SidebarNav` are memoized.
 - **Pan/Zoom Refinements**: Min/max zoom levels are explicitly set and verified. Spacebar+drag to pan is implemented and verified. Dynamic `translateExtent` is set to prevent panning too far beyond content and verified (padding calculation refined). Touch interaction props (pinch-zoom, pan) are confirmed enabled. Default zoom-to-mouse behavior and pan/zoom sensitivity are verified. Programmatic pan/zoom API via React Flow is available. Selection box tool behavior with pan/zoom verified. Minimap syncs correctly.
 - **Teacher Classroom Detail Page has been modularized with separate tab components for Students, Maps, and Submissions.**
 - `DashboardHeader` component now supports a linkable icon via `iconLinkHref`. This is used consistently across relevant pages.
 - `DashboardLinkCard` description paragraph height has been standardized.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps.
-- `PropertiesInspector` and `AISuggestionPanel` are dynamically imported in `ConceptMapEditorPage`.
+- `PropertiesInspector` and `AISuggestionPanel` are dynamically imported in `ConceptMapEditorPage`. GenAI modals are also dynamically imported.
 - Redundant `CanvasPlaceholder.tsx` and `/application/layout.tsx` files have been removed.
-- **Performance Optimizations**: Key components like `DashboardHeader`, `DashboardLinkCard`, `QuickActionsCard`, `EmptyState`, list items, `CustomNodeComponent`, and `OrthogonalEdge` have been memoized using `React.memo`. Callbacks in `ConceptMapEditorPage` passed to children are memoized with `useCallback`. Tab components within Teacher Classroom Detail page also memoized.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
