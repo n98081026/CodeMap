@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge, User } from "@/types";
 import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"; // Added SheetHeader, SheetTitle, SheetDescription
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
 
@@ -26,10 +26,7 @@ import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { getNodePlacement } from '@/lib/layout-utils';
 
-// Import the new DebugLogViewerDialog
-import { DebugLogViewerDialog } from '@/components/debug/debug-log-viewer-dialog';
-
-
+// Dynamically import components
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
   ssr: false,
   loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
@@ -45,7 +42,6 @@ const AISuggestionPanel = dynamic(() => import('@/components/concept-map/ai-sugg
   loading: () => <div className="p-4 text-center text-sm text-muted-foreground">Loading AI Suggestions...</div>
 });
 
-// Dynamically import modals
 const DynamicExtractConceptsModal = dynamic(() =>
   import('@/components/concept-map/genai-modals').then((mod) => mod.ExtractConceptsModal), { ssr: false }
 );
@@ -66,6 +62,9 @@ const DynamicGenerateSnippetModal = dynamic(() =>
 );
 const DynamicRewriteNodeContentModal = dynamic(() =>
   import('@/components/concept-map/rewrite-node-content-modal').then((mod) => mod.RewriteNodeContentModal), { ssr: false }
+);
+const DynamicDebugLogViewerDialog = dynamic(() =>
+  import('@/components/debug/debug-log-viewer-dialog').then((mod) => mod.DebugLogViewerDialog), { ssr: false }
 );
 
 
@@ -97,7 +96,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
-  const [isDebugLogViewerOpen, setIsDebugLogViewerOpen] = useState(false); // State for debug log viewer
+  const [isDebugLogViewerOpen, setIsDebugLogViewerOpen] = useState(false);
 
   useEffect(() => {
     setStoreIsViewOnlyMode(isViewOnlyModeQueryParam);
@@ -375,10 +374,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
           </SheetContent>
         </Sheet>
 
-        <DebugLogViewerDialog
-            isOpen={isDebugLogViewerOpen}
-            onOpenChange={setIsDebugLogViewerOpen}
-        />
+        {isDebugLogViewerOpen && <DynamicDebugLogViewerDialog isOpen={isDebugLogViewerOpen} onOpenChange={setIsDebugLogViewerOpen} />}
 
         {isExtractConceptsModalOpen && !storeIsViewOnlyMode && <DynamicExtractConceptsModal initialText={textForExtraction} onConceptsExtracted={handleConceptsExtracted} onOpenChange={setIsExtractConceptsModalOpen} />}
         {isSuggestRelationsModalOpen && !storeIsViewOnlyMode && <DynamicSuggestRelationsModal initialConcepts={conceptsForRelationSuggestion} onRelationsSuggested={handleRelationsSuggested} onOpenChange={setIsSuggestRelationsModalOpen} />}
@@ -424,6 +420,5 @@ export default function ConceptMapEditorPageOuter() {
 
   return null;
 }
-
-
     
+
