@@ -40,7 +40,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = React.m
   const rowVirtualizer = useVirtualizer({
     count: students.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 53, // Approximate row height
+    estimateSize: () => 53, // Approximate row height in pixels
     overscan: 10,
   });
 
@@ -104,8 +104,8 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = React.m
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
-                  ref={rowVirtualizer.measureElement}
-                  data-index={virtualRow.index} // For debugging or advanced use
+                  ref={virtualRow.measureElement}
+                  data-index={virtualRow.index}
                 >
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
