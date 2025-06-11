@@ -16,12 +16,11 @@ import ReactFlow, {
   type OnEdgesDelete,
   type SelectionChanges,
   type Connection,
-  type NodeTypes, // Keep type import
-  type EdgeTypes, // Keep type import
+  type NodeTypes,
+  type EdgeTypes,
   useReactFlow,
   type OnPaneDoubleClick,
   type Viewport,
-  type ReactFlowProps,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
@@ -55,7 +54,6 @@ interface InteractiveCanvasProps {
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string;
-  // Removed nodeTypes and edgeTypes from props
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -191,12 +189,14 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
         className="bg-background"
         proOptions={{ hideAttribution: true }}
-        nodeTypes={nodeTypesConfig} // Use the static config defined in this file
-        edgeTypes={edgeTypesConfig} // Use the static config defined in this file
+        nodeTypes={nodeTypesConfig} 
+        edgeTypes={edgeTypesConfig} 
         onNodeContextMenu={onNodeContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         panOnDrag={!isViewOnlyMode}
+        onPaneDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? onPaneDoubleClick : undefined}
+        zoomOnDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? false : !isViewOnlyMode}
         panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode}
         zoomOnScroll={true}
         zoomOnPinch={true}
@@ -204,8 +204,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         maxZoom={4}
         translateExtent={calculatedTranslateExtent}
         onlyRenderVisibleElements={true}
-        onPaneDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? onPaneDoubleClick : undefined}
-        zoomOnDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? false : !isViewOnlyMode}
       >
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
