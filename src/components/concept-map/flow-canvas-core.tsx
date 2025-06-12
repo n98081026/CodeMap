@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
-import { useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, useReactFlow, type OnPaneDoubleClick, type Viewport } from 'reactflow';
+import { ReactFlowProvider, useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, useReactFlow, type OnPaneDoubleClick, type Viewport } from 'reactflow';
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import type { CustomNodeData } from './custom-node';
@@ -27,16 +27,11 @@ interface FlowCanvasCoreProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
   onNodeAIExpandTriggered?: (nodeId: string) => void;
   
-  // These props are intentionally managed internally or via onNodesChangeInStore
-  // onNodeDrag?: (event: React.MouseEvent, node: RFNode<CustomNodeData>, nodes: RFNode<CustomNodeData>[]) => void;
-  // onNodeDragStop?: (event: React.MouseEvent, node: RFNode<CustomNodeData>, nodes: RFNode<CustomNodeData>[]) => void;
-  onPaneDoubleClickProp?: OnPaneDoubleClick; // Renamed to avoid conflict with internal handler
-  // activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
-  // gridSize?: number;
-  panActivationKeyCode?: string;
+  onPaneDoubleClickProp?: OnPaneDoubleClick;
+  panActivationKeyCode?: string | null; // Added from page
 }
 
-const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
+const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   mapDataFromStore,
   isViewOnlyMode,
   onSelectionChange,
@@ -48,7 +43,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   onNodeContextMenu,
   onNodeAIExpandTriggered,
   onPaneDoubleClickProp,
-  panActivationKeyCode,
+  panActivationKeyCode, // Prop received here
 }) => {
   const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
   const reactFlowInstance = useReactFlow();
@@ -233,7 +228,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: { x: snappedXPosition, y: snappedYPosition }, dragging: true }]);
     }
     setActiveSnapLinesLocal(currentDragSnapLines);
-    // onNodeDrag?.(_event, draggedNode, allNodes); // Prop not currently used
   }, [isViewOnlyMode, SNAP_THRESHOLD, GRID_SIZE, onNodesChangeReactFlow]);
 
 
@@ -249,7 +243,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       finalY = Math.round(finalY / GRID_SIZE) * GRID_SIZE;
 
       onNodesChangeInStore(draggedNode.id, { x: finalX, y: finalY, width: draggedNode.width, height: draggedNode.height });
-      // onNodeDragStop?.(_event, draggedNode, rfNodes); // Prop not currently used
     },
     [isViewOnlyMode, onNodesChangeInStore, GRID_SIZE, rfNodes]
   );
@@ -338,10 +331,17 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onPaneDoubleClick={handlePaneDoubleClickInternal}
       activeSnapLines={activeSnapLinesLocal} 
       gridSize={GRID_SIZE}
-      panActivationKeyCode={panActivationKeyCode}
+      panActivationKeyCode={panActivationKeyCode} // Passed down
     />
   );
 };
 
-export default React.memo(FlowCanvasCore);
+const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => {
+  return (
+    // No longer wrapping with ReactFlowProvider here, as it's done at page level
+    <FlowCanvasCoreInternal {...props} />
+  );
+};
+
+export default React.memo(FlowCanvasCoreWrapper);
     

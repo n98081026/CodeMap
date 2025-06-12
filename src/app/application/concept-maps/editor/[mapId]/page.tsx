@@ -91,7 +91,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
     setSelectedElement: setStoreSelectedElement, setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
-    editingNodeId, setEditingNodeId, // Get editingNodeId and its setter
+    editingNodeId, setEditingNodeId,
   } = useConceptMapStore();
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
@@ -330,7 +330,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [storeIsViewOnlyMode, addNodeFromHook, addEdgeFromHook, setStoreSelectedElement, setEditingNodeId, toast]); // Added toast to dependencies if used in future enhancements
+  }, [storeIsViewOnlyMode, addNodeFromHook, addEdgeFromHook, setStoreSelectedElement, setEditingNodeId, toast]);
 
 
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
@@ -348,7 +348,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
         {!storeIsViewOnlyMode && <Button onClick={handleSaveMapCallback} disabled={isStoreSaving || storeIsViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
         <Button asChild variant="outline"><Link href={getBackLink()}><ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}</Link></Button>
       </DashboardHeader>
-      <ReactFlowProvider>
+      <ReactFlowProvider> {/* This Provider is essential for useReactFlow() hook used in InteractiveCanvas for viewport details */}
         <EditorToolbar
           onNewMap={handleNewMap} onSaveMap={handleSaveMapCallback} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
           onExtractConcepts={handleExtractConceptsCallback}

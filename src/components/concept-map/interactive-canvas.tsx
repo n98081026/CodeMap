@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -53,7 +52,7 @@ interface InteractiveCanvasProps {
   onPaneDoubleClick?: OnPaneDoubleClick;
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
-  panActivationKeyCode?: string;
+  panActivationKeyCode?: string | null;
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -95,23 +94,25 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   gridSize = 20,
   panActivationKeyCode,
 }) => {
-  const { viewport } = useReactFlow();
+  const { viewport, getViewport } = useReactFlow(); // getViewport can be used if viewport state updates too slowly
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
   useEffect(() => {
+    const currentViewport = getViewport(); // Use getViewport for immediate values
+
     if (
-      !viewport ||
-      typeof viewport.width !== 'number' || viewport.width <= 0 || isNaN(viewport.width) ||
-      typeof viewport.height !== 'number' || viewport.height <= 0 || isNaN(viewport.height) ||
-      typeof viewport.zoom !== 'number' || viewport.zoom <= 0 || isNaN(viewport.zoom)
+      !currentViewport ||
+      typeof currentViewport.width !== 'number' || currentViewport.width <= 0 || isNaN(currentViewport.width) ||
+      typeof currentViewport.height !== 'number' || currentViewport.height <= 0 || isNaN(currentViewport.height) ||
+      typeof currentViewport.zoom !== 'number' || currentViewport.zoom <= 0 || isNaN(currentViewport.zoom)
     ) {
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
     
-    const currentVpWidth = viewport.width;
-    const currentVpHeight = viewport.height;
-    const currentVpZoom = viewport.zoom;
+    const currentVpWidth = currentViewport.width;
+    const currentVpHeight = currentViewport.height;
+    const currentVpZoom = currentViewport.zoom;
     
     if (nodes.length === 0) {
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
@@ -126,6 +127,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     nodes.forEach(node => {
       const nodeWidth = node.width || 150; 
       const nodeHeight = node.height || 70;
+      // Use node.position which is already in flow coordinates
       const posX = node.position.x; 
       const posY = node.position.y;
       
@@ -136,37 +138,54 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     });
 
     if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
+      // No valid nodes with dimensions, allow infinite panning
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
 
-    const MIN_PADDING = 150;
-    const VIEWPORT_PADDING_FACTOR = 0.15; 
-    const PADDING_X = Math.max(MIN_PADDING, currentVpWidth * VIEWPORT_PADDING_FACTOR);
-    const PADDING_Y = Math.max(MIN_PADDING, currentVpHeight * VIEWPORT_PADDING_FACTOR);
-
-    const minViewportX = -(maxX + PADDING_X - (currentVpWidth / currentVpZoom));
-    const maxViewportX = -(minX - PADDING_X);
+    // Padding around the content in flow coordinates
+    const PADDING_FLOW = 150; 
     
-    const minViewportY = -(maxY + PADDING_Y - (currentVpHeight / currentVpZoom));
-    const maxViewportY = -(minY - PADDING_Y);
+    // Calculate the required viewport width/height in flow coordinates to show content + padding
+    const contentWidthWithPadding = (maxX - minX) + 2 * PADDING_FLOW;
+    const contentHeightWithPadding = (maxY - minY) + 2 * PADDING_FLOW;
 
+    // Max viewport X (how far right the viewport can be dragged, relative to origin 0,0)
+    // If content is smaller than viewport, we center it.
+    const maxVpX = contentWidthWithPadding < (currentVpWidth / currentVpZoom) 
+        ? (minX - PADDING_FLOW) - ( (currentVpWidth / currentVpZoom) - contentWidthWithPadding ) / 2
+        : (minX - PADDING_FLOW);
+
+    // Min viewport X (how far left the viewport can be dragged)
+    const minVpX = contentWidthWithPadding < (currentVpWidth / currentVpZoom)
+        ? (minX - PADDING_FLOW) + ( (currentVpWidth / currentVpZoom) - contentWidthWithPadding ) / 2 - (currentVpWidth / currentVpZoom)
+        : (maxX + PADDING_FLOW) - (currentVpWidth / currentVpZoom);
+
+    const maxVpY = contentHeightWithPadding < (currentVpHeight / currentVpZoom)
+        ? (minY - PADDING_FLOW) - ( (currentVpHeight / currentVpZoom) - contentHeightWithPadding ) / 2
+        : (minY - PADDING_FLOW);
+    
+    const minVpY = contentHeightWithPadding < (currentVpHeight / currentVpZoom)
+        ? (minY - PADDING_FLOW) + ( (currentVpHeight / currentVpZoom) - contentHeightWithPadding ) / 2 - (currentVpHeight / currentVpZoom)
+        : (maxY + PADDING_FLOW) - (currentVpHeight / currentVpZoom);
+
+
+    const newExtent: [[number, number], [number, number]] = [
+        [-minVpX, -minVpY], // Translate extent is negative of viewport position
+        [-maxVpX, -maxVpY]
+    ];
+    
     if (
-      isNaN(minViewportX) || isNaN(maxViewportX) ||
-      isNaN(minViewportY) || isNaN(maxViewportY) ||
-      !isFinite(minViewportX) || !isFinite(maxViewportX) ||
-      !isFinite(minViewportY) || !isFinite(maxViewportY)
+      isNaN(newExtent[0][0]) || isNaN(newExtent[0][1]) || isNaN(newExtent[1][0]) || isNaN(newExtent[1][1]) ||
+      !isFinite(newExtent[0][0]) || !isFinite(newExtent[0][1]) || !isFinite(newExtent[1][0]) || !isFinite(newExtent[1][1])
     ) {
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
     
-    setCalculatedTranslateExtent([
-      [minViewportX, minViewportY],
-      [maxViewportX, maxViewportY]
-    ]);
+    setCalculatedTranslateExtent(newExtent);
 
-  }, [nodes, viewport]); 
+  }, [nodes, viewport, getViewport]); // Listen to viewport changes as well for zoom/resize
   
   return (
     <Card className={cn(
@@ -194,10 +213,11 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         onNodeContextMenu={onNodeContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
-        panOnDrag={!isViewOnlyMode}
+        panOnDrag={!isViewOnlyMode} // Enables touch panning if !isViewOnlyMode
+        selectionOnDrag={true} // Enables selection box by dragging on pane
         onPaneDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? onPaneDoubleClick : undefined}
         zoomOnDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? false : !isViewOnlyMode}
-        panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode}
+        panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined}
         zoomOnScroll={true}
         zoomOnPinch={true}
         minZoom={0.1}
