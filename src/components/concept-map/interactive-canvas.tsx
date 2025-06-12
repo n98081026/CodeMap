@@ -214,9 +214,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         onNodeContextMenu={onNodeContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
-        panOnDrag={!isViewOnlyMode} // Enables touch panning if !isViewOnlyMode
-        selectionOnDrag={true} // Enables selection box by dragging on pane
-        onPaneDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? onPaneDoubleClick : undefined}
+        onPaneDoubleClick={!isViewOnlyMode ? onPaneDoubleClick : undefined}
         zoomOnDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? false : !isViewOnlyMode}
         panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined}
         zoomOnScroll={true}
