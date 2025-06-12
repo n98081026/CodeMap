@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -91,7 +92,8 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
     setSelectedElement: setStoreSelectedElement, setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
-    editingNodeId, setEditingNodeId,
+    editingNodeId: editingNodeIdFromStore, // Get editingNodeId from store
+    setEditingNodeId,
   } = useConceptMapStore();
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
@@ -264,9 +266,20 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
   const handleRedoCallback = useCallback(() => temporalStoreAPI.getState().redo(), [temporalStoreAPI]);
   const handleEdgesDeleteCallback = useCallback((edgeId: string) => useConceptMapStore.getState().deleteEdge(edgeId), []);
 
-  const handleNodeAIExpandTriggeredCallback = useCallback((nodeId: string) => {
-    aiToolsHook.openExpandConceptModal(nodeId);
-  }, [aiToolsHook]);
+  const handleAddChildNodeFromHover = useCallback((parentNodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => {
+    if (storeIsViewOnlyMode) return;
+    const parentNode = useConceptMapStore.getState().mapData.nodes.find(n => n.id === parentNodeId);
+    if (!parentNode) return;
+
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const childPosition = getNodePlacement(currentNodes, 'child', parentNode, null, 20, direction);
+    const newNodeId = addNodeFromHook({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: parentNode.id });
+    addEdgeFromHook({ source: parentNode.id, target: newNodeId, label: "relates to" });
+    
+    setStoreSelectedElement(newNodeId, 'node');
+    setEditingNodeId(newNodeId);
+    toast({ title: "Child Node Added", description: "New child node created and selected."});
+  }, [storeIsViewOnlyMode, addNodeFromHook, addEdgeFromHook, setStoreSelectedElement, setEditingNodeId, toast]);
 
 
   const handleClearExtractedConceptsCallback = useCallback(() => useConceptMapStore.getState().setAiExtractedConcepts([]), []);
@@ -372,7 +385,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
               onEdgesDeleteInStore={handleEdgesDeleteCallback}
               onConnectInStore={addEdgeFromHook}
               onNodeContextMenu={handleNodeContextMenu}
-              onNodeAIExpandTriggered={handleNodeAIExpandTriggeredCallback}
+              onAddChildNodeRequestCallback={handleAddChildNodeFromHover}
               panActivationKeyCode="Space" // Enable Space+Drag to pan
             />
         </div>
@@ -397,7 +410,9 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
             <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
               selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType}
               onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
-              isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} />
+              isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode}
+              editingNodeId={editingNodeIdFromStore} 
+            />
           </SheetContent>
         </Sheet>
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
@@ -463,4 +478,6 @@ export default function ConceptMapEditorPageOuter() {
 
   return null;
 }
+    
+
     

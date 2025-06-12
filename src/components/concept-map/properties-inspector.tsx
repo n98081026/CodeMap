@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ interface PropertiesInspectorProps {
 
   isNewMapMode?: boolean; 
   isViewOnlyMode?: boolean;
+  editingNodeId?: string | null; // Added prop
 }
 
 export const PropertiesInspector = React.memo(function PropertiesInspector({ 
@@ -36,9 +37,30 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   selectedElementType,
   onSelectedElementPropertyUpdate,
   isNewMapMode, 
-  isViewOnlyMode 
+  isViewOnlyMode,
+  editingNodeId, // Destructure new prop
 }: PropertiesInspectorProps) {
   
+  const nodeLabelInputRef = useRef<HTMLInputElement>(null); // Ref for node label input
+
+  useEffect(() => {
+    if (
+      !isViewOnlyMode &&
+      selectedElementType === 'node' &&
+      selectedElement &&
+      editingNodeId &&
+      selectedElement.id === editingNodeId &&
+      nodeLabelInputRef.current
+    ) {
+      const timer = setTimeout(() => {
+        nodeLabelInputRef.current?.focus();
+        nodeLabelInputRef.current?.select();
+      }, 50); // Small delay for DOM readiness
+      return () => clearTimeout(timer);
+    }
+  }, [selectedElement, selectedElementType, editingNodeId, isViewOnlyMode]);
+
+
   const mapNameValue = currentMap?.name || "";
   const isPublicValue = currentMap?.isPublic || false;
   const sharedWithClassroomIdValue = currentMap?.sharedWithClassroomId || null;
@@ -210,7 +232,8 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       <div>
         <Label htmlFor="nodeLabel" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Label (Text)</Label>
         <Input 
-            id="nodeLabel" 
+            id="nodeLabel"
+            ref={nodeLabelInputRef} // Assign ref here
             value={elementLabelValue} 
             onChange={handleElementLabelChange} 
             disabled={isViewOnlyMode} 
@@ -457,3 +480,5 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
 });
 PropertiesInspector.displayName = "PropertiesInspector";
   
+
+    

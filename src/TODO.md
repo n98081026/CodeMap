@@ -84,9 +84,9 @@
             - [ ] Clarify if `parentNode` is still used alongside `childIds` for custom layouts (likely yes, for grouping benefits).
             - [ ] Define precedence if conflicts arise between default library layout and custom layout.
 - [x] **Floating Node Creation**: Implement: Double-click on canvas to create a new node at mouse position. New node is selected and label auto-focused.
-- [ ] **Child Node Creation via "+" Hover Buttons**: Implement: "+" icons on node hover (top, right, bottom, left). Clicking "+" adds a new child node in that direction, connects it, sets `parentNode`, selects, and auto-focuses label.
+- [x] **Child Node Creation via "+" Hover Buttons**: Implement: "+" icons on node hover (top, right, bottom, left). Clicking "+" adds a new child node in that direction, connects it, sets `parentNode`, selects, and auto-focuses label.
 - [x] **Keyboard-driven Node Creation**: Implement: Selected Node + `Tab` key creates child node. Selected Node + `Enter` key creates sibling node. New nodes are auto-positioned, connected (for child), parented, selected, and label auto-focused (via `editingNodeId`).
-- [x] **Auto-focus for New Nodes**: (Implemented with `editingNodeId` state. `PropertiesInspector` can use this to focus its label input).
+- [x] **Auto-focus for New Nodes**: (Implemented with `editingNodeId` state. `PropertiesInspector` uses this to focus its label input).
 - [x] **Hierarchical Node Movement**: Verified: React Flow's `parentNode` feature handles moving descendants with parent. (Ensured `parentNode` is managed in store).
 - [x] **Recursive deletion of child nodes when parent is deleted**: Implemented in Zustand store's `deleteNode` action.
 - [x] **Improved Connector Experience (`OrthogonalEdge.tsx` and beyond):**
@@ -101,15 +101,15 @@
     - [x] **SVG Path Generation Refinements:**
         - [x] Implemented rounded corners at bends using SVG arc commands.
         - [x] Implemented sharp corners for orthogonal edges when segments are too short for rounded bends.
-- [ ] **Edge Style Editing**:
+- [x] **Edge Style Editing**:
     - [x] Allow modifying edge label directly on canvas (double-click) - Verified for `OrthogonalEdge`.
-    - [ ] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
-    - [ ] Allow modifying arrow styles (start/end: none, arrow, arrowclosed) from `PropertiesInspector`.
+    - [x] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
+    - [x] Allow modifying arrow styles (start/end: none, arrow, arrowclosed) from `PropertiesInspector`.
 - [x] **Snapping Guides**:
     - [x] Full center-to-center and edge-to-edge node snapping implemented with visual guides.
     - [x] Snap-to-grid functionality (nodes align to grid on creation and drag if not node-snapped, node-to-node takes precedence) - Implement and verify.
-- [ ] **Node Auto-Sizing**: Implement & Verify: Nodes dynamically adjust size based on content (label, details) within min/max Tailwind CSS constraints. Details section becomes scrollable if content exceeds `max-h`. Explicitly set dimensions from store override auto-sizing.
-- [ ] **Node Dimension Editing**: Implement: Users can set explicit width/height for nodes in `PropertiesInspector`. Clearing reverts to auto-size.
+- [x] **Node Auto-Sizing**: Implement & Verify: Nodes dynamically adjust size based on content (label, details) within min/max Tailwind CSS constraints. Details section becomes scrollable if content exceeds `max-h`. Explicitly set dimensions from store override auto-sizing.
+- [x] **Node Dimension Editing**: Implement: Users can set explicit width/height for nodes in `PropertiesInspector`. Clearing reverts to auto-size.
 - [x] **Refined Pan & Zoom**:
     - [x] Min/max zoom levels explicitly set (0.1 - 4.0) - Verified active.
     - [x] Modifier key for pan (Spacebar + drag) implemented - Verified.
@@ -141,8 +141,8 @@
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
 - [x] **`EditorToolbar`**: Provides UI for Save, Add Node, Add Edge. GenAI tools (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) open respective modals. "New Map" and "Export Map" always enabled. "Add Edge" disabled if &lt;2 nodes. Undo/Redo buttons added. Toggle for AI Panel and Properties Inspector. "Expand Concept" and "Summarize Selected Nodes" buttons have context-aware disabling and tooltips.
 - [x] **`InteractiveCanvas` (React Flow)**: Core canvas for node/edge display, direct manipulation (drag, create, delete), zoom/pan. Nodes now have 4 connection handles. Managed by `FlowCanvasCore`.
-- [ ] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type, width, height, background color, shape for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented.
-    - [ ] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
+- [x] **`PropertiesInspector`**: Panel for editing map-level (name, visibility, classroom sharing) and selected element (label, details, type, width, height, background color, shape for nodes; label, color, lineType, markerStart, markerEnd for edges) properties. Changes update Zustand store and are saved via toolbar. View-only mode implemented.
+    - [x] Granular Node Style Editing: Allow modifying individual node background color, shape (rectangle, ellipse) from `PropertiesInspector`.
 - [x] **`GenAIModals`**: Dialogs for `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `QuickClusterModal`, `AskQuestionModal`, `GenerateSnippetModal`, `RewriteNodeContentModal` to interact with AI flows. Context menu now correctly opens these. Logic managed by `useConceptMapAITools`. Modal descriptions updated for clarity on output handling.
 - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions (primarily for Extract Concepts, Suggest Relations) with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed from panel after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel. Scroll behavior improved (removed nested scrolls).
     - [x] Selective Addition: "Add Selected" and "Add All New/Similar" implemented.
@@ -290,7 +290,7 @@ This section outlines tasks to fully migrate to Supabase.
 ## Known Issues / Current State
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
-- Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks. `editingNodeId` added for auto-focus (Properties Inspector can use this). Node hierarchy (`parentNode`, `childIds`) and recursive deletion implemented in store. Floating node creation (double-click) and keyboard node creation (Tab/Enter) implemented. Pan/Zoom refined with dynamic `translateExtent` and Spacebar panning. Node snapping (node-to-node & grid) with visual guides implemented. Orthogonal edges have rounded/sharp corners.
+- Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks. `editingNodeId` added for auto-focus in Properties Inspector. Node hierarchy (`parentNode`, `childIds`) and recursive deletion implemented in store. Floating node creation (double-click) and keyboard node creation (Tab/Enter) implemented. Pan/Zoom refined with dynamic `translateExtent` and Spacebar panning. Node snapping (node-to-node & grid) with visual guides implemented. Orthogonal edges have rounded/sharp corners. Node auto-sizing and explicit dimension/style editing via Properties Inspector implemented. Child node creation via hover "+" buttons is implemented.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
@@ -302,7 +302,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Core in-editor AI features (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) are implemented with specific visual cues for AI-generated/modified nodes. "Expand Concept", "Summarize Selection", and "Rewrite Content" now directly add/modify content on the map.
 - View-only mode for concept map editor is implemented. `PropertiesInspector` is fully refined for view-only mode.
 - Developer role switcher added to profile page for easier testing.
-- Developer test buttons previously on Project Upload Form have been removed for simplicity.
+- Developer test buttons previously on Project UploadForm have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`. Components within teacher classroom detail tabs are also memoized. `EditorToolbar`, `Navbar`, `SidebarNav` are memoized.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps. React Flow `nodeTypes`/`edgeTypes` warnings resolved.
@@ -319,3 +319,5 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
 ```
+
+    
