@@ -101,6 +101,7 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
         addDebugLog(`[DataManager loadMapDataInternal V10] Fetching from API: /api/concept-maps/${idToLoad} with timeout.`);
         response = await fetch(`/api/concept-maps/${idToLoad}`, { signal });
         clearTimeout(timeoutId); // Clear timeout if fetch completes or errors normally
+        addDebugLog(`[DataManager loadMapDataInternal V11] Raw response status for ID '${idToLoad}': ${response.status}`);
       } catch (fetchError) {
         clearTimeout(timeoutId); // Ensure timeout is cleared on any fetch error
         if ((fetchError as Error).name === 'AbortError') {
@@ -112,6 +113,7 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
       }
 
       if (!response.ok) {
+        addDebugLog(`[DataManager loadMapDataInternal V11] Response not OK for ID '${idToLoad}'. Status: ${response.status}. Attempting to parse error JSON.`);
         // If response is not ok, try to parse error message, otherwise use statusText
         let errorDetail = response.statusText;
         try {
@@ -136,7 +138,9 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
         return;
       }
       const data: ConceptMap = await response.json();
-      addDebugLog(`[DataManager loadMapDataInternal V10] Successfully loaded map ID: '${idToLoad}', Name: '${data.name}'`);
+      addDebugLog(`[DataManager loadMapDataInternal V11] Parsed data for ID '${idToLoad}': Nodes count: ${data.mapData?.nodes?.length ?? 'undefined/null'}. Edges count: ${data.mapData?.edges?.length ?? 'undefined/null'}. Map name: ${data.name}`);
+      addDebugLog(`[DataManager loadMapDataInternal V10] Successfully loaded map ID: '${idToLoad}', Name: '${data.name}'`); // Existing log
+      addDebugLog(`[DataManager loadMapDataInternal V11] Calling setLoadedMap for ID '${idToLoad}' with Nodes count: ${data.mapData?.nodes?.length ?? 'undefined/null'}. targetViewOnlyMode: ${targetViewOnlyMode}`);
       setLoadedMap(data, targetViewOnlyMode); // Sets initialLoadComplete = true
       useConceptMapStore.temporal.getState().clear();
     } catch (err) {
@@ -197,6 +201,7 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
 
       if (!storeIsAlreadyCorrectForNewMap) {
         addDebugLog(`[DataManager useEffect V10] Action: Initializing NEW map for user '${effectiveUserId}'. Store state: (mapId: ${storeMapId}, isNew: ${isNewMapMode}, owner: ${currentMapOwnerId}, initComp: ${initialLoadComplete})`);
+        addDebugLog(`[DataManager useEffect V11] Route is 'new'. Initializing new map for user '${effectiveUserId}'.`);
         initializeNewMap(effectiveUserId); // This sets initialLoadComplete = true & isLoading = false
         useConceptMapStore.temporal.getState().clear();
       } else {
@@ -210,21 +215,42 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
     }
 
     if (routeMapIdFromProps && routeMapIdFromProps !== 'new') {
-      const storeIsAlreadyCorrectForExistingMap =
-        storeMapId === routeMapIdFromProps &&
-        !isNewMapMode &&
-        !isLoading && 
-        initialLoadComplete;
+      const isCorrectMapIdInStore = storeMapId === routeMapIdFromProps;
+      // Check if the store believes a load for *some* map has finished, and it's not in new map mode, and not currently loading.
+      const isStoreInPotentiallyValidLoadedState = !isNewMapMode && initialLoadComplete && !isLoading;
 
-      addDebugLog(`[DataManager useEffect V10] DEBUG Existing: RouteID='${routeMapIdFromProps}'. Store: (mapId=${storeMapId}, isNew=${isNewMapMode}, owner=${currentMapOwnerId}, isLoading=${isLoading}, initComp=${initialLoadComplete}). Condition for load: ${!storeIsAlreadyCorrectForExistingMap}`);
+      let shouldLoad = false;
 
-      if (!storeIsAlreadyCorrectForExistingMap) {
-        addDebugLog(`[DataManager useEffect V10] Action: Loading existing map '${routeMapIdFromProps}' for user '${effectiveUserId}'. TargetViewOnly: ${isViewOnlyModeInStore}`);
+      if (!isCorrectMapIdInStore || isNewMapMode || isLoading || !initialLoadComplete) {
+        // This covers cases:
+        // 1. Wrong mapId in store.
+        // 2. Store is in new map mode (but route is for existing).
+        // 3. Store is actively loading something else.
+        // 4. No load has ever completed for the store.
+        shouldLoad = true;
+        addDebugLog(`[DataManager useEffect V12] Condition Met: Basic criteria for load (wrong ID, new mode, loading, or no initial load). isCorrectMapIdInStore: ${isCorrectMapIdInStore}, isNewMapMode: ${isNewMapMode}, isLoading: ${isLoading}, initialLoadComplete: ${initialLoadComplete}`);
+      } else if (isCorrectMapIdInStore && isStoreInPotentiallyValidLoadedState && mapData.nodes.length === 0) {
+        // Store has the correct map ID, and a load completed, and it's not loading,
+        // BUT there are no nodes. This implies the completed load might have been for an empty map (or data loss).
+        // Force a reload attempt to be sure, especially if user navigates to this map.
+        shouldLoad = true;
+        addDebugLog(`[DataManager useEffect V12] Condition Met: Correct mapId (${routeMapIdFromProps}) in store, load completed, but no nodes. Forcing reload.`);
+      }
+
+      addDebugLog(`[DataManager useEffect V12] Existing Map Evaluation: RouteID='${routeMapIdFromProps}'. mapData.nodes.length: ${mapData.nodes?.length ?? 'N/A'}. Calculated shouldLoad: ${shouldLoad}`);
+
+      if (shouldLoad) {
+        addDebugLog(`[DataManager useEffect V12] Action: Loading existing map '${routeMapIdFromProps}'. TargetViewOnly: ${isViewOnlyModeInStore}`);
+        // Ensure we set isLoading to true before calling loadMapDataInternal,
+        // as loadMapDataInternal itself will also set it, but this makes the state transition clearer.
+        // However, loadMapDataInternal sets isLoading(true) as its first step, so this might be redundant
+        // and could cause an extra re-render if not needed. Let's rely on loadMapDataInternal to set it.
         loadMapDataInternalRef.current(routeMapIdFromProps, isViewOnlyModeInStore);
       } else {
-        addDebugLog(`[DataManager useEffect V10] Info: Map ID '${routeMapIdFromProps}' already loaded and ready for user '${effectiveUserId}'. No re-load needed.`);
-        if (isLoading) { // Should not happen if storeIsAlreadyCorrectForExistingMap is true
-          addDebugLog('[DataManager useEffect V10] Cleanup: Existing map correct, but isLoading=true. Setting isLoading=false.');
+        addDebugLog(`[DataManager useEffect V12] Info: Map ID '${routeMapIdFromProps}' considered loaded and not requiring re-fetch.`);
+        // Ensure isLoading is false if we are not loading and it somehow got stuck true from a previous cycle.
+        if (isLoading) {
+          addDebugLog('[DataManager useEffect V12] Cleanup: Map considered loaded, not re-fetching, but isLoading was true. Setting isLoading=false.');
           setIsLoading(false);
         }
       }

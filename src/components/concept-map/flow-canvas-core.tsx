@@ -46,6 +46,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onPaneDoubleClickProp,
   panActivationKeyCode,
 }) => {
+  useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
   const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
   const reactFlowInstance = useReactFlow();
 
@@ -72,6 +73,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     dragHandle: '.cursor-move',
     parentNode: appNode.parentNode,
   })), [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered]);
+
+  useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Generated initialRfNodes. Count: ${initialRfNodes.length}`);
 
   const initialRfEdges = useMemo(() => (mapDataFromStore.edges || []).map(appEdge => ({
     id: appEdge.id,
