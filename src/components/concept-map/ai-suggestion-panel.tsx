@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2, Info, MessageSquareDashed, CheckSquare, Edit3, BotMessageSquare, Zap } from "lucide-react";
+import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, Waypoints, Trash2, Info, MessageSquareDashed, CheckSquare, Edit3, BotMessageSquare, Zap, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
@@ -164,7 +164,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             <EmptyState 
                 icon={MessageSquareDashed}
                 title={`No New ${title}`}
-                description={`No new ${title.toLowerCase()} to display currently.`}
+                description={`No new ${title.toLowerCase()} to display currently. Try using the AI tools to generate some!`}
             />
           </CardContent>
         </Card>
@@ -202,7 +202,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       }
     };
 
-    const handleSelectAllNew = (checked: boolean) => {
+    const handleSelectAllNewOrSimilar = (checked: boolean) => {
         const newSelectedIndices = new Set<number>();
         if (checked) {
             items.forEach((item, index) => {
@@ -227,7 +227,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             return true; 
         });
 
-    const countOfSelectedAndNew = items.filter((item, index) => {
+    const countOfSelectedAndSelectable = items.filter((item, index) => {
         const value = getComparableItemValue(item);
         const status = getItemStatus(value as string | {source: string; target: string});
         return selectedIndicesSet.has(index) && status !== 'exact-match';
@@ -249,7 +249,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                         <Checkbox
                             id={`${itemKeyPrefix}-select-all`}
                             checked={allSelectableAreChecked}
-                            onCheckedChange={(checkedState) => handleSelectAllNew(Boolean(checkedState))}
+                            onCheckedChange={(checkedState) => handleSelectAllNewOrSimilar(Boolean(checkedState))}
                             disabled={isViewOnlyMode}
                         />
                         <Label htmlFor={`${itemKeyPrefix}-select-all`} className="text-xs">Select New/Similar</Label>
@@ -301,10 +301,10 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
               size="sm"
               variant="outline"
               onClick={handleAddSelected}
-              disabled={isViewOnlyMode || countOfSelectedAndNew === 0}
+              disabled={isViewOnlyMode || countOfSelectedAndSelectable === 0}
               className="w-full sm:w-auto"
             >
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Selected ({countOfSelectedAndNew})
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Selected ({countOfSelectedAndSelectable})
             </Button>
             <Button
               size="sm"
@@ -350,10 +350,11 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     }
     return (
       <div className="flex items-center justify-between w-full group">
-        <Label htmlFor={`${type}-${index}`} className={cn("text-sm font-normal flex-grow cursor-pointer", (isExactMatch || isViewOnlyMode) && "cursor-default")}>
+        <Label htmlFor={`${type}-${index}`} className={cn("text-sm font-normal flex-grow cursor-pointer flex items-center", (isExactMatch || isViewOnlyMode) && "cursor-default")}>
+          {itemStatus === 'exact-match' && <CheckSquare className="h-4 w-4 mr-2 text-green-600 flex-shrink-0" title="Exact match on map"/>}
+          {itemStatus === 'similar-match' && <Zap className="h-4 w-4 mr-2 text-yellow-600 dark:text-yellow-400 flex-shrink-0" title="Similar concept on map"/>}
+          {itemStatus === 'new' && <PlusCircle className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" title="New concept"/>}
           {item.current}
-          {isExactMatch && <span className="ml-2 text-xs text-muted-foreground italic flex items-center"><CheckSquare className="h-3 w-3 mr-1 text-green-600"/>(already on map)</span>}
-          {isSimilarMatch && <span className="ml-2 text-xs text-yellow-700 dark:text-yellow-400 italic flex items-center"><Zap className="h-3 w-3 mr-1"/>(similar to existing)</span>}
         </Label>
         {!isViewOnlyMode && !isExactMatch && (
           <Button size="icon" variant="ghost" onClick={() => handleToggleEdit(type, index)} className="h-6 w-6 opacity-0 group-hover:opacity-100" disabled={isViewOnlyMode}>
@@ -386,12 +387,14 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         >
           {item.current[field]}
           {nodeExists && <CheckSquare className="h-3 w-3 ml-1 text-green-600 inline-block" title="This node exists on the map"/>}
+          {!nodeExists && field !== 'relation' && <AlertCircle className="h-3 w-3 ml-1 text-orange-500 inline-block" title="This node does not exist or differs from map"/>}
         </span>
       );
     };
 
     return (
       <div className="flex items-center text-sm group w-full">
+        <GitFork className="h-4 w-4 mr-2 text-purple-500 flex-shrink-0"/>
         {renderField('source', relationNodeExistence?.source)}
         <span className="mx-1">→</span>
         {renderField('target', relationNodeExistence?.target)}
@@ -464,7 +467,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             getConceptStatus, 
             checkRelationNodesExistOnMap,
             onAddSuggestedRelations, onClearSuggestedRelations, 
-            "bg-yellow-500/5 border-yellow-500/20", "text-yellow-700 dark:text-yellow-400"
+            "bg-purple-500/5 border-purple-500/20", "text-purple-700 dark:text-purple-400"
           )}
            {!hasAiOutput && hasMapDataNodes && ( 
             <div className="text-center py-6">
@@ -489,6 +492,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   );
 });
 AISuggestionPanel.displayName = "AISuggestionPanel";
+
 
 
 

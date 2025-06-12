@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -406,12 +407,14 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
                 {storeIsViewOnlyMode ? "Viewing properties. Editing is disabled." : "Edit properties for the selected element or the map."}
               </SheetDescription>
             </SheetHeader>
-            <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
-              selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType}
-              onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
-              isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode}
-              editingNodeId={editingNodeIdFromStore} 
-            />
+            {isPropertiesInspectorOpen && (
+              <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
+                selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType}
+                onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
+                isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode}
+                editingNodeId={editingNodeIdFromStore} 
+              />
+            )}
           </SheetContent>
         </Sheet>
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
@@ -422,12 +425,14 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
                 Review and add AI-generated concepts and relations to your map.
               </SheetDescription>
             </SheetHeader>
-            <AISuggestionPanel currentMapNodes={storeMapData.nodes}
-              extractedConcepts={aiExtractedConcepts} suggestedRelations={aiSuggestedRelations}
-              onAddExtractedConcepts={addExtractedConceptsToMap} onAddSuggestedRelations={addSuggestedRelationsToMap}
-              onClearExtractedConcepts={handleClearExtractedConceptsCallback}
-              onClearSuggestedRelations={handleClearSuggestedRelationsCallback}
-              isViewOnlyMode={storeIsViewOnlyMode} />
+            {isAiPanelOpen && (
+              <AISuggestionPanel currentMapNodes={storeMapData.nodes}
+                extractedConcepts={aiExtractedConcepts} suggestedRelations={aiSuggestedRelations}
+                onAddExtractedConcepts={addExtractedConceptsToMap} onAddSuggestedRelations={addSuggestedRelationsToMap}
+                onClearExtractedConcepts={handleClearExtractedConceptsCallback}
+                onClearSuggestedRelations={handleClearSuggestedRelationsCallback}
+                isViewOnlyMode={storeIsViewOnlyMode} />
+            )}
           </SheetContent>
         </Sheet>
 
@@ -480,3 +485,4 @@ export default function ConceptMapEditorPageOuter() {
     
 
     
+

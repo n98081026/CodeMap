@@ -1,3 +1,4 @@
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -48,7 +49,7 @@
         - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` is mock, now accepts storage path and user goals, and special hints for predefined mock outputs).
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output, creates new ConceptMap record via Supabase service - handled in `ProjectUploadForm` flow after AI tool returns).
         - [x] Map Data Formatter & Persister (saves generated map via Supabase service, updates submission status with real map ID - handled in `ProjectUploadForm` flow).
-    - [x] Connect frontend project submission UI to live API (for metadata, client-side upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service - handled in `ProjectUploadForm`).
+    - [x] Connect frontend project submission UI to live API (for metadata, client-side upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service - handled in `ProjectUploadForm` flow).
     - [x] Connect frontend student submissions list to live API. (Modularized with `SubmissionListItem` and `useSubmissionStatusPoller` hook).
     - [x] Connect frontend Admin Dashboard to fetch user & classroom counts dynamically with individual loading/error states (using `useAdminDashboardMetrics` hook and `DashboardLinkCard` component, respects BYPASS_AUTH).
     - [x] Connect frontend Student Dashboard to fetch classroom, map & submission counts dynamically with individual loading/error states (using `useStudentDashboardMetrics` hook and `DashboardLinkCard` component, respects BYPASS_AUTH).
@@ -229,6 +230,7 @@
         - [x] Use `next/dynamic` for `FlowCanvasCore`.
         - [x] Use `next/dynamic` for `AISuggestionPanel` and `PropertiesInspector` in `ConceptMapEditorPage`.
         - [x] Use `next/dynamic` for GenAI modals in `ConceptMapEditorPage`.
+        - [x] Use `next/dynamic` for `DebugLogViewerDialog` in `ConceptMapEditorPage`.
     - [ ] **Bundle Size Analysis:** (Future Task - Out of Scope for AI Agent) Periodically analyze the application bundle size and identify areas for reduction.
     - [x] Removed redundant `CanvasPlaceholder.tsx`.
     - [x] Removed redundant `/application/layout.tsx`.
@@ -304,10 +306,10 @@ This section outlines tasks to fully migrate to Supabase.
 - View-only mode for concept map editor is implemented. `PropertiesInspector` is fully refined for view-only mode.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project UploadForm have been removed for simplicity.
-- `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
+- `AISuggestionPanel` enhancements (visual cues, clear buttons, context-aware empty states) are implemented.
 - Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`. Components within teacher classroom detail tabs are also memoized. `EditorToolbar`, `Navbar`, `SidebarNav` are memoized. Toolbar AI buttons ("Expand Concept", "Summarize Selected Nodes") have context-aware disabling and tooltips.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps. React Flow `nodeTypes`/`edgeTypes` warnings resolved.
-- `PropertiesInspector` and `AISuggestionPanel` are dynamically imported in `ConceptMapEditorPage`. GenAI modals are also dynamically imported.
+- `PropertiesInspector`, `AISuggestionPanel`, all GenAI modals, and `DebugLogViewerDialog` are dynamically imported in `ConceptMapEditorPage`.
 - Redundant `CanvasPlaceholder.tsx` and `/application/layout.tsx` files have been removed.
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
@@ -318,3 +320,6 @@ The main remaining area for full Supabase connection is:
 
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
+
+```
+  
