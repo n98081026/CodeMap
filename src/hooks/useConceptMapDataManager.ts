@@ -184,7 +184,6 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
       const storeIsAlreadyCorrectForExistingMap =
         storeMapId === routeMapIdFromProps &&
         !isNewMapMode &&
-        currentMapOwnerId === effectiveUserId &&
         !isLoading && 
         initialLoadComplete;
 
