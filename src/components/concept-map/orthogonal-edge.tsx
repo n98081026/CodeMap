@@ -22,11 +22,12 @@ export interface OrthogonalEdgeData {
   lineType?: 'solid' | 'dashed';
 }
 
-const STRAIGHT_EXIT_LENGTH = 20;
-const CORNER_RADIUS = 10;
+const STRAIGHT_EXIT_LENGTH = 20; // Length of the straight segment exiting/entering a node
+const CORNER_RADIUS = 10; // Radius for rounded corners
 
 interface Point { x: number; y: number; }
 
+// Helper to calculate distance between two points
 const getDistance = (p1: Point, p2: Point) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
 
 
@@ -41,28 +42,31 @@ const getManhattanPath = (
   let currentX = sourceX;
   let currentY = sourceY;
 
+  // Determine initial anchor point based on sourcePosition
   let sourceAnchor: Point;
   if (sourcePosition === Position.Left) sourceAnchor = { x: currentX - STRAIGHT_EXIT_LENGTH, y: currentY };
   else if (sourcePosition === Position.Right) sourceAnchor = { x: currentX + STRAIGHT_EXIT_LENGTH, y: currentY };
   else if (sourcePosition === Position.Top) sourceAnchor = { x: currentX, y: currentY - STRAIGHT_EXIT_LENGTH };
-  else sourceAnchor = { x: currentX, y: currentY + STRAIGHT_EXIT_LENGTH };
+  else sourceAnchor = { x: currentX, y: currentY + STRAIGHT_EXIT_LENGTH }; // Bottom
   pathPoints.push(sourceAnchor);
   currentX = sourceAnchor.x;
   currentY = sourceAnchor.y;
 
+  // Determine final anchor point based on targetPosition
   let targetAnchor: Point;
   if (targetPosition === Position.Left) targetAnchor = { x: targetX - STRAIGHT_EXIT_LENGTH, y: targetY };
   else if (targetPosition === Position.Right) targetAnchor = { x: targetX + STRAIGHT_EXIT_LENGTH, y: targetY };
   else if (targetPosition === Position.Top) targetAnchor = { x: targetX, y: targetY - STRAIGHT_EXIT_LENGTH };
-  else targetAnchor = { x: targetX, y: targetY + STRAIGHT_EXIT_LENGTH };
+  else targetAnchor = { x: targetX, y: targetY + STRAIGHT_EXIT_LENGTH }; // Bottom
 
-  if (sourcePosition === Position.Left || sourcePosition === Position.Right) { 
-    if (currentX !== targetAnchor.x && currentY !== targetAnchor.y) { 
-      pathPoints.push({ x: currentX, y: targetAnchor.y }); 
+  // Add intermediate points to create orthogonal segments
+  if (sourcePosition === Position.Left || sourcePosition === Position.Right) {
+    if (currentY !== targetAnchor.y && currentX !== targetAnchor.x) {
+        pathPoints.push({ x: currentX, y: targetAnchor.y });
     }
   } else { 
-     if (currentX !== targetAnchor.x && currentY !== targetAnchor.y) { 
-      pathPoints.push({ x: targetAnchor.x, y: currentY }); 
+    if (currentX !== targetAnchor.x && currentY !== targetAnchor.y) {
+        pathPoints.push({ x: targetAnchor.x, y: currentY });
     }
   }
   
@@ -70,8 +74,9 @@ const getManhattanPath = (
   pathPoints.push({ x: targetX, y: targetY });
 
 
+  // Construct the SVG path string with rounded or sharp corners
   let d = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
-  let labelPointsForCalc: Point[] = []; 
+  let labelCandidatePoints: Point[] = []; 
 
   for (let i = 1; i < pathPoints.length; i++) {
     const p1 = pathPoints[i-1];
@@ -100,62 +105,59 @@ const getManhattanPath = (
             const arcStartX = p2.x - ndx1 * CORNER_RADIUS;
             const arcStartY = p2.y - ndy1 * CORNER_RADIUS;
             d += ` L ${arcStartX} ${arcStartY}`;
-            labelPointsForCalc.push({x: arcStartX, y: arcStartY});
+            labelCandidatePoints.push({x: arcStartX, y: arcStartY});
 
 
             const arcEndX = p2.x + ndx2 * CORNER_RADIUS;
             const arcEndY = p2.y + ndy2 * CORNER_RADIUS;
             
             const crossProduct = dx1 * dy2 - dy1 * dx2;
-            const sweepFlag = crossProduct > 0 ? 1 : 0;
+            const sweepFlag = crossProduct > 0 ? 1 : 0; 
 
             d += ` A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 ${sweepFlag} ${arcEndX} ${arcEndY}`;
-            labelPointsForCalc.push({x: arcEndX, y: arcEndY});
+            labelCandidatePoints.push({x: arcEndX, y: arcEndY});
 
         } else { 
             d += ` L ${p2.x} ${p2.y}`;
-            labelPointsForCalc.push({x:p2.x, y:p2.y});
+            labelCandidatePoints.push({x:p2.x, y:p2.y});
         }
     } else { 
         d += ` L ${p2.x} ${p2.y}`;
-        labelPointsForCalc.push({x:p2.x, y:p2.y});
+        labelCandidatePoints.push({x:p2.x, y:p2.y});
     }
   }
   
   let finalLabelX = (sourceX + targetX) / 2;
   let finalLabelY = (sourceY + targetY) / 2;
 
-  if (labelPointsForCalc.length >= 2) {
+  // Use pathPoints (original turn points) for label positioning logic
+  // as labelCandidatePoints might be on curves.
+  // Find the longest segment among intermediate segments (excluding first and last straight exits)
+  const intermediateSegments = pathPoints.slice(1, pathPoints.length - 1);
+  if (intermediateSegments.length >= 2) {
     let longestSegmentLength = -1;
     let segmentStartIndex = -1;
 
-    const eligibleLabelPoints = pathPoints.slice(1, pathPoints.length -1);
-
-    if (eligibleLabelPoints.length >= 2) {
-        for (let i = 0; i < eligibleLabelPoints.length - 1; i++) {
-            const len = getDistance(eligibleLabelPoints[i], eligibleLabelPoints[i+1]);
-            if (len > longestSegmentLength) {
-                longestSegmentLength = len;
-                segmentStartIndex = i;
-            }
+    for (let i = 0; i < intermediateSegments.length - 1; i++) {
+        const pA = intermediateSegments[i];
+        const pB = intermediateSegments[i+1];
+        const len = getDistance(pA, pB);
+        if (len > longestSegmentLength) {
+            longestSegmentLength = len;
+            segmentStartIndex = i;
         }
-        if (segmentStartIndex !== -1) {
-            const pA = eligibleLabelPoints[segmentStartIndex];
-            const pB = eligibleLabelPoints[segmentStartIndex + 1];
-            finalLabelX = (pA.x + pB.x) / 2;
-            finalLabelY = (pA.y + pB.y) / 2;
-        } else if (pathPoints.length > 1) { 
-            const firstSegMidX = (pathPoints[0].x + pathPoints[1].x) /2;
-            const firstSegMidY = (pathPoints[0].y + pathPoints[1].y) /2;
-            const lastSegMidX = (pathPoints[pathPoints.length-2].x + pathPoints[pathPoints.length-1].x) /2;
-            const lastSegMidY = (pathPoints[pathPoints.length-2].y + pathPoints[pathPoints.length-1].y) /2;
-            finalLabelX = (firstSegMidX + lastSegMidX)/2;
-            finalLabelY = (firstSegMidY + lastSegMidY)/2;
-        }
-    } else if (pathPoints.length > 1){ 
-         finalLabelX = (pathPoints[0].x + pathPoints[pathPoints.length-1].x) /2;
-         finalLabelY = (pathPoints[0].y + pathPoints[pathPoints.length-1].y) /2;
     }
+    if (segmentStartIndex !== -1) {
+        const pA = intermediateSegments[segmentStartIndex];
+        const pB = intermediateSegments[segmentStartIndex + 1];
+        finalLabelX = (pA.x + pB.x) / 2;
+        finalLabelY = (pA.y + pB.y) / 2;
+    }
+  } else if (pathPoints.length > 2) { // Fallback to the middle segment if only one (e.g. L-shape)
+    const pA = pathPoints[1]; // After sourceAnchor
+    const pB = pathPoints[2]; // targetAnchor
+    finalLabelX = (pA.x + pB.x) / 2;
+    finalLabelY = (pA.y + pB.y) / 2;
   }
 
 
@@ -173,7 +175,7 @@ export const getMarkerDefinition = (markerTypeString?: string, edgeColor?: strin
 };
 
 
-export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
+export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = React.memo(function OrthogonalEdge({
   id,
   sourceX,
   sourceY,
@@ -186,7 +188,7 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
   markerStart, 
   markerEnd,   
   selected,
-}) => {
+}) {
   const updateEdgeInStore = useConceptMapStore((state) => state.updateEdge);
   const isViewOnlyMode = useConceptMapStore(state => state.isViewOnlyMode);
 
@@ -289,6 +291,8 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = ({
       </EdgeLabelRenderer>
     </>
   );
-};
+});
+OrthogonalEdge.displayName = "OrthogonalEdge";
 
 export default OrthogonalEdge;
+
