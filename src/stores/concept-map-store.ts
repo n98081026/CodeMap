@@ -195,6 +195,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setLoadedMap: (map, viewOnly = false) => {
         get().addDebugLog(`[STORE] SET_LOADED_MAP CALLED! Map ID: ${map.id}, Name: ${map.name}, ViewOnly: ${viewOnly}`);
         get().addDebugLog(`[STORE setLoadedMap V11] Received map ID '${map.id}'. MapData nodes count: ${map.mapData?.nodes?.length ?? 'undefined/null'}, edges count: ${map.mapData?.edges?.length ?? 'undefined/null'}. ViewOnly: ${viewOnly}`);
+        if (!map.mapData || !map.mapData.nodes || map.mapData.nodes.length === 0) {
+          get().addDebugLog(`[STORE setLoadedMap V12] Map '${map.id}' ('${map.name}') is being loaded with 0 nodes.`);
+        }
         set({
           mapId: map.id,
           mapName: map.name,

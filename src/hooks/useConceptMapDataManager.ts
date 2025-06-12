@@ -51,6 +51,9 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
     setError(null);
     setInitialLoadComplete(false); // Reset on new load attempt
 
+    // setIsLoading(true) is called before try block
+    // setError(null) is called before try block
+    // setInitialLoadComplete(false) is called before try block
     try {
       if (BYPASS_AUTH_FOR_TESTING && idToLoad !== 'new') {
         addDebugLog(`[DataManager loadMapDataInternal V10] BYPASS: Attempting to load mock map for ID: ${idToLoad}`);
@@ -149,11 +152,11 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
       if (!(errorMsg.includes("User not authenticated") && effectiveUserForLoadHookId && errorMsg.includes("Cannot load map."))) {
         setError(errorMsg);
       }
-      // Do not set initialLoadComplete to true here on error path unless a new map is initialized.
-      // initializeNewMap and setLoadedMap handle setting it true on success.
+      addDebugLog(`[DataManager loadMapDataInternal V10 Catch] Setting initialLoadComplete=true after error: ${errorMsg}`);
+      setInitialLoadComplete(true); // Ensure load attempt is marked complete even on failure
       toast({ title: "Error Loading Map", description: errorMsg, variant: "destructive" });
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // This should always be called
       addDebugLog(`[DataManager loadMapDataInternal V10] Finished for ID: '${idToLoad}', isLoading set to false.`);
     }
   }, [

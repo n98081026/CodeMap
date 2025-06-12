@@ -13,7 +13,7 @@ import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save, EyeOff } from "lucide-react";
+import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save, EyeOff, HelpCircle } from "lucide-react";
 import {
   ExtractConceptsModal,
   SuggestRelationsModal,
@@ -248,6 +248,14 @@ export default function ConceptMapEditorPage() {
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
   if (storeError) { return <div className="p-4 text-destructive flex flex-col items-center justify-center h-full gap-4"><AlertTriangle className="h-10 w-10" /> <p>{storeError}</p> <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
 
+  const showEmptyMapMessage =
+    !isStoreLoading &&
+    useConceptMapStore.getState().initialLoadComplete &&
+    !storeError &&
+    routeMapId !== 'new' &&
+    storeMapData.nodes.length === 0 &&
+    storeMapId === routeMapId;
+
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col">
       <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileSelectedForImport} style={{ display: 'none' }} disabled={storeIsViewOnlyMode} />
@@ -285,6 +293,18 @@ export default function ConceptMapEditorPage() {
           numMultiSelectedNodes={multiSelectedNodeIds.length}
         />
         <div className="flex-grow relative overflow-hidden">
+          {showEmptyMapMessage ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+              <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Map Loaded, But It's Empty</h3>
+              <p className="text-muted-foreground">
+                This concept map was loaded successfully but currently has no nodes.
+              </p>
+              <p className="text-muted-foreground mt-1">
+                You can start building it by adding nodes using the toolbar above.
+              </p>
+            </div>
+          ) : (
             <FlowCanvasCore
               mapDataFromStore={storeMapData} isViewOnlyMode={storeIsViewOnlyMode}
               onSelectionChange={handleFlowSelectionChange} onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
@@ -295,6 +315,7 @@ export default function ConceptMapEditorPage() {
               onNodeContextMenu={handleNodeContextMenu}
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
             />
+          )}
         </div>
         {contextMenu?.isOpen && contextMenu.nodeId && (
           <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu}
