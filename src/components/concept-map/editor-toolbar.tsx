@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -31,10 +30,10 @@ interface EditorToolbarProps {
   canAddEdge?: boolean;
   onToggleProperties: () => void;
   onToggleAiPanel: () => void;
-  onToggleDebugLogViewer: () => void; // New prop
+  onToggleDebugLogViewer: () => void; 
   isPropertiesPanelOpen?: boolean;
   isAiPanelOpen?: boolean;
-  isDebugLogViewerOpen?: boolean; // New prop
+  isDebugLogViewerOpen?: boolean; 
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -61,16 +60,16 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   canAddEdge,
   onToggleProperties,
   onToggleAiPanel,
-  onToggleDebugLogViewer, // New prop
+  onToggleDebugLogViewer, 
   isPropertiesPanelOpen,
   isAiPanelOpen,
-  isDebugLogViewerOpen, // New prop
+  isDebugLogViewerOpen, 
   onUndo,
   onRedo,
   canUndo,
   canRedo,
   selectedNodeId,
-  numMultiSelectedNodes, // Correctly destructured prop
+  numMultiSelectedNodes, 
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -90,10 +89,10 @@ export const EditorToolbar = React.memo(function EditorToolbar({
     return "Expand Selected Concept (AI)";
   };
 
-  const isSummarizeNodesDisabled = isViewOnlyMode || numMultiSelectedNodes < 2; // CORRECTED: Used numMultiSelectedNodes
+  const isSummarizeNodesDisabled = isViewOnlyMode || numMultiSelectedNodes < 2;
   const getSummarizeNodesTooltip = () => {
     if (isViewOnlyMode) return "Summarize Selection (Disabled in View Mode)";
-    if (numMultiSelectedNodes < 2) return "Summarize Selection (Select 2+ nodes)"; // CORRECTED: Used numMultiSelectedNodes
+    if (numMultiSelectedNodes < 2) return "Summarize Selection (Select 2+ nodes)";
     return "Summarize Selection (AI)";
   };
 

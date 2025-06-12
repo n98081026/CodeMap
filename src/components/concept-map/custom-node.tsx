@@ -1,10 +1,15 @@
-
 "use client";
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
-// Lucide icons removed for simplification, will be added back if basic rendering works.
+import {
+  Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
+  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser
+} from 'lucide-react'; // Added Loader2
 
 export interface CustomNodeData {
   label: string;
@@ -15,55 +20,129 @@ export interface CustomNodeData {
   shape?: 'rectangle' | 'ellipse';
   width?: number;
   height?: number;
-  onTriggerAIExpand?: (nodeId: string) => void;
+  onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void; // For hover buttons
+  // onTriggerAIExpand?: (nodeId: string) => void; // Retained for potential future direct AI button on node
 }
+
+const NODE_MIN_WIDTH = 150;
+const NODE_MAX_WIDTH = 400;
+const NODE_MIN_HEIGHT = 70;
+const NODE_DETAILS_MAX_HEIGHT = 200;
+
+const TYPE_ICONS: { [key: string]: LucideIcon } = {
+  'default': Settings2,
+  'manual-node': Type,
+  'key_feature': Star,
+  'service_component': Workflow,
+  'ui_view': FileText,
+  'data_model': Database,
+  'code_module': SearchCode,
+  'external_dependency': ExternalLink,
+  'user_role': Users,
+  'core_process': Share2,
+  'security_concept': KeyRound,
+  'ai-concept': Lightbulb,
+  'ai-expanded': Brain,
+  'ai-summary-node': MessageSquareQuote,
+  'ai-rewritten-node': MessageSquareQuote,
+  'text-derived-concept': Lightbulb,
+  'ai-generated': Lightbulb, // Generic for quick cluster/snippet
+};
 
 const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, selected, xPos, yPos }) => {
   const {
-    isViewOnlyMode: globalIsViewOnlyMode
+    isViewOnlyMode: globalIsViewOnlyMode,
+    editingNodeId,
+    setEditingNodeId,
+    aiProcessingNodeId, // Get AI processing state
   } = useConceptMapStore();
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
+  const isBeingProcessedByAI = aiProcessingNodeId === id; // Check if this node is being processed
+
+  const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const nodeWidth = data.width || 'auto';
+  const nodeHeight = data.height || 'auto';
 
   const nodeStyle: React.CSSProperties = {
-    padding: '10px',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-    background: data.backgroundColor || 'white', // Basic background
-    width: data.width ? `${data.width}px` : '150px', // Basic width
-    minHeight: data.height ? `${data.height}px` : '50px', // Basic height
-    opacity: selected ? 0.8 : 1, // Example selection style
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    fontSize: '12px', // Basic font size
+    width: typeof nodeWidth === 'number' ? `${nodeWidth}px` : nodeWidth,
+    height: typeof nodeHeight === 'number' ? `${nodeHeight}px` : nodeHeight,
+    opacity: selected ? 0.95 : 1,
+    borderRadius: data.shape === 'ellipse' ? '50%' : '0.5rem', // Use theme radius
+    backgroundColor: data.backgroundColor || 'hsl(var(--card))',
   };
 
-  if (data.shape === 'ellipse') {
-    nodeStyle.borderRadius = '50%';
-    nodeStyle.width = data.width || data.height || 100; // Make ellipse a circle
-    nodeStyle.height = nodeStyle.width;
-    nodeStyle.display = 'flex';
-    nodeStyle.alignItems = 'center';
-    nodeStyle.justifyContent = 'center';
-  }
+  const handleNodeDoubleClick = () => {
+    if (!nodeIsViewOnly && data.label) {
+      setEditingNodeId(id); // Trigger focus in PropertiesInspector
+    }
+  };
+
+  const TypeIcon = TYPE_ICONS[data.type || 'default'] || Settings2;
+
+  const hoverButtonPositions = [
+    { pos: Position.Top, style: { top: '-10px', left: '50%', transform: 'translateX(-50%)' } },
+    { pos: Position.Right, style: { right: '-10px', top: '50%', transform: 'translateY(-50%)' } },
+    { pos: Position.Bottom, style: { bottom: '-10px', left: '50%', transform: 'translateX(-50%)' } },
+    { pos: Position.Left, style: { left: '-10px', top: '50%', transform: 'translateY(-50%)' } },
+  ] as const;
 
 
   return (
     <div
       style={nodeStyle}
       className={cn(
-        "nodrag relative shadow-md", // Basic classes
-        selected ? "ring-2 ring-primary" : "",
+        "nodrag relative shadow-md border border-border flex flex-col",
+        selected && !isBeingProcessedByAI ? "ring-2 ring-primary" : "", // Don't show ring if AI processing to avoid clash
         nodeIsViewOnly && "cursor-default",
-        !nodeIsViewOnly && "cursor-grab"
+        !nodeIsViewOnly && "cursor-grab",
+        data.shape === 'ellipse' && 'items-center justify-center text-center p-2' // Ellipse specific centering
       )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
-      <div>{data.label || "Untitled"}</div>
+      <Card
+        ref={cardRef}
+        className={cn(
+          "flex flex-col h-full w-full overflow-hidden",
+          data.shape === 'ellipse' ? 'rounded-full items-center justify-center' : 'rounded-lg',
+          (typeof nodeWidth === 'number' || data.width) ? '' : `min-w-[${NODE_MIN_WIDTH}px] max-w-[${NODE_MAX_WIDTH}px]`,
+          (typeof nodeHeight === 'number' || data.height) ? '' : `min-h-[${NODE_MIN_HEIGHT}px]`,
+          'bg-transparent border-0 shadow-none' // Card itself is transparent
+        )}
+      >
+        <CardHeader className={cn(
+          "cursor-move p-2 flex flex-row items-center space-x-2",
+          data.shape === 'ellipse' && 'justify-center items-center flex-col text-center'
+        )}>
+          <TypeIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <CardTitle className={cn(
+            "text-sm font-medium leading-tight line-clamp-2 break-words",
+            data.shape === 'ellipse' && 'text-center'
+          )}>
+            {data.label || "Untitled Node"}
+          </CardTitle>
+        </CardHeader>
 
-      {/* Basic Handles - Keep these for connectivity testing */}
+        {data.details && data.shape !== 'ellipse' && (
+          <CardContent className={cn(
+            "p-2 pt-0 text-xs text-muted-foreground flex-grow",
+            (typeof nodeHeight === 'number' || data.height) ? 'overflow-y-auto' : `max-h-[${NODE_DETAILS_MAX_HEIGHT}px] overflow-y-auto`
+          )}>
+            <ScrollArea className="h-full w-full"> {/* Ensures ScrollArea takes available space */}
+              <div className="whitespace-pre-wrap break-words">
+                {data.details}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Handles */}
       <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1" isConnectable={!nodeIsViewOnly} />
       <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1" isConnectable={!nodeIsViewOnly} />
       <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1" isConnectable={!nodeIsViewOnly} />
@@ -72,6 +151,29 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       <Handle type="target" position={Position.Bottom} id={`${id}-bottom-target`} className="react-flow__handle-custom !-bottom-1" isConnectable={!nodeIsViewOnly} />
       <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1" isConnectable={!nodeIsViewOnly} />
       <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1" isConnectable={!nodeIsViewOnly} />
+
+      {/* Hover buttons for adding child nodes */}
+      {!nodeIsViewOnly && isHovered && data.onAddChildNodeRequest && hoverButtonPositions.map(btn => (
+        <button
+          key={btn.pos}
+          onClick={(e) => { e.stopPropagation(); data.onAddChildNodeRequest?.(id, btn.pos); }}
+          className="absolute z-10 flex items-center justify-center w-5 h-5 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/80 transition-all opacity-0 group-hover/node:opacity-100"
+          style={btn.style}
+          title={`Add child node ${btn.pos}`}
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      ))}
+
+      {/* AI Processing Spinner Overlay */}
+      {isBeingProcessedByAI && (
+        <div className={cn(
+          "absolute inset-0 flex items-center justify-center bg-card/70 backdrop-blur-sm",
+           data.shape === 'ellipse' ? 'rounded-full' : 'rounded-lg' // Match node shape
+        )}>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
     </div>
   );
 };

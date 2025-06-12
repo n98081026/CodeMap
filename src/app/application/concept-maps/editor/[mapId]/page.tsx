@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -92,7 +91,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
     setSelectedElement: setStoreSelectedElement, setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
-    editingNodeId: editingNodeIdFromStore, // Get editingNodeId from store
+    editingNodeId: editingNodeIdFromStore, 
     setEditingNodeId,
   } = useConceptMapStore();
 
@@ -361,7 +360,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
         {!storeIsViewOnlyMode && <Button onClick={handleSaveMapCallback} disabled={isStoreSaving || storeIsViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
         <Button asChild variant="outline"><Link href={getBackLink()}><ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}</Link></Button>
       </DashboardHeader>
-      <ReactFlowProvider> {/* This Provider is essential for useReactFlow() hook used in InteractiveCanvas for viewport details */}
+      <ReactFlowProvider> 
         <EditorToolbar
           onNewMap={handleNewMap} onSaveMap={handleSaveMapCallback} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
           onExtractConcepts={handleExtractConceptsCallback}
@@ -374,7 +373,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen} isDebugLogViewerOpen={isDebugLogViewerOpen}
           onUndo={handleUndoCallback} onRedo={handleRedoCallback} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
-          numMultiSelectedNodeIds={multiSelectedNodeIds.length}
+          numMultiSelectedNodes={multiSelectedNodeIds.length}
         />
         <div className="flex-grow relative overflow-hidden">
             <FlowCanvasCore
@@ -386,17 +385,17 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
               onConnectInStore={addEdgeFromHook}
               onNodeContextMenu={handleNodeContextMenu}
               onAddChildNodeRequestCallback={handleAddChildNodeFromHover}
-              panActivationKeyCode="Space" // Enable Space+Drag to pan
+              panActivationKeyCode="Space" 
             />
         </div>
         {contextMenu?.isOpen && contextMenu.nodeId && (
           <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu}
             onDeleteNode={handleDeleteNodeFromContextMenu}
-            onExpandConcept={handleExpandConceptFromContextMenuCallback}
-            onSuggestRelations={handleSuggestRelationsFromContextMenuCallback}
-            onExtractConcepts={handleExtractConceptsFromContextMenuCallback}
-            onAskQuestion={handleAskQuestionFromContextMenuCallback}
-            onRewriteContent={handleRewriteContentFromContextMenuCallback}
+            onExpandConcept={() => handleExpandConceptFromContextMenuCallback()}
+            onSuggestRelations={() => handleSuggestRelationsFromContextMenuCallback()}
+            onExtractConcepts={() => handleExtractConceptsFromContextMenuCallback()}
+            onAskQuestion={() => handleAskQuestionFromContextMenuCallback()}
+            onRewriteContent={() => handleRewriteContentFromContextMenuCallback()}
             isViewOnlyMode={storeIsViewOnlyMode} />
         )}
         <Sheet open={isPropertiesInspectorOpen} onOpenChange={setIsPropertiesInspectorOpen}>

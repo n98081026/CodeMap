@@ -1,5 +1,3 @@
-
-
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -181,7 +179,10 @@
 - [x] **Output Handling & User Interaction for Project Analysis**
 - [x] **Improve Core AI-Powered Concept Mapping Tools (Whimsical-Inspired Focus):**
     - [x] **Canvas-Integrated AI Brainstorming & Expansion**
-    - [x] **Enhanced Context for In-Editor AI Tools**
+        - [x] **Context Menu AI Actions:** Expand, Suggest Relations, Extract Concepts, Ask AI Question, Rewrite Content on node context menus (handled by `useConceptMapAITools` and `NodeContextMenu`).
+        - [x] **"Quick AI Node/Cluster" on Canvas:** Implemented via Toolbar Modal (`QuickClusterModal`, managed by `useConceptMapAITools`).
+        - [x] **AI for Structuring Text into Map Snippets:** Implemented `GenerateSnippetModal` and flow (managed by `useConceptMapAITools`).
+    - [x] **Enhanced Context for In-Editor AI Tools** (Context gathering for modals from selected nodes/neighbors is implemented in `useConceptMapAITools`)
     - [x] **Refine "Expand Concept" Interaction**
     - [x] **Implement "Summarize Selected Nodes (AI)" Feature**
     - [x] **Implement "Rewrite Node Content (AI) / Change Tone" Feature**
@@ -290,7 +291,7 @@ This section outlines tasks to fully migrate to Supabase.
 ## Known Issues / Current State
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
-- Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks. `editingNodeId` added for auto-focus in Properties Inspector. Node hierarchy (`parentNode`, `childIds`) and recursive deletion implemented in store. Floating node creation (double-click) and keyboard node creation (Tab/Enter) implemented. Pan/Zoom refined with dynamic `translateExtent` and Spacebar panning. Node snapping (node-to-node & grid) with visual guides implemented. Orthogonal edges have rounded/sharp corners. Node auto-sizing and explicit dimension/style editing via Properties Inspector implemented. Child node creation via hover "+" buttons is implemented. Visual grid background is active.
+- Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks. `editingNodeId` added for auto-focus in Properties Inspector. Node hierarchy (`parentNode`, `childIds`) and recursive deletion implemented in store. Floating node creation (double-click) and keyboard node creation (Tab/Enter) implemented. Pan/Zoom refined with dynamic `translateExtent` and Spacebar panning. Node snapping (node-to-node & grid) with visual guides implemented. Orthogonal edges have rounded/sharp corners. Node auto-sizing and explicit dimension/style editing via Properties Inspector implemented. Child node creation via hover "+" buttons is implemented. Visual grid background is active. Node-specific AI loading spinner implemented.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
@@ -299,12 +300,12 @@ This section outlines tasks to fully migrate to Supabase.
 - Dashboard counts are fetched from Supabase-backed APIs using custom hooks, which also respect `BYPASS_AUTH_FOR_TESTING`. `QuickActionsCard` integrated.
 - Classroom management, Concept Map management, and Student Submissions list are connected to Supabase and use modular components. Student Classroom Detail page implemented.
 - The application is highly modular, with reusable components for UI patterns, custom hooks for complex logic, and service layers for backend interaction.
-- Core in-editor AI features (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) are implemented with specific visual cues for AI-generated/modified nodes. "Expand Concept", "Summarize Selection", and "Rewrite Content" now directly add/modify content on the map.
+- Core in-editor AI features (Extract Concepts, Suggest Relations, Expand Concept, Quick Cluster, Generate Snippet, Summarize Selection, Rewrite Content) are implemented with specific visual cues for AI-generated/modified nodes. "Expand Concept", "Summarize Selection", and "Rewrite Content" now directly add/modify content on the map. Context menu AI actions are fully wired up.
 - View-only mode for concept map editor is implemented. `PropertiesInspector` is fully refined for view-only mode.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project UploadForm have been removed for simplicity.
 - `AISuggestionPanel` no longer handles "Expand Concept" results; primarily for "Extract Concepts" and "Suggest Relations".
-- Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`. Components within teacher classroom detail tabs are also memoized. `EditorToolbar`, `Navbar`, `SidebarNav` are memoized.
+- Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`. Components within teacher classroom detail tabs are also memoized. `EditorToolbar`, `Navbar`, `SidebarNav` are memoized. Toolbar AI buttons ("Expand Concept", "Summarize Selected Nodes") have context-aware disabling and tooltips.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps. React Flow `nodeTypes`/`edgeTypes` warnings resolved.
 - `PropertiesInspector` and `AISuggestionPanel` are dynamically imported in `ConceptMapEditorPage`. GenAI modals are also dynamically imported.
 - Redundant `CanvasPlaceholder.tsx` and `/application/layout.tsx` files have been removed.
@@ -317,5 +318,3 @@ The main remaining area for full Supabase connection is:
 
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
-
-```

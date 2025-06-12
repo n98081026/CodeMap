@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback } from 'react';
@@ -16,7 +15,7 @@ import {
 // Import directly from the flow file, using alias and ensuring .ts extension
 import { 
     rewriteNodeContent as aiRewriteNodeContent,
-    type RewriteNodeContentOutput // Ensure type is imported if needed elsewhere by this hook or its consumers
+    type RewriteNodeContentOutput 
 } from '@/ai/flows/rewrite-node-content-logic.ts'; 
 
 import type {
@@ -26,7 +25,6 @@ import type {
   GenerateQuickClusterOutput,
   SuggestRelationsOutput,
   SummarizeNodesOutput
-  // RewriteNodeContentOutput is already imported above
 } from '@/ai/flows'; 
 import type { ConceptMapNode } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
