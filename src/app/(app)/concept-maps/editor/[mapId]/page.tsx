@@ -63,7 +63,13 @@ export default function ConceptMapEditorPage() {
     setSelectedElement: setStoreSelectedElement, setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
+    addDebugLog, // Added addDebugLog
   } = useConceptMapStore();
+
+  useEffect(() => {
+    // Log storeMapData changes
+    addDebugLog(`[EditorPage V11] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${useConceptMapStore.getState().initialLoadComplete}`);
+  }, [storeMapData, isStoreLoading, addDebugLog]);
 
   useEffect(() => {
     setStoreIsViewOnlyMode(isViewOnlyModeQueryParam);

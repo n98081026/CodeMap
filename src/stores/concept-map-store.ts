@@ -166,6 +166,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
         const previousMapId = get().mapId;
         const previousIsNewMapMode = get().isNewMapMode;
         get().addDebugLog(`[STORE] INITIALIZE_NEW_MAP CALLED! User: ${userId}. Prev mapId: ${previousMapId}, prevIsNew: ${previousIsNewMapMode}.`);
+        get().addDebugLog(`[STORE initializeNewMap V11] Setting mapData to empty nodes/edges. User: ${userId}.`);
 
         const newMapState = {
           ...initialStateBase,
@@ -193,6 +194,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       },
       setLoadedMap: (map, viewOnly = false) => {
         get().addDebugLog(`[STORE] SET_LOADED_MAP CALLED! Map ID: ${map.id}, Name: ${map.name}, ViewOnly: ${viewOnly}`);
+        get().addDebugLog(`[STORE setLoadedMap V11] Received map ID '${map.id}'. MapData nodes count: ${map.mapData?.nodes?.length ?? 'undefined/null'}, edges count: ${map.mapData?.edges?.length ?? 'undefined/null'}. ViewOnly: ${viewOnly}`);
         set({
           mapId: map.id,
           mapName: map.name,
