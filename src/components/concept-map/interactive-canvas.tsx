@@ -227,7 +227,15 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
+      "relative" // Added relative positioning for the absolute positioned hint
     )}>
+      {nodes.length === 0 && !isViewOnlyMode && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <p className="text-sm text-muted-foreground/50 italic">
+            Double-click to add a new node, or use the toolbar.
+          </p>
+        </div>
+      )}
       <ReactFlow {...reactFlowProps}>
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
