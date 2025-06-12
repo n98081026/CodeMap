@@ -12,14 +12,14 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const AskQuestionAboutNodeInputSchema = z.object({
+const AskQuestionAboutNodeInputSchema = z.object({
   nodeText: z.string().describe('The main text/label of the concept map node.'),
   nodeDetails: z.string().optional().describe('Optional additional details or description associated with the node.'),
   question: z.string().describe("The user's question about this node."),
 });
 export type AskQuestionAboutNodeInput = z.infer<typeof AskQuestionAboutNodeInputSchema>;
 
-export const AskQuestionAboutNodeOutputSchema = z.object({
+const AskQuestionAboutNodeOutputSchema = z.object({
   answer: z.string().describe('The AI-generated answer to the question.'),
 });
 export type AskQuestionAboutNodeOutput = z.infer<typeof AskQuestionAboutNodeOutputSchema>;
@@ -60,3 +60,4 @@ const askQuestionAboutNodeFlow = ai.defineFlow(
     return output!;
   }
 );
+

@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileOverview A Genkit tool to analyze project structure.
  * This is the initial setup with MOCK data. Actual analysis logic is pending.
@@ -200,4 +199,3 @@ export const projectStructureAnalyzerTool = ai.defineTool(
   },
   analyzeProjectStructure // Using the async function directly
 );
-

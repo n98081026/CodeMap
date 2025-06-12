@@ -5,14 +5,14 @@
  * @fileOverview A Genkit flow to generate a concept map snippet from a block of text.
  *
  * - generateMapSnippetFromText - Function to handle snippet generation.
- * - GenerateMapSnippetInputSchema - Input schema.
- * - GenerateMapSnippetOutputSchema - Output schema.
+ * - GenerateMapSnippetInput - Input type.
+ * - GenerateMapSnippetOutput - Output type.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateMapSnippetInputSchema = z.object({
+const GenerateMapSnippetInputSchema = z.object({
   text: z.string().min(50, { message: "Text should be at least 50 characters to generate a meaningful snippet."})
     .describe('A block of text (e.g., meeting notes, documentation paragraph) to analyze and structure into a concept map snippet.'),
 });
@@ -30,7 +30,7 @@ const EdgeSchema = z.object({
   relationLabel: z.string().describe('A concise label describing the relationship (e.g., "influences", "discusses", "responsible_for", "part_of").'),
 });
 
-export const GenerateMapSnippetOutputSchema = z.object({
+const GenerateMapSnippetOutputSchema = z.object({
   nodes: z.array(NodeSchema).min(2).max(7).describe('An array of 2 to 7 generated concept nodes representing key entities or ideas from the text.'),
   edges: z.array(EdgeSchema).min(1).max(5).optional().describe('An optional array of 1 to 5 suggested edges connecting the generated nodes, representing relationships found in the text.'),
 });
@@ -94,4 +94,3 @@ const generateMapSnippetFromTextFlow = ai.defineFlow(
     return output!;
   }
 );
-

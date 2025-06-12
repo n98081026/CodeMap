@@ -1,30 +1,31 @@
+
 // src/ai/flows/summarize-nodes-flow.ts
 'use server';
 /**
  * @fileOverview A Genkit flow to summarize the content of multiple concept map nodes.
  *
- * - summarizeNodesFlow - Function to handle the summarization.
- * - SummarizeNodesInputSchema - Input schema for the flow.
- * - SummarizeNodesOutputSchema - Output schema for the flow.
+ * - summarizeNodes - Function to handle the summarization. (Renamed from summarizeNodesFlow for clarity)
+ * - SummarizeNodesInput - Input type for the flow.
+ * - SummarizeNodesOutput - Output type for the flow.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const SummarizeNodesInputSchema = z.object({
+const SummarizeNodesInputSchema = z.object({
   nodeContents: z.array(z.string().min(1, { message: "Node content cannot be empty." }))
     .min(1, { message: "At least one node content is required for summarization."})
     .describe('An array of text content from the selected concept map nodes.'),
 });
 export type SummarizeNodesInput = z.infer<typeof SummarizeNodesInputSchema>;
 
-export const SummarizeNodesOutputSchema = z.object({
+const SummarizeNodesOutputSchema = z.object({
   summary: z.string().describe('A concise summary of all provided node contents.'),
 });
 export type SummarizeNodesOutput = z.infer<typeof SummarizeNodesOutputSchema>;
 
 export async function summarizeNodes(input: SummarizeNodesInput): Promise<SummarizeNodesOutput> {
-  return summarizeNodesFlow(input);
+  return summarizeNodesInternalFlow(input);
 }
 
 const prompt = ai.definePrompt({
@@ -48,9 +49,9 @@ Example:
 `,
 });
 
-const summarizeNodesFlow = ai.defineFlow(
+const summarizeNodesInternalFlow = ai.defineFlow( // Renamed internal flow variable
   {
-    name: 'summarizeNodesFlow',
+    name: 'summarizeNodesFlow', // Genkit flow name can remain for Dev UI consistency
     inputSchema: SummarizeNodesInputSchema,
     outputSchema: SummarizeNodesOutputSchema,
   },

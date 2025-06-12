@@ -1,3 +1,4 @@
+
 // src/ai/flows/rewrite-node-content-logic.ts
 // Original filename was rewrite-node-content-flow.ts
 'use server';
@@ -5,14 +6,14 @@
  * @fileOverview A Genkit flow to rewrite node content based on a target tone.
  *
  * - rewriteNodeContent - Function to handle the content rewriting.
- * - RewriteNodeContentInputSchema - Input schema for the flow.
- * - RewriteNodeContentOutputSchema - Output schema for the flow.
+ * - RewriteNodeContentInput - Input schema for the flow.
+ * - RewriteNodeContentOutput - Output schema for the flow.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const RewriteNodeContentInputSchema = z.object({
+const RewriteNodeContentInputSchema = z.object({
   currentText: z.string().describe('The current text content of the concept map node.'),
   currentDetails: z.string().optional().describe('Optional current detailed description of the node.'),
   targetTone: z.enum([
@@ -27,7 +28,7 @@ export const RewriteNodeContentInputSchema = z.object({
 });
 export type RewriteNodeContentInput = z.infer<typeof RewriteNodeContentInputSchema>;
 
-export const RewriteNodeContentOutputSchema = z.object({
+const RewriteNodeContentOutputSchema = z.object({
   rewrittenText: z.string().describe('The AI-rewritten text content for the node.'),
   rewrittenDetails: z.string().optional().describe('Optional AI-rewritten detailed description for the node.'),
 });
@@ -83,4 +84,3 @@ const rewriteNodeContentFlow = ai.defineFlow(
     return output!;
   }
 );
-
