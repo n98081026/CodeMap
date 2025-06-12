@@ -87,11 +87,40 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
         throw new Error(authErrorMsg);
       }
 
-      addDebugLog(`[DataManager loadMapDataInternal V10] Fetching from API: /api/concept-maps/${idToLoad}`);
-      const response = await fetch(`/api/concept-maps/${idToLoad}`);
+      let response; // Declare response outside the try block
+      const controller = new AbortController();
+      const signal = controller.signal;
+      const FETCH_TIMEOUT = 15000; // 15 seconds
+
+      const timeoutId = setTimeout(() => {
+        addDebugLog(`[DataManager loadMapDataInternal V10] Fetch timeout triggered for ID: ${idToLoad}`);
+        controller.abort();
+      }, FETCH_TIMEOUT);
+
+      try {
+        addDebugLog(`[DataManager loadMapDataInternal V10] Fetching from API: /api/concept-maps/${idToLoad} with timeout.`);
+        response = await fetch(`/api/concept-maps/${idToLoad}`, { signal });
+        clearTimeout(timeoutId); // Clear timeout if fetch completes or errors normally
+      } catch (fetchError) {
+        clearTimeout(timeoutId); // Ensure timeout is cleared on any fetch error
+        if ((fetchError as Error).name === 'AbortError') {
+          addDebugLog(`[DataManager loadMapDataInternal V10] Fetch aborted for ID: ${idToLoad} (likely due to timeout).`);
+          throw new Error(`Map load timed out for '${idToLoad}'.`);
+        }
+        addDebugLog(`[DataManager loadMapDataInternal V10] Fetch error for ID: ${idToLoad}: ${(fetchError as Error).message}`);
+        throw fetchError; // Re-throw other fetch errors
+      }
+
       if (!response.ok) {
-        const errData = await response.json();
-        const errorMsg = `Map Load Failed for '${idToLoad}': ${errData.message || response.statusText}`;
+        // If response is not ok, try to parse error message, otherwise use statusText
+        let errorDetail = response.statusText;
+        try {
+          const errData = await response.json();
+          errorDetail = errData.message || errorDetail;
+        } catch (parseError) {
+          addDebugLog(`[DataManager loadMapDataInternal V10] Could not parse error response for ID: ${idToLoad}`);
+        }
+        const errorMsg = `Map Load Failed for '${idToLoad}': ${errorDetail}`;
         addDebugLog(`[DataManager loadMapDataInternal V10] ${errorMsg}`);
 
         if (effectiveUserForLoadHookId) {
