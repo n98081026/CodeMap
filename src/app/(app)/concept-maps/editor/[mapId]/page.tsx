@@ -92,8 +92,34 @@ export default function ConceptMapEditorPage() {
     handleSummarizeSelectedNodes,
     addStoreNode: addNodeFromHook,
     addStoreEdge: addEdgeFromHook,
+    // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
   } = aiToolsHook;
 
+  // Memoized callback for saving the map
+  const handleSaveMap = useCallback(() => {
+    saveMap(storeIsViewOnlyMode);
+  }, [saveMap, storeIsViewOnlyMode]);
+
+  // Memoized callbacks for AI modal triggers
+  const handleExtractConcepts = useCallback(() => {
+    openExtractConceptsModal(selectedElementId || undefined);
+  }, [openExtractConceptsModal, selectedElementId]);
+
+  const handleSuggestRelations = useCallback(() => {
+    openSuggestRelationsModal(selectedElementId || undefined);
+  }, [openSuggestRelationsModal, selectedElementId]);
+
+  const handleExpandConcept = useCallback(() => {
+    openExpandConceptModal(selectedElementId || undefined);
+  }, [openExpandConceptModal, selectedElementId]);
+
+  const handleQuickCluster = useCallback(() => {
+    openQuickClusterModal();
+  }, [openQuickClusterModal]);
+
+  const handleGenerateSnippetFromText = useCallback(() => {
+    openGenerateSnippetModal();
+  }, [openGenerateSnippetModal]);
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
@@ -115,23 +141,23 @@ export default function ConceptMapEditorPage() {
     setStoreMultiSelectedNodeIds(nodeIds);
   }, [setStoreMultiSelectedNodeIds]);
 
-  const handleAddNodeToData = () => {
+  const handleAddNodeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
-    const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
-    const { x, y } = aiToolsHook.getNodePlacement(useConceptMapStore.getState().mapData.nodes.length, 'generic', null, null, 20);
+    const newNodeText = `Node ${storeMapData.nodes.length + 1}`; // Use storeMapData from store for length
+    const { x, y } = aiToolsHook.getNodePlacement(storeMapData.nodes.length, 'generic', null, null, 20);
     addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
-  };
+  }, [storeIsViewOnlyMode, toast, aiToolsHook.getNodePlacement, addNodeFromHook, storeMapData.nodes]);
 
-  const handleAddEdgeToData = () => {
+  const handleAddEdgeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
-    const nodes = useConceptMapStore.getState().mapData.nodes;
+    const nodes = storeMapData.nodes; // Use storeMapData from store
     if (nodes.length < 2) { toast({ title: "Cannot Add Edge", description: "At least two nodes are required to add an edge.", variant: "default" }); return; }
     const sourceNode = nodes[nodes.length - 2]; const targetNode = nodes[nodes.length - 1];
     if (!sourceNode || !targetNode) { toast({ title: "Error Adding Edge", description: "Source or target node for edge not found.", variant: "destructive"}); return; }
     addEdgeFromHook({ source: sourceNode.id, target: targetNode.id, label: 'connects' });
     toast({ title: "Edge Added" });
-  };
+  }, [storeIsViewOnlyMode, toast, addEdgeFromHook, storeMapData.nodes]);
 
   const getRoleBasedDashboardLink = useCallback(() => { return user ? `/application/${user.role}/dashboard` : '/login'; }, [user]);
   const getBackLink = useCallback(() => { return user && user.role === UserRole.TEACHER ? "/application/teacher/classrooms" : "/application/student/concept-maps"; }, [user]);
@@ -225,19 +251,28 @@ export default function ConceptMapEditorPage() {
         icon={storeIsViewOnlyMode ? EyeOff : (isNewMapMode || storeMapId === 'new') ? Compass : Share2}
         iconLinkHref={getRoleBasedDashboardLink()}
       >
-        {!storeIsViewOnlyMode && <Button onClick={() => saveMap(storeIsViewOnlyMode)} disabled={isStoreSaving || storeIsViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
+        {!storeIsViewOnlyMode && <Button onClick={handleSaveMap} disabled={isStoreSaving || storeIsViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
         <Button asChild variant="outline"><Link href={getBackLink()}><ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}</Link></Button>
       </DashboardHeader>
       <ReactFlowProvider>
         <EditorToolbar
-          onNewMap={handleNewMap} onSaveMap={() => saveMap(storeIsViewOnlyMode)} isSaving={isStoreSaving} onExportMap={handleExportMap} onTriggerImport={handleTriggerImport}
-          onExtractConcepts={() => openExtractConceptsModal(selectedElementId || undefined)}
-          onSuggestRelations={() => openSuggestRelationsModal(selectedElementId || undefined)}
-          onExpandConcept={() => openExpandConceptModal(selectedElementId || undefined)}
-          onQuickCluster={openQuickClusterModal} onGenerateSnippetFromText={openGenerateSnippetModal}
-          onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
-          isViewOnlyMode={storeIsViewOnlyMode} onAddNodeToData={handleAddNodeToData} onAddEdgeToData={handleAddEdgeToData} canAddEdge={canAddEdge}
-          onToggleProperties={onTogglePropertiesInspector} onToggleAiPanel={onToggleAiPanel}
+          onNewMap={handleNewMap}
+          onSaveMap={handleSaveMap}
+          isSaving={isStoreSaving}
+          onExportMap={handleExportMap}
+          onTriggerImport={handleTriggerImport}
+          onExtractConcepts={handleExtractConcepts}
+          onSuggestRelations={handleSuggestRelations}
+          onExpandConcept={handleExpandConcept}
+          onQuickCluster={handleQuickCluster}
+          onGenerateSnippetFromText={handleGenerateSnippetFromText}
+          onSummarizeSelectedNodes={handleSummarizeSelectedNodes} {/* Assumed stable from hook */}
+          isViewOnlyMode={storeIsViewOnlyMode}
+          onAddNodeToData={handleAddNodeToData}
+          onAddEdgeToData={handleAddEdgeToData}
+          canAddEdge={canAddEdge}
+          onToggleProperties={onTogglePropertiesInspector}
+          onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
           onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
