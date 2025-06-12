@@ -28,10 +28,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { EmptyState } from "@/components/layout/empty-state";
 import { EditUserDialog } from '@/components/admin/users/edit-user-dialog';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { MOCK_ADMIN_USER, MOCK_STUDENT_USER, MOCK_TEACHER_USER } from '@/lib/config';
+import { MOCK_ADMIN_USER_V3, MOCK_STUDENT_USER_V3, MOCK_TEACHER_USER_V3 } from '@/lib/config';
 
 const USERS_PER_PAGE = 15;
-const PREDEFINED_MOCK_USER_IDS = [MOCK_STUDENT_USER.id, MOCK_TEACHER_USER.id, MOCK_ADMIN_USER.id];
+const PREDEFINED_MOCK_USER_IDS = [MOCK_STUDENT_USER_V3.id, MOCK_TEACHER_USER_V3.id, MOCK_ADMIN_USER_V3.id];
 
 
 export default function AdminUsersPage() {
@@ -235,7 +235,7 @@ export default function AdminUsersPage() {
                           height: `${virtualRow.size}px`,
                           transform: `translateY(${virtualRow.start}px)`,
                         }}
-                        ref={rowVirtualizer.measureElement}
+                        ref={(el) => rowVirtualizer.measureElement(el)}
                         data-index={virtualRow.index}
                       >
                         <TableCell className="font-medium">{userRow.name}</TableCell>
@@ -333,3 +333,4 @@ export default function AdminUsersPage() {
   );
 }
 
+    

@@ -104,7 +104,7 @@ export const ClassroomStudentsTab: React.FC<ClassroomStudentsTabProps> = React.m
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
-                  ref={virtualRow.measureElement}
+                  ref={(el) => rowVirtualizer.measureElement(el)}
                   data-index={virtualRow.index}
                 >
                   <TableCell className="font-medium">{student.name}</TableCell>

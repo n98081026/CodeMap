@@ -1,4 +1,5 @@
 
+
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -307,7 +308,7 @@ This section outlines tasks to fully migrate to Supabase.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project UploadForm have been removed for simplicity.
 - `AISuggestionPanel` enhancements (visual cues, clear buttons, context-aware empty states) are implemented.
-- Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`. Components within teacher classroom detail tabs are also memoized. `EditorToolbar`, `Navbar`, `SidebarNav` are memoized. Toolbar AI buttons ("Expand Concept", "Summarize Selected Nodes") have context-aware disabling and tooltips.
+- Key callbacks in `ConceptMapEditorPage` and several reusable display components have been memoized with `React.memo` or `useCallback`. Components within teacher classroom detail tabs are also memoized. `EditorToolbar`, `Navbar`, `SidebarNav` are memoized. Toolbar AI buttons ("Expand Concept", "Summarize Selection") have context-aware disabling and tooltips.
 - React Flow canvas uses `onlyRenderVisibleElements` for potential performance improvement on large maps. React Flow `nodeTypes`/`edgeTypes` warnings resolved.
 - `PropertiesInspector`, `AISuggestionPanel`, all GenAI modals, and `DebugLogViewerDialog` are dynamically imported in `ConceptMapEditorPage`.
 - Redundant `CanvasPlaceholder.tsx` and `/application/layout.tsx` files have been removed.
@@ -322,4 +323,3 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
 ```
-  
