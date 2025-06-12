@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -92,6 +91,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
     setSelectedElement: setStoreSelectedElement, setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
+    editingNodeId, setEditingNodeId, // Get editingNodeId and its setter
   } = useConceptMapStore();
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] = useState(false);
@@ -140,10 +140,15 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
 
   const handleFlowSelectionChange = useCallback((elementId: string | null, elementType: 'node' | 'edge' | null) => {
     setStoreSelectedElement(elementId, elementType);
+    if (elementType === 'node' && elementId) {
+      setEditingNodeId(elementId);
+    } else {
+      setEditingNodeId(null);
+    }
     if (elementId) {
       setTimeout(() => setIsPropertiesInspectorOpen(true), 0);
     }
-  }, [setStoreSelectedElement, setIsPropertiesInspectorOpen]);
+  }, [setStoreSelectedElement, setEditingNodeId, setIsPropertiesInspectorOpen]);
 
   const handleMultiNodeSelectionChange = useCallback((nodeIds: string[]) => {
     setStoreMultiSelectedNodeIds(nodeIds);
@@ -153,9 +158,11 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const newNodeText = `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`;
     const { x, y } = getNodePlacement(useConceptMapStore.getState().mapData.nodes, 'generic', null, null, 20);
-    addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
+    const newNodeId = addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
-  }, [storeIsViewOnlyMode, toast, addNodeFromHook]);
+    setStoreSelectedElement(newNodeId, 'node');
+    setEditingNodeId(newNodeId);
+  }, [storeIsViewOnlyMode, toast, addNodeFromHook, setStoreSelectedElement, setEditingNodeId]);
 
   const handleAddEdgeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
@@ -290,6 +297,41 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
     closeContextMenu();
   }, [openRewriteNodeContentModal, contextMenu, closeContextMenu]);
 
+  // Keyboard listener for Tab and Enter node creation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (storeIsViewOnlyMode || (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA'))) return;
+
+      const currentSelectedElementId = useConceptMapStore.getState().selectedElementId;
+      const currentSelectedElementType = useConceptMapStore.getState().selectedElementType;
+      const currentMapData = useConceptMapStore.getState().mapData;
+
+      if (currentSelectedElementId && currentSelectedElementType === 'node' && (event.key === 'Tab' || event.key === 'Enter')) {
+        event.preventDefault();
+        const selectedStoreNode = currentMapData.nodes.find(n => n.id === currentSelectedElementId);
+        if (!selectedStoreNode) return;
+
+        let newNodeId: string;
+        const GRID_SIZE = 20;
+
+        if (event.key === 'Tab') { // Create child node
+          const childPosition = getNodePlacement(currentMapData.nodes, 'child', selectedStoreNode, null, GRID_SIZE, 'right');
+          newNodeId = addNodeFromHook({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: selectedStoreNode.id });
+          addEdgeFromHook({ source: selectedStoreNode.id, target: newNodeId, label: "relates to" });
+        } else { // Create sibling node (Enter key)
+          const parentOfSelected = selectedStoreNode.parentNode ? currentMapData.nodes.find(n => n.id === selectedStoreNode.parentNode) : null;
+          const siblingPosition = getNodePlacement(currentMapData.nodes, 'sibling', parentOfSelected, selectedStoreNode, GRID_SIZE);
+          newNodeId = addNodeFromHook({ text: "New Sibling", type: 'manual-node', position: siblingPosition, parentNode: selectedStoreNode.parentNode });
+        }
+        
+        setStoreSelectedElement(newNodeId, 'node');
+        setEditingNodeId(newNodeId); // Set for potential auto-focus
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [storeIsViewOnlyMode, addNodeFromHook, addEdgeFromHook, setStoreSelectedElement, setEditingNodeId, toast]); // Added toast to dependencies if used in future enhancements
+
 
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
   if (storeError) { return <div className="p-4 text-destructive flex flex-col items-center justify-center h-full gap-4"><AlertTriangle className="h-10 w-10" /> <p>{storeError}</p> <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
@@ -331,6 +373,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
               onConnectInStore={addEdgeFromHook}
               onNodeContextMenu={handleNodeContextMenu}
               onNodeAIExpandTriggered={handleNodeAIExpandTriggeredCallback}
+              panActivationKeyCode="Space" // Enable Space+Drag to pan
             />
         </div>
         {contextMenu?.isOpen && contextMenu.nodeId && (

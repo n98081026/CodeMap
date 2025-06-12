@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
@@ -28,11 +27,12 @@ interface FlowCanvasCoreProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
   onNodeAIExpandTriggered?: (nodeId: string) => void;
   
-  onNodeDrag?: (event: React.MouseEvent, node: RFNode<CustomNodeData>, nodes: RFNode<CustomNodeData>[]) => void;
-  onNodeDragStop?: (event: React.MouseEvent, node: RFNode<CustomNodeData>, nodes: RFNode<CustomNodeData>[]) => void;
-  onPaneDoubleClick?: OnPaneDoubleClick;
-  activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
-  gridSize?: number;
+  // These props are intentionally managed internally or via onNodesChangeInStore
+  // onNodeDrag?: (event: React.MouseEvent, node: RFNode<CustomNodeData>, nodes: RFNode<CustomNodeData>[]) => void;
+  // onNodeDragStop?: (event: React.MouseEvent, node: RFNode<CustomNodeData>, nodes: RFNode<CustomNodeData>[]) => void;
+  onPaneDoubleClickProp?: OnPaneDoubleClick; // Renamed to avoid conflict with internal handler
+  // activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
+  // gridSize?: number;
   panActivationKeyCode?: string;
 }
 
@@ -47,11 +47,7 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   onConnectInStore,
   onNodeContextMenu,
   onNodeAIExpandTriggered,
-  onNodeDrag,
-  onNodeDragStop,
-  onPaneDoubleClick,
-  activeSnapLines,
-  gridSize = GRID_SIZE, 
+  onPaneDoubleClickProp,
   panActivationKeyCode,
 }) => {
   const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
@@ -114,7 +110,6 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   }, [initialRfEdges, setRfEdges]);
   
   useEffect(() => {
-    // This log is for observing the data flow
     // console.log("FlowCanvasCore: rfNodes passed to InteractiveCanvas:", rfNodes);
     // console.log("FlowCanvasCore: rfEdges passed to InteractiveCanvas:", rfEdges);
   }, [rfNodes, rfEdges]);
@@ -222,13 +217,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
     }
 
     if (!xSnappedByNode) {
-      const gridSnappedX = Math.round(draggedNode.positionAbsolute.x / gridSize) * gridSize;
+      const gridSnappedX = Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
       if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) {
         snappedXPosition = gridSnappedX;
       }
     }
     if (!ySnappedByNode) {
-      const gridSnappedY = Math.round(draggedNode.positionAbsolute.y / gridSize) * gridSize;
+      const gridSnappedY = Math.round(draggedNode.positionAbsolute.y / GRID_SIZE) * GRID_SIZE;
       if (Math.abs(draggedNode.positionAbsolute.y - gridSnappedY) < SNAP_THRESHOLD) {
         snappedYPosition = gridSnappedY;
       }
@@ -238,8 +233,8 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: { x: snappedXPosition, y: snappedYPosition }, dragging: true }]);
     }
     setActiveSnapLinesLocal(currentDragSnapLines);
-    onNodeDrag?.(_event, draggedNode, allNodes);
-  }, [isViewOnlyMode, SNAP_THRESHOLD, gridSize, onNodesChangeReactFlow, onNodeDrag]);
+    // onNodeDrag?.(_event, draggedNode, allNodes); // Prop not currently used
+  }, [isViewOnlyMode, SNAP_THRESHOLD, GRID_SIZE, onNodesChangeReactFlow]);
 
 
   const onNodeDragStopInternal = useCallback(
@@ -250,13 +245,13 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       let finalX = draggedNode.positionAbsolute.x;
       let finalY = draggedNode.positionAbsolute.y;
 
-      finalX = Math.round(finalX / gridSize) * gridSize;
-      finalY = Math.round(finalY / gridSize) * gridSize;
+      finalX = Math.round(finalX / GRID_SIZE) * GRID_SIZE;
+      finalY = Math.round(finalY / GRID_SIZE) * GRID_SIZE;
 
       onNodesChangeInStore(draggedNode.id, { x: finalX, y: finalY, width: draggedNode.width, height: draggedNode.height });
-      onNodeDragStop?.(_event, draggedNode, rfNodes);
+      // onNodeDragStop?.(_event, draggedNode, rfNodes); // Prop not currently used
     },
-    [isViewOnlyMode, onNodesChangeInStore, gridSize, onNodeDragStop, rfNodes]
+    [isViewOnlyMode, onNodesChangeInStore, GRID_SIZE, rfNodes]
   );
 
   const handleRfNodesChange: OnNodesChange = useCallback((changes) => {
@@ -312,49 +307,19 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
   const handlePaneDoubleClickInternal: OnPaneDoubleClick = useCallback((event) => {
     if (isViewOnlyMode) return;
     const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-    const snappedX = Math.round(positionInFlow.x / gridSize) * gridSize;
-    const snappedY = Math.round(positionInFlow.y / gridSize) * gridSize;
+    const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
+    const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
 
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
     const newNodeId = addNodeToStore({
-      text: `Node ${currentNodes.length + 1}`,
+      text: `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`,
       type: 'manual-node',
       position: {x: snappedX, y: snappedY},
       details: '',
     });
     setSelectedElement(newNodeId, 'node');
     setEditingNodeId(newNodeId);
-    onPaneDoubleClick?.(event);
-  }, [isViewOnlyMode, addNodeToStore, reactFlowInstance, setSelectedElement, setEditingNodeId, gridSize, onPaneDoubleClick]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (isViewOnlyMode || (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA'))) return;
-
-      const { selectedElementId, mapData } = useConceptMapStore.getState();
-      const selectedStoreNode = selectedElementId ? mapData.nodes.find(n => n.id === selectedElementId) : null;
-
-      if (selectedStoreNode && (event.key === 'Tab' || event.key === 'Enter')) {
-        event.preventDefault();
-        const currentNodes = mapData.nodes;
-        let newNodeId: string;
-
-        if (event.key === 'Tab') {
-          const childPosition = getNodePlacement(currentNodes, 'child', selectedStoreNode, null, gridSize, 'right');
-          newNodeId = addNodeToStore({ text: "New Idea", type: 'manual-node', position: childPosition, parentNode: selectedStoreNode.id });
-          onConnectInStore({ source: selectedStoreNode.id, target: newNodeId, label: "connects" });
-        } else { 
-          const siblingPosition = getNodePlacement(currentNodes, 'sibling', selectedStoreNode.parentNode ? currentNodes.find(n => n.id === selectedStoreNode.parentNode) : null, selectedStoreNode, gridSize);
-          newNodeId = addNodeToStore({ text: "New Sibling", type: 'manual-node', position: siblingPosition, parentNode: selectedStoreNode.parentNode });
-        }
-        setSelectedElement(newNodeId, 'node');
-        setEditingNodeId(newNodeId);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isViewOnlyMode, addNodeToStore, onConnectInStore, setSelectedElement, setEditingNodeId, gridSize, reactFlowInstance]);
-  
+    onPaneDoubleClickProp?.(event);
+  }, [isViewOnlyMode, addNodeToStore, reactFlowInstance, setSelectedElement, setEditingNodeId, GRID_SIZE, onPaneDoubleClickProp]);
 
   return (
     <InteractiveCanvas
@@ -372,17 +337,11 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = ({
       onNodeDragStop={onNodeDragStopInternal}
       onPaneDoubleClick={handlePaneDoubleClickInternal}
       activeSnapLines={activeSnapLinesLocal} 
-      gridSize={gridSize}
+      gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}
     />
   );
 };
 
-
-// Remove ReactFlowProvider from here as it's already in the parent page component
-const FlowCanvasCoreWrapper: React.FC<Omit<FlowCanvasCoreProps, 'onNodeDrag' | 'onNodeDragStop' | 'activeSnapLines' | 'gridSize'>> = (props) => (
-  <FlowCanvasCore {...props} />
-);
-
-export default React.memo(FlowCanvasCoreWrapper);
+export default React.memo(FlowCanvasCore);
     

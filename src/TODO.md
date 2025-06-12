@@ -82,10 +82,10 @@
         - [ ] **Coordination with React Flow `parentNode`:** (Future Consideration - dependent on custom layouts)
             - [ ] Clarify if `parentNode` is still used alongside `childIds` for custom layouts (likely yes, for grouping benefits).
             - [ ] Define precedence if conflicts arise between default library layout and custom layout.
-- [ ] **Floating Node Creation**: Implement: Double-click on canvas to create a new node at mouse position. New node is selected and label auto-focused.
+- [x] **Floating Node Creation**: Implement: Double-click on canvas to create a new node at mouse position. New node is selected and label auto-focused.
 - [ ] **Child Node Creation via "+" Hover Buttons**: Implement: "+" icons on node hover (top, right, bottom, left). Clicking "+" adds a new child node in that direction, connects it, sets `parentNode`, selects, and auto-focuses label.
-- [ ] **Keyboard-driven Node Creation**: Implement: Selected Node + `Tab` key creates child node. Selected Node + `Enter` key creates sibling node. New nodes are auto-positioned, connected (for child), parented, selected, and label auto-focused.
-- [x] **Auto-focus for New Nodes**: (Partially implemented with `editingNodeId` state. Full implementation requires node component changes).
+- [x] **Keyboard-driven Node Creation**: Implement: Selected Node + `Tab` key creates child node. Selected Node + `Enter` key creates sibling node. New nodes are auto-positioned, connected (for child), parented, selected, and label auto-focused (via `editingNodeId`).
+- [x] **Auto-focus for New Nodes**: (Implemented with `editingNodeId` state. `PropertiesInspector` can use this to focus its label input).
 - [x] **Hierarchical Node Movement**: Verified: React Flow's `parentNode` feature handles moving descendants with parent. (Ensured `parentNode` is managed in store).
 - [x] **Recursive deletion of child nodes when parent is deleted**: Implemented in Zustand store's `deleteNode` action.
 - [ ] **Improved Connector Experience (`OrthogonalEdge.tsx` and beyond):**
@@ -105,7 +105,7 @@
     - [ ] Allow modifying edge label, color, line type (solid, dashed) from `PropertiesInspector`.
     - [ ] Allow modifying arrow styles (start/end: none, arrow, arrowclosed) from `PropertiesInspector`.
 - [ ] **Snapping Guides**:
-    - [ ] Full center-to-center and edge-to-edge node snapping implemented with visual guides.
+    - [x] Full center-to-center and edge-to-edge node snapping implemented with visual guides.
     - [ ] Snap-to-grid functionality (nodes align to grid on creation and drag if not node-snapped, node-to-node takes precedence) - Implement and verify.
 - [ ] **Node Auto-Sizing**: Implement & Verify: Nodes dynamically adjust size based on content (label, details) within min/max Tailwind CSS constraints. Details section becomes scrollable if content exceeds `max-h`. Explicitly set dimensions from store override auto-sizing.
 - [ ] **Node Dimension Editing**: Implement: Users can set explicit width/height for nodes in `PropertiesInspector`. Clearing reverts to auto-size.
@@ -148,7 +148,7 @@
     - [x] "Clear All" button for suggestion categories.
     - [x] Clearer visual cues for suggestion status (exact, similar, new - icons added).
     - [x] Empty states are context-aware.
-- [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure. `childIds` added to node structure and managed on add/delete. `aiProcessingNodeId` added for node-specific AI loading state. Recursive node deletion logic implemented.
+- [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`. `parentNode` added to node structure. `childIds` added to node structure and managed on add/delete. `aiProcessingNodeId` added for node-specific AI loading state. Recursive node deletion logic implemented. `editingNodeId` added for auto-focus.
 - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
 
 ### State Management & UI/UX
@@ -230,6 +230,7 @@
     - [ ] **Bundle Size Analysis:** (Future Task - Out of Scope for AI Agent) Periodically analyze the application bundle size and identify areas for reduction.
     - [x] Removed redundant `CanvasPlaceholder.tsx`.
     - [x] Removed redundant `/application/layout.tsx`.
+    - [x] Ensured React Flow `nodeTypes` and `edgeTypes` are stable references.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
@@ -288,7 +289,7 @@ This section outlines tasks to fully migrate to Supabase.
 ## Known Issues / Current State
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
-- Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks. `editingNodeId` added for auto-focus (node component changes pending). Node hierarchy (`parentNode`, `childIds`) and recursive deletion implemented in store.
+- Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks. `editingNodeId` added for auto-focus (Properties Inspector can use this). Node hierarchy (`parentNode`, `childIds`) and recursive deletion implemented in store. Floating node creation (double-click) and keyboard node creation (Tab/Enter) implemented.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
@@ -320,3 +321,5 @@ The main remaining area for full Supabase connection is:
 Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
+
+```
