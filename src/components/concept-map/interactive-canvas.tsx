@@ -21,6 +21,7 @@ import ReactFlow, {
   useReactFlow,
   type OnPaneDoubleClick,
   type Viewport,
+  type ReactFlowProps, // Import ReactFlowProps
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
@@ -95,11 +96,11 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   gridSize = 20,
   panActivationKeyCode,
 }) => {
-  const { viewport, getViewport } = useReactFlow(); // getViewport can be used if viewport state updates too slowly
+  const { viewport, getViewport } = useReactFlow(); 
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
   useEffect(() => {
-    const currentViewport = getViewport(); // Use getViewport for immediate values
+    const currentViewport = getViewport(); 
 
     if (
       !currentViewport ||
@@ -128,7 +129,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     nodes.forEach(node => {
       const nodeWidth = node.width || 150; 
       const nodeHeight = node.height || 70;
-      // Use node.position which is already in flow coordinates
       const posX = node.position.x; 
       const posY = node.position.y;
       
@@ -139,25 +139,19 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     });
 
     if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
-      // No valid nodes with dimensions, allow infinite panning
       setCalculatedTranslateExtent([[-Infinity, -Infinity], [Infinity, Infinity]]);
       return;
     }
 
-    // Padding around the content in flow coordinates
     const PADDING_FLOW = 150; 
     
-    // Calculate the required viewport width/height in flow coordinates to show content + padding
     const contentWidthWithPadding = (maxX - minX) + 2 * PADDING_FLOW;
     const contentHeightWithPadding = (maxY - minY) + 2 * PADDING_FLOW;
 
-    // Max viewport X (how far right the viewport can be dragged, relative to origin 0,0)
-    // If content is smaller than viewport, we center it.
     const maxVpX = contentWidthWithPadding < (currentVpWidth / currentVpZoom) 
         ? (minX - PADDING_FLOW) - ( (currentVpWidth / currentVpZoom) - contentWidthWithPadding ) / 2
         : (minX - PADDING_FLOW);
 
-    // Min viewport X (how far left the viewport can be dragged)
     const minVpX = contentWidthWithPadding < (currentVpWidth / currentVpZoom)
         ? (minX - PADDING_FLOW) + ( (currentVpWidth / currentVpZoom) - contentWidthWithPadding ) / 2 - (currentVpWidth / currentVpZoom)
         : (maxX + PADDING_FLOW) - (currentVpWidth / currentVpZoom);
@@ -172,7 +166,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
 
     const newExtent: [[number, number], [number, number]] = [
-        [-minVpX, -minVpY], // Translate extent is negative of viewport position
+        [-minVpX, -minVpY], 
         [-maxVpX, -maxVpY]
     ];
     
@@ -186,44 +180,55 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     
     setCalculatedTranslateExtent(newExtent);
 
-  }, [nodes, viewport, getViewport]); // Listen to viewport changes as well for zoom/resize
+  }, [nodes, viewport, getViewport]);
   
+  // Construct props for ReactFlow conditionally
+  const reactFlowProps: ReactFlowProps = {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onNodesDelete,
+    onEdgesDelete,
+    onSelectionChange,
+    onConnect,
+    fitView: true,
+    fitViewOptions,
+    nodesDraggable: !isViewOnlyMode,
+    nodesConnectable: !isViewOnlyMode,
+    elementsSelectable: true,
+    deleteKeyCode: isViewOnlyMode ? null : ['Backspace', 'Delete'],
+    className: "bg-background",
+    proOptions: { hideAttribution: true },
+    nodeTypes: nodeTypesConfig,
+    edgeTypes: edgeTypesConfig,
+    onNodeContextMenu,
+    onNodeDrag,
+    onNodeDragStop,
+    panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined,
+    zoomOnScroll: true,
+    zoomOnPinch: true,
+    minZoom: 0.1,
+    maxZoom: 4,
+    translateExtent: calculatedTranslateExtent,
+    onlyRenderVisibleElements: true,
+  };
+
+  if (!isViewOnlyMode && onPaneDoubleClick) {
+    reactFlowProps.onPaneDoubleClick = onPaneDoubleClick;
+  }
+   if (!isViewOnlyMode && typeof onPaneDoubleClick === 'function') { // Re-added type check for safety with conditional
+    reactFlowProps.zoomOnDoubleClick = false; // Disable zoom if custom double click is active
+  } else {
+    reactFlowProps.zoomOnDoubleClick = !isViewOnlyMode; // Allow zoom if no custom handler or in viewOnly
+  }
+
+
   return (
     <Card className={cn(
       "h-full w-full rounded-lg border-2 border-muted-foreground/30 bg-muted/10 shadow-inner overflow-hidden",
     )}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodesDelete={onNodesDelete}
-        onEdgesDelete={onEdgesDelete}
-        onSelectionChange={onSelectionChange}
-        onConnect={onConnect}
-        fitView={true}
-        fitViewOptions={fitViewOptions}
-        nodesDraggable={!isViewOnlyMode}
-        nodesConnectable={!isViewOnlyMode}
-        elementsSelectable={true}
-        deleteKeyCode={isViewOnlyMode ? null : ['Backspace', 'Delete']}
-        className="bg-background"
-        proOptions={{ hideAttribution: true }}
-        nodeTypes={nodeTypesConfig} 
-        edgeTypes={edgeTypesConfig} 
-        onNodeContextMenu={onNodeContextMenu}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
-        onPaneDoubleClick={!isViewOnlyMode ? onPaneDoubleClick : undefined}
-        zoomOnDoubleClick={!isViewOnlyMode && typeof onPaneDoubleClick === 'function' ? false : !isViewOnlyMode}
-        panActivationKeyCode={isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
-        minZoom={0.1}
-        maxZoom={4}
-        translateExtent={calculatedTranslateExtent}
-        onlyRenderVisibleElements={true}
-      >
+      <ReactFlow {...reactFlowProps}>
         <Controls showInteractive={!isViewOnlyMode} />
         <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} zoomable pannable />
         <Background
@@ -250,4 +255,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
 export const InteractiveCanvas = React.memo(InteractiveCanvasComponent);
 InteractiveCanvas.displayName = 'InteractiveCanvas';
+    
+
     
