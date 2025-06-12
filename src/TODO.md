@@ -135,7 +135,7 @@
         - [x] Verified (React Flow defaults enabled & props confirmed): Test one-finger and two-finger pan on touch devices.
     - [x] Verify/Adjust default pan/zoom sensitivity and step sizes - Verified, React Flow defaults acceptable.
     - [x] Ensure API for programmatic pan/zoom is usable if needed (e.g., focus on node via `fitView` or `setCenter`) - Verified, React Flow provides.
-    - [ ] Visual grid background added and verified. (Needs adding to InteractiveCanvas).
+    - [x] Visual grid background added and verified.
 
 
 ### Key Concept Map Editor Components & Functionality (Highly Modularized)
@@ -290,7 +290,7 @@ This section outlines tasks to fully migrate to Supabase.
 ## Known Issues / Current State
 - Backend services fully migrated to Supabase (users, classrooms, concept_maps, project_submissions, system_settings). User must set up tables and RLS policies. Services respect `BYPASS_AUTH_FOR_TESTING` and return mock data.
 - AuthContext migrated to Supabase Auth. User profile data fetched/created in Supabase `profiles` table. Respects `BYPASS_AUTH_FOR_TESTING`.
-- Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks. `editingNodeId` added for auto-focus in Properties Inspector. Node hierarchy (`parentNode`, `childIds`) and recursive deletion implemented in store. Floating node creation (double-click) and keyboard node creation (Tab/Enter) implemented. Pan/Zoom refined with dynamic `translateExtent` and Spacebar panning. Node snapping (node-to-node & grid) with visual guides implemented. Orthogonal edges have rounded/sharp corners. Node auto-sizing and explicit dimension/style editing via Properties Inspector implemented. Child node creation via hover "+" buttons is implemented.
+- Concept map canvas is React Flow. Undo/Redo implemented with `zundo`. Editor logic highly modularized with custom hooks. `editingNodeId` added for auto-focus in Properties Inspector. Node hierarchy (`parentNode`, `childIds`) and recursive deletion implemented in store. Floating node creation (double-click) and keyboard node creation (Tab/Enter) implemented. Pan/Zoom refined with dynamic `translateExtent` and Spacebar panning. Node snapping (node-to-node & grid) with visual guides implemented. Orthogonal edges have rounded/sharp corners. Node auto-sizing and explicit dimension/style editing via Properties Inspector implemented. Child node creation via hover "+" buttons is implemented. Visual grid background is active.
 - AI for project analysis uses mock project structure (`projectStructureAnalyzerTool`); needs real file processing from Supabase Storage by the user if desired. `projectStructureAnalyzerTool` mock logic has been enhanced for varied outputs based on hints and a fixed mock project structure.
 - Supabase client library installed and configured. User needs to run typegen for `src/types/supabase.ts`.
 - API routes rely on Supabase-backed services. RLS in Supabase is the primary data access control.
@@ -319,5 +319,3 @@ Advanced Editor Enhancements (From User Document):
 *   See "Whimsical-Inspired Editor UX Enhancements" sub-sections above for items from this document.
 
 ```
-
-    
