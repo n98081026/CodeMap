@@ -35,7 +35,7 @@ export interface ConceptMapNode {
   details?: string;
   x?: number; 
   y?: number; 
-  parentNode?: string;
+  parentNode?: string; // Added for hierarchy
   childIds?: string[]; // Added for explicit child ordering
   backgroundColor?: string; 
   shape?: 'rectangle' | 'ellipse'; 
@@ -117,4 +117,3 @@ export interface SystemSettings {
 }
 
 export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>;
-

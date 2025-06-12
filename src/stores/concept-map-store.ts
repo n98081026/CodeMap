@@ -17,7 +17,7 @@ interface ConceptMapState {
   sharedWithClassroomId: string | null;
   isNewMapMode: boolean;
   isViewOnlyMode: boolean;
-  initialLoadComplete: boolean; // New state
+  initialLoadComplete: boolean; 
 
   mapData: ConceptMapData;
 
@@ -28,7 +28,7 @@ interface ConceptMapState {
   selectedElementId: string | null;
   selectedElementType: 'node' | 'edge' | null;
   multiSelectedNodeIds: string[];
-  editingNodeId: string | null;
+  editingNodeId: string | null; // For auto-focusing node label input
   aiProcessingNodeId: string | null;
 
   aiExtractedConcepts: string[];
@@ -44,7 +44,7 @@ interface ConceptMapState {
   setSharedWithClassroomId: (classroomId: string | null) => void;
   setIsNewMapMode: (isNew: boolean) => void;
   setIsViewOnlyMode: (isViewOnly: boolean) => void;
-  setInitialLoadComplete: (complete: boolean) => void; // New action
+  setInitialLoadComplete: (complete: boolean) => void; 
 
   setIsLoading: (loading: boolean) => void;
   setIsSaving: (saving: boolean) => void;
@@ -52,7 +52,7 @@ interface ConceptMapState {
 
   setSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => void;
   setMultiSelectedNodeIds: (ids: string[]) => void;
-  setEditingNodeId: (nodeId: string | null) => void;
+  setEditingNodeId: (nodeId: string | null) => void; // Action for auto-focus
   setAiProcessingNodeId: (nodeId: string | null) => void;
 
   setAiExtractedConcepts: (concepts: string[]) => void;
@@ -102,7 +102,7 @@ const initialStateBase: Omit<ConceptMapState,
   sharedWithClassroomId: null,
   isNewMapMode: true,
   isViewOnlyMode: false,
-  initialLoadComplete: false, // Initialize new state
+  initialLoadComplete: false, 
   mapData: { nodes: [], edges: [] },
   isLoading: false,
   isSaving: false,
@@ -131,7 +131,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setSharedWithClassroomId: (id) => set({ sharedWithClassroomId: id }),
       setIsNewMapMode: (isNew) => set({ isNewMapMode: isNew }),
       setIsViewOnlyMode: (isViewOnly) => set({ isViewOnlyMode: isViewOnly }),
-      setInitialLoadComplete: (complete) => set({ initialLoadComplete: complete }), // Define new action
+      setInitialLoadComplete: (complete) => set({ initialLoadComplete: complete }), 
 
       setIsLoading: (loading) => set({ isLoading: loading }),
       setIsSaving: (saving) => set({ isSaving: saving }),
@@ -180,8 +180,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: true,
           isViewOnlyMode: false,
           isLoading: false,
-          initialLoadComplete: true, // Set on successful initialization
+          initialLoadComplete: true, 
           multiSelectedNodeIds: [],
+          editingNodeId: null, 
           aiProcessingNodeId: null,
           isPublic: initialStateBase.isPublic,
           sharedWithClassroomId: initialStateBase.sharedWithClassroomId,
@@ -203,9 +204,10 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: false,
           isViewOnlyMode: viewOnly,
           isLoading: false,
-          initialLoadComplete: true, // Set on successful load
+          initialLoadComplete: true, 
           error: null,
           multiSelectedNodeIds: [],
+          editingNodeId: null, 
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
           aiProcessingNodeId: null,
@@ -224,6 +226,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           selectedElementId: null,
           selectedElementType: null,
           multiSelectedNodeIds: [],
+          editingNodeId: null,
           aiExtractedConcepts: [],
           aiSuggestedRelations: [],
           aiProcessingNodeId: null,
@@ -231,7 +234,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isNewMapMode: state.isNewMapMode,
           isViewOnlyMode: false,
           isLoading: false,
-          initialLoadComplete: true, // Assume import means it's "loaded"
+          initialLoadComplete: true, 
           isSaving: false,
           error: null,
           debugLogs: get().debugLogs,
@@ -253,7 +256,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           y: options.position.y,
           details: options.details || '',
           parentNode: options.parentNode,
-          childIds: [],
+          childIds: [], // Initialize childIds for the new node
           backgroundColor: options.backgroundColor || undefined,
           shape: options.shape || 'rectangle',
           width: options.width,
@@ -261,7 +264,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
         };
 
         set((state) => {
-          const newNodes = [...state.mapData.nodes, newNode];
+          let newNodes = [...state.mapData.nodes, newNode];
+          // If this node has a parent, update the parent's childIds
           if (options.parentNode) {
             const parentIndex = newNodes.findIndex(n => n.id === options.parentNode);
             if (parentIndex !== -1) {
@@ -285,40 +289,39 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })),
 
       deleteNode: (nodeIdToDelete) => set((state) => {
-        const nodeToDelete = state.mapData.nodes.find(n => n.id === nodeIdToDelete);
-        let parentNodeToUpdate: ConceptMapNode | undefined;
-        let parentNodeIndex = -1;
-
-        if (nodeToDelete?.parentNode) {
-          parentNodeIndex = state.mapData.nodes.findIndex(n => n.id === nodeToDelete.parentNode);
-          if (parentNodeIndex !== -1) {
-            parentNodeToUpdate = { ...state.mapData.nodes[parentNodeIndex] };
-            parentNodeToUpdate.childIds = (parentNodeToUpdate.childIds || []).filter(id => id !== nodeIdToDelete);
-          }
-        }
-
-        const nodesToDeleteSet = new Set<string>([nodeIdToDelete]);
-        const queue = [nodeIdToDelete];
-
+        const nodesToDeleteSet = new Set<string>();
+        const queue: string[] = [nodeIdToDelete];
+        
+        // Populate nodesToDeleteSet with the initial node and all its descendants
         while (queue.length > 0) {
-          const currentParentId = queue.shift()!;
-          state.mapData.nodes.forEach(node => {
-            if (node.parentNode === currentParentId && !nodesToDeleteSet.has(node.id)) {
-              nodesToDeleteSet.add(node.id);
-              queue.push(node.id);
+            const currentId = queue.shift()!;
+            if (nodesToDeleteSet.has(currentId)) continue; // Already processed
+            nodesToDeleteSet.add(currentId);
+            const node = state.mapData.nodes.find(n => n.id === currentId);
+            if (node && node.childIds) {
+                node.childIds.forEach(childId => {
+                    if (!nodesToDeleteSet.has(childId)) {
+                        queue.push(childId);
+                    }
+                });
             }
-          });
         }
 
-        let newNodes = state.mapData.nodes.filter(node => !nodesToDeleteSet.has(node.id));
-        if (parentNodeToUpdate && parentNodeIndex !== -1) {
-           newNodes = newNodes.map(n => n.id === parentNodeToUpdate!.id ? parentNodeToUpdate! : n);
-           const stillExistsParentIndex = newNodes.findIndex(n => n.id === parentNodeToUpdate!.id);
-           if(stillExistsParentIndex !== -1) {
-               newNodes[stillExistsParentIndex] = parentNodeToUpdate;
-           }
+        // Filter out the deleted nodes
+        const newNodes = state.mapData.nodes.filter(node => !nodesToDeleteSet.has(node.id));
+
+        // Update parent's childIds if the deleted node had a parent
+        const nodeToDelete = state.mapData.nodes.find(n => n.id === nodeIdToDelete);
+        if (nodeToDelete?.parentNode) {
+            const parentIndex = newNodes.findIndex(n => n.id === nodeToDelete.parentNode);
+            if (parentIndex !== -1) {
+                const parentNode = { ...newNodes[parentIndex] };
+                parentNode.childIds = (parentNode.childIds || []).filter(id => id !== nodeIdToDelete);
+                newNodes[parentIndex] = parentNode;
+            }
         }
 
+        // Filter out edges connected to any of the deleted nodes
         const newEdges = state.mapData.edges.filter(
           edge => !nodesToDeleteSet.has(edge.source) && !nodesToDeleteSet.has(edge.target)
         );
@@ -331,12 +334,14 @@ export const useConceptMapStore = create<ConceptMapState>()(
         }
         const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDeleteSet.has(id));
         const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDeleteSet.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
+        const newEditingNodeId = state.editingNodeId && nodesToDeleteSet.has(state.editingNodeId) ? null : state.editingNodeId;
 
         return {
           mapData: { nodes: newNodes, edges: newEdges },
           selectedElementId: newSelectedElementId,
           selectedElementType: newSelectedElementType,
           multiSelectedNodeIds: newMultiSelectedNodeIds,
+          editingNodeId: newEditingNodeId,
           aiProcessingNodeId: newAiProcessingNodeId,
         };
       }),
@@ -391,4 +396,3 @@ export const useConceptMapStore = create<ConceptMapState>()(
 
 
 export default useConceptMapStore;
-
