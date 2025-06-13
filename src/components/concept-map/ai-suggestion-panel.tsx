@@ -330,6 +330,16 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     const isExactMatch = itemStatus === 'exact-match';
     const isSimilarMatch = itemStatus === 'similar-match';
 
+    const handleDragStart = (event: React.DragEvent<HTMLDivElement>, conceptText: string) => {
+      event.dataTransfer.setData('application/json', JSON.stringify({
+        type: 'concept-suggestion', // To identify the type of dragged item on drop
+        text: conceptText,
+      }));
+      event.dataTransfer.effectAllowed = 'copy';
+      // Optionally, use store's addDebugLog if available globally or via context/prop
+      console.log('[AISuggestionPanel] Dragging concept:', conceptText);
+    };
+
     if (item.isEditing && !isViewOnlyMode) {
       return (
         <div className="flex items-center space-x-2 w-full">
@@ -349,8 +359,20 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       );
     }
     return (
-      <div className="flex items-center justify-between w-full group">
-        <Label htmlFor={`${type}-${index}`} className={cn("text-sm font-normal flex-grow cursor-pointer flex items-center", (isExactMatch || isViewOnlyMode) && "cursor-default")}>
+      <div
+        className="flex items-center justify-between w-full group"
+        draggable={!isViewOnlyMode && !item.isEditing && !isExactMatch} // Only allow dragging for non-editing, non-exact match, non-viewOnly items
+        onDragStart={(e) => !isViewOnlyMode && !item.isEditing && !isExactMatch && handleDragStart(e, item.current)}
+        title={!isViewOnlyMode && !item.isEditing && !isExactMatch ? "Drag this concept to the canvas" : ""}
+      >
+        <Label
+          htmlFor={`${type}-${index}`}
+          className={cn(
+            "text-sm font-normal flex-grow flex items-center",
+            (!isViewOnlyMode && !item.isEditing && !isExactMatch) ? "cursor-grab" : "cursor-default",
+            (isExactMatch || isViewOnlyMode) && "cursor-default"
+          )}
+        >
           {itemStatus === 'exact-match' && <CheckSquare className="h-4 w-4 mr-2 text-green-600 flex-shrink-0" title="Exact match on map"/>}
           {itemStatus === 'similar-match' && <Zap className="h-4 w-4 mr-2 text-yellow-600 dark:text-yellow-400 flex-shrink-0" title="Similar concept on map"/>}
           {itemStatus === 'new' && <PlusCircle className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" title="New concept"/>}

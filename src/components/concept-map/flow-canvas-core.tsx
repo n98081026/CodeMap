@@ -30,7 +30,8 @@ interface FlowCanvasCoreProps {
   onPaneContextMenuRequest?: (event: React.MouseEvent, positionInFlow: {x: number, y: number}) => void;
   onStagedElementsSelectionChange?: (selectedIds: string[]) => void;
   onNewEdgeSuggestLabels?: (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => Promise<void>;
-  onGhostNodeAcceptRequest?: (ghostNodeId: string) => void; // New prop for ghost node click
+  onGhostNodeAcceptRequest?: (ghostNodeId: string) => void;
+  onConceptSuggestionDrop?: (conceptText: string, position: { x: number; y: number }) => void; // New prop
   panActivationKeyCode?: string | null;
 }
 
@@ -48,7 +49,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onPaneContextMenuRequest,
   onStagedElementsSelectionChange,
   onNewEdgeSuggestLabels,
-  onGhostNodeAcceptRequest, // Destructure new prop
+  onGhostNodeAcceptRequest,
+  onConceptSuggestionDrop, // Destructure new prop
   panActivationKeyCode,
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
@@ -506,6 +508,20 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     onPaneContextMenuRequest?.(event, positionInFlow);
   }, [isViewOnlyMode, reactFlowInstance, onPaneContextMenuRequest]);
 
+  const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleCanvasDrop = useCallback((droppedData: {type: string, text: string}, positionInFlow: {x: number, y: number}) => {
+    if (isViewOnlyMode) return;
+    if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
+      const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
+      const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
+      onConceptSuggestionDrop?.(droppedData.text, { x: snappedX, y: snappedY });
+    }
+  }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE]);
+
   // Combine main, staged, and preview elements for rendering
   const combinedNodes = useMemo(() => [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes], [rfNodes, rfStagedNodes, rfPreviewNodes]);
   const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
@@ -522,9 +538,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       onNodesDelete={handleRfNodesDeleted}
       onEdgesDelete={handleRfEdgesDeleted}
       onSelectionChange={handleRfSelectionChange}
-      onConnectInStore={onConnectInStore} // Corrected: was addEdgeFromHook, should be onConnectInStore from props
+      onConnect={onConnectInStore} // Changed from onConnectInStore to onConnect, as InteractiveCanvas expects onConnect
       isViewOnlyMode={isViewOnlyMode}
-      onNodeContextMenu={(event, node) => { // Define inline handler or a new useCallback
+      onNodeContextMenu={(event, node) => {
         if (isViewOnlyMode) return;
         event.preventDefault(); // Ensure default is prevented here too
         onNodeContextMenuRequest?.(event, node);

@@ -54,7 +54,9 @@ interface InteractiveCanvasProps {
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onPaneDoubleClick?: OnPaneDoubleClick;
   onPaneContextMenu?: (event: React.MouseEvent) => void;
-  onNodeClick?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void; // Added new prop
+  onNodeClick?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
+  onDragOver?: (event: React.DragEvent) => void; // Prop from parent (FlowCanvasCore)
+  onCanvasDrop?: (data: {type: string, text: string}, position: {x:number, y:number}) => void; // New prop for parsed drop data
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string | null;
@@ -96,7 +98,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeDragStop,
   onPaneDoubleClick,
   onPaneContextMenu,
-  onNodeClick, // Destructure new prop
+  onNodeClick,
+  onDragOver,
+  onCanvasDrop, // Destructure new prop
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
@@ -104,8 +108,35 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   console.log(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length-1]) : 'N/A'}`);
   // Also send to store's debug log for easier collection if console is not always available during testing
   useConceptMapStore.getState().addDebugLog(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node ID: ${nodes && nodes.length > 0 ? nodes[nodes.length-1]?.id : 'N/A'}`);
-  const { viewport, getViewport } = useReactFlow(); 
+  const reactFlowInstance = useReactFlow(); // Get instance for screenToFlowPosition
+  const { viewport, getViewport } = reactFlowInstance;
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
+
+  const handleDragOverOnCanvas = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    if (props.onDragOver) { // Call parent's onDragOver if provided
+        props.onDragOver(event);
+    }
+  }, [props.onDragOver]);
+
+  const handleDropOnCanvas = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    const jsonData = event.dataTransfer.getData('application/json');
+    if (jsonData && reactFlowInstance) {
+        try {
+            const droppedData = JSON.parse(jsonData);
+            if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
+                const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+                onCanvasDrop?.(droppedData, positionInFlow); // Call the new prop from FlowCanvasCore
+            }
+        } catch (e) {
+            console.error("Failed to parse dropped data:", e);
+            useConceptMapStore.getState().addDebugLog("[InteractiveCanvasComponent] Failed to parse dropped data on drop.");
+        }
+    }
+    event.dataTransfer.clearData();
+  }, [reactFlowInstance, onCanvasDrop]);
 
   useEffect(() => {
     const currentViewport = getViewport(); 
@@ -212,7 +243,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     edgeTypes: edgeTypesConfig,
     onNodeContextMenu,
     onPaneContextMenu,
-    onNodeClick, // Pass to ReactFlow
+    onNodeClick,
+    onDragOver: handleDragOverOnCanvas, // Pass local handler
+    onDrop: handleDropOnCanvas,       // Pass local handler
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined,
