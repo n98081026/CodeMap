@@ -210,6 +210,52 @@
 - [x] **Improve General AI User Experience (UX) for In-Editor Tools:**
     - [x] Tooltips & In-UI Guidance (Modals updated with clearer descriptions of output handling. Toolbar button tooltips and disable states refined. Floating node AI button tooltip improved).
 
+## GAI Concept Map Refactoring (Whimsical-Inspired Enhancements II)
+### Enhanced In-Canvas AI Interactions
+- [ ] "AI Quick-Add" / Floating AI Suggestions:
+    - [ ] On node selection/right-click: Show temporary "ghost" nodes/suggestion chips for related concepts, child nodes, or common questions.
+    - [ ] On empty canvas right-click: Suggest common starting points or nodes based on recent activity.
+    - [ ] Interaction: Clicking a ghost node/chip instantly creates it or triggers a detailed AI action. Dismissed on mouse out or Esc.
+- [ ] "AI Contextual Mini-Toolbar" on Node Hover/Selection:
+    - [ ] Display a small, floating toolbar near selected/hovered node with 2-3 most relevant AI actions (e.g., Expand, Summarize, Rewrite).
+    - [ ] Interaction: Icons for quick actions. Clicking an icon performs a default action or opens a streamlined input.
+- [ ] Drag-and-Drop from AI Panel with Preview:
+    - [ ] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
+    - [ ] Interaction: Show a preview of the node/edge under the cursor during drag. Activate snapping guides. Release creates the element.
+
+### Iterative and Preview-Oriented AI Generation
+- [ ] "AI Staging Area" for Cluster/Snippet Generation:
+    - [ ] For "Quick AI Cluster" / "Generate Snippet": Output AI-generated elements into a temporary "staging area" on canvas or as a special selection group.
+    - [ ] Staging Area Interaction: Allow deletion of individual suggestions, quick label edits, slight repositioning.
+    - [ ] Add "Commit to Map" button to finalize, and "X"/Esc to discard from staging area.
+- [ ] Refinable "Expand Concept" Previews:
+    - [ ] When "Expand Concept" is used, first show new child nodes as temporary "ghost" nodes.
+    - [ ] Interaction: Allow clicking individual ghost nodes to accept. Display "Refine" icon on hover to alter suggestion before making permanent. Add "Accept All" / "Cancel".
+
+### AI-Powered Layout and Structuring Assistance
+- [ ] "AI Tidy-Up" / Smart Alignment (Contextual):
+    - [ ] On selection of multiple nodes, offer an "AI Tidy selection" option (mini-toolbar/context menu).
+    - [ ] AI attempts to align, distribute, or semantically group (e.g., temporary parent node).
+- [ ] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
+    - [ ] AI periodically/on-demand scans map for structural improvement opportunities.
+    - [ ] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?".
+    - [ ] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options.
+
+### Streamlined GAI Input & Feedback
+- [ ] Slash Commands ("/ai") in Node Text (Evolution of existing TODO item):
+    - [ ] While editing node label/details, typing "/ai" brings up a list of AI commands (e.g., /ai expand, /ai rewrite simple).
+    - [ ] Selecting command and providing input executes AI action directly on/related to the node.
+- [ ] Node-Specific AI Progress Indicators (Enhanced):
+    - [ ] For AI actions creating new nodes from a source (e.g., Expand), new nodes initially appear with "AI generating..." state/animation before content populates.
+
+### GAI for Edges
+- [ ] AI-Suggested Relation Labels:
+    - [ ] When a user manually draws an edge, AI automatically suggests a relevant label based on source/target content.
+    - [ ] Interaction: Suggested label appears temporarily. User can click to accept, type to overwrite, or ignore.
+- [ ] "Suggest Intermediate Node" on Edge Selection:
+    - [ ] If an edge is selected, AI action to "Suggest intermediate concept".
+    - [ ] AI proposes a node to sit between source/target, splitting original edge and linking through the new node.
+
 ## Performance Optimizations
 - [x] **Rendering:**
     - [x] **Virtualization (Occlusion Culling for Canvas):** Investigated and `onlyRenderVisibleElements` applied.
