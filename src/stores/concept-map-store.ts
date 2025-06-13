@@ -40,6 +40,9 @@ interface ConceptMapState {
   stagedMapData: ConceptMapData | null;
   isStagingActive: boolean;
 
+// Concept expansion preview state
+conceptExpansionPreview: ConceptExpansionPreviewState | null;
+
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
   setCurrentMapOwnerId: (ownerId: string | null) => void;
@@ -86,10 +89,13 @@ interface ConceptMapState {
   setStagedMapData: (data: ConceptMapData | null) => void;
   clearStagedMapData: () => void;
   commitStagedMapData: () => void;
-  deleteFromStagedMapData: (elementIds: string[]) => void; // New action
+deleteFromStagedMapData: (elementIds: string[]) => void;
+
+// Concept expansion preview actions
+setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void;
 }
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive'>;
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview'>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -103,7 +109,8 @@ const initialStateBase: Omit<ConceptMapState,
   'addDebugLog' | 'clearDebugLogs' |
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
-  'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' // Added new action
+  'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
+  'setConceptExpansionPreview' // Added new action
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -126,10 +133,22 @@ const initialStateBase: Omit<ConceptMapState,
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
   debugLogs: [],
-  stagedMapData: null, // Added staging state
-  isStagingActive: false, // Added staging state
+  stagedMapData: null,
+  isStagingActive: false,
+  conceptExpansionPreview: null, // Added concept expansion preview state
 };
 
+// Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
+export interface ConceptExpansionPreviewNode {
+  id: string; // Temporary ID, e.g., "preview-node-1"
+  text: string;
+  relationLabel: string; // Label for the edge connecting to parent
+  details?: string;
+}
+export interface ConceptExpansionPreviewState {
+  parentNodeId: string;
+  previewNodes: ConceptExpansionPreviewNode[];
+}
 
 export const useConceptMapStore = create<ConceptMapState>()(
   temporal(
@@ -481,11 +500,17 @@ export const useConceptMapStore = create<ConceptMapState>()(
           });
         }
       },
+
+      // Concept expansion preview action implementation
+      setConceptExpansionPreview: (preview) => {
+        get().addDebugLog(`[STORE setConceptExpansionPreview] Setting preview for parent ${preview?.parentNodeId}. Nodes: ${preview?.previewNodes?.length ?? 0}`);
+        set({ conceptExpansionPreview: preview });
+      },
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview };
       },
       limit: 50,
     }

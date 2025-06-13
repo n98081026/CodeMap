@@ -19,7 +19,9 @@ import {
 import { 
     rewriteNodeContent as aiRewriteNodeContent,
     type RewriteNodeContentOutput 
-} from '@/ai/flows/rewrite-node-content-logic.ts'; 
+} from '@/ai/flows/rewrite-node-content-logic.ts';
+// Import store types for preview
+import type { ConceptExpansionPreviewNode, ConceptExpansionPreviewState } from '@/stores/concept-map-store';
 
 import type {
   AskQuestionAboutNodeOutput,
@@ -63,8 +65,28 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     updateNode: updateStoreNode,
     addEdge: addStoreEdge,
     setAiProcessingNodeId,
-    setStagedMapData, // Added for staging
-  } = useConceptMapStore();
+    setStagedMapData,
+    setConceptExpansionPreview, // Added for concept expansion preview
+    conceptExpansionPreview,    // Added for concept expansion preview
+  } = useConceptMapStore(
+    useCallback(s => ({
+      mapData: s.mapData,
+      selectedElementId: s.selectedElementId,
+      multiSelectedNodeIds: s.multiSelectedNodeIds,
+      setAiExtractedConcepts: s.setAiExtractedConcepts,
+      setAiSuggestedRelations: s.setAiSuggestedRelations,
+      removeExtractedConceptsFromSuggestions: s.removeExtractedConceptsFromSuggestions,
+      removeSuggestedRelationsFromSuggestions: s.removeSuggestedRelationsFromSuggestions,
+      resetAiSuggestions: s.resetAiSuggestions,
+      addNode: s.addNode,
+      updateNode: s.updateNode,
+      addEdge: s.addEdge,
+      setAiProcessingNodeId: s.setAiProcessingNodeId,
+      setStagedMapData: s.setStagedMapData,
+      setConceptExpansionPreview: s.setConceptExpansionPreview,
+      conceptExpansionPreview: s.conceptExpansionPreview,
+    }), [])
+  );
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [textForExtraction, setTextForExtraction] = useState("");
@@ -219,42 +241,35 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   }, [isViewOnlyMode, mapData, selectedElementId, toast]);
 
   const handleConceptExpanded = useCallback(async (output: ExpandConceptOutput) => {
-    if (isViewOnlyMode || !conceptToExpandDetails) return;
+    if (isViewOnlyMode || !conceptToExpandDetails || !conceptToExpandDetails.id) {
+        toast({ title: "Error", description: "Cannot expand concept without a source node ID.", variant: "destructive" });
+        return;
+    }
     
-    const sourceNodeIdForAI = conceptToExpandDetails.id;
-    if (sourceNodeIdForAI) setAiProcessingNodeId(sourceNodeIdForAI);
+    const parentNodeId = conceptToExpandDetails.id;
+    setAiProcessingNodeId(parentNodeId);
 
     try {
-        const sourceNode = conceptToExpandDetails.node;
-        let addedNodesCount = 0;
-        const currentNodes = useConceptMapStore.getState().mapData.nodes;
-
-        output.expandedIdeas.forEach((idea) => {
-        const newNodeId = addStoreNode({
-            text: idea.text,
-            type: 'ai-expanded',
-            position: getNodePlacement(currentNodes, 'child', sourceNode, null, GRID_SIZE_FOR_AI_PLACEMENT),
-            parentNode: sourceNodeIdForAI || undefined,
-        });
-        addedNodesCount++;
-        if (sourceNodeIdForAI && newNodeId) {
-            addStoreEdge({
-            source: sourceNodeIdForAI,
-            target: newNodeId,
-            label: idea.relationLabel || 'related to',
-            });
-        }
-        });
-
-        if (addedNodesCount > 0) {
-        toast({ title: "Concept Expanded", description: `${addedNodesCount} new ideas directly added to the map.` });
+        if (output.expandedIdeas && output.expandedIdeas.length > 0) {
+            const mappedPreviewNodes: ConceptExpansionPreviewNode[] = output.expandedIdeas.map((idea, index) => ({
+                id: `preview-exp-${parentNodeId}-${Date.now()}-${index}`, // Temporary unique ID
+                text: idea.text,
+                relationLabel: idea.relationLabel || 'related to',
+                details: idea.details || '',
+            }));
+            setConceptExpansionPreview({ parentNodeId, previewNodes: mappedPreviewNodes });
+            toast({ title: "AI Suggestions Ready", description: "Review the suggested concepts for expansion." });
+        } else {
+            toast({ title: "No Suggestions", description: "AI did not find any concepts to expand.", variant: "default" });
+            setConceptExpansionPreview(null);
         }
     } catch (error) {
-        toast({ title: "Error Applying Expansion", description: (error as Error).message, variant: "destructive" });
+        toast({ title: "Error Expanding Concept", description: (error as Error).message, variant: "destructive" });
+        setConceptExpansionPreview(null);
     } finally {
-        if (sourceNodeIdForAI) setAiProcessingNodeId(null);
+        setAiProcessingNodeId(null);
     }
-  }, [isViewOnlyMode, toast, addStoreNode, addStoreEdge, conceptToExpandDetails, setAiProcessingNodeId]);
+  }, [isViewOnlyMode, toast, conceptToExpandDetails, setConceptExpansionPreview, setAiProcessingNodeId]);
 
   // --- Quick Cluster ---
   const openQuickClusterModal = useCallback(() => {
@@ -426,6 +441,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   }, [isViewOnlyMode, multiSelectedNodeIds, mapData.nodes, toast, addStoreNode, setAiProcessingNodeId]);
 
   // --- Mini Toolbar Actions ---
+  // Refactored handleMiniToolbarQuickExpand to use setConceptExpansionPreview
   const handleMiniToolbarQuickExpand = useCallback(async (nodeId: string) => {
     if (isViewOnlyMode) {
       toast({ title: "View Only Mode", variant: "default" });
@@ -439,48 +455,40 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
     setAiProcessingNodeId(nodeId);
     try {
-      // Prepare context: for quick expand, let's use minimal context or none.
       const neighborIds = new Set<string>();
       mapData.edges?.forEach(edge => {
-          if (edge.source === sourceNode.id) neighborIds.add(edge.target);
-          if (edge.target === sourceNode.id) neighborIds.add(edge.source);
+        if (edge.source === sourceNode.id) neighborIds.add(edge.target);
+        if (edge.target === sourceNode.id) neighborIds.add(edge.source);
       });
       const existingMapContext = Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 2);
 
-
       const output: ExpandConceptOutput = await aiExpandConcept({
         concept: sourceNode.text,
-        existingMapContext: existingMapContext, // Provide minimal context
+        existingMapContext: existingMapContext,
         userRefinementPrompt: "Generate one concise, directly related child idea for this concept. Focus on a primary sub-topic or component.",
       });
 
       if (output.expandedIdeas && output.expandedIdeas.length > 0) {
-        const idea = output.expandedIdeas[0]; // Take the first idea
-        const currentNodes = useConceptMapStore.getState().mapData.nodes;
-        const newNodeId = addStoreNode({
+        const idea = output.expandedIdeas[0]; // Take the first idea for quick expand
+        const mappedPreviewNode: ConceptExpansionPreviewNode = {
+          id: `preview-qexp-${nodeId}-${Date.now()}`, // Temporary unique ID
           text: idea.text,
-          type: 'ai-expanded',
-          position: getNodePlacement(currentNodes, 'child', sourceNode, null, GRID_SIZE_FOR_AI_PLACEMENT),
-          parentNode: nodeId,
-        });
-
-        if (newNodeId) {
-          addStoreEdge({
-            source: nodeId,
-            target: newNodeId,
-            label: idea.relationLabel || 'related to',
-          });
-          toast({ title: "Quick Expand Successful", description: `Added '${idea.text}' to the map.` });
-        }
+          relationLabel: idea.relationLabel || 'related to',
+          details: idea.details || '',
+        };
+        setConceptExpansionPreview({ parentNodeId: nodeId, previewNodes: [mappedPreviewNode] });
+        toast({ title: "AI Suggestion Ready", description: "Review the suggested concept for expansion." });
       } else {
         toast({ title: "Quick Expand", description: "AI couldn't find a specific idea to expand on this topic.", variant: "default" });
+        setConceptExpansionPreview(null); // Clear preview if no ideas
       }
     } catch (error) {
       toast({ title: "Error during Quick Expand", description: (error as Error).message, variant: "destructive" });
+      setConceptExpansionPreview(null); // Clear preview on error
     } finally {
       setAiProcessingNodeId(null);
     }
-  }, [isViewOnlyMode, toast, mapData, addStoreNode, addStoreEdge, setAiProcessingNodeId]);
+  }, [isViewOnlyMode, toast, mapData, setConceptExpansionPreview, setAiProcessingNodeId]);
 
   const handleMiniToolbarRewriteConcise = useCallback(async (nodeId: string) => {
     if (isViewOnlyMode) {
@@ -581,7 +589,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     // Edge Label Suggestions
     fetchAndSetEdgeLabelSuggestions,
     edgeLabelSuggestions,
-    setEdgeLabelSuggestions, // If manual clearing from UI is needed
+    setEdgeLabelSuggestions,
+    // Expansion Preview State & Lifecycle
+    conceptExpansionPreview, // State from store
+    // setConceptExpansionPreview, // Action from store already used internally by handlers
+    acceptAllExpansionPreviews,
+    acceptSingleExpansionPreview,
+    clearExpansionPreview,
     addStoreNode, 
     addStoreEdge,
   };

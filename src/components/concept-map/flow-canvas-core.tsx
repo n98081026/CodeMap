@@ -29,7 +29,8 @@ interface FlowCanvasCoreProps {
   onNodeAIExpandTriggered?: (nodeId: string) => void;
   onPaneContextMenuRequest?: (event: React.MouseEvent, positionInFlow: {x: number, y: number}) => void;
   onStagedElementsSelectionChange?: (selectedIds: string[]) => void;
-  onNewEdgeSuggestLabels?: (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => Promise<void>; // New prop
+  onNewEdgeSuggestLabels?: (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => Promise<void>;
+  onGhostNodeAcceptRequest?: (ghostNodeId: string) => void; // New prop for ghost node click
   panActivationKeyCode?: string | null;
 }
 
@@ -46,14 +47,19 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onNodeAIExpandTriggered,
   onPaneContextMenuRequest,
   onStagedElementsSelectionChange,
-  onNewEdgeSuggestLabels, // Destructure new prop
+  onNewEdgeSuggestLabels,
+  onGhostNodeAcceptRequest, // Destructure new prop
   panActivationKeyCode,
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
   const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
-  const { stagedMapData, isStagingActive } = useConceptMapStore(
-    useCallback(s => ({ stagedMapData: s.stagedMapData, isStagingActive: s.isStagingActive }), [])
+  const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
+    useCallback(s => ({
+      stagedMapData: s.stagedMapData,
+      isStagingActive: s.isStagingActive,
+      conceptExpansionPreview: s.conceptExpansionPreview
+    }), [])
   );
   const reactFlowInstance = useReactFlow();
 
@@ -64,6 +70,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>([]);
   const [rfStagedNodes, setRfStagedNodes, onStagedNodesChange] = useNodesState<CustomNodeData>([]);
   const [rfStagedEdges, setRfStagedEdges, onStagedEdgesChange] = useEdgesState<OrthogonalEdgeData>([]);
+  const [rfPreviewNodes, setRfPreviewNodes, onPreviewNodesChange] = useNodesState<CustomNodeData>([]);
+  const [rfPreviewEdges, setRfPreviewEdges, onPreviewEdgesChange] = useEdgesState<OrthogonalEdgeData>([]);
 
   // Effect to synchronize MAIN nodes from the store to React Flow's state
   useEffect(() => {
@@ -172,6 +180,69 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       setRfStagedEdges([]);
     }
   }, [isStagingActive, stagedMapData, setRfStagedNodes, setRfStagedEdges]);
+
+  // Effect to synchronize CONCEPT EXPANSION PREVIEW nodes and edges
+  useEffect(() => {
+    if (conceptExpansionPreview && conceptExpansionPreview.previewNodes.length > 0) {
+      const parentNode = mapDataFromStore.nodes.find(n => n.id === conceptExpansionPreview.parentNodeId);
+      if (!parentNode) {
+        useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Parent node for expansion preview not found: ${conceptExpansionPreview.parentNodeId}`);
+        setRfPreviewNodes([]);
+        setRfPreviewEdges([]);
+        return;
+      }
+
+      useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Updating PREVIEW nodes. Count: ${conceptExpansionPreview.previewNodes.length}`);
+      const newRfPreviewNodes = conceptExpansionPreview.previewNodes.map((previewNode, index) => {
+        // Position preview nodes relative to the parent, e.g., in a fan shape or row
+        const position = getNodePlacement(
+          [...mapDataFromStore.nodes, ...newRfPreviewNodes.slice(0,index)], // consider already placed preview nodes for subsequent placements
+           'child', // layout type
+           parentNode, // parent node
+           null, // selected node (not relevant here)
+           GRID_SIZE, // grid size
+           index, // child index for layout algorithm
+           conceptExpansionPreview.previewNodes.length // total children for layout algorithm
+        );
+
+        return {
+          id: previewNode.id, // Use temporary ID from preview data
+          type: 'customConceptNode',
+          data: {
+            label: previewNode.text,
+            details: previewNode.details,
+            type: 'ai-expanded-ghost', // Specific type for ghost styling
+            isViewOnly: true,
+            isGhost: true, // Flag for styling
+            width: 150, // Standard size for ghosts
+            height: 70,
+          } as CustomNodeData,
+          position: position,
+          draggable: false,
+          selectable: true, // Allow selection for accept/reject actions
+          connectable: false,
+        };
+      });
+      setRfPreviewNodes(newRfPreviewNodes);
+
+      const newRfPreviewEdges = newRfPreviewNodes.map(rfPreviewNode => ({
+        id: `preview-edge-${conceptExpansionPreview.parentNodeId}-${rfPreviewNode.id}`,
+        source: conceptExpansionPreview.parentNodeId,
+        target: rfPreviewNode.id,
+        label: conceptExpansionPreview.previewNodes.find(pn => pn.id === rfPreviewNode.id)?.relationLabel || 'suggests',
+        type: 'orthogonal', // Or a specific ghost edge type
+        style: { strokeDasharray: '4,4', opacity: 0.6, strokeWidth: 1.5, stroke: '#8A2BE2' /* Purple-ish for ghost */ },
+        updatable: false,
+        selectable: true,
+      }));
+      setRfPreviewEdges(newRfPreviewEdges);
+      useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Updating PREVIEW edges. Count: ${newRfPreviewEdges.length}`);
+
+    } else {
+      setRfPreviewNodes([]);
+      setRfPreviewEdges([]);
+    }
+  }, [conceptExpansionPreview, mapDataFromStore.nodes, setRfPreviewNodes, setRfPreviewEdges, reactFlowInstance]);
   
   useEffect(() => {
     // This effect for fitView should ideally run *after* nodes have been set and rendered.
@@ -435,12 +506,19 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     onPaneContextMenuRequest?.(event, positionInFlow);
   }, [isViewOnlyMode, reactFlowInstance, onPaneContextMenuRequest]);
 
+  // Combine main, staged, and preview elements for rendering
+  const combinedNodes = useMemo(() => [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes], [rfNodes, rfStagedNodes, rfPreviewNodes]);
+  const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
+
   return (
     <InteractiveCanvas
-      nodes={rfNodes}
-      edges={rfEdges}
-      onNodesChange={handleRfNodesChange}
-      onEdgesChange={handleRfEdgesChange}
+      nodes={combinedNodes} // Pass combined nodes
+      edges={combinedEdges} // Pass combined edges
+      onNodesChange={handleRfNodesChange} // Main nodes changes
+      onEdgesChange={handleRfEdgesChange} // Main edges changes
+      // Note: onPreviewNodesChange and onStagedNodesChange are not directly used by InteractiveCanvas events here.
+      // Interactions with preview/staged items (select, delete from stage) are handled via other mechanisms
+      // (e.g., specific UI buttons calling store actions, or selection passed to page for delete key handling).
       onNodesDelete={handleRfNodesDeleted}
       onEdgesDelete={handleRfEdgesDeleted}
       onSelectionChange={handleRfSelectionChange}
@@ -453,9 +531,18 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       }}
       onNodeDrag={onNodeDragInternal}
       onNodeDragStop={onNodeDragStopInternal}
-      onPaneDoubleClick={handlePaneDoubleClickInternal} // This is for adding nodes on double click
-      onPaneContextMenu={handlePaneContextMenuInternal} // Pass the new handler for context menu
-      activeSnapLines={activeSnapLinesLocal} // Pass snap lines to InteractiveCanvas
+      onNodeClick={(event, node) => { // Add onNodeClick handler
+        if (isViewOnlyMode) return;
+        if (node.data?.isGhost) {
+          onGhostNodeAcceptRequest?.(node.id);
+        }
+        // Potentially call other general onNodeClick logic if needed for non-ghost nodes,
+        // or let selection be handled by onSelectionChange.
+        // For now, only ghost nodes have a specific click action here.
+      }}
+      onPaneDoubleClick={handlePaneDoubleClickInternal}
+      onPaneContextMenu={handlePaneContextMenuInternal}
+      activeSnapLines={activeSnapLinesLocal}
       gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}
     />

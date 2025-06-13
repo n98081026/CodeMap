@@ -23,7 +23,8 @@ export interface CustomNodeData {
   width?: number;
   height?: number;
   onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void; // For hover buttons
-  isStaged?: boolean; // Added for staged node styling
+  isStaged?: boolean;
+  isGhost?: boolean; // Added for ghost node styling
   // onTriggerAIExpand?: (nodeId: string) => void; // Retained for potential future direct AI button on node
 }
 
@@ -128,13 +129,18 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       style={nodeStyle}
       className={cn(
         "nodrag relative shadow-md border border-border flex flex-col",
-        selected && !isBeingProcessedByAI && !data.isStaged ? "ring-2 ring-primary" : "", // Don't show ring if AI processing or staged
+        selected && !isBeingProcessedByAI && !data.isStaged && !data.isGhost ? "ring-2 ring-primary" : "", // Don't show ring if AI processing, staged, or ghost
         nodeIsViewOnly && "cursor-default",
         !nodeIsViewOnly && "cursor-grab",
-        data.shape === 'ellipse' && 'items-center justify-center text-center p-2', // Ellipse specific centering
-        data.isStaged && "border-dashed border-blue-500 opacity-80" // Placeholder for staged style
+        data.shape === 'ellipse' && 'items-center justify-center text-center p-2',
+        data.isStaged && "border-dashed border-blue-500 opacity-80",
+        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
       )}
-      onMouseEnter={() => { setIsHovered(true); setIsHoveredForToolbar(true); }}
+      onMouseEnter={() => {
+        if (data.isGhost) return; // Do not trigger hover effects for ghost nodes
+        setIsHovered(true);
+        setIsHoveredForToolbar(true);
+      }}
       onMouseLeave={() => { setIsHovered(false); setIsHoveredForToolbar(false); }}
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
@@ -209,11 +215,11 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         </div>
       )}
 
-      {!nodeIsViewOnly && (
+      {!nodeIsViewOnly && !data.isGhost && ( // Also hide mini toolbar for ghost nodes
         <AISuggestionMiniToolbar
           nodeId={id}
-          nodeRect={getNodeRect()} // This will update on re-renders when hovered.
-          isVisible={isHoveredForToolbar && !isBeingProcessedByAI} // Only show if hovered and not processing
+          nodeRect={getNodeRect()}
+          isVisible={isHoveredForToolbar && !isBeingProcessedByAI}
           onQuickExpand={handleQuickExpand}
           onRewriteConcise={handleRewriteConcise}
         />

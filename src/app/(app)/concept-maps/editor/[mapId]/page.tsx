@@ -36,7 +36,7 @@ import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar'; // Import AIStagingToolbar
-import { Lightbulb, Sparkles, Brain, HelpCircle } from 'lucide-react'; // Added Brain, HelpCircle
+import { Lightbulb, Sparkles, Brain, HelpCircle, CheckCircle, XCircle } from 'lucide-react'; // Added CheckCircle, XCircle
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -125,12 +125,16 @@ export default function ConceptMapEditorPage() {
     getPaneSuggestions,
     getNodeSuggestions,
     fetchAndSetEdgeLabelSuggestions,
-    edgeLabelSuggestions,      // Destructure state
-    setEdgeLabelSuggestions,   // Destructure setter
+    edgeLabelSuggestions,
+    setEdgeLabelSuggestions,
+    conceptExpansionPreview,    // Destructure conceptExpansionPreview state
+    acceptAllExpansionPreviews, // Destructure new function
+    acceptSingleExpansionPreview, // Destructure new function
+    clearExpansionPreview,      // Destructure new function
     // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
   } = aiToolsHook;
 
-  const reactFlowInstance = useReactFlow(); // Get React Flow instance for coordinate projection
+  const reactFlowInstance = useReactFlow();
 
   // lastPaneClickPosition state was already added in a previous step that was part of a larger diff.
   // Verifying it's present. If not, this would be the place to add:
@@ -200,11 +204,18 @@ export default function ConceptMapEditorPage() {
   }>({ isVisible: false, position: null, suggestions: [], contextElementId: null, contextType: null });
 
   const Floater_handleDismiss = useCallback(() => {
-    if (floaterState.contextType === 'edge' && setEdgeLabelSuggestions) {
-      setEdgeLabelSuggestions(null); // Clear edge suggestions when dismissing edge-related floater
+    const currentContextType = floaterState.contextType;
+    // Always hide main floater
+    setFloaterState(prev => ({ ...prev, isVisible: false, contextType: null, contextElementId: null }));
+
+    // Specific cleanup based on context
+    if (currentContextType === 'edge' && setEdgeLabelSuggestions) {
+      setEdgeLabelSuggestions(null);
+    } else if (currentContextType === 'conceptExpansionControls' && clearExpansionPreview) {
+      // If user dismissed the controls floater (e.g. Escape, click-outside), clear the underlying preview data
+      clearExpansionPreview();
     }
-    setFloaterState(prev => ({ ...prev, isVisible: false }));
-  }, [floaterState.contextType, setEdgeLabelSuggestions]);
+  }, [floaterState.contextType, setEdgeLabelSuggestions, clearExpansionPreview]);
 
   // useEffect to show floater for edge label suggestions
   useEffect(() => {
@@ -320,12 +331,12 @@ export default function ConceptMapEditorPage() {
 
   // Handlers for AIStagingToolbar
   const handleCommitStagedData = useCallback(() => {
-    commitStagedMapData(); // Directly from store
+    commitStagedMapData();
     toast({ title: 'AI Suggestions Committed', description: 'New elements added to your map.' });
   }, [commitStagedMapData, toast]);
 
   const handleClearStagedData = useCallback(() => {
-    clearStagedMapData(); // Directly from store
+    clearStagedMapData();
     toast({ title: 'AI Staging Cleared', description: 'AI suggestions have been discarded.' });
   }, [clearStagedMapData, toast]);
 
@@ -333,6 +344,56 @@ export default function ConceptMapEditorPage() {
     nodes: storeStagedMapData?.nodes?.length || 0,
     edges: storeStagedMapData?.edges?.length || 0,
   }), [storeStagedMapData]);
+
+  // useEffect to show floater for Concept Expansion Preview controls
+  useEffect(() => {
+    if (conceptExpansionPreview && conceptExpansionPreview.parentNodeId && reactFlowInstance) {
+      const parentNode = reactFlowInstance.getNode(conceptExpansionPreview.parentNodeId);
+      if (parentNode && parentNode.positionAbsolute) {
+        const screenPos = reactFlowInstance.project({
+          x: parentNode.positionAbsolute.x + (parentNode.width || 150) / 2,
+          y: parentNode.positionAbsolute.y + (parentNode.height || 70) + 20,
+        });
+
+        const expansionControlSuggestions: SuggestionAction[] = [
+          {
+            id: 'accept-all-expansion',
+            label: 'Accept All Suggestions',
+            icon: CheckCircle,
+            action: () => {
+              acceptAllExpansionPreviews(); // This will also call setConceptExpansionPreview(null)
+              // Floater_handleDismiss will be called by the floater itself.
+            }
+          },
+          {
+            id: 'clear-expansion',
+            label: 'Clear All Suggestions',
+            icon: XCircle,
+            action: () => {
+              clearExpansionPreview(); // This will also call setConceptExpansionPreview(null)
+              // Floater_handleDismiss will be called by the floater itself.
+            }
+          }
+        ];
+
+        // Only show this floater if another isn't already active for a different purpose,
+        // or if it's already for expansion controls (to allow re-positioning if parent moves)
+        if (!floaterState.isVisible || floaterState.contextType === 'conceptExpansionControls') {
+          setFloaterState({
+            isVisible: true,
+            position: screenPos,
+            suggestions: expansionControlSuggestions,
+            contextType: 'conceptExpansionControls',
+            contextElementId: parentNode.id,
+            title: "Expansion Preview Controls"
+          });
+        }
+      }
+    } else if (floaterState.isVisible && floaterState.contextType === 'conceptExpansionControls' && !conceptExpansionPreview) {
+      // If preview was cleared (e.g. by accept/clear actions which nullify conceptExpansionPreview), hide this floater.
+      setFloaterState(prev => ({ ...prev, isVisible: false, contextType: null, contextElementId: null }));
+    }
+  }, [conceptExpansionPreview, reactFlowInstance, acceptAllExpansionPreviews, clearExpansionPreview, floaterState.isVisible, floaterState.contextType]);
 
 
   const handleMapPropertiesChange = useCallback((properties: { name: string; isPublic: boolean; sharedWithClassroomId: string | null; }) => {
@@ -518,7 +579,8 @@ export default function ConceptMapEditorPage() {
               onNodeContextMenuRequest={handleNodeContextMenuRequest}
               onPaneContextMenuRequest={handlePaneContextMenuRequest}
               onStagedElementsSelectionChange={setSelectedStagedElementIds}
-              onNewEdgeSuggestLabels={fetchAndSetEdgeLabelSuggestions} // Pass the new prop
+              onNewEdgeSuggestLabels={fetchAndSetEdgeLabelSuggestions}
+              onGhostNodeAcceptRequest={acceptSingleExpansionPreview} // Pass new prop
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
             />
           )}
