@@ -96,6 +96,9 @@ export default function ConceptMapEditorPage() {
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
     isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
     handleSummarizeSelectedNodes,
+    // Mini Toolbar functions
+    handleMiniToolbarQuickExpand, // Added
+    handleMiniToolbarRewriteConcise, // Added
     addStoreNode: addNodeFromHook,
     addStoreEdge: addEdgeFromHook,
     // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement

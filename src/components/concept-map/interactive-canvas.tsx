@@ -25,6 +25,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from '@/components/ui/card';
+import useConceptMapStore from '@/stores/concept-map-store'; // Added import
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
 import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
 import { cn } from '@/lib/utils';
@@ -96,6 +97,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   gridSize = 20,
   panActivationKeyCode,
 }) => {
+  console.log(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length-1]) : 'N/A'}`);
+  // Also send to store's debug log for easier collection if console is not always available during testing
+  useConceptMapStore.getState().addDebugLog(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node ID: ${nodes && nodes.length > 0 ? nodes[nodes.length-1]?.id : 'N/A'}`);
   const { viewport, getViewport } = useReactFlow(); 
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 

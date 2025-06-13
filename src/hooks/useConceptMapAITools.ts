@@ -388,6 +388,100 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   }, [isViewOnlyMode, multiSelectedNodeIds, mapData.nodes, toast, addStoreNode, setAiProcessingNodeId]);
 
+  // --- Mini Toolbar Actions ---
+  const handleMiniToolbarQuickExpand = useCallback(async (nodeId: string) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", variant: "default" });
+      return;
+    }
+    const sourceNode = mapData.nodes.find(n => n.id === nodeId);
+    if (!sourceNode) {
+      toast({ title: "Error", description: "Source node not found for Quick Expand.", variant: "destructive" });
+      return;
+    }
+
+    setAiProcessingNodeId(nodeId);
+    try {
+      // Prepare context: for quick expand, let's use minimal context or none.
+      const neighborIds = new Set<string>();
+      mapData.edges?.forEach(edge => {
+          if (edge.source === sourceNode.id) neighborIds.add(edge.target);
+          if (edge.target === sourceNode.id) neighborIds.add(edge.source);
+      });
+      const existingMapContext = Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 2);
+
+
+      const output: ExpandConceptOutput = await aiExpandConcept({
+        concept: sourceNode.text,
+        existingMapContext: existingMapContext, // Provide minimal context
+        userRefinementPrompt: "Generate one concise, directly related child idea for this concept. Focus on a primary sub-topic or component.",
+      });
+
+      if (output.expandedIdeas && output.expandedIdeas.length > 0) {
+        const idea = output.expandedIdeas[0]; // Take the first idea
+        const currentNodes = useConceptMapStore.getState().mapData.nodes;
+        const newNodeId = addStoreNode({
+          text: idea.text,
+          type: 'ai-expanded',
+          position: getNodePlacement(currentNodes, 'child', sourceNode, null, GRID_SIZE_FOR_AI_PLACEMENT),
+          parentNode: nodeId,
+        });
+
+        if (newNodeId) {
+          addStoreEdge({
+            source: nodeId,
+            target: newNodeId,
+            label: idea.relationLabel || 'related to',
+          });
+          toast({ title: "Quick Expand Successful", description: `Added '${idea.text}' to the map.` });
+        }
+      } else {
+        toast({ title: "Quick Expand", description: "AI couldn't find a specific idea to expand on this topic.", variant: "default" });
+      }
+    } catch (error) {
+      toast({ title: "Error during Quick Expand", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setAiProcessingNodeId(null);
+    }
+  }, [isViewOnlyMode, toast, mapData, addStoreNode, addStoreEdge, setAiProcessingNodeId]);
+
+  const handleMiniToolbarRewriteConcise = useCallback(async (nodeId: string) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", variant: "default" });
+      return;
+    }
+    const nodeToRewrite = mapData.nodes.find(n => n.id === nodeId);
+    if (!nodeToRewrite) {
+      toast({ title: "Error", description: "Node not found for Rewrite Concise.", variant: "destructive" });
+      return;
+    }
+
+    setAiProcessingNodeId(nodeId);
+    try {
+      const output: RewriteNodeContentOutput = await aiRewriteNodeContent({
+        currentText: nodeToRewrite.text,
+        currentDetails: nodeToRewrite.details,
+        // Assuming aiRewriteNodeContent can take a userInstruction or specific tone.
+        // If not, the prompt within aiRewriteNodeContent itself needs to be flexible.
+        // For this subtask, we'll pass it as a userInstruction.
+        // The flow might need an update to accept { rewriteTone?: string; userInstruction?: string }
+        userInstruction: "Make the text much more concise. If there are details, summarize them very briefly into the main text if possible, or omit them.",
+        // rewriteTone: "concise", // Alternative if the flow supports it directly
+      });
+
+      updateStoreNode(nodeId, {
+        text: output.newText,
+        details: output.newDetails || '', // Use new details if provided, otherwise clear or keep old (current behavior: clear if not provided)
+        type: 'ai-rewritten-node',
+      });
+      toast({ title: "Rewrite Concise Successful", description: "Node content has been made more concise." });
+    } catch (error) {
+      toast({ title: "Error during Rewrite Concise", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setAiProcessingNodeId(null);
+    }
+  }, [isViewOnlyMode, toast, mapData, updateStoreNode, setAiProcessingNodeId]);
+
 
   return {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
@@ -402,6 +496,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered, 
     isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm, 
     handleSummarizeSelectedNodes,
+    // Mini Toolbar specific functions
+    handleMiniToolbarQuickExpand,
+    handleMiniToolbarRewriteConcise,
     addStoreNode, 
     addStoreEdge,
   };

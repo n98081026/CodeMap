@@ -253,6 +253,13 @@ export const useConceptMapStore = create<ConceptMapState>()(
       },
 
       addNode: (options) => {
+        // Define default dimensions
+        const NODE_DEFAULT_WIDTH = 150;
+        const NODE_DEFAULT_HEIGHT = 70;
+
+        // Original log for options can be kept or removed if too verbose
+        // get().addDebugLog(`[STORE addNode] Attempting to add node with options: ${JSON.stringify(options)}`);
+
         const newNode: ConceptMapNode = {
           id: uniqueNodeId(),
           text: options.text,
@@ -264,9 +271,12 @@ export const useConceptMapStore = create<ConceptMapState>()(
           childIds: [], // Initialize childIds for the new node
           backgroundColor: options.backgroundColor || undefined,
           shape: options.shape || 'rectangle',
-          width: options.width,
-          height: options.height,
+          width: options.width ?? NODE_DEFAULT_WIDTH,
+          height: options.height ?? NODE_DEFAULT_HEIGHT,
         };
+
+        // New log for the created newNode object
+        get().addDebugLog(`[STORE addNode] newNode object created: ${JSON.stringify(newNode)}`);
 
         set((state) => {
           let newNodes = [...state.mapData.nodes, newNode];
@@ -279,6 +289,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
               newNodes[parentIndex] = parentNode;
             }
           }
+          get().addDebugLog(`[STORE addNode] Successfully added. Nodes count: ${newNodes.length}. Last node ID: ${newNode.id}`);
           return { mapData: { ...state.mapData, nodes: newNodes } };
         });
         return newNode.id;

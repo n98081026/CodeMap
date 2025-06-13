@@ -46,69 +46,80 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onPaneDoubleClickProp,
   panActivationKeyCode,
 }) => {
+  useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
   const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
   const reactFlowInstance = useReactFlow();
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
-  const initialRfNodes = useMemo(() => (mapDataFromStore.nodes || []).map(appNode => ({
-    id: appNode.id,
-    type: 'customConceptNode', 
-    data: {
-      label: appNode.text,
-      details: appNode.details,
-      type: appNode.type || 'default',
-      isViewOnly: isViewOnlyMode,
-      backgroundColor: appNode.backgroundColor,
-      shape: appNode.shape,
-      width: appNode.width,
-      height: appNode.height,
-      onTriggerAIExpand: onNodeAIExpandTriggered,
-    } as CustomNodeData,
-    position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
-    draggable: !isViewOnlyMode,
-    selectable: true,
-    connectable: !isViewOnlyMode,
-    dragHandle: '.cursor-move',
-    parentNode: appNode.parentNode,
-  })), [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered]);
+  // Initialize useNodesState and useEdgesState, potentially with empty arrays.
+  // The main synchronization will happen in useEffect.
+  const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
+  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>([]);
 
-  useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Generated initialRfNodes. Count: ${initialRfNodes.length}`);
+  // Effect to synchronize nodes from the store to React Flow's state
+  useEffect(() => {
+    useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Nodes] Running. mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
 
-  const initialRfEdges = useMemo(() => (mapDataFromStore.edges || []).map(appEdge => ({
-    id: appEdge.id,
-    source: appEdge.source,
-    target: appEdge.target,
-    sourceHandle: appEdge.sourceHandle || null,
-    targetHandle: appEdge.targetHandle || null,
-    label: appEdge.label,
-    type: 'orthogonal', 
-    data: {
+    const newRfNodes = (mapDataFromStore.nodes || []).map(appNode => ({
+      id: appNode.id,
+      type: 'customConceptNode',
+      data: {
+        label: appNode.text,
+        details: appNode.details,
+        type: appNode.type || 'default',
+        isViewOnly: isViewOnlyMode,
+        backgroundColor: appNode.backgroundColor,
+        shape: appNode.shape,
+        width: appNode.width,   // Already ensured by store to have defaults
+        height: appNode.height, // Already ensured by store to have defaults
+        onTriggerAIExpand: onNodeAIExpandTriggered,
+      } as CustomNodeData,
+      position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
+      draggable: !isViewOnlyMode,
+      selectable: true,
+      connectable: !isViewOnlyMode,
+      dragHandle: '.cursor-move',
+      parentNode: appNode.parentNode,
+    }));
+
+    useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Nodes] Processed ${newRfNodes.length} nodes. Setting React Flow nodes.`);
+    setRfNodes(newRfNodes);
+
+  }, [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered, setRfNodes]);
+
+
+  // Effect to synchronize edges from the store to React Flow's state
+  useEffect(() => {
+    useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Edges] Running. mapDataFromStore.edges count: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
+    const newRfEdges = (mapDataFromStore.edges || []).map(appEdge => ({
+      id: appEdge.id,
+      source: appEdge.source,
+      target: appEdge.target,
+      sourceHandle: appEdge.sourceHandle || null,
+      targetHandle: appEdge.targetHandle || null,
       label: appEdge.label,
-      color: appEdge.color,
-      lineType: appEdge.lineType
-    } as OrthogonalEdgeData,
-    markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
-    markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
-    style: { strokeWidth: 2 },
-    updatable: !isViewOnlyMode,
-    deletable: !isViewOnlyMode,
-    selectable: true,
-  })), [mapDataFromStore.edges, isViewOnlyMode]);
-
-  const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>(initialRfNodes);
-  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>(initialRfEdges);
-
-  useEffect(() => {
-    setRfNodes(initialRfNodes);
-  }, [initialRfNodes, setRfNodes]);
-
-  useEffect(() => {
-    setRfEdges(initialRfEdges);
-  }, [initialRfEdges, setRfEdges]);
+      type: 'orthogonal',
+      data: {
+        label: appEdge.label,
+        color: appEdge.color,
+        lineType: appEdge.lineType
+      } as OrthogonalEdgeData,
+      markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
+      markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
+      style: { strokeWidth: 2 },
+      updatable: !isViewOnlyMode,
+      deletable: !isViewOnlyMode,
+      selectable: true,
+    }));
+    useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Edges] Processed ${newRfEdges.length} edges. Setting React Flow edges.`);
+    setRfEdges(newRfEdges);
+  }, [mapDataFromStore.edges, isViewOnlyMode, setRfEdges]);
   
   useEffect(() => {
+    // This effect for fitView should ideally run *after* nodes have been set and rendered.
+    // React Flow's fitView might need a slight delay or to be triggered when rfNodes actually changes and is non-empty.
     if (rfNodes.length > 0 && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
       const timerId = setTimeout(() => {
         reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
