@@ -26,8 +26,10 @@ import type {
   SuggestRelationsOutput,
   SummarizeNodesOutput
 } from '@/ai/flows'; 
-import type { ConceptMapNode } from '@/types';
+import type { ConceptMapNode, RFNode } from '@/types'; // Added RFNode
 import { getNodePlacement } from '@/lib/layout-utils';
+import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater'; // Import SuggestionAction
+import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react'; // Import necessary icons
 
 export interface ConceptToExpandDetails {
   id: string | null;
@@ -57,7 +59,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     addNode: addStoreNode,
     updateNode: updateStoreNode,
     addEdge: addStoreEdge,
-    setAiProcessingNodeId, 
+    setAiProcessingNodeId,
+    setStagedMapData, // Added for staging
   } = useConceptMapStore();
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
@@ -255,20 +258,35 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   }, [isViewOnlyMode, resetAiSuggestions, toast]);
 
   const handleClusterGenerated = useCallback((output: GenerateQuickClusterOutput) => {
-    const newNodesMap = new Map<string, string>();
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const selectedNodeForPlacement = selectedElementId ? currentNodes.find(n => n.id === selectedElementId) : null;
+    if (isViewOnlyMode) return;
 
-    output.nodes.forEach((aiNode) => {
-      const newNodeId = addStoreNode({ text: aiNode.text, type: aiNode.type || 'ai-generated', details: aiNode.details || '', position: getNodePlacement(currentNodes, 'generic', null, selectedNodeForPlacement, GRID_SIZE_FOR_AI_PLACEMENT) });
-      newNodesMap.set(aiNode.text, newNodeId);
-    });
-    output.edges?.forEach(aiEdge => {
-      const sourceId = newNodesMap.get(aiEdge.sourceText); const targetId = newNodesMap.get(aiEdge.targetText);
-      if (sourceId && targetId) addStoreEdge({ source: sourceId, target: targetId, label: aiEdge.relationLabel });
-    });
-    toast({ title: "AI Cluster Added", description: `Added ${output.nodes.length} nodes and ${output.edges?.length || 0} edges.` });
-  }, [addStoreNode, addStoreEdge, toast, selectedElementId]);
+    const tempNodes: ConceptMapNode[] = output.nodes.map((aiNode, index) => ({
+      id: `staged-node-${Date.now()}-${index}`, // Temporary ID
+      text: aiNode.text,
+      type: aiNode.type || 'ai-generated',
+      details: aiNode.details || '',
+      x: (index % 5) * 170, // Basic grid positioning for staging, slightly wider
+      y: Math.floor(index / 5) * 120, // Slightly taller
+      width: 150, // Default width
+      height: 70,  // Default height
+      childIds: [], // Initialize childIds
+    }));
+
+    const tempNodeIdMap = new Map<string, string>();
+    // Assuming aiNode.text is unique enough for this temporary mapping during staging.
+    // If not, a more robust temporary ID system within the AI output itself would be needed.
+    tempNodes.forEach(n => tempNodeIdMap.set(n.text, n.id));
+
+    const tempEdges = (output.edges || []).map((aiEdge, index) => ({
+      id: `staged-edge-${Date.now()}-${index}`, // Temporary ID
+      source: tempNodeIdMap.get(aiEdge.sourceText) || `unknown-source-${aiEdge.sourceText}`,
+      target: tempNodeIdMap.get(aiEdge.targetText) || `unknown-target-${aiEdge.targetText}`,
+      label: aiEdge.relationLabel,
+    })).filter(e => !e.source.startsWith('unknown-') && !e.target.startsWith('unknown-'));
+
+    setStagedMapData({ nodes: tempNodes, edges: tempEdges });
+    toast({ title: "AI Cluster Ready for Staging", description: `Proposed ${tempNodes.length} nodes and ${tempEdges.length} edges. View in staging area.` });
+  }, [isViewOnlyMode, setStagedMapData, toast]);
 
   // --- Generate Snippet ---
   const openGenerateSnippetModal = useCallback(() => {
@@ -278,20 +296,33 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   }, [isViewOnlyMode, resetAiSuggestions, toast]);
 
   const handleSnippetGenerated = useCallback((output: GenerateMapSnippetOutput) => {
-    const newNodesMap = new Map<string, string>();
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const selectedNodeForPlacement = selectedElementId ? currentNodes.find(n => n.id === selectedElementId) : null;
+    if (isViewOnlyMode) return;
 
-    output.nodes.forEach((aiNode) => {
-      const newNodeId = addStoreNode({ text: aiNode.text, type: aiNode.type || 'text-derived-concept', details: aiNode.details || '', position: getNodePlacement(currentNodes, 'generic', null, selectedNodeForPlacement, GRID_SIZE_FOR_AI_PLACEMENT) });
-      newNodesMap.set(aiNode.text, newNodeId);
-    });
-    output.edges?.forEach(aiEdge => {
-      const sourceId = newNodesMap.get(aiEdge.sourceText); const targetId = newNodesMap.get(aiEdge.targetText);
-      if (sourceId && targetId) addStoreEdge({ source: sourceId, target: targetId, label: aiEdge.relationLabel });
-    });
-    toast({ title: "AI Snippet Added", description: `Added ${output.nodes.length} nodes and ${output.edges?.length || 0} edges.` });
-  }, [addStoreNode, addStoreEdge, toast, selectedElementId]);
+    const tempNodes: ConceptMapNode[] = output.nodes.map((aiNode, index) => ({
+      id: `staged-node-${Date.now()}-${index}`, // Temporary ID
+      text: aiNode.text,
+      type: aiNode.type || 'text-derived-concept',
+      details: aiNode.details || '',
+      x: (index % 5) * 170, // Basic grid positioning
+      y: Math.floor(index / 5) * 120,
+      width: 150,
+      height: 70,
+      childIds: [],
+    }));
+
+    const tempNodeIdMap = new Map<string, string>();
+    tempNodes.forEach(n => tempNodeIdMap.set(n.text, n.id));
+
+    const tempEdges = (output.edges || []).map((aiEdge, index) => ({
+      id: `staged-edge-${Date.now()}-${index}`, // Temporary ID
+      source: tempNodeIdMap.get(aiEdge.sourceText) || `unknown-source-${aiEdge.sourceText}`,
+      target: tempNodeIdMap.get(aiEdge.targetText) || `unknown-target-${aiEdge.targetText}`,
+      label: aiEdge.relationLabel,
+    })).filter(e => !e.source.startsWith('unknown-') && !e.target.startsWith('unknown-'));
+
+    setStagedMapData({ nodes: tempNodes, edges: tempEdges });
+    toast({ title: "AI Snippet Ready for Staging", description: `Proposed ${tempNodes.length} nodes and ${tempEdges.length} edges. View in staging area.` });
+  }, [isViewOnlyMode, setStagedMapData, toast]);
 
   // --- Ask Question ---
   const openAskQuestionModal = useCallback((nodeId: string) => {
@@ -499,6 +530,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     // Mini Toolbar specific functions
     handleMiniToolbarQuickExpand,
     handleMiniToolbarRewriteConcise,
+    // Suggestion getter functions
+    getPaneSuggestions,
+    getNodeSuggestions,
     addStoreNode, 
     addStoreEdge,
   };

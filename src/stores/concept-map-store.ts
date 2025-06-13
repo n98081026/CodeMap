@@ -36,6 +36,10 @@ interface ConceptMapState {
 
   debugLogs: string[];
 
+  // Staging area state
+  stagedMapData: ConceptMapData | null;
+  isStagingActive: boolean;
+
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
   setCurrentMapOwnerId: (ownerId: string | null) => void;
@@ -77,9 +81,15 @@ interface ConceptMapState {
   addEdge: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string; color?: string; lineType?: 'solid' | 'dashed'; markerStart?: string; markerEnd?: string; }) => void;
   updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
   deleteEdge: (edgeId: string) => void;
+
+  // Staging area actions
+  setStagedMapData: (data: ConceptMapData | null) => void;
+  clearStagedMapData: () => void;
+  commitStagedMapData: () => void;
+  deleteFromStagedMapData: (elementIds: string[]) => void; // New action
 }
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId'>;
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive'>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -92,7 +102,8 @@ const initialStateBase: Omit<ConceptMapState,
   'resetAiSuggestions' | 'removeExtractedConceptsFromSuggestions' | 'removeSuggestedRelationsFromSuggestions' |
   'addDebugLog' | 'clearDebugLogs' |
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
-  'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
+  'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
+  'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' // Added new action
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -115,6 +126,8 @@ const initialStateBase: Omit<ConceptMapState,
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
   debugLogs: [],
+  stagedMapData: null, // Added staging state
+  isStagingActive: false, // Added staging state
 };
 
 
@@ -398,12 +411,80 @@ export const useConceptMapStore = create<ConceptMapState>()(
           selectedElementId: newSelectedElementId,
           selectedElementType: newSelectedElementType,
         };
-      })
+      }),
+
+      // Staging area action implementations
+      setStagedMapData: (data) => {
+        get().addDebugLog(`[STORE setStagedMapData] Setting staged data. Nodes: ${data?.nodes?.length ?? 0}, Edges: ${data?.edges?.length ?? 0}`);
+        set({ stagedMapData: data, isStagingActive: !!data });
+      },
+      clearStagedMapData: () => {
+        get().addDebugLog(`[STORE clearStagedMapData] Clearing staged data.`);
+        set({ stagedMapData: null, isStagingActive: false });
+      },
+      commitStagedMapData: () => {
+        const stagedData = get().stagedMapData;
+        if (!stagedData) {
+          get().addDebugLog('[STORE commitStagedMapData] No staged data to commit.');
+          return;
+        }
+        get().addDebugLog(`[STORE commitStagedMapData] Committing ${stagedData.nodes.length} nodes and ${stagedData.edges.length} edges.`);
+
+        // Simplified merge for now, ensuring new IDs.
+        // Positioning and more complex ID remapping will be handled later.
+        set((state) => ({
+          mapData: {
+            nodes: [
+              ...state.mapData.nodes,
+              // Ensure new IDs on commit to avoid conflicts if items were somehow derived from existing ones
+              ...stagedData.nodes.map(n => ({ ...n, id: uniqueNodeId() }))
+            ],
+            edges: [
+              ...(state.mapData.edges || []),
+              ...(stagedData.edges || []).map(e => ({ ...e, id: uniqueEdgeId() })) // Ensure new IDs
+            ],
+          },
+          stagedMapData: null,
+          isStagingActive: false,
+        }));
+      },
+      deleteFromStagedMapData: (elementIdsToRemove) => {
+        if (!get().isStagingActive || !get().stagedMapData) {
+          get().addDebugLog('[STORE deleteFromStagedMapData] Staging not active or no data.');
+          return;
+        }
+
+        const currentStagedData = get().stagedMapData!;
+        const newStagedNodes = currentStagedData.nodes.filter(node => !elementIdsToRemove.includes(node.id));
+
+        // Create a set of IDs of nodes that will remain, to filter edges correctly
+        const remainingNodeIds = new Set(newStagedNodes.map(node => node.id));
+
+        const newStagedEdges = (currentStagedData.edges || []).filter(edge =>
+          !elementIdsToRemove.includes(edge.id) && // Remove if edge itself is selected
+          remainingNodeIds.has(edge.source) &&     // Keep if source node still exists
+          remainingNodeIds.has(edge.target)        // Keep if target node still exists
+        );
+
+        if (newStagedNodes.length === 0) {
+          get().addDebugLog(`[STORE deleteFromStagedMapData] All staged nodes removed or orphaned. Clearing staging area.`);
+          set({ stagedMapData: null, isStagingActive: false });
+        } else {
+          get().addDebugLog(`[STORE deleteFromStagedMapData] Removed elements. Remaining: ${newStagedNodes.length} nodes, ${newStagedEdges.length} edges.`);
+          set({
+            stagedMapData: {
+              nodes: newStagedNodes,
+              edges: newStagedEdges,
+            },
+            isStagingActive: true, // Keep active if there are still nodes
+          });
+        }
+      },
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive };
       },
       limit: 50,
     }

@@ -34,6 +34,9 @@ import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
+import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar'; // Import AIStagingToolbar
+import { Lightbulb, Sparkles, Brain, HelpCircle } from 'lucide-react'; // Added Brain, HelpCircle
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -57,14 +60,32 @@ export default function ConceptMapEditorPage() {
     mapData: storeMapData, isLoading: isStoreLoading, isSaving: isStoreSaving, error: storeError,
     selectedElementId, selectedElementType, multiSelectedNodeIds,
     aiExtractedConcepts, aiSuggestedRelations,
+    // Staging state from store
+    isStagingActive, stagedMapData: storeStagedMapData,
+    commitStagedMapData, clearStagedMapData, deleteFromStagedMapData, // Added deleteFromStagedMapData
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     deleteNode: deleteStoreNode, updateNode: updateStoreNode,
     updateEdge: updateStoreEdge,
     setSelectedElement: setStoreSelectedElement, setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
-    addDebugLog, // Added addDebugLog
-  } = useConceptMapStore();
+    addDebugLog,
+  } = useConceptMapStore(
+    useCallback(s => ({
+      mapId: s.mapId, mapName: s.mapName, currentMapOwnerId: s.currentMapOwnerId, currentMapCreatedAt: s.currentMapCreatedAt,
+      isPublic: s.isPublic, sharedWithClassroomId: s.sharedWithClassroomId, isNewMapMode: s.isNewMapMode,
+      isViewOnlyMode: s.isViewOnlyMode, mapData: s.mapData, isLoading: s.isLoading, isSaving: s.isSaving,
+      error: s.error, selectedElementId: s.selectedElementId, selectedElementType: s.selectedElementType,
+      multiSelectedNodeIds: s.multiSelectedNodeIds, aiExtractedConcepts: s.aiExtractedConcepts,
+      aiSuggestedRelations: s.aiSuggestedRelations,
+      isStagingActive: s.isStagingActive, stagedMapData: s.stagedMapData,
+      commitStagedMapData: s.commitStagedMapData, clearStagedMapData: s.clearStagedMapData, deleteFromStagedMapData: s.deleteFromStagedMapData, // Added deleteFromStagedMapData
+      setMapName: s.setMapName, setIsPublic: s.setIsPublic, setSharedWithClassroomId: s.setSharedWithClassroomId,
+      deleteNode: s.deleteNode, updateNode: s.updateNode, updateEdge: s.updateEdge,
+      setSelectedElement: s.setSelectedElement, setMultiSelectedNodeIds: s.setMultiSelectedNodeIds,
+      importMapData: s.importMapData, setIsViewOnlyMode: s.setIsViewOnlyMode, addDebugLog: s.addDebugLog,
+    }), [])
+  );
 
   useEffect(() => {
     // Log storeMapData changes
@@ -98,11 +119,41 @@ export default function ConceptMapEditorPage() {
     handleSummarizeSelectedNodes,
     // Mini Toolbar functions
     handleMiniToolbarQuickExpand, // Added
-    handleMiniToolbarRewriteConcise, // Added
+    handleMiniToolbarRewriteConcise,
     addStoreNode: addNodeFromHook,
     addStoreEdge: addEdgeFromHook,
+    getPaneSuggestions,
+    getNodeSuggestions,
     // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
   } = aiToolsHook;
+
+  // lastPaneClickPosition state was already added in a previous step that was part of a larger diff.
+  // Verifying it's present. If not, this would be the place to add:
+  // const [lastPaneClickPosition, setLastPaneClickPosition] = useState<{ x: number; y: number } | null>(null);
+  // It seems it was correctly added based on the previous successful diff.
+  const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
+
+  // Effect for handling Delete/Backspace key for staged elements
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isStagingActive && selectedStagedElementIds.length > 0 && (event.key === 'Delete' || event.key === 'Backspace')) {
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+          // Do not interfere if user is typing in an input/textarea
+          return;
+        }
+        event.preventDefault();
+        deleteFromStagedMapData(selectedStagedElementIds);
+        setSelectedStagedElementIds([]); // Clear selection after deletion
+        toast({ title: 'Staged Items Deleted', description: `${selectedStagedElementIds.length} item(s) removed from staging area.` });
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isStagingActive, selectedStagedElementIds, deleteFromStagedMapData, toast, setSelectedStagedElementIds]);
+
 
   // Memoized callback for saving the map
   const handleSaveMap = useCallback(() => {
@@ -134,6 +185,97 @@ export default function ConceptMapEditorPage() {
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; nodeId: string | null; } | null>(null);
+
+  const [floaterState, setFloaterState] = useState<{
+    isVisible: boolean;
+    position: { x: number; y: number } | null;
+    suggestions: SuggestionAction[];
+    contextElementId?: string | null;
+    contextType?: 'pane' | 'node' | null;
+  }>({ isVisible: false, position: null, suggestions: [], contextElementId: null, contextType: null });
+
+  const Floater_handleDismiss = useCallback(() => {
+    setFloaterState(prev => ({ ...prev, isVisible: false }));
+  }, []);
+
+  const handleAddNodeFromFloater = useCallback((position?: {x: number, y: number}) => {
+    if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
+    const newNodeText = `Node ${storeMapData.nodes.length + 1}`;
+    // Use provided position or fallback to getNodePlacement if position is not directly from context menu event
+    const { x, y } = position || aiToolsHook.getNodePlacement(storeMapData.nodes.length, 'generic', null, null, 20);
+    const newNodeId = addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
+    useConceptMapStore.getState().setEditingNodeId(newNodeId); // Auto-focus for editing
+    toast({ title: "Node Added", description: `"${newNodeText}" added.`});
+    Floater_handleDismiss();
+  }, [storeIsViewOnlyMode, toast, aiToolsHook.getNodePlacement, addNodeFromHook, storeMapData.nodes, Floater_handleDismiss]);
+
+
+  const handlePaneContextMenuRequest = useCallback((event: React.MouseEvent, positionInFlow: {x: number, y: number}) => {
+    if (storeIsViewOnlyMode) return;
+    // Close standard node context menu if it's open
+    if (contextMenu?.isOpen) closeContextMenu();
+    setLastPaneClickPosition(positionInFlow); // Store click position
+
+    const rawSuggestions = getPaneSuggestions(positionInFlow); // Pass position directly if hook uses it
+    const suggestions = rawSuggestions.map(s => {
+      if (s.id === 'pane-add-topic') {
+        // Wrap the addStoreNode action to use the stored lastPaneClickPosition
+        return {
+          ...s,
+          action: () => {
+            // The addStoreNode action from getPaneSuggestions already handles position.
+            // We ensure it's called and then dismiss.
+            s.action(); // This should call the addNodeAtPosition with the correct position.
+            Floater_handleDismiss();
+          }
+        };
+      }
+      return { ...s, action: () => { s.action(); Floater_handleDismiss(); } };
+    });
+
+    setFloaterState({ isVisible: true, position: { x: event.clientX, y: event.clientY }, suggestions, contextType: 'pane', contextElementId: null });
+  }, [storeIsViewOnlyMode, getPaneSuggestions, Floater_handleDismiss, contextMenu?.isOpen, closeContextMenu, /* addNodeFromHook, openQuickClusterModal - covered by getPaneSuggestions */]);
+
+  const handleNodeContextMenuRequest = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
+    if (storeIsViewOnlyMode) return;
+    event.preventDefault();
+    if (contextMenu?.isOpen) closeContextMenu();
+    Floater_handleDismiss(); // Dismiss any existing floater first
+
+    const rawSuggestions = getNodeSuggestions(node);
+    const suggestions = rawSuggestions.map(s => ({
+      ...s,
+      action: () => {
+        s.action(); // Original action from hook
+        Floater_handleDismiss(); // Then dismiss
+      }
+    }));
+
+    setFloaterState({
+      isVisible: true,
+      position: { x: event.clientX, y: event.clientY },
+      suggestions: suggestions,
+      contextType: 'node',
+      contextElementId: node.id
+    });
+  }, [storeIsViewOnlyMode, contextMenu?.isOpen, closeContextMenu, Floater_handleDismiss, getNodeSuggestions]);
+
+  // Handlers for AIStagingToolbar
+  const handleCommitStagedData = useCallback(() => {
+    commitStagedMapData(); // Directly from store
+    toast({ title: 'AI Suggestions Committed', description: 'New elements added to your map.' });
+  }, [commitStagedMapData, toast]);
+
+  const handleClearStagedData = useCallback(() => {
+    clearStagedMapData(); // Directly from store
+    toast({ title: 'AI Staging Cleared', description: 'AI suggestions have been discarded.' });
+  }, [clearStagedMapData, toast]);
+
+  const stagedItemCount = React.useMemo(() => ({
+    nodes: storeStagedMapData?.nodes?.length || 0,
+    edges: storeStagedMapData?.edges?.length || 0,
+  }), [storeStagedMapData]);
+
 
   const handleMapPropertiesChange = useCallback((properties: { name: string; isPublic: boolean; sharedWithClassroomId: string | null; }) => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", description: "Map properties cannot be changed.", variant: "default"}); return; }
@@ -315,11 +457,26 @@ export default function ConceptMapEditorPage() {
               onNodesDeleteInStore={deleteStoreNode}
               onEdgesDeleteInStore={(edgeId) => useConceptMapStore.getState().deleteEdge(edgeId)}
               onConnectInStore={addEdgeFromHook}
-              onNodeContextMenu={handleNodeContextMenu}
+              onNodeContextMenuRequest={handleNodeContextMenuRequest}
+              onPaneContextMenuRequest={handlePaneContextMenuRequest}
+              onStagedElementsSelectionChange={setSelectedStagedElementIds} // Pass handler
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
             />
           )}
         </div>
+        <AIStagingToolbar
+          isVisible={isStagingActive}
+          onCommit={handleCommitStagedData}
+          onClear={handleClearStagedData}
+          stagedItemCount={stagedItemCount}
+        />
+        <AISuggestionFloater
+          isVisible={floaterState.isVisible}
+          position={floaterState.position || { x: 0, y: 0 }}
+          suggestions={floaterState.suggestions}
+          onDismiss={Floater_handleDismiss}
+          title={floaterState.contextType === 'pane' ? "Pane Actions" : floaterState.contextType === 'node' ? "Node Actions" : "Quick Actions"}
+        />
         {contextMenu?.isOpen && contextMenu.nodeId && (
           <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu}
             onDeleteNode={handleDeleteNodeFromContextMenu}

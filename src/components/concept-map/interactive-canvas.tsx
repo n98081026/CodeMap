@@ -53,6 +53,7 @@ interface InteractiveCanvasProps {
   onNodeDrag?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onNodeDragStop?: (event: React.MouseEvent, node: Node<CustomNodeData>, nodes: Node<CustomNodeData>[]) => void;
   onPaneDoubleClick?: OnPaneDoubleClick;
+  onPaneContextMenu?: (event: React.MouseEvent) => void; // Added new prop
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string | null;
@@ -93,6 +94,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeDrag,
   onNodeDragStop,
   onPaneDoubleClick,
+  onPaneContextMenu, // Destructure new prop
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
@@ -207,6 +209,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     nodeTypes: nodeTypesConfig,
     edgeTypes: edgeTypesConfig,
     onNodeContextMenu,
+    onPaneContextMenu, // Pass to ReactFlow
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined,

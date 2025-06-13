@@ -25,10 +25,10 @@ interface FlowCanvasCoreProps {
   onNodesDeleteInStore: (nodeId: string) => void;
   onEdgesDeleteInStore: (edgeId: string) => void;
   onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string; color?: string; lineType?: 'solid' | 'dashed'; markerStart?: string; markerEnd?: string; }) => void;
-  onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
+  onNodeContextMenuRequest?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void; // Renamed/Replaced: This will be the new prop for node context menu
   onNodeAIExpandTriggered?: (nodeId: string) => void;
-  
-  onPaneDoubleClickProp?: OnPaneDoubleClick;
+  onPaneContextMenuRequest?: (event: React.MouseEvent, positionInFlow: {x: number, y: number}) => void;
+  onStagedElementsSelectionChange?: (selectedIds: string[]) => void; // New prop
   panActivationKeyCode?: string | null;
 }
 
@@ -41,24 +41,29 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onNodesDeleteInStore,
   onEdgesDeleteInStore,
   onConnectInStore,
-  onNodeContextMenu,
+  onNodeContextMenuRequest,
   onNodeAIExpandTriggered,
-  onPaneDoubleClickProp,
+  onPaneContextMenuRequest,
+  onStagedElementsSelectionChange, // Destructure new prop
   panActivationKeyCode,
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
   const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
+  const { stagedMapData, isStagingActive } = useConceptMapStore(
+    useCallback(s => ({ stagedMapData: s.stagedMapData, isStagingActive: s.isStagingActive }), [])
+  );
   const reactFlowInstance = useReactFlow();
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
-  // Initialize useNodesState and useEdgesState, potentially with empty arrays.
-  // The main synchronization will happen in useEffect.
+  // Initialize useNodesState and useEdgesState for main and staged elements.
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>([]);
+  const [rfStagedNodes, setRfStagedNodes, onStagedNodesChange] = useNodesState<CustomNodeData>([]);
+  const [rfStagedEdges, setRfStagedEdges, onStagedEdgesChange] = useEdgesState<OrthogonalEdgeData>([]);
 
-  // Effect to synchronize nodes from the store to React Flow's state
+  // Effect to synchronize MAIN nodes from the store to React Flow's state
   useEffect(() => {
     useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Nodes] Running. mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
 
@@ -116,6 +121,55 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Edges] Processed ${newRfEdges.length} edges. Setting React Flow edges.`);
     setRfEdges(newRfEdges);
   }, [mapDataFromStore.edges, isViewOnlyMode, setRfEdges]);
+
+  // Effect to synchronize STAGED nodes and edges from the store
+  useEffect(() => {
+    if (isStagingActive && stagedMapData) {
+      useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Updating STAGED nodes. Count: ${stagedMapData.nodes.length}`);
+      const newRfStagedNodes = stagedMapData.nodes.map(appNode => ({
+        id: appNode.id, // Use temporary IDs from store
+        type: 'customConceptNode',
+        data: {
+          label: appNode.text,
+          details: appNode.details,
+          type: appNode.type || 'default',
+          isViewOnly: true, // Staged items are initially not editable in the main sense
+          backgroundColor: appNode.backgroundColor, // Or a specific staged color
+          shape: appNode.shape,
+          width: appNode.width,
+          height: appNode.height,
+          isStaged: true, // Flag for styling
+        } as CustomNodeData,
+        position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
+        draggable: false, // Staged nodes not draggable for now
+        selectable: true, // Allow selection for potential "delete from stage"
+        connectable: false, // Staged nodes not connectable for now
+        dragHandle: '.cursor-move', // Standard drag handle, though draggable is false
+      }));
+      setRfStagedNodes(newRfStagedNodes);
+
+      useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Updating STAGED edges. Count: ${stagedMapData.edges?.length ?? 0}`);
+      const newRfStagedEdges = (stagedMapData.edges || []).map(appEdge => ({
+        id: appEdge.id, // Use temporary IDs
+        source: appEdge.source,
+        target: appEdge.target,
+        label: appEdge.label,
+        type: 'orthogonal',
+        data: {
+          label: appEdge.label,
+          color: appEdge.color, // Or a specific staged color
+          lineType: appEdge.lineType,
+        } as OrthogonalEdgeData,
+        style: { strokeDasharray: '5,5', opacity: 0.7, strokeWidth: 2, stroke: appEdge.color || 'grey' },
+        updatable: false,
+        selectable: true,
+      }));
+      setRfStagedEdges(newRfStagedEdges);
+    } else {
+      setRfStagedNodes([]);
+      setRfStagedEdges([]);
+    }
+  }, [isStagingActive, stagedMapData, setRfStagedNodes, setRfStagedEdges]);
   
   useEffect(() => {
     // This effect for fitView should ideally run *after* nodes have been set and rendered.
@@ -308,18 +362,36 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   }, [isViewOnlyMode, onConnectInStore]);
 
   const handleRfSelectionChange = useCallback((selection: SelectionChanges) => {
-    const { nodes, edges } = selection;
-    if (nodes.length === 1 && edges.length === 0) {
-      onSelectionChange(nodes[0].id, 'node');
-    } else if (edges.length === 1 && nodes.length === 0) {
-      onSelectionChange(edges[0].id, 'edge');
-    } else {
+    const selectedRfNodes = selection.nodes;
+    const selectedRfEdges = selection.edges;
+
+    const currentStagedNodeIds = new Set(rfStagedNodes.map(n => n.id));
+    const currentStagedEdgeIds = new Set(rfStagedEdges.map(e => e.id));
+
+    const newlySelectedStagedNodeIds = selectedRfNodes.filter(n => currentStagedNodeIds.has(n.id)).map(n => n.id);
+    const newlySelectedStagedEdgeIds = selectedRfEdges.filter(e => currentStagedEdgeIds.has(e.id)).map(e => e.id);
+
+    onStagedElementsSelectionChange?.([...newlySelectedStagedNodeIds, ...newlySelectedStagedEdgeIds]);
+
+    // Filter out staged elements for main selection handlers
+    const mainSelectedNodes = selectedRfNodes.filter(n => !currentStagedNodeIds.has(n.id));
+    const mainSelectedEdges = selectedRfEdges.filter(e => !currentStagedEdgeIds.has(e.id));
+
+    if (mainSelectedNodes.length === 1 && mainSelectedEdges.length === 0) {
+      onSelectionChange(mainSelectedNodes[0].id, 'node');
+    } else if (mainSelectedEdges.length === 1 && mainSelectedNodes.length === 0) {
+      onSelectionChange(mainSelectedEdges[0].id, 'edge');
+    } else if (mainSelectedNodes.length === 0 && mainSelectedEdges.length === 0 && (newlySelectedStagedNodeIds.length > 0 || newlySelectedStagedEdgeIds.length > 0)) {
+      // If only staged elements are selected, main selection is null
+      onSelectionChange(null, null);
+    } else if (mainSelectedNodes.length === 0 && mainSelectedEdges.length === 0) {
+        // If nothing is selected (neither main nor staged)
       onSelectionChange(null, null);
     }
-    if (onMultiNodeSelectionChange) {
-      onMultiNodeSelectionChange(nodes.map(node => node.id));
-    }
-  }, [onSelectionChange, onMultiNodeSelectionChange]);
+    // onMultiNodeSelectionChange should only receive main map nodes
+    onMultiNodeSelectionChange?.(mainSelectedNodes.map(node => node.id));
+
+  }, [onSelectionChange, onMultiNodeSelectionChange, onStagedElementsSelectionChange, rfStagedNodes, rfStagedEdges]);
 
   const handlePaneDoubleClickInternal: OnPaneDoubleClick = useCallback((event) => {
     if (isViewOnlyMode) return;
@@ -336,8 +408,15 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     });
     setSelectedElement(newNodeId, 'node');
     setEditingNodeId(newNodeId); // For auto-focus
-    onPaneDoubleClickProp?.(event);
-  }, [isViewOnlyMode, addNodeToStore, reactFlowInstance, setSelectedElement, setEditingNodeId, GRID_SIZE, onPaneDoubleClickProp]);
+    // Removed onPaneDoubleClickProp?.(event);
+  }, [isViewOnlyMode, addNodeToStore, reactFlowInstance, setSelectedElement, setEditingNodeId, GRID_SIZE]);
+
+  const handlePaneContextMenuInternal = useCallback((event: React.MouseEvent) => {
+    if (isViewOnlyMode || !reactFlowInstance) return;
+    event.preventDefault();
+    const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    onPaneContextMenuRequest?.(event, positionInFlow);
+  }, [isViewOnlyMode, reactFlowInstance, onPaneContextMenuRequest]);
 
   return (
     <InteractiveCanvas
@@ -348,12 +427,17 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       onNodesDelete={handleRfNodesDeleted}
       onEdgesDelete={handleRfEdgesDeleted}
       onSelectionChange={handleRfSelectionChange}
-      onConnect={handleRfConnect}
+      onConnectInStore={onConnectInStore} // Corrected: was addEdgeFromHook, should be onConnectInStore from props
       isViewOnlyMode={isViewOnlyMode}
-      onNodeContextMenu={onNodeContextMenu}
-      onNodeDrag={onNodeDragInternal} 
+      onNodeContextMenu={(event, node) => { // Define inline handler or a new useCallback
+        if (isViewOnlyMode) return;
+        event.preventDefault(); // Ensure default is prevented here too
+        onNodeContextMenuRequest?.(event, node);
+      }}
+      onNodeDrag={onNodeDragInternal}
       onNodeDragStop={onNodeDragStopInternal}
-      onPaneDoubleClick={handlePaneDoubleClickInternal}
+      onPaneDoubleClick={handlePaneDoubleClickInternal} // This is for adding nodes on double click
+      onPaneContextMenu={handlePaneContextMenuInternal} // Pass the new handler for context menu
       activeSnapLines={activeSnapLinesLocal} // Pass snap lines to InteractiveCanvas
       gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}

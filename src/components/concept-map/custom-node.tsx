@@ -23,6 +23,7 @@ export interface CustomNodeData {
   width?: number;
   height?: number;
   onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void; // For hover buttons
+  isStaged?: boolean; // Added for staged node styling
   // onTriggerAIExpand?: (nodeId: string) => void; // Retained for potential future direct AI button on node
 }
 
@@ -127,10 +128,11 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       style={nodeStyle}
       className={cn(
         "nodrag relative shadow-md border border-border flex flex-col",
-        selected && !isBeingProcessedByAI ? "ring-2 ring-primary" : "", // Don't show ring if AI processing to avoid clash
+        selected && !isBeingProcessedByAI && !data.isStaged ? "ring-2 ring-primary" : "", // Don't show ring if AI processing or staged
         nodeIsViewOnly && "cursor-default",
         !nodeIsViewOnly && "cursor-grab",
-        data.shape === 'ellipse' && 'items-center justify-center text-center p-2' // Ellipse specific centering
+        data.shape === 'ellipse' && 'items-center justify-center text-center p-2', // Ellipse specific centering
+        data.isStaged && "border-dashed border-blue-500 opacity-80" // Placeholder for staged style
       )}
       onMouseEnter={() => { setIsHovered(true); setIsHoveredForToolbar(true); }}
       onMouseLeave={() => { setIsHovered(false); setIsHoveredForToolbar(false); }}
