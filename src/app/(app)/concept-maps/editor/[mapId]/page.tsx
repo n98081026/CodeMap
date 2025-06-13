@@ -3,8 +3,8 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import type { Node as RFNode } from 'reactflow';
-import { ReactFlowProvider } from 'reactflow';
+import type { Node as RFNode, Edge as RFEdge } from 'reactflow'; // Added RFEdge
+import { ReactFlowProvider, useReactFlow } from 'reactflow'; // Added useReactFlow
 import dynamic from 'next/dynamic';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
@@ -124,8 +124,13 @@ export default function ConceptMapEditorPage() {
     addStoreEdge: addEdgeFromHook,
     getPaneSuggestions,
     getNodeSuggestions,
+    fetchAndSetEdgeLabelSuggestions,
+    edgeLabelSuggestions,      // Destructure state
+    setEdgeLabelSuggestions,   // Destructure setter
     // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
   } = aiToolsHook;
+
+  const reactFlowInstance = useReactFlow(); // Get React Flow instance for coordinate projection
 
   // lastPaneClickPosition state was already added in a previous step that was part of a larger diff.
   // Verifying it's present. If not, this would be the place to add:
@@ -195,8 +200,61 @@ export default function ConceptMapEditorPage() {
   }>({ isVisible: false, position: null, suggestions: [], contextElementId: null, contextType: null });
 
   const Floater_handleDismiss = useCallback(() => {
+    if (floaterState.contextType === 'edge' && setEdgeLabelSuggestions) {
+      setEdgeLabelSuggestions(null); // Clear edge suggestions when dismissing edge-related floater
+    }
     setFloaterState(prev => ({ ...prev, isVisible: false }));
-  }, []);
+  }, [floaterState.contextType, setEdgeLabelSuggestions]);
+
+  // useEffect to show floater for edge label suggestions
+  useEffect(() => {
+    if (edgeLabelSuggestions?.edgeId && edgeLabelSuggestions.labels.length > 0) {
+      const edge = reactFlowInstance.getEdge(edgeLabelSuggestions.edgeId);
+      const allNodes = reactFlowInstance.getNodes();
+      if (edge) {
+        const sourceNode = allNodes.find(n => n.id === edge.source);
+        const targetNode = allNodes.find(n => n.id === edge.target);
+
+        let screenPos = { x: 0, y: 0 };
+
+        if (sourceNode?.positionAbsolute && targetNode?.positionAbsolute) {
+          // Calculate midpoint in flow coordinates
+          const midXFlow = (sourceNode.positionAbsolute.x + targetNode.positionAbsolute.x) / 2;
+          const midYFlow = (sourceNode.positionAbsolute.y + targetNode.positionAbsolute.y) / 2;
+          // Add a slight offset to avoid overlapping the edge label editor perfectly
+          screenPos = reactFlowInstance.project({ x: midXFlow, y: midYFlow - 30 });
+        } else if (sourceNode?.positionAbsolute) { // Fallback if target node position is not available (e.g. during creation)
+           screenPos = reactFlowInstance.project({x: sourceNode.positionAbsolute.x + 100, y: sourceNode.positionAbsolute.y - 30});
+        } else { // Fallback to a generic position if node positions are not ready
+            const pane = reactFlowInstance.getViewport();
+            screenPos = {x: pane.x + 300, y: pane.y + 100};
+        }
+
+
+        const edgeFloaterSuggestions: SuggestionAction[] = edgeLabelSuggestions.labels.map(label => ({
+          id: `edge-label-${edgeLabelSuggestions.edgeId}-${label.replace(/\s+/g, '-')}`,
+          label: label,
+          action: () => {
+            updateStoreEdge(edgeLabelSuggestions.edgeId, { label: label }); // Use direct store action
+            Floater_handleDismiss();
+          }
+        }));
+
+        setFloaterState({
+          isVisible: true,
+          position: screenPos,
+          suggestions: edgeFloaterSuggestions,
+          contextType: 'edge',
+          contextElementId: edgeLabelSuggestions.edgeId,
+          title: "Suggested Edge Labels"
+        });
+      }
+    } else if (floaterState.isVisible && floaterState.contextType === 'edge' && !edgeLabelSuggestions) {
+      // If suggestions were cleared (e.g. by another action) and floater was for an edge, hide it.
+      Floater_handleDismiss();
+    }
+  }, [edgeLabelSuggestions, reactFlowInstance, updateStoreEdge, Floater_handleDismiss, floaterState.isVisible, floaterState.contextType]);
+
 
   const handleAddNodeFromFloater = useCallback((position?: {x: number, y: number}) => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
@@ -459,7 +517,8 @@ export default function ConceptMapEditorPage() {
               onConnectInStore={addEdgeFromHook}
               onNodeContextMenuRequest={handleNodeContextMenuRequest}
               onPaneContextMenuRequest={handlePaneContextMenuRequest}
-              onStagedElementsSelectionChange={setSelectedStagedElementIds} // Pass handler
+              onStagedElementsSelectionChange={setSelectedStagedElementIds}
+              onNewEdgeSuggestLabels={fetchAndSetEdgeLabelSuggestions} // Pass the new prop
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
             />
           )}

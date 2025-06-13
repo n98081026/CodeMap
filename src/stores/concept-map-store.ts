@@ -78,7 +78,7 @@ interface ConceptMapState {
   updateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   deleteNode: (nodeId: string) => void;
 
-  addEdge: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string; color?: string; lineType?: 'solid' | 'dashed'; markerStart?: string; markerEnd?: string; }) => void;
+  addEdge: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string; color?: string; lineType?: 'solid' | 'dashed'; markerStart?: string; markerEnd?: string; }) => string; // Changed return type to string
   updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
   deleteEdge: (edgeId: string) => void;
 
@@ -388,7 +388,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           markerStart: options.markerStart || 'none',
           markerEnd: options.markerEnd || 'arrowclosed',
         };
-        return { mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } };
+        set((state) => ({ mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } }));
+        return newEdge.id; // Return the new edge's ID
       }),
 
       updateEdge: (edgeId, updates) => set((state) => ({

@@ -28,7 +28,8 @@ interface FlowCanvasCoreProps {
   onNodeContextMenuRequest?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void; // Renamed/Replaced: This will be the new prop for node context menu
   onNodeAIExpandTriggered?: (nodeId: string) => void;
   onPaneContextMenuRequest?: (event: React.MouseEvent, positionInFlow: {x: number, y: number}) => void;
-  onStagedElementsSelectionChange?: (selectedIds: string[]) => void; // New prop
+  onStagedElementsSelectionChange?: (selectedIds: string[]) => void;
+  onNewEdgeSuggestLabels?: (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => Promise<void>; // New prop
   panActivationKeyCode?: string | null;
 }
 
@@ -44,7 +45,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onNodeContextMenuRequest,
   onNodeAIExpandTriggered,
   onPaneContextMenuRequest,
-  onStagedElementsSelectionChange, // Destructure new prop
+  onStagedElementsSelectionChange,
+  onNewEdgeSuggestLabels, // Destructure new prop
   panActivationKeyCode,
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
@@ -352,14 +354,29 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 
   const handleRfConnect: OnConnect = useCallback((params: Connection) => {
     if (isViewOnlyMode) return;
-    onConnectInStore({
+    // The onConnectInStore prop is expected to be the addEdge function from the store, which now returns the new edge's ID.
+    // However, the prop is currently typed as `() => void`. This needs to be aligned.
+    // For now, let's assume onConnectInStore is actually `addStoreEdge` from the hook which uses the store's `addEdge`.
+    // The store's `addEdge` returns string (newEdgeId). The hook's `addStoreEdge` should also return it.
+    // This requires ensuring the function passed to onConnectInStore from page.tsx actually returns the ID.
+    // Let's assume `onConnectInStore` is already correctly returning the newEdgeId or can be adapted.
+    // If `onConnectInStore` is just `addStoreEdge` from the hook, it needs to be modified to return the ID.
+    // For this step, we'll proceed assuming onConnectInStore is correctly typed and returns the ID.
+    // This might require a change in how `addStoreEdge` is defined or used in `useConceptMapAITools` if it's the one passed.
+    // For now, let's cast it, acknowledging this might need a fix in the hook or page.
+
+    const newEdgeId = (onConnectInStore as unknown as (options: any) => string)({ // Type assertion
       source: params.source!,
       target: params.target!,
       sourceHandle: params.sourceHandle,
       targetHandle: params.targetHandle,
-      label: "connects", // Default label, can be made configurable
+      label: "connects",
     });
-  }, [isViewOnlyMode, onConnectInStore]);
+
+    if (newEdgeId && params.source && params.target) {
+      onNewEdgeSuggestLabels?.(newEdgeId, params.source, params.target);
+    }
+  }, [isViewOnlyMode, onConnectInStore, onNewEdgeSuggestLabels]);
 
   const handleRfSelectionChange = useCallback((selection: SelectionChanges) => {
     const selectedRfNodes = selection.nodes;

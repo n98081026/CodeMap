@@ -10,7 +10,10 @@ import {
   askQuestionAboutNode as aiAskQuestionAboutNode,
   generateQuickCluster as aiGenerateQuickCluster,
   generateMapSnippetFromText as aiGenerateMapSnippetFromText,
-  summarizeNodes as aiSummarizeNodes
+  summarizeNodes as aiSummarizeNodes,
+  suggestEdgeLabelFlow, // Added import
+  type SuggestEdgeLabelInput, // Added import
+  type SuggestEdgeLabelOutput // Added import
 } from '@/ai/flows';
 // Import directly from the flow file, using alias and ensuring .ts extension
 import { 
@@ -82,6 +85,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const [isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen] = useState(false);
   const [nodeContentToRewrite, setNodeContentToRewrite] = useState<NodeContentToRewrite | null>(null);
+
+  const [edgeLabelSuggestions, setEdgeLabelSuggestions] = useState<{ edgeId: string; labels: string[] } | null>(null);
+
 
   // --- Extract Concepts ---
   const openExtractConceptsModal = useCallback((nodeIdForContext?: string) => {
@@ -513,6 +519,45 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     }
   }, [isViewOnlyMode, toast, mapData, updateStoreNode, setAiProcessingNodeId]);
 
+  // --- Edge Label Suggestions ---
+  const fetchAndSetEdgeLabelSuggestions = useCallback(async (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => {
+    if (isViewOnlyMode) return;
+    useConceptMapStore.getState().addDebugLog(`[AITools] Fetching suggestions for edge ${edgeId}`);
+
+    const currentNodes = useConceptMapStore.getState().mapData.nodes; // Get current nodes from store
+    const sourceNode = currentNodes.find(n => n.id === sourceNodeId);
+    const targetNode = currentNodes.find(n => n.id === targetNodeId);
+
+    if (!sourceNode || !targetNode) {
+      toast({ title: "Error", description: "Source or target node not found for edge label suggestion.", variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "AI Suggesting Labels...", description: "Fetching relevant labels for your new connection.", duration: 2000 });
+
+    try {
+      const input: SuggestEdgeLabelInput = {
+        sourceNode: { text: sourceNode.text, details: sourceNode.details },
+        targetNode: { text: targetNode.text, details: targetNode.details },
+        existingLabel: existingLabel,
+      };
+      const output: SuggestEdgeLabelOutput = await suggestEdgeLabelFlow(input);
+
+      if (output.suggestedLabels && output.suggestedLabels.length > 0) {
+        setEdgeLabelSuggestions({ edgeId, labels: output.suggestedLabels });
+        useConceptMapStore.getState().addDebugLog(`[AITools] Suggestions for edge ${edgeId}: ${output.suggestedLabels.join(', ')}`);
+        // Example: Auto-apply the first suggestion. This can be changed later to show a dropdown.
+        // updateStoreEdge(edgeId, { label: output.suggestedLabels[0] });
+        // toast({ title: "AI Suggested Label Applied", description: `Label "${output.suggestedLabels[0]}" applied to new edge.` });
+      } else {
+        setEdgeLabelSuggestions(null);
+      }
+    } catch (error) {
+      toast({ title: "AI Edge Suggestion Failed", description: (error as Error).message, variant: "destructive" });
+      setEdgeLabelSuggestions(null);
+    }
+  }, [isViewOnlyMode, toast, updateStoreEdge]);
+
 
   return {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
@@ -533,6 +578,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     // Suggestion getter functions
     getPaneSuggestions,
     getNodeSuggestions,
+    // Edge Label Suggestions
+    fetchAndSetEdgeLabelSuggestions,
+    edgeLabelSuggestions,
+    setEdgeLabelSuggestions, // If manual clearing from UI is needed
     addStoreNode, 
     addStoreEdge,
   };
