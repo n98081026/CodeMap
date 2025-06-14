@@ -41,6 +41,7 @@ export interface ConceptMapNode {
   shape?: 'rectangle' | 'ellipse'; 
   width?: number; 
   height?: number; 
+  highlight?: boolean; // New property
 }
 
 export interface ConceptMapEdge {
