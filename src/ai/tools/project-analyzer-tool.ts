@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview A Genkit tool to analyze project structure.
  * This is the initial setup with MOCK data. Actual analysis logic is pending.
@@ -32,7 +31,7 @@ const DirectorySummarySchema = z.object({
   inferredPurpose: z.string().optional().nullable().describe('Inferred purpose of the directory (e.g., Business Logic Services).'),
 });
 
-const KeyFileSchema = z.object({
+export const KeyFileSchema = z.object({ // Export if needed by other modules, or keep local
   filePath: z.string().describe('Path to the key file.'),
   type: z.enum([
     'entry_point', 
@@ -50,8 +49,10 @@ const KeyFileSchema = z.object({
   extractedSymbols: z.array(z.string()).optional().describe('Names of primary declarations (classes, functions, components).'),
   briefDescription: z.string().optional().nullable().describe('Brief description of the file or its role (e.g., Handles user authentication endpoints).'),
 });
+export type KeyFile = z.infer<typeof KeyFileSchema>;
 
-const PotentialArchitecturalComponentSchema = z.object({
+
+export const PotentialArchitecturalComponentSchema = z.object({ // Export if needed, or keep local
   name: z.string().describe('Name of the inferred architectural component (e.g., User Service, Payment Gateway).'),
   type: z.enum([
     'service', 
@@ -64,6 +65,8 @@ const PotentialArchitecturalComponentSchema = z.object({
   ]).describe('Type of the architectural component.'),
   relatedFiles: z.array(z.string()).optional().describe('Paths to files related to this component.'),
 });
+export type PotentialArchitecturalComponent = z.infer<typeof PotentialArchitecturalComponentSchema>;
+
 
 export const ProjectAnalysisOutputSchema = z.object({
   projectName: z.string().optional().nullable().describe('Name of the project, possibly inferred from manifest or directory structure.'),
@@ -116,8 +119,134 @@ const FIXED_MOCK_PROJECT_A_ANALYSIS: ProjectAnalysisOutput = {
   parsingErrors: [],
 };
 
+// Simulated File Contents for _USE_SIMULATED_FS_NODE_PROJECT_
+const SIMULATED_PACKAGE_JSON_CONTENT = `{
+  "name": "my-simulated-node-app",
+  "version": "1.0.0",
+  "description": "A sample Node.js application with Express and a few utilities, demonstrating simulated file system analysis.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "jest": "^27.0.0",
+    "nodemon": "^2.0.15"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/example/my-simulated-node-app.git"
+  },
+  "keywords": ["node", "express", "simulation"],
+  "author": "AI Developer",
+  "license": "MIT"
+}`;
 
-// MOCK IMPLEMENTATION
+const SIMULATED_README_CONTENT = `# My Simulated Node App
+
+This is a sample application to demonstrate how project analysis might work on a simple Node.js/Express setup.
+It features a main entry point, some utility functions, and basic tests.
+
+## Features
+- Express server setup
+- Utility module
+- Basic testing structure
+
+## Setup
+\`\`\`bash
+npm install
+npm start
+\`\`\`
+`;
+
+const SIMULATED_INDEX_JS_CONTENT = `
+const express = require('express');
+const _ = require('lodash');
+const { helperFunction } = require('./utils');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('Hello World! ' + helperFunction());
+});
+
+function startServer() {
+  app.listen(PORT, () => {
+    console.log(\`Server running on port \${PORT}\`);
+  });
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, startServer };
+`;
+
+const SIMULATED_UTILS_JS_CONTENT = `
+function helperFunction() {
+  return "Data from helper!";
+}
+
+function anotherUtility(a, b) {
+  return a + b;
+}
+
+// Example of a different export style
+const yetAnotherUtil = () => "Yet another util";
+
+module.exports = {
+  helperFunction,
+  anotherUtility,
+  yetAnotherUtil
+};
+`;
+
+const SIMULATED_TEST_JS_CONTENT = `
+const { helperFunction, anotherUtility } = require('../src/utils');
+
+describe('Utility Functions', () => {
+  test('helperFunction should return correct string', () => {
+    expect(helperFunction()).toBe('Data from helper!');
+  });
+
+  test('anotherUtility should add numbers', () => {
+    expect(anotherUtility(2, 3)).toBe(5);
+  });
+});
+`;
+
+
+// Helper function to extract H1 from Markdown (simplified)
+const getReadmeSummary = (readmeContent: string): string | undefined => {
+  const h1Match = readmeContent.match(/^#\s*(.*)/m);
+  return h1Match ? h1Match[1] : undefined;
+};
+
+// Helper function to "extract" function names from JS (simplified regex)
+const extractJsFunctions = (jsContent: string): string[] => {
+  const functionRegex = /function\s+([A-Za-z0-9_]+)\s*\(|const\s+([A-Za-z0-9_]+)\s*=\s*\(.*\)\s*=>|const\s+([A-Za-z0-9_]+)\s*=\s*function|module\.exports\s*\.\s*([A-Za-z0-9_]+)\s*=\s*function|module\.exports\s*=\s*{\s*([A-Za-z0-9_,\s]+)\s*}/g;
+  const symbols: string[] = [];
+  let match;
+  while ((match = functionRegex.exec(jsContent)) !== null) {
+    if (match[1]) symbols.push(match[1]); // function foo()
+    if (match[2]) symbols.push(match[2]); // const foo = () =>
+    if (match[3]) symbols.push(match[3]); // const foo = function
+    if (match[4]) symbols.push(match[4]); // module.exports.foo = function
+    if (match[5]) { // module.exports = { foo, bar }
+        match[5].split(',').forEach(s => symbols.push(s.trim()));
+    }
+  }
+  // Filter out potential empty strings if regex matches weirdly
+  return symbols.filter(Boolean).filter((s, index, self) => self.indexOf(s) === index); // Unique symbols
+};
+
+
 async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<ProjectAnalysisOutput> {
   console.log(`projectStructureAnalyzerTool called with path: ${input.projectStoragePath}, hint: ${input.userHint}`);
 
@@ -127,98 +256,118 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
   // const fileSystem = await unpackArchive(projectArchive);
   // For now, we'll simulate finding specific files based on hints.
 
-  let foundPackageJsonData: any = null;
+  if (input.userHint === "_USE_FIXED_MOCK_PROJECT_A_") {
+    console.log("Returning FIXED_MOCK_PROJECT_A_ANALYSIS");
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate short delay
+    return FIXED_MOCK_PROJECT_A_ANALYSIS;
+  }
 
-  if (input.userHint?.toLowerCase().includes("node") || input.userHint?.toLowerCase().includes("npm")) {
+  if (input.userHint === "_USE_SIMULATED_FS_NODE_PROJECT_") {
+    console.log("Returning detailed simulated Node.js project analysis based on _USE_SIMULATED_FS_NODE_PROJECT_ hint.");
     try {
-      const samplePackageJsonContent = `{
-        "name": "simulated-node-project",
-        "version": "1.0.0",
-        "description": "A simulated Node.js project for analysis.",
-        "main": "index.js",
-        "scripts": {
-          "start": "node index.js",
-          "test": "echo \\"Error: no test specified\\" && exit 1"
-        },
-        "dependencies": {
-          "express": "^4.17.1",
-          "lodash": "^4.17.21"
-        },
-        "devDependencies": {
-          "nodemon": "^2.0.7",
-          "jest": "^27.0.6"
-        },
-        "keywords": ["node", "simulated", "example"],
-        "author": "AI Developer",
-        "license": "MIT"
-      }`;
-      foundPackageJsonData = JSON.parse(samplePackageJsonContent);
-      console.log("Simulated package.json parsing successful.");
-    } catch (error) {
-      console.error("Simulated error parsing package.json:", error);
+      const packageJsonData = JSON.parse(SIMULATED_PACKAGE_JSON_CONTENT);
+
+      const projectName = packageJsonData.name || "Simulated Project";
+      const projectSummary = getReadmeSummary(SIMULATED_README_CONTENT) || packageJsonData.description;
+      const dependencies = {
+        npm: [
+          ...(packageJsonData.dependencies ? Object.keys(packageJsonData.dependencies) : []),
+          ...(packageJsonData.devDependencies ? Object.keys(packageJsonData.devDependencies) : [])
+        ]
+      };
+
+      const keyFilesData: KeyFile[] = [
+        { filePath: "package.json", type: "manifest", briefDescription: packageJsonData.description || "Project manifest.", extractedSymbols: ["name", "version", "dependencies"] },
+        { filePath: "README.md", type: "readme", briefDescription: "Project README file.", extractedSymbols: projectSummary ? [projectSummary.substring(0,30)+"..." ] : ["README"] },
+        { filePath: "src/index.js", type: "entry_point", briefDescription: "Main application entry point.", extractedSymbols: extractJsFunctions(SIMULATED_INDEX_JS_CONTENT) },
+        { filePath: "src/utils.js", type: "utility", briefDescription: "Utility functions module.", extractedSymbols: extractJsFunctions(SIMULATED_UTILS_JS_CONTENT) },
+        { filePath: "tests/utils.test.js", type: "unknown", briefDescription: "Test file for utils.", extractedSymbols: extractJsFunctions(SIMULATED_TEST_JS_CONTENT) },
+      ];
+
+      const output: ProjectAnalysisOutput = {
+        projectName: projectName,
+        projectSummary: projectSummary,
+        inferredLanguagesFrameworks: [
+          { name: "JavaScript", confidence: "high" as const },
+          { name: "Node.js", confidence: "high" as const },
+          ...(dependencies.npm.includes("express") ? [{ name: "Express.js", confidence: "medium" as const }] : [])
+        ],
+        dependencies: dependencies,
+        directoryStructureSummary: [
+          { path: "src", fileCounts: { ".js": 2 }, inferredPurpose: "Source code" },
+          { path: "tests", fileCounts: { ".js": 1 }, inferredPurpose: "Test files" }
+        ],
+        keyFiles: keyFilesData,
+        potentialArchitecturalComponents: [
+          { name: "Application Entry Point", type: "service", relatedFiles: ["src/index.js"] },
+          { name: "Utility Module", type: "module", relatedFiles: ["src/utils.js"] },
+          ...(dependencies.npm.includes("express") ? [{ name: "Express Web Server", type: "service" as const, relatedFiles: ["src/index.js"] }] : [])
+        ],
+        parsingErrors: []
+      };
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay
+      return output;
+    } catch (e) {
+      console.error("Error in _USE_SIMULATED_FS_NODE_PROJECT_ block:", e);
       return {
-        projectName: "Error Project",
-        projectSummary: "Failed to parse simulated package.json.",
-        inferredLanguagesFrameworks: [],
-        dependencies: {},
-        directoryStructureSummary: [],
-        keyFiles: [],
-        potentialArchitecturalComponents: [],
-        parsingErrors: ["Simulated error parsing package.json."],
+          projectName: "Simulated FS Error",
+          projectSummary: "Error during simulated FS processing.",
+          inferredLanguagesFrameworks:[],
+          parsingErrors: [(e as Error).message]
       };
     }
   }
 
-  if (foundPackageJsonData) {
-    const npmDependencies = [
-      ...Object.keys(foundPackageJsonData.dependencies || {}),
-      ...Object.keys(foundPackageJsonData.devDependencies || {})
-    ];
-    const keyFiles: KeyFileSchema[] = [ // Explicitly type if KeyFileSchema is defined above
-      {
-        filePath: "package.json",
-        type: "manifest",
-        briefDescription: foundPackageJsonData.description || "Project manifest and dependencies.",
-        extractedSymbols: []
-      }
-    ];
-    const potentialArchitecturalComponents: PotentialArchitecturalComponentSchema[] = [ // Explicitly type
-      { name: "Main Application Logic", type: "module", relatedFiles: [foundPackageJsonData.main || "index.js"] },
-      { name: "Express Web Server (if used)", type: "service", relatedFiles: ["server.js", "app.js"] }
-    ];
+  let foundPackageJsonDataForSimpleNodeHint: any = null;
+  if (input.userHint?.toLowerCase().includes("node") || input.userHint?.toLowerCase().includes("npm")) {
+    // This is the simpler package.json parsing, only if the more specific hints above didn't match
+    try {
+      // Using a slightly different package.json for this simpler case to differentiate
+      const simplePackageJsonContent = `{
+        "name": "basic-node-app-from-hint",
+        "version": "0.1.0",
+        "description": "A very basic Node.js app, identified by generic 'node' hint.",
+        "main": "app.js",
+        "dependencies": { "moment": "^2.29.1" }
+      }`;
+      foundPackageJsonDataForSimpleNodeHint = JSON.parse(simplePackageJsonContent);
+      console.log("Simulated (simple) package.json parsing successful due to 'node' or 'npm' hint.");
+    } catch (error) {
+      console.error("Simulated error parsing (simple) package.json:", error);
+      // Return minimal error, or could enhance
+      return { projectName: "Simple Parse Error", parsingErrors: ["Failed to parse simple package.json from hint."], inferredLanguagesFrameworks:[] };
+    }
+  }
 
+  if (foundPackageJsonDataForSimpleNodeHint) {
+    const packageData = foundPackageJsonDataForSimpleNodeHint;
+    const npmDependencies = Object.keys(packageData.dependencies || {});
+    const keyFilesArr: KeyFile[] = [{
+        filePath: "package.json", type: "manifest",
+        briefDescription: packageData.description || "Project manifest.",
+        extractedSymbols: ["name", "version"]
+    }];
     return {
-      projectName: foundPackageJsonData.name || "Unknown Node Project",
-      projectSummary: `${foundPackageJsonData.description || 'Analysis based on package.json.'} Further deep analysis is conceptual. User hint: ${input.userHint || 'N/A'}`,
-      inferredLanguagesFrameworks: [
-        { name: "Node.js", confidence: "high" },
-        { name: "JavaScript/TypeScript", confidence: "medium" },
-      ],
+      projectName: packageData.name || "Basic Node App",
+      projectSummary: `${packageData.description || 'Basic analysis from package.json.'} User hint: ${input.userHint || 'N/A'}`,
+      inferredLanguagesFrameworks: [ { name: "Node.js", confidence: "medium" as const }, { name: "JavaScript", confidence: "low" as const } ],
       dependencies: { npm: npmDependencies },
-      keyFiles: keyFiles,
-      potentialArchitecturalComponents: potentialArchitecturalComponents,
-      directoryStructureSummary: [], // Placeholder
-      parsingErrors: [],
-    };
-  } else if (input.userHint === "_USE_FIXED_MOCK_PROJECT_A_") {
-    console.log("Returning FIXED_MOCK_PROJECT_A_ANALYSIS");
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate short delay
-    return FIXED_MOCK_PROJECT_A_ANALYSIS;
-  } else {
-    // Fallback to a more generic mock if no package.json hint and not fixed mock
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate some delay
-    const projectNameFromPath = input.projectStoragePath.split('/').pop()?.split('.')[0] || "MockProjectFromPath";
-    return {
-      projectName: `Generic Mock for ${projectNameFromPath}`,
-      projectSummary: `This is a generic mock response. No package.json was found or processed based on the hint. Full project analysis capabilities are not yet implemented. User hint: ${input.userHint || 'N/A'}`,
-      inferredLanguagesFrameworks: [{ name: "Unknown", confidence: "low" }],
-      dependencies: {},
-      directoryStructureSummary: [],
-      keyFiles: [],
-      potentialArchitecturalComponents: [],
-      parsingErrors: ["Full project analysis not implemented; returned generic mock based on hint or lack thereof."],
+      keyFiles: keyFilesArr,
+      potentialArchitecturalComponents: [{ name: "Main Logic", type: "module", relatedFiles: [packageData.main || "app.js"] }],
+      directoryStructureSummary: [], parsingErrors: [],
     };
   }
+
+  // Fallback to a more generic mock if no specific hint matched
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  const projectNameFromPath = input.projectStoragePath.split('/').pop()?.split('.')[0] || "MockProjectFromPath";
+  return {
+    projectName: `Generic Mock for ${projectNameFromPath}`,
+    projectSummary: `This is a generic mock response. No specific file parsing was triggered by hints. Full project analysis capabilities are not yet implemented. User hint: ${input.userHint || 'N/A'}`,
+    inferredLanguagesFrameworks: [{ name: "Unknown", confidence: "low" as const }],
+    dependencies: {}, directoryStructureSummary: [], keyFiles: [], potentialArchitecturalComponents: [],
+    parsingErrors: ["Full project analysis not implemented; returned generic mock based on hint or lack thereof."],
+  };
 }
 
 export const projectStructureAnalyzerTool = ai.defineTool(
@@ -228,5 +377,5 @@ export const projectStructureAnalyzerTool = ai.defineTool(
     inputSchema: ProjectAnalysisInputSchema,
     outputSchema: ProjectAnalysisOutputSchema,
   },
-  analyzeProjectStructure // Using the async function directly
+  analyzeProjectStructure
 );

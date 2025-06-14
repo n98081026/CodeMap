@@ -102,8 +102,9 @@
     - [x] Frontend handles saving the generated map (via API) and updating submission status (within `ProjectUploadForm` and `useConceptMapAITools` for other AI-generated maps).
 - [x] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`)**:
     - [x] Input schema updated to `projectStoragePath` and `userHint`.
-    - [x] Mock logic acknowledges these inputs and varies output based on hint (e.g., "e-commerce", "data pipeline").
-    - [x] Mock logic supports a special hint (`_USE_FIXED_MOCK_PROJECT_A_`) to return a predefined, detailed project analysis object.
+        - [x] Mock logic acknowledges inputs and varies output based on hints (e.g., "e-commerce", "data pipeline", basic "node" `package.json` parsing for simple Node.js hint).
+        - [x] Mock logic supports a `_USE_FIXED_MOCK_PROJECT_A_` hint for a predefined detailed static analysis.
+        - [x] Mock logic now also supports a `_USE_SIMULATED_FS_NODE_PROJECT_` hint to return a richer simulation of a Node.js project. This includes conceptual file traversal (README, JS files) and basic content extraction (H1 from README, function names from JS). (Note: This is still a mock with no real file system operations or Supabase Storage integration).
 - [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**:
     - [x] Input schema updated to `projectStoragePath` and `userGoals`.
     - [x] Prompt explicitly instructs use of `projectStructureAnalyzerTool` with these inputs.
@@ -165,7 +166,7 @@
     - [x] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
     - [x] Interaction: Show a preview of the **node** under the cursor during drag (snapped to grid). (Implemented for nodes dragged from AI Panel).
     - [x] Interaction (Enhancement): Show a preview for dragging **edges** from AI Panel (label follows cursor). (Implemented for relations from AI Panel).
-    - [x] Interaction (Enhancement): Ensure node-to-node snapping guides actively interact with the node drag preview (current preview snaps to grid).
+    - [x] Interaction (Enhancement): Ensure node-to-node snapping guides actively interact with the node drag preview (current preview snaps to grid). (Node preview snaps to grid and other nodes).
 
 ### Iterative and Preview-Oriented AI Generation
 - [x] "AI Staging Area" for Cluster/Snippet Generation:
