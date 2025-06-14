@@ -10,7 +10,8 @@ import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added im
 import AISuggestionMiniToolbar from './ai-mini-toolbar';
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
-  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser
+  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser,
+  Move as MoveIcon // Added MoveIcon
 } from 'lucide-react'; // Added Loader2
 
 export interface CustomNodeData {
@@ -131,7 +132,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         "nodrag relative shadow-md border border-border flex flex-col",
         selected && !isBeingProcessedByAI && !data.isStaged && !data.isGhost ? "ring-2 ring-primary" : "", // Don't show ring if AI processing, staged, or ghost
         nodeIsViewOnly && "cursor-default",
-        !nodeIsViewOnly && "cursor-grab",
+        // Removed !nodeIsViewOnly && "cursor-grab",
         data.shape === 'ellipse' && 'items-center justify-center text-center p-2',
         data.isStaged && "border-dashed border-blue-500 opacity-80",
         data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
@@ -145,6 +146,12 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
+      {!nodeIsViewOnly && !data.isGhost && (
+         <MoveIcon
+           className="node-move-handle absolute top-1 right-1 w-4 h-4 text-muted-foreground cursor-grab z-10"
+           onMouseDown={(e) => e.stopPropagation()} // Prevent node selection click when grabbing handle
+         />
+      )}
       <Card
         ref={cardRef}
         className={cn(
@@ -156,7 +163,8 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         )}
       >
         <CardHeader className={cn(
-          "cursor-move p-2 flex flex-row items-center space-x-2",
+          // Removed cursor-move
+          "p-2 flex flex-row items-center space-x-2",
           data.shape === 'ellipse' && 'justify-center items-center flex-col text-center'
         )}>
           <TypeIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -183,17 +191,17 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       </Card>
 
       {/* Handles */}
-      <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Right} id={`${id}-right-target`} className="react-flow__handle-custom !-right-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="source" position={Position.Bottom} id={`${id}-bottom-source`} className="react-flow__handle-custom !-bottom-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Bottom} id={`${id}-bottom-target`} className="react-flow__handle-custom !-bottom-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1" isConnectable={!nodeIsViewOnly} />
+      <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="target" position={Position.Right} id={`${id}-right-target`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="source" position={Position.Bottom} id={`${id}-bottom-source`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="target" position={Position.Bottom} id={`${id}-bottom-target`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
 
       {/* Hover buttons for adding child nodes */}
-      {!nodeIsViewOnly && isHovered && data.onAddChildNodeRequest && hoverButtonPositions.map(btn => (
+      {!nodeIsViewOnly && isHovered && !data.isGhost && data.onAddChildNodeRequest && hoverButtonPositions.map(btn => (
         <button
           key={btn.pos}
           onClick={(e) => { e.stopPropagation(); data.onAddChildNodeRequest?.(id, btn.pos); }}
