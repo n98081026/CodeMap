@@ -166,7 +166,7 @@
 - [x] Drag-and-Drop from AI Panel with Preview:
     - [x] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
     - [x] Interaction: Show a preview of the **node** under the cursor during drag (snapped to grid). (Implemented for nodes dragged from AI Panel).
-    - [x] Interaction (Enhancement): Show a preview for dragging **edges** from AI Panel (label follows cursor). (Implemented for relations from AI Panel).
+    - [x] Interaction (Enhancement): Show a preview for dragging **edges** from AI Panel (label with attached visual line segment follows cursor). (Implemented for relations from AI Panel).
     - [x] Interaction (Enhancement): Ensure node-to-node snapping guides actively interact with the node drag preview (current preview snaps to grid). (Node preview snaps to grid and other nodes).
 
 ### Iterative and Preview-Oriented AI Generation

@@ -18,16 +18,33 @@ const DragPreviewLabelNode: React.FC<DragPreviewLabelNodeProps> = ({ data }) => 
       style={{
         fontSize: '10px',
         padding: '2px 5px',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: '3px',
-        border: '1px solid #ccc',
-        opacity: 0.85,
-        pointerEvents: 'none', // Important: Prevent this node from capturing mouse events
-        color: '#333', // Ensure text is readable
-        // width and height will be auto based on content, or could be set if needed
+        backgroundColor: 'rgba(240, 240, 240, 0.9)', // Slightly adjusted background for visibility
+        borderRadius: '4px', // Slightly larger radius
+        border: '1px solid #bbb',    // Slightly adjusted border
+        opacity: 0.90,               // Slightly more opaque
+        pointerEvents: 'none',       // Crucial: Prevent mouse event capture
+        color: '#222',               // Darker text
+        display: 'flex',             // Added
+        alignItems: 'center',        // Added
       }}
-      className="shadow-sm" // Optional: for a slight shadow
+      className="shadow-md" // Added a bit more shadow
     >
+      <svg
+        width="30"
+        height="10"
+        style={{ marginRight: '4px', overflow: 'visible' }}
+        aria-hidden="true" // Decorative
+      >
+        <line
+          x1="0"
+          y1="5"
+          x2="30"
+          y2="5"
+          stroke="#888" // Greyer line
+          strokeDasharray="2,2"
+          strokeWidth="1.5"
+        />
+      </svg>
       {data.label}
     </div>
   );
