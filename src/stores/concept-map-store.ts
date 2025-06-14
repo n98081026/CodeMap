@@ -4,7 +4,26 @@ import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
 
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
-import type { LayoutNodeUpdate } from '@/types/graph-adapter'; // Import LayoutNodeUpdate
+import type { LayoutNodeUpdate } from '@/types/graph-adapter';
+
+// Conceptual GraphAdapter related types
+export type GraphologyInstance = { nodesMap: Map<string, ConceptMapNode> }; // Simplified for mock
+
+export interface GraphAdapterUtility {
+  fromArrays: (nodes: ConceptMapNode[], edges: ConceptMapEdge[]) => GraphologyInstance;
+  getDescendants: (graphInstance: GraphologyInstance, nodeId: string) => string[];
+  toArrays: (graphInstance: GraphologyInstance) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] }; // Keep for interface completeness
+  getAncestors: (graphInstance: GraphologyInstance, nodeId: string) => string[]; // Keep for interface completeness
+  getNeighborhood: ( // Keep for interface completeness
+    graphInstance: GraphologyInstance,
+    nodeId: string,
+    options?: { depth?: number; direction?: 'in' | 'out' | 'both' }
+  ) => string[];
+  getSubgraphData: ( // Keep for interface completeness
+    graphInstance: GraphologyInstance,
+    nodeIds: string[]
+  ) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+}
 
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -340,63 +359,72 @@ export const useConceptMapStore = create<ConceptMapState>()(
         },
       })),
 
-      deleteNode: (nodeIdToDelete) => set((state) => {
-        const nodesToDeleteSet = new Set<string>();
-        const queue: string[] = [nodeIdToDelete];
-        
-        // Populate nodesToDeleteSet with the initial node and all its descendants
-        while (queue.length > 0) {
-            const currentId = queue.shift()!;
-            if (nodesToDeleteSet.has(currentId)) continue; // Already processed
-            nodesToDeleteSet.add(currentId);
-            const node = state.mapData.nodes.find(n => n.id === currentId);
-            if (node && node.childIds) {
-                node.childIds.forEach(childId => {
-                    if (!nodesToDeleteSet.has(childId)) {
-                        queue.push(childId);
-                    }
-                });
-            }
-        }
+      deleteNode: (nodeIdToDelete) => {
+        get().addDebugLog(`[STORE deleteNode] Attempting to delete node: ${nodeIdToDelete} and its descendants.`);
+        set((state) => {
+          const nodes = state.mapData.nodes;
+          const edges = state.mapData.edges;
 
-        // Filter out the deleted nodes
-        const newNodes = state.mapData.nodes.filter(node => !nodesToDeleteSet.has(node.id));
+          const graphInstance = MockGraphAdapter.fromArrays(nodes, edges);
 
-        // Update parent's childIds if the deleted node had a parent
-        const nodeToDelete = state.mapData.nodes.find(n => n.id === nodeIdToDelete);
-        if (nodeToDelete?.parentNode) {
-            const parentIndex = newNodes.findIndex(n => n.id === nodeToDelete.parentNode);
-            if (parentIndex !== -1) {
-                const parentNode = { ...newNodes[parentIndex] };
-                parentNode.childIds = (parentNode.childIds || []).filter(id => id !== nodeIdToDelete);
-                newNodes[parentIndex] = parentNode;
-            }
-        }
+          if (!graphInstance.nodesMap.has(nodeIdToDelete)) {
+             get().addDebugLog(`[STORE deleteNode] Node ${nodeIdToDelete} not found. No changes made.`);
+             return state;
+          }
 
-        // Filter out edges connected to any of the deleted nodes
-        const newEdges = state.mapData.edges.filter(
-          edge => !nodesToDeleteSet.has(edge.source) && !nodesToDeleteSet.has(edge.target)
-        );
+          const descendants = MockGraphAdapter.getDescendants(graphInstance, nodeIdToDelete);
+          const nodesToDeleteSet = new Set<string>([nodeIdToDelete, ...descendants]);
 
-        let newSelectedElementId = state.selectedElementId;
-        let newSelectedElementType = state.selectedElementType;
-        if (state.selectedElementId && nodesToDeleteSet.has(state.selectedElementId)) {
+          get().addDebugLog(`[STORE deleteNode] Full set of nodes to delete (including descendants): ${JSON.stringify(Array.from(nodesToDeleteSet))}`);
+
+          let newNodes = nodes.filter(node => !nodesToDeleteSet.has(node.id));
+
+          const nodeBeingDeletedDirectly = nodes.find(n => n.id === nodeIdToDelete);
+          if (nodeBeingDeletedDirectly?.parentNode) {
+            const parentNodeId = nodeBeingDeletedDirectly.parentNode;
+            newNodes = newNodes.map(node => {
+              if (node.id === parentNodeId) {
+                const newChildIds = (node.childIds || []).filter(id => id !== nodeIdToDelete);
+                get().addDebugLog(`[STORE deleteNode] Updating parent ${parentNodeId}, removing child ${nodeIdToDelete}. New childIds: ${JSON.stringify(newChildIds)}`);
+                return { ...node, childIds: newChildIds };
+              }
+              return node;
+            });
+          }
+
+          const newEdges = edges.filter(
+            edge => !nodesToDeleteSet.has(edge.source) && !nodesToDeleteSet.has(edge.target)
+          );
+
+          let newSelectedElementId = state.selectedElementId;
+          let newSelectedElementType = state.selectedElementType;
+          if (state.selectedElementId && nodesToDeleteSet.has(state.selectedElementId)) {
             newSelectedElementId = null;
             newSelectedElementType = null;
-        }
-        const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDeleteSet.has(id));
-        const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDeleteSet.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
-        const newEditingNodeId = state.editingNodeId && nodesToDeleteSet.has(state.editingNodeId) ? null : state.editingNodeId;
+            get().addDebugLog(`[STORE deleteNode] Cleared selection as deleted node was selected.`);
+          }
+          const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDeleteSet.has(id));
+          const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDeleteSet.has(state.aiProcessingNodeId) && nodesToDeleteSet.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
+          const newEditingNodeId = state.editingNodeId && nodesToDeleteSet.has(state.editingNodeId) ? null : state.editingNodeId;
 
-        return {
-          mapData: { nodes: newNodes, edges: newEdges },
-          selectedElementId: newSelectedElementId,
-          selectedElementType: newSelectedElementType,
-          multiSelectedNodeIds: newMultiSelectedNodeIds,
-          editingNodeId: newEditingNodeId,
-          aiProcessingNodeId: newAiProcessingNodeId,
-        };
-      }),
+          if (newNodes.length === nodes.length && newEdges.length === edges.length && newSelectedElementId === state.selectedElementId && newMultiSelectedNodeIds.length === state.multiSelectedNodeIds.length ) {
+            get().addDebugLog(`[STORE deleteNode] No effective changes to nodes/edges arrays or selection after filtering.`);
+          }
+
+          get().addDebugLog(`[STORE deleteNode] Deletion complete. Nodes remaining: ${newNodes.length}, Edges remaining: ${newEdges.length}`);
+          return {
+            mapData: {
+              nodes: newNodes,
+              edges: newEdges,
+            },
+            selectedElementId: newSelectedElementId,
+            selectedElementType: newSelectedElementType,
+            multiSelectedNodeIds: newMultiSelectedNodeIds,
+            aiProcessingNodeId: newAiProcessingNodeId,
+            editingNodeId: newEditingNodeId,
+          };
+        });
+      },
 
       addEdge: (options) => set((state) => {
         const newEdge: ConceptMapEdge = {
