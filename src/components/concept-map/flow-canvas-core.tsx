@@ -25,10 +25,13 @@ interface FlowCanvasCoreProps {
   onNodesDeleteInStore: (nodeId: string) => void;
   onEdgesDeleteInStore: (edgeId: string) => void;
   onConnectInStore: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string; color?: string; lineType?: 'solid' | 'dashed'; markerStart?: string; markerEnd?: string; }) => void;
-  onNodeContextMenu?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
+  onNodeContextMenuRequest?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void; // Renamed/Replaced: This will be the new prop for node context menu
   onNodeAIExpandTriggered?: (nodeId: string) => void;
-  
-  onPaneDoubleClickProp?: OnPaneDoubleClick;
+  onPaneContextMenuRequest?: (event: React.MouseEvent, positionInFlow: {x: number, y: number}) => void;
+  onStagedElementsSelectionChange?: (selectedIds: string[]) => void;
+  onNewEdgeSuggestLabels?: (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => Promise<void>;
+  onGhostNodeAcceptRequest?: (ghostNodeId: string) => void;
+  onConceptSuggestionDrop?: (conceptText: string, position: { x: number; y: number }) => void; // New prop
   panActivationKeyCode?: string | null;
 }
 
@@ -41,74 +44,211 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onNodesDeleteInStore,
   onEdgesDeleteInStore,
   onConnectInStore,
-  onNodeContextMenu,
+  onNodeContextMenuRequest,
   onNodeAIExpandTriggered,
-  onPaneDoubleClickProp,
+  onPaneContextMenuRequest,
+  onStagedElementsSelectionChange,
+  onNewEdgeSuggestLabels,
+  onGhostNodeAcceptRequest,
+  onConceptSuggestionDrop, // Destructure new prop
   panActivationKeyCode,
 }) => {
+  useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
   const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
+  const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
+    useCallback(s => ({
+      stagedMapData: s.stagedMapData,
+      isStagingActive: s.isStagingActive,
+      conceptExpansionPreview: s.conceptExpansionPreview
+    }), [])
+  );
   const reactFlowInstance = useReactFlow();
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
-  const initialRfNodes = useMemo(() => (mapDataFromStore.nodes || []).map(appNode => ({
-    id: appNode.id,
-    type: 'customConceptNode', 
-    data: {
-      label: appNode.text,
-      details: appNode.details,
-      type: appNode.type || 'default',
-      isViewOnly: isViewOnlyMode,
-      backgroundColor: appNode.backgroundColor,
-      shape: appNode.shape,
-      width: appNode.width,
-      height: appNode.height,
-      onTriggerAIExpand: onNodeAIExpandTriggered,
-    } as CustomNodeData,
-    position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
-    draggable: !isViewOnlyMode,
-    selectable: true,
-    connectable: !isViewOnlyMode,
-    dragHandle: '.cursor-move',
-    parentNode: appNode.parentNode,
-  })), [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered]);
+  // Initialize useNodesState and useEdgesState for main and staged elements.
+  const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
+  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>([]);
+  const [rfStagedNodes, setRfStagedNodes, onStagedNodesChange] = useNodesState<CustomNodeData>([]);
+  const [rfStagedEdges, setRfStagedEdges, onStagedEdgesChange] = useEdgesState<OrthogonalEdgeData>([]);
+  const [rfPreviewNodes, setRfPreviewNodes, onPreviewNodesChange] = useNodesState<CustomNodeData>([]);
+  const [rfPreviewEdges, setRfPreviewEdges, onPreviewEdgesChange] = useEdgesState<OrthogonalEdgeData>([]);
 
-  useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Generated initialRfNodes. Count: ${initialRfNodes.length}`);
+  // Effect to synchronize MAIN nodes from the store to React Flow's state
+  useEffect(() => {
+    useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Nodes] Running. mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
 
-  const initialRfEdges = useMemo(() => (mapDataFromStore.edges || []).map(appEdge => ({
-    id: appEdge.id,
-    source: appEdge.source,
-    target: appEdge.target,
-    sourceHandle: appEdge.sourceHandle || null,
-    targetHandle: appEdge.targetHandle || null,
-    label: appEdge.label,
-    type: 'orthogonal', 
-    data: {
+    const newRfNodes = (mapDataFromStore.nodes || []).map(appNode => ({
+      id: appNode.id,
+      type: 'customConceptNode',
+      data: {
+        label: appNode.text,
+        details: appNode.details,
+        type: appNode.type || 'default',
+        isViewOnly: isViewOnlyMode,
+        backgroundColor: appNode.backgroundColor,
+        shape: appNode.shape,
+        width: appNode.width,   // Already ensured by store to have defaults
+        height: appNode.height, // Already ensured by store to have defaults
+        onTriggerAIExpand: onNodeAIExpandTriggered,
+      } as CustomNodeData,
+      position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
+      draggable: !isViewOnlyMode,
+      selectable: true,
+      connectable: !isViewOnlyMode,
+      dragHandle: '.cursor-move',
+      parentNode: appNode.parentNode,
+    }));
+
+    useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Nodes] Processed ${newRfNodes.length} nodes. Setting React Flow nodes.`);
+    setRfNodes(newRfNodes);
+
+  }, [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered, setRfNodes]);
+
+
+  // Effect to synchronize edges from the store to React Flow's state
+  useEffect(() => {
+    useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Edges] Running. mapDataFromStore.edges count: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
+    const newRfEdges = (mapDataFromStore.edges || []).map(appEdge => ({
+      id: appEdge.id,
+      source: appEdge.source,
+      target: appEdge.target,
+      sourceHandle: appEdge.sourceHandle || null,
+      targetHandle: appEdge.targetHandle || null,
       label: appEdge.label,
-      color: appEdge.color,
-      lineType: appEdge.lineType
-    } as OrthogonalEdgeData,
-    markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
-    markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
-    style: { strokeWidth: 2 },
-    updatable: !isViewOnlyMode,
-    deletable: !isViewOnlyMode,
-    selectable: true,
-  })), [mapDataFromStore.edges, isViewOnlyMode]);
+      type: 'orthogonal',
+      data: {
+        label: appEdge.label,
+        color: appEdge.color,
+        lineType: appEdge.lineType
+      } as OrthogonalEdgeData,
+      markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
+      markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
+      style: { strokeWidth: 2 },
+      updatable: !isViewOnlyMode,
+      deletable: !isViewOnlyMode,
+      selectable: true,
+    }));
+    useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Edges] Processed ${newRfEdges.length} edges. Setting React Flow edges.`);
+    setRfEdges(newRfEdges);
+  }, [mapDataFromStore.edges, isViewOnlyMode, setRfEdges]);
 
-  const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>(initialRfNodes);
-  const [rfEdges, setRfEdges, onEdgesChangeReactFlow] = useEdgesState<OrthogonalEdgeData>(initialRfEdges);
-
+  // Effect to synchronize STAGED nodes and edges from the store
   useEffect(() => {
-    setRfNodes(initialRfNodes);
-  }, [initialRfNodes, setRfNodes]);
+    if (isStagingActive && stagedMapData) {
+      useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Updating STAGED nodes. Count: ${stagedMapData.nodes.length}`);
+      const newRfStagedNodes = stagedMapData.nodes.map(appNode => ({
+        id: appNode.id, // Use temporary IDs from store
+        type: 'customConceptNode',
+        data: {
+          label: appNode.text,
+          details: appNode.details,
+          type: appNode.type || 'default',
+          isViewOnly: true, // Staged items are initially not editable in the main sense
+          backgroundColor: appNode.backgroundColor, // Or a specific staged color
+          shape: appNode.shape,
+          width: appNode.width,
+          height: appNode.height,
+          isStaged: true, // Flag for styling
+        } as CustomNodeData,
+        position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
+        draggable: false, // Staged nodes not draggable for now
+        selectable: true, // Allow selection for potential "delete from stage"
+        connectable: false, // Staged nodes not connectable for now
+        dragHandle: '.cursor-move', // Standard drag handle, though draggable is false
+      }));
+      setRfStagedNodes(newRfStagedNodes);
 
+      useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Updating STAGED edges. Count: ${stagedMapData.edges?.length ?? 0}`);
+      const newRfStagedEdges = (stagedMapData.edges || []).map(appEdge => ({
+        id: appEdge.id, // Use temporary IDs
+        source: appEdge.source,
+        target: appEdge.target,
+        label: appEdge.label,
+        type: 'orthogonal',
+        data: {
+          label: appEdge.label,
+          color: appEdge.color, // Or a specific staged color
+          lineType: appEdge.lineType,
+        } as OrthogonalEdgeData,
+        style: { strokeDasharray: '5,5', opacity: 0.7, strokeWidth: 2, stroke: appEdge.color || 'grey' },
+        updatable: false,
+        selectable: true,
+      }));
+      setRfStagedEdges(newRfStagedEdges);
+    } else {
+      setRfStagedNodes([]);
+      setRfStagedEdges([]);
+    }
+  }, [isStagingActive, stagedMapData, setRfStagedNodes, setRfStagedEdges]);
+
+  // Effect to synchronize CONCEPT EXPANSION PREVIEW nodes and edges
   useEffect(() => {
-    setRfEdges(initialRfEdges);
-  }, [initialRfEdges, setRfEdges]);
+    if (conceptExpansionPreview && conceptExpansionPreview.previewNodes.length > 0) {
+      const parentNode = mapDataFromStore.nodes.find(n => n.id === conceptExpansionPreview.parentNodeId);
+      if (!parentNode) {
+        useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Parent node for expansion preview not found: ${conceptExpansionPreview.parentNodeId}`);
+        setRfPreviewNodes([]);
+        setRfPreviewEdges([]);
+        return;
+      }
+
+      useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Updating PREVIEW nodes. Count: ${conceptExpansionPreview.previewNodes.length}`);
+      const newRfPreviewNodes = conceptExpansionPreview.previewNodes.map((previewNode, index) => {
+        // Position preview nodes relative to the parent, e.g., in a fan shape or row
+        const position = getNodePlacement(
+          [...mapDataFromStore.nodes, ...newRfPreviewNodes.slice(0,index)], // consider already placed preview nodes for subsequent placements
+           'child', // layout type
+           parentNode, // parent node
+           null, // selected node (not relevant here)
+           GRID_SIZE, // grid size
+           index, // child index for layout algorithm
+           conceptExpansionPreview.previewNodes.length // total children for layout algorithm
+        );
+
+        return {
+          id: previewNode.id, // Use temporary ID from preview data
+          type: 'customConceptNode',
+          data: {
+            label: previewNode.text,
+            details: previewNode.details,
+            type: 'ai-expanded-ghost', // Specific type for ghost styling
+            isViewOnly: true,
+            isGhost: true, // Flag for styling
+            width: 150, // Standard size for ghosts
+            height: 70,
+          } as CustomNodeData,
+          position: position,
+          draggable: false,
+          selectable: true, // Allow selection for accept/reject actions
+          connectable: false,
+        };
+      });
+      setRfPreviewNodes(newRfPreviewNodes);
+
+      const newRfPreviewEdges = newRfPreviewNodes.map(rfPreviewNode => ({
+        id: `preview-edge-${conceptExpansionPreview.parentNodeId}-${rfPreviewNode.id}`,
+        source: conceptExpansionPreview.parentNodeId,
+        target: rfPreviewNode.id,
+        label: conceptExpansionPreview.previewNodes.find(pn => pn.id === rfPreviewNode.id)?.relationLabel || 'suggests',
+        type: 'orthogonal', // Or a specific ghost edge type
+        style: { strokeDasharray: '4,4', opacity: 0.6, strokeWidth: 1.5, stroke: '#8A2BE2' /* Purple-ish for ghost */ },
+        updatable: false,
+        selectable: true,
+      }));
+      setRfPreviewEdges(newRfPreviewEdges);
+      useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Updating PREVIEW edges. Count: ${newRfPreviewEdges.length}`);
+
+    } else {
+      setRfPreviewNodes([]);
+      setRfPreviewEdges([]);
+    }
+  }, [conceptExpansionPreview, mapDataFromStore.nodes, setRfPreviewNodes, setRfPreviewEdges, reactFlowInstance]);
   
   useEffect(() => {
+    // This effect for fitView should ideally run *after* nodes have been set and rendered.
+    // React Flow's fitView might need a slight delay or to be triggered when rfNodes actually changes and is non-empty.
     if (rfNodes.length > 0 && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
       const timerId = setTimeout(() => {
         reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
@@ -287,28 +427,61 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 
   const handleRfConnect: OnConnect = useCallback((params: Connection) => {
     if (isViewOnlyMode) return;
-    onConnectInStore({
+    // The onConnectInStore prop is expected to be the addEdge function from the store, which now returns the new edge's ID.
+    // However, the prop is currently typed as `() => void`. This needs to be aligned.
+    // For now, let's assume onConnectInStore is actually `addStoreEdge` from the hook which uses the store's `addEdge`.
+    // The store's `addEdge` returns string (newEdgeId). The hook's `addStoreEdge` should also return it.
+    // This requires ensuring the function passed to onConnectInStore from page.tsx actually returns the ID.
+    // Let's assume `onConnectInStore` is already correctly returning the newEdgeId or can be adapted.
+    // If `onConnectInStore` is just `addStoreEdge` from the hook, it needs to be modified to return the ID.
+    // For this step, we'll proceed assuming onConnectInStore is correctly typed and returns the ID.
+    // This might require a change in how `addStoreEdge` is defined or used in `useConceptMapAITools` if it's the one passed.
+    // For now, let's cast it, acknowledging this might need a fix in the hook or page.
+
+    const newEdgeId = (onConnectInStore as unknown as (options: any) => string)({ // Type assertion
       source: params.source!,
       target: params.target!,
       sourceHandle: params.sourceHandle,
       targetHandle: params.targetHandle,
-      label: "connects", // Default label, can be made configurable
+      label: "connects",
     });
-  }, [isViewOnlyMode, onConnectInStore]);
+
+    if (newEdgeId && params.source && params.target) {
+      onNewEdgeSuggestLabels?.(newEdgeId, params.source, params.target);
+    }
+  }, [isViewOnlyMode, onConnectInStore, onNewEdgeSuggestLabels]);
 
   const handleRfSelectionChange = useCallback((selection: SelectionChanges) => {
-    const { nodes, edges } = selection;
-    if (nodes.length === 1 && edges.length === 0) {
-      onSelectionChange(nodes[0].id, 'node');
-    } else if (edges.length === 1 && nodes.length === 0) {
-      onSelectionChange(edges[0].id, 'edge');
-    } else {
+    const selectedRfNodes = selection.nodes;
+    const selectedRfEdges = selection.edges;
+
+    const currentStagedNodeIds = new Set(rfStagedNodes.map(n => n.id));
+    const currentStagedEdgeIds = new Set(rfStagedEdges.map(e => e.id));
+
+    const newlySelectedStagedNodeIds = selectedRfNodes.filter(n => currentStagedNodeIds.has(n.id)).map(n => n.id);
+    const newlySelectedStagedEdgeIds = selectedRfEdges.filter(e => currentStagedEdgeIds.has(e.id)).map(e => e.id);
+
+    onStagedElementsSelectionChange?.([...newlySelectedStagedNodeIds, ...newlySelectedStagedEdgeIds]);
+
+    // Filter out staged elements for main selection handlers
+    const mainSelectedNodes = selectedRfNodes.filter(n => !currentStagedNodeIds.has(n.id));
+    const mainSelectedEdges = selectedRfEdges.filter(e => !currentStagedEdgeIds.has(e.id));
+
+    if (mainSelectedNodes.length === 1 && mainSelectedEdges.length === 0) {
+      onSelectionChange(mainSelectedNodes[0].id, 'node');
+    } else if (mainSelectedEdges.length === 1 && mainSelectedNodes.length === 0) {
+      onSelectionChange(mainSelectedEdges[0].id, 'edge');
+    } else if (mainSelectedNodes.length === 0 && mainSelectedEdges.length === 0 && (newlySelectedStagedNodeIds.length > 0 || newlySelectedStagedEdgeIds.length > 0)) {
+      // If only staged elements are selected, main selection is null
+      onSelectionChange(null, null);
+    } else if (mainSelectedNodes.length === 0 && mainSelectedEdges.length === 0) {
+        // If nothing is selected (neither main nor staged)
       onSelectionChange(null, null);
     }
-    if (onMultiNodeSelectionChange) {
-      onMultiNodeSelectionChange(nodes.map(node => node.id));
-    }
-  }, [onSelectionChange, onMultiNodeSelectionChange]);
+    // onMultiNodeSelectionChange should only receive main map nodes
+    onMultiNodeSelectionChange?.(mainSelectedNodes.map(node => node.id));
+
+  }, [onSelectionChange, onMultiNodeSelectionChange, onStagedElementsSelectionChange, rfStagedNodes, rfStagedEdges]);
 
   const handlePaneDoubleClickInternal: OnPaneDoubleClick = useCallback((event) => {
     if (isViewOnlyMode) return;
@@ -325,25 +498,67 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     });
     setSelectedElement(newNodeId, 'node');
     setEditingNodeId(newNodeId); // For auto-focus
-    onPaneDoubleClickProp?.(event);
-  }, [isViewOnlyMode, addNodeToStore, reactFlowInstance, setSelectedElement, setEditingNodeId, GRID_SIZE, onPaneDoubleClickProp]);
+    // Removed onPaneDoubleClickProp?.(event);
+  }, [isViewOnlyMode, addNodeToStore, reactFlowInstance, setSelectedElement, setEditingNodeId, GRID_SIZE]);
+
+  const handlePaneContextMenuInternal = useCallback((event: React.MouseEvent) => {
+    if (isViewOnlyMode || !reactFlowInstance) return;
+    event.preventDefault();
+    const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    onPaneContextMenuRequest?.(event, positionInFlow);
+  }, [isViewOnlyMode, reactFlowInstance, onPaneContextMenuRequest]);
+
+  const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleCanvasDrop = useCallback((droppedData: {type: string, text: string}, positionInFlow: {x: number, y: number}) => {
+    if (isViewOnlyMode) return;
+    if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
+      const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
+      const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
+      onConceptSuggestionDrop?.(droppedData.text, { x: snappedX, y: snappedY });
+    }
+  }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE]);
+
+  // Combine main, staged, and preview elements for rendering
+  const combinedNodes = useMemo(() => [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes], [rfNodes, rfStagedNodes, rfPreviewNodes]);
+  const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
 
   return (
     <InteractiveCanvas
-      nodes={rfNodes}
-      edges={rfEdges}
-      onNodesChange={handleRfNodesChange}
-      onEdgesChange={handleRfEdgesChange}
+      nodes={combinedNodes} // Pass combined nodes
+      edges={combinedEdges} // Pass combined edges
+      onNodesChange={handleRfNodesChange} // Main nodes changes
+      onEdgesChange={handleRfEdgesChange} // Main edges changes
+      // Note: onPreviewNodesChange and onStagedNodesChange are not directly used by InteractiveCanvas events here.
+      // Interactions with preview/staged items (select, delete from stage) are handled via other mechanisms
+      // (e.g., specific UI buttons calling store actions, or selection passed to page for delete key handling).
       onNodesDelete={handleRfNodesDeleted}
       onEdgesDelete={handleRfEdgesDeleted}
       onSelectionChange={handleRfSelectionChange}
-      onConnect={handleRfConnect}
+      onConnect={onConnectInStore} // Changed from onConnectInStore to onConnect, as InteractiveCanvas expects onConnect
       isViewOnlyMode={isViewOnlyMode}
-      onNodeContextMenu={onNodeContextMenu}
-      onNodeDrag={onNodeDragInternal} 
+      onNodeContextMenu={(event, node) => {
+        if (isViewOnlyMode) return;
+        event.preventDefault(); // Ensure default is prevented here too
+        onNodeContextMenuRequest?.(event, node);
+      }}
+      onNodeDrag={onNodeDragInternal}
       onNodeDragStop={onNodeDragStopInternal}
+      onNodeClick={(event, node) => { // Add onNodeClick handler
+        if (isViewOnlyMode) return;
+        if (node.data?.isGhost) {
+          onGhostNodeAcceptRequest?.(node.id);
+        }
+        // Potentially call other general onNodeClick logic if needed for non-ghost nodes,
+        // or let selection be handled by onSelectionChange.
+        // For now, only ghost nodes have a specific click action here.
+      }}
       onPaneDoubleClick={handlePaneDoubleClickInternal}
-      activeSnapLines={activeSnapLinesLocal} // Pass snap lines to InteractiveCanvas
+      onPaneContextMenu={handlePaneContextMenuInternal}
+      activeSnapLines={activeSnapLinesLocal}
       gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}
     />

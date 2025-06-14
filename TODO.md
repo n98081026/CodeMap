@@ -1,4 +1,3 @@
-
 # CodeMap TODO List
 
 ## Core Functionality & Backend Integration
@@ -147,6 +146,105 @@
         - [x] Ensured AI-generated nodes (from panel, direct generation like "Summarize", "Rewrite", or "Expand Concept") have distinct visual styles and icons via `CustomNodeComponent`.
         - [x] Defined specific node types (`ai-summary-node`, `ai-rewritten-node`, `ai-expanded` for generated children, `ai-concept` from panel, `text-derived-concept`, `ai-generated`) and mapped them to styles/icons.
 
+## GAI Concept Map Refactoring (Whimsical-Inspired Enhancements II)
+### Enhanced In-Canvas AI Interactions
+- [ ] "AI Quick-Add" / Floating AI Suggestions:
+    - [ ] On node selection/right-click: Show temporary "ghost" nodes/suggestion chips for related concepts, child nodes, or common questions.
+    - [ ] On empty canvas right-click: Suggest common starting points or nodes based on recent activity.
+    - [ ] Interaction: Clicking a ghost node/chip instantly creates it or triggers a detailed AI action. Dismissed on mouse out or Esc.
+- [ ] "AI Contextual Mini-Toolbar" on Node Hover/Selection:
+    - [ ] Display a small, floating toolbar near selected/hovered node with 2-3 most relevant AI actions (e.g., Expand, Summarize, Rewrite).
+    - [ ] Interaction: Icons for quick actions. Clicking an icon performs a default action or opens a streamlined input.
+- [ ] Drag-and-Drop from AI Panel with Preview:
+    - [ ] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
+    - [ ] Interaction: Show a preview of the node/edge under the cursor during drag. Activate snapping guides. Release creates the element.
+
+### Iterative and Preview-Oriented AI Generation
+- [ ] "AI Staging Area" for Cluster/Snippet Generation:
+    - [ ] For "Quick AI Cluster" / "Generate Snippet": Output AI-generated elements into a temporary "staging area" on canvas or as a special selection group.
+    - [ ] Staging Area Interaction: Allow deletion of individual suggestions, quick label edits, slight repositioning.
+    - [ ] Add "Commit to Map" button to finalize, and "X"/Esc to discard from staging area.
+- [ ] Refinable "Expand Concept" Previews:
+    - [ ] When "Expand Concept" is used, first show new child nodes as temporary "ghost" nodes.
+    - [ ] Interaction: Allow clicking individual ghost nodes to accept. Display "Refine" icon on hover to alter suggestion before making permanent. Add "Accept All" / "Cancel".
+
+### AI-Powered Layout and Structuring Assistance
+- [ ] "AI Tidy-Up" / Smart Alignment (Contextual):
+    - [ ] On selection of multiple nodes, offer an "AI Tidy selection" option (mini-toolbar/context menu).
+    - [ ] AI attempts to align, distribute, or semantically group (e.g., temporary parent node).
+- [ ] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
+    - [ ] AI periodically/on-demand scans map for structural improvement opportunities.
+    - [ ] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?".
+    - [ ] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options.
+
+### Streamlined GAI Input & Feedback
+- [ ] Slash Commands ("/ai") in Node Text (Evolution of existing TODO item):
+    - [ ] While editing node label/details, typing "/ai" brings up a list of AI commands (e.g., /ai expand, /ai rewrite simple).
+    - [ ] Selecting command and providing input executes AI action directly on/related to the node.
+- [ ] Node-Specific AI Progress Indicators (Enhanced):
+    - [ ] For AI actions creating new nodes from a source (e.g., Expand), new nodes initially appear with "AI generating..." state/animation before content populates.
+
+### GAI for Edges
+- [ ] AI-Suggested Relation Labels:
+    - [ ] When a user manually draws an edge, AI automatically suggests a relevant label based on source/target content.
+    - [ ] Interaction: Suggested label appears temporarily. User can click to accept, type to overwrite, or ignore.
+- [ ] "Suggest Intermediate Node" on Edge Selection:
+    - [ ] If an edge is selected, AI action to "Suggest intermediate concept".
+    - [ ] AI proposes a node to sit between source/target, splitting original edge and linking through the new node.
+
+## Data Structure & Layout Refactoring Plan (Graphology/Dagre Integration)
+
+This plan outlines a potential refactoring to incorporate Graphology for more robust data management and Dagre for automated graph layout. Implementation is contingent on tool stability and/or user provision of core utility libraries.
+
+**Phase 1: Define Utility Interfaces & Core Store Logic**
+- [ ] **Define `DagreLayoutUtility` Interface:**
+    - Input: `nodes: Array<{id, width, height}>`, `edges: Array<{source, target}>`, `options?: {direction?, rankSep?, nodeSep?}`.
+    - Output: `nodes: Array<{id, x, y}>` (top-left coordinates for React Flow).
+    - Responsibility: Encapsulates Dagre.js layout calculation.
+- [ ] **Define `GraphAdapter` Utility Interface (for Graphology):**
+    - `fromArrays(nodes, edges) => GraphologyInstance`
+    - `toArrays(graphInstance) => {nodes, edges}` (if needed for full graph conversion)
+    - `getDescendants(graphInstance, nodeId) => string[]`
+    - `getAncestors(graphInstance, nodeId) => string[]`
+    - `getNeighborhood(graphInstance, nodeId, options) => string[]`
+    - `getSubgraph(graphInstance, nodeIds) => {nodes, edges}` (React Flow compatible arrays)
+    - Responsibility: Encapsulates common Graphology operations on data sourced from store arrays.
+- [x] **Store: Implement `applyLayout` Action (`concept-map-store.ts`):**
+    - Takes `updatedNodePositions: Array<{id, x, y}>` (from `DagreLayoutUtility`).
+    - Updates `x, y` for corresponding nodes in `mapData.nodes`.
+    - Ensure undoable with Zundo (via `mapData` tracking).
+- [ ] **Store: Refactor `deleteNode` Action (`concept-map-store.ts`):**
+    - Internally use `GraphAdapter.fromArrays` and `GraphAdapter.getDescendants` to reliably identify all nodes to delete.
+    - Update `mapData.nodes` and `mapData.edges` based on this.
+    - Manage `childIds` on parent nodes if this feature is kept (or plan for its deprecation).
+
+**Phase 2: UI Integration for Auto-Layout (Dagre)**
+- [ ] **UI: Add "Auto-layout Map" Button (`EditorToolbar.tsx`):**
+    - Icon: `Network` or `LayoutDashboard`.
+    - Disabled in `isViewOnlyMode`.
+- [ ] **Page Logic: Connect Button to Dagre Utility & Store (`mapId/page.tsx`):**
+    - On button click: Get current nodes/edges, show loading, call `DagreLayoutUtility`, call store's `applyLayout`, handle loading/toast.
+- [ ] **React Flow: Ensure `fitView` after Layout (`FlowCanvasCore.tsx`):**
+    - Verify/ensure `reactFlowInstance.fitView()` is called after `applyLayout`.
+
+**Phase 3: Integrate Graphology Utilities into AI Features (`useConceptMapAITools.ts`)**
+- [ ] **AI Context Gathering: Refactor for Graphology:**
+    - Update AI tool functions to use an on-demand Graphology instance (via `GraphAdapter`) for richer context (neighbors, ancestors).
+- [ ] **AI Output Processing: Pre-layout with Dagre for Staging/Preview:**
+    - For "Quick Cluster", "Generate Snippet", "Expand Concept": After AI returns new elements, use Dagre on a temporary graph to pre-layout them before sending to staging/preview.
+- [ ] **Advanced GAI (Future): Plan New Features using Graphology/Dagre:**
+    - Design "AI Tidy-Up / Smart Alignment" (Dagre on selections).
+    - Design "Dynamic Structure Suggestion Overlays" (Graphology for analysis).
+
+**Phase 4: Data Migration & Initialization (Conceptual - Low Impact for Hybrid)**
+- [x] **Verify No Data Migration Needed for stored arrays.** (Confirmed)
+- [x] **Verify No Initialization Change Needed for new maps.** (Confirmed)
+
+**Phase 5: Documentation & Review**
+- [ ] Document interfaces for `DagreLayoutUtility` and `GraphAdapter`.
+- [ ] Document how store actions and AI tools utilize these.
+- [ ] Review pros/cons post-implementation (if undertaken).
+
 ## Performance Optimizations
 - [ ] Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
 - [ ] Investigate large list rendering: For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
@@ -222,12 +320,6 @@ This section outlines tasks to fully migrate to Supabase.
 - View-only mode for concept map editor is implemented.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project Upload Form have been removed for simplicity.
-
-This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
-The main remaining area for full Supabase connection is:
-*   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
-*   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
-*   Thorough testing and deployment preparations (out of scope).
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:
