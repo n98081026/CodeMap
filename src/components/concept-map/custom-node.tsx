@@ -12,7 +12,7 @@ import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
   SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser,
-  Move as MoveIcon // Added MoveIcon
+  Move as MoveIcon, Wand2 // Added Wand2
 } from 'lucide-react'; // Added Loader2
 
 export interface CustomNodeData {
@@ -73,6 +73,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const aiTools = useConceptMapAITools(nodeIsViewOnly);
 
   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
+  const [isGhostHovered, setIsGhostHovered] = useState(false); // New state for ghost node hover
   const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
   // Removed isHoveredForToolbar state
   const cardRef = useRef<HTMLDivElement>(null);
@@ -165,14 +166,36 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
       )}
       onMouseEnter={() => {
-        if (data.isGhost) return; // Do not trigger hover effects for ghost nodes
-        setIsHovered(true);
-        // Removed setIsHoveredForToolbar(true);
+        if (data.isGhost) {
+          setIsGhostHovered(true);
+        } else {
+          setIsHovered(true);
+        }
       }}
-      onMouseLeave={() => { setIsHovered(false); /* Removed setIsHoveredForToolbar(false); */ }}
+      onMouseLeave={() => {
+        if (data.isGhost) {
+          setIsGhostHovered(false);
+        } else {
+          setIsHovered(false);
+        }
+      }}
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
+      {data.isGhost && isGhostHovered && !nodeIsViewOnly && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log(`Refine action triggered for ghost node: ${id}, Label: "${data.label}"`);
+            alert(`Placeholder: Refine AI suggestion for "${data.label}"`);
+            // Future: Call a function here to open a refine modal or trigger AI refinement
+          }}
+          className="absolute top-1 left-1 z-10 flex items-center justify-center w-6 h-6 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-all"
+          title="Refine AI Suggestion"
+        >
+          <Wand2 className="w-3.5 h-3.5" />
+        </button>
+      )}
       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
         <div
           className={cn(

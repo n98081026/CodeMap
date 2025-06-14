@@ -165,7 +165,7 @@
     - [x] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
     - [x] Interaction: Show a preview of the **node** under the cursor during drag (snapped to grid). (Implemented for nodes dragged from AI Panel).
     - [ ] Interaction (Enhancement): Show a preview for dragging **edges** from AI Panel (if applicable, or for edges dragged from other UI elements).
-    - [ ] Interaction (Enhancement): Ensure node-to-node snapping guides actively interact with the node drag preview (current preview snaps to grid).
+    - [x] Interaction (Enhancement): Ensure node-to-node snapping guides actively interact with the node drag preview (current preview snaps to grid).
 
 ### Iterative and Preview-Oriented AI Generation
 - [x] "AI Staging Area" for Cluster/Snippet Generation:
@@ -176,6 +176,8 @@
     - [x] When "Expand Concept" is used, first show new child nodes as temporary "ghost" nodes.
     - [x] Interaction: Allow clicking individual ghost nodes to accept. Add "Accept All" / "Cancel" controls. (Core acceptance logic done via click and floater)
     - [ ] Interaction (Enhancement): Display "Refine" icon on hover over a ghost node to alter its suggestion before acceptance.
+        - [x] UI: Display "Refine" icon (e.g., Wand2) on ghost node hover with placeholder action.
+        - [ ] Logic: Implement full "refine suggestion" functionality (e.g., modal, AI call).
 
 ### AI-Powered Layout and Structuring Assistance
 - [ ] "AI Tidy-Up" / Smart Alignment (Contextual):
