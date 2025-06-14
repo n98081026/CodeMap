@@ -7,7 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added import
-import AISuggestionMiniToolbar from './ai-mini-toolbar';
+// Removed AISuggestionMiniToolbar import
+import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
   SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser,
@@ -60,6 +61,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     editingNodeId,
     setEditingNodeId,
     aiProcessingNodeId, // Get AI processing state
+    deleteNode, // Added deleteNode from store
   } = useConceptMapStore();
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
@@ -69,7 +71,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const aiTools = useConceptMapAITools(nodeIsViewOnly);
 
   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
-  const [isHoveredForToolbar, setIsHoveredForToolbar] = useState(false); // For AI mini toolbar
+  // Removed isHoveredForToolbar state
   const cardRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null); // Ref for the main node div to get its rect
 
@@ -100,29 +102,16 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   ] as const;
 
   // Placeholder handlers for AI mini toolbar actions
-  const handleQuickExpand = (nodeId: string) => {
-    // console.log(`CustomNode: Quick Expand triggered for ${nodeId}`); // Keep for debugging if needed
-    aiTools.handleMiniToolbarQuickExpand(nodeId);
-  };
+  // Removed handleQuickExpand and handleRewriteConcise as they are now passed directly to the toolbar
 
-  const handleRewriteConcise = (nodeId: string) => {
-    // console.log(`CustomNode: Rewrite Concise triggered for ${nodeId}`); // Keep for debugging if needed
-    aiTools.handleMiniToolbarRewriteConcise(nodeId);
-  };
-
-  const getNodeRect = () => {
-    if (nodeRef.current) {
-      // Get bounding rect relative to the viewport
-      const rect = nodeRef.current.getBoundingClientRect();
-      // This rect is viewport-relative. The toolbar positioning might need adjustment
-      // depending on how it's added to the DOM (e.g., if it's a child of ReactFlow pane vs. outside).
-      // For now, we pass screen coordinates.
-      // If React Flow's internal position (xPos, yPos) and dimensions (data.width, data.height)
-      // are more stable due to zoom/pan, those might be better, but getBoundingClientRect is more direct for screen space.
-      return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
-    }
-    return null;
-  };
+  // getNodeRect might not be needed if toolbar is positioned relatively within the node.
+  // Keeping it for now in case future versions of toolbar need screen coords.
+  // const getNodeRect = () => {
+  //   if (nodeRef.current) {
+  //     return nodeRef.current.getBoundingClientRect();
+  //   }
+  //   return null;
+  // };
 
   return (
     <div
@@ -140,12 +129,29 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       onMouseEnter={() => {
         if (data.isGhost) return; // Do not trigger hover effects for ghost nodes
         setIsHovered(true);
-        setIsHoveredForToolbar(true);
+        // Removed setIsHoveredForToolbar(true);
       }}
-      onMouseLeave={() => { setIsHovered(false); setIsHoveredForToolbar(false); }}
+      onMouseLeave={() => { setIsHovered(false); /* Removed setIsHoveredForToolbar(false); */ }}
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
+      {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-20"
+          // Prevent clicks on the toolbar area from propagating to the node (e.g., deselection)
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          // Add other event handlers like onDoubleClick, onPointerDown etc. if necessary
+        >
+          <SelectedNodeToolbar
+            nodeId={id}
+            onEditLabel={() => setEditingNodeId(id)}
+            onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
+            onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}
+            onAISuggestRelations={() => aiTools.handleMenuSuggestRelations(id)}
+            onDeleteNode={() => deleteNode(id)}
+          />
+        </div>
+      )}
       {!nodeIsViewOnly && !data.isGhost && (
          <MoveIcon
            className="node-move-handle absolute top-1 right-1 w-4 h-4 text-muted-foreground cursor-grab z-10"
@@ -224,13 +230,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       )}
 
       {!nodeIsViewOnly && !data.isGhost && ( // Also hide mini toolbar for ghost nodes
-        <AISuggestionMiniToolbar
-          nodeId={id}
-          nodeRect={getNodeRect()}
-          isVisible={isHoveredForToolbar && !isBeingProcessedByAI}
-          onQuickExpand={handleQuickExpand}
-          onRewriteConcise={handleRewriteConcise}
-        />
+        /* AISuggestionMiniToolbar removed */
       )}
     </div>
   );
