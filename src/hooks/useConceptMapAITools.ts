@@ -14,9 +14,12 @@ import {
   suggestEdgeLabelFlow,
   type SuggestEdgeLabelInput,
   type SuggestEdgeLabelOutput,
-  refineNodeSuggestionFlow, // Import new flow
-  type RefineNodeSuggestionInput, // Import new type
-  type RefineNodeSuggestionOutput // Import new type
+  refineNodeSuggestionFlow,
+  type RefineNodeSuggestionInput,
+  type RefineNodeSuggestionOutput,
+  suggestIntermediateNodeFlow, // Added
+  type SuggestIntermediateNodeInput, // Added
+  type SuggestIntermediateNodeOutput // Added
 } from '@/ai/flows';
 import { 
     rewriteNodeContent as aiRewriteNodeContent,
@@ -31,7 +34,7 @@ import type {
   SuggestRelationsOutput,
   SummarizeNodesOutput
 } from '@/ai/flows'; 
-import type { ConceptMapNode, RFNode } from '@/types';
+import type { ConceptMapNode, ConceptMapEdge, RFNode } from '@/types'; // Added ConceptMapEdge
 import { getNodePlacement } from '@/lib/layout-utils';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react';
@@ -48,17 +51,22 @@ export interface NodeContentToRewrite {
     details?: string;
 }
 
-// New interface for refine modal data
 export interface RefineModalData {
-    nodeId: string; // This is the previewNodeId
-    parentNodeId: string; // To correctly call updatePreviewNode
+    nodeId: string;
+    parentNodeId: string;
     text: string;
     details?: string;
 }
 
+// Interface for Suggest Intermediate Node feature
+export interface IntermediateNodeSuggestionContext extends SuggestIntermediateNodeOutput {
+  originalEdgeId: string;
+  sourceNode: ConceptMapNode;
+  targetNode: ConceptMapNode;
+}
+
 const GRID_SIZE_FOR_AI_PLACEMENT = 20;
 
-// Externalized logic for generating node suggestions
 const _generateNodeSuggestionsLogic = (
   sourceNode: RFNode<any> | ConceptMapNode,
   isViewOnly: boolean,
@@ -67,13 +75,11 @@ const _generateNodeSuggestionsLogic = (
   toastFunc: ReturnType<typeof useToast>['toast']
 ): SuggestionAction[] => {
   if (isViewOnly) return [];
-
   const placeholderSuggestions = [
     { text: "Related Idea Alpha", type: 'default' },
     { text: "Sub-topic Beta", type: 'default' },
     { text: "Supporting Detail Gamma", type: 'ai-suggested' },
   ];
-
   return placeholderSuggestions.map((pSuggestion, index) => ({
     id: `add-suggested-node-${sourceNode.id}-${index}`,
     label: pSuggestion.text,
@@ -104,7 +110,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     resetAiSuggestions, addNode: addStoreNode, updateNode: updateStoreNode,
     addEdge: addStoreEdge, setAiProcessingNodeId, setStagedMapData,
     setConceptExpansionPreview, conceptExpansionPreview,
-    // updatePreviewNode, // Will use getState().updatePreviewNode directly
   } = useConceptMapStore(
     useCallback(s => ({
       mapData: s.mapData, selectedElementId: s.selectedElementId, multiSelectedNodeIds: s.multiSelectedNodeIds,
@@ -115,10 +120,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       addEdge: s.addEdge, setAiProcessingNodeId: s.setAiProcessingNodeId,
       setStagedMapData: s.setStagedMapData, setConceptExpansionPreview: s.setConceptExpansionPreview,
       conceptExpansionPreview: s.conceptExpansionPreview,
-      // updatePreviewNode: s.updatePreviewNode, // Not needed in selector if using getState()
     }), [])
   );
 
+  // States for various modals
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [textForExtraction, setTextForExtraction] = useState("");
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
@@ -133,10 +138,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen] = useState(false);
   const [nodeContentToRewrite, setNodeContentToRewrite] = useState<NodeContentToRewrite | null>(null);
   const [edgeLabelSuggestions, setEdgeLabelSuggestions] = useState<{ edgeId: string; labels: string[] } | null>(null);
-
-  // State for RefineSuggestionModal
   const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
   const [refineModalInitialData, setRefineModalInitialData] = useState<RefineModalData | null>(null);
+
+  // State for Intermediate Node Suggestion
+  const [intermediateNodeSuggestion, setIntermediateNodeSuggestion] = useState<IntermediateNodeSuggestionContext | null>(null);
 
 
   // --- Extract Concepts ---
@@ -586,7 +592,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     } else {
       toast({ title: "Error", description: "No active expansion preview for this context.", variant: "destructive" });
     }
-  }, [isViewOnlyMode, toast]); // Removed conceptExpansionPreview from deps, using getState()
+  }, [isViewOnlyMode, toast]);
 
   const handleRefineSuggestionConfirm = useCallback(async (refinementInstruction: string) => {
     if (!refineModalInitialData) {

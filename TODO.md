@@ -198,9 +198,9 @@
 - [x] AI-Suggested Relation Labels:
     - [x] When a user manually draws an edge, AI automatically suggests a relevant label based on source/target content. (Genkit flow created, hook updated, suggestions shown in floater)
     - [x] Interaction: Suggested label appears temporarily. User can click to accept, type to overwrite, or ignore. (Floater shows suggestions, click updates label)
-- [ ] "Suggest Intermediate Node" on Edge Selection:
-    - [ ] If an edge is selected, AI action to "Suggest intermediate concept".
-    - [ ] AI proposes a node to sit between source/target, splitting original edge and linking through the new node.
+- [x] "Suggest Intermediate Node" on Edge Selection:
+    - [x] If an edge is selected, AI action to "Suggest intermediate concept".
+    - [x] AI proposes a node to sit between source/target, splitting original edge and linking through the new node.
 
 ## Data Structure & Layout Refactoring Plan (Graphology/Dagre Integration)
 
