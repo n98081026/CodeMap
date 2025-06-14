@@ -4,6 +4,26 @@ import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
 
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
+import type { LayoutNodeUpdate } from '@/types/graph-adapter';
+
+// Conceptual GraphAdapter related types
+export type GraphologyInstance = { nodesMap: Map<string, ConceptMapNode> }; // Simplified for mock
+
+export interface GraphAdapterUtility {
+  fromArrays: (nodes: ConceptMapNode[], edges: ConceptMapEdge[]) => GraphologyInstance;
+  getDescendants: (graphInstance: GraphologyInstance, nodeId: string) => string[];
+  toArrays: (graphInstance: GraphologyInstance) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] }; // Keep for interface completeness
+  getAncestors: (graphInstance: GraphologyInstance, nodeId: string) => string[]; // Keep for interface completeness
+  getNeighborhood: ( // Keep for interface completeness
+    graphInstance: GraphologyInstance,
+    nodeId: string,
+    options?: { depth?: number; direction?: 'in' | 'out' | 'both' }
+  ) => string[];
+  getSubgraphData: ( // Keep for interface completeness
+    graphInstance: GraphologyInstance,
+    nodeIds: string[]
+  ) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+}
 
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -35,6 +55,13 @@ interface ConceptMapState {
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
 
   debugLogs: string[];
+
+  // Staging area state
+  stagedMapData: ConceptMapData | null;
+  isStagingActive: boolean;
+
+// Concept expansion preview state
+conceptExpansionPreview: ConceptExpansionPreviewState | null;
 
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
@@ -74,12 +101,24 @@ interface ConceptMapState {
   updateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   deleteNode: (nodeId: string) => void;
 
-  addEdge: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string; color?: string; lineType?: 'solid' | 'dashed'; markerStart?: string; markerEnd?: string; }) => void;
+  addEdge: (options: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null; label?: string; color?: string; lineType?: 'solid' | 'dashed'; markerStart?: string; markerEnd?: string; }) => string; // Changed return type to string
   updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
   deleteEdge: (edgeId: string) => void;
+
+  // Staging area actions
+  setStagedMapData: (data: ConceptMapData | null) => void;
+  clearStagedMapData: () => void;
+  commitStagedMapData: () => void;
+deleteFromStagedMapData: (elementIds: string[]) => void;
+
+// Concept expansion preview actions
+setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void;
+
+// Layout action
+applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
 }
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId'>;
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview'>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -92,7 +131,9 @@ const initialStateBase: Omit<ConceptMapState,
   'resetAiSuggestions' | 'removeExtractedConceptsFromSuggestions' | 'removeSuggestedRelationsFromSuggestions' |
   'addDebugLog' | 'clearDebugLogs' |
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
-  'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge'
+  'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
+  'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
+  'setConceptExpansionPreview' | 'applyLayout' // Added applyLayout
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -115,8 +156,22 @@ const initialStateBase: Omit<ConceptMapState,
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
   debugLogs: [],
+  stagedMapData: null,
+  isStagingActive: false,
+  conceptExpansionPreview: null, // Added concept expansion preview state
 };
 
+// Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
+export interface ConceptExpansionPreviewNode {
+  id: string; // Temporary ID, e.g., "preview-node-1"
+  text: string;
+  relationLabel: string; // Label for the edge connecting to parent
+  details?: string;
+}
+export interface ConceptExpansionPreviewState {
+  parentNodeId: string;
+  previewNodes: ConceptExpansionPreviewNode[];
+}
 
 export const useConceptMapStore = create<ConceptMapState>()(
   temporal(
@@ -253,6 +308,13 @@ export const useConceptMapStore = create<ConceptMapState>()(
       },
 
       addNode: (options) => {
+        // Define default dimensions
+        const NODE_DEFAULT_WIDTH = 150;
+        const NODE_DEFAULT_HEIGHT = 70;
+
+        // Original log for options can be kept or removed if too verbose
+        // get().addDebugLog(`[STORE addNode] Attempting to add node with options: ${JSON.stringify(options)}`);
+
         const newNode: ConceptMapNode = {
           id: uniqueNodeId(),
           text: options.text,
@@ -264,9 +326,12 @@ export const useConceptMapStore = create<ConceptMapState>()(
           childIds: [], // Initialize childIds for the new node
           backgroundColor: options.backgroundColor || undefined,
           shape: options.shape || 'rectangle',
-          width: options.width,
-          height: options.height,
+          width: options.width ?? NODE_DEFAULT_WIDTH,
+          height: options.height ?? NODE_DEFAULT_HEIGHT,
         };
+
+        // New log for the created newNode object
+        get().addDebugLog(`[STORE addNode] newNode object created: ${JSON.stringify(newNode)}`);
 
         set((state) => {
           let newNodes = [...state.mapData.nodes, newNode];
@@ -279,6 +344,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
               newNodes[parentIndex] = parentNode;
             }
           }
+          get().addDebugLog(`[STORE addNode] Successfully added. Nodes count: ${newNodes.length}. Last node ID: ${newNode.id}`);
           return { mapData: { ...state.mapData, nodes: newNodes } };
         });
         return newNode.id;
@@ -293,63 +359,72 @@ export const useConceptMapStore = create<ConceptMapState>()(
         },
       })),
 
-      deleteNode: (nodeIdToDelete) => set((state) => {
-        const nodesToDeleteSet = new Set<string>();
-        const queue: string[] = [nodeIdToDelete];
-        
-        // Populate nodesToDeleteSet with the initial node and all its descendants
-        while (queue.length > 0) {
-            const currentId = queue.shift()!;
-            if (nodesToDeleteSet.has(currentId)) continue; // Already processed
-            nodesToDeleteSet.add(currentId);
-            const node = state.mapData.nodes.find(n => n.id === currentId);
-            if (node && node.childIds) {
-                node.childIds.forEach(childId => {
-                    if (!nodesToDeleteSet.has(childId)) {
-                        queue.push(childId);
-                    }
-                });
-            }
-        }
+      deleteNode: (nodeIdToDelete) => {
+        get().addDebugLog(`[STORE deleteNode] Attempting to delete node: ${nodeIdToDelete} and its descendants.`);
+        set((state) => {
+          const nodes = state.mapData.nodes;
+          const edges = state.mapData.edges;
 
-        // Filter out the deleted nodes
-        const newNodes = state.mapData.nodes.filter(node => !nodesToDeleteSet.has(node.id));
+          const graphInstance = MockGraphAdapter.fromArrays(nodes, edges);
 
-        // Update parent's childIds if the deleted node had a parent
-        const nodeToDelete = state.mapData.nodes.find(n => n.id === nodeIdToDelete);
-        if (nodeToDelete?.parentNode) {
-            const parentIndex = newNodes.findIndex(n => n.id === nodeToDelete.parentNode);
-            if (parentIndex !== -1) {
-                const parentNode = { ...newNodes[parentIndex] };
-                parentNode.childIds = (parentNode.childIds || []).filter(id => id !== nodeIdToDelete);
-                newNodes[parentIndex] = parentNode;
-            }
-        }
+          if (!graphInstance.nodesMap.has(nodeIdToDelete)) {
+             get().addDebugLog(`[STORE deleteNode] Node ${nodeIdToDelete} not found. No changes made.`);
+             return state;
+          }
 
-        // Filter out edges connected to any of the deleted nodes
-        const newEdges = state.mapData.edges.filter(
-          edge => !nodesToDeleteSet.has(edge.source) && !nodesToDeleteSet.has(edge.target)
-        );
+          const descendants = MockGraphAdapter.getDescendants(graphInstance, nodeIdToDelete);
+          const nodesToDeleteSet = new Set<string>([nodeIdToDelete, ...descendants]);
 
-        let newSelectedElementId = state.selectedElementId;
-        let newSelectedElementType = state.selectedElementType;
-        if (state.selectedElementId && nodesToDeleteSet.has(state.selectedElementId)) {
+          get().addDebugLog(`[STORE deleteNode] Full set of nodes to delete (including descendants): ${JSON.stringify(Array.from(nodesToDeleteSet))}`);
+
+          let newNodes = nodes.filter(node => !nodesToDeleteSet.has(node.id));
+
+          const nodeBeingDeletedDirectly = nodes.find(n => n.id === nodeIdToDelete);
+          if (nodeBeingDeletedDirectly?.parentNode) {
+            const parentNodeId = nodeBeingDeletedDirectly.parentNode;
+            newNodes = newNodes.map(node => {
+              if (node.id === parentNodeId) {
+                const newChildIds = (node.childIds || []).filter(id => id !== nodeIdToDelete);
+                get().addDebugLog(`[STORE deleteNode] Updating parent ${parentNodeId}, removing child ${nodeIdToDelete}. New childIds: ${JSON.stringify(newChildIds)}`);
+                return { ...node, childIds: newChildIds };
+              }
+              return node;
+            });
+          }
+
+          const newEdges = edges.filter(
+            edge => !nodesToDeleteSet.has(edge.source) && !nodesToDeleteSet.has(edge.target)
+          );
+
+          let newSelectedElementId = state.selectedElementId;
+          let newSelectedElementType = state.selectedElementType;
+          if (state.selectedElementId && nodesToDeleteSet.has(state.selectedElementId)) {
             newSelectedElementId = null;
             newSelectedElementType = null;
-        }
-        const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDeleteSet.has(id));
-        const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDeleteSet.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
-        const newEditingNodeId = state.editingNodeId && nodesToDeleteSet.has(state.editingNodeId) ? null : state.editingNodeId;
+            get().addDebugLog(`[STORE deleteNode] Cleared selection as deleted node was selected.`);
+          }
+          const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDeleteSet.has(id));
+          const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDeleteSet.has(state.aiProcessingNodeId) && nodesToDeleteSet.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
+          const newEditingNodeId = state.editingNodeId && nodesToDeleteSet.has(state.editingNodeId) ? null : state.editingNodeId;
 
-        return {
-          mapData: { nodes: newNodes, edges: newEdges },
-          selectedElementId: newSelectedElementId,
-          selectedElementType: newSelectedElementType,
-          multiSelectedNodeIds: newMultiSelectedNodeIds,
-          editingNodeId: newEditingNodeId,
-          aiProcessingNodeId: newAiProcessingNodeId,
-        };
-      }),
+          if (newNodes.length === nodes.length && newEdges.length === edges.length && newSelectedElementId === state.selectedElementId && newMultiSelectedNodeIds.length === state.multiSelectedNodeIds.length ) {
+            get().addDebugLog(`[STORE deleteNode] No effective changes to nodes/edges arrays or selection after filtering.`);
+          }
+
+          get().addDebugLog(`[STORE deleteNode] Deletion complete. Nodes remaining: ${newNodes.length}, Edges remaining: ${newEdges.length}`);
+          return {
+            mapData: {
+              nodes: newNodes,
+              edges: newEdges,
+            },
+            selectedElementId: newSelectedElementId,
+            selectedElementType: newSelectedElementType,
+            multiSelectedNodeIds: newMultiSelectedNodeIds,
+            aiProcessingNodeId: newAiProcessingNodeId,
+            editingNodeId: newEditingNodeId,
+          };
+        });
+      },
 
       addEdge: (options) => set((state) => {
         const newEdge: ConceptMapEdge = {
@@ -364,7 +439,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           markerStart: options.markerStart || 'none',
           markerEnd: options.markerEnd || 'arrowclosed',
         };
-        return { mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } };
+        set((state) => ({ mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } }));
+        return newEdge.id; // Return the new edge's ID
       }),
 
       updateEdge: (edgeId, updates) => set((state) => ({
@@ -387,12 +463,125 @@ export const useConceptMapStore = create<ConceptMapState>()(
           selectedElementId: newSelectedElementId,
           selectedElementType: newSelectedElementType,
         };
-      })
+      }),
+
+      // Staging area action implementations
+      setStagedMapData: (data) => {
+        get().addDebugLog(`[STORE setStagedMapData] Setting staged data. Nodes: ${data?.nodes?.length ?? 0}, Edges: ${data?.edges?.length ?? 0}`);
+        set({ stagedMapData: data, isStagingActive: !!data });
+      },
+      clearStagedMapData: () => {
+        get().addDebugLog(`[STORE clearStagedMapData] Clearing staged data.`);
+        set({ stagedMapData: null, isStagingActive: false });
+      },
+      commitStagedMapData: () => {
+        const stagedData = get().stagedMapData;
+        if (!stagedData) {
+          get().addDebugLog('[STORE commitStagedMapData] No staged data to commit.');
+          return;
+        }
+        get().addDebugLog(`[STORE commitStagedMapData] Committing ${stagedData.nodes.length} nodes and ${stagedData.edges.length} edges.`);
+
+        // Simplified merge for now, ensuring new IDs.
+        // Positioning and more complex ID remapping will be handled later.
+        set((state) => ({
+          mapData: {
+            nodes: [
+              ...state.mapData.nodes,
+              // Ensure new IDs on commit to avoid conflicts if items were somehow derived from existing ones
+              ...stagedData.nodes.map(n => ({ ...n, id: uniqueNodeId() }))
+            ],
+            edges: [
+              ...(state.mapData.edges || []),
+              ...(stagedData.edges || []).map(e => ({ ...e, id: uniqueEdgeId() })) // Ensure new IDs
+            ],
+          },
+          stagedMapData: null,
+          isStagingActive: false,
+        }));
+      },
+      deleteFromStagedMapData: (elementIdsToRemove) => {
+        if (!get().isStagingActive || !get().stagedMapData) {
+          get().addDebugLog('[STORE deleteFromStagedMapData] Staging not active or no data.');
+          return;
+        }
+
+        const currentStagedData = get().stagedMapData!;
+        const newStagedNodes = currentStagedData.nodes.filter(node => !elementIdsToRemove.includes(node.id));
+
+        // Create a set of IDs of nodes that will remain, to filter edges correctly
+        const remainingNodeIds = new Set(newStagedNodes.map(node => node.id));
+
+        const newStagedEdges = (currentStagedData.edges || []).filter(edge =>
+          !elementIdsToRemove.includes(edge.id) && // Remove if edge itself is selected
+          remainingNodeIds.has(edge.source) &&     // Keep if source node still exists
+          remainingNodeIds.has(edge.target)        // Keep if target node still exists
+        );
+
+        if (newStagedNodes.length === 0) {
+          get().addDebugLog(`[STORE deleteFromStagedMapData] All staged nodes removed or orphaned. Clearing staging area.`);
+          set({ stagedMapData: null, isStagingActive: false });
+        } else {
+          get().addDebugLog(`[STORE deleteFromStagedMapData] Removed elements. Remaining: ${newStagedNodes.length} nodes, ${newStagedEdges.length} edges.`);
+          set({
+            stagedMapData: {
+              nodes: newStagedNodes,
+              edges: newStagedEdges,
+            },
+            isStagingActive: true, // Keep active if there are still nodes
+          });
+        }
+      },
+
+      // Concept expansion preview action implementation
+      setConceptExpansionPreview: (preview) => {
+        get().addDebugLog(`[STORE setConceptExpansionPreview] Setting preview for parent ${preview?.parentNodeId}. Nodes: ${preview?.previewNodes?.length ?? 0}`);
+        set({ conceptExpansionPreview: preview });
+      },
+
+      applyLayout: (updatedNodePositions) => {
+        get().addDebugLog(`[STORE applyLayout] Attempting to apply new layout to ${updatedNodePositions.length} nodes.`);
+        set((state) => {
+          const updatedNodesMap = new Map<string, LayoutNodeUpdate>();
+          updatedNodePositions.forEach(update => updatedNodesMap.set(update.id, update));
+
+          const newNodes = state.mapData.nodes.map(node => {
+            const updateForNode = updatedNodesMap.get(node.id);
+            if (updateForNode) {
+              get().addDebugLog(`[STORE applyLayout] Updating node ${node.id}: old pos (x: ${node.x}, y: ${node.y}), new pos (x: ${updateForNode.x}, y: ${updateForNode.y})`);
+              return {
+                ...node,
+                x: updateForNode.x,
+                y: updateForNode.y,
+              };
+            }
+            return node;
+          });
+
+          const hasChanges = newNodes.some((newNode, index) => {
+            const oldNode = state.mapData.nodes[index];
+            return oldNode ? (newNode.x !== oldNode.x || newNode.y !== oldNode.y) : true;
+          });
+
+          if (hasChanges) {
+            get().addDebugLog(`[STORE applyLayout] Layout changes applied. Node count: ${newNodes.length}`);
+            return {
+              mapData: {
+                ...state.mapData,
+                nodes: newNodes,
+              },
+            };
+          } else {
+            get().addDebugLog(`[STORE applyLayout] No actual position changes detected. State not updated.`);
+            return state;
+          }
+        });
+      },
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview };
       },
       limit: 50,
     }

@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added import
+import AISuggestionMiniToolbar from './ai-mini-toolbar';
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
   SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser
@@ -21,6 +23,8 @@ export interface CustomNodeData {
   width?: number;
   height?: number;
   onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void; // For hover buttons
+  isStaged?: boolean;
+  isGhost?: boolean; // Added for ghost node styling
   // onTriggerAIExpand?: (nodeId: string) => void; // Retained for potential future direct AI button on node
 }
 
@@ -60,8 +64,13 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
   const isBeingProcessedByAI = aiProcessingNodeId === id; // Check if this node is being processed
 
-  const [isHovered, setIsHovered] = useState(false);
+  // Instantiate the AI tools hook
+  const aiTools = useConceptMapAITools(nodeIsViewOnly);
+
+  const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
+  const [isHoveredForToolbar, setIsHoveredForToolbar] = useState(false); // For AI mini toolbar
   const cardRef = useRef<HTMLDivElement>(null);
+  const nodeRef = useRef<HTMLDivElement>(null); // Ref for the main node div to get its rect
 
   const nodeWidth = data.width || 'auto';
   const nodeHeight = data.height || 'auto';
@@ -89,19 +98,50 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     { pos: Position.Left, style: { left: '-10px', top: '50%', transform: 'translateY(-50%)' } },
   ] as const;
 
+  // Placeholder handlers for AI mini toolbar actions
+  const handleQuickExpand = (nodeId: string) => {
+    // console.log(`CustomNode: Quick Expand triggered for ${nodeId}`); // Keep for debugging if needed
+    aiTools.handleMiniToolbarQuickExpand(nodeId);
+  };
+
+  const handleRewriteConcise = (nodeId: string) => {
+    // console.log(`CustomNode: Rewrite Concise triggered for ${nodeId}`); // Keep for debugging if needed
+    aiTools.handleMiniToolbarRewriteConcise(nodeId);
+  };
+
+  const getNodeRect = () => {
+    if (nodeRef.current) {
+      // Get bounding rect relative to the viewport
+      const rect = nodeRef.current.getBoundingClientRect();
+      // This rect is viewport-relative. The toolbar positioning might need adjustment
+      // depending on how it's added to the DOM (e.g., if it's a child of ReactFlow pane vs. outside).
+      // For now, we pass screen coordinates.
+      // If React Flow's internal position (xPos, yPos) and dimensions (data.width, data.height)
+      // are more stable due to zoom/pan, those might be better, but getBoundingClientRect is more direct for screen space.
+      return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+    }
+    return null;
+  };
 
   return (
     <div
+      ref={nodeRef} // Attach ref here
       style={nodeStyle}
       className={cn(
         "nodrag relative shadow-md border border-border flex flex-col",
-        selected && !isBeingProcessedByAI ? "ring-2 ring-primary" : "", // Don't show ring if AI processing to avoid clash
+        selected && !isBeingProcessedByAI && !data.isStaged && !data.isGhost ? "ring-2 ring-primary" : "", // Don't show ring if AI processing, staged, or ghost
         nodeIsViewOnly && "cursor-default",
         !nodeIsViewOnly && "cursor-grab",
-        data.shape === 'ellipse' && 'items-center justify-center text-center p-2' // Ellipse specific centering
+        data.shape === 'ellipse' && 'items-center justify-center text-center p-2',
+        data.isStaged && "border-dashed border-blue-500 opacity-80",
+        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => {
+        if (data.isGhost) return; // Do not trigger hover effects for ghost nodes
+        setIsHovered(true);
+        setIsHoveredForToolbar(true);
+      }}
+      onMouseLeave={() => { setIsHovered(false); setIsHoveredForToolbar(false); }}
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
@@ -173,6 +213,16 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         )}>
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      )}
+
+      {!nodeIsViewOnly && !data.isGhost && ( // Also hide mini toolbar for ghost nodes
+        <AISuggestionMiniToolbar
+          nodeId={id}
+          nodeRect={getNodeRect()}
+          isVisible={isHoveredForToolbar && !isBeingProcessedByAI}
+          onQuickExpand={handleQuickExpand}
+          onRewriteConcise={handleRewriteConcise}
+        />
       )}
     </div>
   );

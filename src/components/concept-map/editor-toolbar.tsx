@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline,
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, // Added Shuffle
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,7 @@ interface EditorToolbarProps {
   canRedo: boolean;
   selectedNodeId: string | null;
   numMultiSelectedNodes: number;
+  onAutoLayout?: () => void; // Made optional
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({
@@ -69,7 +70,8 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   canUndo,
   canRedo,
   selectedNodeId,
-  numMultiSelectedNodes, 
+  numMultiSelectedNodes,
+  onAutoLayout, // Destructure new prop
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -172,6 +174,18 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             </Button>
           </TooltipTrigger>
           <TooltipContent>{isViewOnlyMode ? "Add Edge (Disabled)" : !canAddEdge ? "Add Edge (Requires 2+ nodes)" : "Add Edge"}</TooltipContent>
+        </Tooltip>
+
+        <Separator orientation="vertical" className="mx-1 h-full" />
+
+        {/* Auto-layout Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={() => onAutoLayout?.()} disabled={isViewOnlyMode || !onAutoLayout}>
+              <Shuffle className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isViewOnlyMode ? "Auto-layout Map (Disabled)" : !onAutoLayout ? "Auto-layout (Not Configured)" : "Auto-layout Map (Experimental)"}</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />
