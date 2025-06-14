@@ -63,7 +63,11 @@ interface ConceptMapState {
 // Concept expansion preview state
 conceptExpansionPreview: ConceptExpansionPreviewState | null;
 
-connectingState: { sourceNodeId: string; sourceHandleId?: string | null; } | null; // New state for connection mode
+connectingState: { sourceNodeId: string; sourceHandleId?: string | null; } | null;
+
+// Drag preview state
+dragPreviewItem: { text: string; type: string; } | null;
+dragPreviewPosition: { x: number; y: number; } | null;
 
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
@@ -123,9 +127,14 @@ applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
 startConnectionMode: (nodeId: string, handleId?: string | null) => void;
 completeConnectionMode: (targetNodeId: string, targetHandleId?: string | null) => void;
 cancelConnectionMode: () => void;
+
+// Drag preview actions
+setDragPreview: (item: { text: string; type: string } | null, position?: { x: number; y: number } | null) => void;
+updateDragPreviewPosition: (position: { x: number; y: number }) => void;
+clearDragPreview: () => void;
 }
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' /* connectingState is not tracked for undo/redo */>;
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' /* connectingState, dragPreviewItem, dragPreviewPosition are not tracked */>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -141,7 +150,8 @@ const initialStateBase: Omit<ConceptMapState,
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
   'setConceptExpansionPreview' | 'applyLayout' |
-  'startConnectionMode' | 'completeConnectionMode' | 'cancelConnectionMode' // Added connection mode actions
+  'startConnectionMode' | 'completeConnectionMode' | 'cancelConnectionMode' |
+  'setDragPreview' | 'updateDragPreviewPosition' | 'clearDragPreview' // Added drag preview actions
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -166,8 +176,10 @@ const initialStateBase: Omit<ConceptMapState,
   debugLogs: [],
   stagedMapData: null,
   isStagingActive: false,
-  conceptExpansionPreview: null, // Added concept expansion preview state
-  connectingState: null, // Initial value for new state
+  conceptExpansionPreview: null,
+  connectingState: null,
+  dragPreviewItem: null, // Initial value for new state
+  dragPreviewPosition: null, // Initial value for new state
 };
 
 // Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
@@ -618,6 +630,23 @@ export const useConceptMapStore = create<ConceptMapState>()(
           get().addDebugLog(`[STORE cancelConnectionMode] Connection mode cancelled.`);
         }
         set({ connectingState: null });
+      },
+
+      // Drag Preview Actions
+      setDragPreview: (item, position = null) => {
+        get().addDebugLog(`[STORE setDragPreview] Item: ${item ? item.text : 'null'}, Pos: ${JSON.stringify(position)}`);
+        set({ dragPreviewItem: item, dragPreviewPosition: item ? position : null });
+      },
+      updateDragPreviewPosition: (position) => {
+        if (get().dragPreviewItem) { // Only update if there's an active item
+          set({ dragPreviewPosition: position });
+        }
+      },
+      clearDragPreview: () => {
+        if (get().dragPreviewItem) { // Only log if it was active
+           get().addDebugLog(`[STORE clearDragPreview]`);
+        }
+        set({ dragPreviewItem: null, dragPreviewPosition: null });
       },
     }),
     {

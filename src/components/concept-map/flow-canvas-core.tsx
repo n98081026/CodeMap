@@ -59,15 +59,19 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     addNode: addNodeToStore,
     setSelectedElement,
     setEditingNodeId,
-    connectingState,      // Added
-    completeConnectionMode, // Added
-    cancelConnectionMode,   // Added
+    connectingState,
+    completeConnectionMode,
+    cancelConnectionMode,
+    dragPreviewItem,          // Added
+    dragPreviewPosition,      // Added
+    updateDragPreviewPosition // Added
   } = useConceptMapStore();
   const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
     useCallback(s => ({
       stagedMapData: s.stagedMapData,
       isStagingActive: s.isStagingActive,
-      conceptExpansionPreview: s.conceptExpansionPreview
+      conceptExpansionPreview: s.conceptExpansionPreview,
+      // dragPreviewItem and dragPreviewPosition are not needed here as they are directly accessed
     }), [])
   );
   const reactFlowInstance = useReactFlow();
@@ -553,7 +557,14 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
-  }, []);
+    if (dragPreviewItem && reactFlowInstance) { // Check if in drag preview mode
+      const flowPosition = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      // Snap to grid for smoother preview positioning
+      const snappedX = Math.round(flowPosition.x / GRID_SIZE) * GRID_SIZE;
+      const snappedY = Math.round(flowPosition.y / GRID_SIZE) * GRID_SIZE;
+      updateDragPreviewPosition({ x: snappedX, y: snappedY });
+    }
+  }, [dragPreviewItem, reactFlowInstance, updateDragPreviewPosition, GRID_SIZE]);
 
   const handleCanvasDrop = useCallback((droppedData: {type: string, text: string}, positionInFlow: {x: number, y: number}) => {
     if (isViewOnlyMode) return;
@@ -565,7 +576,24 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE]);
 
   // Combine main, staged, and preview elements for rendering
-  const combinedNodes = useMemo(() => [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes], [rfNodes, rfStagedNodes, rfPreviewNodes]);
+  const combinedNodes = useMemo(() => {
+    let nodes = [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes];
+    if (dragPreviewItem && dragPreviewPosition) {
+      const previewNodeForDrag: RFNode = {
+        id: 'drag-preview-node',
+        type: 'dragPreviewNode',
+        position: dragPreviewPosition,
+        data: dragPreviewItem,
+        draggable: false,
+        selectable: false,
+        width: 150,
+        height: 70,
+      };
+      nodes.push(previewNodeForDrag);
+    }
+    return nodes;
+  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewItem, dragPreviewPosition]);
+
   const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
 
   return (
