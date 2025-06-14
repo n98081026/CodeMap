@@ -97,7 +97,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       draggable: !isViewOnlyMode,
       selectable: true,
       connectable: !isViewOnlyMode,
-      dragHandle: '.cursor-move',
+      dragHandle: '.node-move-handle',
       parentNode: appNode.parentNode,
     }));
 

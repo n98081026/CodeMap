@@ -1,3 +1,4 @@
+**Note:** This is the primary TODO list. The duplicate file `src/TODO.md` has been marked as obsolete (emptied) and can be removed from version control.
 
 # CodeMap TODO List
 
@@ -65,6 +66,9 @@
     - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
     - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
+- [ ] ### Component Refinements
+    - [ ] **`custom-node.tsx` Refinement:**
+        - [ ] Review `getNodeRect` function (currently commented out): confirm if it's still needed for any toolbar/element positioning logic or if it can be safely removed.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history). Context API for Auth.
 - [ ] **Real-time Features (Optional - Future Consideration):**
@@ -153,6 +157,10 @@
 - [x] "AI Contextual Mini-Toolbar" on Node Hover/Selection:
     - [x] Display a small, floating toolbar near selected/hovered node with 2-3 most relevant AI actions (e.g., Expand, Summarize, Rewrite).
     - [x] Interaction: Icons for quick actions. Clicking an icon performs a default action or opens a streamlined input. (Core AI connections made, further refinement of actions can continue)
+- [ ] **SelectedNodeToolbar Enhancements:**
+    - [ ] Implement "Change Color" functionality (e.g., via a popover color picker).
+    - [ ] Implement "Start Connection via button" (alternative to dragging handles).
+    - [ ] Investigate/Implement dynamic, viewport-aware positioning for the toolbar.
 - [x] Drag-and-Drop from AI Panel with Preview:
     - [x] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
     - [ ] Interaction: Show a preview of the node/edge under the cursor during drag. Activate snapping guides. Release creates the element. (Dragging concepts done, preview on drag is a UX enhancement for later)
