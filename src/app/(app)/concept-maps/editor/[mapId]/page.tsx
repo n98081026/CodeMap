@@ -132,6 +132,7 @@ export default function ConceptMapEditorPage() {
     acceptSingleExpansionPreview, // Destructure new function
     clearExpansionPreview,      // Destructure new function
     // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
+    removeExtractedConceptsFromSuggestions, // Destructure for use in drop handler
   } = aiToolsHook;
 
   const reactFlowInstance = useReactFlow();
@@ -395,6 +396,19 @@ export default function ConceptMapEditorPage() {
     }
   }, [conceptExpansionPreview, reactFlowInstance, acceptAllExpansionPreviews, clearExpansionPreview, floaterState.isVisible, floaterState.contextType]);
 
+  const handleConceptSuggestionDrop = useCallback((conceptText: string, position: { x: number; y: number }) => {
+    if (storeIsViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot add nodes from suggestions.", variant: "default" });
+      return;
+    }
+    addNodeFromHook({ text: conceptText, type: 'ai-concept', position, details: '' });
+    // Assuming removeExtractedConceptsFromSuggestions is from aiToolsHook and handles store update
+    if (removeExtractedConceptsFromSuggestions) {
+        removeExtractedConceptsFromSuggestions([conceptText]);
+    }
+    toast({ title: 'Concept Added', description: `'${conceptText}' added to the map from suggestion.` });
+  }, [storeIsViewOnlyMode, addNodeFromHook, removeExtractedConceptsFromSuggestions, toast]);
+
 
   const handleMapPropertiesChange = useCallback((properties: { name: string; isPublic: boolean; sharedWithClassroomId: string | null; }) => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", description: "Map properties cannot be changed.", variant: "default"}); return; }
@@ -580,7 +594,8 @@ export default function ConceptMapEditorPage() {
               onPaneContextMenuRequest={handlePaneContextMenuRequest}
               onStagedElementsSelectionChange={setSelectedStagedElementIds}
               onNewEdgeSuggestLabels={fetchAndSetEdgeLabelSuggestions}
-              onGhostNodeAcceptRequest={acceptSingleExpansionPreview} // Pass new prop
+              onGhostNodeAcceptRequest={acceptSingleExpansionPreview}
+              onConceptSuggestionDrop={handleConceptSuggestionDrop} // Pass the new drop handler
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
             />
           )}
