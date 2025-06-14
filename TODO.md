@@ -1,3 +1,4 @@
+**Note:** This is the primary TODO list. The duplicate file `src/TODO.md` has been marked as obsolete (emptied) and can be removed from version control.
 
 # CodeMap TODO List
 
@@ -65,6 +66,9 @@
     - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
     - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
+- [ ] ### Component Refinements
+    - [ ] **`custom-node.tsx` Refinement:**
+        - [x] Review `getNodeRect` function (currently commented out): confirm if it's still needed for any toolbar/element positioning logic or if it can be safely removed.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history). Context API for Auth.
 - [ ] **Real-time Features (Optional - Future Consideration):**
@@ -153,6 +157,10 @@
 - [x] "AI Contextual Mini-Toolbar" on Node Hover/Selection:
     - [x] Display a small, floating toolbar near selected/hovered node with 2-3 most relevant AI actions (e.g., Expand, Summarize, Rewrite).
     - [x] Interaction: Icons for quick actions. Clicking an icon performs a default action or opens a streamlined input. (Core AI connections made, further refinement of actions can continue)
+- [ ] **SelectedNodeToolbar Enhancements:**
+    - [ ] Implement "Change Color" functionality (e.g., via a popover color picker).
+    - [x] Implement "Start Connection via button" (alternative to dragging handles).
+    - [ ] Investigate/Implement dynamic, viewport-aware positioning for the toolbar.
 - [x] Drag-and-Drop from AI Panel with Preview:
     - [x] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
     - [ ] Interaction: Show a preview of the node/edge under the cursor during drag. Activate snapping guides. Release creates the element. (Dragging concepts done, preview on drag is a UX enhancement for later)
@@ -245,16 +253,16 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
 - [ ] Review pros/cons post-implementation (if undertaken).
 
 ## Performance Optimizations
-- [ ] Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
-- [ ] Investigate large list rendering: For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
+- [ ] Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate. (Current usage of SVGs via lucide-react is good; this is a guideline for future raster image assets).
+- [ ] Investigate large list rendering: For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales. (Admin/Teacher lists already have some virtualization)
+    - [ ] Monitor performance for lists rendering `ConceptMapListItem` and `SubmissionListItem`; consider virtualization in parent components if performance issues arise with large datasets.
     - [x] **Visual Cues for AI-Generated Content:**
         - [x] Ensured AI-generated nodes (from panel, direct generation like "Summarize", "Rewrite", or "Expand Concept") have distinct visual styles and icons via `CustomNodeComponent`.
         - [x] Defined specific node types (`ai-summary-node`, `ai-rewritten-node`, `ai-expanded` for generated children, `ai-concept` from panel, `text-derived-concept`, `ai-generated`) and mapped them to styles/icons.
-
+- [ ] Conduct further React component memoization: Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (`SelectedNodeToolbar` and its props from `CustomNodeComponent` now memoized).
+    - [ ] Ensure callbacks passed as props *to* `EditorToolbar` from its parent page (e.g., `mapId/page.tsx`) are memoized using `useCallback`.
 ## Performance Optimizations
-- [ ] Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
-- [ ] Investigate large list rendering: For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales.
-- [ ] Conduct further React component memoization: Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial.
+// This section was duplicated, the content above is the primary one. Removing this duplicate.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.

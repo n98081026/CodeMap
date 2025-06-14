@@ -63,6 +63,8 @@ interface ConceptMapState {
 // Concept expansion preview state
 conceptExpansionPreview: ConceptExpansionPreviewState | null;
 
+connectingState: { sourceNodeId: string; sourceHandleId?: string | null; } | null; // New state for connection mode
+
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
   setCurrentMapOwnerId: (ownerId: string | null) => void;
@@ -116,9 +118,14 @@ setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => vo
 
 // Layout action
 applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
+
+// Connection mode actions
+startConnectionMode: (nodeId: string, handleId?: string | null) => void;
+completeConnectionMode: (targetNodeId: string, targetHandleId?: string | null) => void;
+cancelConnectionMode: () => void;
 }
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview'>;
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' /* connectingState is not tracked for undo/redo */>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -133,7 +140,8 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
-  'setConceptExpansionPreview' | 'applyLayout' // Added applyLayout
+  'setConceptExpansionPreview' | 'applyLayout' |
+  'startConnectionMode' | 'completeConnectionMode' | 'cancelConnectionMode' // Added connection mode actions
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -159,6 +167,7 @@ const initialStateBase: Omit<ConceptMapState,
   stagedMapData: null,
   isStagingActive: false,
   conceptExpansionPreview: null, // Added concept expansion preview state
+  connectingState: null, // Initial value for new state
 };
 
 // Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
@@ -576,6 +585,39 @@ export const useConceptMapStore = create<ConceptMapState>()(
             return state;
           }
         });
+      },
+
+      // Connection Mode Actions
+      startConnectionMode: (nodeId, handleId = null) => {
+        get().addDebugLog(`[STORE startConnectionMode] Source: ${nodeId}, Handle: ${handleId}`);
+        set({
+          connectingState: { sourceNodeId: nodeId, sourceHandleId: handleId },
+          selectedElementId: null, // Optionally clear selection to avoid confusion
+          selectedElementType: null,
+        });
+      },
+      completeConnectionMode: (targetNodeId, targetHandleId = null) => {
+        const { connectingState, addEdge } = get();
+        if (connectingState) {
+          get().addDebugLog(`[STORE completeConnectionMode] Target: ${targetNodeId}, Handle: ${targetHandleId}. Source was: ${connectingState.sourceNodeId}`);
+          // Call existing addEdge function
+          addEdge({
+            source: connectingState.sourceNodeId,
+            sourceHandle: connectingState.sourceHandleId,
+            target: targetNodeId,
+            targetHandle: targetHandleId,
+            label: 'connects',
+          });
+          set({ connectingState: null }); // Reset connection mode
+        } else {
+          get().addDebugLog(`[STORE completeConnectionMode] Called without active connectingState.`);
+        }
+      },
+      cancelConnectionMode: () => {
+        if (get().connectingState) { // Only log if it was active
+          get().addDebugLog(`[STORE cancelConnectionMode] Connection mode cancelled.`);
+        }
+        set({ connectingState: null });
       },
     }),
     {

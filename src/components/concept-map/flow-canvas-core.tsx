@@ -55,7 +55,14 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
-  const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
+  const {
+    addNode: addNodeToStore,
+    setSelectedElement,
+    setEditingNodeId,
+    connectingState,      // Added
+    completeConnectionMode, // Added
+    cancelConnectionMode,   // Added
+  } = useConceptMapStore();
   const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
     useCallback(s => ({
       stagedMapData: s.stagedMapData,
@@ -97,7 +104,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       draggable: !isViewOnlyMode,
       selectable: true,
       connectable: !isViewOnlyMode,
-      dragHandle: '.cursor-move',
+      dragHandle: '.node-move-handle',
       parentNode: appNode.parentNode,
     }));
 
@@ -256,6 +263,41 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       return () => clearTimeout(timerId);
     }
   }, [rfNodes, reactFlowInstance]);
+
+  // Effect for Escape key to cancel connection mode
+  useEffect(() => {
+    if (!connectingState) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        cancelConnectionMode();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [connectingState, cancelConnectionMode]);
+
+  // Effect for cursor change during connection mode
+  useEffect(() => {
+    if (!reactFlowInstance) return;
+    const paneElement = reactFlowInstance.getViewportNode()?.closest('.react-flow__pane');
+
+    if (paneElement instanceof HTMLElement) {
+      if (connectingState) {
+        paneElement.style.cursor = 'crosshair';
+      } else {
+        paneElement.style.cursor = 'default'; // Or 'grab' if that's your default
+      }
+    }
+    // Cleanup function to reset cursor if component unmounts while in connecting state
+    return () => {
+      if (paneElement instanceof HTMLElement) {
+        paneElement.style.cursor = 'default'; // Or 'grab'
+      }
+    };
+  }, [connectingState, reactFlowInstance]);
 
 
   const onNodeDragInternal = useCallback((_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>, allNodes: RFNode<CustomNodeData>[]) => {
@@ -547,14 +589,28 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       }}
       onNodeDrag={onNodeDragInternal}
       onNodeDragStop={onNodeDragStopInternal}
-      onNodeClick={(event, node) => { // Add onNodeClick handler
+      onNodeClick={(event, node) => {
         if (isViewOnlyMode) return;
-        if (node.data?.isGhost) {
+
+        if (connectingState) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (node.id !== connectingState.sourceNodeId) {
+            completeConnectionMode(node.id, null); // Assuming targetHandleId is null for now
+          } else {
+            // Optionally, cancel if clicking the source node again, or do nothing
+            // cancelConnectionMode();
+          }
+        } else if (node.data?.isGhost) {
           onGhostNodeAcceptRequest?.(node.id);
         }
-        // Potentially call other general onNodeClick logic if needed for non-ghost nodes,
-        // or let selection be handled by onSelectionChange.
-        // For now, only ghost nodes have a specific click action here.
+        // Other node click logic can go here if not in connectingState
+      }}
+      onPaneClick={(event) => { // Added onPaneClick
+        if (connectingState) {
+          cancelConnectionMode();
+        }
+        // Other pane click logic (e.g., deselecting elements) is usually handled by React Flow internally or via onSelectionChange
       }}
       onPaneDoubleClick={handlePaneDoubleClickInternal}
       onPaneContextMenu={handlePaneContextMenuInternal}

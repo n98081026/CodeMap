@@ -1,5 +1,5 @@
 "use client";
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState, useCallback } from 'react'; // Imported useCallback
 import { Handle, Position, type NodeProps } from 'reactflow';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,10 +7,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added import
-import AISuggestionMiniToolbar from './ai-mini-toolbar';
+// Removed AISuggestionMiniToolbar import
+import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
-  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser
+  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser,
+  Move as MoveIcon // Added MoveIcon
 } from 'lucide-react'; // Added Loader2
 
 export interface CustomNodeData {
@@ -59,6 +61,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     editingNodeId,
     setEditingNodeId,
     aiProcessingNodeId, // Get AI processing state
+    deleteNode,
+    updateNode,
+    startConnectionMode, // Added startConnectionMode from store
   } = useConceptMapStore();
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
@@ -68,7 +73,8 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const aiTools = useConceptMapAITools(nodeIsViewOnly);
 
   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
-  const [isHoveredForToolbar, setIsHoveredForToolbar] = useState(false); // For AI mini toolbar
+  const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
+  // Removed isHoveredForToolbar state
   const cardRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null); // Ref for the main node div to get its rect
 
@@ -99,29 +105,51 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   ] as const;
 
   // Placeholder handlers for AI mini toolbar actions
-  const handleQuickExpand = (nodeId: string) => {
-    // console.log(`CustomNode: Quick Expand triggered for ${nodeId}`); // Keep for debugging if needed
-    aiTools.handleMiniToolbarQuickExpand(nodeId);
-  };
+  // Removed handleQuickExpand and handleRewriteConcise as they are now passed directly to the toolbar
 
-  const handleRewriteConcise = (nodeId: string) => {
-    // console.log(`CustomNode: Rewrite Concise triggered for ${nodeId}`); // Keep for debugging if needed
-    aiTools.handleMiniToolbarRewriteConcise(nodeId);
-  };
+  // Memoized callbacks for SelectedNodeToolbar
+  const handleEditLabel = useCallback(() => {
+    setEditingNodeId(id);
+  }, [id, setEditingNodeId]);
 
-  const getNodeRect = () => {
-    if (nodeRef.current) {
-      // Get bounding rect relative to the viewport
+  const handleChangeColor = useCallback((color: string) => {
+    updateNode(id, { backgroundColor: color });
+  }, [id, updateNode]);
+
+  const handleStartConnection = useCallback(() => {
+    startConnectionMode(id);
+  }, [id, startConnectionMode]);
+
+  const handleAIExpand = useCallback(() => {
+    aiTools.handleMiniToolbarQuickExpand(id);
+  }, [aiTools, id]);
+
+  const handleAIRewrite = useCallback(() => {
+    aiTools.handleMiniToolbarRewriteConcise(id);
+  }, [aiTools, id]);
+
+  const handleAISuggestRelations = useCallback(() => {
+    aiTools.handleMenuSuggestRelations(id);
+  }, [aiTools, id]);
+
+  const handleDeleteNode = useCallback(() => {
+    deleteNode(id);
+  }, [id, deleteNode]);
+
+  useEffect(() => {
+    if (selected && nodeRef.current) {
       const rect = nodeRef.current.getBoundingClientRect();
-      // This rect is viewport-relative. The toolbar positioning might need adjustment
-      // depending on how it's added to the DOM (e.g., if it's a child of ReactFlow pane vs. outside).
-      // For now, we pass screen coordinates.
-      // If React Flow's internal position (xPos, yPos) and dimensions (data.width, data.height)
-      // are more stable due to zoom/pan, those might be better, but getBoundingClientRect is more direct for screen space.
-      return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+      const viewportHeight = window.innerHeight;
+      const APPROX_TOOLBAR_HEIGHT = 40; // pixels, matches -top-10 (2.5rem = 40px)
+      const OFFSET = 10; // pixels
+
+      if (rect.top - APPROX_TOOLBAR_HEIGHT - OFFSET > 0) {
+        setToolbarPosition('above');
+      } else {
+        setToolbarPosition('below');
+      }
     }
-    return null;
-  };
+  }, [selected, xPos, yPos, data.width, data.height]); // Re-calculate if node moves, resizes or selection changes
 
   return (
     <div
@@ -131,7 +159,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         "nodrag relative shadow-md border border-border flex flex-col",
         selected && !isBeingProcessedByAI && !data.isStaged && !data.isGhost ? "ring-2 ring-primary" : "", // Don't show ring if AI processing, staged, or ghost
         nodeIsViewOnly && "cursor-default",
-        !nodeIsViewOnly && "cursor-grab",
+        // Removed !nodeIsViewOnly && "cursor-grab",
         data.shape === 'ellipse' && 'items-center justify-center text-center p-2',
         data.isStaged && "border-dashed border-blue-500 opacity-80",
         data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
@@ -139,12 +167,41 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       onMouseEnter={() => {
         if (data.isGhost) return; // Do not trigger hover effects for ghost nodes
         setIsHovered(true);
-        setIsHoveredForToolbar(true);
+        // Removed setIsHoveredForToolbar(true);
       }}
-      onMouseLeave={() => { setIsHovered(false); setIsHoveredForToolbar(false); }}
+      onMouseLeave={() => { setIsHovered(false); /* Removed setIsHoveredForToolbar(false); */ }}
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
+      {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
+        <div
+          className={cn(
+            "absolute left-1/2 -translate-x-1/2 z-20",
+            toolbarPosition === 'above' ? "-top-10" : "top-full mt-2"
+          )}
+          // Prevent clicks on the toolbar area from propagating to the node (e.g., deselection)
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          // Add other event handlers like onDoubleClick, onPointerDown etc. if necessary
+        >
+          <SelectedNodeToolbar
+            nodeId={id}
+            onEditLabel={handleEditLabel}
+            onChangeColor={handleChangeColor}
+            onStartConnection={handleStartConnection}
+            onAIExpand={handleAIExpand}
+            onAIRewrite={handleAIRewrite}
+            onAISuggestRelations={handleAISuggestRelations}
+            onDeleteNode={handleDeleteNode}
+          />
+        </div>
+      )}
+      {!nodeIsViewOnly && !data.isGhost && (
+         <MoveIcon
+           className="node-move-handle absolute top-1 right-1 w-4 h-4 text-muted-foreground cursor-grab z-10"
+           onMouseDown={(e) => e.stopPropagation()} // Prevent node selection click when grabbing handle
+         />
+      )}
       <Card
         ref={cardRef}
         className={cn(
@@ -156,7 +213,8 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         )}
       >
         <CardHeader className={cn(
-          "cursor-move p-2 flex flex-row items-center space-x-2",
+          // Removed cursor-move
+          "p-2 flex flex-row items-center space-x-2",
           data.shape === 'ellipse' && 'justify-center items-center flex-col text-center'
         )}>
           <TypeIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -183,17 +241,17 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       </Card>
 
       {/* Handles */}
-      <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Right} id={`${id}-right-target`} className="react-flow__handle-custom !-right-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="source" position={Position.Bottom} id={`${id}-bottom-source`} className="react-flow__handle-custom !-bottom-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Bottom} id={`${id}-bottom-target`} className="react-flow__handle-custom !-bottom-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1" isConnectable={!nodeIsViewOnly} />
+      <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="target" position={Position.Right} id={`${id}-right-target`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="source" position={Position.Bottom} id={`${id}-bottom-source`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="target" position={Position.Bottom} id={`${id}-bottom-target`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
 
       {/* Hover buttons for adding child nodes */}
-      {!nodeIsViewOnly && isHovered && data.onAddChildNodeRequest && hoverButtonPositions.map(btn => (
+      {!nodeIsViewOnly && isHovered && !data.isGhost && data.onAddChildNodeRequest && hoverButtonPositions.map(btn => (
         <button
           key={btn.pos}
           onClick={(e) => { e.stopPropagation(); data.onAddChildNodeRequest?.(id, btn.pos); }}
@@ -216,13 +274,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       )}
 
       {!nodeIsViewOnly && !data.isGhost && ( // Also hide mini toolbar for ghost nodes
-        <AISuggestionMiniToolbar
-          nodeId={id}
-          nodeRect={getNodeRect()}
-          isVisible={isHoveredForToolbar && !isBeingProcessedByAI}
-          onQuickExpand={handleQuickExpand}
-          onRewriteConcise={handleRewriteConcise}
-        />
+        /* AISuggestionMiniToolbar removed */
       )}
     </div>
   );

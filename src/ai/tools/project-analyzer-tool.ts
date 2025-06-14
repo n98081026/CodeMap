@@ -119,75 +119,106 @@ const FIXED_MOCK_PROJECT_A_ANALYSIS: ProjectAnalysisOutput = {
 
 // MOCK IMPLEMENTATION
 async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<ProjectAnalysisOutput> {
-  console.log(`Mock projectStructureAnalyzerTool called with path: ${input.projectStoragePath}, hint: ${input.userHint}`);
-  
-  if (input.userHint === "_USE_FIXED_MOCK_PROJECT_A_") {
+  console.log(`projectStructureAnalyzerTool called with path: ${input.projectStoragePath}, hint: ${input.userHint}`);
+
+  // TODO: Implement actual file fetching from projectStoragePath (e.g., Supabase Storage)
+  // const projectArchive = await downloadFile(input.projectStoragePath);
+  // TODO: Implement archive unpacking (e.g., for .zip, .tar.gz)
+  // const fileSystem = await unpackArchive(projectArchive);
+  // For now, we'll simulate finding specific files based on hints.
+
+  let foundPackageJsonData: any = null;
+
+  if (input.userHint?.toLowerCase().includes("node") || input.userHint?.toLowerCase().includes("npm")) {
+    try {
+      const samplePackageJsonContent = `{
+        "name": "simulated-node-project",
+        "version": "1.0.0",
+        "description": "A simulated Node.js project for analysis.",
+        "main": "index.js",
+        "scripts": {
+          "start": "node index.js",
+          "test": "echo \\"Error: no test specified\\" && exit 1"
+        },
+        "dependencies": {
+          "express": "^4.17.1",
+          "lodash": "^4.17.21"
+        },
+        "devDependencies": {
+          "nodemon": "^2.0.7",
+          "jest": "^27.0.6"
+        },
+        "keywords": ["node", "simulated", "example"],
+        "author": "AI Developer",
+        "license": "MIT"
+      }`;
+      foundPackageJsonData = JSON.parse(samplePackageJsonContent);
+      console.log("Simulated package.json parsing successful.");
+    } catch (error) {
+      console.error("Simulated error parsing package.json:", error);
+      return {
+        projectName: "Error Project",
+        projectSummary: "Failed to parse simulated package.json.",
+        inferredLanguagesFrameworks: [],
+        dependencies: {},
+        directoryStructureSummary: [],
+        keyFiles: [],
+        potentialArchitecturalComponents: [],
+        parsingErrors: ["Simulated error parsing package.json."],
+      };
+    }
+  }
+
+  if (foundPackageJsonData) {
+    const npmDependencies = [
+      ...Object.keys(foundPackageJsonData.dependencies || {}),
+      ...Object.keys(foundPackageJsonData.devDependencies || {})
+    ];
+    const keyFiles: KeyFileSchema[] = [ // Explicitly type if KeyFileSchema is defined above
+      {
+        filePath: "package.json",
+        type: "manifest",
+        briefDescription: foundPackageJsonData.description || "Project manifest and dependencies.",
+        extractedSymbols: []
+      }
+    ];
+    const potentialArchitecturalComponents: PotentialArchitecturalComponentSchema[] = [ // Explicitly type
+      { name: "Main Application Logic", type: "module", relatedFiles: [foundPackageJsonData.main || "index.js"] },
+      { name: "Express Web Server (if used)", type: "service", relatedFiles: ["server.js", "app.js"] }
+    ];
+
+    return {
+      projectName: foundPackageJsonData.name || "Unknown Node Project",
+      projectSummary: `${foundPackageJsonData.description || 'Analysis based on package.json.'} Further deep analysis is conceptual. User hint: ${input.userHint || 'N/A'}`,
+      inferredLanguagesFrameworks: [
+        { name: "Node.js", confidence: "high" },
+        { name: "JavaScript/TypeScript", confidence: "medium" },
+      ],
+      dependencies: { npm: npmDependencies },
+      keyFiles: keyFiles,
+      potentialArchitecturalComponents: potentialArchitecturalComponents,
+      directoryStructureSummary: [], // Placeholder
+      parsingErrors: [],
+    };
+  } else if (input.userHint === "_USE_FIXED_MOCK_PROJECT_A_") {
     console.log("Returning FIXED_MOCK_PROJECT_A_ANALYSIS");
     await new Promise(resolve => setTimeout(resolve, 500)); // Simulate short delay
     return FIXED_MOCK_PROJECT_A_ANALYSIS;
+  } else {
+    // Fallback to a more generic mock if no package.json hint and not fixed mock
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate some delay
+    const projectNameFromPath = input.projectStoragePath.split('/').pop()?.split('.')[0] || "MockProjectFromPath";
+    return {
+      projectName: `Generic Mock for ${projectNameFromPath}`,
+      projectSummary: `This is a generic mock response. No package.json was found or processed based on the hint. Full project analysis capabilities are not yet implemented. User hint: ${input.userHint || 'N/A'}`,
+      inferredLanguagesFrameworks: [{ name: "Unknown", confidence: "low" }],
+      dependencies: {},
+      directoryStructureSummary: [],
+      keyFiles: [],
+      potentialArchitecturalComponents: [],
+      parsingErrors: ["Full project analysis not implemented; returned generic mock based on hint or lack thereof."],
+    };
   }
-
-  await new Promise(resolve => setTimeout(resolve, 1500));
-
-  const projectNameFromPath = input.projectStoragePath.split('/').pop()?.split('.')[0] || "MockProjectFromPath";
-  const userHintIncorporated = input.userHint ? ` (User Hint: ${input.userHint})` : "";
-
-  let mainComponentType: "E-commerce Backend" | "Data Processing Pipeline" | "Frontend UI Library" | "Generic NextJS App" = "Generic NextJS App";
-  if (input.userHint?.toLowerCase().includes("e-commerce") || input.userHint?.toLowerCase().includes("shop")) {
-    mainComponentType = "E-commerce Backend";
-  } else if (input.userHint?.toLowerCase().includes("data") || input.userHint?.toLowerCase().includes("pipeline")) {
-    mainComponentType = "Data Processing Pipeline";
-  } else if (input.userHint?.toLowerCase().includes("ui") || input.userHint?.toLowerCase().includes("frontend") || input.userHint?.toLowerCase().includes("library")) {
-    mainComponentType = "Frontend UI Library";
-  }
-
-
-  const baseArchitecturalComponents = [
-      { name: `Core ${mainComponentType} Module`, type: "service" as const, relatedFiles: ["src/services/core.ts", "src/views/main.tsx"] },
-      { name: "Primary Data Store Interface", type: "data_store_interface" as const, relatedFiles: ["src/db/schema.ts", "src/services/data-access.ts"] },
-  ];
-
-  if (mainComponentType === "E-commerce Backend") {
-    baseArchitecturalComponents.push({ name: "Order Processing Service", type: "service" as const, relatedFiles: ["src/services/orderProcessor.ts", "src/api/orders.ts"] });
-    baseArchitecturalComponents.push({ name: "Product Catalog API", type: "external_api" as const, relatedFiles: ["src/clients/productApi.ts"] });
-  } else if (mainComponentType === "Data Processing Pipeline") {
-     baseArchitecturalComponents.push({ name: "Data Ingestion Unit", type: "module" as const, relatedFiles: ["src/ingestion/kafkaConsumer.ts"] });
-     baseArchitecturalComponents.push({ name: "Transformation Engine", type: "service" as const, relatedFiles: ["src/transform/sparkJobs.scala"] });
-  } else if (mainComponentType === "Frontend UI Library") {
-     baseArchitecturalComponents.push({ name: "Reusable Button Component", type: "ui_area" as const, relatedFiles: ["src/components/Button.tsx"] });
-     baseArchitecturalComponents.push({ name: "Theme Provider", type: "module" as const, relatedFiles: ["src/contexts/ThemeContext.tsx"] });
-  } else { // Generic NextJS App
-    baseArchitecturalComponents.push({ name: "NextJS Routing Module", type: "module" as const, relatedFiles: ["src/app/layout.tsx", "src/app/page.tsx"]});
-    baseArchitecturalComponents.push({ name: "ShadCN UI Components", type: "library" as const, relatedFiles: ["src/components/ui/button.tsx"]});
-  }
-
-
-  return {
-    projectName: `${projectNameFromPath.replace(/[-_]/g, ' ')}${userHintIncorporated}`,
-    inferredLanguagesFrameworks: [
-      { name: "TypeScript", confidence: "high" },
-      { name: "React", confidence: "high" },
-      { name: "Next.js", confidence: mainComponentType === "Generic NextJS App" ? "high" : "medium" },
-    ],
-    projectSummary: `This is a mock AI-generated analysis for the project from '${input.projectStoragePath}'. ${userHintIncorporated}. The project appears to be a ${mainComponentType.toLowerCase()} application. The analysis highlights key architectural components and their interactions.`,
-    dependencies: {
-      npm: ["react", "next", "zod", "lucide-react", mainComponentType === "E-commerce Backend" ? "stripe" : (mainComponentType === "Data Processing Pipeline" ? "apache-beam" : "clsx")],
-      maven: [],
-      pip: mainComponentType === "Data Processing Pipeline" ? ["pandas", "numpy"] : [],
-    },
-    directoryStructureSummary: [
-      { path: "src/components", fileCounts: { ".tsx": mainComponentType === "Frontend UI Library" ? 25 : 10, ".css": 5 }, inferredPurpose: "UI components" },
-      { path: "src/services", fileCounts: { ".ts": mainComponentType === "Generic NextJS App" ? 2 : 8 }, inferredPurpose: "Business logic and API services" },
-      { path: "src/app", fileCounts: { ".tsx": 12, "route.ts": 5 }, inferredPurpose: "Application pages and API routes (App Router)" },
-    ],
-    keyFiles: [
-      { filePath: "src/app/page.tsx", type: "entry_point", extractedSymbols: ["HomePage"], briefDescription: "Main application entry point or landing page." },
-      { filePath: "package.json", type: "manifest", extractedSymbols: [], briefDescription: "Project dependencies and scripts." },
-      { filePath: "src/lib/utils.ts", type: "utility", extractedSymbols: ["cn", "formatDate"], briefDescription: "Utility functions."}
-    ],
-    potentialArchitecturalComponents: baseArchitecturalComponents,
-    parsingErrors: input.projectStoragePath.includes("error_trigger_file.zip") ? ["Mock Error: Hypothetical 'project.lock' file parsing failed due to unsupported version."] : [],
-  };
 }
 
 export const projectStructureAnalyzerTool = ai.defineTool(
