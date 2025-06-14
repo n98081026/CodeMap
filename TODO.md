@@ -153,7 +153,7 @@
 - [x] "AI Quick-Add" / Floating AI Suggestions:
     - [x] On empty canvas right-click: Suggest common starting points or nodes based on recent activity. (Done via Floater)
     - [x] Interaction: Clicking a suggestion triggers AI action or adds node. Dismissed on mouse out or Esc. (Done via Floater)
-    - [ ] On node selection/right-click: Floater currently shows *actions*. Enhance to also show temporary "ghost" nodes/suggestion *chips for direct content addition* (e.g., "Child: [AI suggested text]").
+    - [x] On node selection/right-click: Floater currently shows *actions*. Enhance to also show temporary "ghost" nodes/suggestion *chips for direct content addition* (e.g., "Child: [AI suggested text]").
 - [x] "AI Contextual Mini-Toolbar" on Node Hover/Selection:
     - [x] Display a small, floating toolbar near selected/hovered node with 2-3 most relevant AI actions (e.g., Expand, Summarize, Rewrite).
     - [x] Interaction: Icons for quick actions. Clicking an icon performs a default action or opens a streamlined input. (Core AI connections made, further refinement of actions can continue)
