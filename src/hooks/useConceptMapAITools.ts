@@ -13,7 +13,10 @@ import {
   summarizeNodes as aiSummarizeNodes,
   suggestEdgeLabelFlow,
   type SuggestEdgeLabelInput,
-  type SuggestEdgeLabelOutput
+  type SuggestEdgeLabelOutput,
+  refineNodeSuggestionFlow, // Import new flow
+  type RefineNodeSuggestionInput, // Import new type
+  type RefineNodeSuggestionOutput // Import new type
 } from '@/ai/flows';
 import { 
     rewriteNodeContent as aiRewriteNodeContent,
@@ -29,7 +32,7 @@ import type {
   SummarizeNodesOutput
 } from '@/ai/flows'; 
 import type { ConceptMapNode, RFNode } from '@/types';
-import { getNodePlacement } from '@/lib/layout-utils'; // Ensure this is correctly imported
+import { getNodePlacement } from '@/lib/layout-utils';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react';
 
@@ -41,6 +44,14 @@ export interface ConceptToExpandDetails {
 
 export interface NodeContentToRewrite {
     id: string;
+    text: string;
+    details?: string;
+}
+
+// New interface for refine modal data
+export interface RefineModalData {
+    nodeId: string; // This is the previewNodeId
+    parentNodeId: string; // To correctly call updatePreviewNode
     text: string;
     details?: string;
 }
@@ -69,21 +80,14 @@ const _generateNodeSuggestionsLogic = (
     suggestionType: 'content_chip',
     action: () => {
       if (isViewOnly) return;
-      const currentNodes = useConceptMapStore.getState().mapData.nodes; // Get fresh nodes
+      const currentNodes = useConceptMapStore.getState().mapData.nodes;
       const newPosition = getNodePlacementFunc(
-        currentNodes,
-        'child',
-        sourceNode as ConceptMapNode,
-        null,
-        GRID_SIZE_FOR_AI_PLACEMENT,
-        index,
-        placeholderSuggestions.length
+        currentNodes, 'child', sourceNode as ConceptMapNode, null,
+        GRID_SIZE_FOR_AI_PLACEMENT, index, placeholderSuggestions.length
       );
       addNodeFunc({
-        text: pSuggestion.text,
-        type: pSuggestion.type,
-        position: newPosition,
-        parentNode: sourceNode.id
+        text: pSuggestion.text, type: pSuggestion.type,
+        position: newPosition, parentNode: sourceNode.id
       });
       toastFunc({ title: "Node Added", description: `"${pSuggestion.text}" added near "${(sourceNode as ConceptMapNode).text}".` });
     }
@@ -94,38 +98,24 @@ const _generateNodeSuggestionsLogic = (
 export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const { toast } = useToast();
   const {
-    mapData,
-    selectedElementId,
-    multiSelectedNodeIds,
-    setAiExtractedConcepts,
-    setAiSuggestedRelations,
-    removeExtractedConceptsFromSuggestions,
-    removeSuggestedRelationsFromSuggestions,
-    resetAiSuggestions,
-    addNode: addStoreNode,
-    updateNode: updateStoreNode,
-    addEdge: addStoreEdge,
-    setAiProcessingNodeId,
-    setStagedMapData,
-    setConceptExpansionPreview,
-    conceptExpansionPreview,
+    mapData, selectedElementId, multiSelectedNodeIds,
+    setAiExtractedConcepts, setAiSuggestedRelations,
+    removeExtractedConceptsFromSuggestions, removeSuggestedRelationsFromSuggestions,
+    resetAiSuggestions, addNode: addStoreNode, updateNode: updateStoreNode,
+    addEdge: addStoreEdge, setAiProcessingNodeId, setStagedMapData,
+    setConceptExpansionPreview, conceptExpansionPreview,
+    // updatePreviewNode, // Will use getState().updatePreviewNode directly
   } = useConceptMapStore(
     useCallback(s => ({
-      mapData: s.mapData,
-      selectedElementId: s.selectedElementId,
-      multiSelectedNodeIds: s.multiSelectedNodeIds,
-      setAiExtractedConcepts: s.setAiExtractedConcepts,
-      setAiSuggestedRelations: s.setAiSuggestedRelations,
+      mapData: s.mapData, selectedElementId: s.selectedElementId, multiSelectedNodeIds: s.multiSelectedNodeIds,
+      setAiExtractedConcepts: s.setAiExtractedConcepts, setAiSuggestedRelations: s.setAiSuggestedRelations,
       removeExtractedConceptsFromSuggestions: s.removeExtractedConceptsFromSuggestions,
       removeSuggestedRelationsFromSuggestions: s.removeSuggestedRelationsFromSuggestions,
-      resetAiSuggestions: s.resetAiSuggestions,
-      addNode: s.addNode,
-      updateNode: s.updateNode,
-      addEdge: s.addEdge,
-      setAiProcessingNodeId: s.setAiProcessingNodeId,
-      setStagedMapData: s.setStagedMapData,
-      setConceptExpansionPreview: s.setConceptExpansionPreview,
+      resetAiSuggestions: s.resetAiSuggestions, addNode: s.addNode, updateNode: s.updateNode,
+      addEdge: s.addEdge, setAiProcessingNodeId: s.setAiProcessingNodeId,
+      setStagedMapData: s.setStagedMapData, setConceptExpansionPreview: s.setConceptExpansionPreview,
       conceptExpansionPreview: s.conceptExpansionPreview,
+      // updatePreviewNode: s.updatePreviewNode, // Not needed in selector if using getState()
     }), [])
   );
 
@@ -143,6 +133,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen] = useState(false);
   const [nodeContentToRewrite, setNodeContentToRewrite] = useState<NodeContentToRewrite | null>(null);
   const [edgeLabelSuggestions, setEdgeLabelSuggestions] = useState<{ edgeId: string; labels: string[] } | null>(null);
+
+  // State for RefineSuggestionModal
+  const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
+  const [refineModalInitialData, setRefineModalInitialData] = useState<RefineModalData | null>(null);
+
 
   // --- Extract Concepts ---
   const openExtractConceptsModal = useCallback((nodeIdForContext?: string) => {
@@ -509,12 +504,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     ];
   }, [isViewOnlyMode, addStoreNode, openQuickClusterModal]);
 
-  // This is the function that needs to be correctly returned and memoized by the hook.
-  // It will call the external _generateNodeSuggestionsLogic.
   const memoizedGetNodeSuggestions = useCallback((sourceNode: RFNode<any> | ConceptMapNode): SuggestionAction[] => {
-    // Now, call the external logic function, passing dependencies from the hook's scope
     return _generateNodeSuggestionsLogic(sourceNode, isViewOnlyMode, addStoreNode, getNodePlacement, toast);
-  }, [isViewOnlyMode, addStoreNode, toast]); // getNodePlacement is stable as it's an import
+  }, [isViewOnlyMode, addStoreNode, toast]);
 
   // --- Concept Expansion Preview Lifecycle ---
   const acceptAllExpansionPreviews = useCallback(() => {
@@ -527,11 +519,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       const currentNodes = useConceptMapStore.getState().mapData.nodes;
       const position = getNodePlacement(currentNodes, 'child', parentNode, null, GRID_SIZE_FOR_AI_PLACEMENT, index, previewNodes.length);
       const newNodeId = addStoreNode({
-        text: previewNode.text,
-        type: 'ai-expanded',
-        details: previewNode.details,
-        position: position,
-        parentNode: parentNodeId,
+        text: previewNode.text, type: 'ai-expanded', details: previewNode.details,
+        position: position, parentNode: parentNodeId,
       });
       addStoreEdge({ source: parentNodeId, target: newNodeId, label: previewNode.relationLabel });
     });
@@ -548,7 +537,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     const previewNodeData = previewNodes.find(pn => pn.id === previewNodeId);
     if (!previewNodeData) { toast({ title: "Error", description: "Preview node data not found."}); return; }
 
-    // Find index of this node for placement (if multiple previews were shown)
     const nodeIndex = previewNodes.findIndex(pn => pn.id === previewNodeId);
     const totalNodesInPreview = previewNodes.length;
 
@@ -556,28 +544,87 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     const position = getNodePlacement(currentNodes, 'child', parentNode, null, GRID_SIZE_FOR_AI_PLACEMENT, nodeIndex, totalNodesInPreview);
 
     const newNodeId = addStoreNode({
-      text: previewNodeData.text,
-      type: 'ai-expanded',
-      details: previewNodeData.details,
-      position: position,
-      parentNode: parentNodeId,
+      text: previewNodeData.text, type: 'ai-expanded', details: previewNodeData.details,
+      position: position, parentNode: parentNodeId,
     });
     addStoreEdge({ source: parentNodeId, target: newNodeId, label: previewNodeData.relationLabel });
 
     toast({ title: "Suggestion Added", description: `Concept "${previewNodeData.text}" added and linked.` });
 
-    // Remove the accepted node from the preview list
     const remainingPreviewNodes = previewNodes.filter(pn => pn.id !== previewNodeId);
     if (remainingPreviewNodes.length > 0) {
       setConceptExpansionPreview({ parentNodeId, previewNodes: remainingPreviewNodes });
     } else {
-      setConceptExpansionPreview(null); // Clear if all accepted
+      setConceptExpansionPreview(null);
     }
   }, [conceptExpansionPreview, isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast, setConceptExpansionPreview]);
 
   const clearExpansionPreview = useCallback(() => {
     setConceptExpansionPreview(null);
   }, [setConceptExpansionPreview]);
+
+  // --- Refine Suggestion Modal Logic ---
+  const openRefineSuggestionModal = useCallback((previewNodeId: string, parentNodeIdForPreview: string) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", variant: "default" });
+      return;
+    }
+    const currentPreview = useConceptMapStore.getState().conceptExpansionPreview;
+    if (currentPreview && currentPreview.parentNodeId === parentNodeIdForPreview) {
+      const nodeToRefine = currentPreview.previewNodes.find(n => n.id === previewNodeId);
+      if (nodeToRefine) {
+        setRefineModalInitialData({
+          nodeId: nodeToRefine.id, // This is the previewNodeId
+          parentNodeId: parentNodeIdForPreview,
+          text: nodeToRefine.text,
+          details: nodeToRefine.details
+        });
+        setIsRefineModalOpen(true);
+      } else {
+        toast({ title: "Error", description: "Preview node to refine not found.", variant: "destructive" });
+      }
+    } else {
+      toast({ title: "Error", description: "No active expansion preview for this context.", variant: "destructive" });
+    }
+  }, [isViewOnlyMode, toast]); // Removed conceptExpansionPreview from deps, using getState()
+
+  const handleRefineSuggestionConfirm = useCallback(async (refinementInstruction: string) => {
+    if (!refineModalInitialData) {
+      toast({ title: "Error", description: "No data available for refinement.", variant: "destructive" });
+      return;
+    }
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", variant: "default" });
+      return;
+    }
+
+    const { nodeId: previewNodeId, parentNodeId, text: originalText, details: originalDetails } = refineModalInitialData;
+
+    setAiProcessingNodeId(parentNodeId);
+    setIsRefineModalOpen(false);
+
+    try {
+      const input: RefineNodeSuggestionInput = {
+        originalText,
+        originalDetails,
+        userInstruction: refinementInstruction,
+      };
+      const output: RefineNodeSuggestionOutput = await refineNodeSuggestionFlow(input);
+
+      useConceptMapStore.getState().updatePreviewNode(parentNodeId, previewNodeId, {
+        text: output.refinedText,
+        details: output.refinedDetails,
+      });
+
+      toast({ title: "Suggestion Refined", description: "The AI suggestion has been updated." });
+    } catch (error) {
+      console.error("Error refining suggestion:", error);
+      toast({ title: "Refinement Failed", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setAiProcessingNodeId(null);
+      setRefineModalInitialData(null);
+    }
+  }, [refineModalInitialData, isViewOnlyMode, toast, setAiProcessingNodeId]);
 
 
   return {
@@ -596,7 +643,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     handleMiniToolbarQuickExpand,
     handleMiniToolbarRewriteConcise,
     getPaneSuggestions,
-    getNodeSuggestions: memoizedGetNodeSuggestions, // Return the memoized version
+    getNodeSuggestions: memoizedGetNodeSuggestions,
     fetchAndSetEdgeLabelSuggestions,
     edgeLabelSuggestions,
     setEdgeLabelSuggestions,
@@ -606,6 +653,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     clearExpansionPreview,
     addStoreNode, 
     addStoreEdge,
+    // Refine Modal
+    isRefineModalOpen,
+    setIsRefineModalOpen,
+    refineModalInitialData,
+    openRefineSuggestionModal,
+    handleRefineSuggestionConfirm, // This will be passed to the modal from the page
   };
 }
 

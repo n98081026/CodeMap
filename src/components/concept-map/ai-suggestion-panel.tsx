@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
 import { EmptyState } from '@/components/layout/empty-state';
-import useConceptMapStore from '@/stores/concept-map-store'; // Added store import
+import useConceptMapStore from '@/stores/concept-map-store';
 
 interface AISuggestionPanelProps {
   mapData?: ConceptMapData; 
@@ -338,14 +338,16 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       event.dataTransfer.setData('application/json', JSON.stringify({
         type: 'concept-suggestion',
         text: conceptText,
+        // Pass the conceptType if available, or a default
+        conceptType: conceptType || 'ai-concept'
       }));
       event.dataTransfer.effectAllowed = 'copy';
-      setDragPreview({ text: conceptText, type: conceptType || 'ai-concept' }); // Set drag preview
-      console.log('[AISuggestionPanel] Dragging concept:', conceptText, 'Type:', conceptType || 'ai-concept');
+      setDragPreview({ text: conceptText, type: conceptType || 'ai-concept' });
+      // console.log('[AISuggestionPanel] Dragging concept:', conceptText, 'Type:', conceptType || 'ai-concept');
     };
 
     const handleDragEnd = () => {
-      clearDragPreview(); // Clear drag preview
+      clearDragPreview();
     };
 
     if (item.isEditing && !isViewOnlyMode) {

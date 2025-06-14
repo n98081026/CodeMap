@@ -186,9 +186,15 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         <button
           onClick={(e) => {
             e.stopPropagation();
-            console.log(`Refine action triggered for ghost node: ${id}, Label: "${data.label}"`);
-            alert(`Placeholder: Refine AI suggestion for "${data.label}"`);
-            // Future: Call a function here to open a refine modal or trigger AI refinement
+            const currentExpansionPreview = useConceptMapStore.getState().conceptExpansionPreview;
+            if (currentExpansionPreview && currentExpansionPreview.parentNodeId) {
+              aiTools.openRefineSuggestionModal(id, currentExpansionPreview.parentNodeId);
+            } else {
+              console.error("Refine clicked, but no active concept expansion preview or parentNodeId found for ghost node:", id);
+              // Optionally, show a toast error to the user if the toast hook is available here
+              // import { useToast } from '@/hooks/use-toast'; // and then: const { toast } = useToast();
+              // toast({ title: "Error", description: "Cannot refine suggestion: context not found.", variant: "destructive" });
+            }
           }}
           className="absolute top-1 left-1 z-10 flex items-center justify-center w-6 h-6 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-all"
           title="Refine AI Suggestion"

@@ -119,6 +119,7 @@ deleteFromStagedMapData: (elementIds: string[]) => void;
 
 // Concept expansion preview actions
 setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void;
+updatePreviewNode: (parentNodeId: string, previewNodeId: string, updates: Partial<ConceptExpansionPreviewNode>) => void; // Added action
 
 // Layout action
 applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
@@ -149,9 +150,10 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
-  'setConceptExpansionPreview' | 'applyLayout' |
+  'setConceptExpansionPreview' | 'updatePreviewNode' | // Added updatePreviewNode to Omit
+  'applyLayout' |
   'startConnectionMode' | 'completeConnectionMode' | 'cancelConnectionMode' |
-  'setDragPreview' | 'updateDragPreviewPosition' | 'clearDragPreview' // Added drag preview actions
+  'setDragPreview' | 'updateDragPreviewPosition' | 'clearDragPreview'
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -559,6 +561,34 @@ export const useConceptMapStore = create<ConceptMapState>()(
         get().addDebugLog(`[STORE setConceptExpansionPreview] Setting preview for parent ${preview?.parentNodeId}. Nodes: ${preview?.previewNodes?.length ?? 0}`);
         set({ conceptExpansionPreview: preview });
       },
+      updatePreviewNode: (parentNodeId, previewNodeId, updates) => set((state) => {
+        if (!state.conceptExpansionPreview || state.conceptExpansionPreview.parentNodeId !== parentNodeId) {
+          console.warn('[STORE updatePreviewNode] No matching concept expansion preview active for parentNodeId:', parentNodeId);
+          return state;
+        }
+        const updatedPreviewNodes = state.conceptExpansionPreview.previewNodes.map(node =>
+          node.id === previewNodeId
+            ? { ...node, ...updates }
+            : node
+        );
+
+        const originalNode = state.conceptExpansionPreview.previewNodes.find(n => n.id === previewNodeId);
+        const updatedNode = updatedPreviewNodes.find(n => n.id === previewNodeId);
+
+        if (!originalNode || !updatedNode || JSON.stringify(originalNode) === JSON.stringify(updatedNode)) {
+          console.warn('[STORE updatePreviewNode] Preview node not found or no actual update for previewNodeId:', previewNodeId, 'Updates:', updates);
+          return state;
+        }
+
+        get().addDebugLog(`[STORE updatePreviewNode] Updated preview node ${previewNodeId} for parent ${parentNodeId}. Updates: ${JSON.stringify(updates)}`);
+        return {
+          ...state,
+          conceptExpansionPreview: {
+            ...state.conceptExpansionPreview,
+            previewNodes: updatedPreviewNodes,
+          },
+        };
+      }),
 
       applyLayout: (updatedNodePositions) => {
         get().addDebugLog(`[STORE applyLayout] Attempting to apply new layout to ${updatedNodePositions.length} nodes.`);

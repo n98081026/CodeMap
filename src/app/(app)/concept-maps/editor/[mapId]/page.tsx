@@ -23,6 +23,7 @@ import {
 import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal";
 import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
 import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
+import { RefineSuggestionModal } from '@/components/concept-map/refine-suggestion-modal'; // Added import
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { UserRole } from "@/types";
@@ -142,6 +143,11 @@ export default function ConceptMapEditorPage() {
     clearExpansionPreview,      // Destructure new function
     // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
     removeExtractedConceptsFromSuggestions, // Destructure for use in drop handler
+    // For RefineSuggestionModal
+    isRefineModalOpen,
+    setIsRefineModalOpen,
+    refineModalInitialData,
+    handleRefineSuggestionConfirm,
   } = aiToolsHook;
 
   const reactFlowInstance = useReactFlow();
@@ -664,6 +670,14 @@ export default function ConceptMapEditorPage() {
         {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
         {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
         {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
+        {isRefineModalOpen && refineModalInitialData && !storeIsViewOnlyMode && (
+          <RefineSuggestionModal
+            isOpen={isRefineModalOpen}
+            onOpenChange={setIsRefineModalOpen}
+            initialData={refineModalInitialData}
+            onConfirm={handleRefineSuggestionConfirm}
+          />
+        )}
       </ReactFlowProvider>
     </div>
   );

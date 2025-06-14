@@ -175,9 +175,7 @@
 - [x] Refinable "Expand Concept" Previews:
     - [x] When "Expand Concept" is used, first show new child nodes as temporary "ghost" nodes.
     - [x] Interaction: Allow clicking individual ghost nodes to accept. Add "Accept All" / "Cancel" controls. (Core acceptance logic done via click and floater)
-    - [ ] Interaction (Enhancement): Display "Refine" icon on hover over a ghost node to alter its suggestion before acceptance.
-        - [x] UI: Display "Refine" icon (e.g., Wand2) on ghost node hover with placeholder action.
-        - [ ] Logic: Implement full "refine suggestion" functionality (e.g., modal, AI call).
+    - [x] Interaction (Enhancement): Display "Refine" icon on hover over a ghost node to alter its suggestion before acceptance.
 
 ### AI-Powered Layout and Structuring Assistance
 - [ ] "AI Tidy-Up" / Smart Alignment (Contextual):
