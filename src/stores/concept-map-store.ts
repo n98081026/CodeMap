@@ -4,6 +4,7 @@ import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
 
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
+import type { LayoutNodeUpdate } from '@/types/graph-adapter'; // Import LayoutNodeUpdate
 
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -93,6 +94,9 @@ deleteFromStagedMapData: (elementIds: string[]) => void;
 
 // Concept expansion preview actions
 setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void;
+
+// Layout action
+applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
 }
 
 type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview'>;
@@ -110,7 +114,7 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
-  'setConceptExpansionPreview' // Added new action
+  'setConceptExpansionPreview' | 'applyLayout' // Added applyLayout
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -505,6 +509,45 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setConceptExpansionPreview: (preview) => {
         get().addDebugLog(`[STORE setConceptExpansionPreview] Setting preview for parent ${preview?.parentNodeId}. Nodes: ${preview?.previewNodes?.length ?? 0}`);
         set({ conceptExpansionPreview: preview });
+      },
+
+      applyLayout: (updatedNodePositions) => {
+        get().addDebugLog(`[STORE applyLayout] Attempting to apply new layout to ${updatedNodePositions.length} nodes.`);
+        set((state) => {
+          const updatedNodesMap = new Map<string, LayoutNodeUpdate>();
+          updatedNodePositions.forEach(update => updatedNodesMap.set(update.id, update));
+
+          const newNodes = state.mapData.nodes.map(node => {
+            const updateForNode = updatedNodesMap.get(node.id);
+            if (updateForNode) {
+              get().addDebugLog(`[STORE applyLayout] Updating node ${node.id}: old pos (x: ${node.x}, y: ${node.y}), new pos (x: ${updateForNode.x}, y: ${updateForNode.y})`);
+              return {
+                ...node,
+                x: updateForNode.x,
+                y: updateForNode.y,
+              };
+            }
+            return node;
+          });
+
+          const hasChanges = newNodes.some((newNode, index) => {
+            const oldNode = state.mapData.nodes[index];
+            return oldNode ? (newNode.x !== oldNode.x || newNode.y !== oldNode.y) : true;
+          });
+
+          if (hasChanges) {
+            get().addDebugLog(`[STORE applyLayout] Layout changes applied. Node count: ${newNodes.length}`);
+            return {
+              mapData: {
+                ...state.mapData,
+                nodes: newNodes,
+              },
+            };
+          } else {
+            get().addDebugLog(`[STORE applyLayout] No actual position changes detected. State not updated.`);
+            return state;
+          }
+        });
       },
     }),
     {
