@@ -8,23 +8,29 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Added Popover imports
+import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb, Palette } from 'lucide-react'; // Added Palette
 
 interface SelectedNodeToolbarProps {
   nodeId: string;
   onEditLabel: () => void;
+  onChangeColor: (color: string) => void; // New prop
   onAIExpand: () => void;
   onAIRewrite: () => void;
-  onAISuggestRelations: () => void; // New prop
+  onAISuggestRelations: () => void;
   onDeleteNode: () => void;
 }
+
+const PREDEFINED_COLORS = ['#FFFFFF', '#FFF1F0', '#E6F7FF', '#F6FFED', '#FFFBE6', '#F0F0F0', '#D9D9D9', '#B5F5EC', '#E6F7FF', '#CFE2F3', '#D9EAD3', '#FFF2CC', '#FFE5CC', '#F4CCCC', '#EAD1DC'];
+
 
 const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   nodeId,
   onEditLabel,
+  onChangeColor, // Destructure new prop
   onAIExpand,
   onAIRewrite,
-  onAISuggestRelations, // Destructure new prop
+  onAISuggestRelations,
   onDeleteNode,
 }) => {
   // Stop propagation for all events within the toolbar to prevent node deselection or other interactions with the node itself.
@@ -48,6 +54,25 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
       <Button variant="ghost" size="icon" onClick={onEditLabel} title="Edit Label">
         <Type className="w-4 h-4" />
       </Button>
+
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon" title="Change Color">
+            <Palette className="w-4 h-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="p-2 flex flex-wrap gap-2 w-[160px]" onClick={handleInteraction}>
+          {PREDEFINED_COLORS.map((color) => (
+            <button
+              key={color}
+              title={color === '#FFFFFF' ? 'Default (Clear)' : color}
+              onClick={() => onChangeColor(color === '#FFFFFF' ? '' : color)} // Send empty string for default/clear
+              className="w-5 h-5 rounded-full border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: color }}
+            />
+          ))}
+        </PopoverContent>
+      </Popover>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

@@ -62,6 +62,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     setEditingNodeId,
     aiProcessingNodeId, // Get AI processing state
     deleteNode, // Added deleteNode from store
+    updateNode, // Added updateNode from store
   } = useConceptMapStore();
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
@@ -71,6 +72,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const aiTools = useConceptMapAITools(nodeIsViewOnly);
 
   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
+  const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
   // Removed isHoveredForToolbar state
   const cardRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null); // Ref for the main node div to get its rect
@@ -113,6 +115,21 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   //   return null;
   // };
 
+  useEffect(() => {
+    if (selected && nodeRef.current) {
+      const rect = nodeRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const APPROX_TOOLBAR_HEIGHT = 40; // pixels, matches -top-10 (2.5rem = 40px)
+      const OFFSET = 10; // pixels
+
+      if (rect.top - APPROX_TOOLBAR_HEIGHT - OFFSET > 0) {
+        setToolbarPosition('above');
+      } else {
+        setToolbarPosition('below');
+      }
+    }
+  }, [selected, xPos, yPos, data.width, data.height]); // Re-calculate if node moves, resizes or selection changes
+
   return (
     <div
       ref={nodeRef} // Attach ref here
@@ -136,7 +153,11 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       data-node-id={id}
     >
       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-20"
+        <div
+          className={cn(
+            "absolute left-1/2 -translate-x-1/2 z-20",
+            toolbarPosition === 'above' ? "-top-10" : "top-full mt-2"
+          )}
           // Prevent clicks on the toolbar area from propagating to the node (e.g., deselection)
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -145,6 +166,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
           <SelectedNodeToolbar
             nodeId={id}
             onEditLabel={() => setEditingNodeId(id)}
+            onChangeColor={(color: string) => updateNode(id, { backgroundColor: color })}
             onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
             onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}
             onAISuggestRelations={() => aiTools.handleMenuSuggestRelations(id)}
