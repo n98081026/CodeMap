@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, // Added Shuffle
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle,
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText,
+  AlignHorizontalDistributeCenter // Added icon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -40,7 +41,8 @@ interface EditorToolbarProps {
   canRedo: boolean;
   selectedNodeId: string | null;
   numMultiSelectedNodes: number;
-  onAutoLayout?: () => void; // Made optional
+  onAutoLayout?: () => void;
+  onAiTidySelection?: () => void; // New prop
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({
@@ -71,7 +73,8 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   canRedo,
   selectedNodeId,
   numMultiSelectedNodes,
-  onAutoLayout, // Destructure new prop
+  onAutoLayout,
+  onAiTidySelection, // Destructure new prop
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -240,6 +243,27 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             </Button>
           </TooltipTrigger>
           <TooltipContent>{getSummarizeNodesTooltip()}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleGenAIClick(onAiTidySelection!, "AI Tidy Selection")}
+              disabled={isViewOnlyMode || numMultiSelectedNodes < 2 || !onAiTidySelection}
+            >
+              <AlignHorizontalDistributeCenter className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode
+              ? "AI Tidy (Disabled in View Mode)"
+              : numMultiSelectedNodes < 2
+              ? "AI Tidy (Select 2+ nodes)"
+              : !onAiTidySelection
+              ? "AI Tidy (Not available)"
+              : "AI Tidy Selection"}
+          </TooltipContent>
         </Tooltip>
 
 
