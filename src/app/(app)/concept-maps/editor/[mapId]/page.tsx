@@ -105,6 +105,15 @@ export default function ConceptMapEditorPage() {
   const canUndo = temporalState.pastStates.length > 0;
   const canRedo = temporalState.futureStates.length > 0;
 
+  // Memoized undo/redo handlers
+  const handleUndo = useCallback(() => {
+    temporalStoreAPI.getState().undo();
+  }, [temporalStoreAPI]);
+
+  const handleRedo = useCallback(() => {
+    temporalStoreAPI.getState().redo();
+  }, [temporalStoreAPI]);
+
   const { saveMap } = useConceptMapDataManager({ routeMapId, user });
 
   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
@@ -566,7 +575,7 @@ export default function ConceptMapEditorPage() {
           onToggleProperties={onTogglePropertiesInspector}
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
-          onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
+          onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
         />
