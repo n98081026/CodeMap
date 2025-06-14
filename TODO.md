@@ -157,14 +157,14 @@
 - [x] "AI Contextual Mini-Toolbar" on Node Hover/Selection:
     - [x] Display a small, floating toolbar near selected/hovered node with 2-3 most relevant AI actions (e.g., Expand, Summarize, Rewrite).
     - [x] Interaction: Icons for quick actions. Clicking an icon performs a default action or opens a streamlined input. (Core AI connections made, further refinement of actions can continue)
-- [ ] **SelectedNodeToolbar Enhancements:**
+- [x] **SelectedNodeToolbar Enhancements:**
     - [x] Implement "Change Color" functionality (e.g., via a popover color picker).
     - [x] Implement "Start Connection via button" (alternative to dragging handles).
-    - [ ] Investigate/Implement dynamic, viewport-aware positioning for the toolbar.
+    - [x] Investigate/Implement dynamic, viewport-aware positioning for the toolbar.
 - [x] Drag-and-Drop from AI Panel with Preview:
     - [x] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
     - [x] Interaction: Show a preview of the **node** under the cursor during drag (snapped to grid). (Implemented for nodes dragged from AI Panel).
-    - [ ] Interaction (Enhancement): Show a preview for dragging **edges** from AI Panel (if applicable, or for edges dragged from other UI elements).
+    - [x] Interaction (Enhancement): Show a preview for dragging **edges** from AI Panel (label follows cursor). (Implemented for relations from AI Panel).
     - [x] Interaction (Enhancement): Ensure node-to-node snapping guides actively interact with the node drag preview (current preview snaps to grid).
 
 ### Iterative and Preview-Oriented AI Generation

@@ -183,9 +183,10 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     connectingState,
     completeConnectionMode,
     cancelConnectionMode,
-    dragPreviewItem,          // Added
-    dragPreviewPosition,      // Added
-    updateDragPreviewPosition // Added
+    dragPreviewItem,
+    dragPreviewPosition,
+    updateDragPreviewPosition,
+    draggedRelationLabel    // Added
   } = useConceptMapStore();
   const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
     useCallback(s => ({
@@ -626,9 +627,20 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         height: 70,
       };
       nodes.push(previewNodeForDrag);
+    } else if (draggedRelationLabel && dragPreviewPosition) { // Check for draggedRelationLabel
+      const previewLabelNode: RFNode = {
+        id: 'drag-preview-relation-label',
+        type: 'dragPreviewLabel', // Ensure this type is registered in InteractiveCanvas
+        position: dragPreviewPosition,
+        data: { label: draggedRelationLabel },
+        draggable: false,
+        selectable: false,
+        // width/height will be auto from the component's style
+      };
+      nodes.push(previewLabelNode);
     }
     return nodes;
-  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewItem, dragPreviewPosition]);
+  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewItem, dragPreviewPosition, draggedRelationLabel]);
 
   const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
 

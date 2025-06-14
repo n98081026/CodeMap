@@ -53,8 +53,12 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   onClearSuggestedRelations,
   isViewOnlyMode
 }: AISuggestionPanelProps) {
-  const { setDragPreview, clearDragPreview } = useConceptMapStore( // Get store actions
-    useCallback(s => ({ setDragPreview: s.setDragPreview, clearDragPreview: s.clearDragPreview }), [])
+  const { setDragPreview, clearDragPreview, setDraggedRelationPreview } = useConceptMapStore(
+    useCallback(s => ({
+      setDragPreview: s.setDragPreview,
+      clearDragPreview: s.clearDragPreview,
+      setDraggedRelationPreview: s.setDraggedRelationPreview // Added
+    }), [])
   );
 
   const [editableExtracted, setEditableExtracted] = useState<EditableSuggestion[]>([]);
@@ -426,8 +430,26 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     };
 
     return (
-      <div className="flex items-center text-sm group w-full">
-        <GitFork className="h-4 w-4 mr-2 text-purple-500 flex-shrink-0"/>
+      <div
+        className="flex items-center text-sm group w-full"
+        draggable={!isViewOnlyMode && !item.isEditing}
+        onDragStart={(e) => {
+          if (isViewOnlyMode || item.isEditing) return;
+          e.dataTransfer.setData('application/json', JSON.stringify({
+            type: 'relation-suggestion',
+            sourceText: item.current.source,
+            targetText: item.current.target,
+            label: item.current.relation,
+          }));
+          e.dataTransfer.effectAllowed = 'copy';
+          setDraggedRelationPreview(item.current.relation);
+        }}
+        onDragEnd={() => {
+          if (!isViewOnlyMode) clearDragPreview();
+        }}
+        title={!isViewOnlyMode && !item.isEditing ? "Drag this relation to the canvas (experimental)" : ""}
+      >
+        <GitFork className={cn("h-4 w-4 mr-2 text-purple-500 flex-shrink-0", !isViewOnlyMode && !item.isEditing && "cursor-grab")} />
         {renderField('source', relationNodeExistence?.source)}
         <span className="mx-1">→</span>
         {renderField('target', relationNodeExistence?.target)}

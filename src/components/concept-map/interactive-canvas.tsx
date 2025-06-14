@@ -28,13 +28,15 @@ import { Card } from '@/components/ui/card';
 import useConceptMapStore from '@/stores/concept-map-store'; // Added import
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
 import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
-import DragPreviewNode from './drag-preview-node'; // Import DragPreviewNode
+import DragPreviewNode from './drag-preview-node';
+import DragPreviewLabelNode from './drag-preview-label-node'; // Import DragPreviewLabelNode
 import { cn } from '@/lib/utils';
 
 // Define nodeTypesConfig and edgeTypesConfig as top-level constants here
 const nodeTypesConfig: NodeTypes = {
   customConceptNode: CustomNodeComponent,
-  dragPreviewNode: DragPreviewNode, // New entry
+  dragPreviewNode: DragPreviewNode,
+  dragPreviewLabel: DragPreviewLabelNode, // New entry for label preview
 };
 
 const edgeTypesConfig: EdgeTypes = {
