@@ -102,9 +102,10 @@
     - [x] Frontend handles saving the generated map (via API) and updating submission status (within `ProjectUploadForm` and `useConceptMapAITools` for other AI-generated maps).
 - [x] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`)**:
     - [x] Input schema updated to `projectStoragePath` and `userHint`.
-        - [x] Mock logic acknowledges inputs and varies output based on hints (e.g., "e-commerce", "data pipeline", basic "node" `package.json` parsing for simple Node.js hint).
+        - [x] Mock logic acknowledges inputs and varies output based on hints (e.g., "e-commerce", "data pipeline", basic "node" `package.json` parsing).
         - [x] Mock logic supports a `_USE_FIXED_MOCK_PROJECT_A_` hint for a predefined detailed static analysis.
-        - [x] Mock logic now also supports a `_USE_SIMULATED_FS_NODE_PROJECT_` hint to return a richer simulation of a Node.js project. This includes conceptual file traversal (README, JS files) and basic content extraction (H1 from README, function names from JS). (Note: This is still a mock with no real file system operations or Supabase Storage integration).
+        - [x] Mock logic supports a `_USE_SIMULATED_FS_NODE_PROJECT_` hint for a richer Node.js project simulation (conceptual file traversal & basic content extraction).
+        - [x] Mock logic now also supports a `_USE_SIMULATED_FS_PY_PROJECT_` hint for a richer Python project simulation (conceptual file traversal for .py files, requirements.txt, README, and basic content extraction like class/function names, imports, dependencies). (Note: All FS simulations are still mocks with no real file system operations or Supabase Storage integration).
 - [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**:
     - [x] Input schema updated to `projectStoragePath` and `userGoals`.
     - [x] Prompt explicitly instructs use of `projectStructureAnalyzerTool` with these inputs.
@@ -198,7 +199,7 @@
 - [x] AI-Suggested Relation Labels:
     - [x] When a user manually draws an edge, AI automatically suggests a relevant label based on source/target content. (Genkit flow created, hook updated, suggestions shown in floater)
     - [x] Interaction: Suggested label appears temporarily. User can click to accept, type to overwrite, or ignore. (Floater shows suggestions, click updates label)
-- [x] "Suggest Intermediate Node" on Edge Selection:
+- [x] "Suggest Intermediate Node" on Edge Selection: (Implemented via Properties Inspector for selected edge)
     - [x] If an edge is selected, AI action to "Suggest intermediate concept".
     - [x] AI proposes a node to sit between source/target, splitting original edge and linking through the new node.
 

@@ -31,7 +31,7 @@ const DirectorySummarySchema = z.object({
   inferredPurpose: z.string().optional().nullable().describe('Inferred purpose of the directory (e.g., Business Logic Services).'),
 });
 
-export const KeyFileSchema = z.object({ // Export if needed by other modules, or keep local
+export const KeyFileSchema = z.object({
   filePath: z.string().describe('Path to the key file.'),
   type: z.enum([
     'entry_point', 
@@ -52,7 +52,7 @@ export const KeyFileSchema = z.object({ // Export if needed by other modules, or
 export type KeyFile = z.infer<typeof KeyFileSchema>;
 
 
-export const PotentialArchitecturalComponentSchema = z.object({ // Export if needed, or keep local
+export const PotentialArchitecturalComponentSchema = z.object({
   name: z.string().describe('Name of the inferred architectural component (e.g., User Service, Payment Gateway).'),
   type: z.enum([
     'service', 
@@ -221,6 +221,14 @@ describe('Utility Functions', () => {
 });
 `;
 
+// Simulated Python File Contents
+const SIMULATED_PY_REQUIREMENTS_TXT = `fastapi==0.100.0\nuvicorn==0.23.2\npydantic==2.0.3`;
+const SIMULATED_PY_README_MD = `# My Simulated Python API\n\nA sample FastAPI application.`;
+const SIMULATED_PY_MAIN_PY = `from fastapi import FastAPI\nfrom .core import services\nfrom .utils.helpers import format_response\n\napp = FastAPI()\n\n@app.get("/")\nasync def root():\n    message = services.get_main_message()\n    return format_response({"message": message})\n\nclass AdminUser:\n    def __init__(self, username):\n        self.username = username\n\ndef run_server():\n    print("Server would run here")\n\nif __name__ == "__main__":\n    run_server()`;
+const SIMULATED_PY_MODELS_PY = `from pydantic import BaseModel\n\nclass Item(BaseModel):\n    name: str\n    price: float\n\nclass User(BaseModel):\n    username: str\n    email: str`;
+const SIMULATED_PY_SERVICES_PY = `from .models import Item\n\ndef get_main_message():\n    return "Data from core service"\n\nclass ItemService:\n    def get_item(self, item_id: int) -> Item | None:\n        if item_id == 1:\n            return Item(name="Sample Item", price=10.0)\n        return None`;
+const SIMULATED_PY_HELPERS_PY = `import os\n\ndef format_response(data: dict):\n    return { "status": "success", "data": data }\n\ndef _internal_helper():\n    pass`;
+
 
 // Helper function to extract H1 from Markdown (simplified)
 const getReadmeSummary = (readmeContent: string): string | undefined => {
@@ -234,16 +242,51 @@ const extractJsFunctions = (jsContent: string): string[] => {
   const symbols: string[] = [];
   let match;
   while ((match = functionRegex.exec(jsContent)) !== null) {
-    if (match[1]) symbols.push(match[1]); // function foo()
-    if (match[2]) symbols.push(match[2]); // const foo = () =>
-    if (match[3]) symbols.push(match[3]); // const foo = function
-    if (match[4]) symbols.push(match[4]); // module.exports.foo = function
-    if (match[5]) { // module.exports = { foo, bar }
+    if (match[1]) symbols.push(match[1]);
+    if (match[2]) symbols.push(match[2]);
+    if (match[3]) symbols.push(match[3]);
+    if (match[4]) symbols.push(match[4]);
+    if (match[5]) {
         match[5].split(',').forEach(s => symbols.push(s.trim()));
     }
   }
-  // Filter out potential empty strings if regex matches weirdly
-  return symbols.filter(Boolean).filter((s, index, self) => self.indexOf(s) === index); // Unique symbols
+  return symbols.filter(Boolean).filter((s, index, self) => self.indexOf(s) === index);
+};
+
+// Python specific helper functions
+const extractPyImports = (pyContent: string): string[] => {
+  const importRegex = /^import\s+([\w.]+)|^from\s+([\w.]+)\s+import/gm;
+  const imports = new Set<string>();
+  let match;
+  while ((match = importRegex.exec(pyContent)) !== null) {
+    imports.add(match[1] || match[2]);
+  }
+  return Array.from(imports);
+};
+const extractPyClasses = (pyContent: string): string[] => {
+  const classRegex = /^class\s+([A-Za-z_][A-Za-z0-9_]*)\(?[^)]*\)?:/gm;
+  const classes: string[] = [];
+  let match;
+  while ((match = classRegex.exec(pyContent)) !== null) {
+    classes.push(match[1]);
+  }
+  return classes;
+};
+const extractPyFunctions = (pyContent: string): string[] => {
+  const funcRegex = /^def\s+([A-Za-z_][A-Za-z0-9_]*)\(.*\):/gm;
+  const functions: string[] = [];
+  let match;
+  while ((match = funcRegex.exec(pyContent)) !== null) {
+    if (!match[1].startsWith('_')) {
+        functions.push(match[1]);
+    }
+  }
+  return functions;
+};
+const parseRequirementsTxt = (txtContent: string): string[] => {
+  return txtContent.split('\n')
+    .map(line => line.split('==')[0].trim())
+    .filter(pkg => pkg.length > 0);
 };
 
 
@@ -258,7 +301,7 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
 
   if (input.userHint === "_USE_FIXED_MOCK_PROJECT_A_") {
     console.log("Returning FIXED_MOCK_PROJECT_A_ANALYSIS");
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate short delay
+    await new Promise(resolve => setTimeout(resolve, 500));
     return FIXED_MOCK_PROJECT_A_ANALYSIS;
   }
 
@@ -305,7 +348,7 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
         ],
         parsingErrors: []
       };
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       return output;
     } catch (e) {
       console.error("Error in _USE_SIMULATED_FS_NODE_PROJECT_ block:", e);
@@ -316,13 +359,70 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
           parsingErrors: [(e as Error).message]
       };
     }
+  } else if (input.userHint === "_USE_SIMULATED_FS_PY_PROJECT_") {
+    console.log("Returning detailed simulated Python project analysis.");
+    try {
+      const readmeSummary = getReadmeSummary(SIMULATED_PY_README_MD) || "Simulated Python API Project";
+      const requirements = parseRequirementsTxt(SIMULATED_PY_REQUIREMENTS_TXT);
+
+      const mainPyImports = extractPyImports(SIMULATED_PY_MAIN_PY);
+      const mainPyClasses = extractPyClasses(SIMULATED_PY_MAIN_PY);
+      const mainPyFunctions = extractPyFunctions(SIMULATED_PY_MAIN_PY);
+
+      const modelsPyImports = extractPyImports(SIMULATED_PY_MODELS_PY);
+      const modelsPyClasses = extractPyClasses(SIMULATED_PY_MODELS_PY);
+
+      const servicesPyImports = extractPyImports(SIMULATED_PY_SERVICES_PY);
+      const servicesPyClasses = extractPyClasses(SIMULATED_PY_SERVICES_PY);
+      const servicesPyFunctions = extractPyFunctions(SIMULATED_PY_SERVICES_PY);
+
+      const helpersPyImports = extractPyImports(SIMULATED_PY_HELPERS_PY);
+      const helpersPyFunctions = extractPyFunctions(SIMULATED_PY_HELPERS_PY);
+
+      const keyFilesData: KeyFile[] = [
+        { filePath: "requirements.txt", type: "manifest", briefDescription: "Python project dependencies.", extractedSymbols: requirements },
+        { filePath: "README.md", type: "readme", briefDescription: "Project README file." },
+        { filePath: "my_py_api/main.py", type: "entry_point", briefDescription: "Main application script.", extractedSymbols: [...mainPyClasses, ...mainPyFunctions] },
+        { filePath: "my_py_api/core/models.py", type: "model", briefDescription: "Data models (Pydantic).", extractedSymbols: modelsPyClasses },
+        { filePath: "my_py_api/core/services.py", type: "service_definition", briefDescription: "Business logic services.", extractedSymbols: [...servicesPyClasses, ...servicesPyFunctions] },
+        { filePath: "my_py_api/utils/helpers.py", type: "utility", briefDescription: "Utility functions.", extractedSymbols: helpersPyFunctions },
+      ];
+
+      const inferredFrameworks: { name: string; confidence: 'high' | 'medium' | 'low'; }[] = [{ name: "Python", confidence: "high" as const }];
+      if (requirements.some(r => r.toLowerCase().includes("fastapi"))) {
+        inferredFrameworks.push({ name: "FastAPI", confidence: "medium" as const });
+      }
+
+      const output: ProjectAnalysisOutput = {
+        projectName: readmeSummary,
+        projectSummary: SIMULATED_PY_README_MD.substring(SIMULATED_PY_README_MD.indexOf('\n') + 1).trim(),
+        inferredLanguagesFrameworks: inferredFrameworks,
+        dependencies: { pip: requirements },
+        directoryStructureSummary: [
+          { path: "my_py_api", fileCounts: { ".py": 1 }, inferredPurpose: "Main application package" },
+          { path: "my_py_api/core", fileCounts: { ".py": 2 }, inferredPurpose: "Core logic (models, services)" },
+          { path: "my_py_api/utils", fileCounts: { ".py": 1 }, inferredPurpose: "Utility modules" }
+        ],
+        keyFiles: keyFilesData,
+        potentialArchitecturalComponents: [
+          { name: "API Endpoint Handler (main.py)", type: "service", relatedFiles: ["my_py_api/main.py"] },
+          { name: "Core Models", type: "data_store_interface", relatedFiles: ["my_py_api/core/models.py"] },
+          { name: "Core Services", type: "service", relatedFiles: ["my_py_api/core/services.py"] },
+          { name: "Utility Helpers", type: "module", relatedFiles: ["my_py_api/utils/helpers.py"] },
+        ],
+        parsingErrors: []
+      };
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return output;
+    } catch (e) {
+      console.error("Error in _USE_SIMULATED_FS_PY_PROJECT_ block:", e);
+      return { projectName: "Simulated Python FS Error", projectSummary: "Error during Python FS sim processing.", inferredLanguagesFrameworks:[], parsingErrors: [(e as Error).message] };
+    }
   }
 
   let foundPackageJsonDataForSimpleNodeHint: any = null;
   if (input.userHint?.toLowerCase().includes("node") || input.userHint?.toLowerCase().includes("npm")) {
-    // This is the simpler package.json parsing, only if the more specific hints above didn't match
     try {
-      // Using a slightly different package.json for this simpler case to differentiate
       const simplePackageJsonContent = `{
         "name": "basic-node-app-from-hint",
         "version": "0.1.0",
@@ -334,7 +434,6 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
       console.log("Simulated (simple) package.json parsing successful due to 'node' or 'npm' hint.");
     } catch (error) {
       console.error("Simulated error parsing (simple) package.json:", error);
-      // Return minimal error, or could enhance
       return { projectName: "Simple Parse Error", parsingErrors: ["Failed to parse simple package.json from hint."], inferredLanguagesFrameworks:[] };
     }
   }
