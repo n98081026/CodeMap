@@ -106,7 +106,8 @@
     - [x] Mock logic supports a `_USE_FIXED_MOCK_PROJECT_A_` hint for a predefined detailed static analysis.
     - [x] Mock logic supports a `_USE_SIMULATED_FS_NODE_PROJECT_` hint for a richer Node.js project simulation (includes conceptual `package.json`, `README.md`, `.js` files, `config/settings.json`; basic content extraction).
     - [x] Mock logic supports a `_USE_SIMULATED_FS_PY_PROJECT_` hint for a richer Python project simulation (includes conceptual `.py` files, `requirements.txt`, `README.md`; basic content extraction).
-    - [x] Mock logic now also supports a `_USE_SIMULATED_FS_JAVA_PROJECT_` hint for a richer Java (Maven/Spring Boot) project simulation (includes conceptual `pom.xml`, `.java` files in packages, `README.md`; basic content extraction like dependencies, classes, methods, imports). (Note: All File System (FS) simulations are still mocks with no real file system operations or Supabase Storage integration).
+    - [x] Mock logic supports a `_USE_SIMULATED_FS_JAVA_PROJECT_` hint for a richer Java (Maven/Spring Boot) project simulation (includes conceptual `pom.xml`, `.java` files in packages, `README.md`; basic content extraction).
+    - [x] Mock logic now also supports a `_USE_SIMULATED_FS_CSHARP_PROJECT_` hint for a richer C# (ASP.NET Core) project simulation (includes conceptual `.csproj`, `appsettings.json`, `.cs` files in namespaces, `README.md`; basic content extraction like dependencies, classes, methods, properties, usings). (Note: All File System (FS) simulations are still mocks with no real file system operations or Supabase Storage integration).
 - [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**:
     - [x] Input schema updated to `projectStoragePath` and `userGoals`.
     - [x] Prompt explicitly instructs use of `projectStructureAnalyzerTool` with these inputs.

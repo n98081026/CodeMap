@@ -318,6 +318,200 @@ public class MyServiceApplication {
 }
 `;
 
+// Simulated C# File Contents
+const SIMULATED_CSPROJ_CONTENT = `
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.0" />
+  </ItemGroup>
+</Project>
+`;
+
+const SIMULATED_CSHARP_README_MD = `
+# MyWebApp C# ASP.NET Core
+
+A sample ASP.NET Core web API for managing products.
+Uses in-memory database for simplicity.
+
+Features:
+- Product CRUD operations
+- Swagger/OpenAPI documentation
+`;
+
+const SIMULATED_CSHARP_PROGRAM_CS = `
+using Microsoft.EntityFrameworkCore;
+using MyWebApp.Models;
+using MyWebApp.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddDbContext<ProductDbContext>(opt =>
+    opt.UseInMemoryDatabase("ProductList"));
+builder.Services.AddScoped<IProductService, ProductService>();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+public partial class Program { } // For testing
+
+app.Run();
+`;
+
+const SIMULATED_CSHARP_APPSETTINGS_JSON = `
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\\\mssqllocaldb;Database=aspnet-MyWebApp-guid;Trusted_Connection=True;MultipleActiveResultSets=true"
+  }
+}
+`;
+
+const SIMULATED_CSHARP_CONTROLLER = `
+using Microsoft.AspNetCore.Mvc;
+using MyWebApp.Models;
+using MyWebApp.Services;
+using System.Collections.Generic; // For IEnumerable
+using System.Threading.Tasks; // For Task
+
+namespace MyWebApp.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    private readonly IProductService _productService;
+
+    public ProductsController(IProductService productService)
+    {
+        _productService = productService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+    {
+        return Ok(await _productService.GetAllProductsAsync());
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Product>> GetProduct(long id)
+    {
+        var product = await _productService.GetProductByIdAsync(id);
+        if (product == null)
+        {
+            return NotFound();
+        }
+        return Ok(product);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Product>> PostProduct(Product product)
+    {
+        var createdProduct = await _productService.CreateProductAsync(product);
+        return CreatedAtAction(nameof(GetProduct), new { id = createdProduct.Id }, createdProduct);
+    }
+}
+`;
+
+const SIMULATED_CSHARP_MODEL = `
+namespace MyWebApp.Models;
+
+public class Product
+{
+    public long Id { get; set; }
+    public string? Name { get; set; }
+    public decimal Price { get; set; }
+    public string? Description { get; set; }
+}
+
+public class ProductDbContext : Microsoft.EntityFrameworkCore.DbContext
+{
+    public ProductDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<ProductDbContext> options)
+        : base(options) { }
+
+    public Microsoft.EntityFrameworkCore.DbSet<Product> Products { get; set; } = null!;
+}
+`;
+
+const SIMULATED_CSHARP_ISERVICE = `
+using MyWebApp.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace MyWebApp.Services;
+
+public interface IProductService
+{
+    Task<IEnumerable<Product>> GetAllProductsAsync();
+    Task<Product?> GetProductByIdAsync(long id);
+    Task<Product> CreateProductAsync(Product product);
+}
+`;
+
+const SIMULATED_CSHARP_SERVICE = `
+using Microsoft.EntityFrameworkCore;
+using MyWebApp.Models;
+using System.Collections.Generic; // Required for List, IEnumerable
+using System.Linq; // Required for ToListAsync, if used directly (though EF Core provides it on DbSet)
+using System.Threading.Tasks; // Required for Task
+
+namespace MyWebApp.Services;
+
+public class ProductService : IProductService
+{
+    private readonly ProductDbContext _context;
+
+    public ProductService(ProductDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<IEnumerable<Product>> GetAllProductsAsync()
+    {
+        return await _context.Products.ToListAsync();
+    }
+
+    public async Task<Product?> GetProductByIdAsync(long id)
+    {
+        return await _context.Products.FindAsync(id);
+    }
+
+    public async Task<Product> CreateProductAsync(Product product)
+    {
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+        return product;
+    }
+}
+`;
+
 const SIMULATED_JAVA_CONTROLLER = `
 package com.example.myservice.controller;
 
@@ -426,6 +620,77 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     // Custom query methods can be defined here
 }
 `;
+
+// C# specific helper functions
+const parseCsprojDependencies = (csprojContent: string): string[] => {
+  const depRegex = /<PackageReference Include="(.*?)" Version="(.*?)" \/>/gm;
+  const dependencies: string[] = [];
+  let match;
+  while ((match = depRegex.exec(csprojContent)) !== null) {
+    dependencies.push(`${match[1]} (${match[2]})`); // Format: PackageName (Version)
+  }
+  return dependencies;
+};
+const extractCSharpNamespace = (csContent: string): string | null => {
+  const match = csContent.match(/^namespace\s+([\w.]+)(?:\s*{)?/m);
+  return match ? match[1] : null;
+};
+const extractCSharpUsings = (csContent: string): string[] => {
+  const usingRegex = /^using\s+([\w.]+);/gm;
+  const usings = new Set<string>();
+  let match;
+  while ((match = usingRegex.exec(csContent)) !== null) {
+    usings.add(match[1]);
+  }
+  return Array.from(usings);
+};
+const extractCSharpPublicTypes = (csContent: string): string[] => { // Classes, Interfaces, Enums
+  const typeRegex = /^public\s+(?:partial\s+)?(?:abstract\s+|sealed\s+)?(?:class|interface|enum|record)\s+(\w+)/gm;
+  const types: string[] = [];
+  let match;
+  while ((match = typeRegex.exec(csContent)) !== null) {
+    types.push(match[1]);
+  }
+  return types;
+};
+const extractCSharpPublicMethods = (csContent: string): string[] => {
+  const methodRegex = /^\s*public\s+(?:static\s+|virtual\s+|override\s+|async\s+)?(?:[\w<>\s\[\].,?]+)\s+(\w+)\s*\([^)]*\)\s*(?:throws\s+[\w.,\s]+)?\s*[{]/gm;
+  const methods: string[] = [];
+  let match;
+  while ((match = methodRegex.exec(csContent)) !== null) {
+    methods.push(match[1]);
+  }
+  return methods;
+};
+const extractCSharpPublicProperties = (csContent: string): string[] => {
+  const propRegex = /^\s*public\s+[\w<>\s\[\].,?]+\s+(\w+)\s*\{\s*get;\s*(?:init;|set;)?\s*\}/gm;
+  const props: string[] = [];
+  let match;
+  while ((match = propRegex.exec(csContent)) !== null) {
+    props.push(match[1]);
+  }
+  return props;
+};
+const parseAppSettingsJsonKeys = (jsonContent: string): string[] => {
+    try {
+        const parsed = JSON.parse(jsonContent);
+        // Get top-level keys and nested keys like "Logging:LogLevel:Default"
+        const keys: string[] = [];
+        const recurseKeys = (obj: any, prefix = "") => {
+            Object.keys(obj).forEach(key => {
+                keys.push(prefix + key);
+                if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+                    recurseKeys(obj[key], prefix + key + ":");
+                }
+            });
+        };
+        recurseKeys(parsed);
+        return keys;
+    } catch (e) {
+        console.error("Error parsing appsettings.json content:", e);
+        return [];
+    }
+};
 
 // Helper function to extract H1 from Markdown (simplified)
 const getReadmeSummary = (readmeContent: string): string | undefined => {
@@ -714,6 +979,62 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
     } catch (e) {
       console.error("Error in _USE_SIMULATED_FS_JAVA_PROJECT_ block:", e);
       return { projectName: "Simulated Java FS Error", projectSummary: "Error during Java FS sim processing.", inferredLanguagesFrameworks:[], parsingErrors: [(e as Error).message] };
+    }
+  } else if (input.userHint === "_USE_SIMULATED_FS_CSHARP_PROJECT_") {
+    console.log("Returning detailed simulated C# project analysis.");
+    try {
+      const readmeProjectName = getReadmeSummary(SIMULATED_CSHARP_README_MD) || "Simulated C# Web API";
+      const nugetDependencies = parseCsprojDependencies(SIMULATED_CSPROJ_CONTENT);
+      const appSettingsKeys = parseAppSettingsJsonKeys(SIMULATED_CSHARP_APPSETTINGS_JSON);
+
+      const programSymbols = [...extractCSharpPublicTypes(SIMULATED_CSHARP_PROGRAM_CS), ...extractCSharpPublicMethods(SIMULATED_CSHARP_PROGRAM_CS)];
+      const controllerSymbols = [...extractCSharpPublicTypes(SIMULATED_CSHARP_CONTROLLER), ...extractCSharpPublicMethods(SIMULATED_CSHARP_CONTROLLER)];
+      const serviceSymbols = [...extractCSharpPublicTypes(SIMULATED_CSHARP_SERVICE), ...extractCSharpPublicMethods(SIMULATED_CSHARP_SERVICE)];
+      const iServiceSymbols = [...extractCSharpPublicTypes(SIMULATED_CSHARP_ISERVICE), ...extractCSharpPublicMethods(SIMULATED_CSHARP_ISERVICE)];
+      const modelSymbols = [...extractCSharpPublicTypes(SIMULATED_CSHARP_MODEL), ...extractCSharpPublicProperties(SIMULATED_CSHARP_MODEL)];
+
+      const keyFilesData: KeyFile[] = [
+        { filePath: "MyWebApp.csproj", type: "manifest", briefDescription: "C# project file and NuGet dependencies.", extractedSymbols: nugetDependencies },
+        { filePath: "README.md", type: "readme", briefDescription: "Project README." },
+        { filePath: "appsettings.json", type: "configuration", briefDescription: "Application settings.", extractedSymbols: appSettingsKeys },
+        { filePath: "Program.cs", type: "entry_point", briefDescription: "Main application entry point (ASP.NET Core).", extractedSymbols: programSymbols },
+        { filePath: "Controllers/ProductsController.cs", type: "service_definition", briefDescription: "Products API controller.", extractedSymbols: controllerSymbols },
+        { filePath: "Services/ProductService.cs", type: "service_definition", briefDescription: "Product business logic service.", extractedSymbols: serviceSymbols },
+        { filePath: "Services/IProductService.cs", type: "unknown", briefDescription: "Product service interface.", extractedSymbols: iServiceSymbols },
+        { filePath: "Models/Product.cs", type: "model", briefDescription: "Product data model.", extractedSymbols: modelSymbols },
+      ];
+
+      const inferredFrameworksList: { name: string; confidence: 'high' | 'medium' | 'low'; }[] = [{ name: "C#", confidence: "high" as const }];
+      if (SIMULATED_CSPROJ_CONTENT.includes("Microsoft.NET.Sdk.Web") || nugetDependencies.some(d => d.toLowerCase().includes("swashbuckle.aspnetcore")) ) {
+        inferredFrameworksList.push({ name: "ASP.NET Core", confidence: "high" as const });
+      }
+      if (nugetDependencies.some(d => d.toLowerCase().includes("entityframeworkcore"))) {
+        inferredFrameworksList.push({ name: "Entity Framework Core", confidence: "medium" as const });
+      }
+
+      const output: ProjectAnalysisOutput = {
+        projectName: readmeProjectName,
+        projectSummary: SIMULATED_CSHARP_README_MD.substring(SIMULATED_CSHARP_README_MD.indexOf('\n') + 1).trim(),
+        inferredLanguagesFrameworks: inferredFrameworksList,
+        dependencies: { nuget: nugetDependencies },
+        directoryStructureSummary: [
+          { path: "Controllers", fileCounts: { ".cs": 1 }, inferredPurpose: "API Controllers" },
+          { path: "Models", fileCounts: { ".cs": 1 }, inferredPurpose: "Data Models" },
+          { path: "Services", fileCounts: { ".cs": 2 }, inferredPurpose: "Business Logic Services & Interfaces" }
+        ],
+        keyFiles: keyFilesData,
+        potentialArchitecturalComponents: [
+          { name: "Products API Endpoint", type: "service", relatedFiles: ["Controllers/ProductsController.cs"] },
+          { name: "Product Business Logic", type: "service", relatedFiles: ["Services/ProductService.cs", "Services/IProductService.cs"] },
+          { name: "Product Data Representation", type: "data_store_interface", relatedFiles: ["Models/Product.cs"] },
+        ],
+        parsingErrors: []
+      };
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return output;
+    } catch (e) {
+      console.error("Error in _USE_SIMULATED_FS_CSHARP_PROJECT_ block:", e);
+      return { projectName: "Simulated C# FS Error", projectSummary: "Error during C# FS sim processing.", inferredLanguagesFrameworks:[], parsingErrors: [(e as Error).message] };
     }
   }
 
