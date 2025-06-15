@@ -163,6 +163,7 @@ export default function ConceptMapEditorPage() {
     handleSuggestIntermediateNodeRequest,
     confirmAddIntermediateNode,
     clearIntermediateNodeSuggestion,
+    handleAiTidyUpSelection, // Add this new one
   } = aiToolsHook;
 
   const reactFlowInstance = useReactFlow();
@@ -599,6 +600,7 @@ export default function ConceptMapEditorPage() {
           onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
+          onAiTidySelection={handleAiTidyUpSelection} // Add this line
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (

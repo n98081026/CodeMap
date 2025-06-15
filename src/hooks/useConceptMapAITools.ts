@@ -19,7 +19,11 @@ import {
   type RefineNodeSuggestionOutput,
   suggestIntermediateNodeFlow, // Added
   type SuggestIntermediateNodeInput, // Added
-  type SuggestIntermediateNodeOutput // Added
+  type SuggestIntermediateNodeOutput, // Added
+  aiTidyUpSelectionFlow,
+  type AiTidyUpSelectionInput,
+  type AiTidyUpSelectionOutput,
+  type NodeLayoutInfo
 } from '@/ai/flows';
 import { 
     rewriteNodeContent as aiRewriteNodeContent,
@@ -34,7 +38,7 @@ import type {
   SuggestRelationsOutput,
   SummarizeNodesOutput
 } from '@/ai/flows'; 
-import type { ConceptMapNode, ConceptMapEdge, RFNode } from '@/types'; // Added ConceptMapEdge
+import type { ConceptMapNode, ConceptMapEdge, RFNode } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react';
@@ -58,7 +62,6 @@ export interface RefineModalData {
     details?: string;
 }
 
-// Interface for Suggest Intermediate Node feature
 export interface IntermediateNodeSuggestionContext extends SuggestIntermediateNodeOutput {
   originalEdgeId: string;
   sourceNode: ConceptMapNode;
@@ -110,6 +113,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     resetAiSuggestions, addNode: addStoreNode, updateNode: updateStoreNode,
     addEdge: addStoreEdge, setAiProcessingNodeId, setStagedMapData,
     setConceptExpansionPreview, conceptExpansionPreview,
+    applyLayout, // Added for AI Tidy Up
   } = useConceptMapStore(
     useCallback(s => ({
       mapData: s.mapData, selectedElementId: s.selectedElementId, multiSelectedNodeIds: s.multiSelectedNodeIds,
@@ -120,6 +124,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       addEdge: s.addEdge, setAiProcessingNodeId: s.setAiProcessingNodeId,
       setStagedMapData: s.setStagedMapData, setConceptExpansionPreview: s.setConceptExpansionPreview,
       conceptExpansionPreview: s.conceptExpansionPreview,
+      applyLayout: s.applyLayout, // Added for AI Tidy Up
     }), [])
   );
 
@@ -140,8 +145,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [edgeLabelSuggestions, setEdgeLabelSuggestions] = useState<{ edgeId: string; labels: string[] } | null>(null);
   const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
   const [refineModalInitialData, setRefineModalInitialData] = useState<RefineModalData | null>(null);
-
-  // State for Intermediate Node Suggestion
   const [intermediateNodeSuggestion, setIntermediateNodeSuggestion] = useState<IntermediateNodeSuggestionContext | null>(null);
 
 
@@ -580,7 +583,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       const nodeToRefine = currentPreview.previewNodes.find(n => n.id === previewNodeId);
       if (nodeToRefine) {
         setRefineModalInitialData({
-          nodeId: nodeToRefine.id, // This is the previewNodeId
+          nodeId: nodeToRefine.id,
           parentNodeId: parentNodeIdForPreview,
           text: nodeToRefine.text,
           details: nodeToRefine.details
@@ -632,6 +635,152 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     }
   }, [refineModalInitialData, isViewOnlyMode, toast, setAiProcessingNodeId]);
 
+  // --- Suggest Intermediate Node Logic ---
+  const handleSuggestIntermediateNodeRequest = useCallback(async (edgeId: string) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "AI suggestions are disabled." });
+      return;
+    }
+    const { nodes, edges } = useConceptMapStore.getState().mapData;
+    const originalEdge = edges.find(e => e.id === edgeId);
+    if (!originalEdge) {
+      toast({ title: "Error", description: "Original edge not found.", variant: "destructive" });
+      return;
+    }
+    const sourceNode = nodes.find(n => n.id === originalEdge.source);
+    const targetNode = nodes.find(n => n.id === originalEdge.target);
+    if (!sourceNode || !targetNode) {
+      toast({ title: "Error", description: "Source or target node for the edge not found.", variant: "destructive" });
+      return;
+    }
+    setAiProcessingNodeId(edgeId);
+    toast({ title: "AI Thinking...", description: "Suggesting an intermediate node." });
+    try {
+      const flowInput: SuggestIntermediateNodeInput = {
+        sourceNodeText: sourceNode.text, sourceNodeDetails: sourceNode.details,
+        targetNodeText: targetNode.text, targetNodeDetails: targetNode.details,
+        existingEdgeLabel: originalEdge.label
+      };
+      const suggestionOutput = await suggestIntermediateNodeFlow(flowInput);
+      setIntermediateNodeSuggestion({
+        ...suggestionOutput,
+        originalEdgeId: edgeId, sourceNode, targetNode
+      });
+    } catch (error) {
+      console.error("Error suggesting intermediate node:", error);
+      toast({ title: "AI Suggestion Failed", description: (error as Error).message, variant: "destructive" });
+      setIntermediateNodeSuggestion(null);
+    } finally {
+      setAiProcessingNodeId(null);
+    }
+  }, [isViewOnlyMode, toast, setAiProcessingNodeId]);
+
+  const confirmAddIntermediateNode = useCallback(() => {
+    if (!intermediateNodeSuggestion) {
+      toast({ title: "Error", description: "No suggestion to confirm.", variant: "destructive" });
+      return;
+    }
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot modify map." });
+      setIntermediateNodeSuggestion(null);
+      return;
+    }
+    const {
+      intermediateNodeText, intermediateNodeDetails,
+      labelSourceToIntermediate, labelIntermediateToTarget,
+      originalEdgeId, sourceNode, targetNode
+    } = intermediateNodeSuggestion;
+
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const newPosition = getNodePlacement(
+      currentNodes, 'child', sourceNode, null,
+      GRID_SIZE_FOR_AI_PLACEMENT, (sourceNode.childIds?.length || 0), (sourceNode.childIds?.length || 0) + 1
+    );
+    const newNodeId = addStoreNode({
+      text: intermediateNodeText, details: intermediateNodeDetails || '',
+      type: 'ai-intermediate', position: newPosition,
+    });
+    useConceptMapStore.getState().deleteEdge(originalEdgeId);
+    addStoreEdge({ source: sourceNode.id, target: newNodeId, label: labelSourceToIntermediate });
+    addStoreEdge({ source: newNodeId, target: targetNode.id, label: labelIntermediateToTarget });
+    toast({ title: "Intermediate Node Added", description: `Node "${intermediateNodeText}" added and connections updated.` });
+    setIntermediateNodeSuggestion(null);
+  }, [intermediateNodeSuggestion, isViewOnlyMode, addStoreNode, addStoreEdge, toast, getNodePlacement]);
+
+  const clearIntermediateNodeSuggestion = useCallback(() => {
+    setIntermediateNodeSuggestion(null);
+  }, []);
+
+  // --- AI Tidy-Up Selection ---
+  const handleAiTidyUpSelection = useCallback(async () => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "AI Tidy Up is disabled." });
+      return;
+    }
+
+    // Access store data via getState() for current selection, or use destructured props if preferred
+    const currentMapDataNodes = useConceptMapStore.getState().mapData.nodes;
+    const currentMultiSelectedNodeIds = useConceptMapStore.getState().multiSelectedNodeIds;
+    const storeApplyLayout = useConceptMapStore.getState().applyLayout; // Using getState() to ensure freshness
+
+    if (currentMultiSelectedNodeIds.length < 2) {
+      toast({ title: "Selection Required", description: "Please select at least two nodes to tidy up." });
+      return;
+    }
+
+    const selectedNodesData: NodeLayoutInfo[] = currentMultiSelectedNodeIds
+      .map(id => {
+        const node = currentMapDataNodes.find(n => n.id === id);
+        if (node &&
+            typeof node.x === 'number' &&
+            typeof node.y === 'number' &&
+            typeof node.width === 'number' &&
+            typeof node.height === 'number'
+           ) {
+          return {
+            id: node.id,
+            x: node.x,
+            y: node.y,
+            width: node.width,
+            height: node.height,
+            text: node.text,
+            type: node.type
+          };
+        }
+        return null;
+      })
+      .filter((n): n is NodeLayoutInfo => n !== null);
+
+    if (selectedNodesData.length < 2) {
+      toast({
+        title: "Not Enough Valid Node Data",
+        description: "Could not retrieve enough valid data (including position and dimensions) for the selected nodes to perform tidy up.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setAiProcessingNodeId("ai-tidy-up");
+    toast({ title: "AI Tidy-Up", description: "AI is tidying up the selected nodes...", duration: 3000 });
+
+    try {
+      const input: AiTidyUpSelectionInput = { nodes: selectedNodesData };
+      const output: AiTidyUpSelectionOutput = await aiTidyUpSelectionFlow(input);
+
+      if (output.newPositions && output.newPositions.length > 0) {
+        storeApplyLayout(output.newPositions);
+        toast({ title: "AI Tidy-Up Successful", description: "Selected nodes have been rearranged." });
+      } else {
+        toast({ title: "AI Tidy-Up", description: "AI did not suggest new positions or output was invalid.", variant: "default" });
+      }
+    } catch (error) {
+      console.error("Error during AI Tidy-Up:", error);
+      toast({ title: "AI Tidy-Up Failed", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setAiProcessingNodeId(null);
+    }
+  }, [isViewOnlyMode, toast, setAiProcessingNodeId]); // Removed direct store dependencies as using getState()
+
 
   return {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
@@ -664,7 +813,14 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     setIsRefineModalOpen,
     refineModalInitialData,
     openRefineSuggestionModal,
-    handleRefineSuggestionConfirm, // This will be passed to the modal from the page
+    handleRefineSuggestionConfirm,
+    // Suggest Intermediate Node
+    intermediateNodeSuggestion,
+    handleSuggestIntermediateNodeRequest,
+    confirmAddIntermediateNode,
+    clearIntermediateNodeSuggestion,
+    // AI Tidy-Up Selection
+    handleAiTidyUpSelection,
   };
 }
 
