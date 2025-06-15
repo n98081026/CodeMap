@@ -174,6 +174,22 @@ export default function ConceptMapEditorPage() {
   // It seems it was correctly added based on the previous successful diff.
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
 
+  const handleAutoLayout = async () => {
+    addDebugLog("[EditorPage] Attempting auto-layout (Dagre)...");
+    // Here, you would eventually:
+    // 1. Get current nodes/edges from Zustand store (useStore hook)
+    // 2. Show loading toast
+    // 3. Instantiate and call DagreLayoutUtility
+    // 4. Call store.applyLayout with the new positions
+    // 5. Show success/error toast
+    // For now, let's use a toast to indicate it's not implemented
+    toast({
+      title: "Auto-layout (Dagre)",
+      description: "This feature is not fully implemented yet.",
+      variant: "default"
+    });
+  };
+
   // Effect for handling Delete/Backspace key for staged elements
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -600,7 +616,8 @@ export default function ConceptMapEditorPage() {
           onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
-          onAiTidySelection={handleAiTidyUpSelection} // Add this line
+          onAiTidySelection={handleAiTidyUpSelection}
+          onAutoLayout={handleAutoLayout} // Add this new prop
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (

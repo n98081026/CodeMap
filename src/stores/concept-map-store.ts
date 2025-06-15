@@ -2,24 +2,25 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
+import Graph from 'graphology'; // Import Graphology
 
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
 
-// Conceptual GraphAdapter related types
-export type GraphologyInstance = { nodesMap: Map<string, ConceptMapNode> }; // Simplified for mock
+// Conceptual GraphAdapter related types - These might be removed or refactored if Graphology is used directly more often.
+export type GraphologyInstance = Graph; // Using actual Graphology type
 
 export interface GraphAdapterUtility {
   fromArrays: (nodes: ConceptMapNode[], edges: ConceptMapEdge[]) => GraphologyInstance;
   getDescendants: (graphInstance: GraphologyInstance, nodeId: string) => string[];
-  toArrays: (graphInstance: GraphologyInstance) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] }; // Keep for interface completeness
-  getAncestors: (graphInstance: GraphologyInstance, nodeId: string) => string[]; // Keep for interface completeness
-  getNeighborhood: ( // Keep for interface completeness
+  toArrays: (graphInstance: GraphologyInstance) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+  getAncestors: (graphInstance: GraphologyInstance, nodeId: string) => string[];
+  getNeighborhood: (
     graphInstance: GraphologyInstance,
     nodeId: string,
     options?: { depth?: number; direction?: 'in' | 'out' | 'both' }
   ) => string[];
-  getSubgraphData: ( // Keep for interface completeness
+  getSubgraphData: (
     graphInstance: GraphologyInstance,
     nodeIds: string[]
   ) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
@@ -69,6 +70,8 @@ connectingState: { sourceNodeId: string; sourceHandleId?: string | null; } | nul
 dragPreviewItem: { text: string; type: string; } | null;
 dragPreviewPosition: { x: number; y: number; } | null;
 draggedRelationLabel: string | null; // New state for edge label preview
+
+  triggerFitView: boolean; // For auto-layout fitView trigger
 
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
@@ -135,9 +138,11 @@ setDragPreview: (item: { text: string; type: string } | null, position?: { x: nu
 updateDragPreviewPosition: (position: { x: number; y: number }) => void;
 clearDragPreview: () => void;
 setDraggedRelationPreview: (label: string | null) => void; // New action
+
+  setTriggerFitView: (value: boolean) => void; // Action for fitView trigger
 }
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' /* connectingState, dragPreviewItem, dragPreviewPosition, draggedRelationLabel are not tracked */>;
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' /* triggerFitView, connectingState, dragPreviewItem, dragPreviewPosition, draggedRelationLabel are not tracked */>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -156,7 +161,7 @@ const initialStateBase: Omit<ConceptMapState,
   'applyLayout' |
   'startConnectionMode' | 'completeConnectionMode' | 'cancelConnectionMode' |
   'setDragPreview' | 'updateDragPreviewPosition' | 'clearDragPreview' |
-  'setDraggedRelationPreview' // Added to Omit
+  'setDraggedRelationPreview' | 'setTriggerFitView' // Added to Omit
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -186,6 +191,7 @@ const initialStateBase: Omit<ConceptMapState,
   dragPreviewItem: null,
   dragPreviewPosition: null,
   draggedRelationLabel: null, // Initial value for new state
+  triggerFitView: false, // Initial value for new state
 };
 
 // Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
@@ -387,29 +393,44 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })),
 
       deleteNode: (nodeIdToDelete) => {
-        get().addDebugLog(`[STORE deleteNode] Attempting to delete node: ${nodeIdToDelete} and its descendants.`);
+        get().addDebugLog(`[STORE deleteNode] Attempting to delete node: ${nodeIdToDelete} and its connected edges.`);
         set((state) => {
-          const nodes = state.mapData.nodes;
-          const edges = state.mapData.edges;
+          const currentNodes = state.mapData.nodes;
+          const currentEdges = state.mapData.edges;
 
-          const graphInstance = MockGraphAdapter.fromArrays(nodes, edges);
+          const graph = new Graph({ type: 'directed' });
 
-          if (!graphInstance.nodesMap.has(nodeIdToDelete)) {
-             get().addDebugLog(`[STORE deleteNode] Node ${nodeIdToDelete} not found. No changes made.`);
-             return state;
+          currentNodes.forEach(node => graph.addNode(node.id, { ...node }));
+          currentEdges.forEach(edge => {
+            // Ensure source and target nodes exist in the graph before adding edge
+            if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
+              graph.addEdgeWithKey(edge.id, edge.source, edge.target, { ...edge });
+            } else {
+              console.warn(`[STORE deleteNode] Edge ${edge.id} references a missing source/target node. Skipping adding to graph for deletion logic.`);
+              get().addDebugLog(`[STORE deleteNode] Edge ${edge.id} (source: ${edge.source}, target: ${edge.target}) references missing node. Will be kept if not directly connected to deleted node.`);
+            }
+          });
+
+          const edgeIdsToRemove = new Set<string>();
+          if (graph.hasNode(nodeIdToDelete)) {
+            graph.forEachEdge(nodeIdToDelete, (edgeKey) => { // Iterates over all edges connected to nodeIdToDelete
+              edgeIdsToRemove.add(edgeKey);
+            });
+            get().addDebugLog(`[STORE deleteNode] Edges connected to ${nodeIdToDelete} identified for removal: ${JSON.stringify(Array.from(edgeIdsToRemove))}`);
+          } else {
+            get().addDebugLog(`[STORE deleteNode] Node ${nodeIdToDelete} not found in graph. No edges will be removed via graph logic.`);
+            // Node might still be in currentNodes if graph population failed for it,
+            // so we proceed to filter nodes anyway.
           }
 
-          const descendants = MockGraphAdapter.getDescendants(graphInstance, nodeIdToDelete);
-          const nodesToDeleteSet = new Set<string>([nodeIdToDelete, ...descendants]);
+          const edgesToKeep = currentEdges.filter(edge => !edgeIdsToRemove.has(edge.id));
+          let updatedNodes = currentNodes.filter(node => node.id !== nodeIdToDelete);
 
-          get().addDebugLog(`[STORE deleteNode] Full set of nodes to delete (including descendants): ${JSON.stringify(Array.from(nodesToDeleteSet))}`);
-
-          let newNodes = nodes.filter(node => !nodesToDeleteSet.has(node.id));
-
-          const nodeBeingDeletedDirectly = nodes.find(n => n.id === nodeIdToDelete);
-          if (nodeBeingDeletedDirectly?.parentNode) {
-            const parentNodeId = nodeBeingDeletedDirectly.parentNode;
-            newNodes = newNodes.map(node => {
+          // Handle parent's childIds update (if the deleted node had a parent)
+          const nodeBeingDeleted = currentNodes.find(n => n.id === nodeIdToDelete);
+          if (nodeBeingDeleted?.parentNode) {
+            const parentNodeId = nodeBeingDeleted.parentNode;
+            updatedNodes = updatedNodes.map(node => {
               if (node.id === parentNodeId) {
                 const newChildIds = (node.childIds || []).filter(id => id !== nodeIdToDelete);
                 get().addDebugLog(`[STORE deleteNode] Updating parent ${parentNodeId}, removing child ${nodeIdToDelete}. New childIds: ${JSON.stringify(newChildIds)}`);
@@ -419,30 +440,23 @@ export const useConceptMapStore = create<ConceptMapState>()(
             });
           }
 
-          const newEdges = edges.filter(
-            edge => !nodesToDeleteSet.has(edge.source) && !nodesToDeleteSet.has(edge.target)
-          );
-
+          // Clear selection if the deleted node was selected
           let newSelectedElementId = state.selectedElementId;
           let newSelectedElementType = state.selectedElementType;
-          if (state.selectedElementId && nodesToDeleteSet.has(state.selectedElementId)) {
+          if (state.selectedElementId === nodeIdToDelete) {
             newSelectedElementId = null;
             newSelectedElementType = null;
-            get().addDebugLog(`[STORE deleteNode] Cleared selection as deleted node was selected.`);
+            get().addDebugLog(`[STORE deleteNode] Cleared selection as deleted node ${nodeIdToDelete} was selected.`);
           }
-          const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDeleteSet.has(id));
-          const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDeleteSet.has(state.aiProcessingNodeId) && nodesToDeleteSet.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
-          const newEditingNodeId = state.editingNodeId && nodesToDeleteSet.has(state.editingNodeId) ? null : state.editingNodeId;
+          const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => id !== nodeIdToDelete);
+          const newAiProcessingNodeId = state.aiProcessingNodeId === nodeIdToDelete ? null : state.aiProcessingNodeId;
+          const newEditingNodeId = state.editingNodeId === nodeIdToDelete ? null : state.editingNodeId;
 
-          if (newNodes.length === nodes.length && newEdges.length === edges.length && newSelectedElementId === state.selectedElementId && newMultiSelectedNodeIds.length === state.multiSelectedNodeIds.length ) {
-            get().addDebugLog(`[STORE deleteNode] No effective changes to nodes/edges arrays or selection after filtering.`);
-          }
-
-          get().addDebugLog(`[STORE deleteNode] Deletion complete. Nodes remaining: ${newNodes.length}, Edges remaining: ${newEdges.length}`);
+          get().addDebugLog(`[STORE deleteNode] Deletion complete. Nodes remaining: ${updatedNodes.length}, Edges remaining: ${edgesToKeep.length}`);
           return {
             mapData: {
-              nodes: newNodes,
-              edges: newEdges,
+              nodes: updatedNodes,
+              edges: edgesToKeep,
             },
             selectedElementId: newSelectedElementId,
             selectedElementType: newSelectedElementType,
@@ -453,7 +467,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
         });
       },
 
-      addEdge: (options) => set((state) => {
+      addEdge: (options) => { // No change needed to set((state) => ...) part, just the outer part
         const newEdge: ConceptMapEdge = {
           id: uniqueEdgeId(),
           source: options.source,
@@ -628,9 +642,14 @@ export const useConceptMapStore = create<ConceptMapState>()(
             };
           } else {
             get().addDebugLog(`[STORE applyLayout] No actual position changes detected. State not updated.`);
-            return state;
+            return state; // Return current state if no changes
           }
         });
+        // After positions are applied (or if no changes but still called), trigger fitView
+        // This ensures fitView is attempted even if the layout algorithm returns same positions
+        // but other map elements might have changed that require a fitView (though less likely for applyLayout).
+        // Crucially, it runs after the state update from applyLayout is processed.
+        set({ triggerFitView: true });
       },
 
       // Connection Mode Actions
@@ -694,6 +713,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           set({ draggedRelationLabel: label });
         }
       },
+      setTriggerFitView: (value) => set({ triggerFitView: value }),
     }),
     {
       partialize: (state): TrackedState => {

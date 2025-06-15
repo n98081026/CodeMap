@@ -188,15 +188,23 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     updateDragPreviewPosition,
     draggedRelationLabel    // Added
   } = useConceptMapStore();
-  const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
+  const {
+    stagedMapData,
+    isStagingActive,
+    conceptExpansionPreview,
+    triggerFitView,         // Added for fitView
+    setTriggerFitView       // Added for fitView
+  } = useConceptMapStore(
     useCallback(s => ({
       stagedMapData: s.stagedMapData,
       isStagingActive: s.isStagingActive,
       conceptExpansionPreview: s.conceptExpansionPreview,
+      triggerFitView: s.triggerFitView,             // Added for fitView
+      setTriggerFitView: s.setTriggerFitView,       // Added for fitView
       // dragPreviewItem and dragPreviewPosition are not needed here as they are directly accessed
     }), [])
   );
-  const reactFlowInstance = useReactFlow();
+  const reactFlowInstance = useReactFlow(); // Already present
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
@@ -389,6 +397,16 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       return () => clearTimeout(timerId);
     }
   }, [rfNodes, reactFlowInstance]);
+
+  // Effect for fitView trigger from store
+  useEffect(() => {
+    if (triggerFitView && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
+      useConceptMapStore.getState().addDebugLog('[FlowCanvasCoreInternal fitViewEffect] Triggered fitView.');
+      reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
+      setTriggerFitView(false); // Reset the trigger in the store
+    }
+  }, [triggerFitView, reactFlowInstance, setTriggerFitView]);
+
 
   // Effect for Escape key to cancel connection mode
   useEffect(() => {
