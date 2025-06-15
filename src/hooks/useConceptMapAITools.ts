@@ -40,6 +40,7 @@ import type {
 } from '@/ai/flows'; 
 import type { ConceptMapNode, ConceptMapEdge, RFNode } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
+import { GraphAdapterUtility } from '@/lib/graphologyAdapter'; // Added
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react';
 
@@ -193,25 +194,27 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
     resetAiSuggestions();
     let concepts: string[] = [];
+    const currentMapData = useConceptMapStore.getState().mapData; // Get fresh map data
+    const graphAdapter = new GraphAdapterUtility();
+    const graphInstance = graphAdapter.fromArrays(currentMapData.nodes, currentMapData.edges);
+
     const targetNodeId = nodeIdForContext || selectedElementId;
-    const selectedNode = targetNodeId ? mapData.nodes.find(n => n.id === targetNodeId) : null;
+    const selectedNode = targetNodeId ? currentMapData.nodes.find(n => n.id === targetNodeId) : null;
 
     if (multiSelectedNodeIds.length >= 2) {
-        concepts = multiSelectedNodeIds.map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text);
+        concepts = multiSelectedNodeIds.map(id => currentMapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text);
     } else if (selectedNode) {
         concepts.push(selectedNode.text);
-        const neighborIds = new Set<string>();
-        mapData.edges?.forEach(edge => {
-            if (edge.source === selectedNode.id) neighborIds.add(edge.target);
-            if (edge.target === selectedNode.id) neighborIds.add(edge.source);
-        });
-        concepts.push(...Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 4));
-    } else if (mapData.nodes.length > 0) {
-        concepts = mapData.nodes.slice(0, Math.min(5, mapData.nodes.length)).map(n => n.text);
+        if (graphInstance.hasNode(selectedNode.id)) {
+            const neighborNodeIds = graphAdapter.getNeighborhood(graphInstance, selectedNode.id, { depth: 1, direction: 'all' });
+            concepts.push(...neighborNodeIds.map(id => currentMapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 4));
+        }
+    } else if (currentMapData.nodes.length > 0) {
+        concepts = currentMapData.nodes.slice(0, Math.min(5, currentMapData.nodes.length)).map(n => n.text);
     }
     setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept A", "Example Concept B"]);
     setIsSuggestRelationsModalOpen(true);
-  }, [isViewOnlyMode, resetAiSuggestions, mapData, selectedElementId, multiSelectedNodeIds, toast]);
+  }, [isViewOnlyMode, resetAiSuggestions, selectedElementId, multiSelectedNodeIds, toast]); // mapData removed as using currentMapData
 
   const handleRelationsSuggested = useCallback((relations: SuggestRelationsOutput) => {
     setAiSuggestedRelations(relations);
@@ -256,18 +259,20 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
     let conceptDetailsToSet: ConceptToExpandDetails | null = null;
     let context: string[] = [];
+    const currentMapData = useConceptMapStore.getState().mapData; // Get fresh map data
+    const graphAdapter = new GraphAdapterUtility();
+    const graphInstance = graphAdapter.fromArrays(currentMapData.nodes, currentMapData.edges);
+
     const targetNodeId = nodeIdForContext || selectedElementId;
-    const selectedNode = targetNodeId ? mapData.nodes.find(n => n.id === targetNodeId) : null;
+    const selectedNode = targetNodeId ? currentMapData.nodes.find(n => n.id === targetNodeId) : null;
 
     if (selectedNode) {
       conceptDetailsToSet = { id: selectedNode.id, text: selectedNode.text, node: selectedNode };
-      const neighborIds = new Set<string>();
-      mapData.edges?.forEach(edge => {
-        if (edge.source === selectedNode.id) neighborIds.add(edge.target);
-        if (edge.target === selectedNode.id) neighborIds.add(edge.source);
-      });
-      context = Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 5);
-    } else if (mapData.nodes.length > 0) {
+      if (graphInstance.hasNode(selectedNode.id)) {
+          const neighborNodeIds = graphAdapter.getNeighborhood(graphInstance, selectedNode.id, { depth: 1, direction: 'all' });
+          context = neighborNodeIds.map(id => currentMapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 5);
+      }
+    } else if (currentMapData.nodes.length > 0) {
       conceptDetailsToSet = { id: null, text: "General Map Topic", node: undefined };
     } else {
         conceptDetailsToSet = {id: null, text: "", node: undefined};
@@ -275,7 +280,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     setConceptToExpandDetails(conceptDetailsToSet);
     setMapContextForExpansion(context);
     setIsExpandConceptModalOpen(true);
-  }, [isViewOnlyMode, mapData, selectedElementId, toast]);
+  }, [isViewOnlyMode, selectedElementId, toast]); // mapData removed
 
   const handleConceptExpanded = useCallback(async (output: ExpandConceptOutput) => {
     if (isViewOnlyMode || !conceptToExpandDetails || !conceptToExpandDetails.id) {
@@ -431,18 +436,22 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   // --- Mini Toolbar Actions ---
   const handleMiniToolbarQuickExpand = useCallback(async (nodeId: string) => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode" }); return; }
-    const sourceNode = mapData.nodes.find(n => n.id === nodeId);
+    const sourceNode = mapData.nodes.find(n => n.id === nodeId); // mapData from hook scope is fine here
     if (!sourceNode) { toast({ title: "Error", description: "Source node not found.", variant: "destructive" }); return; }
     setAiProcessingNodeId(nodeId);
     try {
-      const neighborIds = new Set<string>();
-      mapData.edges?.forEach(edge => {
-        if (edge.source === sourceNode.id) neighborIds.add(edge.target);
-        if (edge.target === sourceNode.id) neighborIds.add(edge.source);
-      });
-      const existingMapContext = Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter(Boolean).slice(0, 2) as string[];
+      const graphAdapter = new GraphAdapterUtility();
+      // Use mapData from hook scope for graph instance creation, as it's stable within this callback
+      const graphInstance = graphAdapter.fromArrays(mapData.nodes, mapData.edges);
+      let existingMapContext: string[] = [];
+      if (graphInstance.hasNode(sourceNode.id)) {
+          const neighborNodeIds = graphAdapter.getNeighborhood(graphInstance, sourceNode.id, { depth: 1, direction: 'all' });
+          existingMapContext = neighborNodeIds.map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 2);
+      }
+
       const output: ExpandConceptOutput = await aiExpandConcept({
-        concept: sourceNode.text, existingMapContext: existingMapContext,
+        concept: sourceNode.text,
+        existingMapContext: existingMapContext,
         userRefinementPrompt: "Generate one concise, directly related child idea. Focus on a primary sub-topic or component.",
       });
       if (output.expandedIdeas && output.expandedIdeas.length > 0) {

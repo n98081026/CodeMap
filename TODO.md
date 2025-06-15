@@ -238,10 +238,13 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
     - Icon: `Network` from `lucide-react`.
     - Disabled in `isViewOnlyMode` and if `onAutoLayout` prop is missing.
     - Tooltip added: "Auto-layout Map (Dagre)".
-- [x] **Page Logic: Connect Button to Dagre Utility & Store (`mapId/page.tsx`):** (Initial connection)
-    - `handleAutoLayout` async function added to `ConceptMapEditorPage`.
-    - Passed as `onAutoLayout` prop to `EditorToolbar`.
-    - Currently a placeholder that logs and shows a "Not implemented yet" toast.
+- [x] **Page Logic: Connect Button to Dagre Utility & Store (`mapId/page.tsx`):** (Full implementation)
+    - `handleAutoLayout` async function in `ConceptMapEditorPage` now:
+        - Retrieves nodes/edges from the store.
+        - Maps them to `DagreNode` and `DagreEdge` formats.
+        - Instantiates and calls `DagreLayoutUtility.layout()`.
+        - Calls store's `applyLayout` action with new positions.
+        - Displays loading, success, and error toasts.
 - [x] **React Flow: Ensure `fitView` after Layout (`FlowCanvasCore.tsx`):** (Mechanism implemented)
     - Store action `applyLayout` now sets `triggerFitView: true`.
     - `FlowCanvasCoreInternal` uses `useEffect` to watch `triggerFitView`.
@@ -395,6 +398,14 @@ This section outlines the plan to investigate and integrate the Cognee library (
     - Description: Ensure the frontend can correctly render concept maps based on data originating from Cognee. Address any structural differences or new data fields.
 - [ ] **Step 8: Testing and Refinement**
     - Description: Conduct thorough testing with various code repositories. Refine Cognee interaction (e.g., prompts if applicable), data transformation, and evaluate the overall quality of the generated concept maps.
+
+[end of TODO.md]
+
+[end of TODO.md]
+
+[end of TODO.md]
+
+[end of TODO.md]
 
 [end of TODO.md]
 
