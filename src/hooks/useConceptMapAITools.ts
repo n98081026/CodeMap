@@ -768,8 +768,63 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       const output: AiTidyUpSelectionOutput = await aiTidyUpSelectionFlow(input);
 
       if (output.newPositions && output.newPositions.length > 0) {
-        storeApplyLayout(output.newPositions);
-        toast({ title: "AI Tidy-Up Successful", description: "Selected nodes have been rearranged." });
+        storeApplyLayout(output.newPositions); // Existing line
+
+        // NEW LOGIC FOR GROUPING STARTS HERE
+        if (output.suggestedParentNode && output.suggestedParentNode.text) {
+          const { text: parentText, type: parentType } = output.suggestedParentNode;
+
+          // Calculate center position for the new parent node based on the new positions of children
+          let sumX = 0;
+          let sumY = 0;
+
+          const childrenNewPositions = output.newPositions.filter(p =>
+            selectedNodesData.some(sn => sn.id === p.id) // Ensure we only consider original selection
+          );
+
+          if (childrenNewPositions.length > 0) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            childrenNewPositions.forEach(p => {
+              // Find original node to get its dimensions, as newPositions only has x,y
+              const originalNode = selectedNodesData.find(sn => sn.id === p.id);
+              const nodeWidth = originalNode?.width || 150; // Default if not found
+              const nodeHeight = originalNode?.height || 70; // Default if not found
+
+              sumX += p.x + nodeWidth / 2;
+              sumY += p.y + nodeHeight / 2;
+              minX = Math.min(minX, p.x);
+              minY = Math.min(minY, p.y);
+              maxX = Math.max(maxX, p.x + nodeWidth);
+              maxY = Math.max(maxY, p.y + nodeHeight);
+            });
+            const avgCenterX = sumX / childrenNewPositions.length;
+            const avgCenterY = sumY / childrenNewPositions.length;
+
+            const parentNodePosition = {
+              x: Math.round((avgCenterX - (150 / 2)) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT, // Assuming default parent width 150
+              y: Math.round((avgCenterY - (70 / 2)) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT   // Assuming default parent height 70
+            };
+
+            // Add the new parent node
+            const newParentNodeId = useConceptMapStore.getState().addNode({
+              text: parentText,
+              type: parentType || 'ai-group',
+              position: parentNodePosition,
+            });
+
+            // Update original selected nodes to be children of this new parent
+            childrenNewPositions.forEach(childPos => {
+              useConceptMapStore.getState().updateNode(childPos.id, { parentNode: newParentNodeId });
+            });
+
+            toast({ title: "AI Tidy-Up & Grouping Successful", description: `Selected nodes rearranged and grouped under "${parentText}".` });
+          } else {
+             toast({ title: "AI Tidy-Up Successful", description: "Selected nodes have been rearranged. Grouping was suggested but could not be applied." });
+          }
+        } else {
+          // No parent node suggested, only positions were applied
+          toast({ title: "AI Tidy-Up Successful", description: "Selected nodes have been rearranged." });
+        }
       } else {
         toast({ title: "AI Tidy-Up", description: "AI did not suggest new positions or output was invalid.", variant: "default" });
       }

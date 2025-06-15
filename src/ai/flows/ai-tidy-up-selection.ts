@@ -29,7 +29,11 @@ const NodeNewPositionSchema = z.object({
 });
 
 export const AiTidyUpSelectionOutputSchema = z.object({
-  newPositions: z.array(NodeNewPositionSchema).describe("Array of nodes with their new suggested positions.")
+  newPositions: z.array(NodeNewPositionSchema).describe("Array of nodes with their new suggested positions."),
+  suggestedParentNode: z.object({
+    text: z.string().describe("A concise and descriptive label for the new parent node."),
+    type: z.string().default('ai-group').describe("The type for the new parent node (e.g., 'ai-group').")
+  }).optional().describe("If the AI deems it appropriate, suggests a new parent node to group all selected nodes.")
 });
 export type AiTidyUpSelectionOutput = z.infer<typeof AiTidyUpSelectionOutputSchema>;
 
@@ -62,13 +66,35 @@ Nodes to rearrange:
   {{#if type}}Type: "{{type}}"{{/if}}
 {{/each}}
 
-Return an array of objects, where each object contains the "id" of a node and its new "x" and "y" coordinates.
-Example output format:
+Additionally, analyze the provided nodes (text and type if available) for thematic coherence.
+If all the selected nodes together represent a strong, single overarching theme or concept that would benefit from being visually grouped under a new parent node:
+- You may optionally suggest creating such a parent node by providing a 'suggestedParentNode' object in your output, alongside the 'newPositions' array.
+- This 'suggestedParentNode' object should contain:
+    - 'text': A concise and descriptive label for this new parent node that summarizes the group.
+    - 'type': A type for this new parent node, for example, 'ai-group'.
+- If you suggest a parent node, all the input nodes will be assigned as its children by the application. You should still provide their new tidied positions; these positions will be relative to the canvas.
+
+If you do not think a single overarching parent node is appropriate for the entire selection, omit the 'suggestedParentNode' field from your output.
+Your primary goal is still to return the 'newPositions' for all input nodes. The parent suggestion is secondary.
+
+The output must be a JSON object. It must contain a key "newPositions" which is an array of objects, each with "id", "x", and "y".
+Optionally, it can also contain a key "suggestedParentNode" which is an object with "text" and "type".
+Example output format WITH a suggested parent:
 {
   "newPositions": [
     { "id": "node1_id", "x": 150, "y": 100 },
-    { "id": "node2_id", "x": 150, "y": 200 },
-    { "id": "node3_id", "x": 300, "y": 150 }
+    { "id": "node2_id", "x": 150, "y": 200 }
+  ],
+  "suggestedParentNode": {
+    "text": "Overall Theme for Group",
+    "type": "ai-group"
+  }
+}
+Example output format WITHOUT a suggested parent:
+{
+  "newPositions": [
+    { "id": "node1_id", "x": 150, "y": 100 },
+    { "id": "node2_id", "x": 150, "y": 200 }
   ]
 }
 `,

@@ -182,7 +182,7 @@
 ### AI-Powered Layout and Structuring Assistance
 - [x] "AI Tidy-Up" / Smart Alignment (Contextual):
     - [x] On selection of multiple nodes, offer an "AI Tidy selection" option (Implemented in EditorToolbar, AI aligns/distributes).
-    - [ ] (Enhancement) AI attempts to also semantically group selected nodes (e.g., create temporary parent node).
+    - [x] (Enhancement) AI attempts to also semantically group selected nodes (e.g., create temporary parent node). (AI flow can now suggest a parent, and hook logic implements its creation and re-parenting of children).
 - [ ] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
     - [ ] AI periodically/on-demand scans map for structural improvement opportunities.
     - [ ] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?".
