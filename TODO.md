@@ -210,18 +210,18 @@
 This plan outlines a potential refactoring to incorporate Graphology for more robust data management and Dagre for automated graph layout. Implementation is contingent on tool stability and/or user provision of core utility libraries.
 
 **Phase 1: Define Utility Interfaces & Core Store Logic**
-- [ ] **Define `DagreLayoutUtility` Interface:**
-    - Input: `nodes: Array<{id, width, height}>`, `edges: Array<{source, target}>`, `options?: {direction?, rankSep?, nodeSep?}`.
-    - Output: `nodes: Array<{id, x, y}>` (top-left coordinates for React Flow).
+- [x] **Define `DagreLayoutUtility` Interface:** (TypeScript interfaces defined in `src/types/graph-adapter.ts`)
+    - Input: `nodes: Array<{id: string, width: number, height: number}>`, `edges: Array<{source: string, target: string}>`, `options?: {direction?: 'TB' | 'BT' | 'LR' | 'RL', rankSep?: number, nodeSep?: number, edgeSep?: number, marginx?: number, marginy?: number}`.
+    - Output: `Promise<Array<{id: string, x: number, y: number}>>` (top-left coordinates for React Flow, async).
     - Responsibility: Encapsulates Dagre.js layout calculation.
-- [ ] **Define `GraphAdapter` Utility Interface (for Graphology):**
-    - `fromArrays(nodes, edges) => GraphologyInstance`
-    - `toArrays(graphInstance) => {nodes, edges}` (if needed for full graph conversion)
-    - `getDescendants(graphInstance, nodeId) => string[]`
-    - `getAncestors(graphInstance, nodeId) => string[]`
-    - `getNeighborhood(graphInstance, nodeId, options) => string[]`
-    - `getSubgraph(graphInstance, nodeIds) => {nodes, edges}` (React Flow compatible arrays)
-    - Responsibility: Encapsulates common Graphology operations on data sourced from store arrays.
+- [x] **Define `GraphAdapter` Interface (for Graphology):** (TypeScript interfaces defined in `src/types/graph-adapter.ts`)
+    - `fromArrays(nodes: ConceptMapNode[], edges: ConceptMapEdge[], options?: GraphAdapterOptions): GraphologyInstance;`
+    - `toArrays(graphInstance: GraphologyInstance): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };`
+    - `getDescendants(graphInstance: GraphologyInstance, nodeId: string): string[];`
+    - `getAncestors(graphInstance: GraphologyInstance, nodeId: string): string[];`
+    - `getNeighborhood(graphInstance: GraphologyInstance, nodeId: string, options?: NeighborhoodOptions): string[];`
+    - `getSubgraphData(graphInstance: GraphologyInstance, nodeIds: string[]): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };`
+    - Responsibility: Encapsulates common Graphology operations.
 - [x] **Store: Implement `applyLayout` Action (`concept-map-store.ts`):**
     - Takes `updatedNodePositions: Array<{id, x, y}>` (from `DagreLayoutUtility`).
     - Updates `x, y` for corresponding nodes in `mapData.nodes`.
