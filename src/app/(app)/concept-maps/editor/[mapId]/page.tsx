@@ -41,6 +41,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
+import { DagreLayoutUtility } from "../../../../lib/dagreLayoutUtility"; // Adjusted path
+import type { DagreLayoutOptions, NodeLayoutInput, EdgeLayoutInput } from "../../../../types/graph-adapter"; // Adjusted path
 
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
@@ -175,19 +177,59 @@ export default function ConceptMapEditorPage() {
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
 
   const handleAutoLayout = async () => {
-    addDebugLog("[EditorPage] Attempting auto-layout (Dagre)...");
-    // Here, you would eventually:
-    // 1. Get current nodes/edges from Zustand store (useStore hook)
-    // 2. Show loading toast
-    // 3. Instantiate and call DagreLayoutUtility
-    // 4. Call store.applyLayout with the new positions
-    // 5. Show success/error toast
-    // For now, let's use a toast to indicate it's not implemented
-    toast({
-      title: "Auto-layout (Dagre)",
-      description: "This feature is not fully implemented yet.",
-      variant: "default"
-    });
+    const { mapData, applyLayout } = useConceptMapStore.getState();
+    const currentNodes = mapData.nodes;
+    const currentEdges = mapData.edges;
+
+    addDebugLog(`[EditorPage] Attempting auto-layout (Dagre) for ${currentNodes.length} nodes and ${currentEdges.length} edges.`);
+
+    if (currentNodes.length === 0) {
+      toast.info("No nodes to layout.");
+      return;
+    }
+
+    const toastId = "dagre-layout";
+    toast.loading("Calculating auto-layout...", { id: toastId });
+
+    try {
+      const dagreNodes: NodeLayoutInput[] = currentNodes.map(node => ({
+        id: node.id,
+        width: node.width || 150, // Use node's width or default
+        height: node.height || 40, // Use node's height or default
+        label: node.text, // Optional, for dagre debugging
+      }));
+
+      const dagreEdges: EdgeLayoutInput[] = currentEdges.map(edge => ({
+        source: edge.source,
+        target: edge.target,
+        // Add other relevant edge properties if DagreLayoutUtility supports them (e.g., weight, minlen)
+      }));
+
+      const layoutUtility = new DagreLayoutUtility();
+      const layoutOptions: DagreLayoutOptions = {
+        direction: 'TB',
+        ranksep: 70,
+        nodesep: 50,
+        edgesep: 10,
+        marginx: 20,
+        marginy: 20,
+        defaultNodeWidth: 150,
+        defaultNodeHeight: 40,
+      };
+
+      const newPositions = await layoutUtility.layout(dagreNodes, dagreEdges, layoutOptions);
+
+      if (newPositions && newPositions.length > 0) {
+        applyLayout(newPositions); // This action should update nodes and set triggerFitView in store
+        toast.success("Layout updated successfully!", { id: toastId });
+      } else {
+        toast.error("Failed to calculate layout.", { id: toastId });
+      }
+    } catch (error) {
+      console.error("Error applying Dagre layout:", error);
+      addDebugLog(`[EditorPage] Error applying Dagre layout: ${(error as Error).message}`);
+      toast.error("Error applying layout. Check console for details.", { id: toastId });
+    }
   };
 
   // Effect for handling Delete/Backspace key for staged elements

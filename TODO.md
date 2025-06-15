@@ -66,8 +66,8 @@
     - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. Integration logic handled by `useConceptMapAITools`. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
     - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
-- [ ] ### Component Refinements
-    - [ ] **`custom-node.tsx` Refinement:**
+- [x] ### Component Refinements
+    - [x] **`custom-node.tsx` Refinement:**
         - [x] Review `getNodeRect` function (currently commented out): confirm if it's still needed for any toolbar/element positioning logic or if it can be safely removed.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history). Context API for Auth.
@@ -222,23 +222,30 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
     - `getNeighborhood(graphInstance: GraphologyInstance, nodeId: string, options?: NeighborhoodOptions): string[];`
     - `getSubgraphData(graphInstance: GraphologyInstance, nodeIds: string[]): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };`
     - Responsibility: Encapsulates common Graphology operations.
+- [x] **Implement `GraphAdapterUtility` class:** (In `src/lib/graphologyAdapter.ts`, provides concrete implementation of `GraphAdapter` interface using Graphology library).
 - [x] **Store: Implement `applyLayout` Action (`concept-map-store.ts`):**
     - Takes `updatedNodePositions: Array<{id, x, y}>` (from `DagreLayoutUtility`).
     - Updates `x, y` for corresponding nodes in `mapData.nodes`.
     - Ensure undoable with Zundo (via `mapData` tracking).
-- [ ] **Store: Refactor `deleteNode` Action (`concept-map-store.ts`):**
-    - Internally use `GraphAdapter.fromArrays` and `GraphAdapter.getDescendants` to reliably identify all nodes to delete.
-    - Update `mapData.nodes` and `mapData.edges` based on this.
-    - Manage `childIds` on parent nodes if this feature is kept (or plan for its deprecation).
+- [x] **Store: Refactor `deleteNode` Action (`concept-map-store.ts`):** (Uses `GraphAdapterUtility`)
+    - Internally uses `GraphAdapterUtility` (with `fromArrays` and `getDescendants`) to reliably identify all nodes to delete (including orphaned descendants).
+    - Updates `mapData.nodes` and `mapData.edges` based on this.
+    - Manages `childIds` on parent nodes whose children were deleted.
+    - Clears selection state if deleted elements were selected.
 
 **Phase 2: UI Integration for Auto-Layout (Dagre)**
-- [ ] **UI: Add "Auto-layout Map" Button (`EditorToolbar.tsx`):**
-    - Icon: `Network` or `LayoutDashboard`.
-    - Disabled in `isViewOnlyMode`.
-- [ ] **Page Logic: Connect Button to Dagre Utility & Store (`mapId/page.tsx`):**
-    - On button click: Get current nodes/edges, show loading, call `DagreLayoutUtility`, call store's `applyLayout`, handle loading/toast.
-- [ ] **React Flow: Ensure `fitView` after Layout (`FlowCanvasCore.tsx`):**
-    - Verify/ensure `reactFlowInstance.fitView()` is called after `applyLayout`.
+- [x] **UI: Add "Auto-layout Map" Button (`EditorToolbar.tsx`):**
+    - Icon: `Network` from `lucide-react`.
+    - Disabled in `isViewOnlyMode` and if `onAutoLayout` prop is missing.
+    - Tooltip added: "Auto-layout Map (Dagre)".
+- [x] **Page Logic: Connect Button to Dagre Utility & Store (`mapId/page.tsx`):** (Initial connection)
+    - `handleAutoLayout` async function added to `ConceptMapEditorPage`.
+    - Passed as `onAutoLayout` prop to `EditorToolbar`.
+    - Currently a placeholder that logs and shows a "Not implemented yet" toast.
+- [x] **React Flow: Ensure `fitView` after Layout (`FlowCanvasCore.tsx`):** (Mechanism implemented)
+    - Store action `applyLayout` now sets `triggerFitView: true`.
+    - `FlowCanvasCoreInternal` uses `useEffect` to watch `triggerFitView`.
+    - Calls `reactFlowInstance.fitView()` with animation and resets trigger.
 
 **Phase 3: Integrate Graphology Utilities into AI Features (`useConceptMapAITools.ts`)**
 - [ ] **AI Context Gathering: Refactor for Graphology:**
@@ -352,5 +359,57 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
+[end of TODO.md]
+
+## Cognee Integration Plan
+
+This section outlines the plan to investigate and integrate the Cognee library (https://github.com/topoteretes/cognee) as a potential replacement for the current project analysis and concept map generation backend.
+
+**Overall Strategy:**
+- Utilize Cognee as a backend service, running in a Docker container.
+- Interact with Cognee from our existing Node.js backend via its HTTP API.
+- Cognee will handle ingesting code repositories, analyzing code, and building a queryable knowledge graph.
+- Our Node.js backend will query this graph and transform the data into our frontend's concept map format.
+
+**Initial Plan Steps:**
+
+- [ ] **Step 1: Setup Cognee Environment (User/Dev Task)**
+    - Description: Install Docker, pull Cognee image, configure .env with LLM API key, run Cognee container with necessary volume mounts (for .env and repository access) and port exposure.
+    - Goal: Have a running Cognee instance accessible via its HTTP API.
+- [ ] **Step 2: Verify Repository Processing via API (User/Dev Task)**
+    - Description: Test submitting a code repository (mounted into Docker) to the Cognee API (e.g., using `/api/v1/add` with `file:///container_path/to/repo` and then `/api/v1/cognify`).
+    - Goal: Confirm how to trigger Cognee's code-specific graph generation pipeline for a full repository and identify the correct API sequence.
+- [ ] **Step 3: Investigate Search API Output for Graph Data (User/Dev Task)**
+    - Description: After processing a repository, use Cognee's `/api/v1/search` endpoint with `query_type: "INSIGHTS"` and `query_type: "CODE"`.
+    - Goal: **Critically, inspect and document the raw JSON response structure** for these queries to understand the format of nodes, edges, properties, and metadata. This is vital for planning the data transformation. Note if other methods (e.g., parsing `/api/v1/render_graph` HTML or other export options) are needed if direct JSON graph data is insufficient.
+- [ ] **Step 4: Develop Node.js Wrapper for Cognee API (`cogneeService.ts`)**
+    - Description: Create a service in the Node.js backend to encapsulate all interactions with the Cognee HTTP API (authentication, data submission, search queries, initial response parsing).
+    - Depends on: Successful completion and documented findings from Steps 1-3.
+- [ ] **Step 5: Adapt Project Analysis Flow**
+    - Description: Modify the existing project submission UI and backend logic to use `cogneeService.ts` for project analysis instead of the current Genkit-based tools.
+- [ ] **Step 6: Transform Cognee Output to Concept Map Format**
+    - Description: Implement logic to convert the graph data structures received from Cognee into the `ConceptMapNode[]` and `ConceptMapEdge[]` arrays required by the frontend.
+    - Depends on: Detailed understanding of Cognee's output format from Step 3.
+- [ ] **Step 7: Update Frontend to Display Cognee-generated Maps**
+    - Description: Ensure the frontend can correctly render concept maps based on data originating from Cognee. Address any structural differences or new data fields.
+- [ ] **Step 8: Testing and Refinement**
+    - Description: Conduct thorough testing with various code repositories. Refine Cognee interaction (e.g., prompts if applicable), data transformation, and evaluate the overall quality of the generated concept maps.
+
+[end of TODO.md]
+
+[end of TODO.md]
+
+[end of TODO.md]
+
+[end of TODO.md]
+
+[end of TODO.md]
+
+[end of TODO.md]
+
+[end of TODO.md]
+
+[end of TODO.md]
 
 [end of TODO.md]

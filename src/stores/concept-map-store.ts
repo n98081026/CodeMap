@@ -2,29 +2,13 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
-import Graph from 'graphology'; // Import Graphology
+// import Graph from 'graphology'; // No longer needed directly here if using adapter
+import { GraphAdapterUtility } from '../../lib/graphologyAdapter'; // Import the utility
 
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
-import type { LayoutNodeUpdate } from '@/types/graph-adapter';
+import type { LayoutNodeUpdate, GraphologyInstance } from '@/types/graph-adapter'; // Assuming GraphologyInstance is here
 
-// Conceptual GraphAdapter related types - These might be removed or refactored if Graphology is used directly more often.
-export type GraphologyInstance = Graph; // Using actual Graphology type
-
-export interface GraphAdapterUtility {
-  fromArrays: (nodes: ConceptMapNode[], edges: ConceptMapEdge[]) => GraphologyInstance;
-  getDescendants: (graphInstance: GraphologyInstance, nodeId: string) => string[];
-  toArrays: (graphInstance: GraphologyInstance) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
-  getAncestors: (graphInstance: GraphologyInstance, nodeId: string) => string[];
-  getNeighborhood: (
-    graphInstance: GraphologyInstance,
-    nodeId: string,
-    options?: { depth?: number; direction?: 'in' | 'out' | 'both' }
-  ) => string[];
-  getSubgraphData: (
-    graphInstance: GraphologyInstance,
-    nodeIds: string[]
-  ) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
-}
+// Local GraphAdapter related types are removed as we now import GraphAdapterUtility and use types from graph-adapter.ts
 
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -393,69 +377,66 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })),
 
       deleteNode: (nodeIdToDelete) => {
-        get().addDebugLog(`[STORE deleteNode] Attempting to delete node: ${nodeIdToDelete} and its connected edges.`);
+        get().addDebugLog(`[STORE deleteNode GraphAdapter] Attempting to delete node: ${nodeIdToDelete} and its descendants.`);
         set((state) => {
           const currentNodes = state.mapData.nodes;
           const currentEdges = state.mapData.edges;
+          const graphAdapter = new GraphAdapterUtility();
 
-          const graph = new Graph({ type: 'directed' });
+          const graphInstance = graphAdapter.fromArrays(currentNodes, currentEdges);
 
-          currentNodes.forEach(node => graph.addNode(node.id, { ...node }));
-          currentEdges.forEach(edge => {
-            // Ensure source and target nodes exist in the graph before adding edge
-            if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
-              graph.addEdgeWithKey(edge.id, edge.source, edge.target, { ...edge });
-            } else {
-              console.warn(`[STORE deleteNode] Edge ${edge.id} references a missing source/target node. Skipping adding to graph for deletion logic.`);
-              get().addDebugLog(`[STORE deleteNode] Edge ${edge.id} (source: ${edge.source}, target: ${edge.target}) references missing node. Will be kept if not directly connected to deleted node.`);
-            }
-          });
-
-          const edgeIdsToRemove = new Set<string>();
-          if (graph.hasNode(nodeIdToDelete)) {
-            graph.forEachEdge(nodeIdToDelete, (edgeKey) => { // Iterates over all edges connected to nodeIdToDelete
-              edgeIdsToRemove.add(edgeKey);
-            });
-            get().addDebugLog(`[STORE deleteNode] Edges connected to ${nodeIdToDelete} identified for removal: ${JSON.stringify(Array.from(edgeIdsToRemove))}`);
-          } else {
-            get().addDebugLog(`[STORE deleteNode] Node ${nodeIdToDelete} not found in graph. No edges will be removed via graph logic.`);
-            // Node might still be in currentNodes if graph population failed for it,
-            // so we proceed to filter nodes anyway.
+          if (!graphInstance.hasNode(nodeIdToDelete)) {
+            get().addDebugLog(`[STORE deleteNode GraphAdapter] Node ${nodeIdToDelete} not found in graph. No changes made.`);
+            return state; // Return current state if node doesn't exist
           }
 
-          const edgesToKeep = currentEdges.filter(edge => !edgeIdsToRemove.has(edge.id));
-          let updatedNodes = currentNodes.filter(node => node.id !== nodeIdToDelete);
+          const descendants = graphAdapter.getDescendants(graphInstance, nodeIdToDelete);
+          const allNodeIdsToDelete = new Set<string>([nodeIdToDelete, ...descendants]);
+          get().addDebugLog(`[STORE deleteNode GraphAdapter] Nodes to delete (incl. descendants): ${JSON.stringify(Array.from(allNodeIdsToDelete))}`);
 
-          // Handle parent's childIds update (if the deleted node had a parent)
-          const nodeBeingDeleted = currentNodes.find(n => n.id === nodeIdToDelete);
-          if (nodeBeingDeleted?.parentNode) {
-            const parentNodeId = nodeBeingDeleted.parentNode;
-            updatedNodes = updatedNodes.map(node => {
-              if (node.id === parentNodeId) {
-                const newChildIds = (node.childIds || []).filter(id => id !== nodeIdToDelete);
-                get().addDebugLog(`[STORE deleteNode] Updating parent ${parentNodeId}, removing child ${nodeIdToDelete}. New childIds: ${JSON.stringify(newChildIds)}`);
+          const nodesToKeepIntermediate = currentNodes.filter(node => !allNodeIdsToDelete.has(node.id));
+          const edgesToKeep = currentEdges.filter(edge =>
+            !allNodeIdsToDelete.has(edge.source) && !allNodeIdsToDelete.has(edge.target)
+          );
+
+          // Update childIds for parents of any deleted nodes (only considering parents that are NOT themselves deleted)
+          const finalNodesToKeep = nodesToKeepIntermediate.map(node => {
+            if (node.childIds && node.childIds.length > 0) {
+              const newChildIds = node.childIds.filter(childId => !allNodeIdsToDelete.has(childId));
+              if (newChildIds.length !== node.childIds.length) {
+                get().addDebugLog(`[STORE deleteNode GraphAdapter] Updating parent ${node.id}, removing deleted children. Old childIds: ${JSON.stringify(node.childIds)}, New: ${JSON.stringify(newChildIds)}`);
                 return { ...node, childIds: newChildIds };
               }
-              return node;
-            });
-          }
+            }
+            return node;
+          });
 
-          // Clear selection if the deleted node was selected
+          // Clear selection if any of the deleted nodes were selected
           let newSelectedElementId = state.selectedElementId;
           let newSelectedElementType = state.selectedElementType;
-          if (state.selectedElementId === nodeIdToDelete) {
+
+          if (state.selectedElementId && allNodeIdsToDelete.has(state.selectedElementId)) {
             newSelectedElementId = null;
             newSelectedElementType = null;
-            get().addDebugLog(`[STORE deleteNode] Cleared selection as deleted node ${nodeIdToDelete} was selected.`);
+            get().addDebugLog(`[STORE deleteNode GraphAdapter] Cleared selection as a deleted node was selected.`);
+          } else if (state.selectedElementType === 'edge' && state.selectedElementId) {
+            // If an edge was selected, check if it was removed
+            const selectedEdgeWasRemoved = !edgesToKeep.find(e => e.id === state.selectedElementId);
+            if (selectedEdgeWasRemoved) {
+              newSelectedElementId = null;
+              newSelectedElementType = null;
+              get().addDebugLog(`[STORE deleteNode GraphAdapter] Cleared selection as a selected edge was removed.`);
+            }
           }
-          const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => id !== nodeIdToDelete);
-          const newAiProcessingNodeId = state.aiProcessingNodeId === nodeIdToDelete ? null : state.aiProcessingNodeId;
-          const newEditingNodeId = state.editingNodeId === nodeIdToDelete ? null : state.editingNodeId;
 
-          get().addDebugLog(`[STORE deleteNode] Deletion complete. Nodes remaining: ${updatedNodes.length}, Edges remaining: ${edgesToKeep.length}`);
+          const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !allNodeIdsToDelete.has(id));
+          const newAiProcessingNodeId = state.aiProcessingNodeId && allNodeIdsToDelete.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
+          const newEditingNodeId = state.editingNodeId && allNodeIdsToDelete.has(state.editingNodeId) ? null : state.editingNodeId;
+
+          get().addDebugLog(`[STORE deleteNode GraphAdapter] Deletion complete. Nodes remaining: ${finalNodesToKeep.length}, Edges remaining: ${edgesToKeep.length}`);
           return {
             mapData: {
-              nodes: updatedNodes,
+              nodes: finalNodesToKeep,
               edges: edgesToKeep,
             },
             selectedElementId: newSelectedElementId,
@@ -467,7 +448,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
         });
       },
 
-      addEdge: (options) => { // No change needed to set((state) => ...) part, just the outer part
+      addEdge: (options) => {
         const newEdge: ConceptMapEdge = {
           id: uniqueEdgeId(),
           source: options.source,
