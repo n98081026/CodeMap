@@ -40,6 +40,7 @@ interface FlowCanvasCoreProps {
   onNewEdgeSuggestLabels?: (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => Promise<void>;
   onGhostNodeAcceptRequest?: (ghostNodeId: string) => void;
   onConceptSuggestionDrop?: (conceptText: string, position: { x: number; y: number }) => void; // New prop
+  onRefinePreviewNodeRequested?: (nodeId: string, currentText: string, currentDetails?: string) => void; // New prop for refining ghost nodes
   panActivationKeyCode?: string | null;
 }
 
@@ -168,7 +169,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onStagedElementsSelectionChange,
   onNewEdgeSuggestLabels,
   onGhostNodeAcceptRequest,
-  onConceptSuggestionDrop, // Destructure new prop
+  onConceptSuggestionDrop,
+  onRefinePreviewNodeRequested, // Destructure new prop
   panActivationKeyCode,
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
@@ -370,6 +372,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
             isGhost: true, // Flag for styling
             width: 150, // Standard size for ghosts
             height: 70,
+            onRefineGhostNode: onRefinePreviewNodeRequested, // Pass the handler
           } as CustomNodeData,
           position: position,
           draggable: false,
@@ -396,7 +399,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       setRfPreviewNodes([]);
       setRfPreviewEdges([]);
     }
-  }, [conceptExpansionPreview, mapDataFromStore.nodes, setRfPreviewNodes, setRfPreviewEdges, reactFlowInstance]);
+  }, [conceptExpansionPreview, mapDataFromStore.nodes, setRfPreviewNodes, setRfPreviewEdges, reactFlowInstance, onRefinePreviewNodeRequested]);
   
   // Effect to fitView (remains unchanged)
   useEffect(() => {

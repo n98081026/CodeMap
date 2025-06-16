@@ -65,6 +65,7 @@ interface ConceptMapState {
 
 // Concept expansion preview state
 conceptExpansionPreview: ConceptExpansionPreviewState | null;
+updateConceptExpansionPreviewNode: (previewNodeId: string, newText: string, newDetails?: string) => void; // New action
 
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
@@ -175,7 +176,7 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
-  'setConceptExpansionPreview' | 'applyLayout' | 'tidySelectedNodes' |
+  'setConceptExpansionPreview' | 'updateConceptExpansionPreviewNode' | 'applyLayout' | 'tidySelectedNodes' |
   'startConnection' | 'cancelConnection' | 'finishConnectionAttempt' |
   // Structural suggestions
   'fetchStructuralSuggestions' | 'acceptStructuralSuggestion' | 'dismissStructuralSuggestion' |
@@ -618,6 +619,42 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setConceptExpansionPreview: (preview) => {
         get().addDebugLog(`[STORE setConceptExpansionPreview] Setting preview for parent ${preview?.parentNodeId}. Nodes: ${preview?.previewNodes?.length ?? 0}`);
         set({ conceptExpansionPreview: preview });
+      },
+
+      updateConceptExpansionPreviewNode: (previewNodeId, newText, newDetails) => {
+        set((state) => {
+          if (!state.conceptExpansionPreview || !state.conceptExpansionPreview.previewNodes) {
+            state.addDebugLog(`[STORE updateConceptExpansionPreviewNode] No active concept expansion preview to update node ${previewNodeId}.`);
+            return state; // No preview active, do nothing
+          }
+
+          let nodeFoundAndUpdated = false;
+          const updatedPreviewNodes = state.conceptExpansionPreview.previewNodes.map(node => {
+            if (node.id === previewNodeId) {
+              state.addDebugLog(`[STORE updateConceptExpansionPreviewNode] Updating preview node ${previewNodeId}. New text: "${newText}", New details: "${newDetails !== undefined ? newDetails : 'no change'}".`);
+              nodeFoundAndUpdated = true;
+              return {
+                ...node,
+                text: newText,
+                details: newDetails !== undefined ? newDetails : node.details, // Only update details if newDetails is provided
+              };
+            }
+            return node;
+          });
+
+          if (!nodeFoundAndUpdated) {
+               state.addDebugLog(`[STORE updateConceptExpansionPreviewNode] Preview node ${previewNodeId} not found in current preview. No changes made.`);
+               return state; // Node not found, no change
+          }
+
+          return {
+            ...state,
+            conceptExpansionPreview: {
+              ...state.conceptExpansionPreview,
+              previewNodes: updatedPreviewNodes,
+            },
+          };
+        });
       },
 
       applyLayout: (updatedNodePositions) => {

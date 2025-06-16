@@ -23,6 +23,7 @@ import {
 import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal";
 import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
 import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
+import { RefineGhostNodeModal } from "@/components/concept-map/RefineGhostNodeModal"; // Import RefineGhostNodeModal
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { UserRole } from "@/types";
@@ -150,6 +151,12 @@ export default function ConceptMapEditorPage() {
     intermediateNodeOriginalEdgeContext,
     confirmAddIntermediateNode,
     closeSuggestIntermediateNodeModal,
+    // For Refine Ghost Node Modal
+    isRefineGhostNodeModalOpen,
+    refiningGhostNodeData,
+    openRefineGhostNodeModal,
+    closeRefineGhostNodeModal,
+    handleConfirmRefineGhostNode,
   } = aiToolsHook;
 
   const reactFlowInstance = useReactFlow();
@@ -633,6 +640,7 @@ export default function ConceptMapEditorPage() {
               onGhostNodeAcceptRequest={acceptSingleExpansionPreview}
               onConceptSuggestionDrop={handleConceptSuggestionDrop} // Pass the new drop handler
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
+              onRefinePreviewNodeRequested={aiToolsHook.openRefineGhostNodeModal} // Pass the new prop
             />
           )}
         </div>
@@ -709,6 +717,15 @@ export default function ConceptMapEditorPage() {
             sourceNodeText={modalSourceNodeText}
             targetNodeText={modalTargetNodeText}
             originalEdgeLabel={modalOriginalEdgeLabel}
+          />
+        )}
+        {isRefineGhostNodeModalOpen && refiningGhostNodeData && (
+          <RefineGhostNodeModal
+            isOpen={isRefineGhostNodeModalOpen}
+            onOpenChange={(open) => { if(!open) closeRefineGhostNodeModal(); }}
+            initialText={refiningGhostNodeData.currentText}
+            initialDetails={refiningGhostNodeData.currentDetails}
+            onSubmit={handleConfirmRefineGhostNode}
           />
         )}
       </ReactFlowProvider>

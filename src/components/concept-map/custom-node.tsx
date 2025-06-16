@@ -11,9 +11,10 @@ import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added im
 import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
-  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser,
-  Move as MoveIcon // Added MoveIcon
-} from 'lucide-react'; // Added Loader2
+  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser, Edit3, // Added Edit3
+  Move as MoveIcon
+} from 'lucide-react';
+import { Button } from '@/components/ui/button'; // Added Button import
 
 export interface CustomNodeData {
   label: string;
@@ -27,6 +28,7 @@ export interface CustomNodeData {
   onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void; // For hover buttons
   isStaged?: boolean;
   isGhost?: boolean; // Added for ghost node styling
+  onRefineGhostNode?: (nodeId: string, currentText: string, currentDetails?: string) => void; // New prop for ghost node refinement
   // onTriggerAIExpand?: (nodeId: string) => void; // Retained for potential future direct AI button on node
 }
 
@@ -65,6 +67,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     updateNode, // Added updateNode from store
     startConnection, // Added for starting connection mode
   } = useConceptMapStore();
+  const { onRefineGhostNode } = data; // Destructure new prop
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
   const isBeingProcessedByAI = aiProcessingNodeId === id; // Check if this node is being processed
@@ -162,6 +165,21 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
+      {data.isGhost && onRefineGhostNode && !globalIsViewOnlyMode && (
+        <Button
+          variant="ghost"
+          size="iconSm" // You might need to define this size in your Button component variants or use an existing small size
+          className="absolute top-0 left-0 m-1 h-5 w-5 p-0.5 z-10 bg-background/70 hover:bg-accent text-foreground" // Ensure text color is visible
+          title="Refine this suggestion"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRefineGhostNode(id, data.label || '', data.details);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <Edit3 className="h-3 w-3" />
+        </Button>
+      )}
       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
         <div
           className={cn(

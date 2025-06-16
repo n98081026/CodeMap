@@ -70,11 +70,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     resetAiSuggestions,
     addNode: addStoreNode,
     updateNode: updateStoreNode,
+    updateConceptExpansionPreviewNode, // Added for refining ghost nodes
     addEdge: addStoreEdge,
     setAiProcessingNodeId,
     setStagedMapData,
-    setConceptExpansionPreview, // Added for concept expansion preview
-    conceptExpansionPreview,    // Added for concept expansion preview
+    setConceptExpansionPreview,
+    conceptExpansionPreview,
   } = useConceptMapStore(
     useCallback(s => ({
       mapData: s.mapData,
@@ -87,6 +88,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       resetAiSuggestions: s.resetAiSuggestions,
       addNode: s.addNode,
       updateNode: s.updateNode,
+      updateConceptExpansionPreviewNode: s.updateConceptExpansionPreviewNode,
       addEdge: s.addEdge,
       setAiProcessingNodeId: s.setAiProcessingNodeId,
       setStagedMapData: s.setStagedMapData,
@@ -94,6 +96,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       conceptExpansionPreview: s.conceptExpansionPreview,
     }), [])
   );
+  const addDebugLog = useConceptMapStore.getState().addDebugLog;
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [textForExtraction, setTextForExtraction] = useState("");
@@ -122,6 +125,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [intermediateNodeSuggestionData, setIntermediateNodeSuggestionData] = useState<IntermediateNodeSuggestionResponse | null>(null);
   const [intermediateNodeOriginalEdgeContext, setIntermediateNodeOriginalEdgeContext] = useState<{ edgeId: string; sourceNodeId: string; targetNodeId: string } | null>(null);
   const [isSuggestingIntermediateNode, setIsSuggestingIntermediateNode] = useState(false);
+
+  // State for Refine Ghost Node Modal
+  const [isRefineGhostNodeModalOpen, setIsRefineGhostNodeModalOpen] = useState(false);
+  const [refiningGhostNodeData, setRefiningGhostNodeData] = useState<{ id: string; currentText: string; currentDetails?: string; } | null>(null);
 
 
   // --- Extract Concepts ---
@@ -613,14 +620,47 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     // Suggest Intermediate Node
     isSuggestIntermediateNodeModalOpen,
     intermediateNodeSuggestionData,
-    intermediateNodeOriginalEdgeContext, // Not typically needed by UI, but returned for completeness/testing
+    intermediateNodeOriginalEdgeContext,
     handleSuggestIntermediateNode,
     confirmAddIntermediateNode,
     closeSuggestIntermediateNodeModal,
-    isSuggestingIntermediateNode, // Loading state for the button
+    isSuggestingIntermediateNode,
+    // Refine Ghost Node Modal
+    isRefineGhostNodeModalOpen,
+    refiningGhostNodeData,
+    openRefineGhostNodeModal,
+    closeRefineGhostNodeModal,
+    handleConfirmRefineGhostNode,
   };
 
-  // --- Suggest Intermediate Node ---
+  // --- Refine Ghost Node Modal ---
+
+  // --- Refine Ghost Node Modal ---
+  const openRefineGhostNodeModal = useCallback((nodeId: string, currentText: string, currentDetails?: string) => {
+    setRefiningGhostNodeData({ id: nodeId, currentText, currentDetails });
+    setIsRefineGhostNodeModalOpen(true);
+    addDebugLog(`[AITools] Opening RefineGhostNodeModal for preview node: ${nodeId}`);
+  }, [addDebugLog, setIsRefineGhostNodeModalOpen, setRefiningGhostNodeData]);
+
+  const closeRefineGhostNodeModal = useCallback(() => {
+    setIsRefineGhostNodeModalOpen(false);
+    setRefiningGhostNodeData(null);
+    addDebugLog('[AITools] Closed RefineGhostNodeModal.');
+  }, [addDebugLog, setIsRefineGhostNodeModalOpen, setRefiningGhostNodeData]);
+
+  const handleConfirmRefineGhostNode = useCallback((newText: string, newDetails: string) => {
+    if (refiningGhostNodeData) {
+      updateConceptExpansionPreviewNode(
+        refiningGhostNodeData.id,
+        newText,
+        newDetails
+      );
+      toast({ title: "Suggestion Refined", description: `Preview node '${refiningGhostNodeData.id}' updated.` });
+      addDebugLog(`[AITools] Confirmed refinement for preview node: ${refiningGhostNodeData.id}`);
+    }
+    closeRefineGhostNodeModal();
+  }, [refiningGhostNodeData, closeRefineGhostNodeModal, toast, addDebugLog, updateConceptExpansionPreviewNode]);
+
   const handleSuggestIntermediateNode = useCallback(async (edgeId: string, sourceNodeId: string, targetNodeId: string) => {
     if (isViewOnlyMode) {
       toast({ title: "View Only Mode", variant: "default" });
