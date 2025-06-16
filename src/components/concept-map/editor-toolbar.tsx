@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, // Added ScanSearch
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -42,8 +42,10 @@ interface EditorToolbarProps {
   numMultiSelectedNodes: number;
   onAutoLayout?: () => void;
   onTidySelection?: () => void;
-  onSuggestMapImprovements?: () => void; // New prop
-  isSuggestingMapImprovements?: boolean; // New prop
+  onSuggestMapImprovements?: () => void;
+  isSuggestingMapImprovements?: boolean;
+  onApplySemanticTidyUp?: () => void; // New prop for Semantic Tidy
+  isApplyingSemanticTidyUp?: boolean; // New prop for Semantic Tidy
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({
@@ -76,8 +78,10 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   numMultiSelectedNodes,
   onAutoLayout,
   onTidySelection,
-  onSuggestMapImprovements, // Destructure new prop
-  isSuggestingMapImprovements, // Destructure new prop
+  onSuggestMapImprovements,
+  isSuggestingMapImprovements,
+  onApplySemanticTidyUp, // Destructure new prop
+  isApplyingSemanticTidyUp, // Destructure new prop
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -212,6 +216,29 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               : numMultiSelectedNodes < 2
               ? "Tidy Selection (Select 2+ nodes)"
               : "Tidy Selected Nodes"}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleGenAIClick(onApplySemanticTidyUp!, "AI Semantic Tidy")}
+              disabled={isViewOnlyMode || !onApplySemanticTidyUp || isApplyingSemanticTidyUp || numMultiSelectedNodes < 2}
+            >
+              {isApplyingSemanticTidyUp ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode
+              ? "AI Semantic Tidy (Disabled in View Mode)"
+              : !onApplySemanticTidyUp
+              ? "AI Semantic Tidy (Not Configured)"
+              : isApplyingSemanticTidyUp
+              ? "Processing..."
+              : numMultiSelectedNodes < 2
+              ? "AI Semantic Tidy (Select 2+ nodes)"
+              : "Arrange Selected Nodes with AI (Semantic Tidy)"}
           </TooltipContent>
         </Tooltip>
 

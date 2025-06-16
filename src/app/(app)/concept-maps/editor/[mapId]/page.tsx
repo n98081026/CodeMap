@@ -72,8 +72,10 @@ export default function ConceptMapEditorPage() {
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
     addDebugLog,
     tidySelectedNodes,
-    fetchStructuralSuggestions, // Destructure new action
-    isFetchingStructuralSuggestions, // Destructure new state
+    fetchStructuralSuggestions,
+    isFetchingStructuralSuggestions,
+    applySemanticTidyUp, // Destructure new action
+    isApplyingSemanticTidyUp, // Destructure new state
   } = useConceptMapStore(
     useCallback(s => ({
       mapId: s.mapId, mapName: s.mapName, currentMapOwnerId: s.currentMapOwnerId, currentMapCreatedAt: s.currentMapCreatedAt,
@@ -89,8 +91,10 @@ export default function ConceptMapEditorPage() {
       setSelectedElement: s.setSelectedElement, setMultiSelectedNodeIds: s.setMultiSelectedNodeIds,
       importMapData: s.importMapData, setIsViewOnlyMode: s.setIsViewOnlyMode, addDebugLog: s.addDebugLog,
       tidySelectedNodes: s.tidySelectedNodes,
-      fetchStructuralSuggestions: s.fetchStructuralSuggestions, // Add to selector
-      isFetchingStructuralSuggestions: s.isFetchingStructuralSuggestions, // Add to selector
+      fetchStructuralSuggestions: s.fetchStructuralSuggestions,
+      isFetchingStructuralSuggestions: s.isFetchingStructuralSuggestions,
+      applySemanticTidyUp: s.applySemanticTidyUp, // Add to selector
+      isApplyingSemanticTidyUp: s.isApplyingSemanticTidyUp, // Add to selector
     }), [])
   );
 
@@ -597,8 +601,10 @@ export default function ConceptMapEditorPage() {
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodeIds={multiSelectedNodeIds.length}
           onTidySelection={tidySelectedNodes}
-          onSuggestMapImprovements={fetchStructuralSuggestions} // Pass the action
-          isSuggestingMapImprovements={isFetchingStructuralSuggestions} // Pass the state
+          onSuggestMapImprovements={fetchStructuralSuggestions}
+          isSuggestingMapImprovements={isFetchingStructuralSuggestions}
+          onApplySemanticTidyUp={applySemanticTidyUp} // Pass the action
+          isApplyingSemanticTidyUp={isApplyingSemanticTidyUp} // Pass the state
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (

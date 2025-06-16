@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
 import { runFlow } from '@genkit-ai/flow';
-import { suggestMapImprovementsFlow } from '@/ai/flows';
+import { suggestMapImprovementsFlow, semanticTidyUpFlow, type SemanticTidyUpRequest } from '@/ai/flows'; // Added semanticTidyUpFlow and types
 
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
@@ -131,6 +131,10 @@ fetchStructuralSuggestions: () => Promise<void>;
 acceptStructuralSuggestion: (suggestionId: string) => void;
 dismissStructuralSuggestion: (suggestionId: string) => void;
 clearAllStructuralSuggestions: () => void;
+
+// Semantic Tidy Up
+isApplyingSemanticTidyUp: boolean;
+applySemanticTidyUp: () => Promise<void>;
 }
 
 export type ProcessedSuggestedEdge = {
@@ -158,8 +162,10 @@ const initialStateBase: Omit<ConceptMapState,
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
   'setConceptExpansionPreview' | 'applyLayout' | 'tidySelectedNodes' |
   'startConnection' | 'cancelConnection' | 'finishConnectionAttempt' |
-  // Structural suggestions - Action names to Omit
-  'fetchStructuralSuggestions' | 'acceptStructuralSuggestion' | 'dismissStructuralSuggestion' | 'clearAllStructuralSuggestions'
+  // Structural suggestions
+  'fetchStructuralSuggestions' | 'acceptStructuralSuggestion' | 'dismissStructuralSuggestion' | 'clearAllStructuralSuggestions' |
+  // Semantic Tidy Up
+  'applySemanticTidyUp'
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -189,6 +195,8 @@ const initialStateBase: Omit<ConceptMapState,
   // Structural suggestions initial state
   isFetchingStructuralSuggestions: false,
   structuralSuggestions: null,
+  // Semantic Tidy Up initial state
+  isApplyingSemanticTidyUp: false,
 };
 
 // Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
@@ -751,10 +759,58 @@ export const useConceptMapStore = create<ConceptMapState>()(
         get().addDebugLog('[STORE clearAllStructuralSuggestions] Clearing all structural suggestions.');
         set({ structuralSuggestions: [] }); // Set to empty array to indicate "fetched, but none active"
       },
+
+      applySemanticTidyUp: async () => {
+        const { mapData, multiSelectedNodeIds, applyLayout, addDebugLog } = get();
+
+        if (multiSelectedNodeIds.length < 2) {
+          addDebugLog('[STORE applySemanticTidyUp] Less than 2 nodes selected. No action.');
+          return;
+        }
+
+        const selectedNodesData = mapData.nodes
+          .filter(n => multiSelectedNodeIds.includes(n.id))
+          .map(n => ({
+            id: n.id,
+            text: n.text || '',
+            details: n.details || '',
+            x: n.x,
+            y: n.y,
+            width: n.width || 150,
+            height: n.height || 70,
+          }));
+
+        if (selectedNodesData.length < 2) {
+          addDebugLog('[STORE applySemanticTidyUp] Filtered selected nodes data resulted in less than 2. No action.');
+          return;
+        }
+
+        addDebugLog(`[STORE applySemanticTidyUp] Initiating for ${selectedNodesData.length} nodes.`);
+        set({ isApplyingSemanticTidyUp: true, error: null });
+
+        try {
+          const suggestedPositions = await runFlow(semanticTidyUpFlow, selectedNodesData as SemanticTidyUpRequest);
+
+          if (suggestedPositions && suggestedPositions.length > 0) {
+            applyLayout(suggestedPositions); // applyLayout expects LayoutNodeUpdate[] which matches SemanticTidyUpResponse
+            addDebugLog(`[STORE applySemanticTidyUp] Successfully applied semantic layout to ${suggestedPositions.length} nodes.`);
+          } else {
+            addDebugLog('[STORE applySemanticTidyUp] Semantic tidy up flow returned no valid positions.');
+            set({ error: "AI Semantic Tidy-Up did not return new positions."});
+          }
+        } catch (err) {
+          console.error("Error during semanticTidyUpFlow execution:", err);
+          const errorMsg = err instanceof Error ? err.message : "Failed to apply AI semantic tidy-up.";
+          addDebugLog(`[STORE applySemanticTidyUp] Error: ${errorMsg}`);
+          set({ error: errorMsg });
+        } finally {
+          set({ isApplyingSemanticTidyUp: false });
+        }
+      },
     }),
     {
       partialize: (state): TrackedState => {
-    // Exclude connectingNodeId from temporal state for now, as it's a transient UI state
+    // Exclude connectingNodeId and isApplyingSemanticTidyUp from temporal state
         const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview } = state;
         return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview };
       },

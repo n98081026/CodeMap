@@ -11,6 +11,7 @@ export * from './summarize-nodes-flow';
 export * from './suggest-edge-label'; // Added new flow
 export * from './suggest-map-improvements';
 export * from './suggest-intermediate-node';
+export * from './semanticTidyUpFlow';
 
 // IMPORTANT: rewrite-node-content-logic.ts (formerly rewrite-node-content-flow.ts) and its exports
 // are NOT exported from this barrel file due to persistent module resolution issues.
