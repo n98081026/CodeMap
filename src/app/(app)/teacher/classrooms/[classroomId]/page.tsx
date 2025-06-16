@@ -34,6 +34,9 @@ export default function ClassroomDetailPage() {
   const [classroomMaps, setClassroomMaps] = useState<ConceptMap[]>([]);
   const [isLoadingMaps, setIsLoadingMaps] = useState(false);
   const [errorMaps, setErrorMaps] = useState<string | null>(null);
+  const [mapsCurrentPage, setMapsCurrentPage] = useState(1);
+  const [mapsTotalPages, setMapsTotalPages] = useState(0);
+  const [mapsTotalCount, setMapsTotalCount] = useState(0);
 
   const [classroomSubmissions, setClassroomSubmissions] = useState<ProjectSubmission[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
@@ -61,17 +64,22 @@ export default function ClassroomDetailPage() {
     }
   }, [routeClassroomId, toast]);
 
-  const fetchClassroomMaps = useCallback(async () => {
+  const MAPS_PER_PAGE = 10; // Define maps per page
+
+  const fetchClassroomMaps = useCallback(async (pageToFetch: number) => {
     setIsLoadingMaps(true);
     setErrorMaps(null);
     try {
-      const response = await fetch(`/api/concept-maps?classroomId=${routeClassroomId}`);
+      const response = await fetch(`/api/concept-maps?classroomId=${routeClassroomId}&page=${pageToFetch}&limit=${MAPS_PER_PAGE}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch classroom maps");
       }
-      const data: ConceptMap[] = await response.json();
-      setClassroomMaps(data);
+      const data = await response.json(); // API returns { maps, totalCount, page, totalPages }
+      setClassroomMaps(data.maps);
+      setMapsTotalCount(data.totalCount);
+      setMapsTotalPages(data.totalPages);
+      setMapsCurrentPage(data.page);
     } catch (err) {
       const errorMessage = (err as Error).message;
       setErrorMaps(errorMessage);
@@ -79,7 +87,7 @@ export default function ClassroomDetailPage() {
     } finally {
       setIsLoadingMaps(false);
     }
-  }, [routeClassroomId, toast]);
+  }, [routeClassroomId, toast]); // MAPS_PER_PAGE is a constant, no need to include
 
   const fetchClassroomSubmissions = useCallback(async () => {
     setIsLoadingSubmissions(true);
@@ -105,10 +113,14 @@ export default function ClassroomDetailPage() {
   useEffect(() => {
     if (routeClassroomId) {
       fetchClassroomDetailsAndStudents();
-      fetchClassroomMaps();
-      fetchClassroomSubmissions();
+      fetchClassroomMaps(mapsCurrentPage); // Fetch initial page of maps
+      fetchClassroomSubmissions(); // Assuming this will also be paginated later
     }
-  }, [routeClassroomId, fetchClassroomDetailsAndStudents, fetchClassroomMaps, fetchClassroomSubmissions]);
+  }, [routeClassroomId, fetchClassroomDetailsAndStudents, fetchClassroomMaps, fetchClassroomSubmissions, mapsCurrentPage]);
+
+  const handleMapsPageChange = useCallback((newPage: number) => {
+    setMapsCurrentPage(newPage);
+  }, []);
 
   const handleRemoveStudent = useCallback(async (studentId: string, studentName: string) => {
     if (!classroom) return;
@@ -188,7 +200,7 @@ export default function ClassroomDetailPage() {
       <Tabs defaultValue="students" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="students"><Users className="mr-2 h-4 w-4 sm:inline hidden" />Students ({isLoadingClassroom ? '...' : enrolledStudents.length})</TabsTrigger>
-          <TabsTrigger value="maps"><Share2 className="mr-2 h-4 w-4 sm:inline hidden" />Concept Maps ({isLoadingMaps ? '...' : classroomMaps.length})</TabsTrigger>
+          <TabsTrigger value="maps"><Share2 className="mr-2 h-4 w-4 sm:inline hidden" />Concept Maps ({isLoadingMaps ? '...' : mapsTotalCount})</TabsTrigger>
           <TabsTrigger value="submissions"><FolderKanban className="mr-2 h-4 w-4 sm:inline hidden" />Submissions ({isLoadingSubmissions ? '...' : classroomSubmissions.length})</TabsTrigger>
         </TabsList>
 
@@ -220,9 +232,13 @@ export default function ClassroomDetailPage() {
                 <ClassroomMapsTab
                     isLoading={isLoadingMaps}
                     error={errorMaps}
-                    maps={classroomMaps}
+                    maps={classroomMaps} // This will be the current page's maps
+                    currentPage={mapsCurrentPage}
+                    totalPages={mapsTotalPages}
+                    totalMapsCount={mapsTotalCount}
+                    onPageChange={handleMapsPageChange}
                     enrolledStudents={enrolledStudents} 
-                    onFetchRetry={fetchClassroomMaps}
+                    onFetchRetry={() => fetchClassroomMaps(mapsCurrentPage)} // Retry current page
                 />
             </CardContent>
           </Card>

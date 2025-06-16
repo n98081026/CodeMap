@@ -59,8 +59,34 @@ export async function GET(request: Request) {
     if (classroomIdParam) {
       // User is authenticated at this point.
       // Further authorization for classroom-specific maps is handled by RLS / service layer.
-      const maps = await getConceptMapsByClassroomId(classroomIdParam);
-      return NextResponse.json(maps);
+
+      const pageParam = searchParams.get('page');
+      const limitParam = searchParams.get('limit');
+      let page = 1;
+      if (pageParam) {
+        const parsedPage = parseInt(pageParam, 10);
+        if (isNaN(parsedPage) || parsedPage < 1) {
+          return NextResponse.json({ message: "Invalid 'page' parameter. Must be a positive integer." }, { status: 400 });
+        }
+        page = parsedPage;
+      }
+      let limit = 10; // Default limit
+      if (limitParam) {
+        const parsedLimit = parseInt(limitParam, 10);
+        if (isNaN(parsedLimit) || parsedLimit < 1) {
+          return NextResponse.json({ message: "Invalid 'limit' parameter. Must be a positive integer." }, { status: 400 });
+        }
+        limit = parsedLimit;
+      }
+
+      const { maps, totalCount } = await getConceptMapsByClassroomId(classroomIdParam, page, limit);
+      return NextResponse.json({
+        maps,
+        totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+      });
     }
     
     if (ownerIdParam) {
