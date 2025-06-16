@@ -1,14 +1,15 @@
 
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler } from "lucide-react"; 
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles } from "lucide-react";
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
+import AICommandPalette, { type AICommand } from './ai-command-palette'; // Import AICommandPalette
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
 import { Button } from "@/components/ui/button"; 
 import { cn } from "@/lib/utils";
@@ -27,7 +28,12 @@ interface PropertiesInspectorProps {
 
   isNewMapMode?: boolean; 
   isViewOnlyMode?: boolean;
-  editingNodeId?: string | null; // Added prop
+  editingNodeId?: string | null;
+  aiTools?: { // New prop for AI tool functions
+    openExpandConceptModal: (nodeId: string) => void;
+    openRewriteNodeContentModal: (nodeId: string) => void;
+    // Define types for other tools if passed
+  };
 }
 
 export const PropertiesInspector = React.memo(function PropertiesInspector({ 
@@ -38,10 +44,47 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   onSelectedElementPropertyUpdate,
   isNewMapMode, 
   isViewOnlyMode,
-  editingNodeId, // Destructure new prop
+  editingNodeId,
+  aiTools, // Destructure aiTools
 }: PropertiesInspectorProps) {
   
-  const nodeLabelInputRef = useRef<HTMLInputElement>(null); // Ref for node label input
+  const nodeLabelInputRef = useRef<HTMLInputElement>(null);
+  const nodeDetailsTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [showPalette, setShowPalette] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState("");
+  const [paletteTargetRef, setPaletteTargetRef] = useState<React.RefObject<HTMLInputElement | HTMLTextAreaElement> | null>(null);
+  const [activeCommandField, setActiveCommandField] = useState<'label' | 'details' | null>(null);
+
+  // Define AI Commands
+  const availableAiCommands: AICommand[] = React.useMemo(() => {
+    const commands: AICommand[] = [];
+    if (selectedElementType === 'node' && selectedElement?.id && aiTools) {
+      const nodeId = selectedElement.id; // Capture for closure
+      if (aiTools.openExpandConceptModal) {
+        commands.push({
+          id: 'expand-node',
+          label: 'Expand Node',
+          description: 'Generate child concepts for this node.',
+          icon: Brain,
+          action: () => aiTools.openExpandConceptModal(nodeId)
+        });
+      }
+      if (aiTools.openRewriteNodeContentModal) {
+        commands.push({
+          id: 'rewrite-content',
+          label: 'Rewrite Content',
+          description: `Refine this node's ${activeCommandField || 'content'}.`,
+          icon: Sparkles,
+          action: () => aiTools.openRewriteNodeContentModal(nodeId)
+          // Note: We might want to pass activeCommandField to the modal if it needs to know
+        });
+      }
+    }
+    // Add other commands, potentially for edges or general map context later
+    return commands;
+  }, [selectedElement?.id, selectedElementType, aiTools, activeCommandField]);
+
 
   useEffect(() => {
     if (
@@ -110,24 +153,80 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     });
   }, [isViewOnlyMode, currentMap, onMapPropertiesChange, mapNameValue, isPublicValue]);
 
-  const handleElementLabelChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChangeForPalette = useCallback((
+    value: string,
+    field: 'label' | 'details',
+    ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || !selectedElement) return;
-    if (selectedElementType === 'node') {
-      onSelectedElementPropertyUpdate({ text: e.target.value });
-    } else if (selectedElementType === 'edge') {
-      onSelectedElementPropertyUpdate({ label: e.target.value });
+
+    // Update the actual property in the store first
+    if (field === 'label') {
+      if (selectedElementType === 'node') onSelectedElementPropertyUpdate({ text: value });
+      else if (selectedElementType === 'edge') onSelectedElementPropertyUpdate({ label: value });
+    } else if (field === 'details' && selectedElementType === 'node') {
+      onSelectedElementPropertyUpdate({ details: value });
     }
-  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElement, selectedElementType]);
+
+    const commandPrefix = "/ai";
+    // Check if "/ai" is present and is the last typed part of a word or followed by a space
+    const commandRegex = /\/ai(?:\s|$)/i; // /ai followed by space or end of string
+    const match = commandRegex.exec(value);
+    const commandIndex = match ? match.index : -1;
+
+    if (commandIndex !== -1) {
+        const textAfterCommand = value.substring(commandIndex + commandPrefix.length);
+        // Only show palette if there's a space after /ai or it's just /ai
+        if (value.charAt(commandIndex + commandPrefix.length) === ' ' || value.substring(commandIndex) === commandPrefix) {
+            const query = textAfterCommand.trimStart();
+            setPaletteQuery(query);
+            setShowPalette(true);
+            setPaletteTargetRef(ref);
+            setActiveCommandField(field);
+        } else {
+            setShowPalette(false);
+        }
+    } else {
+      setShowPalette(false);
+    }
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElement, selectedElementType, setPaletteQuery, setShowPalette, setPaletteTargetRef, setActiveCommandField]);
+
+  const handleElementLabelChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    handleInputChangeForPalette(e.target.value, 'label', nodeLabelInputRef);
+  }, [handleInputChangeForPalette]);
 
   const handleElementDetailsChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
-    onSelectedElementPropertyUpdate({ details: e.target.value });
-  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+    handleInputChangeForPalette(e.target.value, 'details', nodeDetailsTextareaRef);
+  }, [handleInputChangeForPalette]);
 
-  const handleElementNodeTypeChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
-    onSelectedElementPropertyUpdate({ type: e.target.value });
-  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType, selectedElement]);
+  const _handlePaletteSelectCommand = useCallback((command: AICommand) => {
+    setShowPalette(false);
+    if (paletteTargetRef?.current && activeCommandField && onSelectedElementPropertyUpdate) {
+      const currentValue = paletteTargetRef.current.value;
+      const aiCommandIndex = currentValue.toLowerCase().lastIndexOf('/ai');
+      let cleanedValue = currentValue;
+      if (aiCommandIndex !== -1) {
+        cleanedValue = currentValue.substring(0, aiCommandIndex).trimEnd();
+      }
+
+      if (activeCommandField === 'label') {
+        if (selectedElementType === 'node') onSelectedElementPropertyUpdate({ text: cleanedValue });
+        else if (selectedElementType === 'edge') onSelectedElementPropertyUpdate({ label: cleanedValue });
+      } else if (activeCommandField === 'details' && selectedElementType === 'node') {
+        onSelectedElementPropertyUpdate({ details: cleanedValue });
+      }
+
+      // command.action(); // This will be called with more context later
+      // For now, the availableAiCommands already have console.log with selectedElement.id
+      const commandToExecute = availableAiCommands.find(c => c.id === command.id);
+      commandToExecute?.action();
+
+    }
+  }, [paletteTargetRef, activeCommandField, onSelectedElementPropertyUpdate, selectedElementType, availableAiCommands]);
+
+  const _handlePaletteClose = useCallback(() => {
+    setShowPalette(false);
+  }, []);
 
   const handleNodeBackgroundColorChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
@@ -243,7 +342,8 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       <div className="mt-2">
         <Label htmlFor="nodeDetails" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Details</Label>
         <Textarea 
-            id="nodeDetails" 
+            id="nodeDetails"
+            ref={nodeDetailsTextareaRef}
             value={elementDetailsValue} 
             onChange={handleElementDetailsChange} 
             disabled={isViewOnlyMode} 
@@ -251,12 +351,16 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             className={cn("resize-none", isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
         />
       </div>
+      {/* Node Type input - removed handleElementNodeTypeChange as it was identical to handleElementLabelChange's old logic and not palette related */}
       <div className="mt-2">
         <Label htmlFor="nodeType" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Type</Label>
         <Input 
           id="nodeType" 
           value={elementNodeTypeValue} 
-          onChange={handleElementNodeTypeChange} 
+          onChange={(e) => {
+            if (isViewOnlyMode || !onSelectedElementPropertyUpdate || selectedElementType !== 'node' || !selectedElement) return;
+            onSelectedElementPropertyUpdate({ type: e.target.value });
+          }}
           disabled={isViewOnlyMode} 
           placeholder="e.g., service, component"
           className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
@@ -457,7 +561,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           {getCardDescription()}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 relative"> {/* Added relative for palette positioning context */}
         {selectedElementType === 'node' && selectedElement ? renderNodeProperties() :
          selectedElementType === 'edge' && selectedElement ? renderEdgeProperties() :
          currentMap ? renderMapProperties() : 
@@ -474,11 +578,17 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
                 This map is in view-only mode. Editing features are disabled.
             </p>
         )}
+        <AICommandPalette
+          isOpen={showPalette}
+          targetRef={paletteTargetRef}
+          commands={availableAiCommands}
+          onSelectCommand={_handlePaletteSelectCommand}
+          onClose={_handlePaletteClose}
+          query={paletteQuery}
+        />
       </CardContent>
     </Card>
   );
 });
-PropertiesInspector.displayName = "PropertiesInspector";
-  
 
-    
+PropertiesInspector.displayName = "PropertiesInspector";

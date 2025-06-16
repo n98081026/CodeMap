@@ -179,11 +179,12 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     addEdge: addEdgeToStore, // Assuming addEdge from store is what we need
   } = useConceptMapStore();
 
-  const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
+  const { stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions } = useConceptMapStore(
     useCallback(s => ({
       stagedMapData: s.stagedMapData,
       isStagingActive: s.isStagingActive,
-      conceptExpansionPreview: s.conceptExpansionPreview
+      conceptExpansionPreview: s.conceptExpansionPreview,
+      structuralSuggestions: s.structuralSuggestions, // Destructure structuralSuggestions
     }), [])
   );
   const reactFlowInstance = useReactFlow();
@@ -647,7 +648,30 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     return baseNodes;
   }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewData]);
 
-  const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
+  const combinedEdges = useMemo(() => {
+    const baseEdges = [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges];
+    if (structuralSuggestions && structuralSuggestions.length > 0) {
+      const suggestionFlowEdges = structuralSuggestions.map((suggestion) => ({
+        id: suggestion.id, // This is the temporary unique ID
+        source: suggestion.source,
+        target: suggestion.target,
+        label: suggestion.label || '',
+        type: 'orthogonal', // Use existing orthogonal edge type
+        data: {
+            label: suggestion.label || '',
+            isSuggestion: true, // Flag to identify this as a suggestion
+            reason: suggestion.reason,
+            // Explicitly don't set color/lineType here if style dictates it
+        } as OrthogonalEdgeData, // Cast is okay if OrthogonalEdgeData is simple
+        style: { stroke: '#7c3aed', strokeDasharray: '8 6', opacity: 0.8, strokeWidth: 2 }, // Distinct style
+        markerEnd: getMarkerDefinition('arrowclosed', '#7c3aed'),
+        selectable: true,
+        zIndex: 1,
+      }));
+      baseEdges.push(...suggestionFlowEdges);
+    }
+    return baseEdges;
+  }, [rfEdges, rfStagedEdges, rfPreviewEdges, structuralSuggestions]);
 
   // Handle Escape key to cancel connection
   useEffect(() => {

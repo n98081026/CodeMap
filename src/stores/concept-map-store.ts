@@ -2,6 +2,8 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
+import { runFlow } from '@genkit-ai/flow';
+import { suggestMapImprovementsFlow } from '@/ai/flows';
 
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
@@ -120,10 +122,26 @@ setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => vo
 
 // Layout action
 applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
-tidySelectedNodes: () => void; // New action for tidying selection
+tidySelectedNodes: () => void;
+
+// Structural suggestions
+isFetchingStructuralSuggestions: boolean;
+structuralSuggestions: ProcessedSuggestedEdge[] | null;
+fetchStructuralSuggestions: () => Promise<void>;
+acceptStructuralSuggestion: (suggestionId: string) => void;
+dismissStructuralSuggestion: (suggestionId: string) => void;
+clearAllStructuralSuggestions: () => void;
 }
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview'>;
+export type ProcessedSuggestedEdge = {
+  id: string; // Unique temporary ID for UI
+  source: string;
+  target: string;
+  label?: string;
+  reason?: string;
+};
+
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' | 'structuralSuggestions'>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -138,8 +156,10 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
-  'setConceptExpansionPreview' | 'applyLayout' | 'tidySelectedNodes' | // Added tidySelectedNodes
-  'startConnection' | 'cancelConnection' | 'finishConnectionAttempt'
+  'setConceptExpansionPreview' | 'applyLayout' | 'tidySelectedNodes' |
+  'startConnection' | 'cancelConnection' | 'finishConnectionAttempt' |
+  // Structural suggestions - Action names to Omit
+  'fetchStructuralSuggestions' | 'acceptStructuralSuggestion' | 'dismissStructuralSuggestion' | 'clearAllStructuralSuggestions'
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -165,7 +185,10 @@ const initialStateBase: Omit<ConceptMapState,
   debugLogs: [],
   stagedMapData: null,
   isStagingActive: false,
-  conceptExpansionPreview: null, // Added concept expansion preview state
+  conceptExpansionPreview: null,
+  // Structural suggestions initial state
+  isFetchingStructuralSuggestions: false,
+  structuralSuggestions: null,
 };
 
 // Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
@@ -668,6 +691,65 @@ export const useConceptMapStore = create<ConceptMapState>()(
             }),
           },
         }));
+      },
+
+      // Structural Suggestions actions
+      fetchStructuralSuggestions: async () => {
+        get().addDebugLog('[STORE fetchStructuralSuggestions] Initiating...');
+        set({ isFetchingStructuralSuggestions: true, structuralSuggestions: null }); // Clear previous suggestions
+
+        const { nodes, edges } = get().mapData;
+        // Map to the schema expected by the flow (only id, text, details for nodes)
+        const flowInput = {
+          nodes: nodes.map(n => ({ id: n.id, text: n.text, details: n.details })),
+          edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label })),
+        };
+
+        try {
+          const result = await runFlow(suggestMapImprovementsFlow, flowInput);
+          if (result.suggestedEdges && result.suggestedEdges.length > 0) {
+            const processedSuggestions: ProcessedSuggestedEdge[] = result.suggestedEdges.map((edge, i) => ({
+              ...edge,
+              id: `struct-sugg-${Date.now()}-${i}`, // Unique temporary ID
+            }));
+            set({ structuralSuggestions: processedSuggestions, isFetchingStructuralSuggestions: false });
+            get().addDebugLog(`[STORE fetchStructuralSuggestions] Received ${processedSuggestions.length} suggestions.`);
+          } else {
+            set({ structuralSuggestions: [], isFetchingStructuralSuggestions: false });
+            get().addDebugLog('[STORE fetchStructuralSuggestions] No suggestions received.');
+          }
+        } catch (error) {
+          console.error("Error fetching structural suggestions:", error);
+          get().addDebugLog(`[STORE fetchStructuralSuggestions] Error: ${error}`);
+          set({ isFetchingStructuralSuggestions: false, error: 'Failed to fetch structural suggestions.' });
+        }
+      },
+      acceptStructuralSuggestion: (suggestionId: string) => {
+        const suggestion = get().structuralSuggestions?.find(s => s.id === suggestionId);
+        if (suggestion) {
+          get().addDebugLog(`[STORE acceptStructuralSuggestion] Accepting suggestion: ${suggestionId}`);
+          get().addEdge({
+            source: suggestion.source,
+            target: suggestion.target,
+            label: suggestion.label || 'Suggested Connection', // Provide a default label
+            // Potentially add a specific style or type for AI suggested edges
+          });
+          set(state => ({
+            structuralSuggestions: state.structuralSuggestions?.filter(s => s.id !== suggestionId) || null,
+          }));
+        } else {
+          get().addDebugLog(`[STORE acceptStructuralSuggestion] Suggestion not found: ${suggestionId}`);
+        }
+      },
+      dismissStructuralSuggestion: (suggestionId: string) => {
+        get().addDebugLog(`[STORE dismissStructuralSuggestion] Dismissing suggestion: ${suggestionId}`);
+        set(state => ({
+          structuralSuggestions: state.structuralSuggestions?.filter(s => s.id !== suggestionId) || null,
+        }));
+      },
+      clearAllStructuralSuggestions: () => {
+        get().addDebugLog('[STORE clearAllStructuralSuggestions] Clearing all structural suggestions.');
+        set({ structuralSuggestions: [] }); // Set to empty array to indicate "fetched, but none active"
       },
     }),
     {

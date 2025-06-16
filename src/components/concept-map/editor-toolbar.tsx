@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, // Added Shuffle & LayoutGrid
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, // Added ScanSearch
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -41,7 +41,9 @@ interface EditorToolbarProps {
   selectedNodeId: string | null;
   numMultiSelectedNodes: number;
   onAutoLayout?: () => void;
-  onTidySelection?: () => void; // New prop for Tidy Selection
+  onTidySelection?: () => void;
+  onSuggestMapImprovements?: () => void; // New prop
+  isSuggestingMapImprovements?: boolean; // New prop
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({
@@ -73,7 +75,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   selectedNodeId,
   numMultiSelectedNodes,
   onAutoLayout,
-  onTidySelection, // Destructure new prop
+  onTidySelection,
+  onSuggestMapImprovements, // Destructure new prop
+  isSuggestingMapImprovements, // Destructure new prop
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -214,6 +218,27 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         <Separator orientation="vertical" className="mx-1 h-full" />
 
         {/* GenAI Tools */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleGenAIClick(onSuggestMapImprovements!, "Suggest Map Improvements")}
+              disabled={isViewOnlyMode || !onSuggestMapImprovements || isSuggestingMapImprovements}
+            >
+              {isSuggestingMapImprovements ? <Loader2 className="h-5 w-5 animate-spin" /> : <ScanSearch className="h-5 w-5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode
+              ? "Suggest Improvements (Disabled in View Mode)"
+              : !onSuggestMapImprovements
+              ? "Suggest Improvements (Not Configured)"
+              : isSuggestingMapImprovements
+              ? "Processing..."
+              : "Scan Map for Structure Suggestions (AI)"}
+          </TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onQuickCluster, "Quick AI Cluster")} disabled={isViewOnlyMode}>

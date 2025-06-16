@@ -35,8 +35,9 @@ import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
-import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar'; // Import AIStagingToolbar
-import { Lightbulb, Sparkles, Brain, HelpCircle, CheckCircle, XCircle } from 'lucide-react'; // Added CheckCircle, XCircle
+import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
+import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal'; // Import the new modal
+import { Lightbulb, Sparkles, Brain, HelpCircle, CheckCircle, XCircle } from 'lucide-react';
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -70,6 +71,9 @@ export default function ConceptMapEditorPage() {
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
     addDebugLog,
+    tidySelectedNodes,
+    fetchStructuralSuggestions, // Destructure new action
+    isFetchingStructuralSuggestions, // Destructure new state
   } = useConceptMapStore(
     useCallback(s => ({
       mapId: s.mapId, mapName: s.mapName, currentMapOwnerId: s.currentMapOwnerId, currentMapCreatedAt: s.currentMapCreatedAt,
@@ -84,6 +88,9 @@ export default function ConceptMapEditorPage() {
       deleteNode: s.deleteNode, updateNode: s.updateNode, updateEdge: s.updateEdge,
       setSelectedElement: s.setSelectedElement, setMultiSelectedNodeIds: s.setMultiSelectedNodeIds,
       importMapData: s.importMapData, setIsViewOnlyMode: s.setIsViewOnlyMode, addDebugLog: s.addDebugLog,
+      tidySelectedNodes: s.tidySelectedNodes,
+      fetchStructuralSuggestions: s.fetchStructuralSuggestions, // Add to selector
+      isFetchingStructuralSuggestions: s.isFetchingStructuralSuggestions, // Add to selector
     }), [])
   );
 
@@ -133,6 +140,12 @@ export default function ConceptMapEditorPage() {
     clearExpansionPreview,      // Destructure new function
     // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
     removeExtractedConceptsFromSuggestions, // Destructure for use in drop handler
+    // For Suggest Intermediate Node Modal
+    isSuggestIntermediateNodeModalOpen,
+    intermediateNodeSuggestionData,
+    intermediateNodeOriginalEdgeContext,
+    confirmAddIntermediateNode,
+    closeSuggestIntermediateNodeModal,
   } = aiToolsHook;
 
   const reactFlowInstance = useReactFlow();
@@ -526,6 +539,20 @@ export default function ConceptMapEditorPage() {
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
   if (storeError) { return <div className="p-4 text-destructive flex flex-col items-center justify-center h-full gap-4"><AlertTriangle className="h-10 w-10" /> <p>{storeError}</p> <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
 
+  // Prepare props for SuggestIntermediateNodeModal
+  let modalSourceNodeText: string | undefined;
+  let modalTargetNodeText: string | undefined;
+  let modalOriginalEdgeLabel: string | undefined;
+
+  if (intermediateNodeOriginalEdgeContext && storeMapData) {
+    const sourceNode = storeMapData.nodes.find(n => n.id === intermediateNodeOriginalEdgeContext.sourceNodeId);
+    modalSourceNodeText = sourceNode?.text;
+    const targetNode = storeMapData.nodes.find(n => n.id === intermediateNodeOriginalEdgeContext.targetNodeId);
+    modalTargetNodeText = targetNode?.text;
+    const originalEdge = storeMapData.edges.find(e => e.id === intermediateNodeOriginalEdgeContext.edgeId);
+    modalOriginalEdgeLabel = originalEdge?.label;
+  }
+
   const showEmptyMapMessage =
     !isStoreLoading &&
     useConceptMapStore.getState().initialLoadComplete &&
@@ -568,7 +595,10 @@ export default function ConceptMapEditorPage() {
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
           onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
-          numMultiSelectedNodes={multiSelectedNodeIds.length}
+          numMultiSelectedNodeIds={multiSelectedNodeIds.length}
+          onTidySelection={tidySelectedNodes}
+          onSuggestMapImprovements={fetchStructuralSuggestions} // Pass the action
+          isSuggestingMapImprovements={isFetchingStructuralSuggestions} // Pass the state
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
@@ -628,7 +658,14 @@ export default function ConceptMapEditorPage() {
             <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
               selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType}
               onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
-              isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} />
+              isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode}
+              editingNodeId={selectedElementType === 'node' ? useConceptMapStore.getState().editingNodeId : null} // Pass editingNodeId
+              aiTools={{
+                openExpandConceptModal: aiToolsHook.openExpandConceptModal,
+                openRewriteNodeContentModal: aiToolsHook.openRewriteNodeContentModal,
+                suggestIntermediateNode: aiToolsHook.handleSuggestIntermediateNode, // Assuming this function exists or will be added to the hook
+              }}
+            />
           </SheetContent>
         </Sheet>
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
@@ -655,6 +692,19 @@ export default function ConceptMapEditorPage() {
         {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
         {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
         {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
+
+        {isSuggestIntermediateNodeModalOpen && intermediateNodeSuggestionData && (
+          <SuggestIntermediateNodeModal
+            isOpen={isSuggestIntermediateNodeModalOpen}
+            onOpenChange={(openState) => { if (!openState) closeSuggestIntermediateNodeModal(); }}
+            suggestionData={intermediateNodeSuggestionData}
+            onConfirm={confirmAddIntermediateNode}
+            onCancel={closeSuggestIntermediateNodeModal}
+            sourceNodeText={modalSourceNodeText}
+            targetNodeText={modalTargetNodeText}
+            originalEdgeLabel={modalOriginalEdgeLabel}
+          />
+        )}
       </ReactFlowProvider>
     </div>
   );
