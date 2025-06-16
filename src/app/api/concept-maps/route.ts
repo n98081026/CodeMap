@@ -2,10 +2,20 @@
 import { NextResponse } from 'next/server';
 import { createConceptMap, getConceptMapsByOwnerId, getConceptMapsByClassroomId } from '@/services/conceptMaps/conceptMapService';
 import type { ConceptMapData } from '@/types';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { UserRole } from '@/types';
 
 export async function POST(request: Request) {
   try {
-    const { name, ownerId, mapData, isPublic, sharedWithClassroomId } = await request.json() as {
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError) { return NextResponse.json({ message: "Authentication error" }, { status: 500 }); }
+    if (!user) { return NextResponse.json({ message: "Authentication required" }, { status: 401 }); }
+
+    const { name, ownerId: ownerIdFromRequest, mapData, isPublic, sharedWithClassroomId } = await request.json() as {
       name: string;
       ownerId: string; 
       mapData: ConceptMapData;
@@ -13,11 +23,15 @@ export async function POST(request: Request) {
       sharedWithClassroomId?: string | null;
     };
 
-    if (!name || !ownerId || !mapData) {
+    if (!name || !ownerIdFromRequest || !mapData) {
       return NextResponse.json({ message: "Name, ownerId, and mapData are required" }, { status: 400 });
     }
 
-    const newMap = await createConceptMap(name, ownerId, mapData, isPublic, sharedWithClassroomId);
+    if (user.id !== ownerIdFromRequest) {
+      return NextResponse.json({ message: "Forbidden: Users can only create concept maps for themselves." }, { status: 403 });
+    }
+
+    const newMap = await createConceptMap(name, ownerIdFromRequest, mapData, isPublic, sharedWithClassroomId);
     return NextResponse.json(newMap, { status: 201 });
 
   } catch (error) {
@@ -29,22 +43,35 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const ownerId = searchParams.get('ownerId');
-    const classroomId = searchParams.get('classroomId');
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (classroomId) {
-      const maps = await getConceptMapsByClassroomId(classroomId);
+    if (authError) { return NextResponse.json({ message: "Authentication error" }, { status: 500 }); }
+    if (!user) { return NextResponse.json({ message: "Authentication required" }, { status: 401 }); }
+
+    const userRole = user.user_metadata?.role as UserRole;
+
+    const { searchParams } = new URL(request.url);
+    const ownerIdParam = searchParams.get('ownerId');
+    const classroomIdParam = searchParams.get('classroomId');
+
+    if (classroomIdParam) {
+      // User is authenticated at this point.
+      // Further authorization for classroom-specific maps is handled by RLS / service layer.
+      const maps = await getConceptMapsByClassroomId(classroomIdParam);
       return NextResponse.json(maps);
     }
     
-    if (ownerId) {
-      const maps = await getConceptMapsByOwnerId(ownerId);
+    if (ownerIdParam) {
+      if (userRole !== UserRole.ADMIN && user.id !== ownerIdParam) {
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions to view these concept maps." }, { status: 403 });
+      }
+      const maps = await getConceptMapsByOwnerId(ownerIdParam);
       return NextResponse.json(maps);
     }
 
     // If neither ownerId nor classroomId is provided, it's an invalid request for this endpoint.
-    // Admin might have a separate endpoint or flag for getting all maps.
     return NextResponse.json({ message: "Query parameter 'ownerId' or 'classroomId' is required to list concept maps." }, { status: 400 });
 
   } catch (error) {

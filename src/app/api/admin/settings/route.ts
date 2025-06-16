@@ -3,26 +3,39 @@
 import { NextResponse } from 'next/server';
 import { getSystemSettings, updateSystemSettings } from '@/services/admin/settingsService';
 import type { SystemSettings } from '@/types';
-// import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'; // For auth checks
-// import { cookies } from 'next/headers';
-// import { UserRole } from '@/types';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { UserRole } from '@/types'; // Assuming UserRole enum/type exists
 
-// Helper function for authorization (basic example)
-// In a real app, integrate with your auth context or Supabase user roles.
-// For now, RLS on the 'system_settings' table is the primary security.
-// async function isAdmin(): Promise<boolean> {
-//   const cookieStore = cookies();
-//   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-//   const { data: { user } } = await supabase.auth.getUser();
-//   // This assumes you have a way to get full user profile including role
-//   // For simplicity, this check is illustrative. RLS is more robust.
-//   return user?.user_metadata?.role === UserRole.ADMIN;
-// }
+async function checkAdminAuth(): Promise<{ allow: boolean; message?: string; status?: number }> {
+  try {
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("Auth error in checkAdminAuth:", authError);
+      return { allow: false, message: "Authentication error", status: 500 };
+    }
+    if (!user) {
+      return { allow: false, message: "Authentication required", status: 401 };
+    }
+    // Assuming role is in user_metadata. This needs to match actual Supabase setup.
+    if (user.user_metadata?.role !== UserRole.ADMIN) {
+      return { allow: false, message: "Forbidden: Admin access required", status: 403 };
+    }
+    return { allow: true };
+  } catch (e) {
+    console.error("Exception in checkAdminAuth:", e);
+    return { allow: false, message: "Internal server error during auth check", status: 500 };
+  }
+}
 
 export async function GET(request: Request) {
-  // if (!await isAdmin()) {
-  //   return NextResponse.json({ message: 'Forbidden: Admin access required' }, { status: 403 });
-  // }
+  const authCheck = await checkAdminAuth();
+  if (!authCheck.allow) {
+    return NextResponse.json({ message: authCheck.message }, { status: authCheck.status });
+  }
   try {
     const settings = await getSystemSettings();
     return NextResponse.json(settings);
@@ -34,9 +47,10 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  // if (!await isAdmin()) {
-  //   return NextResponse.json({ message: 'Forbidden: Admin access required' }, { status: 403 });
-  // }
+  const authCheck = await checkAdminAuth();
+  if (!authCheck.allow) {
+    return NextResponse.json({ message: authCheck.message }, { status: authCheck.status });
+  }
   try {
     const newSettings = await request.json() as Partial<SystemSettings>;
     

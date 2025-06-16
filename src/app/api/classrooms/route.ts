@@ -2,10 +2,20 @@
 // src/app/api/classrooms/route.ts
 import { NextResponse } from 'next/server';
 import { createClassroom, getClassroomsByTeacherId, getClassroomsByStudentId, getAllClassrooms } from '@/services/classrooms/classroomService';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { UserRole } from '@/types';
 
 export async function POST(request: Request) {
   try {
-    const { name, description, teacherId, subject, difficulty, enableStudentAiAnalysis } = await request.json() as { 
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError) { return NextResponse.json({ message: "Authentication error" }, { status: 500 }); }
+    if (!user) { return NextResponse.json({ message: "Authentication required" }, { status: 401 }); }
+
+    const { name, description, teacherId: teacherIdFromRequest, subject, difficulty, enableStudentAiAnalysis } = await request.json() as {
       name: string; 
       description?: string; 
       teacherId: string;
@@ -14,10 +24,20 @@ export async function POST(request: Request) {
       enableStudentAiAnalysis?: boolean;
     };
 
-    if (!name || !teacherId) {
+    if (!name || !teacherIdFromRequest) {
       return NextResponse.json({ message: "Classroom name and teacher ID are required" }, { status: 400 });
     }
-    const newClassroom = await createClassroom(name, description, teacherId, subject, difficulty, enableStudentAiAnalysis);
+
+    const userRole = user.user_metadata?.role as UserRole;
+    if (userRole === UserRole.TEACHER) {
+      if (user.id !== teacherIdFromRequest) {
+        return NextResponse.json({ message: "Forbidden: Teachers can only create classrooms for themselves." }, { status: 403 });
+      }
+    } else if (userRole !== UserRole.ADMIN) {
+      return NextResponse.json({ message: "Forbidden: Insufficient permissions to create a classroom." }, { status: 403 });
+    }
+
+    const newClassroom = await createClassroom(name, description, teacherIdFromRequest, subject, difficulty, enableStudentAiAnalysis);
     return NextResponse.json(newClassroom, { status: 201 });
 
   } catch (error) {
@@ -29,35 +49,49 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError) { return NextResponse.json({ message: "Authentication error" }, { status: 500 }); }
+    if (!user) { return NextResponse.json({ message: "Authentication required" }, { status: 401 }); }
+
+    const userRole = user.user_metadata?.role as UserRole;
+
     const { searchParams } = new URL(request.url);
-    const teacherId = searchParams.get('teacherId');
-    const studentId = searchParams.get('studentId');
+    const teacherIdParam = searchParams.get('teacherId');
+    const studentIdParam = searchParams.get('studentId');
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit');
     const searchTerm = searchParams.get('search') || undefined;
 
-
-    if (teacherId) {
-      const page = pageParam ? parseInt(pageParam, 10) : 1; // Default to page 1
-      const limit = limitParam ? parseInt(limitParam, 10) : 10; // Default to limit 10
-
+    if (teacherIdParam) {
+      if (userRole !== UserRole.ADMIN && (userRole !== UserRole.TEACHER || user.id !== teacherIdParam)) {
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions to view these classrooms." }, { status: 403 });
+      }
+      const page = pageParam ? parseInt(pageParam, 10) : 1;
+      const limit = limitParam ? parseInt(limitParam, 10) : 10;
       if (isNaN(page) || page < 1 || isNaN(limit) || limit < 1) {
         return NextResponse.json({ message: "Invalid page or limit parameters" }, { status: 400 });
       }
-      
-      const result = await getClassroomsByTeacherId(teacherId, page, limit, searchTerm); // Service handles pagination & search
+      const result = await getClassroomsByTeacherId(teacherIdParam, page, limit, searchTerm);
       return NextResponse.json(result);
     }
     
-    if (studentId) {
-      // Note: getClassroomsByStudentId does not currently support pagination or search.
-      // If needed, this service function would also need to be updated.
-      const classrooms = await getClassroomsByStudentId(studentId);
+    if (studentIdParam) {
+      if (userRole !== UserRole.ADMIN && (userRole !== UserRole.STUDENT || user.id !== studentIdParam)) {
+        // TODO: Consider if teachers should be able to view classrooms for their students.
+        // This would require checking enrollment status if such a feature is added.
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions to view these classrooms." }, { status: 403 });
+      }
+      const classrooms = await getClassroomsByStudentId(studentIdParam);
       return NextResponse.json(classrooms); 
     }
     
-    // Admin: Get all classrooms (for count or full list if needed, here assuming for count)
-    // Note: getAllClassrooms does not currently support pagination or search.
+    // If neither teacherIdParam nor studentIdParam is provided, fetch all classrooms (admin only)
+    if (userRole !== UserRole.ADMIN) {
+      return NextResponse.json({ message: "Forbidden: Only admins can list all classrooms." }, { status: 403 });
+    }
     const allClassrooms = await getAllClassrooms(); 
     return NextResponse.json(allClassrooms); 
 
