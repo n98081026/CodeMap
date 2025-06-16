@@ -125,7 +125,11 @@ export async function getConceptMapById(mapId: string): Promise<ConceptMap | nul
 /**
  * Retrieves all concept maps owned by a specific user.
  */
-export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptMap[]> {
+export async function getConceptMapsByOwnerId(
+  ownerId: string,
+  page?: number,
+  limit?: number
+): Promise<{ maps: ConceptMap[], totalCount: number }> {
   if (BYPASS_AUTH_FOR_TESTING) {
     const allMockMaps = MOCK_CONCEPT_MAPS_STORE || [];
     const userMaps = allMockMaps.filter(m => {
@@ -135,7 +139,15 @@ export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptM
       console.warn(`[Mock Service] Skipping mock map due to missing/invalid ownerId:`, m);
       return false;
     });
-    return userMaps.map(m => ({ // Ensure returned structure is complete
+
+    const totalCount = userMaps.length;
+    let paginatedMaps = userMaps;
+
+    if (page && limit && page > 0 && limit > 0) {
+      paginatedMaps = userMaps.slice((page - 1) * limit, page * limit);
+    }
+
+    const mappedData = paginatedMaps.map(m => ({ // Ensure returned structure is complete
       id: m.id || `mock-map-id-${Date.now()}-${Math.random()}`,
       name: m.name || "Untitled Mock Map",
       ownerId: m.ownerId,
@@ -145,31 +157,53 @@ export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptM
       createdAt: m.createdAt || new Date().toISOString(),
       updatedAt: m.updatedAt || new Date().toISOString(),
     }));
+    return { maps: mappedData, totalCount };
   }
 
-  const { data, error } = await supabase
+  // Fetch total count
+  const { count, error: countError } = await supabase
+    .from('concept_maps')
+    .select('*', { count: 'exact', head: true })
+    .eq('owner_id', ownerId);
+
+  if (countError) {
+    console.error('[Service Error] Supabase getConceptMapsByOwnerId count error:', countError);
+    throw new Error(`Failed to fetch concept map count for owner: ${countError.message}`);
+  }
+  const totalCount = count || 0;
+
+  // Fetch paginated maps
+  let mapsQuery = supabase
     .from('concept_maps')
     .select('*')
     .eq('owner_id', ownerId)
     .order('updated_at', { ascending: false });
 
-  if (error) {
-    console.error('[Service Error] Supabase getConceptMapsByOwnerId error:', error);
-    throw new Error(`Failed to fetch concept maps for owner: ${error.message}`);
-  }
-  
-  if (!data) {
-    return [];
+  if (page && limit && page > 0 && limit > 0) {
+    mapsQuery = mapsQuery.range((page - 1) * limit, page * limit - 1);
   }
 
-  return data.map(m => {
+  const { data: mapsData, error: mapsError } = await mapsQuery;
+
+  if (mapsError) {
+    console.error('[Service Error] Supabase getConceptMapsByOwnerId maps error:', mapsError);
+    throw new Error(`Failed to fetch concept maps for owner: ${mapsError.message}`);
+  }
+  
+  if (!mapsData) {
+    return { maps: [], totalCount };
+  }
+
+  const mappedData = mapsData.map(m => {
     if (!m) {
       console.error('[Service Error] Encountered a null/undefined item in Supabase response for concept_maps. Skipping item.');
-      throw new Error("Corrupted data received from database: null item in list during getConceptMapsByOwnerId.");
+      // This case should ideally not happen if the query is successful and returns data.
+      // Depending on strictness, could throw or filter out. For now, let's be robust.
+      return null;
     }
     if (typeof m.owner_id === 'undefined') {
       console.error(`[Service Error] Concept map row with id ${m.id} is missing 'owner_id'. Data:`, m);
-      throw new Error(`Corrupted data: Concept map ${m.id} missing owner_id during getConceptMapsByOwnerId.`);
+      return null;
     }
     return {
       id: m.id,
@@ -181,7 +215,9 @@ export async function getConceptMapsByOwnerId(ownerId: string): Promise<ConceptM
       createdAt: m.created_at,
       updatedAt: m.updated_at,
     };
-  });
+  }).filter(m => m !== null) as ConceptMap[]; // Filter out any nulls from mapping bad data
+
+  return { maps: mappedData, totalCount };
 }
 
 /**

@@ -605,7 +605,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     handleMiniToolbarRewriteConcise,
     // Suggestion getter functions
     getPaneSuggestions,
-    getNodeSuggestions: getNodeSuggestions, // Keep existing, will be wrapped or replaced by async version
+    getNodeSuggestions: getNodeSuggestions,
     // Edge Label Suggestions
     fetchAndSetEdgeLabelSuggestions,
     edgeLabelSuggestions,

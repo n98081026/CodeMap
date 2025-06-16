@@ -67,8 +67,37 @@ export async function GET(request: Request) {
       if (userRole !== UserRole.ADMIN && user.id !== ownerIdParam) {
         return NextResponse.json({ message: "Forbidden: Insufficient permissions to view these concept maps." }, { status: 403 });
       }
-      const maps = await getConceptMapsByOwnerId(ownerIdParam);
-      return NextResponse.json(maps);
+
+      const pageParam = searchParams.get('page');
+      const limitParam = searchParams.get('limit');
+
+      let page = 1;
+      if (pageParam) {
+        const parsedPage = parseInt(pageParam, 10);
+        if (isNaN(parsedPage) || parsedPage < 1) {
+          return NextResponse.json({ message: "Invalid 'page' parameter. Must be a positive integer." }, { status: 400 });
+        }
+        page = parsedPage;
+      }
+
+      let limit = 10; // Default limit
+      if (limitParam) {
+        const parsedLimit = parseInt(limitParam, 10);
+        if (isNaN(parsedLimit) || parsedLimit < 1) {
+          return NextResponse.json({ message: "Invalid 'limit' parameter. Must be a positive integer." }, { status: 400 });
+        }
+        limit = parsedLimit;
+      }
+
+      const { maps, totalCount } = await getConceptMapsByOwnerId(ownerIdParam, page, limit);
+
+      return NextResponse.json({
+        maps,
+        totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+      });
     }
 
     // If neither ownerId nor classroomId is provided, it's an invalid request for this endpoint.
