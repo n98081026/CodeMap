@@ -30,18 +30,19 @@ import CustomNodeComponent, { type CustomNodeData } from './custom-node';
 import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
 import { cn } from '@/lib/utils';
 
-// Define nodeTypesConfig and edgeTypesConfig as top-level constants here
+// Define nodeTypesConfig as top-level constant here
 const nodeTypesConfig: NodeTypes = {
   customConceptNode: CustomNodeComponent,
 };
 
-const edgeTypesConfig: EdgeTypes = {
+// Default edgeTypesConfig, can be overridden by prop
+const defaultEdgeTypesConfig: EdgeTypes = {
   orthogonal: OrthogonalEdge,
 };
 
 interface InteractiveCanvasProps {
   nodes: Node<CustomNodeData>[];
-  edges: Edge<OrthogonalEdgeData>[];
+  edges: Edge<OrthogonalEdgeData>[]; // This type might need to be more generic if SuggestionEdgeData is very different
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onNodesDelete?: OnNodesDelete;
@@ -61,6 +62,7 @@ interface InteractiveCanvasProps {
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string | null;
+  edgeTypes?: EdgeTypes; // Prop to pass custom edge types
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -102,10 +104,11 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onNodeClick,
   onDragOver,
   onDrop,
-  onDragLeave, // Destructure onDragLeave
+  onDragLeave,
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
+  edgeTypes: propEdgeTypes, // Destructure the new prop
 }) => {
   console.log(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length-1]) : 'N/A'}`);
   // Also send to store's debug log for easier collection if console is not always available during testing
@@ -217,7 +220,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     className: "bg-background",
     proOptions: { hideAttribution: true },
     nodeTypes: nodeTypesConfig,
-    edgeTypes: edgeTypesConfig,
+    edgeTypes: propEdgeTypes || defaultEdgeTypesConfig, // Use passed edgeTypes or default
     onNodeContextMenu,
     onPaneContextMenu,
     onNodeClick,

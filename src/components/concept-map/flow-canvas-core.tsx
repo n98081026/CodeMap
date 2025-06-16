@@ -6,7 +6,8 @@ import { ReactFlowProvider, useNodesState, useEdgesState, type Node as RFNode, t
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import type { CustomNodeData } from './custom-node';
-import type { OrthogonalEdgeData } from './orthogonal-edge';
+import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge'; // Ensure OrthogonalEdge is imported
+import SuggestionEdge from './SuggestionEdge'; // Import SuggestionEdge
 import { getMarkerDefinition } from './orthogonal-edge';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { getNodePlacement } from '@/lib/layout-utils';
@@ -199,6 +200,12 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const [rfStagedEdges, setRfStagedEdges, onStagedEdgesChange] = useEdgesState<OrthogonalEdgeData>([]);
   const [rfPreviewNodes, setRfPreviewNodes, onPreviewNodesChange] = useNodesState<CustomNodeData>([]);
   const [rfPreviewEdges, setRfPreviewEdges, onPreviewEdgesChange] = useEdgesState<OrthogonalEdgeData>([]);
+
+
+  const edgeTypes = useMemo(() => ({
+    orthogonal: OrthogonalEdge,
+    suggestionEdge: SuggestionEdge,
+  }), []);
 
   // Effect to synchronize MAIN nodes from the store to React Flow's state
   useEffect(() => {
@@ -652,14 +659,14 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     const baseEdges = [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges];
     if (structuralSuggestions && structuralSuggestions.length > 0) {
       const suggestionFlowEdges = structuralSuggestions.map((suggestion) => ({
-        id: suggestion.id, // This is the temporary unique ID
+        id: suggestion.id,
         source: suggestion.source,
         target: suggestion.target,
         label: suggestion.label || '',
-        type: 'orthogonal', // Use existing orthogonal edge type
+        type: 'suggestionEdge', // Use the new custom edge type
         data: {
             label: suggestion.label || '',
-            isSuggestion: true, // Flag to identify this as a suggestion
+            isSuggestion: true,
             reason: suggestion.reason,
             // Explicitly don't set color/lineType here if style dictates it
         } as OrthogonalEdgeData, // Cast is okay if OrthogonalEdgeData is simple
@@ -692,11 +699,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       <InteractiveCanvas
         nodes={combinedNodes} // Pass combined nodes
         edges={combinedEdges} // Pass combined edges
-      onNodesChange={handleRfNodesChange} // Main nodes changes
-      onEdgesChange={handleRfEdgesChange} // Main edges changes
-      // Note: onPreviewNodesChange and onStagedNodesChange are not directly used by InteractiveCanvas events here.
-      // Interactions with preview/staged items (select, delete from stage) are handled via other mechanisms
-      // (e.g., specific UI buttons calling store actions, or selection passed to page for delete key handling).
+      onNodesChange={handleRfNodesChange}
+      onEdgesChange={handleRfEdgesChange}
       onNodesDelete={handleRfNodesDeleted}
       onEdgesDelete={handleRfEdgesDeleted}
       onSelectionChange={handleRfSelectionChange}
@@ -750,7 +754,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       onPaneContextMenu={handlePaneContextMenuInternal}
       onDragOver={handleCanvasDragOver}
       onDrop={handleCanvasDrop}
-      onDragLeave={handleCanvasDragLeave} // Pass drag leave handler
+      onDragLeave={handleCanvasDragLeave}
+      edgeTypes={edgeTypes} // Pass the edgeTypes to InteractiveCanvas
       activeSnapLines={activeSnapLinesLocal}
       gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}
