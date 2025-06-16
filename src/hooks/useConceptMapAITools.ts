@@ -14,11 +14,14 @@ import {
   suggestEdgeLabelFlow, // Added import
   type SuggestEdgeLabelInput,
   type SuggestEdgeLabelOutput,
-  suggestIntermediateNodeFlow, // New flow
-  type IntermediateNodeSuggestionRequest, // New type
-  type IntermediateNodeSuggestionResponse // New type
+  suggestIntermediateNodeFlow,
+  type IntermediateNodeSuggestionRequest,
+  type IntermediateNodeSuggestionResponse,
+  suggestChildNodesFlow, // Import new flow
+  type SuggestChildNodesRequest, // Import new types
+  type SuggestChildNodesResponse
 } from '@/ai/flows';
-import { runFlow } from '@genkit-ai/flow'; // Import runFlow
+import { runFlow } from '@genkit-ai/flow';
 // Import directly from the flow file, using alias and ensuring .ts extension
 import { 
     rewriteNodeContent as aiRewriteNodeContent,
@@ -37,8 +40,8 @@ import type {
 } from '@/ai/flows'; 
 import type { ConceptMapNode, RFNode } from '@/types'; // Added RFNode
 import { getNodePlacement } from '@/lib/layout-utils';
-import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater'; // Import SuggestionAction
-import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react'; // Import necessary icons
+import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
+import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote, PlusCircle } from 'lucide-react'; // Added PlusCircle
 
 export interface ConceptToExpandDetails {
   id: string | null;
@@ -595,7 +598,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     handleMiniToolbarRewriteConcise,
     // Suggestion getter functions
     getPaneSuggestions,
-    getNodeSuggestions,
+    getNodeSuggestions: getNodeSuggestions, // Keep existing, will be wrapped or replaced by async version
     // Edge Label Suggestions
     fetchAndSetEdgeLabelSuggestions,
     edgeLabelSuggestions,
@@ -660,13 +663,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     } finally {
       setIsSuggestingIntermediateNode(false);
     }
-  }, [isViewOnlyMode, toast, setIsSuggestingIntermediateNode, setIntermediateNodeSuggestionData, setIntermediateNodeOriginalEdgeContext, setIsSuggestIntermediateNodeModalOpen]);
+  }, [isViewOnlyMode, toast, mapData.nodes, mapData.edges, setIsSuggestingIntermediateNode, setIntermediateNodeSuggestionData, setIntermediateNodeOriginalEdgeContext, setIsSuggestIntermediateNodeModalOpen]); // Added mapData dependencies
 
   const closeSuggestIntermediateNodeModal = useCallback(() => {
     setIsSuggestIntermediateNodeModalOpen(false);
     setIntermediateNodeSuggestionData(null);
     setIntermediateNodeOriginalEdgeContext(null);
-  }, [setIsSuggestIntermediateNodeModalOpen, setIntermediateNodeSuggestionData, setIntermediateNodeOriginalEdgeContext]);
+  }, []); // Removed setters from deps as they are stable
 
   const confirmAddIntermediateNode = useCallback(() => {
     if (!intermediateNodeSuggestionData || !intermediateNodeOriginalEdgeContext) {
@@ -683,23 +686,20 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     if (sourceNode && targetNode) {
       newPosition = {
         x: (sourceNode.x + targetNode.x) / 2,
-        y: (sourceNode.y + targetNode.y) / 2 - 50, // Place slightly above midpoint
+        y: (sourceNode.y + targetNode.y) / 2 - 50,
       };
     } else {
-      // Fallback if source/target node not found (shouldn't happen if context is set correctly)
       newPosition = getNodePlacement(currentNodes, 'generic', null, null, GRID_SIZE_FOR_AI_PLACEMENT);
     }
 
-    // Perform store operations
-    // These are already using useCallback from the store, so they are stable.
     useConceptMapStore.getState().deleteEdge(intermediateNodeOriginalEdgeContext.edgeId);
-    const newNodeId = addStoreNode({ // addStoreNode is already stable from the hook's destructuring
+    const newNodeId = addStoreNode({
       text: intermediateNodeSuggestionData.suggestedNodeText,
       details: intermediateNodeSuggestionData.suggestedNodeDetails,
       position: newPosition,
       type: 'ai-intermediate',
     });
-    addStoreEdge({ // addStoreEdge is also stable
+    addStoreEdge({
       source: intermediateNodeOriginalEdgeContext.sourceNodeId,
       target: newNodeId,
       label: intermediateNodeSuggestionData.labelToSource || 'related to',
@@ -711,9 +711,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     });
 
     toast({ title: "Intermediate Node Added", description: `Node "${intermediateNodeSuggestionData.suggestedNodeText}" inserted.` });
-    closeSuggestIntermediateNodeModal(); // This is the useCallback version from above
+    closeSuggestIntermediateNodeModal();
   }, [
       toast, intermediateNodeSuggestionData, intermediateNodeOriginalEdgeContext,
-      closeSuggestIntermediateNodeModal, addStoreNode, addStoreEdge /* getNodePlacement is stable */
+      closeSuggestIntermediateNodeModal, addStoreNode, addStoreEdge, mapData.nodes // Added mapData.nodes for getNodePlacement
     ]);
 }

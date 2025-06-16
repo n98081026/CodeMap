@@ -63,6 +63,7 @@ interface InteractiveCanvasProps {
   gridSize?: number;
   panActivationKeyCode?: string | null;
   edgeTypes?: EdgeTypes; // Prop to pass custom edge types
+  onNodeDrop?: (event: React.DragEvent, node: RFNode) => void; // New prop for node drop
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -108,7 +109,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
-  edgeTypes: propEdgeTypes, // Destructure the new prop
+  edgeTypes: propEdgeTypes,
+  onNodeDrop, // Destructure onNodeDrop
 }) => {
   console.log(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length-1]) : 'N/A'}`);
   // Also send to store's debug log for easier collection if console is not always available during testing
@@ -226,7 +228,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onNodeClick,
     onDragOver: onDragOver,
     onDrop: onDrop,
-    onDragLeave: onDragLeave, // Pass onDragLeave to ReactFlow
+    onDragLeave: onDragLeave,
+    onNodeDrop: onNodeDrop, // Pass onNodeDrop to ReactFlow
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined,

@@ -138,6 +138,11 @@ clearAllStructuralSuggestions: () => void;
 // Semantic Tidy Up
 isApplyingSemanticTidyUp: boolean;
 applySemanticTidyUp: () => Promise<void>;
+
+// Pending relation for edge creation from drag-and-drop
+pendingRelationForEdgeCreation: { label: string; sourceNodeId: string; sourceNodeHandle?: string | null; } | null;
+setPendingRelationForEdgeCreation: (data: { label: string; sourceNodeId: string; sourceNodeHandle?: string | null; } | null) => void;
+clearPendingRelationForEdgeCreation: () => void;
 }
 
 export type ProcessedSuggestedEdge = {
@@ -176,7 +181,9 @@ const initialStateBase: Omit<ConceptMapState,
   'fetchStructuralSuggestions' | 'acceptStructuralSuggestion' | 'dismissStructuralSuggestion' |
   'acceptGroupSuggestion' | 'dismissGroupSuggestion' | 'clearAllStructuralSuggestions' |
   // Semantic Tidy Up
-  'applySemanticTidyUp'
+  'applySemanticTidyUp' |
+  // Pending Relation
+  'setPendingRelationForEdgeCreation' | 'clearPendingRelationForEdgeCreation'
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -206,9 +213,11 @@ const initialStateBase: Omit<ConceptMapState,
   // Structural suggestions initial state
   isFetchingStructuralSuggestions: false,
   structuralSuggestions: null,
-  structuralGroupSuggestions: null, // Initial state for group suggestions
+  structuralGroupSuggestions: null,
   // Semantic Tidy Up initial state
   isApplyingSemanticTidyUp: false,
+  // Pending relation initial state
+  pendingRelationForEdgeCreation: null,
 };
 
 // Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
@@ -900,10 +909,27 @@ export const useConceptMapStore = create<ConceptMapState>()(
           set({ isApplyingSemanticTidyUp: false });
         }
       },
+
+      setPendingRelationForEdgeCreation: (data) => {
+        if (data) {
+          get().addDebugLog(`[STORE setPendingRelationForEdgeCreation] Setting pending relation: label='${data.label}', source='${data.sourceNodeId}'`);
+        } else {
+          get().addDebugLog(`[STORE setPendingRelationForEdgeCreation] Clearing pending relation (data was null).`);
+        }
+        set({ pendingRelationForEdgeCreation: data });
+        // If setting a pending relation, cancel any node-to-node connection mode
+        if (data) {
+          set({ connectingNodeId: null });
+        }
+      },
+      clearPendingRelationForEdgeCreation: () => {
+        get().addDebugLog('[STORE clearPendingRelationForEdgeCreation] Clearing pending relation.');
+        set({ pendingRelationForEdgeCreation: null });
+      },
     }),
     {
       partialize: (state): TrackedState => {
-    // Exclude connectingNodeId and isApplyingSemanticTidyUp from temporal state
+    // Exclude connectingNodeId, isApplyingSemanticTidyUp, and pendingRelationForEdgeCreation from temporal state
         const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions } = state;
         return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions };
       },

@@ -186,6 +186,15 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(new Set());
     };
 
+    const handleRelationDragStart = (event: React.DragEvent<HTMLDivElement>, relationLabel: string) => {
+      event.dataTransfer.setData('application/json', JSON.stringify({
+        type: 'relation-suggestion',
+        label: relationLabel,
+      }));
+      event.dataTransfer.effectAllowed = 'copy';
+      console.log('[AISuggestionPanel] Dragging relation:', relationLabel);
+    };
+
     const handleAddSelected = () => {
       if (!onAddSelectedItems) return;
       const toAdd = items
@@ -415,7 +424,15 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     };
 
     return (
-      <div className="flex items-center text-sm group w-full">
+      <div
+        className={cn(
+            "flex items-center text-sm group w-full",
+            (!isViewOnlyMode && !item.isEditing) ? "cursor-grab" : "cursor-default"
+        )}
+        draggable={!isViewOnlyMode && !item.isEditing}
+        onDragStart={(e) => !isViewOnlyMode && !item.isEditing && handleRelationDragStart(e, item.current.relation)}
+        title={!isViewOnlyMode && !item.isEditing ? "Drag this relation to an edge on the canvas" : ""}
+      >
         <GitFork className="h-4 w-4 mr-2 text-purple-500 flex-shrink-0"/>
         {renderField('source', relationNodeExistence?.source)}
         <span className="mx-1">→</span>

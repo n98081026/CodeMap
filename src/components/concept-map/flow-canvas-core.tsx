@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useEffect, useCallback, useState, useMemo } from 'react';
-import { ReactFlowProvider, useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, useReactFlow, type OnPaneDoubleClick, type Viewport } from 'reactflow';
+import React, { useEffect, useCallback, useState, useMemo, useRef } from 'react';
+import { ReactFlowProvider, useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, useReactFlow, type OnPaneDoubleClick, type Viewport, Node } from 'reactflow';
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import type { CustomNodeData } from './custom-node';
@@ -14,6 +14,7 @@ import { getMarkerDefinition } from './orthogonal-edge';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { getNodePlacement } from '@/lib/layout-utils';
 import { cn } from '@/lib/utils'; // Added for conditional class names
+import { useToast } from '@/components/ui/use-toast'; // Added for toast notifications
 
 export interface RFConceptMapEdgeDataFromCore extends OrthogonalEdgeData {}
 
@@ -179,8 +180,12 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     connectingNodeId,
     finishConnectionAttempt,
     cancelConnection,
-    addEdge: addEdgeToStore, // Assuming addEdge from store is what we need
+    addEdge: addEdgeToStore,
+    pendingRelationForEdgeCreation,
+    setPendingRelationForEdgeCreation,
+    clearPendingRelationForEdgeCreation,
   } = useConceptMapStore();
+  const { toast } = useToast();
 
   const {
     stagedMapData,
@@ -198,6 +203,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     }), [])
   );
   const reactFlowInstance = useReactFlow();
+  const reactFlowWrapperRef = useRef<HTMLDivElement>(null); // Added ref for the wrapper
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
   const [dragPreviewData, setDragPreviewData] = useState<{ x: number; y: number; text: string; width: number; height: number } | null>(null);
@@ -392,17 +398,15 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     }
   }, [conceptExpansionPreview, mapDataFromStore.nodes, setRfPreviewNodes, setRfPreviewEdges, reactFlowInstance]);
   
+  // Effect to fitView (remains unchanged)
   useEffect(() => {
-    // This effect for fitView should ideally run *after* nodes have been set and rendered.
-    // React Flow's fitView might need a slight delay or to be triggered when rfNodes actually changes and is non-empty.
     if (rfNodes.length > 0 && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
       const timerId = setTimeout(() => {
         reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
-      }, 100);
+      }, 100); // A small delay can help ensure nodes are rendered
       return () => clearTimeout(timerId);
     }
-  }, [rfNodes, reactFlowInstance]);
-
+  }, [rfNodes, reactFlowInstance]); // Keep reactFlowInstance dependency if fitView is stable
 
   const onNodeDragInternal = useCallback((_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>, allNodes: RFNode<CustomNodeData>[]) => {
     if (isViewOnlyMode || !draggedNode.dragging || !draggedNode.width || !draggedNode.height || !draggedNode.positionAbsolute) {
@@ -480,21 +484,62 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     // Let's assume `onConnectInStore` is already correctly returning the newEdgeId or can be adapted.
     // If `onConnectInStore` is just `addStoreEdge` from the hook, it needs to be modified to return the ID.
     // For this step, we'll proceed assuming onConnectInStore is correctly typed and returns the ID.
-    // This might require a change in how `addStoreEdge` is defined or used in `useConceptMapAITools` if it's the one passed.
-    // For now, let's cast it, acknowledging this might need a fix in the hook or page.
-
-    const newEdgeId = (onConnectInStore as unknown as (options: any) => string)({ // Type assertion
+    const newEdgeOptions = {
       source: params.source!,
       target: params.target!,
       sourceHandle: params.sourceHandle,
       targetHandle: params.targetHandle,
-      label: "connects",
-    });
+      label: "connects", // Default label
+    };
 
-    if (newEdgeId && params.source && params.target) {
-      onNewEdgeSuggestLabels?.(newEdgeId, params.source, params.target);
+    // onConnectInStore is expected to be the store's addEdge or a wrapper that calls it.
+    // The store's addEdge now returns the new edge ID.
+    // Assuming onConnectInStore (e.g., addStoreEdge from the hook) is updated to return the ID.
+    const newEdgeId = onConnectInStore(newEdgeOptions);
+
+    if (typeof newEdgeId === 'string' && params.source && params.target) {
+      onNewEdgeSuggestLabels?.(newEdgeId, params.source, params.target, ""); // Pass empty string for existingLabel initially
+    } else if (newEdgeId) { // If it returned something but not a string, log for debugging.
+        console.warn("onConnectInStore did not return a string ID for the new edge.", newEdgeId);
     }
   }, [isViewOnlyMode, onConnectInStore, onNewEdgeSuggestLabels]);
+
+
+  const handleNodeRelationDrop = useCallback((event: React.DragEvent, targetNode: RFNode) => {
+    if (isViewOnlyMode) return;
+    // event.preventDefault(); // React Flow's onNodeDrop likely handles this.
+
+    const dataString = event.dataTransfer.getData('application/json');
+    if (!dataString) return;
+
+    try {
+      const droppedData = JSON.parse(dataString);
+      if (droppedData.type === 'relation-suggestion' && typeof droppedData.label === 'string') {
+        setPendingRelationForEdgeCreation({
+          label: droppedData.label,
+          sourceNodeId: targetNode.id, // The node it was dropped on is the source
+          sourceNodeHandle: null,
+        });
+        toast({
+          title: "Relation Placed on Source Node",
+          description: `Click the target node to complete the edge with label: "${droppedData.label}". Press ESC to cancel.`,
+          duration: 5000,
+        });
+        if (reactFlowWrapperRef.current) {
+            reactFlowWrapperRef.current.classList.add('relation-linking-active');
+        }
+        // Ensure other interaction modes are reset
+        useConceptMapStore.getState().cancelConnection(); // Cancel node-to-node connection mode
+      }
+    } catch (e) {
+      console.error("Failed to parse dropped relation data", e);
+      toast({ title: "Error", description: "Could not process dragged relation.", variant: "destructive" });
+      if (reactFlowWrapperRef.current) { // Ensure cursor is reset on error too
+          reactFlowWrapperRef.current.classList.remove('relation-linking-active');
+      }
+    }
+  }, [isViewOnlyMode, setPendingRelationForEdgeCreation, toast, addEdgeToStore, reactFlowWrapperRef]);
+
 
   const handleRfSelectionChange = useCallback((selection: SelectionChanges) => {
     const selectedRfNodes = selection.nodes;
@@ -776,25 +821,38 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     return baseEdges;
   }, [rfEdges, rfStagedEdges, rfPreviewEdges, structuralSuggestions]);
 
-  // Handle Escape key to cancel connection
+  // Handle Escape key to cancel connection or pending relation
   useEffect(() => {
-    if (!connectingNodeId) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        cancelConnection();
+        const currentPendingRelationForEsc = useConceptMapStore.getState().pendingRelationForEdgeCreation;
+        const currentConnectingNodeId = useConceptMapStore.getState().connectingNodeId;
+
+        if (currentPendingRelationForEsc) {
+          clearPendingRelationForEdgeCreation();
+          if (reactFlowWrapperRef.current) {
+              reactFlowWrapperRef.current.classList.remove('relation-linking-active');
+          }
+          // toast({ title: "Relation Cancelled" }); // Optional: can be noisy
+        } else if (currentConnectingNodeId) {
+          cancelConnection();
+           if (reactFlowWrapperRef.current) {
+              reactFlowWrapperRef.current.classList.remove('cursor-crosshair');
+           }
+        }
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [connectingNodeId, cancelConnection]);
+  }, [cancelConnection, clearPendingRelationForEdgeCreation, reactFlowWrapperRef]); // Dependencies: store actions and ref
 
   return (
-    <div className={cn('w-full h-full', { 'cursor-crosshair': !!connectingNodeId })}>
+    <div ref={reactFlowWrapperRef} className={cn('w-full h-full', { 'cursor-crosshair': !!connectingNodeId })}>
       <InteractiveCanvas
-        nodes={combinedNodes} // Pass combined nodes
-        edges={combinedEdges} // Pass combined edges
+        nodes={combinedNodes}
+        edges={combinedEdges}
       onNodesChange={handleRfNodesChange}
       onEdgesChange={handleRfEdgesChange}
       onNodesDelete={handleRfNodesDeleted}
@@ -812,46 +870,74 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       onNodeClick={(event, node) => {
         if (isViewOnlyMode) return;
 
-        if (connectingNodeId) {
+        const currentPendingRelation = useConceptMapStore.getState().pendingRelationForEdgeCreation;
+        if (currentPendingRelation) {
+          event.stopPropagation();
+          event.preventDefault();
+
+          if (node.id === currentPendingRelation.sourceNodeId) {
+            clearPendingRelationForEdgeCreation();
+            toast({ title: "Relation Cancelled", description: "Clicked source node again." });
+            if (reactFlowWrapperRef.current) {
+                reactFlowWrapperRef.current.classList.remove('relation-linking-active');
+            }
+          } else {
+            const newEdgeId = addEdgeToStore({
+              source: currentPendingRelation.sourceNodeId,
+              target: node.id,
+              sourceHandle: currentPendingRelation.sourceNodeHandle, // Usually null for this type of creation
+              label: currentPendingRelation.label,
+              type: 'default',
+            });
+            toast({ title: "Edge Created", description: `Edge with label "${currentPendingRelation.label}" added.` });
+            clearPendingRelationForEdgeCreation();
+            if (reactFlowWrapperRef.current) {
+                reactFlowWrapperRef.current.classList.remove('relation-linking-active');
+            }
+            setSelectedElement(newEdgeId, 'edge'); // Select the new edge
+          }
+          return;
+        }
+
+        if (connectingNodeId) { // This is for button-initiated connections
           event.stopPropagation();
           event.preventDefault();
           if (node.id === connectingNodeId) {
             cancelConnection();
+            if (reactFlowWrapperRef.current) {
+                reactFlowWrapperRef.current.classList.remove('cursor-crosshair');
+            }
             useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Connection cancelled by clicking source node ${node.id}.`);
           } else {
             const newEdge = {
-              // id: `edge-${connectingNodeId}-${node.id}-${Date.now()}`, // Ensure unique ID
               source: connectingNodeId,
               target: node.id,
-              label: '', // Default label, can be updated later
-              type: 'default', // Or your specific edge type
+              label: '',
+              type: 'default',
             };
-            // onConnectInStore already calls addEdgeToStore and handles onNewEdgeSuggestLabels
-            // We can call it directly if it's correctly passed down and typed.
-            // For now, let's use addEdgeToStore directly for clarity on this specific action.
             const newEdgeId = addEdgeToStore(newEdge);
             useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Edge created from ${connectingNodeId} to ${node.id}. New Edge ID: ${newEdgeId}`);
             finishConnectionAttempt(node.id);
-            // Optionally: Select the new edge or one of the connected nodes
-             setSelectedElement(newEdgeId, 'edge'); // Example: select the new edge
+            if (reactFlowWrapperRef.current) {
+                reactFlowWrapperRef.current.classList.remove('cursor-crosshair');
+            }
+            setSelectedElement(newEdgeId, 'edge');
           }
-          return; // Stop further processing for this click
+          return;
         }
 
-        // Original onNodeClick logic for ghost nodes etc.
         if (node.data?.isGhost) {
           onGhostNodeAcceptRequest?.(node.id);
         }
-        // Default behavior (selection) will be handled by React Flow if propagation isn't stopped.
-        // If there was specific onNodeClick logic passed as a prop for regular nodes, call it here:
-        // else { onNodeClickProp?.(event, node); }
+        // Default behavior for node selection is handled by React Flow unless propagation is stopped
       }}
       onPaneDoubleClick={handlePaneDoubleClickInternal}
       onPaneContextMenu={handlePaneContextMenuInternal}
-      onDragOver={handleCanvasDragOver}
-      onDrop={handleCanvasDrop}
-      onDragLeave={handleCanvasDragLeave}
-      nodeTypes={nodeTypes} // Pass the nodeTypes to InteractiveCanvas
+      onNodeDrop={handleNodeRelationDrop} // Pass the new handler
+      onDragOver={handleCanvasDragOver} // Handles general canvas drag over
+      onDrop={handleCanvasDrop} // Handles general canvas drop
+      onDragLeave={handleCanvasDragLeave} // Handles general canvas drag leave
+      nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       activeSnapLines={activeSnapLinesLocal}
       gridSize={GRID_SIZE}
@@ -861,11 +947,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   );
 };
 
-const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => {
-  return (
-    // ReactFlowProvider is at page level
+const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => (
+    // ReactFlowProvider is at page level, so no need to wrap here again
     <FlowCanvasCoreInternal {...props} />
-  );
-};
+);
 
 export default React.memo(FlowCanvasCoreWrapper);
