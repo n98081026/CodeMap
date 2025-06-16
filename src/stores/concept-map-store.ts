@@ -50,6 +50,7 @@ interface ConceptMapState {
   multiSelectedNodeIds: string[];
   editingNodeId: string | null; // For auto-focusing node label input
   aiProcessingNodeId: string | null;
+  connectingNodeId: string | null; // For initiating edge creation from a node
 
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
@@ -81,6 +82,9 @@ conceptExpansionPreview: ConceptExpansionPreviewState | null;
   setMultiSelectedNodeIds: (ids: string[]) => void;
   setEditingNodeId: (nodeId: string | null) => void; // Action for auto-focus
   setAiProcessingNodeId: (nodeId: string | null) => void;
+  startConnection: (nodeId: string) => void;
+  cancelConnection: () => void;
+  finishConnectionAttempt: (targetNodeId: string) => void; // Renamed
 
   setAiExtractedConcepts: (concepts: string[]) => void;
   setAiSuggestedRelations: (relations: Array<{ source: string; target: string; relation: string }>) => void;
@@ -116,6 +120,7 @@ setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => vo
 
 // Layout action
 applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
+tidySelectedNodes: () => void; // New action for tidying selection
 }
 
 type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview'>;
@@ -133,7 +138,8 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
-  'setConceptExpansionPreview' | 'applyLayout' // Added applyLayout
+  'setConceptExpansionPreview' | 'applyLayout' | 'tidySelectedNodes' | // Added tidySelectedNodes
+  'startConnection' | 'cancelConnection' | 'finishConnectionAttempt'
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -153,6 +159,7 @@ const initialStateBase: Omit<ConceptMapState,
   multiSelectedNodeIds: [],
   editingNodeId: null,
   aiProcessingNodeId: null,
+  connectingNodeId: null,
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
   debugLogs: [],
@@ -196,6 +203,28 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setMultiSelectedNodeIds: (ids) => set({ multiSelectedNodeIds: ids }),
       setEditingNodeId: (nodeId) => set({ editingNodeId: nodeId }),
       setAiProcessingNodeId: (nodeId) => set({ aiProcessingNodeId: nodeId }),
+
+      startConnection: (nodeId) => {
+        get().addDebugLog(`[STORE startConnection] Starting connection from node: ${nodeId}`);
+        set({ connectingNodeId: nodeId, selectedElementId: null, selectedElementType: null, multiSelectedNodeIds: [] }); // Clear selection when starting connection
+      },
+      cancelConnection: () => {
+        get().addDebugLog(`[STORE cancelConnection] Cancelling connection. Was: ${get().connectingNodeId}`);
+        set({ connectingNodeId: null });
+      },
+      finishConnectionAttempt: (targetNodeId) => { // Renamed
+        const sourceNodeId = get().connectingNodeId;
+        if (!sourceNodeId) {
+          get().addDebugLog(`[STORE finishConnectionAttempt] No source node to complete connection. Target: ${targetNodeId}`);
+          return;
+        }
+        get().addDebugLog(`[STORE finishConnectionAttempt] Attempting to complete connection from ${sourceNodeId} to ${targetNodeId}`);
+        // Actual edge creation will be handled by FlowCanvasCore or a similar component
+        // that calls addEdge. For now, just reset connectingNodeId.
+        set({ connectingNodeId: null });
+        // Potentially, select the new edge after creation, or the source/target node.
+        // This might be handled by the component initiating addEdge.
+      },
 
       setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
       setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
@@ -577,9 +606,73 @@ export const useConceptMapStore = create<ConceptMapState>()(
           }
         });
       },
+
+      tidySelectedNodes: () => {
+        const { mapData, multiSelectedNodeIds } = get();
+        const NODE_SPACING = 30; // pixels
+
+        if (multiSelectedNodeIds.length < 2) {
+          get().addDebugLog('[STORE tidySelectedNodes] Less than 2 nodes selected, no action taken.');
+          return;
+        }
+
+        const selectedNodesRaw = mapData.nodes.filter(n => multiSelectedNodeIds.includes(n.id));
+
+        // Defensive check: Ensure all nodes have width and height, defaulting if necessary
+        // This should ideally be guaranteed by node creation logic.
+        const selectedNodes = selectedNodesRaw.map(n => ({
+          ...n,
+          width: n.width ?? 150, // Default width if undefined
+          height: n.height ?? 70, // Default height if undefined
+        }));
+
+
+        if (selectedNodes.length < 2) {
+          get().addDebugLog('[STORE tidySelectedNodes] Filtered selected nodes resulted in less than 2, no action taken.');
+          return;
+        }
+
+        // 1. Find the minimum Y for alignment (Align Tops)
+        const minY = Math.min(...selectedNodes.map(n => n.y));
+
+        // 2. Sort nodes by their current X position
+        selectedNodes.sort((a, b) => a.x - b.x);
+
+        // 3. Distribute horizontally
+        const updatedNodePositions: Array<Partial<ConceptMapNode> & { id: string }> = [];
+        let currentX = selectedNodes[0].x; // Start with the X of the leftmost node
+
+        selectedNodes.forEach((node, index) => {
+          const newPosition: Partial<ConceptMapNode> & { id: string } = {
+            id: node.id,
+            y: minY, // Align to top
+            x: currentX,
+          };
+          updatedNodePositions.push(newPosition);
+
+          // For all but the last node, calculate the start of the next node
+          if (index < selectedNodes.length -1) {
+            currentX += (node.width ?? 150) + NODE_SPACING; // Use actual or default width
+          }
+        });
+
+        get().addDebugLog(`[STORE tidySelectedNodes] Applying tidy layout to ${updatedNodePositions.length} nodes. Target minY: ${minY}.`);
+
+        set((state) => ({
+          mapData: {
+            ...state.mapData,
+            nodes: state.mapData.nodes.map(n => {
+              const updatedNode = updatedNodePositions.find(unp => unp.id === n.id);
+              // Merge only x and y, keep other properties like text, details, etc.
+              return updatedNode ? { ...n, x: updatedNode.x!, y: updatedNode.y! } : n;
+            }),
+          },
+        }));
+      },
     }),
     {
       partialize: (state): TrackedState => {
+    // Exclude connectingNodeId from temporal state for now, as it's a transient UI state
         const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview } = state;
         return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview };
       },

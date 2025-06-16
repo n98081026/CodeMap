@@ -9,12 +9,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Added Popover imports
-import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb, Palette } from 'lucide-react'; // Added Palette
+import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb, Palette, Share2 } from 'lucide-react'; // Added Palette and Share2
 
 interface SelectedNodeToolbarProps {
   nodeId: string;
   onEditLabel: () => void;
   onChangeColor: (color: string) => void; // New prop
+  onStartConnection: () => void; // New prop for starting a connection
   onAIExpand: () => void;
   onAIRewrite: () => void;
   onAISuggestRelations: () => void;
@@ -27,7 +28,8 @@ const PREDEFINED_COLORS = ['#FFFFFF', '#FFF1F0', '#E6F7FF', '#F6FFED', '#FFFBE6'
 const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   nodeId,
   onEditLabel,
-  onChangeColor, // Destructure new prop
+  onChangeColor,
+  onStartConnection, // Destructure new prop
   onAIExpand,
   onAIRewrite,
   onAISuggestRelations,
@@ -53,6 +55,10 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
     >
       <Button variant="ghost" size="icon" onClick={onEditLabel} title="Edit Label">
         <Type className="w-4 h-4" />
+      </Button>
+
+      <Button variant="ghost" size="icon" onClick={onStartConnection} title="Start Connection">
+        <Share2 className="w-4 h-4" />
       </Button>
 
       <Popover>

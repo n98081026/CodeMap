@@ -63,6 +63,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     aiProcessingNodeId, // Get AI processing state
     deleteNode, // Added deleteNode from store
     updateNode, // Added updateNode from store
+    startConnection, // Added for starting connection mode
   } = useConceptMapStore();
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
@@ -73,6 +74,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
 
   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
   const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
+  const [toolbarHorizontalOffset, setToolbarHorizontalOffset] = useState<number>(0); // For viewport horizontal awareness
   // Removed isHoveredForToolbar state
   const cardRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null); // Ref for the main node div to get its rect
@@ -106,27 +108,35 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   // Placeholder handlers for AI mini toolbar actions
   // Removed handleQuickExpand and handleRewriteConcise as they are now passed directly to the toolbar
 
-  // getNodeRect might not be needed if toolbar is positioned relatively within the node.
-  // Keeping it for now in case future versions of toolbar need screen coords.
-  // const getNodeRect = () => {
-  //   if (nodeRef.current) {
-  //     return nodeRef.current.getBoundingClientRect();
-  //   }
-  //   return null;
-  // };
-
   useEffect(() => {
     if (selected && nodeRef.current) {
-      const rect = nodeRef.current.getBoundingClientRect();
+      const nodeRect = nodeRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      const APPROX_TOOLBAR_HEIGHT = 40; // pixels, matches -top-10 (2.5rem = 40px)
-      const OFFSET = 10; // pixels
+      const viewportWidth = window.innerWidth;
 
-      if (rect.top - APPROX_TOOLBAR_HEIGHT - OFFSET > 0) {
+      const APPROX_TOOLBAR_HEIGHT = 40; // pixels, matches -top-10 (2.5rem = 40px for vertical)
+      const APPROX_TOOLBAR_WIDTH = 220; // pixels, estimated width of the toolbar. Adjust if necessary.
+      const VIEWPORT_MARGIN = 10; // pixels, margin from viewport edges
+
+      // Vertical positioning
+      if (nodeRect.top - APPROX_TOOLBAR_HEIGHT - VIEWPORT_MARGIN > 0) {
         setToolbarPosition('above');
       } else {
         setToolbarPosition('below');
       }
+
+      // Horizontal positioning
+      const nodeCenter = nodeRect.left + nodeRect.width / 2;
+      const toolbarCalculatedLeft = nodeCenter - APPROX_TOOLBAR_WIDTH / 2;
+      const toolbarCalculatedRight = nodeCenter + APPROX_TOOLBAR_WIDTH / 2;
+
+      let newHorizontalOffset = 0;
+      if (toolbarCalculatedLeft < VIEWPORT_MARGIN) {
+        newHorizontalOffset = VIEWPORT_MARGIN - toolbarCalculatedLeft;
+      } else if (toolbarCalculatedRight > viewportWidth - VIEWPORT_MARGIN) {
+        newHorizontalOffset = viewportWidth - VIEWPORT_MARGIN - toolbarCalculatedRight;
+      }
+      setToolbarHorizontalOffset(newHorizontalOffset);
     }
   }, [selected, xPos, yPos, data.width, data.height]); // Re-calculate if node moves, resizes or selection changes
 
@@ -155,9 +165,10 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
         <div
           className={cn(
-            "absolute left-1/2 -translate-x-1/2 z-20",
+            "absolute left-1/2 z-20", // Removed -translate-x-1/2, will be handled by style
             toolbarPosition === 'above' ? "-top-10" : "top-full mt-2"
           )}
+          style={{ transform: `translateX(calc(-50% + ${toolbarHorizontalOffset}px))` }}
           // Prevent clicks on the toolbar area from propagating to the node (e.g., deselection)
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -166,6 +177,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
           <SelectedNodeToolbar
             nodeId={id}
             onEditLabel={() => setEditingNodeId(id)}
+            onStartConnection={() => startConnection(id)} // Pass the action
             onChangeColor={(color: string) => updateNode(id, { backgroundColor: color })}
             onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
             onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}

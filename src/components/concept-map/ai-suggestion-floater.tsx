@@ -11,6 +11,8 @@ export interface SuggestionAction {
   label: string;
   icon?: React.ElementType; // e.g., Lucide icon
   action: () => void; // Callback when clicked
+  contentType?: 'text' | 'node' | 'action'; // Type of content
+  content?: string | Record<string, any>; // Actual content for 'text' or 'node'
 }
 
 export interface AISuggestionFloaterProps {
@@ -99,12 +101,15 @@ const AISuggestionFloater: React.FC<AISuggestionFloaterProps> = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => {
+                    // The suggestion.action() is now responsible for handling content.
+                    // It should ideally incorporate the logic for adding text/node if needed.
                     suggestion.action();
                     onDismiss(); // Dismiss after action
                   }}
                   className="justify-start w-full text-left"
                 >
                   {IconComponent && <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />}
+                  {/* Display suggestion.label, which could be the content itself or a description */}
                   <span className="flex-grow truncate">{suggestion.label}</span>
                 </Button>
               );

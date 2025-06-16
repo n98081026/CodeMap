@@ -10,11 +10,15 @@ import type { OrthogonalEdgeData } from './orthogonal-edge';
 import { getMarkerDefinition } from './orthogonal-edge';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { getNodePlacement } from '@/lib/layout-utils';
+import { cn } from '@/lib/utils'; // Added for conditional class names
 
 export interface RFConceptMapEdgeDataFromCore extends OrthogonalEdgeData {}
 
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8; // Pixels for snapping sensitivity
+const NODE_DRAG_SNAP_THRESHOLD = SNAP_THRESHOLD; // Specific for node dragging, can be different
+const NODE_PREVIEW_WIDTH = 150;
+const NODE_PREVIEW_HEIGHT = 70;
 
 interface FlowCanvasCoreProps {
   mapDataFromStore: ConceptMapData;
@@ -34,6 +38,116 @@ interface FlowCanvasCoreProps {
   onConceptSuggestionDrop?: (conceptText: string, position: { x: number; y: number }) => void; // New prop
   panActivationKeyCode?: string | null;
 }
+
+// Helper function for snapping logic
+const calculateSnapLines = (
+  draggedItem: { x: number; y: number; width: number; height: number; id: string; },
+  allNodes: RFNode<CustomNodeData>[],
+  snapThreshold: number,
+  gridSize: number
+): { snappedX: number; snappedY: number; newSnapLines: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }> } => {
+  let snappedX = draggedItem.x;
+  let snappedY = draggedItem.y;
+  const newSnapLines: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }> = [];
+  let xSnappedByNode = false;
+  let ySnappedByNode = false;
+
+  const draggedNodeWidth = draggedItem.width;
+  const draggedNodeHeight = draggedItem.height;
+
+  const draggedTargetsX = [
+    { type: 'left', value: draggedItem.x },
+    { type: 'center', value: draggedItem.x + draggedNodeWidth / 2 },
+    { type: 'right', value: draggedItem.x + draggedNodeWidth },
+  ];
+  const draggedTargetsY = [
+    { type: 'top', value: draggedItem.y },
+    { type: 'center', value: draggedItem.y + draggedNodeHeight / 2 },
+    { type: 'bottom', value: draggedItem.y + draggedNodeHeight },
+  ];
+
+  let minDeltaX = Infinity; let bestSnapXInfo: { position: number, line: typeof newSnapLines[0] } | null = null;
+  let minDeltaY = Infinity; let bestSnapYInfo: { position: number, line: typeof newSnapLines[0] } | null = null;
+
+  allNodes.forEach(otherNode => {
+    if (otherNode.id === draggedItem.id || !otherNode.width || !otherNode.height || !otherNode.positionAbsolute) return;
+
+    const otherWidth = otherNode.width;
+    const otherHeight = otherNode.height;
+    const otherNodePosition = otherNode.positionAbsolute;
+
+    const otherTargetsX = [
+      { type: 'left', value: otherNodePosition.x },
+      { type: 'center', value: otherNodePosition.x + otherWidth / 2 },
+      { type: 'right', value: otherNodePosition.x + otherWidth },
+    ];
+    const otherTargetsY = [
+      { type: 'top', value: otherNodePosition.y },
+      { type: 'center', value: otherNodePosition.y + otherHeight / 2 },
+      { type: 'bottom', value: otherNodePosition.y + otherHeight },
+    ];
+
+    for (const dtX of draggedTargetsX) {
+      for (const otX of otherTargetsX) {
+        const delta = Math.abs(dtX.value - otX.value);
+        if (delta < snapThreshold && delta < minDeltaX) {
+          minDeltaX = delta;
+          bestSnapXInfo = {
+            position: otX.value - (dtX.value - draggedItem.x),
+            line: {
+              type: 'vertical',
+              x1: otX.value, y1: Math.min(draggedItem.y, otherNodePosition.y) - 20,
+              x2: otX.value, y2: Math.max(draggedItem.y + draggedNodeHeight, otherNodePosition.y + otherHeight) + 20,
+            }
+          };
+        }
+      }
+    }
+
+    for (const dtY of draggedTargetsY) {
+      for (const otY of otherTargetsY) {
+        const delta = Math.abs(dtY.value - otY.value);
+        if (delta < snapThreshold && delta < minDeltaY) {
+          minDeltaY = delta;
+          bestSnapYInfo = {
+            position: otY.value - (dtY.value - draggedItem.y),
+            line: {
+              type: 'horizontal',
+              x1: Math.min(draggedItem.x, otherNodePosition.x) - 20, y1: otY.value,
+              x2: Math.max(draggedItem.x + draggedNodeWidth, otherNodePosition.x + otherWidth) + 20, y2: otY.value,
+            }
+          };
+        }
+      }
+    }
+  });
+
+  if (bestSnapXInfo !== null) {
+    snappedX = bestSnapXInfo.position;
+    xSnappedByNode = true;
+    newSnapLines.push(bestSnapXInfo.line);
+  }
+  if (bestSnapYInfo !== null) {
+    snappedY = bestSnapYInfo.position;
+    ySnappedByNode = true;
+    newSnapLines.push(bestSnapYInfo.line);
+  }
+
+  if (!xSnappedByNode) {
+    const gridSnappedX = Math.round(draggedItem.x / gridSize) * gridSize;
+    if (Math.abs(draggedItem.x - gridSnappedX) < snapThreshold) {
+      snappedX = gridSnappedX;
+    }
+  }
+  if (!ySnappedByNode) {
+    const gridSnappedY = Math.round(draggedItem.y / gridSize) * gridSize;
+    if (Math.abs(draggedItem.y - gridSnappedY) < snapThreshold) {
+      snappedY = gridSnappedY;
+    }
+  }
+  return { snappedX, snappedY, newSnapLines };
+};
+
 
 const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   mapDataFromStore,
@@ -55,7 +169,16 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
-  const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
+  const {
+    addNode: addNodeToStore,
+    setSelectedElement,
+    setEditingNodeId,
+    connectingNodeId,
+    finishConnectionAttempt,
+    cancelConnection,
+    addEdge: addEdgeToStore, // Assuming addEdge from store is what we need
+  } = useConceptMapStore();
+
   const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
     useCallback(s => ({
       stagedMapData: s.stagedMapData,
@@ -66,6 +189,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const reactFlowInstance = useReactFlow();
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
+  const [dragPreviewData, setDragPreviewData] = useState<{ x: number; y: number; text: string; width: number; height: number } | null>(null);
 
   // Initialize useNodesState and useEdgesState for main and staged elements.
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
@@ -263,119 +387,18 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       setActiveSnapLinesLocal([]);
       return;
     }
+    const { snappedX, snappedY, newSnapLines } = calculateSnapLines(
+      { ...draggedNode.positionAbsolute, width: draggedNode.width, height: draggedNode.height, id: draggedNode.id },
+      allNodes, // These are RFNodes, which include positionAbsolute
+      NODE_DRAG_SNAP_THRESHOLD,
+      GRID_SIZE
+    );
 
-    let currentDragSnapLines: typeof activeSnapLinesLocal = [];
-    let snappedXPosition = draggedNode.positionAbsolute.x;
-    let snappedYPosition = draggedNode.positionAbsolute.y;
-    let xSnappedByNode = false;
-    let ySnappedByNode = false;
-
-    const draggedNodeWidth = draggedNode.width;
-    const draggedNodeHeight = draggedNode.height;
-
-    // Potential snap points for the dragged node
-    const draggedTargetsX = [
-      { type: 'left', value: draggedNode.positionAbsolute.x },
-      { type: 'center', value: draggedNode.positionAbsolute.x + draggedNodeWidth / 2 },
-      { type: 'right', value: draggedNode.positionAbsolute.x + draggedNodeWidth },
-    ];
-    const draggedTargetsY = [
-      { type: 'top', value: draggedNode.positionAbsolute.y },
-      { type: 'center', value: draggedNode.positionAbsolute.y + draggedNodeHeight / 2 },
-      { type: 'bottom', value: draggedNode.positionAbsolute.y + draggedNodeHeight },
-    ];
-
-    // Find the best snap for X and Y independently
-    let minDeltaX = Infinity; let bestSnapXInfo: { position: number, line: typeof activeSnapLinesLocal[0] } | null = null;
-    let minDeltaY = Infinity; let bestSnapYInfo: { position: number, line: typeof activeSnapLinesLocal[0] } | null = null;
-
-    allNodes.forEach(otherNode => {
-      if (otherNode.id === draggedNode.id || !otherNode.width || !otherNode.height || !otherNode.positionAbsolute) return;
-
-      const otherWidth = otherNode.width;
-      const otherHeight = otherNode.height;
-      const otherNodePosition = otherNode.positionAbsolute;
-
-      // Potential snap points for the other node
-      const otherTargetsX = [
-        { type: 'left', value: otherNodePosition.x },
-        { type: 'center', value: otherNodePosition.x + otherWidth / 2 },
-        { type: 'right', value: otherNodePosition.x + otherWidth },
-      ];
-      const otherTargetsY = [
-        { type: 'top', value: otherNodePosition.y },
-        { type: 'center', value: otherNodePosition.y + otherHeight / 2 },
-        { type: 'bottom', value: otherNodePosition.y + otherHeight },
-      ];
-
-      // Check X snaps
-      for (const dtX of draggedTargetsX) {
-        for (const otX of otherTargetsX) {
-          const delta = Math.abs(dtX.value - otX.value);
-          if (delta < SNAP_THRESHOLD && delta < minDeltaX) {
-            minDeltaX = delta;
-            bestSnapXInfo = {
-              position: otX.value - (dtX.value - draggedNode.positionAbsolute.x), // Calculate new X for draggedNode
-              line: {
-                type: 'vertical',
-                x1: otX.value, y1: Math.min(draggedNode.positionAbsolute.y, otherNodePosition.y) - 20,
-                x2: otX.value, y2: Math.max(draggedNode.positionAbsolute.y + draggedNodeHeight, otherNodePosition.y + otherHeight) + 20,
-              }
-            };
-          }
-        }
-      }
-
-      // Check Y snaps
-      for (const dtY of draggedTargetsY) {
-        for (const otY of otherTargetsY) {
-          const delta = Math.abs(dtY.value - otY.value);
-          if (delta < SNAP_THRESHOLD && delta < minDeltaY) {
-            minDeltaY = delta;
-            bestSnapYInfo = {
-              position: otY.value - (dtY.value - draggedNode.positionAbsolute.y), // Calculate new Y for draggedNode
-              line: {
-                type: 'horizontal',
-                x1: Math.min(draggedNode.positionAbsolute.x, otherNodePosition.x) - 20, y1: otY.value,
-                x2: Math.max(draggedNode.positionAbsolute.x + draggedNodeWidth, otherNodePosition.x + otherWidth) + 20, y2: otY.value,
-              }
-            };
-          }
-        }
-      }
-    });
-
-    if (bestSnapXInfo !== null) {
-      snappedXPosition = bestSnapXInfo.position;
-      xSnappedByNode = true;
-      currentDragSnapLines.push(bestSnapXInfo.line);
+    if (draggedNode.positionAbsolute.x !== snappedX || draggedNode.positionAbsolute.y !== snappedY) {
+      onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: { x: snappedX, y: snappedY }, dragging: true }]);
     }
-    if (bestSnapYInfo !== null) {
-      snappedYPosition = bestSnapYInfo.position;
-      ySnappedByNode = true;
-      currentDragSnapLines.push(bestSnapYInfo.line);
-    }
-
-    // Snap to grid if not snapped to another node
-    if (!xSnappedByNode) {
-      const gridSnappedX = Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
-      if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) {
-        snappedXPosition = gridSnappedX;
-      }
-    }
-    if (!ySnappedByNode) {
-      const gridSnappedY = Math.round(draggedNode.positionAbsolute.y / GRID_SIZE) * GRID_SIZE;
-      if (Math.abs(draggedNode.positionAbsolute.y - gridSnappedY) < SNAP_THRESHOLD) {
-        snappedYPosition = gridSnappedY;
-      }
-    }
-    
-    // Apply the snapped position if it changed
-    if (draggedNode.positionAbsolute.x !== snappedXPosition || draggedNode.positionAbsolute.y !== snappedYPosition) {
-      onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: { x: snappedXPosition, y: snappedYPosition }, dragging: true }]);
-    }
-    setActiveSnapLinesLocal(currentDragSnapLines);
-  }, [isViewOnlyMode, SNAP_THRESHOLD, GRID_SIZE, onNodesChangeReactFlow]);
+    setActiveSnapLinesLocal(newSnapLines);
+  }, [isViewOnlyMode, onNodesChangeReactFlow, NODE_DRAG_SNAP_THRESHOLD, GRID_SIZE]);
 
 
   const onNodeDragStopInternal = useCallback(
@@ -511,25 +534,140 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
-  }, []);
+    if (!reactFlowInstance) return;
 
-  const handleCanvasDrop = useCallback((droppedData: {type: string, text: string}, positionInFlow: {x: number, y: number}) => {
-    if (isViewOnlyMode) return;
-    if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
-      const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
-      const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
-      onConceptSuggestionDrop?.(droppedData.text, { x: snappedX, y: snappedY });
+    if (event.dataTransfer.types.includes('application/json')) {
+      const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+
+      const previewRect = {
+          x: position.x,
+          y: position.y,
+          width: NODE_PREVIEW_WIDTH,
+          height: NODE_PREVIEW_HEIGHT,
+          id: 'drag-preview-node'
+      };
+      // Pass only main rfNodes for snapping calculations, excluding staged/preview nodes
+      const snapResult = calculateSnapLines(previewRect, rfNodes, SNAP_THRESHOLD, GRID_SIZE);
+
+      let previewText = dragPreviewData?.text || "New Node"; // Preserve existing text if any
+      try {
+        const data = JSON.parse(event.dataTransfer.getData('application/json'));
+        if (data && data.text && typeof data.text === 'string') {
+          previewText = data.text;
+        }
+      } catch (e) { /* ignore */ }
+
+      setDragPreviewData({
+          x: snapResult.snappedX,
+          y: snapResult.snappedY,
+          text: previewText,
+          width: NODE_PREVIEW_WIDTH,
+          height: NODE_PREVIEW_HEIGHT,
+      });
+      setActiveSnapLinesLocal(snapResult.newSnapLines);
+    } else {
+      setDragPreviewData(null); // Clear preview if item is not what we expect
+      setActiveSnapLinesLocal([]);
+    }
+  }, [reactFlowInstance, GRID_SIZE, rfNodes, dragPreviewData?.text]);
+
+  const handleCanvasDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    setDragPreviewData(null);
+    setActiveSnapLinesLocal([]);
+    if (isViewOnlyMode || !reactFlowInstance) return;
+
+    const dataString = event.dataTransfer.getData('application/json');
+    if (!dataString) {
+      useConceptMapStore.getState().addDebugLog("[FlowCanvasCore] Drop event without application/json data.");
+      return;
+    }
+
+    try {
+      const droppedData = JSON.parse(dataString);
+      const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+
+      if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
+        const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
+        const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
+        onConceptSuggestionDrop?.(droppedData.text, { x: snappedX, y: snappedY });
+        useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Dropped concept suggestion: ${droppedData.text}`);
+      } else {
+        useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Dropped data of unknown type or format: ${dataString}`);
+      }
+    } catch (e) {
+      console.error("Failed to parse dropped data in FlowCanvasCore:", e);
+      useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Failed to parse dropped data: ${dataString}. Error: ${e}`);
     }
   }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE]);
 
+  const handleCanvasDragLeave = useCallback((event: React.DragEvent) => {
+    // Check if the mouse is leaving the canvas area entirely
+    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+        setDragPreviewData(null);
+        setActiveSnapLinesLocal([]);
+    }
+  }, []);
+
+  // Global dragend listener as a fallback to clear preview
+  useEffect(() => {
+    const handleDragEnd = () => {
+      setDragPreviewData(null);
+      setActiveSnapLinesLocal([]);
+    };
+    document.addEventListener('dragend', handleDragEnd);
+    return () => {
+      document.removeEventListener('dragend', handleDragEnd);
+    };
+  }, []);
+
+
   // Combine main, staged, and preview elements for rendering
-  const combinedNodes = useMemo(() => [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes], [rfNodes, rfStagedNodes, rfPreviewNodes]);
+  const combinedNodes = useMemo(() => {
+    const baseNodes = [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes];
+    if (dragPreviewData) {
+      baseNodes.push({
+        id: 'drag-preview-node',
+        type: 'customConceptNode',
+        data: {
+          label: dragPreviewData.text,
+          isViewOnly: true,
+          isGhost: true,
+          shape: 'rectangle',
+          width: dragPreviewData.width,
+          height: dragPreviewData.height,
+        } as CustomNodeData,
+        position: { x: dragPreviewData.x, y: dragPreviewData.y },
+        draggable: false,
+        selectable: false,
+        connectable: false,
+        zIndex: 10000,
+      });
+    }
+    return baseNodes;
+  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewData]);
+
   const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
 
+  // Handle Escape key to cancel connection
+  useEffect(() => {
+    if (!connectingNodeId) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        cancelConnection();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [connectingNodeId, cancelConnection]);
+
   return (
-    <InteractiveCanvas
-      nodes={combinedNodes} // Pass combined nodes
-      edges={combinedEdges} // Pass combined edges
+    <div className={cn('w-full h-full', { 'cursor-crosshair': !!connectingNodeId })}>
+      <InteractiveCanvas
+        nodes={combinedNodes} // Pass combined nodes
+        edges={combinedEdges} // Pass combined edges
       onNodesChange={handleRfNodesChange} // Main nodes changes
       onEdgesChange={handleRfEdgesChange} // Main edges changes
       // Note: onPreviewNodesChange and onStagedNodesChange are not directly used by InteractiveCanvas events here.
@@ -547,21 +685,53 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       }}
       onNodeDrag={onNodeDragInternal}
       onNodeDragStop={onNodeDragStopInternal}
-      onNodeClick={(event, node) => { // Add onNodeClick handler
+      onNodeClick={(event, node) => {
         if (isViewOnlyMode) return;
+
+        if (connectingNodeId) {
+          event.stopPropagation();
+          event.preventDefault();
+          if (node.id === connectingNodeId) {
+            cancelConnection();
+            useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Connection cancelled by clicking source node ${node.id}.`);
+          } else {
+            const newEdge = {
+              // id: `edge-${connectingNodeId}-${node.id}-${Date.now()}`, // Ensure unique ID
+              source: connectingNodeId,
+              target: node.id,
+              label: '', // Default label, can be updated later
+              type: 'default', // Or your specific edge type
+            };
+            // onConnectInStore already calls addEdgeToStore and handles onNewEdgeSuggestLabels
+            // We can call it directly if it's correctly passed down and typed.
+            // For now, let's use addEdgeToStore directly for clarity on this specific action.
+            const newEdgeId = addEdgeToStore(newEdge);
+            useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Edge created from ${connectingNodeId} to ${node.id}. New Edge ID: ${newEdgeId}`);
+            finishConnectionAttempt(node.id);
+            // Optionally: Select the new edge or one of the connected nodes
+             setSelectedElement(newEdgeId, 'edge'); // Example: select the new edge
+          }
+          return; // Stop further processing for this click
+        }
+
+        // Original onNodeClick logic for ghost nodes etc.
         if (node.data?.isGhost) {
           onGhostNodeAcceptRequest?.(node.id);
         }
-        // Potentially call other general onNodeClick logic if needed for non-ghost nodes,
-        // or let selection be handled by onSelectionChange.
-        // For now, only ghost nodes have a specific click action here.
+        // Default behavior (selection) will be handled by React Flow if propagation isn't stopped.
+        // If there was specific onNodeClick logic passed as a prop for regular nodes, call it here:
+        // else { onNodeClickProp?.(event, node); }
       }}
       onPaneDoubleClick={handlePaneDoubleClickInternal}
       onPaneContextMenu={handlePaneContextMenuInternal}
+      onDragOver={handleCanvasDragOver}
+      onDrop={handleCanvasDrop}
+      onDragLeave={handleCanvasDragLeave} // Pass drag leave handler
       activeSnapLines={activeSnapLinesLocal}
       gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}
     />
+    </div>
   );
 };
 
@@ -573,4 +743,3 @@ const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => {
 };
 
 export default React.memo(FlowCanvasCoreWrapper);
-    

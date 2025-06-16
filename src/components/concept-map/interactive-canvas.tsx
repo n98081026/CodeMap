@@ -55,8 +55,9 @@ interface InteractiveCanvasProps {
   onPaneDoubleClick?: OnPaneDoubleClick;
   onPaneContextMenu?: (event: React.MouseEvent) => void;
   onNodeClick?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
-  onDragOver?: (event: React.DragEvent) => void; // Prop from parent (FlowCanvasCore)
-  onCanvasDrop?: (data: {type: string, text: string}, position: {x:number, y:number}) => void; // New prop for parsed drop data
+  onDragOver?: (event: React.DragEvent) => void;
+  onDrop?: (event: React.DragEvent) => void;
+  onDragLeave?: (event: React.DragEvent) => void; // Added onDragLeave
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string | null;
@@ -100,7 +101,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onPaneContextMenu,
   onNodeClick,
   onDragOver,
-  onCanvasDrop, // Destructure new prop
+  onDrop,
+  onDragLeave, // Destructure onDragLeave
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
@@ -112,32 +114,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   const { viewport, getViewport } = reactFlowInstance;
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
-  const handleDragOverOnCanvas = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-    if (props.onDragOver) { // Call parent's onDragOver if provided
-        props.onDragOver(event);
-    }
-  }, [props.onDragOver]);
-
-  const handleDropOnCanvas = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    const jsonData = event.dataTransfer.getData('application/json');
-    if (jsonData && reactFlowInstance) {
-        try {
-            const droppedData = JSON.parse(jsonData);
-            if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
-                const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-                onCanvasDrop?.(droppedData, positionInFlow); // Call the new prop from FlowCanvasCore
-            }
-        } catch (e) {
-            console.error("Failed to parse dropped data:", e);
-            useConceptMapStore.getState().addDebugLog("[InteractiveCanvasComponent] Failed to parse dropped data on drop.");
-        }
-    }
-    event.dataTransfer.clearData();
-  }, [reactFlowInstance, onCanvasDrop]);
-
+  // useEffect for translateExtent calculation (remains unchanged)
   useEffect(() => {
     const currentViewport = getViewport(); 
 
@@ -244,8 +221,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onNodeContextMenu,
     onPaneContextMenu,
     onNodeClick,
-    onDragOver: handleDragOverOnCanvas, // Pass local handler
-    onDrop: handleDropOnCanvas,       // Pass local handler
+    onDragOver: onDragOver,
+    onDrop: onDrop,
+    onDragLeave: onDragLeave, // Pass onDragLeave to ReactFlow
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined,
