@@ -126,10 +126,13 @@ tidySelectedNodes: () => void;
 
 // Structural suggestions
 isFetchingStructuralSuggestions: boolean;
-structuralSuggestions: ProcessedSuggestedEdge[] | null;
+structuralSuggestions: ProcessedSuggestedEdge[] | null; // For edges
+structuralGroupSuggestions: ProcessedSuggestedGroup[] | null; // For groups
 fetchStructuralSuggestions: () => Promise<void>;
 acceptStructuralSuggestion: (suggestionId: string) => void;
 dismissStructuralSuggestion: (suggestionId: string) => void;
+acceptGroupSuggestion: (suggestionId: string, options?: { createParentNode?: boolean }) => void; // New
+dismissGroupSuggestion: (suggestionId: string) => void; // New
 clearAllStructuralSuggestions: () => void;
 
 // Semantic Tidy Up
@@ -138,14 +141,21 @@ applySemanticTidyUp: () => Promise<void>;
 }
 
 export type ProcessedSuggestedEdge = {
-  id: string; // Unique temporary ID for UI
+  id: string;
   source: string;
   target: string;
   label?: string;
   reason?: string;
 };
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' | 'structuralSuggestions'>;
+export type ProcessedSuggestedGroup = {
+  id: string;
+  nodeIds: string[];
+  label?: string;
+  reason?: string;
+};
+
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' | 'structuralSuggestions' | 'structuralGroupSuggestions'>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -163,7 +173,8 @@ const initialStateBase: Omit<ConceptMapState,
   'setConceptExpansionPreview' | 'applyLayout' | 'tidySelectedNodes' |
   'startConnection' | 'cancelConnection' | 'finishConnectionAttempt' |
   // Structural suggestions
-  'fetchStructuralSuggestions' | 'acceptStructuralSuggestion' | 'dismissStructuralSuggestion' | 'clearAllStructuralSuggestions' |
+  'fetchStructuralSuggestions' | 'acceptStructuralSuggestion' | 'dismissStructuralSuggestion' |
+  'acceptGroupSuggestion' | 'dismissGroupSuggestion' | 'clearAllStructuralSuggestions' |
   // Semantic Tidy Up
   'applySemanticTidyUp'
 > = {
@@ -195,6 +206,7 @@ const initialStateBase: Omit<ConceptMapState,
   // Structural suggestions initial state
   isFetchingStructuralSuggestions: false,
   structuralSuggestions: null,
+  structuralGroupSuggestions: null, // Initial state for group suggestions
   // Semantic Tidy Up initial state
   isApplyingSemanticTidyUp: false,
 };
@@ -704,32 +716,48 @@ export const useConceptMapStore = create<ConceptMapState>()(
       // Structural Suggestions actions
       fetchStructuralSuggestions: async () => {
         get().addDebugLog('[STORE fetchStructuralSuggestions] Initiating...');
-        set({ isFetchingStructuralSuggestions: true, structuralSuggestions: null }); // Clear previous suggestions
+        set({
+          isFetchingStructuralSuggestions: true,
+          structuralSuggestions: null,
+          structuralGroupSuggestions: null, // Clear previous group suggestions
+          error: null
+        });
 
         const { nodes, edges } = get().mapData;
-        // Map to the schema expected by the flow (only id, text, details for nodes)
         const flowInput = {
           nodes: nodes.map(n => ({ id: n.id, text: n.text, details: n.details })),
           edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label })),
         };
 
         try {
-          const result = await runFlow(suggestMapImprovementsFlow, flowInput);
-          if (result.suggestedEdges && result.suggestedEdges.length > 0) {
-            const processedSuggestions: ProcessedSuggestedEdge[] = result.suggestedEdges.map((edge, i) => ({
-              ...edge,
-              id: `struct-sugg-${Date.now()}-${i}`, // Unique temporary ID
-            }));
-            set({ structuralSuggestions: processedSuggestions, isFetchingStructuralSuggestions: false });
-            get().addDebugLog(`[STORE fetchStructuralSuggestions] Received ${processedSuggestions.length} suggestions.`);
-          } else {
-            set({ structuralSuggestions: [], isFetchingStructuralSuggestions: false });
-            get().addDebugLog('[STORE fetchStructuralSuggestions] No suggestions received.');
+          const result = await runFlow(suggestMapImprovementsFlow, flowInput); // result is SuggestedImprovements
+
+          const processedEdgeSuggestions: ProcessedSuggestedEdge[] = (result.suggestedEdges || []).map((edge, i) => ({
+            ...edge,
+            id: `struct-edge-${Date.now()}-${i}`, // Changed prefix for clarity
+          }));
+
+          const processedGroupSuggestions: ProcessedSuggestedGroup[] = (result.suggestedGroups || []).map((group, i) => ({
+            ...group,
+            id: `struct-group-${Date.now()}-${i}`,
+          }));
+
+          set({
+            structuralSuggestions: processedEdgeSuggestions,
+            structuralGroupSuggestions: processedGroupSuggestions,
+            isFetchingStructuralSuggestions: false
+          });
+          get().addDebugLog(`[STORE fetchStructuralSuggestions] Received ${processedEdgeSuggestions.length} edge suggestions and ${processedGroupSuggestions.length} group suggestions.`);
+
+          if (processedEdgeSuggestions.length === 0 && processedGroupSuggestions.length === 0) {
+            get().addDebugLog('[STORE fetchStructuralSuggestions] No actionable suggestions received from flow.');
+            // Optionally set a specific message if needed, or rely on UI to indicate no suggestions
           }
         } catch (error) {
           console.error("Error fetching structural suggestions:", error);
-          get().addDebugLog(`[STORE fetchStructuralSuggestions] Error: ${error}`);
-          set({ isFetchingStructuralSuggestions: false, error: 'Failed to fetch structural suggestions.' });
+          const errorMsg = error instanceof Error ? error.message : "Failed to fetch structural suggestions.";
+          get().addDebugLog(`[STORE fetchStructuralSuggestions] Error: ${errorMsg}`);
+          set({ isFetchingStructuralSuggestions: false, error: errorMsg, structuralSuggestions: [], structuralGroupSuggestions: [] });
         }
       },
       acceptStructuralSuggestion: (suggestionId: string) => {
@@ -757,7 +785,72 @@ export const useConceptMapStore = create<ConceptMapState>()(
       },
       clearAllStructuralSuggestions: () => {
         get().addDebugLog('[STORE clearAllStructuralSuggestions] Clearing all structural suggestions.');
-        set({ structuralSuggestions: [] }); // Set to empty array to indicate "fetched, but none active"
+        set({ structuralSuggestions: [], structuralGroupSuggestions: [] });
+      },
+
+      acceptGroupSuggestion: (suggestionId: string, options?: { createParentNode?: boolean }) => {
+        const suggestion = get().structuralGroupSuggestions?.find(s => s.id === suggestionId);
+        if (!suggestion) {
+          get().addDebugLog(`[STORE acceptGroupSuggestion] Group suggestion not found: ${suggestionId}`);
+          return;
+        }
+        get().addDebugLog(`[STORE acceptGroupSuggestion] Accepting group suggestion: ${suggestionId}`);
+
+        if (options?.createParentNode) {
+          const parentNodeId = uniqueNodeId();
+          const groupNodes = get().mapData.nodes.filter(n => suggestion.nodeIds.includes(n.id));
+
+          if (groupNodes.length === 0) {
+            get().addDebugLog(`[STORE acceptGroupSuggestion] No valid nodes found for group ${suggestionId}.`);
+            return;
+          }
+
+          // Calculate position for the new parent node (centroid of children)
+          let sumX = 0, sumY = 0;
+          groupNodes.forEach(n => { sumX += n.x; sumY += n.y; });
+          const avgX = sumX / groupNodes.length;
+          const avgY = sumY / groupNodes.length;
+          // Position parent slightly above the centroid for better visibility of children
+          const parentPosition = { x: avgX, y: avgY - 100 };
+
+          get().addNode({
+            text: suggestion.label || 'New Group',
+            details: suggestion.reason || 'AI Suggested Group',
+            position: parentPosition,
+            type: 'group-node', // Or a specific type for AI groups
+            // Consider default width/height for group nodes or calculate based on children
+          });
+
+          const updatedNodes = suggestion.nodeIds.map(nodeId => ({
+            id: nodeId,
+            parentNode: parentNodeId,
+            // Optionally, adjust child positions relative to the new parent or to avoid overlaps.
+            // This can be complex and might be better handled by a subsequent layout pass or user action.
+            // For now, just setting parentNode. React Flow might handle basic nesting.
+          }));
+
+          // Batch update nodes to set their parent
+          set(state => ({
+            mapData: {
+              ...state.mapData,
+              nodes: state.mapData.nodes.map(n => {
+                const update = updatedNodes.find(u => u.id === n.id);
+                return update ? { ...n, ...update } : n;
+              }),
+            },
+          }));
+        }
+        // If not creating a parent node, other logic might apply (e.g., highlighting, tagging - not implemented here)
+
+        set(state => ({
+          structuralGroupSuggestions: state.structuralGroupSuggestions?.filter(s => s.id !== suggestionId) || null,
+        }));
+      },
+      dismissGroupSuggestion: (suggestionId: string) => {
+        get().addDebugLog(`[STORE dismissGroupSuggestion] Dismissing group suggestion: ${suggestionId}`);
+        set(state => ({
+          structuralGroupSuggestions: state.structuralGroupSuggestions?.filter(s => s.id !== suggestionId) || null,
+        }));
       },
 
       applySemanticTidyUp: async () => {
@@ -811,8 +904,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
     {
       partialize: (state): TrackedState => {
     // Exclude connectingNodeId and isApplyingSemanticTidyUp from temporal state
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions };
       },
       limit: 50,
     }

@@ -6,8 +6,10 @@ import { ReactFlowProvider, useNodesState, useEdgesState, type Node as RFNode, t
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import type { CustomNodeData } from './custom-node';
-import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge'; // Ensure OrthogonalEdge is imported
-import SuggestionEdge from './SuggestionEdge'; // Import SuggestionEdge
+import CustomNodeComponent from './custom-node'; // Import the standard node component
+import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
+import SuggestionEdge from './SuggestionEdge';
+import GroupSuggestionOverlayNode, { type GroupSuggestionOverlayData } from './GroupSuggestionOverlayNode'; // Import new overlay node
 import { getMarkerDefinition } from './orthogonal-edge';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { getNodePlacement } from '@/lib/layout-utils';
@@ -180,12 +182,19 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     addEdge: addEdgeToStore, // Assuming addEdge from store is what we need
   } = useConceptMapStore();
 
-  const { stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions } = useConceptMapStore(
+  const {
+    stagedMapData,
+    isStagingActive,
+    conceptExpansionPreview,
+    structuralSuggestions, // For edges
+    structuralGroupSuggestions // For groups
+  } = useConceptMapStore(
     useCallback(s => ({
       stagedMapData: s.stagedMapData,
       isStagingActive: s.isStagingActive,
       conceptExpansionPreview: s.conceptExpansionPreview,
-      structuralSuggestions: s.structuralSuggestions, // Destructure structuralSuggestions
+      structuralSuggestions: s.structuralSuggestions,
+      structuralGroupSuggestions: s.structuralGroupSuggestions, // Destructure group suggestions
     }), [])
   );
   const reactFlowInstance = useReactFlow();
@@ -205,6 +214,11 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const edgeTypes = useMemo(() => ({
     orthogonal: OrthogonalEdge,
     suggestionEdge: SuggestionEdge,
+  }), []);
+
+  const nodeTypes = useMemo(() => ({
+    customConceptNode: CustomNodeComponent, // Standard node
+    groupSuggestionOverlay: GroupSuggestionOverlayNode, // New overlay node type
   }), []);
 
   // Effect to synchronize MAIN nodes from the store to React Flow's state
@@ -653,7 +667,89 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       });
     }
     return baseNodes;
-  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewData]);
+  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewData, groupSuggestionOverlays]); // Added groupSuggestionOverlays dependency
+
+  const groupSuggestionOverlays = useMemo(() => {
+    if (!structuralGroupSuggestions || !reactFlowInstance || rfNodes.length === 0) {
+      return [];
+    }
+
+    return structuralGroupSuggestions.map(group => {
+      const nodesInGroup = group.nodeIds
+        .map(nodeId => reactFlowInstance.getNode(nodeId))
+        .filter(node => node !== undefined) as RFNode<CustomNodeData>[];
+
+      if (nodesInGroup.length < 2) return null;
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      nodesInGroup.forEach(node => {
+        minX = Math.min(minX, node.position.x);
+        minY = Math.min(minY, node.position.y);
+        maxX = Math.max(maxX, node.position.x + (node.width || NODE_PREVIEW_WIDTH)); // Use constant for default
+        maxY = Math.max(maxY, node.position.y + (node.height || NODE_PREVIEW_HEIGHT)); // Use constant for default
+      });
+
+      const PADDING = 20; // Increased padding for better visual separation
+      const boxX = minX - PADDING;
+      const boxY = minY - PADDING;
+      const boxWidth = maxX - minX + 2 * PADDING;
+      const boxHeight = maxY - minY + 2 * PADDING;
+
+      return {
+        id: group.id,
+        x: boxX,
+        y: boxY,
+        width: boxWidth,
+        height: boxHeight,
+        label: group.label,
+        reason: group.reason,
+      };
+    }).filter(box => box !== null);
+  }, [structuralGroupSuggestions, reactFlowInstance, rfNodes]);
+
+
+  const combinedNodes = useMemo(() => {
+    let baseNodes = [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes];
+    if (dragPreviewData) {
+      baseNodes.push({
+        id: 'drag-preview-node',
+        type: 'customConceptNode',
+        data: {
+          label: dragPreviewData.text,
+          isViewOnly: true,
+          isGhost: true,
+          shape: 'rectangle',
+          width: dragPreviewData.width,
+          height: dragPreviewData.height,
+        } as CustomNodeData,
+        position: { x: dragPreviewData.x, y: dragPreviewData.y },
+        draggable: false, selectable: false, connectable: false, zIndex: 10000,
+      });
+    }
+
+    if (groupSuggestionOverlays && groupSuggestionOverlays.length > 0) {
+      const overlayNodes = groupSuggestionOverlays.map(overlay => {
+        if (!overlay) return null; // Should be filtered by now, but defensive
+        return {
+            id: `group-overlay-${overlay.id}`,
+            type: 'groupSuggestionOverlay',
+            position: { x: overlay.x, y: overlay.y },
+            data: {
+                width: overlay.width,
+                height: overlay.height,
+                label: overlay.label,
+                reason: overlay.reason,
+                suggestionId: overlay.id
+            },
+            selectable: false,
+            draggable: false,
+            zIndex: 0, // Render behind actual nodes
+        };
+      }).filter(n => n !== null);
+      baseNodes = [...baseNodes, ...overlayNodes as RFNode<CustomNodeData | GroupSuggestionOverlayData>[]];
+    }
+    return baseNodes;
+  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewData, groupSuggestionOverlays]);
 
   const combinedEdges = useMemo(() => {
     const baseEdges = [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges];
@@ -755,7 +851,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       onDragOver={handleCanvasDragOver}
       onDrop={handleCanvasDrop}
       onDragLeave={handleCanvasDragLeave}
-      edgeTypes={edgeTypes} // Pass the edgeTypes to InteractiveCanvas
+      nodeTypes={nodeTypes} // Pass the nodeTypes to InteractiveCanvas
+      edgeTypes={edgeTypes}
       activeSnapLines={activeSnapLinesLocal}
       gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}
