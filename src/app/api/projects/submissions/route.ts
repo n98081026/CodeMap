@@ -63,13 +63,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const studentIdParam = searchParams.get('studentId');
     const classroomIdParam = searchParams.get('classroomId');
-    const pageParam = searchParams.get('page');
-    const limitParam = searchParams.get('limit');
-
-    const page = pageParam ? parseInt(pageParam, 10) : 1;
-    const limit = limitParam ? parseInt(limitParam, 10) : 10; 
     
     if (classroomIdParam) {
+        // Pagination for classroomId is not implemented in this step, but if it were, params would be parsed here.
         if (userRole !== UserRole.ADMIN) {
           try {
             const classroom = await getClassroomById(classroomIdParam);
@@ -84,24 +80,71 @@ export async function GET(request: Request) {
         }
         // Admin or authorized Teacher can proceed
         const submissions = await getSubmissionsByClassroomId(classroomIdParam);
-        return NextResponse.json(submissions);
+        return NextResponse.json(submissions); // This path currently returns a direct array
     }
 
     if (studentIdParam) {
         if (userRole !== UserRole.ADMIN && user.id !== studentIdParam) {
           return NextResponse.json({ message: "Forbidden: Not authorized to view these submissions." }, { status: 403 });
         }
-        // Admin or the student themselves can proceed
-        const submissions = await getSubmissionsByStudentId(studentIdParam);
-        return NextResponse.json(submissions);
+
+        // Parse and validate page/limit for studentId route
+        const pageParam = searchParams.get('page');
+        const limitParam = searchParams.get('limit');
+        let page = 1;
+        if (pageParam) {
+          const parsedPage = parseInt(pageParam, 10);
+          if (isNaN(parsedPage) || parsedPage < 1) {
+            return NextResponse.json({ message: "Invalid 'page' parameter. Must be a positive integer." }, { status: 400 });
+          }
+          page = parsedPage;
+        }
+        let limit = 10; // Default limit
+        if (limitParam) {
+          const parsedLimit = parseInt(limitParam, 10);
+          if (isNaN(parsedLimit) || parsedLimit < 1) {
+            return NextResponse.json({ message: "Invalid 'limit' parameter. Must be a positive integer." }, { status: 400 });
+          }
+          limit = parsedLimit;
+        }
+
+        const { submissions, totalCount } = await getSubmissionsByStudentId(studentIdParam, page, limit);
+        return NextResponse.json({
+          submissions,
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        });
     }
     
-    // If neither classroomIdParam nor studentIdParam, only Admin can list all
+    // If neither classroomIdParam nor studentIdParam, only Admin can list all (this part already handles pagination)
     if (userRole !== UserRole.ADMIN) {
-      return NextResponse.json({ message: "Forbidden: Only admins can list all submissions." }, { status: 403 });
+      return NextResponse.json({ message: "Forbidden: Only admins can list all submissions unless querying by studentId or classroomId." }, { status: 403 });
     }
-    const { submissions, totalCount } = await getAllSubmissions(page, limit); 
-    return NextResponse.json({ submissions, totalCount, page, limit, totalPages: Math.ceil(totalCount / limit) });
+
+    // Admin fetching all submissions - parse page/limit here for this case
+    const pageParamForAll = searchParams.get('page');
+    const limitParamForAll = searchParams.get('limit');
+    let pageForAll = 1;
+    if (pageParamForAll) {
+        const parsedPage = parseInt(pageParamForAll, 10);
+        if (isNaN(parsedPage) || parsedPage < 1) {
+            return NextResponse.json({ message: "Invalid 'page' parameter for all submissions. Must be a positive integer." }, { status: 400 });
+        }
+        pageForAll = parsedPage;
+    }
+    let limitForAll = 10; // Default limit
+    if (limitParamForAll) {
+        const parsedLimit = parseInt(limitParamForAll, 10);
+        if (isNaN(parsedLimit) || parsedLimit < 1) {
+            return NextResponse.json({ message: "Invalid 'limit' parameter for all submissions. Must be a positive integer." }, { status: 400 });
+        }
+        limitForAll = parsedLimit;
+    }
+
+    const { submissions, totalCount } = await getAllSubmissions(pageForAll, limitForAll);
+    return NextResponse.json({ submissions, totalCount, page: pageForAll, limit: limitForAll, totalPages: Math.ceil(totalCount / limitForAll) });
 
   } catch (error) {
     console.error("Get Project Submissions API error:", error);

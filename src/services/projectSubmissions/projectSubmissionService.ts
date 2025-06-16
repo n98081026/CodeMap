@@ -120,24 +120,57 @@ export async function getSubmissionById(submissionId: string): Promise<ProjectSu
 /**
  * Retrieves all submissions for a specific student.
  */
-export async function getSubmissionsByStudentId(studentId: string): Promise<ProjectSubmission[]> {
-  if (BYPASS_AUTH_FOR_TESTING && studentId === MOCK_STUDENT_USER.id) {
-    return MOCK_SUBMISSIONS_STORE.filter(s => s.studentId === MOCK_STUDENT_USER.id)
+export async function getSubmissionsByStudentId(
+  studentId: string,
+  page?: number,
+  limit?: number
+): Promise<{ submissions: ProjectSubmission[], totalCount: number }> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const userSubmissions = MOCK_SUBMISSIONS_STORE.filter(s => s.studentId === studentId)
       .sort((a, b) => new Date(b.submissionTimestamp).getTime() - new Date(a.submissionTimestamp).getTime());
-  }
-  if (BYPASS_AUTH_FOR_TESTING) return [];
 
-  const { data, error } = await supabase
+    const totalCount = userSubmissions.length;
+    let paginatedSubmissions = userSubmissions;
+
+    if (page && limit && page > 0 && limit > 0) {
+      paginatedSubmissions = userSubmissions.slice((page - 1) * limit, page * limit);
+    }
+
+    // Assuming MOCK_SUBMISSIONS_STORE contains full ProjectSubmission objects
+    return { submissions: paginatedSubmissions, totalCount };
+  }
+
+  // Fetch total count
+  const { count, error: countError } = await supabase
+    .from('project_submissions')
+    .select('*', { count: 'exact', head: true })
+    .eq('student_id', studentId);
+
+  if (countError) {
+    console.error('Supabase getSubmissionsByStudentId count error:', countError);
+    throw new Error(`Failed to count submissions for student: ${countError.message}`);
+  }
+  const totalCount = count || 0;
+
+  // Fetch paginated submissions
+  let query = supabase
     .from('project_submissions')
     .select('*')
     .eq('student_id', studentId)
     .order('submission_timestamp', { ascending: false });
 
-  if (error) {
-    console.error('Supabase getSubmissionsByStudentId error:', error);
-    throw new Error(`Failed to fetch submissions for student: ${error.message}`);
+  if (page && limit && page > 0 && limit > 0) {
+    query = query.range((page - 1) * limit, page * limit - 1);
   }
-  return (data || []).map(s => ({
+
+  const { data: submissionsData, error: submissionsError } = await query;
+
+  if (submissionsError) {
+    console.error('Supabase getSubmissionsByStudentId error:', submissionsError);
+    throw new Error(`Failed to fetch submissions for student: ${submissionsError.message}`);
+  }
+
+  const mappedSubmissions = (submissionsData || []).map(s => ({
     id: s.id,
     studentId: s.student_id,
     originalFileName: s.original_file_name,
@@ -149,6 +182,8 @@ export async function getSubmissionsByStudentId(studentId: string): Promise<Proj
     analysisError: s.analysis_error,
     generatedConceptMapId: s.generated_concept_map_id,
   }));
+
+  return { submissions: mappedSubmissions, totalCount };
 }
 
 /**
