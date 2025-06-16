@@ -65,7 +65,6 @@ export async function GET(request: Request) {
     const classroomIdParam = searchParams.get('classroomId');
     
     if (classroomIdParam) {
-        // Pagination for classroomId is not implemented in this step, but if it were, params would be parsed here.
         if (userRole !== UserRole.ADMIN) {
           try {
             const classroom = await getClassroomById(classroomIdParam);
@@ -79,8 +78,34 @@ export async function GET(request: Request) {
           }
         }
         // Admin or authorized Teacher can proceed
-        const submissions = await getSubmissionsByClassroomId(classroomIdParam);
-        return NextResponse.json(submissions); // This path currently returns a direct array
+
+        const pageParam = searchParams.get('page');
+        const limitParam = searchParams.get('limit');
+        let page = 1;
+        if (pageParam) {
+          const parsedPage = parseInt(pageParam, 10);
+          if (isNaN(parsedPage) || parsedPage < 1) {
+            return NextResponse.json({ message: "Invalid 'page' parameter. Must be a positive integer." }, { status: 400 });
+          }
+          page = parsedPage;
+        }
+        let limit = 10; // Default limit
+        if (limitParam) {
+          const parsedLimit = parseInt(limitParam, 10);
+          if (isNaN(parsedLimit) || parsedLimit < 1) {
+            return NextResponse.json({ message: "Invalid 'limit' parameter. Must be a positive integer." }, { status: 400 });
+          }
+          limit = parsedLimit;
+        }
+
+        const { submissions, totalCount } = await getSubmissionsByClassroomId(classroomIdParam, page, limit);
+        return NextResponse.json({
+          submissions,
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        });
     }
 
     if (studentIdParam) {

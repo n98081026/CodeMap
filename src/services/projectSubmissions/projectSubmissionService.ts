@@ -189,27 +189,62 @@ export async function getSubmissionsByStudentId(
 /**
  * Retrieves all submissions for a specific classroom.
  */
-export async function getSubmissionsByClassroomId(classroomId: string): Promise<ProjectSubmission[]> {
-  if (BYPASS_AUTH_FOR_TESTING && classroomId === MOCK_CLASSROOM_SHARED.id) {
-     return MOCK_SUBMISSIONS_STORE.filter(s => s.classroomId === MOCK_CLASSROOM_SHARED.id)
+export async function getSubmissionsByClassroomId(
+  classroomId: string,
+  page?: number,
+  limit?: number
+): Promise<{ submissions: ProjectSubmission[], totalCount: number }> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const classroomSubmissions = MOCK_SUBMISSIONS_STORE.filter(s => s.classroomId === classroomId)
       .sort((a,b) => new Date(b.submissionTimestamp).getTime() - new Date(a.submissionTimestamp).getTime());
+
+    const totalCount = classroomSubmissions.length;
+    let paginatedSubmissions = classroomSubmissions;
+
+    if (page && limit && page > 0 && limit > 0) {
+      paginatedSubmissions = classroomSubmissions.slice((page - 1) * limit, page * limit);
+    }
+    // Assuming MOCK_SUBMISSIONS_STORE contains full ProjectSubmission objects with studentName already if needed,
+    // or this mock path doesn't require the student name join for simplicity.
+    // For this example, we'll return them as is.
+    return { submissions: paginatedSubmissions, totalCount };
   }
-  if (BYPASS_AUTH_FOR_TESTING) return [];
 
-
-  const { data, error } = await supabase
+  // Fetch total count
+  const { count, error: countError } = await supabase
     .from('project_submissions')
-    .select('*, student:profiles(name)') 
+    .select('*', { count: 'exact', head: true })
+    .eq('classroom_id', classroomId);
+
+  if (countError) {
+    console.error('Supabase getSubmissionsByClassroomId count error:', countError);
+    throw new Error(`Failed to count submissions for classroom: ${countError.message}`);
+  }
+  const totalCount = count || 0;
+
+  // Fetch paginated submissions
+  let query = supabase
+    .from('project_submissions')
+    .select('*, student:profiles(name)') // Keep the join for student name
     .eq('classroom_id', classroomId)
     .order('submission_timestamp', { ascending: false });
 
-  if (error) {
-    console.error('Supabase getSubmissionsByClassroomId error:', error);
-    throw new Error(`Failed to fetch submissions for classroom: ${error.message}`);
+  if (page && limit && page > 0 && limit > 0) {
+    query = query.range((page - 1) * limit, page * limit - 1);
   }
-  return (data || []).map(s => ({
+
+  const { data: submissionsData, error: submissionsError } = await query;
+
+  if (submissionsError) {
+    console.error('Supabase getSubmissionsByClassroomId error:', submissionsError);
+    throw new Error(`Failed to fetch submissions for classroom: ${submissionsError.message}`);
+  }
+
+  const mappedSubmissions = (submissionsData || []).map(s => ({
     id: s.id,
     studentId: s.student_id,
+    // @ts-ignore - Supabase join type, assume student.name exists if student is not null
+    studentName: s.student?.name || 'N/A',
     originalFileName: s.original_file_name,
     fileSize: s.file_size,
     classroomId: s.classroom_id,
@@ -219,6 +254,8 @@ export async function getSubmissionsByClassroomId(classroomId: string): Promise<
     analysisError: s.analysis_error,
     generatedConceptMapId: s.generated_concept_map_id,
   }));
+
+  return { submissions: mappedSubmissions, totalCount };
 }
 
 /**
