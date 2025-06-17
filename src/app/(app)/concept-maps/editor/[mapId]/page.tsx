@@ -550,6 +550,12 @@ export default function ConceptMapEditorPage() {
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
   if (storeError) { return <div className="p-4 text-destructive flex flex-col items-center justify-center h-full gap-4"><AlertTriangle className="h-10 w-10" /> <p>{storeError}</p> <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
 
+  const inspectorAiTools = React.useMemo(() => ({
+    openExpandConceptModal: aiToolsHook.openExpandConceptModal,
+    openRewriteNodeContentModal: aiToolsHook.openRewriteNodeContentModal,
+    suggestIntermediateNode: aiToolsHook.handleSuggestIntermediateNode,
+  }), [aiToolsHook.openExpandConceptModal, aiToolsHook.openRewriteNodeContentModal, aiToolsHook.handleSuggestIntermediateNode]);
+
   // Prepare props for SuggestIntermediateNodeModal
   let modalSourceNodeText: string | undefined;
   let modalTargetNodeText: string | undefined;
@@ -674,11 +680,7 @@ export default function ConceptMapEditorPage() {
               onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
               isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode}
               editingNodeId={selectedElementType === 'node' ? useConceptMapStore.getState().editingNodeId : null} // Pass editingNodeId
-              aiTools={{
-                openExpandConceptModal: aiToolsHook.openExpandConceptModal,
-                openRewriteNodeContentModal: aiToolsHook.openRewriteNodeContentModal,
-                suggestIntermediateNode: aiToolsHook.handleSuggestIntermediateNode, // Assuming this function exists or will be added to the hook
-              }}
+              aiTools={inspectorAiTools}
             />
           </SheetContent>
         </Sheet>
@@ -732,3 +734,10 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
+
+// Helper to get the last part of a path, e.g., "new" from "/concept-maps/editor/new"
+// This was removed as routeMapId directly gives the ID or "new".
+// const getMapIdFromPath = (path: string) => {
+//   const parts = path.split('/');
+//   return parts[parts.length - 1];
+// };
