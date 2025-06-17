@@ -1,24 +1,22 @@
 
 "use client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
+import React, { useEffect } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { UserRole } from "@/types";
-import { Users, Settings, ArrowRight, LayoutDashboard } from "lucide-react";
+import { Users, Settings, LayoutDashboard, Loader2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { useAdminDashboardMetrics } from "@/hooks/useAdminDashboardMetrics";
+import { DashboardLinkCard, type MetricState } from "@/components/dashboard/dashboard-link-card";
 
-// Mock data - replace with actual data fetching
-const mockAdminData = {
-  totalUsersCount: 150,
-  activeClassroomsCount: 15,
-};
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { users, classrooms } = useAdminDashboardMetrics();
 
   useEffect(() => {
     if (user && user.role !== UserRole.ADMIN) {
@@ -30,47 +28,38 @@ export default function AdminDashboardPage() {
     return null; // Or a loading/unauthorized state
   }
 
+  const renderMetricCount = (metric: MetricState) => {
+    if (metric.isLoading) return <Loader2 className="h-7 w-7 animate-spin text-primary" />;
+    if (metric.error) return <AlertTriangle className="h-7 w-7 text-destructive" title={metric.error} />;
+    return metric.count !== null ? metric.count : '-';
+  };
+
   return (
     <div className="space-y-6">
       <DashboardHeader 
         title="Admin Dashboard"
         description="System overview and management tools."
         icon={LayoutDashboard}
-        iconLinkHref="/"
+        iconLinkHref="/" // Or link to a main admin overview if different from current page
       />
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">User Management</CardTitle>
-            <Users className="h-6 w-6 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{mockAdminData.totalUsersCount}</div>
-            <p className="text-xs text-muted-foreground mb-4">
-              Total registered users in the system.
-            </p>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/application/admin/users">Manage Users <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">System Settings</CardTitle>
-            <Settings className="h-6 w-6 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{mockAdminData.activeClassroomsCount}</div>
-             <p className="text-xs text-muted-foreground mb-4">
-              Active classrooms. Configure system parameters here.
-            </p>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/application/admin/settings">Configure Settings <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <DashboardLinkCard
+          title="User Management"
+          description="Total registered users in the system."
+          count={renderMetricCount(users)}
+          icon={Users}
+          href="/application/admin/users"
+          linkText="Manage Users"
+        />
+        <DashboardLinkCard
+          title="System Settings" // Title can be "Active Classrooms" if preferred
+          description="Active classrooms. Configure system parameters here." // Or "Total active classrooms in the system."
+          count={renderMetricCount(classrooms)}
+          icon={Settings} // Or BookOpen for classrooms
+          href="/application/admin/settings"
+          linkText="Configure Settings"
+        />
       </div>
     </div>
   );

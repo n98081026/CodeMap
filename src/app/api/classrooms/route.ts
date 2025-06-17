@@ -92,8 +92,41 @@ export async function GET(request: Request) {
     if (userRole !== UserRole.ADMIN) {
       return NextResponse.json({ message: "Forbidden: Only admins can list all classrooms." }, { status: 403 });
     }
-    const allClassrooms = await getAllClassrooms(); 
-    return NextResponse.json(allClassrooms); 
+
+    // Admin path: Fetch all classrooms with pagination
+    let page = 1;
+    if (pageParam) { // pageParam and limitParam were already parsed from searchParams earlier
+      const parsedPage = parseInt(pageParam, 10);
+      // Silently use default if parsing fails or value is invalid, or return 400
+      if (!isNaN(parsedPage) && parsedPage > 0) {
+        page = parsedPage;
+      } else {
+        // Optional: Return 400 for explicitly invalid parameters by admin
+        // return NextResponse.json({ message: "Invalid 'page' parameter for admin. Must be a positive integer." }, { status: 400 });
+      }
+    }
+
+    let limit = 10; // Default limit
+    if (limitParam) {
+      const parsedLimit = parseInt(limitParam, 10);
+      if (!isNaN(parsedLimit) && parsedLimit > 0) {
+        limit = parsedLimit;
+      } else {
+        // Optional: Return 400
+        // return NextResponse.json({ message: "Invalid 'limit' parameter for admin. Must be a positive integer." }, { status: 400 });
+      }
+    }
+
+    // getAllClassrooms service function already defaults page to 1 and limit to 10 if not provided.
+    // Here, we ensure that if the API is called without params, it uses its own defaults before calling service.
+    const { classrooms, totalCount } = await getAllClassrooms(page, limit);
+    return NextResponse.json({
+      classrooms,
+      totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    });
 
   } catch (error) {
     console.error("Get Classrooms API error:", error);
