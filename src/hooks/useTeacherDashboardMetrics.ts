@@ -70,8 +70,14 @@ export function useTeacherDashboardMetrics(): TeacherDashboardMetrics {
       
       let currentTotalStudents = 0;
       if (allClassroomsData.classrooms && Array.isArray(allClassroomsData.classrooms)) {
-         allClassroomsData.classrooms.forEach(c => {
-            currentTotalStudents += c.studentIds?.length || 0; 
+        allClassroomsData.classrooms.forEach(c => {
+          // Prioritize studentCount if available, otherwise fallback to studentIds.length
+          if (typeof c.studentCount === 'number') {
+            currentTotalStudents += c.studentCount;
+          } else if (c.studentIds) { // Fallback, log if this happens often
+            currentTotalStudents += c.studentIds.length;
+            console.warn(`[useTeacherDashboardMetrics] Classroom ${c.id} missing studentCount, falling back to studentIds.length. API/service might need update.`);
+          }
         });
       }
       setTotalStudentsMetric({ count: currentTotalStudents, isLoading: false, error: null });

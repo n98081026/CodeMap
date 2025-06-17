@@ -56,7 +56,7 @@ export function useStudentDashboardMetrics(): StudentDashboardMetrics {
         const errData = await classroomsResponse.json();
         throw new Error(errData.message || `Classrooms API Error (${classroomsResponse.status})`);
       }
-      const data = await classroomsResponse.json();
+      const data = await classroomsResponse.json(); // This API returns a direct array, not paginated for this specific query
       setClassroomsMetric({ count: data.length, isLoading: false, error: null });
     } catch (err) {
       const msg = (err as Error).message;
@@ -71,8 +71,8 @@ export function useStudentDashboardMetrics(): StudentDashboardMetrics {
         const errData = await mapsResponse.json();
         throw new Error(errData.message || `Concept Maps API Error (${mapsResponse.status})`);
       }
-      const data = await mapsResponse.json();
-      setConceptMapsMetric({ count: data.length, isLoading: false, error: null });
+      const data = await mapsResponse.json() as { maps: any[], totalCount: number }; // API now returns paginated structure
+      setConceptMapsMetric({ count: data.totalCount, isLoading: false, error: null });
     } catch (err) {
       const msg = (err as Error).message;
       setConceptMapsMetric({ count: null, isLoading: false, error: msg });
@@ -86,8 +86,8 @@ export function useStudentDashboardMetrics(): StudentDashboardMetrics {
         const errData = await submissionsResponse.json();
         throw new Error(errData.message || `Submissions API Error (${submissionsResponse.status})`);
       }
-      const data = await submissionsResponse.json();
-      setSubmissionsMetric({ count: data.length, isLoading: false, error: null });
+      const data = await submissionsResponse.json() as { submissions: any[], totalCount: number }; // API now returns paginated structure
+      setSubmissionsMetric({ count: data.totalCount, isLoading: false, error: null });
     } catch (err) {
       const msg = (err as Error).message;
       setSubmissionsMetric({ count: null, isLoading: false, error: msg });

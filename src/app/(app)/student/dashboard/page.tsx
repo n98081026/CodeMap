@@ -1,22 +1,27 @@
 "use client";
+
+import React from "react"; // Ensure React is imported for useMemo if not already via other imports
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
-import { BookOpen, FileText, Share2, FolderKanban, ArrowRight, LayoutDashboard, Compass } from "lucide-react";
+import { BookOpen, FileText, Share2, FolderKanban, LayoutDashboard, Compass, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { useStudentDashboardMetrics } from "@/hooks/useStudentDashboardMetrics";
+import { DashboardLinkCard, type MetricState } from "@/components/dashboard/dashboard-link-card";
 
-// Mock data - replace with actual data fetching
-const mockStudentData = {
-  enrolledClassroomsCount: 2,
-  conceptMapsCount: 5,
-  projectSubmissionsCount: 3,
-};
 
 export default function StudentDashboardPage() {
   const { user } = useAuth();
+  const { classrooms, conceptMaps, submissions } = useStudentDashboardMetrics();
 
-  if (!user) return null;
+  if (!user) return null; // Or a loading spinner if auth is still resolving
+
+  const renderMetricCount = (metric: MetricState) => {
+    if (metric.isLoading) return <Loader2 className="h-7 w-7 animate-spin text-primary" />;
+    if (metric.error) return <AlertTriangle className="h-7 w-7 text-destructive" title={metric.error} />;
+    return metric.count !== null ? metric.count : '-';
+  };
 
   return (
     <div className="space-y-6">
@@ -27,53 +32,30 @@ export default function StudentDashboardPage() {
       />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">My Classrooms</CardTitle>
-            <BookOpen className="h-6 w-6 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{mockStudentData.enrolledClassroomsCount}</div>
-            <p className="text-xs text-muted-foreground mb-4">
-              Classrooms you are enrolled in.
-            </p>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/student/classrooms">View Classrooms <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">My Concept Maps</CardTitle>
-            <Share2 className="h-6 w-6 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{mockStudentData.conceptMapsCount}</div>
-            <p className="text-xs text-muted-foreground mb-4">
-              Concept maps you have created or have access to.
-            </p>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/student/concept-maps">View Maps <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">Project Submissions</CardTitle>
-            <FolderKanban className="h-6 w-6 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{mockStudentData.projectSubmissionsCount}</div>
-            <p className="text-xs text-muted-foreground mb-4">
-              Projects you have submitted for analysis.
-            </p>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/student/projects/submissions">View Submissions <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <DashboardLinkCard
+          title="My Classrooms"
+          description="Classrooms you are enrolled in."
+          count={renderMetricCount(classrooms)}
+          icon={BookOpen}
+          href="/application/student/classrooms"
+          linkText="View Classrooms"
+        />
+        <DashboardLinkCard
+          title="My Concept Maps"
+          description="Concept maps you have created or have access to."
+          count={renderMetricCount(conceptMaps)}
+          icon={Share2}
+          href="/application/student/concept-maps"
+          linkText="View Maps"
+        />
+        <DashboardLinkCard
+          title="Project Submissions"
+          description="Projects you have submitted for analysis."
+          count={renderMetricCount(submissions)}
+          icon={FolderKanban}
+          href="/application/student/projects/submissions"
+          linkText="View Submissions"
+        />
       </div>
 
       <Card className="shadow-lg">
@@ -83,12 +65,12 @@ export default function StudentDashboardPage() {
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Button asChild size="lg" className="w-full">
-            <Link href="/concept-maps/new">
+            <Link href="/application/concept-maps/editor/new">
               <Compass className="mr-2 h-5 w-5" /> Create New Concept Map
             </Link>
           </Button>
           <Button asChild variant="secondary" size="lg" className="w-full">
-            <Link href="/student/projects/submit">
+            <Link href="/application/student/projects/submit">
               <FileText className="mr-2 h-5 w-5" /> Submit New Project
             </Link>
           </Button>
