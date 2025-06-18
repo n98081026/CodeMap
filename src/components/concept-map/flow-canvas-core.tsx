@@ -74,6 +74,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
   const [draggedItemPreview, setDraggedItemPreview] = useState<{ type: string; text: string; x: number; y: number; } | null>(null);
+  const [dragPreviewSnapLines, setDragPreviewSnapLines] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
   // Initialize useNodesState and useEdgesState for main and staged elements.
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
@@ -552,45 +553,115 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         if (data.type === 'concept-suggestion' && typeof data.text === 'string') {
           const flowPosition = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
           setDraggedItemPreview({ type: data.type, text: data.text, x: flowPosition.x, y: flowPosition.y });
+
+          // Calculate snap lines for drag preview
+          const previewWidth = DEFAULT_NODE_WIDTH;
+          const previewHeight = DEFAULT_NODE_HEIGHT;
+          const previewX = flowPosition.x;
+          const previewY = flowPosition.y;
+
+          let currentDragSnapLinesLocal: typeof dragPreviewSnapLines = [];
+          const previewTargetsX = [
+            { type: 'left', value: previewX },
+            { type: 'center', value: previewX + previewWidth / 2 },
+            { type: 'right', value: previewX + previewWidth },
+          ];
+          const previewTargetsY = [
+            { type: 'top', value: previewY },
+            { type: 'center', value: previewY + previewHeight / 2 },
+            { type: 'bottom', value: previewY + previewHeight },
+          ];
+
+          let minDeltaXPreview = Infinity; let bestSnapXInfoPreview: typeof dragPreviewSnapLines[0] | null = null;
+          let minDeltaYPreview = Infinity; let bestSnapYInfoPreview: typeof dragPreviewSnapLines[0] | null = null;
+
+          rfNodes.forEach(otherNode => {
+            if (!otherNode.width || !otherNode.height || !otherNode.positionAbsolute) return;
+            const otherWidth = otherNode.width;
+            const otherHeight = otherNode.height;
+            const otherNodePosition = otherNode.positionAbsolute;
+
+            const otherTargetsX = [
+              { type: 'left', value: otherNodePosition.x },
+              { type: 'center', value: otherNodePosition.x + otherWidth / 2 },
+              { type: 'right', value: otherNodePosition.x + otherWidth },
+            ];
+            const otherTargetsY = [
+              { type: 'top', value: otherNodePosition.y },
+              { type: 'center', value: otherNodePosition.y + otherHeight / 2 },
+              { type: 'bottom', value: otherNodePosition.y + otherHeight },
+            ];
+
+            for (const ptx of previewTargetsX) {
+              for (const otx of otherTargetsX) {
+                const delta = Math.abs(ptx.value - otx.value);
+                if (delta < SNAP_THRESHOLD && delta < minDeltaXPreview) {
+                  minDeltaXPreview = delta;
+                  bestSnapXInfoPreview = {
+                    type: 'vertical',
+                    x1: otx.value, y1: Math.min(previewY, otherNodePosition.y) - 20,
+                    x2: otx.value, y2: Math.max(previewY + previewHeight, otherNodePosition.y + otherHeight) + 20,
+                  };
+                }
+              }
+            }
+            for (const pty of previewTargetsY) {
+              for (const oty of otherTargetsY) {
+                const delta = Math.abs(pty.value - oty.value);
+                if (delta < SNAP_THRESHOLD && delta < minDeltaYPreview) {
+                  minDeltaYPreview = delta;
+                  bestSnapYInfoPreview = {
+                    type: 'horizontal',
+                    x1: Math.min(previewX, otherNodePosition.x) - 20, y1: oty.value,
+                    x2: Math.max(previewX + previewWidth, otherNodePosition.x + otherWidth) + 20, y2: oty.value,
+                  };
+                }
+              }
+            }
+          });
+          if (bestSnapXInfoPreview) currentDragSnapLinesLocal.push(bestSnapXInfoPreview);
+          if (bestSnapYInfoPreview) currentDragSnapLinesLocal.push(bestSnapYInfoPreview);
+          setDragPreviewSnapLines(currentDragSnapLinesLocal);
+
         } else {
           setDraggedItemPreview(null);
+          setDragPreviewSnapLines([]);
         }
       } catch (e) {
         console.error("Failed to parse drag data", e);
         setDraggedItemPreview(null);
+        setDragPreviewSnapLines([]);
       }
     }
-  }, [reactFlowInstance]);
+  }, [reactFlowInstance, rfNodes, SNAP_THRESHOLD, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT]); // Added rfNodes and other constants
 
   const handleCanvasDragLeave = useCallback((event: React.DragEvent) => {
-    // Check if the mouse is leaving the canvas area entirely or just moving over child elements.
-    // A simple approach is to clear if relatedTarget is null (leaving window) or not part of the canvas.
-    // For more robust behavior, one might need to check if event.relatedTarget is outside the React Flow viewport.
-    // However, for many cases, simply clearing is fine as dragOver will re-set it if still over canvas.
     const reactFlowBounds = reactFlowInstance?.containerRef?.current?.getBoundingClientRect();
     if (reactFlowBounds &&
         (event.clientX < reactFlowBounds.left || event.clientX > reactFlowBounds.right ||
          event.clientY < reactFlowBounds.top || event.clientY > reactFlowBounds.bottom)) {
       setDraggedItemPreview(null);
-    } else if (!event.relatedTarget) { // Mouse left the window
+      setDragPreviewSnapLines([]);
+    } else if (!event.relatedTarget) {
         setDraggedItemPreview(null);
+        setDragPreviewSnapLines([]);
     }
-    // If just moving to a child element within the canvas, dragOver on canvas might not fire immediately.
-    // This might need refinement if preview flickers when moving over nodes/edges.
-  }, [reactFlowInstance]);
+  }, [reactFlowInstance, setDragPreviewSnapLines]);
 
   const handleCanvasDrop = useCallback((droppedData: {type: string, text: string}, positionInFlow: {x: number, y: number}) => {
     if (isViewOnlyMode) {
       setDraggedItemPreview(null);
+      setDragPreviewSnapLines([]);
       return;
     }
     if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
-      const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
+      const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE; // Snapping the drop position itself
       const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
       onConceptSuggestionDrop?.(droppedData.text, { x: snappedX, y: snappedY });
     }
-    setDraggedItemPreview(null); // Clear preview after drop
-  }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE, setDraggedItemPreview]);
+    setDraggedItemPreview(null);
+    setDragPreviewSnapLines([]);
+  }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE, setDraggedItemPreview, setDragPreviewSnapLines]);
 
   // Combine main, staged, and preview elements for rendering
   const combinedNodes = useMemo(() => [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes], [rfNodes, rfStagedNodes, rfPreviewNodes]);
@@ -676,6 +747,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       onPaneDoubleClick={handlePaneDoubleClickInternal}
       onPaneContextMenu={handlePaneContextMenuInternal}
       activeSnapLines={activeSnapLinesLocal}
+      dragPreviewSnapLines={dragPreviewSnapLines} // Pass down the new snap lines
       gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}
       // Drag preview related props for InteractiveCanvas

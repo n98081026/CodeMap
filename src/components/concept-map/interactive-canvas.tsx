@@ -63,6 +63,7 @@ interface InteractiveCanvasProps {
   // Drag preview related props
   draggedItemPreview?: { type: string; text: string; x: number; y: number; } | null;
   onCanvasDragLeave?: (event: React.DragEvent) => void;
+  dragPreviewSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -105,6 +106,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onDragOver,
   onCanvasDrop, // Destructure new prop
   activeSnapLines = [],
+  dragPreviewSnapLines = [], // Destructure with default
   gridSize = 20,
   panActivationKeyCode,
   draggedItemPreview, // Destructure new prop
@@ -116,6 +118,11 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   const reactFlowInstance = useReactFlow(); // Get instance for screenToFlowPosition
   const { viewport, getViewport } = reactFlowInstance;
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
+
+  const allSnapLinesToRender = React.useMemo(() => [
+    ...(activeSnapLines || []),
+    ...(dragPreviewSnapLines || [])
+  ], [activeSnapLines, dragPreviewSnapLines]);
 
   const handleDragOverOnCanvas = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -294,7 +301,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
           size={1}
           color="hsl(var(--border)/0.7)"
         />
-        {activeSnapLines.map((line, index) => (
+        {allSnapLinesToRender.map((line, index) => (
           <svg key={`snapline-${index}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 100 }}>
             <line
               x1={line.x1} y1={line.y1}
