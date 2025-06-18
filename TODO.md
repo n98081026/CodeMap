@@ -179,7 +179,7 @@
 ### AI-Powered Layout and Structuring Assistance
 - [~] "AI Tidy-Up" / Smart Alignment (Contextual). (Algorithmic alignment/distribution tools implemented. AI Semantic Grouping Phase 1: parent name suggestion, structural linking, and initial visual grouping/child layout implemented. Full AI-driven aspects & advanced semantic grouping pending.)
     - [x] On selection of multiple nodes, offer an "AI Tidy selection" option (mini-toolbar/context menu). (Non-AI Alignment/Distribution tools added to EditorToolbar)
-    - [~] AI attempts to align, distribute, or semantically group (e.g., temporary parent node). (Algorithmic align/distribute tools implemented. AI semantic group suggestion Phase 1 for parent node done, including structural linking and basic child layout.)
+    - [~] AI attempts to align, distribute, or semantically group (e.g., temporary parent node). (Algorithmic align/distribute tools implemented, with AI suggesting which action to apply. AI semantic group suggestion Phase 1 for parent node done, including structural linking and basic child layout. AI suggesting *which nodes to group* is pending.)
 - [ ] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
     - [ ] AI periodically/on-demand scans map for structural improvement opportunities.
     - [ ] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?".
