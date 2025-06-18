@@ -60,6 +60,9 @@ interface InteractiveCanvasProps {
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string | null;
+  // Drag preview related props
+  draggedItemPreview?: { type: string; text: string; x: number; y: number; } | null;
+  onCanvasDragLeave?: (event: React.DragEvent) => void;
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -104,6 +107,8 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   activeSnapLines = [],
   gridSize = 20,
   panActivationKeyCode,
+  draggedItemPreview, // Destructure new prop
+  onCanvasDragLeave,  // Destructure new prop
 }) => {
   console.log(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length-1]) : 'N/A'}`);
   // Also send to store's debug log for easier collection if console is not always available during testing
@@ -244,8 +249,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onNodeContextMenu,
     onPaneContextMenu,
     onNodeClick,
-    onDragOver: handleDragOverOnCanvas, // Pass local handler
-    onDrop: handleDropOnCanvas,       // Pass local handler
+    onDragOver: handleDragOverOnCanvas,
+    onDrop: handleDropOnCanvas,
+    onDragLeave: onCanvasDragLeave, // Pass the new handler
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined,
@@ -300,6 +306,28 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
           </svg>
         ))}
       </ReactFlow>
+      {/* Render Drag Preview Element */}
+      {draggedItemPreview && !isViewOnlyMode && (
+        <div
+          style={{
+            position: 'absolute',
+            left: `${draggedItemPreview.x}px`, // These are flow coordinates
+            top: `${draggedItemPreview.y}px`,
+            transform: 'translate(-50%, -50%)', // Center on cursor
+            padding: '8px 12px',
+            background: 'hsl(var(--card))',
+            border: '1px dashed hsl(var(--primary))',
+            borderRadius: 'var(--radius, 0.5rem)',
+            color: 'hsl(var(--card-foreground))',
+            fontSize: '0.875rem',
+            opacity: 0.75,
+            pointerEvents: 'none', // Crucial: preview should not intercept mouse events
+            zIndex: 1500,
+          }}
+        >
+          {draggedItemPreview.text}
+        </div>
+      )}
     </Card>
   );
 };

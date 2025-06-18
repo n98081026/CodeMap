@@ -73,6 +73,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const reactFlowInstance = useReactFlow();
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
+  const [draggedItemPreview, setDraggedItemPreview] = useState<{ type: string; text: string; x: number; y: number; } | null>(null);
 
   // Initialize useNodesState and useEdgesState for main and staged elements.
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
@@ -543,16 +544,52 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
-  }, []);
+
+    if (reactFlowInstance && event.dataTransfer.types.includes('application/json')) {
+      try {
+        const data = JSON.parse(event.dataTransfer.getData('application/json'));
+        if (data.type === 'concept-suggestion' && typeof data.text === 'string') {
+          const flowPosition = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+          setDraggedItemPreview({ type: data.type, text: data.text, x: flowPosition.x, y: flowPosition.y });
+        } else {
+          setDraggedItemPreview(null);
+        }
+      } catch (e) {
+        console.error("Failed to parse drag data", e);
+        setDraggedItemPreview(null);
+      }
+    }
+  }, [reactFlowInstance]);
+
+  const handleCanvasDragLeave = useCallback((event: React.DragEvent) => {
+    // Check if the mouse is leaving the canvas area entirely or just moving over child elements.
+    // A simple approach is to clear if relatedTarget is null (leaving window) or not part of the canvas.
+    // For more robust behavior, one might need to check if event.relatedTarget is outside the React Flow viewport.
+    // However, for many cases, simply clearing is fine as dragOver will re-set it if still over canvas.
+    const reactFlowBounds = reactFlowInstance?.containerRef?.current?.getBoundingClientRect();
+    if (reactFlowBounds &&
+        (event.clientX < reactFlowBounds.left || event.clientX > reactFlowBounds.right ||
+         event.clientY < reactFlowBounds.top || event.clientY > reactFlowBounds.bottom)) {
+      setDraggedItemPreview(null);
+    } else if (!event.relatedTarget) { // Mouse left the window
+        setDraggedItemPreview(null);
+    }
+    // If just moving to a child element within the canvas, dragOver on canvas might not fire immediately.
+    // This might need refinement if preview flickers when moving over nodes/edges.
+  }, [reactFlowInstance]);
 
   const handleCanvasDrop = useCallback((droppedData: {type: string, text: string}, positionInFlow: {x: number, y: number}) => {
-    if (isViewOnlyMode) return;
+    if (isViewOnlyMode) {
+      setDraggedItemPreview(null);
+      return;
+    }
     if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
       const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
       const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
       onConceptSuggestionDrop?.(droppedData.text, { x: snappedX, y: snappedY });
     }
-  }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE]);
+    setDraggedItemPreview(null); // Clear preview after drop
+  }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE, setDraggedItemPreview]);
 
   // Combine main, staged, and preview elements for rendering
   const combinedNodes = useMemo(() => [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes], [rfNodes, rfStagedNodes, rfPreviewNodes]);
@@ -640,6 +677,11 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       activeSnapLines={activeSnapLinesLocal}
       gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}
+      // Drag preview related props for InteractiveCanvas
+      draggedItemPreview={draggedItemPreview}
+      onCanvasDragOver={handleCanvasDragOver}
+      onCanvasDragLeave={handleCanvasDragLeave}
+      // onDrop is already handleCanvasDrop
     />
   );
 };
