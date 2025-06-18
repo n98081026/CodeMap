@@ -6,6 +6,11 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import type { Node as RFNode, Edge as RFEdge } from 'reactflow'; // Added RFEdge
 import { ReactFlowProvider, useReactFlow } from 'reactflow'; // Added useReactFlow
 import dynamic from 'next/dynamic';
+import {
+  DagreNodeInput,
+  DagreEdgeInput,
+  DagreNodeOutput as LayoutNodeUpdate, // Alias DagreNodeOutput as LayoutNodeUpdate
+} from '@/types/graph-adapter';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
@@ -44,6 +49,22 @@ const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canva
   loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
 });
 
+// Mock Dagre Layout Function
+const mockDagreLayout = (nodes: DagreNodeInput[], _edges: DagreEdgeInput[]): LayoutNodeUpdate[] => {
+  let currentX = 50; // Initial X position
+  const nodeY = 100; // Fixed Y position for all nodes in the line
+  const spacing = 50;  // Spacing between nodes
+
+  return nodes.map((node) => {
+    const xPos = currentX;
+    currentX += (node.width || 150) + spacing; // Use node width or default
+    return {
+      id: node.id,
+      x: xPos,
+      y: nodeY,
+    };
+  });
+};
 
 export default function ConceptMapEditorPage() {
   const paramsHook = useParams();
@@ -84,6 +105,7 @@ export default function ConceptMapEditorPage() {
       deleteNode: s.deleteNode, updateNode: s.updateNode, updateEdge: s.updateEdge,
       setSelectedElement: s.setSelectedElement, setMultiSelectedNodeIds: s.setMultiSelectedNodeIds,
       importMapData: s.importMapData, setIsViewOnlyMode: s.setIsViewOnlyMode, addDebugLog: s.addDebugLog,
+      applyLayout: s.applyLayout, // Retrieve applyLayout action
     }), [])
   );
 
@@ -505,6 +527,83 @@ export default function ConceptMapEditorPage() {
     if(fileInputRef.current) fileInputRef.current.value = "";
   }, [storeIsViewOnlyMode, toast, importMapData, temporalStoreAPI]);
 
+  // Note: applyLayout is already destructured from the store hook result earlier if the above change is successful.
+  // If not, this line would be an alternative way to get it:
+  // const applyLayout = useConceptMapStore(s => s.applyLayout);
+
+  const handleAutoLayout = useCallback(async () => {
+    addDebugLog('[EditorPage] handleAutoLayout triggered.');
+    if (storeIsViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Auto-layout is disabled in view-only mode.", variant: "default" });
+      addDebugLog('[EditorPage] Auto-layout skipped: view-only mode.');
+      return;
+    }
+
+    if (storeMapData.nodes.length === 0) {
+      toast({ title: "Empty Map", description: "Cannot apply layout to an empty map.", variant: "default" });
+      addDebugLog('[EditorPage] Auto-layout skipped: empty map.');
+      return;
+    }
+
+    const loadingToast = toast({
+      title: 'Applying Auto Layout...',
+      description: <div className="flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait.</div>,
+      duration: Infinity, // Persist until dismissed
+    });
+    addDebugLog('[EditorPage] Auto-layout processing started.');
+
+    try {
+      // Prepare nodes and edges for Dagre
+      const dagreNodes: DagreNodeInput[] = storeMapData.nodes.map(node => ({
+        id: node.id,
+        width: node.width || 150, // Use actual width or default
+        height: node.height || 70, // Use actual height or default
+      }));
+      const dagreEdges: DagreEdgeInput[] = storeMapData.edges.map(edge => ({
+        source: edge.source,
+        target: edge.target,
+      }));
+      addDebugLog(`[EditorPage] Prepared ${dagreNodes.length} nodes and ${dagreEdges.length} edges for layout.`);
+
+      // Call the mock layout function
+      const newPositions = mockDagreLayout(dagreNodes, dagreEdges);
+      addDebugLog(`[EditorPage] Layout calculated. ${newPositions.length} new positions received.`);
+
+      // Apply the new layout through the store action
+      applyLayout(newPositions); // Use the destructured applyLayout
+      addDebugLog('[EditorPage] applyLayout action called.');
+
+      // Fit view after a short delay
+      setTimeout(() => {
+        if (reactFlowInstance) {
+          reactFlowInstance.fitView();
+          addDebugLog('[EditorPage] reactFlowInstance.fitView() called.');
+        }
+      }, 100);
+
+      loadingToast.dismiss();
+      toast({ title: "Layout Applied", description: "Nodes have been automatically arranged.", variant: "default" });
+      addDebugLog('[EditorPage] Auto-layout successfully applied.');
+
+    } catch (error) {
+      addDebugLog(`[EditorPage] Error during auto-layout: ${error instanceof Error ? error.message : String(error)}`);
+      loadingToast.dismiss();
+      toast({
+        title: "Layout Error",
+        description: `An error occurred: ${error instanceof Error ? error.message : String(error)}`,
+        variant: "destructive",
+      });
+    }
+  }, [
+    storeIsViewOnlyMode,
+    storeMapData.nodes,
+    storeMapData.edges,
+    applyLayout, // Add applyLayout to dependency array
+    toast,
+    reactFlowInstance,
+    addDebugLog,
+  ]);
+
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
     event.preventDefault();
     setContextMenu({ isOpen: true, x: event.clientX, y: event.clientY, nodeId: node.id });
@@ -569,6 +668,7 @@ export default function ConceptMapEditorPage() {
           onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
+          onAutoLayout={handleAutoLayout} // Pass the new handler
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (

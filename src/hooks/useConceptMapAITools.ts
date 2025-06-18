@@ -21,6 +21,7 @@ import {
     type RewriteNodeContentOutput 
 } from '@/ai/flows/rewrite-node-content-logic.ts';
 // Import store types for preview
+import type { ConceptMapNode, ConceptMapEdge, RFNode } from '@/types'; // Added ConceptMapEdge
 import type { ConceptExpansionPreviewNode, ConceptExpansionPreviewState } from '@/stores/concept-map-store';
 
 import type {
@@ -31,10 +32,79 @@ import type {
   SuggestRelationsOutput,
   SummarizeNodesOutput
 } from '@/ai/flows'; 
-import type { ConceptMapNode, RFNode } from '@/types'; // Added RFNode
+// ConceptMapNode and RFNode are already imported above, ensure ConceptMapEdge is too.
 import { getNodePlacement } from '@/lib/layout-utils';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater'; // Import SuggestionAction
 import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react'; // Import necessary icons
+
+// --- Mock Graph Adapter ---
+/**
+ * Represents a simplified graph structure primarily for internal use within the MockGraphAdapter.
+ * It holds a map of nodes for quick lookup and an array of edges.
+ */
+interface SimpleGraphInstance {
+  nodesMap: Map<string, ConceptMapNode>;
+  edges: ConceptMapEdge[];
+}
+
+/**
+ * MockGraphAdapter for useConceptMapAITools.
+ * This class provides a lightweight, standalone graph utility implementation,
+ * primarily for gathering contextual information (like node neighbors) to be
+ * passed to AI services. It avoids a direct dependency on heavier graph libraries
+ * for these specific AI-related tasks within the hook.
+ */
+class MockGraphAdapter {
+  fromArrays(nodes: ConceptMapNode[], edges: ConceptMapEdge[]): SimpleGraphInstance {
+    const nodesMap = new Map<string, ConceptMapNode>();
+    nodes.forEach(node => nodesMap.set(node.id, node));
+    return { nodesMap, edges };
+  }
+
+  getNeighborhood(graphInstance: SimpleGraphInstance, nodeId: string, options?: { direction?: 'in' | 'out' | 'both' }): string[] {
+    const neighbors = new Set<string>();
+    const direction = options?.direction || 'both';
+
+    graphInstance.edges.forEach(edge => {
+      if (direction === 'out' || direction === 'both') {
+        if (edge.source === nodeId) {
+          neighbors.add(edge.target);
+        }
+      }
+      if (direction === 'in' || direction === 'both') {
+        if (edge.target === nodeId) {
+          neighbors.add(edge.source);
+        }
+      }
+    });
+    return Array.from(neighbors);
+  }
+}
+const graphAdapter = new MockGraphAdapter();
+
+// --- Mock Dagre Layout ---
+interface DagreNodeInput { id: string; width?: number; height?: number; }
+interface DagreEdgeInput { source: string; target: string; }
+interface LayoutNodeUpdate { id: string; x: number; y: number; }
+
+/**
+ * Provides a simple, deterministic layout for newly AI-generated nodes
+ * before they are added to the staging area.
+ * This function takes a list of nodes (and potentially edges, though unused in this mock)
+ * and arranges them in a basic grid. This improves the initial presentation of
+ * AI-generated content, making it more organized than random positioning.
+ *
+ * @param nodes - An array of nodes to be laid out, conforming to `DagreNodeInput`.
+ * @param _edges - An array of edges (currently unused in this mock implementation but part of a typical layout signature).
+ * @returns An array of `LayoutNodeUpdate` objects, each containing a node ID and its calculated x, y coordinates.
+ */
+const mockDagreLayoutForHook = (nodes: DagreNodeInput[], _edges: DagreEdgeInput[]): LayoutNodeUpdate[] => {
+  return nodes.map((node, index) => ({
+    id: node.id,
+    x: (index % 4) * 200, // Simple grid
+    y: Math.floor(index / 4) * 150,
+  }));
+};
 
 export interface ConceptToExpandDetails {
   id: string | null;
@@ -163,12 +233,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         concepts = multiSelectedNodeIds.map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text);
     } else if (selectedNode) {
         concepts.push(selectedNode.text);
-        const neighborIds = new Set<string>();
-        mapData.edges?.forEach(edge => {
-            if (edge.source === selectedNode.id) neighborIds.add(edge.target);
-            if (edge.target === selectedNode.id) neighborIds.add(edge.source);
-        });
-        concepts.push(...Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 4));
+        const graphInstance = graphAdapter.fromArrays(mapData.nodes, mapData.edges);
+        // Use graph adapter to fetch neighbors of the selected node to provide context for AI relation suggestion.
+        const neighborIds = graphAdapter.getNeighborhood(graphInstance, selectedNode.id, { direction: 'both' });
+        concepts.push(...neighborIds.map(id => graphInstance.nodesMap.get(id)?.text).filter((text): text is string => !!text).slice(0, 4));
     } else if (mapData.nodes.length > 0) {
         concepts = mapData.nodes.slice(0, Math.min(5, mapData.nodes.length)).map(n => n.text);
     }
@@ -224,12 +292,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
     if (selectedNode) {
       conceptDetailsToSet = { id: selectedNode.id, text: selectedNode.text, node: selectedNode };
-      const neighborIds = new Set<string>();
-      mapData.edges?.forEach(edge => {
-        if (edge.source === selectedNode.id) neighborIds.add(edge.target);
-        if (edge.target === selectedNode.id) neighborIds.add(edge.source);
-      });
-      context = Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 5);
+      const graphInstance = graphAdapter.fromArrays(mapData.nodes, mapData.edges);
+      // Use graph adapter to fetch neighbors of the selected node to provide context for AI concept expansion.
+      const neighborIds = graphAdapter.getNeighborhood(graphInstance, selectedNode.id, { direction: 'both' });
+      context = neighborIds.map(id => graphInstance.nodesMap.get(id)?.text).filter((text): text is string => !!text).slice(0, 5);
     } else if (mapData.nodes.length > 0) {
       conceptDetailsToSet = { id: null, text: "General Map Topic", node: undefined };
     } else {
@@ -286,27 +352,47 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       text: aiNode.text,
       type: aiNode.type || 'ai-generated',
       details: aiNode.details || '',
-      x: (index % 5) * 170, // Basic grid positioning for staging, slightly wider
-      y: Math.floor(index / 5) * 120, // Slightly taller
+      // x, y will be set by layout
       width: 150, // Default width
       height: 70,  // Default height
       childIds: [], // Initialize childIds
     }));
 
-    const tempNodeIdMap = new Map<string, string>();
-    // Assuming aiNode.text is unique enough for this temporary mapping during staging.
-    // If not, a more robust temporary ID system within the AI output itself would be needed.
-    tempNodes.forEach(n => tempNodeIdMap.set(n.text, n.id));
-
-    const tempEdges = (output.edges || []).map((aiEdge, index) => ({
-      id: `staged-edge-${Date.now()}-${index}`, // Temporary ID
-      source: tempNodeIdMap.get(aiEdge.sourceText) || `unknown-source-${aiEdge.sourceText}`,
-      target: tempNodeIdMap.get(aiEdge.targetText) || `unknown-target-${aiEdge.targetText}`,
-      label: aiEdge.relationLabel,
+    const tempEdgesInput: DagreEdgeInput[] = (output.edges || []).map(aiEdge => ({
+        // For layout, we need to map original text to temporary IDs if AI provides text based edges
+        // This part assumes AI output `aiEdge.sourceText` and `aiEdge.targetText` can be mapped to tempNode IDs
+        // For simplicity, we'll assume the AI output nodes (tempNodes) are what we need to layout,
+        // and the edges connect these tempNodes using their newly generated IDs.
+        // If AI edge output is based on text, a mapping from text to temp ID is needed here.
+        // Let's assume for now aiEdge gives source/target that match tempNode texts or can be mapped.
+        // A robust solution would involve the AI giving temporary IDs or the backend resolving them.
+        // For mockDagreLayout, we just need source/target IDs that exist in dagreNodesInput.
+        // We'll create a temporary map from original text (if unique) to temp ID for edges.
+      source: tempNodes.find(n => n.text === aiEdge.sourceText)?.id || `unknown-source-${aiEdge.sourceText}`,
+      target: tempNodes.find(n => n.text === aiEdge.targetText)?.id || `unknown-target-${aiEdge.targetText}`,
     })).filter(e => !e.source.startsWith('unknown-') && !e.target.startsWith('unknown-'));
 
-    setStagedMapData({ nodes: tempNodes, edges: tempEdges });
-    toast({ title: "AI Cluster Ready for Staging", description: `Proposed ${tempNodes.length} nodes and ${tempEdges.length} edges. View in staging area.` });
+    const dagreNodesInput: DagreNodeInput[] = tempNodes.map(n => ({ id: n.id, width: n.width, height: n.height }));
+    // Arrange the AI-generated nodes and edges into an initial layout before staging.
+    const newPositions = mockDagreLayoutForHook(dagreNodesInput, tempEdgesInput);
+    const positionsMap = new Map(newPositions.map(p => [p.id, { x: p.x, y: p.y }]));
+
+    const positionedTempNodes = tempNodes.map(n => {
+      const pos = positionsMap.get(n.id);
+      return pos ? { ...n, x: pos.x, y: pos.y } : n;
+    });
+
+    // Create final edges using the (now consistent) temporary IDs from positionedTempNodes
+    const finalTempEdges = (output.edges || []).map((aiEdge, index) => ({
+      id: `staged-edge-${Date.now()}-${index}`,
+      source: positionedTempNodes.find(n => n.text === aiEdge.sourceText)?.id || `error-source-${index}`,
+      target: positionedTempNodes.find(n => n.text === aiEdge.targetText)?.id || `error-target-${index}`,
+      label: aiEdge.relationLabel,
+    })).filter(e => !e.source.startsWith('error-') && !e.target.startsWith('error-'));
+
+
+    setStagedMapData({ nodes: positionedTempNodes, edges: finalTempEdges });
+    toast({ title: "AI Cluster Ready for Staging", description: `Proposed ${positionedTempNodes.length} nodes and ${finalTempEdges.length} edges. View in staging area.` });
   }, [isViewOnlyMode, setStagedMapData, toast]);
 
   // --- Generate Snippet ---
@@ -324,25 +410,36 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       text: aiNode.text,
       type: aiNode.type || 'text-derived-concept',
       details: aiNode.details || '',
-      x: (index % 5) * 170, // Basic grid positioning
-      y: Math.floor(index / 5) * 120,
+      // x, y will be set by layout
       width: 150,
       height: 70,
       childIds: [],
     }));
 
-    const tempNodeIdMap = new Map<string, string>();
-    tempNodes.forEach(n => tempNodeIdMap.set(n.text, n.id));
-
-    const tempEdges = (output.edges || []).map((aiEdge, index) => ({
-      id: `staged-edge-${Date.now()}-${index}`, // Temporary ID
-      source: tempNodeIdMap.get(aiEdge.sourceText) || `unknown-source-${aiEdge.sourceText}`,
-      target: tempNodeIdMap.get(aiEdge.targetText) || `unknown-target-${aiEdge.targetText}`,
-      label: aiEdge.relationLabel,
+    const tempEdgesInput: DagreEdgeInput[] = (output.edges || []).map(aiEdge => ({
+      source: tempNodes.find(n => n.text === aiEdge.sourceText)?.id || `unknown-source-${aiEdge.sourceText}`,
+      target: tempNodes.find(n => n.text === aiEdge.targetText)?.id || `unknown-target-${aiEdge.targetText}`,
     })).filter(e => !e.source.startsWith('unknown-') && !e.target.startsWith('unknown-'));
 
-    setStagedMapData({ nodes: tempNodes, edges: tempEdges });
-    toast({ title: "AI Snippet Ready for Staging", description: `Proposed ${tempNodes.length} nodes and ${tempEdges.length} edges. View in staging area.` });
+    const dagreNodesInput: DagreNodeInput[] = tempNodes.map(n => ({ id: n.id, width: n.width, height: n.height }));
+    // Arrange the AI-generated nodes and edges from the snippet into an initial layout.
+    const newPositions = mockDagreLayoutForHook(dagreNodesInput, tempEdgesInput);
+    const positionsMap = new Map(newPositions.map(p => [p.id, { x: p.x, y: p.y }]));
+
+    const positionedTempNodes = tempNodes.map(n => {
+      const pos = positionsMap.get(n.id);
+      return pos ? { ...n, x: pos.x, y: pos.y } : n;
+    });
+
+    const finalTempEdges = (output.edges || []).map((aiEdge, index) => ({
+      id: `staged-edge-${Date.now()}-${index}`,
+      source: positionedTempNodes.find(n => n.text === aiEdge.sourceText)?.id || `error-source-${index}`,
+      target: positionedTempNodes.find(n => n.text === aiEdge.targetText)?.id || `error-target-${index}`,
+      label: aiEdge.relationLabel,
+    })).filter(e => !e.source.startsWith('error-') && !e.target.startsWith('error-'));
+
+    setStagedMapData({ nodes: positionedTempNodes, edges: finalTempEdges });
+    toast({ title: "AI Snippet Ready for Staging", description: `Proposed ${positionedTempNodes.length} nodes and ${finalTempEdges.length} edges. View in staging area.` });
   }, [isViewOnlyMode, setStagedMapData, toast]);
 
   // --- Ask Question ---
@@ -455,12 +552,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
     setAiProcessingNodeId(nodeId);
     try {
-      const neighborIds = new Set<string>();
-      mapData.edges?.forEach(edge => {
-        if (edge.source === sourceNode.id) neighborIds.add(edge.target);
-        if (edge.target === sourceNode.id) neighborIds.add(edge.source);
-      });
-      const existingMapContext = Array.from(neighborIds).map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 2);
+      const graphInstance = graphAdapter.fromArrays(mapData.nodes, mapData.edges);
+      // Use graph adapter to fetch neighbors of the source node to provide context for AI quick expansion.
+      const neighborIds = graphAdapter.getNeighborhood(graphInstance, sourceNode.id, { direction: 'both' });
+      const existingMapContext = neighborIds.map(id => graphInstance.nodesMap.get(id)?.text).filter((text): text is string => !!text).slice(0, 2);
 
       const output: ExpandConceptOutput = await aiExpandConcept({
         concept: sourceNode.text,

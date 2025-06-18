@@ -3,27 +3,88 @@ import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
 
-import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
+import type { ConceptMap, ConceptMapData } from '@/types';
+// LayoutNodeUpdate might also come from graph-adapter if it's related
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
+import type {
+  GraphologyInstance,
+  GraphAdapterUtility,
+  ConceptMapNode,
+  ConceptMapEdge,
+} from '@/types/graph-adapter';
 
-// Conceptual GraphAdapter related types
-export type GraphologyInstance = { nodesMap: Map<string, ConceptMapNode> }; // Simplified for mock
+/**
+ * Mock implementation of the `GraphAdapterUtility` interface.
+ * This adapter is used for development and testing purposes within the store,
+ * particularly for graph analysis tasks like finding descendants when a full
+ * graph library (e.g., Graphology) might not be fully integrated or is overkill
+ * for simple, self-contained operations. It provides basic graph functionalities
+ * based on the `ConceptMapNode` and `ConceptMapEdge` arrays.
+ */
+class MockGraphAdapter implements GraphAdapterUtility {
+  fromArrays(nodes: ConceptMapNode[], edges: ConceptMapEdge[]): GraphologyInstance {
+    const nodesMap = new Map<string, ConceptMapNode>();
+    nodes.forEach(node => nodesMap.set(node.id, { ...node })); // Store copies
+    return { nodesMap, edges: [...edges] }; // Store copies
+  }
 
-export interface GraphAdapterUtility {
-  fromArrays: (nodes: ConceptMapNode[], edges: ConceptMapEdge[]) => GraphologyInstance;
-  getDescendants: (graphInstance: GraphologyInstance, nodeId: string) => string[];
-  toArrays: (graphInstance: GraphologyInstance) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] }; // Keep for interface completeness
-  getAncestors: (graphInstance: GraphologyInstance, nodeId: string) => string[]; // Keep for interface completeness
-  getNeighborhood: ( // Keep for interface completeness
+  getDescendants(graphInstance: GraphologyInstance, nodeId: string): string[] {
+    const descendants: string[] = [];
+    const queue: string[] = [nodeId];
+    const visited: Set<string> = new Set();
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (visited.has(currentId) && currentId !== nodeId) { // Allow reprocessing root for its own children
+        continue;
+      }
+      visited.add(currentId);
+
+      const node = graphInstance.nodesMap.get(currentId);
+      if (node && node.childIds) {
+        for (const childId of node.childIds) {
+          if (!visited.has(childId)) {
+            descendants.push(childId);
+            queue.push(childId);
+          }
+        }
+      }
+    }
+    return descendants;
+  }
+
+  // Implement other methods if they are strictly necessary for the store's functionality
+  // For now, keep them as stubs if they are part of the interface but not used by deleteNode
+  toArrays(graphInstance: GraphologyInstance): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] } {
+    // This is not used by deleteNode, but part of the interface.
+    // It should ideally convert graphInstance.nodesMap back to an array.
+    return { nodes: Array.from(graphInstance.nodesMap.values()), edges: graphInstance.edges };
+  }
+
+  getAncestors(graphInstance: GraphologyInstance, nodeId: string): string[] {
+    // Not used by deleteNode
+    return [];
+  }
+
+  getNeighborhood(
     graphInstance: GraphologyInstance,
     nodeId: string,
     options?: { depth?: number; direction?: 'in' | 'out' | 'both' }
-  ) => string[];
-  getSubgraphData: ( // Keep for interface completeness
+  ): string[] {
+    // Not used by deleteNode
+    return [];
+  }
+
+  getSubgraphData(
     graphInstance: GraphologyInstance,
     nodeIds: string[]
-  ) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+  ): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] } {
+    // Not used by deleteNode
+    return { nodes: [], edges: [] };
+  }
 }
+
+const graphAdapter = new MockGraphAdapter();
 
 const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -363,16 +424,21 @@ export const useConceptMapStore = create<ConceptMapState>()(
         get().addDebugLog(`[STORE deleteNode] Attempting to delete node: ${nodeIdToDelete} and its descendants.`);
         set((state) => {
           const nodes = state.mapData.nodes;
+          const nodes = state.mapData.nodes;
           const edges = state.mapData.edges;
 
-          const graphInstance = MockGraphAdapter.fromArrays(nodes, edges);
+          // Create a graph instance using the adapter to analyze node relationships.
+          // This allows for graph traversal to find all related nodes (e.g., descendants).
+          const graphInstance = graphAdapter.fromArrays(nodes, edges);
 
           if (!graphInstance.nodesMap.has(nodeIdToDelete)) {
              get().addDebugLog(`[STORE deleteNode] Node ${nodeIdToDelete} not found. No changes made.`);
              return state;
           }
 
-          const descendants = MockGraphAdapter.getDescendants(graphInstance, nodeIdToDelete);
+          // Use the graph adapter to find all descendant nodes for comprehensive deletion.
+          // This ensures that when a node is deleted, all its children, grandchildren, etc., are also removed.
+          const descendants = graphAdapter.getDescendants(graphInstance, nodeIdToDelete);
           const nodesToDeleteSet = new Set<string>([nodeIdToDelete, ...descendants]);
 
           get().addDebugLog(`[STORE deleteNode] Full set of nodes to delete (including descendants): ${JSON.stringify(Array.from(nodesToDeleteSet))}`);
