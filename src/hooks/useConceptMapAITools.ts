@@ -13,7 +13,8 @@ import {
   summarizeNodes as aiSummarizeNodes,
   suggestEdgeLabelFlow, // Added import
   type SuggestEdgeLabelInput, // Added import
-  type SuggestEdgeLabelOutput // Added import
+  type SuggestEdgeLabelOutput, // Added import
+  suggestQuickChildTextsFlow // Import the new flow
 } from '@/ai/flows';
 // Import directly from the flow file, using alias and ensuring .ts extension
 import { 
@@ -35,7 +36,7 @@ import type {
 // ConceptMapNode and RFNode are already imported above, ensure ConceptMapEdge is too.
 import { getNodePlacement } from '@/lib/layout-utils';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater'; // Import SuggestionAction
-import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react'; // Import necessary icons
+import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote, Loader2 } from 'lucide-react'; // Import necessary icons, Added Loader2
 
 // --- Mock Graph Adapter ---
 /**
@@ -180,6 +181,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const [edgeLabelSuggestions, setEdgeLabelSuggestions] = useState<{ edgeId: string; labels: string[] } | null>(null);
 
+  // State for AI-suggested child texts
+  const [aiChildTextSuggestions, setAiChildTextSuggestions] = useState<string[]>([]);
+  const [isLoadingAiChildTexts, setIsLoadingAiChildTexts] = useState(false);
 
   // --- Extract Concepts ---
   const openExtractConceptsModal = useCallback((nodeIdForContext?: string) => {
@@ -661,7 +665,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     }
   }, [isViewOnlyMode, toast, updateStoreEdge]);
 
-  const handleAddQuickChildNode = useCallback((parentNodeId: string, direction?: 'top' | 'right' | 'bottom' | 'left') => {
+  const handleAddQuickChildNode = useCallback((
+    parentNodeId: string,
+    suggestedText: string, // New parameter for the suggested text
+    direction?: 'top' | 'right' | 'bottom' | 'left'
+  ) => {
     if (isViewOnlyMode) {
       toast({ title: "View Only Mode", description: "Cannot add child nodes.", variant: "default" });
       return;
@@ -680,16 +688,16 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       currentNodes,
       'child',
       parentNode,
-      null, // No specific selected node for this calculation
+      null,
       GRID_SIZE_FOR_AI_PLACEMENT,
       childIndex,
-      1, // Assuming we're placing one new child at a time for this action
+      1,
       effectiveDirection
     );
 
     const newNodeId = addStoreNode({
-      text: "New Idea",
-      type: 'manual-node',
+      text: suggestedText, // Use the suggested text
+      type: 'manual-node', // Or 'ai-suggested-child' if a new type is desired
       position: newPosition,
       parentNode: parentNodeId,
     });
@@ -700,46 +708,104 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       label: "relates to",
     });
 
-    toast({ title: "Child Node Added", description: `New idea added ${effectiveDirection} of "${parentNode.text}".` });
-  }, [isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast /* getNodePlacement is a pure util, not needed in deps */]);
+    // Clear AI suggestions for child texts as one has been used.
+    setAiChildTextSuggestions([]);
+    toast({ title: "Child Node Added", description: `"${suggestedText}" added ${effectiveDirection} of "${parentNode.text}".` });
+  }, [isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast]);
 
-  // getNodeSuggestions function (assuming it's defined within the hook or has access to its members)
+  const fetchAIChildTextSuggestions = useCallback(async (node: RFNode<CustomNodeData> | null) => {
+    if (!node || isViewOnlyMode) {
+      setAiChildTextSuggestions([]);
+      return;
+    }
+    setIsLoadingAiChildTexts(true);
+    setAiChildTextSuggestions([]); // Clear previous suggestions
+    try {
+      const result = await suggestQuickChildTextsFlow({
+        parentNodeText: node.data.label,
+        parentNodeDetails: node.data.details,
+      });
+      setAiChildTextSuggestions(result.suggestions || []);
+    } catch (error) {
+      console.error("Error fetching AI child text suggestions:", error);
+      toast({ title: "AI Suggestion Error", description: "Could not fetch child text suggestions.", variant: "destructive" });
+      setAiChildTextSuggestions([]);
+    } finally {
+      setIsLoadingAiChildTexts(false);
+    }
+  }, [isViewOnlyMode, toast]);
+
   const getNodeSuggestions = useCallback((currentNode: RFNode<CustomNodeData>): SuggestionAction[] => {
-    const suggestions: SuggestionAction[] = [
+    const baseAISuggestions: SuggestionAction[] = [
       { id: `expand-${currentNode.id}`, label: "Expand Concept (AI)", icon: Sparkles, action: () => openExpandConceptModal(currentNode.id) },
       { id: `suggest-relations-${currentNode.id}`, label: "Suggest Relations (AI)", icon: Lightbulb, action: () => openSuggestRelationsModal(currentNode.id) },
       { id: `rewrite-${currentNode.id}`, label: "Rewrite Content (AI)", icon: MessageSquareQuote, action: () => openRewriteNodeContentModal(currentNode.id) },
       { id: `ask-${currentNode.id}`, label: "Ask Question (AI)", icon: HelpCircle, action: () => openAskQuestionModal(currentNode.id) },
     ];
 
+    let quickAddSuggestions: SuggestionAction[] = [];
+
     if (!isViewOnlyMode) {
-      suggestions.push({
-        id: `quick-add-child-bottom-${currentNode.id}`,
-        label: "Add Child Below",
-        icon: PlusSquare,
-        action: () => handleAddQuickChildNode(currentNode.id, 'bottom')
-      });
-      suggestions.push({
-        id: `quick-add-child-right-${currentNode.id}`,
-        label: "Add Child Right",
-        icon: PlusSquare,
-        action: () => handleAddQuickChildNode(currentNode.id, 'right')
-      });
-      suggestions.push({
-        id: `quick-add-child-top-${currentNode.id}`,
-        label: "Add Child Above",
-        icon: PlusSquare,
-        action: () => handleAddQuickChildNode(currentNode.id, 'top')
-      });
-      suggestions.push({
-        id: `quick-add-child-left-${currentNode.id}`,
-        label: "Add Child Left",
-        icon: PlusSquare,
-        action: () => handleAddQuickChildNode(currentNode.id, 'left')
-      });
+      if (isLoadingAiChildTexts) {
+        quickAddSuggestions.push({
+          id: 'loading-ai-child-texts',
+          label: "Loading ideas...",
+          action: () => {}, // No-op
+          icon: Loader2, // Ensure Loader2 is imported from lucide-react
+          disabled: true,
+        });
+      } else if (aiChildTextSuggestions.length > 0) {
+        aiChildTextSuggestions.forEach((text, index) => {
+          // For simplicity, adding all suggested texts for 'bottom' and 'right' directions only.
+          // More complex UI might allow choosing direction per suggestion.
+          quickAddSuggestions.push({
+            id: `ai-add-child-bottom-${currentNode.id}-${index}`,
+            label: `Add: "${text}" (below)`,
+            icon: PlusSquare,
+            action: () => handleAddQuickChildNode(currentNode.id, text, 'bottom')
+          });
+          quickAddSuggestions.push({
+            id: `ai-add-child-right-${currentNode.id}-${index}`,
+            label: `Add: "${text}" (right)`,
+            icon: PlusSquare,
+            action: () => handleAddQuickChildNode(currentNode.id, text, 'right')
+          });
+        });
+         // Add a separator or clear action if needed
+        quickAddSuggestions.push({
+          id: 'clear-ai-child-suggestions',
+          label: 'Clear these suggestions',
+          action: () => setAiChildTextSuggestions([]), // Simple clear action
+          icon: XIcon, // Assuming XIcon is imported
+        });
+
+      } else {
+        // Fallback to static "Add Child" options if no AI suggestions
+        quickAddSuggestions.push({
+          id: `quick-add-child-bottom-${currentNode.id}`,
+          label: "Add Child Below",
+          icon: PlusSquare,
+          action: () => handleAddQuickChildNode(currentNode.id, "New Idea", 'bottom')
+        });
+        quickAddSuggestions.push({
+          id: `quick-add-child-right-${currentNode.id}`,
+          label: "Add Child Right",
+          icon: PlusSquare,
+          action: () => handleAddQuickChildNode(currentNode.id, "New Idea", 'right')
+        });
+      }
     }
-    return suggestions;
-  }, [isViewOnlyMode, openExpandConceptModal, openSuggestRelationsModal, openRewriteNodeContentModal, openAskQuestionModal, handleAddQuickChildNode]);
+    return [...baseAISuggestions, ...quickAddSuggestions];
+  }, [
+    isViewOnlyMode,
+    openExpandConceptModal,
+    openSuggestRelationsModal,
+    openRewriteNodeContentModal,
+    openAskQuestionModal,
+    handleAddQuickChildNode,
+    isLoadingAiChildTexts,
+    aiChildTextSuggestions
+  ]);
 
   const getPaneSuggestions = useCallback((position?: {x: number, y: number}): SuggestionAction[] => {
     const baseSuggestions: SuggestionAction[] = [
@@ -780,13 +846,15 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     // Suggestion getter functions
     getPaneSuggestions,
     getNodeSuggestions,
+    fetchAIChildTextSuggestions, // New function for AI child text suggestions
+    aiChildTextSuggestions,     // Exporting state for potential external use or page-level logic
+    isLoadingAiChildTexts,    // Exporting state
     // Edge Label Suggestions
     fetchAndSetEdgeLabelSuggestions,
     edgeLabelSuggestions,
     setEdgeLabelSuggestions,
     // Expansion Preview State & Lifecycle
     conceptExpansionPreview, // State from store
-    // setConceptExpansionPreview, // Action from store already used internally by handlers
     acceptAllExpansionPreviews,
     acceptSingleExpansionPreview,
     clearExpansionPreview,

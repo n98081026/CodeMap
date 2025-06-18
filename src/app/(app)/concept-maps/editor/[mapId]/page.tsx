@@ -147,6 +147,9 @@ export default function ConceptMapEditorPage() {
     getPaneSuggestions,
     getNodeSuggestions,
     fetchAndSetEdgeLabelSuggestions,
+    fetchAIChildTextSuggestions,
+    aiChildTextSuggestions,    // Add this
+    isLoadingAiChildTexts,   // Add this
     edgeLabelSuggestions,
     setEdgeLabelSuggestions,
     conceptExpansionPreview,    // Destructure conceptExpansionPreview state
@@ -328,18 +331,30 @@ export default function ConceptMapEditorPage() {
     setFloaterState({ isVisible: true, position: { x: event.clientX, y: event.clientY }, suggestions, contextType: 'pane', contextElementId: null });
   }, [storeIsViewOnlyMode, getPaneSuggestions, Floater_handleDismiss, contextMenu?.isOpen, closeContextMenu, /* addNodeFromHook, openQuickClusterModal - covered by getPaneSuggestions */]);
 
-  const handleNodeContextMenuRequest = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
+  const handleNodeContextMenuRequest = useCallback(async (event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
     if (storeIsViewOnlyMode) return;
     event.preventDefault();
     if (contextMenu?.isOpen) closeContextMenu();
     Floater_handleDismiss(); // Dismiss any existing floater first
 
-    const rawSuggestions = getNodeSuggestions(node);
+    // Fetch AI suggestions for child texts before getting all node suggestions
+    if (fetchAIChildTextSuggestions) {
+      await fetchAIChildTextSuggestions(node);
+    }
+
+    let floaterTitle = "Node Actions"; // Default title
+    if (isLoadingAiChildTexts) {
+      floaterTitle = "Loading Ideas...";
+    } else if (aiChildTextSuggestions && aiChildTextSuggestions.length > 0) {
+      floaterTitle = "Quick Add Ideas";
+    }
+
+    const rawSuggestions = getNodeSuggestions(node); // getNodeSuggestions will now use the updated state
     const suggestions = rawSuggestions.map(s => ({
       ...s,
       action: () => {
-        s.action(); // Original action from hook
-        Floater_handleDismiss(); // Then dismiss
+        s.action();
+        Floater_handleDismiss();
       }
     }));
 
@@ -348,9 +363,19 @@ export default function ConceptMapEditorPage() {
       position: { x: event.clientX, y: event.clientY },
       suggestions: suggestions,
       contextType: 'node',
-      contextElementId: node.id
+      contextElementId: node.id,
+      title: floaterTitle // Use the dynamic title
     });
-  }, [storeIsViewOnlyMode, contextMenu?.isOpen, closeContextMenu, Floater_handleDismiss, getNodeSuggestions]);
+  }, [
+    storeIsViewOnlyMode,
+    contextMenu?.isOpen,
+    closeContextMenu,
+    Floater_handleDismiss,
+    getNodeSuggestions,
+    fetchAIChildTextSuggestions,
+    isLoadingAiChildTexts, // Add to dependency array
+    aiChildTextSuggestions  // Add to dependency array
+  ]);
 
   // Handlers for AIStagingToolbar
   const handleCommitStagedData = useCallback(() => {

@@ -90,29 +90,56 @@ const AISuggestionFloater: React.FC<AISuggestionFloaterProps> = ({
               </Button>
             </div>
           )}
-          <div className="flex flex-col space-y-1">
-            {suggestions.map((suggestion) => {
-              const IconComponent = suggestion.icon;
-              return (
-                <Button
+          {props.title === "Quick Add Ideas" ? (
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((suggestion) => (
+                <button
                   key={suggestion.id}
-                  variant="ghost"
-                  size="sm"
                   onClick={() => {
                     suggestion.action();
                     onDismiss(); // Dismiss after action
                   }}
-                  className="justify-start w-full text-left"
+                  disabled={(suggestion as any).disabled} // Handle potential disabled prop
+                  className={cn(
+                    "px-3 py-1 text-xs rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/30 cursor-pointer",
+                    (suggestion as any).disabled && "opacity-50 cursor-not-allowed"
+                  )}
+                  title={suggestion.label} // Use full label for tooltip
                 >
-                  {IconComponent && <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />}
-                  <span className="flex-grow truncate">{suggestion.label}</span>
-                </Button>
-              );
-            })}
-            {suggestions.length === 0 && (
+                  {/* For chip display, attempt to extract core text. This is a simple heuristic. */}
+                  {suggestion.label.startsWith("Add: \"") ? suggestion.label.substring(6, suggestion.label.lastIndexOf("\"")) : suggestion.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col space-y-1">
+              {suggestions.map((suggestion) => {
+                const IconComponent = suggestion.icon;
+                return (
+                  <Button
+                    key={suggestion.id}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      suggestion.action();
+                      onDismiss(); // Dismiss after action
+                    }}
+                    disabled={(suggestion as any).disabled} // Handle potential disabled prop
+                    className={cn(
+                        "justify-start w-full text-left",
+                        (suggestion as any).disabled && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    {IconComponent && <IconComponent className={cn("h-4 w-4 mr-2 flex-shrink-0", (suggestion as any).disabled && "animate-spin")} />}
+                    <span className="flex-grow truncate">{suggestion.label}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+           {suggestions.length === 0 && !title?.includes("Loading") && ( // Avoid "No suggestions" if title indicates loading
                 <p className="text-xs text-muted-foreground p-2 text-center">No suggestions available.</p>
             )}
-          </div>
         </CardContent>
       </Card>
     </div>

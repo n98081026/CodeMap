@@ -6,9 +6,10 @@ export * from './extract-concepts';
 export * from './generate-map-from-project';
 export * from './generate-map-snippet-from-text';
 export * from './generate-quick-cluster';
+export * from './suggest-edge-label'; // Added new flow
+export * from './suggest-quick-child-texts';
 export * from './suggest-relations';
 export * from './summarize-nodes-flow';
-export * from './suggest-edge-label'; // Added new flow
 
 // IMPORTANT: rewrite-node-content-logic.ts (formerly rewrite-node-content-flow.ts) and its exports
 // are NOT exported from this barrel file due to persistent module resolution issues.
