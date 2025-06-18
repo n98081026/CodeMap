@@ -60,6 +60,7 @@ import {
 import {
   suggestSemanticParentNodeFlow, type SuggestSemanticParentOutputSchema, type SuggestSemanticParentInputSchema,
   suggestArrangementActionFlow, type SuggestArrangementActionInputSchema, type SuggestArrangementActionOutputSchema,
+  suggestNodeGroupCandidatesFlow, type NodeGroupSuggestionSchema, type MapDataSchema as AIAnalysisMapDataSchema,
 } from '@/ai/flows';
 import * as z from 'zod';
 
@@ -138,6 +139,10 @@ export default function ConceptMapEditorPage() {
   const [aiArrangementSuggestion, setAiArrangementSuggestion] = useState<z.infer<typeof SuggestArrangementActionOutputSchema>['suggestion'] | null>(null);
   const [isSuggestArrangementDialogOpen, setIsSuggestArrangementDialogOpen] = useState(false);
   const [isLoadingAIArrangement, setIsLoadingAIArrangement] = useState(false);
+
+  const [aiDiscoveredGroup, setAiDiscoveredGroup] = useState<z.infer<typeof NodeGroupSuggestionSchema> | null>(null);
+  const [isDiscoverGroupDialogOpen, setIsDiscoverGroupDialogOpen] = useState(false);
+  const [isLoadingAIDiscoverGroup, setIsLoadingAIDiscoverGroup] = useState(false);
 
   useEffect(() => {
     addDebugLog(`[EditorPage V11] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${useConceptMapStore.getState().initialLoadComplete}`);
@@ -871,6 +876,139 @@ export default function ConceptMapEditorPage() {
     handleDistributeHorizontally, handleDistributeVertically
   ]);
 
+  const handleRequestAIDiscoverGroup = useCallback(async () => {
+    if (isLoadingAIDiscoverGroup || storeIsViewOnlyMode || (storeMapData.nodes && storeMapData.nodes.length < 3)) {
+      if (isLoadingAIDiscoverGroup) toast({ title: "AI Busy", description: "AI is already trying to discover a group." });
+      else if (storeIsViewOnlyMode) toast({ title: "View Only", description: "AI features disabled in view-only mode." });
+      else toast({ title: "Not Enough Nodes", description: "Need at least 3 nodes on the map for AI to discover a group." });
+      return;
+    }
+
+    setIsLoadingAIDiscoverGroup(true);
+    const loadingToast = toast({ title: "AI Discovering Group...", description: "Analyzing the map for potential groups...", duration: Infinity });
+    addDebugLog(`[EditorPage] AI Discover Group triggered for map with ${storeMapData.nodes.length} nodes.`);
+
+    const mappedNodesForAI: z.infer<typeof AIAnalysisMapDataSchema>['nodes'] = storeMapData.nodes.map(n => ({
+      id: n.id,
+      text: n.text,
+      details: n.details,
+    }));
+    const mappedEdgesForAI: z.infer<typeof AIAnalysisMapDataSchema>['edges'] = storeMapData.edges.map(e => ({
+      source: e.source,
+      target: e.target,
+      label: e.label,
+    }));
+
+    try {
+      const result = await suggestNodeGroupCandidatesFlow({ nodes: mappedNodesForAI, edges: mappedEdgesForAI });
+      toast.dismiss(loadingToast.id);
+
+      if (result && result.nodeIdsToGroup && result.nodeIdsToGroup.length > 0) {
+        setAiDiscoveredGroup(result);
+        setIsDiscoverGroupDialogOpen(true);
+        toast({ title: "AI Group Suggestion Ready", description: "Review the potential group discovered by AI." });
+        addDebugLog(`[EditorPage] AI Discovered Group suggestion received: ${JSON.stringify(result)}`);
+      } else {
+        toast({ title: "AI Suggestion", description: "No specific group was identified by the AI at this time.", variant: "default" });
+        addDebugLog(`[EditorPage] AI Discovered Group: No suggestion received or empty group. Result: ${JSON.stringify(result)}`);
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast.id);
+      console.error("Error discovering AI group:", error);
+      addDebugLog(`[EditorPage] Error discovering AI group: ${(error as Error).message}`);
+      toast({ title: "AI Discover Group Error", description: (error as Error).message || "Could not get group suggestion.", variant: "destructive" });
+      setAiDiscoveredGroup(null);
+    } finally {
+      setIsLoadingAIDiscoverGroup(false);
+    }
+  }, [storeIsViewOnlyMode, storeMapData, toast, addDebugLog, isLoadingAIDiscoverGroup]);
+
+  const handleConfirmAIDiscoverGroup = useCallback(async () => {
+    if (!aiDiscoveredGroup || !aiDiscoveredGroup.nodeIdsToGroup || aiDiscoveredGroup.nodeIdsToGroup.length < 2) {
+      addDebugLog('[EditorPage] AI Discovered Group confirmation skipped: No valid group data.');
+      return;
+    }
+
+    const { nodeIdsToGroup, suggestedParentName } = aiDiscoveredGroup;
+    const currentNodes = useConceptMapStore.getState().mapData.nodes; // Get latest nodes
+    const nodesToGroupData = nodeIdsToGroup
+      .map(id => currentNodes.find(node => node.id === id))
+      .filter(node => !!node) as ConceptMapNode[]; // Ensure all nodes exist and filter out undefined
+
+    if (nodesToGroupData.length !== nodeIdsToGroup.length) {
+        toast({ title: "Error", description: "Some nodes suggested for grouping were not found.", variant: "destructive" });
+        addDebugLog('[EditorPage] AI Discovered Group confirmation error: Some suggested nodes not found.');
+        setIsDiscoverGroupDialogOpen(false);
+        setAiDiscoveredGroup(null);
+        return;
+    }
+
+    let totalX = 0;
+    let totalY = 0;
+    nodesToGroupData.forEach(node => {
+      totalX += (node.x ?? 0) + (node.width || DEFAULT_NODE_WIDTH) / 2;
+      totalY += (node.y ?? 0) + (node.height || DEFAULT_NODE_HEIGHT) / 2;
+    });
+    const averageCenterX = totalX / nodesToGroupData.length;
+    const averageCenterY = totalY / nodesToGroupData.length;
+
+    const newParentX = averageCenterX - DEFAULT_NODE_WIDTH / 2;
+    const newParentY = averageCenterY - DEFAULT_NODE_HEIGHT / 2;
+
+    addDebugLog(`[EditorPage] Confirming AI Discovered Group. Parent: "${suggestedParentName}". Children: ${nodeIdsToGroup.join(', ')}`);
+
+    try {
+      const newParentNodeId = addNodeFromHook({
+        text: suggestedParentName,
+        position: { x: newParentX, y: newParentY },
+        type: 'ai-group-parent',
+      });
+      addDebugLog(`[EditorPage] New parent node from AI discovery added with ID: ${newParentNodeId}`);
+
+      for (const childId of nodeIdsToGroup) {
+        updateStoreNode(childId, { parentNode: newParentNodeId });
+      }
+      updateStoreNode(newParentNodeId, { childIds: nodeIdsToGroup });
+      addDebugLog(`[EditorPage] Updated parent ${newParentNodeId} and children for AI discovered group.`);
+
+      // Initial layout for the discovered group children
+      const PADDING_IN_GROUP = 30;
+      const GAP_IN_GROUP = 20;
+      const NODES_PER_ROW_IN_GROUP = 2;
+      let currentX = PADDING_IN_GROUP;
+      let currentY = PADDING_IN_GROUP;
+      let maxHeightInRow = 0;
+      const childPositionUpdates: LayoutNodeUpdate[] = [];
+
+      nodesToGroupData.forEach((childNode, childLoopIndex) => {
+          const nodeWidth = childNode.width || DEFAULT_NODE_WIDTH;
+          const nodeHeight = childNode.height || DEFAULT_NODE_HEIGHT;
+          childPositionUpdates.push({ id: childNode.id, x: currentX, y: currentY });
+          maxHeightInRow = Math.max(maxHeightInRow, nodeHeight);
+          if ((childLoopIndex + 1) % NODES_PER_ROW_IN_GROUP === 0) {
+            currentX = PADDING_IN_GROUP;
+            currentY += maxHeightInRow + GAP_IN_GROUP;
+            maxHeightInRow = 0;
+          } else {
+            currentX += nodeWidth + GAP_IN_GROUP;
+          }
+      });
+      if (childPositionUpdates.length > 0) {
+        applyLayout(childPositionUpdates);
+        addDebugLog(`[EditorPage] Applied initial layout to ${childPositionUpdates.length} children in AI discovered group.`);
+      }
+
+      toast({ title: "AI Group Created", description: `Nodes grouped under '${suggestedParentName}'.` });
+    } catch (error) {
+      console.error("Error creating AI discovered group:", error);
+      addDebugLog(`[EditorPage] Error creating AI discovered group: ${(error as Error).message}`);
+      toast({ title: "Grouping Error", description: "Could not create the discovered group. " + (error as Error).message, variant: "destructive" });
+    } finally {
+      setIsDiscoverGroupDialogOpen(false);
+      setAiDiscoveredGroup(null);
+    }
+  }, [aiDiscoveredGroup, addNodeFromHook, updateStoreNode, toast, addDebugLog, applyLayout]);
+
   const handleConfirmAISemanticGroup = useCallback(async () => {
     if (!aiSemanticGroupSuggestion || multiSelectedNodeIds.length < 2) {
       addDebugLog('[EditorPage] AI Semantic Group confirmation skipped: No suggestion or not enough nodes.');
@@ -1039,6 +1177,9 @@ export default function ConceptMapEditorPage() {
           onSuggestAISemanticGroup={handleTriggerAISemanticGroup}
           onSuggestAIArrangement={handleRequestAIArrangementSuggestion}
           isSuggestingAIArrangement={isLoadingAIArrangement}
+          onAIDiscoverGroup={handleRequestAIDiscoverGroup}
+          isAIDiscoveringGroup={isLoadingAIDiscoverGroup}
+          mapNodeCount={storeMapData.nodes.length}
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
@@ -1177,6 +1318,40 @@ export default function ConceptMapEditorPage() {
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setAiArrangementSuggestion(null)}>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmAIArrangement}>Confirm & Apply</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {aiDiscoveredGroup && (
+          <AlertDialog open={isDiscoverGroupDialogOpen} onOpenChange={(open) => {
+            setIsDiscoverGroupDialogOpen(open);
+            if (!open) setAiDiscoveredGroup(null);
+          }}>
+            <AlertDialogContent className="max-w-lg">
+              <AlertDialogHeader>
+                <AlertDialogTitle>AI Discovered Group Suggestion</AlertDialogTitle>
+                <AlertDialogDescription>
+                  <p className="mb-2">AI has identified a potential group of nodes:</p>
+                  <div className="my-2 p-3 bg-muted/50 rounded-md border">
+                    <p className="font-semibold text-foreground mb-1">Suggested Parent Name: <span className="font-normal">{aiDiscoveredGroup.suggestedParentName}</span></p>
+                    {aiDiscoveredGroup.reason && (
+                      <p className="text-xs text-muted-foreground mb-2">Reason: {aiDiscoveredGroup.reason}</p>
+                    )}
+                    <p className="text-xs font-medium text-muted-foreground">Nodes to be grouped:</p>
+                    <ul className="list-disc list-inside text-xs text-muted-foreground max-h-32 overflow-y-auto">
+                      {(aiDiscoveredGroup.nodeIdsToGroup || [])
+                        .map(nodeId => storeMapData.nodes.find(n => n.id === nodeId)?.text || nodeId)
+                        .map(text => <li key={text}>{text}</li>)
+                      }
+                    </ul>
+                  </div>
+                  <p className="mt-3 text-sm">If you confirm, these nodes will be structurally linked to the new parent node, and an initial layout will be applied.</p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setAiDiscoveredGroup(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmAIDiscoverGroup}>Confirm & Create Group</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, type LucideIcon
-} from "lucide-react"; // Added Wand2
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, type LucideIcon
+} from "lucide-react"; // Added Wand2, SearchPlus
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -55,6 +55,9 @@ interface EditorToolbarProps {
   onSuggestAISemanticGroup?: () => void; // New prop
   onSuggestAIArrangement?: () => void;
   isSuggestingAIArrangement?: boolean;
+  onAIDiscoverGroup?: () => void;
+  isAIDiscoveringGroup?: boolean;
+  mapNodeCount?: number;
 }
 
 export interface ArrangeAction {
@@ -98,6 +101,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onSuggestAISemanticGroup,
   onSuggestAIArrangement,
   isSuggestingAIArrangement,
+  onAIDiscoverGroup,
+  isAIDiscoveringGroup,
+  mapNodeCount,
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -285,6 +291,30 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>AI Suggest Arrangement</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="mx-1 h-full" />
+          </>
+        )}
+
+        {/* AI Discover Group Button */}
+        {!isViewOnlyMode && mapNodeCount && mapNodeCount >= 3 && onAIDiscoverGroup && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onAIDiscoverGroup}
+                  disabled={isAIDiscoveringGroup}
+                >
+                  {isAIDiscoveringGroup ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <SearchPlus className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>AI Discover Potential Group</TooltipContent>
             </Tooltip>
             <Separator orientation="vertical" className="mx-1 h-full" />
           </>
