@@ -108,6 +108,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       connectable: !isViewOnlyMode,
       dragHandle: '.node-move-handle',
       parentNode: appNode.parentNode,
+      expandParent: !!appNode.parentNode, // Add this line: true if parentNode exists, false otherwise
     }));
 
     useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Nodes] Processed ${newRfNodes.length} nodes. Setting React Flow nodes.`);

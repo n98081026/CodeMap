@@ -828,6 +828,40 @@ export default function ConceptMapEditorPage() {
       updateStoreNode(newParentNodeId, { childIds: multiSelectedNodeIds });
       addDebugLog(`[EditorPage] Updated parent node ${newParentNodeId} with childIds: ${multiSelectedNodeIds.join(', ')}`);
 
+      // Layout children within the new parent
+      const PADDING_IN_GROUP = 30;
+      const GAP_IN_GROUP = 20;
+      const NODES_PER_ROW_IN_GROUP = 2;
+      let currentX = PADDING_IN_GROUP;
+      let currentY = PADDING_IN_GROUP;
+      let maxHeightInRow = 0;
+      const childPositionUpdates: LayoutNodeUpdate[] = [];
+      const allCurrentNodes = useConceptMapStore.getState().mapData.nodes; // Get latest nodes after parent creation
+
+      multiSelectedNodeIds.forEach((childId, childLoopIndex) => {
+        const childNode = allCurrentNodes.find(n => n.id === childId);
+        if (childNode) {
+          const nodeWidth = childNode.width || DEFAULT_NODE_WIDTH;
+          const nodeHeight = childNode.height || DEFAULT_NODE_HEIGHT;
+
+          childPositionUpdates.push({ id: childId, x: currentX, y: currentY });
+          maxHeightInRow = Math.max(maxHeightInRow, nodeHeight);
+
+          if ((childLoopIndex + 1) % NODES_PER_ROW_IN_GROUP === 0) {
+            currentX = PADDING_IN_GROUP;
+            currentY += maxHeightInRow + GAP_IN_GROUP;
+            maxHeightInRow = 0;
+          } else {
+            currentX += nodeWidth + GAP_IN_GROUP;
+          }
+        }
+      });
+
+      if (childPositionUpdates.length > 0) {
+        applyLayout(childPositionUpdates);
+        addDebugLog(`[EditorPage] Applied initial layout to ${childPositionUpdates.length} children in new AI group.`);
+      }
+
       toast({ title: "AI Group Created", description: `Nodes grouped under '${aiSemanticGroupSuggestion.parentNodeText}'.` });
       setIsSuggestGroupDialogOpen(false);
       setAiSemanticGroupSuggestion(null);
@@ -848,8 +882,9 @@ export default function ConceptMapEditorPage() {
     updateStoreNode,
     toast,
     addDebugLog,
-    setAiSemanticGroupSuggestion, // ensure state setters are included if they are used
-    setIsSuggestGroupDialogOpen
+    setAiSemanticGroupSuggestion,
+    setIsSuggestGroupDialogOpen,
+    applyLayout // Ensure applyLayout is in dependencies
   ]);
 
   const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => {

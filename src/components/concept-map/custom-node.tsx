@@ -11,8 +11,8 @@ import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added im
 import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
-  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser,
-  Move as MoveIcon, Edit2Icon, CheckIcon, XIcon // Added MoveIcon, Edit2Icon, CheckIcon, XIcon
+  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser, Box,
+  Move as MoveIcon, Edit2Icon, CheckIcon, XIcon // Added MoveIcon, Edit2Icon, CheckIcon, XIcon and Box
 } from 'lucide-react'; // Added Loader2
 
 export interface CustomNodeData {
@@ -54,6 +54,7 @@ const TYPE_ICONS: { [key: string]: LucideIcon } = {
   'ai-rewritten-node': MessageSquareQuote,
   'text-derived-concept': Lightbulb,
   'ai-generated': Lightbulb, // Generic for quick cluster/snippet
+  'ai-group-parent': Box,
 };
 
 const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, selected, xPos, yPos }) => {
@@ -103,7 +104,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     height: typeof nodeHeight === 'number' ? `${nodeHeight}px` : nodeHeight,
     opacity: selected ? 0.95 : 1,
     borderRadius: data.shape === 'ellipse' ? '50%' : '0.5rem', // Use theme radius
-    backgroundColor: data.backgroundColor || 'hsl(var(--card))',
+    backgroundColor: data.type === 'ai-group-parent'
+      ? 'rgba(100, 116, 139, 0.05)' // Equivalent to slate-500/5 (light mode theme)
+      : data.backgroundColor || 'hsl(var(--card))',
   };
 
   const handleNodeDoubleClick = () => {
@@ -184,7 +187,8 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         // Removed !nodeIsViewOnly && "cursor-grab",
         data.shape === 'ellipse' && 'items-center justify-center text-center p-2',
         data.isStaged && "border-dashed border-blue-500 opacity-80",
-        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
+        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10", // Ghost style
+        data.type === 'ai-group-parent' && "border-2 border-dashed border-slate-500/30 dark:border-slate-600/50"
       )}
       onMouseEnter={() => {
         if (data.isGhost) return; // Do not trigger hover effects for ghost nodes
