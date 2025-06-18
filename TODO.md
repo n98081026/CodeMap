@@ -163,7 +163,8 @@
     - [x] Investigate/Implement dynamic, viewport-aware positioning for the toolbar.
 - [x] Drag-and-Drop from AI Panel with Preview:
     - [x] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
-    - [ ] Interaction: Show a preview of the node/edge under the cursor during drag. Activate snapping guides. Release creates the element. (Dragging concepts done, preview on drag is a UX enhancement for later)
+    - [x] Interaction: Show a preview of the node/edge under the cursor during drag. Release creates the element. (Dragging concepts done, preview on drag is implemented)
+    - [ ] Interaction: Activate snapping guides for drag preview from AI Panel.
 
 ### Iterative and Preview-Oriented AI Generation
 - [x] "AI Staging Area" for Cluster/Snippet Generation:
