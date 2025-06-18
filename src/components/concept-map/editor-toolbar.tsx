@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, type LucideIcon
-} from "lucide-react";
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, type LucideIcon
+} from "lucide-react"; // Added Wand2
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -53,6 +53,8 @@ interface EditorToolbarProps {
   onAutoLayout?: () => void; // Made optional
   arrangeActions?: ArrangeAction[];
   onSuggestAISemanticGroup?: () => void; // New prop
+  onSuggestAIArrangement?: () => void;
+  isSuggestingAIArrangement?: boolean;
 }
 
 export interface ArrangeAction {
@@ -93,7 +95,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   numMultiSelectedNodes,
   onAutoLayout,
   arrangeActions,
-  onSuggestAISemanticGroup, // Destructure new prop
+  onSuggestAISemanticGroup,
+  onSuggestAIArrangement,
+  isSuggestingAIArrangement,
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -257,6 +261,30 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 </DropdownMenu>
               </TooltipTrigger>
               <TooltipContent>Arrange Selection</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="mx-1 h-full" />
+          </>
+        )}
+
+        {/* AI Suggest Arrangement Button */}
+        {!isViewOnlyMode && numMultiSelectedNodes >= 2 && onSuggestAIArrangement && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onSuggestAIArrangement}
+                  disabled={isSuggestingAIArrangement}
+                >
+                  {isSuggestingAIArrangement ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>AI Suggest Arrangement</TooltipContent>
             </Tooltip>
             <Separator orientation="vertical" className="mx-1 h-full" />
           </>

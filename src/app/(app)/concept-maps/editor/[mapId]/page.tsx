@@ -57,7 +57,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { suggestSemanticParentNodeFlow, type SuggestSemanticParentOutputSchema, type SuggestSemanticParentInputSchema } from '@/ai/flows';
+import {
+  suggestSemanticParentNodeFlow, type SuggestSemanticParentOutputSchema, type SuggestSemanticParentInputSchema,
+  suggestArrangementActionFlow, type SuggestArrangementActionInputSchema, type SuggestArrangementActionOutputSchema,
+} from '@/ai/flows';
 import * as z from 'zod';
 
 
@@ -131,6 +134,10 @@ export default function ConceptMapEditorPage() {
   const [aiSemanticGroupSuggestion, setAiSemanticGroupSuggestion] = useState<z.infer<typeof SuggestSemanticParentOutputSchema> | null>(null);
   const [isSuggestGroupDialogOpen, setIsSuggestGroupDialogOpen] = useState(false);
   const [isLoadingSemanticGroup, setIsLoadingSemanticGroup] = useState(false);
+
+  const [aiArrangementSuggestion, setAiArrangementSuggestion] = useState<z.infer<typeof SuggestArrangementActionOutputSchema>['suggestion'] | null>(null);
+  const [isSuggestArrangementDialogOpen, setIsSuggestArrangementDialogOpen] = useState(false);
+  const [isLoadingAIArrangement, setIsLoadingAIArrangement] = useState(false);
 
   useEffect(() => {
     addDebugLog(`[EditorPage V11] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${useConceptMapStore.getState().initialLoadComplete}`);
@@ -781,6 +788,89 @@ export default function ConceptMapEditorPage() {
     }
   }, [toast, addDebugLog]);
 
+  const handleRequestAIArrangementSuggestion = useCallback(async () => {
+    if (isLoadingAIArrangement || storeIsViewOnlyMode || multiSelectedNodeIds.length < 2) {
+      if (isLoadingAIArrangement) toast({ title: "AI Busy", description: "An AI arrangement suggestion is already in progress." });
+      else if (storeIsViewOnlyMode) toast({ title: "View Only", description: "AI suggestions disabled in view-only mode." });
+      else toast({ title: "Selection Required", description: "Select at least two nodes for AI to suggest an arrangement." });
+      return;
+    }
+
+    setIsLoadingAIArrangement(true);
+    const loadingToast = toast({ title: "AI Suggesting Arrangement...", description: "Analyzing selected nodes...", duration: Infinity });
+    addDebugLog(`[EditorPage] AI Arrangement Suggestion triggered for ${multiSelectedNodeIds.length} nodes.`);
+
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const selectedNodesInfo: z.infer<typeof SuggestArrangementActionInputSchema>['selectedNodesInfo'] = multiSelectedNodeIds
+      .map(id => currentNodes.find(node => node.id === id))
+      .filter(node => !!node)
+      .map(node => ({
+        id: node!.id,
+        x: node!.x,
+        y: node!.y,
+        width: node!.width || DEFAULT_NODE_WIDTH,
+        height: node!.height || DEFAULT_NODE_HEIGHT,
+        text: node!.text,
+      }));
+
+    try {
+      const result = await suggestArrangementActionFlow({ selectedNodesInfo });
+      toast.dismiss(loadingToast.id);
+      if (result && result.suggestion) {
+        setAiArrangementSuggestion(result.suggestion);
+        setIsSuggestArrangementDialogOpen(true);
+        toast({ title: "AI Suggestion Ready", description: "Review the proposed arrangement." });
+        addDebugLog(`[EditorPage] AI Arrangement suggestion received: ${JSON.stringify(result.suggestion)}`);
+      } else {
+        toast({ title: "AI Error", description: "No arrangement suggestion received from AI.", variant: "destructive" });
+        addDebugLog(`[EditorPage] AI Arrangement: No suggestion received. Result: ${JSON.stringify(result)}`);
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast.id);
+      console.error("Error suggesting AI arrangement:", error);
+      addDebugLog(`[EditorPage] Error suggesting AI arrangement: ${(error as Error).message}`);
+      toast({ title: "AI Arrangement Error", description: (error as Error).message || "Could not get arrangement suggestion.", variant: "destructive" });
+      setAiArrangementSuggestion(null);
+    } finally {
+      setIsLoadingAIArrangement(false);
+    }
+  }, [storeIsViewOnlyMode, multiSelectedNodeIds, toast, addDebugLog, isLoadingAIArrangement]);
+
+  const handleConfirmAIArrangement = useCallback(() => {
+    if (!aiArrangementSuggestion) return;
+
+    const { actionId } = aiArrangementSuggestion;
+    const actionMap: { [key: string]: () => void } = {
+      alignLefts: handleAlignLefts,
+      alignCentersH: handleAlignCentersH,
+      alignRights: handleAlignRights,
+      alignTops: handleAlignTops,
+      alignMiddlesV: handleAlignMiddlesV,
+      alignBottoms: handleAlignBottoms,
+      distributeHorizontally: handleDistributeHorizontally,
+      distributeVertically: handleDistributeVertically,
+    };
+
+    const actionToExecute = actionMap[actionId];
+    if (actionToExecute) {
+      actionToExecute();
+      const friendlyActionName = arrangeActions.find(a => a.id === actionId)?.label || actionId;
+      toast({ title: "Arrangement Applied", description: `Applied: ${friendlyActionName}` });
+      addDebugLog(`[EditorPage] Confirmed and applied AI arrangement: ${actionId}`);
+    } else {
+      toast({ title: "Error", description: `Unknown arrangement action: ${actionId}`, variant: "destructive" });
+      addDebugLog(`[EditorPage] Unknown AI arrangement action ID: ${actionId}`);
+    }
+
+    setIsSuggestArrangementDialogOpen(false);
+    setAiArrangementSuggestion(null);
+  }, [
+    aiArrangementSuggestion, arrangeActions, toast, addDebugLog,
+    handleAlignLefts, handleAlignCentersH, handleAlignRights,
+    handleAlignTops, handleAlignMiddlesV, handleAlignBottoms,
+    handleDistributeHorizontally, handleDistributeVertically
+  ]);
+
   const handleConfirmAISemanticGroup = useCallback(async () => {
     if (!aiSemanticGroupSuggestion || multiSelectedNodeIds.length < 2) {
       addDebugLog('[EditorPage] AI Semantic Group confirmation skipped: No suggestion or not enough nodes.');
@@ -947,6 +1037,8 @@ export default function ConceptMapEditorPage() {
           onAutoLayout={handleAutoLayout}
           arrangeActions={arrangeActions}
           onSuggestAISemanticGroup={handleTriggerAISemanticGroup}
+          onSuggestAIArrangement={handleRequestAIArrangementSuggestion}
+          isSuggestingAIArrangement={isLoadingAIArrangement}
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
@@ -1058,6 +1150,33 @@ export default function ConceptMapEditorPage() {
                   // setIsSuggestGroupDialogOpen(false); // onOpenChange handles this
                 }}>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmAISemanticGroup}>Confirm & Group</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {aiArrangementSuggestion && (
+          <AlertDialog open={isSuggestArrangementDialogOpen} onOpenChange={(open) => {
+            setIsSuggestArrangementDialogOpen(open);
+            if (!open) setAiArrangementSuggestion(null);
+          }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>AI Arrangement Suggestion</AlertDialogTitle>
+                <AlertDialogDescription>
+                  <p className="mb-2">AI suggests the following arrangement for the {multiSelectedNodeIds.length} selected nodes:</p>
+                  <strong className="block mt-2 mb-1 capitalize">
+                    {(arrangeActions.find(a => a.id === aiArrangementSuggestion.actionId)?.label || aiArrangementSuggestion.actionId).replace(/\(H\)/g, '(Horizontal)').replace(/\(V\)/g, '(Vertical)')}
+                  </strong>
+                  {aiArrangementSuggestion.reason && (
+                    <span className="text-xs text-muted-foreground">Reason: {aiArrangementSuggestion.reason}</span>
+                  )}
+                  <p className="mt-3 text-sm">Do you want to apply this arrangement?</p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setAiArrangementSuggestion(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmAIArrangement}>Confirm & Apply</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

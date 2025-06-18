@@ -1,4 +1,3 @@
-
 // src/ai/flows/index.ts
 export * from './ask-question-about-node';
 export * from './expand-concept';
@@ -12,6 +11,7 @@ export * from './suggest-quick-child-texts';
 export * from './suggest-relations';
 export * from './suggest-semantic-parent';
 export * from './summarize-nodes-flow';
+export * from './suggest-arrangement-action';
 
 // IMPORTANT: rewrite-node-content-logic.ts (formerly rewrite-node-content-flow.ts) and its exports
 // are NOT exported from this barrel file due to persistent module resolution issues.
