@@ -13,6 +13,7 @@ export * from './suggest-semantic-parent';
 export * from './summarize-nodes-flow';
 export * from './suggest-arrangement-action';
 export * from './suggest-node-group-candidates';
+export * from './suggest-map-improvement';
 
 // IMPORTANT: rewrite-node-content-logic.ts (formerly rewrite-node-content-flow.ts) and its exports
 // are NOT exported from this barrel file due to persistent module resolution issues.
