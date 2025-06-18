@@ -11,6 +11,12 @@ import {
   DagreEdgeInput,
   DagreNodeOutput as LayoutNodeUpdate, // Alias DagreNodeOutput as LayoutNodeUpdate
 } from '@/types/graph-adapter';
+import type { ArrangeAction } from "@/components/concept-map/editor-toolbar";
+import {
+  AlignLeft, AlignCenterHorizontal, AlignRight,
+  AlignTop, AlignCenterVertical, AlignBottom,
+  Columns, Rows,
+} from 'lucide-react';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
@@ -65,6 +71,9 @@ const mockDagreLayout = (nodes: DagreNodeInput[], _edges: DagreEdgeInput[]): Lay
     };
   });
 };
+
+const DEFAULT_NODE_WIDTH = 150;
+const DEFAULT_NODE_HEIGHT = 70;
 
 export default function ConceptMapEditorPage() {
   const paramsHook = useParams();
@@ -646,6 +655,195 @@ export default function ConceptMapEditorPage() {
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
+  // Placeholder Alignment & Distribution Handlers
+  const applyLayout = useConceptMapStore(s => s.applyLayout); // Ensure applyLayout is available
+
+  const handleAlignLefts = useCallback(() => {
+    if (storeIsViewOnlyMode || useConceptMapStore.getState().multiSelectedNodeIds.length < 2) {
+      toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
+    }
+    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+      toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
+    }
+    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    if (selectedNodes.length < 2) return;
+
+    const minX = Math.min(...selectedNodes.map(n => n.x));
+    const updates: LayoutNodeUpdate[] = selectedNodes.map(n => ({ id: n.id, x: minX, y: n.y }));
+    applyLayout(updates);
+    toast({ title: "Arrange Action", description: "Nodes aligned to left." });
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+
+  const handleAlignCentersH = useCallback(() => {
+    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+      toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
+    }
+    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    if (selectedNodes.length < 2) return;
+
+    const avgCenterX = selectedNodes.reduce((sum, n) => sum + (n.x + (n.width || DEFAULT_NODE_WIDTH) / 2), 0) / selectedNodes.length;
+    const updates: LayoutNodeUpdate[] = selectedNodes.map(n => ({
+      id: n.id,
+      x: avgCenterX - (n.width || DEFAULT_NODE_WIDTH) / 2,
+      y: n.y
+    }));
+    applyLayout(updates);
+    toast({ title: "Arrange Action", description: "Nodes aligned to horizontal center." });
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+
+  const handleAlignRights = useCallback(() => {
+    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+      toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
+    }
+    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    if (selectedNodes.length < 2) return;
+
+    const maxRight = Math.max(...selectedNodes.map(n => n.x + (n.width || DEFAULT_NODE_WIDTH)));
+    const updates: LayoutNodeUpdate[] = selectedNodes.map(n => ({
+      id: n.id,
+      x: maxRight - (n.width || DEFAULT_NODE_WIDTH),
+      y: n.y
+    }));
+    applyLayout(updates);
+    toast({ title: "Arrange Action", description: "Nodes aligned to right." });
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+
+  const handleAlignTops = useCallback(() => {
+    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+      toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
+    }
+    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    if (selectedNodes.length < 2) return;
+
+    const minY = Math.min(...selectedNodes.map(n => n.y));
+    const updates: LayoutNodeUpdate[] = selectedNodes.map(n => ({ id: n.id, x: n.x, y: minY }));
+    applyLayout(updates);
+    toast({ title: "Arrange Action", description: "Nodes aligned to top." });
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+
+  const handleAlignMiddlesV = useCallback(() => {
+    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+      toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
+    }
+    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    if (selectedNodes.length < 2) return;
+
+    const avgCenterY = selectedNodes.reduce((sum, n) => sum + (n.y + (n.height || DEFAULT_NODE_HEIGHT) / 2), 0) / selectedNodes.length;
+    const updates: LayoutNodeUpdate[] = selectedNodes.map(n => ({
+      id: n.id,
+      x: n.x,
+      y: avgCenterY - (n.height || DEFAULT_NODE_HEIGHT) / 2
+    }));
+    applyLayout(updates);
+    toast({ title: "Arrange Action", description: "Nodes aligned to vertical middle." });
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+
+  const handleAlignBottoms = useCallback(() => {
+    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+      toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
+    }
+    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    if (selectedNodes.length < 2) return;
+
+    const maxBottom = Math.max(...selectedNodes.map(n => n.y + (n.height || DEFAULT_NODE_HEIGHT)));
+    const updates: LayoutNodeUpdate[] = selectedNodes.map(n => ({
+      id: n.id,
+      x: n.x,
+      y: maxBottom - (n.height || DEFAULT_NODE_HEIGHT)
+    }));
+    applyLayout(updates);
+    toast({ title: "Arrange Action", description: "Nodes aligned to bottom." });
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+
+  const handleDistributeHorizontally = useCallback(() => {
+    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || selectedIds.length < 3) {
+      toast({ title: "Action Denied", description: "Select at least three nodes to distribute.", variant: "default" }); return;
+    }
+    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id)).sort((a, b) => a.x - b.x);
+    if (selectedNodes.length < 3) return;
+
+    const firstNode = selectedNodes[0];
+    const lastNode = selectedNodes[selectedNodes.length - 1];
+    const totalSpan = (lastNode.x + (lastNode.width || DEFAULT_NODE_WIDTH)) - firstNode.x;
+    const sumOfNodeWidths = selectedNodes.reduce((sum, n) => sum + (n.width || DEFAULT_NODE_WIDTH), 0);
+
+    if (totalSpan <= sumOfNodeWidths) { // Not enough space to distribute, or nodes overlap
+        toast({ title: "Arrange Action", description: "Not enough space to distribute horizontally, or nodes overlap.", variant: "default" });
+        return;
+    }
+
+    const totalGapSpace = totalSpan - sumOfNodeWidths;
+    const gap = totalGapSpace / (selectedNodes.length - 1);
+
+    const updates: LayoutNodeUpdate[] = [];
+    let currentX = firstNode.x;
+    updates.push({ id: firstNode.id, x: currentX, y: firstNode.y });
+
+    for (let i = 1; i < selectedNodes.length; i++) {
+      currentX += (selectedNodes[i-1].width || DEFAULT_NODE_WIDTH) + gap;
+      updates.push({ id: selectedNodes[i].id, x: currentX, y: selectedNodes[i].y });
+    }
+    applyLayout(updates);
+    toast({ title: "Arrange Action", description: "Nodes distributed horizontally." });
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+
+  const handleDistributeVertically = useCallback(() => {
+    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || selectedIds.length < 3) {
+      toast({ title: "Action Denied", description: "Select at least three nodes to distribute.", variant: "default" }); return;
+    }
+    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id)).sort((a, b) => a.y - b.y);
+    if (selectedNodes.length < 3) return;
+
+    const firstNode = selectedNodes[0];
+    const lastNode = selectedNodes[selectedNodes.length - 1];
+    const totalSpan = (lastNode.y + (lastNode.height || DEFAULT_NODE_HEIGHT)) - firstNode.y;
+    const sumOfNodeHeights = selectedNodes.reduce((sum, n) => sum + (n.height || DEFAULT_NODE_HEIGHT), 0);
+
+    if (totalSpan <= sumOfNodeHeights) {
+        toast({ title: "Arrange Action", description: "Not enough space to distribute vertically, or nodes overlap.", variant: "default" });
+        return;
+    }
+
+    const totalGapSpace = totalSpan - sumOfNodeHeights;
+    const gap = totalGapSpace / (selectedNodes.length - 1);
+
+    const updates: LayoutNodeUpdate[] = [];
+    let currentY = firstNode.y;
+    updates.push({ id: firstNode.id, x: firstNode.x, y: currentY });
+
+    for (let i = 1; i < selectedNodes.length; i++) {
+      currentY += (selectedNodes[i-1].height || DEFAULT_NODE_HEIGHT) + gap;
+      updates.push({ id: selectedNodes[i].id, x: selectedNodes[i].x, y: currentY });
+    }
+    applyLayout(updates);
+    toast({ title: "Arrange Action", description: "Nodes distributed vertically." });
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+
+  const arrangeActions = React.useMemo<ArrangeAction[]>(() => [
+    { id: 'alignLeft', label: 'Align Lefts', icon: AlignLeft, action: handleAlignLefts },
+    { id: 'alignCenterH', label: 'Align Centers (H)', icon: AlignCenterHorizontal, action: handleAlignCentersH },
+    { id: 'alignRight', label: 'Align Rights', icon: AlignRight, action: handleAlignRights },
+    { id: 'sep1', label: 'sep1', isSeparator: true, action: () => {} },
+    { id: 'alignTop', label: 'Align Tops', icon: AlignTop, action: handleAlignTops },
+    { id: 'alignMiddleV', label: 'Align Middles (V)', icon: AlignCenterVertical, action: handleAlignMiddlesV },
+    { id: 'alignBottom', label: 'Align Bottoms', icon: AlignBottom, action: handleAlignBottoms },
+    { id: 'sep2', label: 'sep2', isSeparator: true, action: () => {} },
+    { id: 'distH', label: 'Distribute Horizontally', icon: Columns, action: handleDistributeHorizontally },
+    { id: 'distV', label: 'Distribute Vertically', icon: Rows, action: handleDistributeVertically },
+  ], [
+    handleAlignLefts, handleAlignCentersH, handleAlignRights,
+    handleAlignTops, handleAlignMiddlesV, handleAlignBottoms,
+    handleDistributeHorizontally, handleDistributeVertically
+  ]);
+
   const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => {
     if(!storeIsViewOnlyMode) deleteStoreNode(nodeId);
     closeContextMenu();
@@ -704,6 +902,7 @@ export default function ConceptMapEditorPage() {
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
           onAutoLayout={handleAutoLayout} // Pass the new handler
+          arrangeActions={arrangeActions} // Pass the new arrange actions
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
