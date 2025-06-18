@@ -9,6 +9,7 @@ import { UserRole } from "@/types"; // Assuming UserRole is defined
 import { PlusCircle, Users, ArrowRight, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import React from "react"; // Import React for React.memo
 
 // Mock data for classrooms
 const mockClassrooms: Classroom[] = [
@@ -23,6 +24,38 @@ const mockClassrooms: Classroom[] = [
     inviteCode: "AI101TEST" 
   },
 ];
+
+// Define the new memoized component for displaying a single classroom card
+interface TeacherClassroomDisplayCardProps {
+  classroom: Classroom;
+}
+
+const TeacherClassroomDisplayCard: React.FC<TeacherClassroomDisplayCardProps> = React.memo(({ classroom }) => {
+  return (
+    <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardHeader>
+        <CardTitle className="text-xl">{classroom.name}</CardTitle>
+        <CardDescription>Invite Code: <span className="font-mono text-primary">{classroom.inviteCode}</span></CardDescription>
+      </CardHeader>
+      <CardContent className="flex-grow">
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Users className="mr-2 h-4 w-4" />
+          <span>{classroom.studentIds.length} Students</span>
+        </div>
+        {/* Add more details like last activity, number of maps/submissions */}
+      </CardContent>
+      <CardFooter>
+        <Button asChild className="w-full">
+          <Link href={`/teacher/classrooms/${classroom.id}`}>
+            View Details <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+});
+TeacherClassroomDisplayCard.displayName = 'TeacherClassroomDisplayCard';
+
 
 export default function TeacherClassroomsPage() {
   const { user } = useAuth();
@@ -57,26 +90,7 @@ export default function TeacherClassroomsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {teacherClassrooms.map((classroom) => (
-          <Card key={classroom.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle className="text-xl">{classroom.name}</CardTitle>
-              <CardDescription>Invite Code: <span className="font-mono text-primary">{classroom.inviteCode}</span></CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Users className="mr-2 h-4 w-4" />
-                <span>{classroom.studentIds.length} Students</span>
-              </div>
-              {/* Add more details like last activity, number of maps/submissions */}
-            </CardContent>
-            <CardFooter>
-              <Button asChild className="w-full">
-                <Link href={`/teacher/classrooms/${classroom.id}`}>
-                  View Details <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardFooter>
-          </Card>
+          <TeacherClassroomDisplayCard key={classroom.id} classroom={classroom} />
         ))}
       </div>
     </div>
