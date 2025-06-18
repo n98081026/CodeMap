@@ -60,7 +60,8 @@ import {
 import {
   suggestSemanticParentNodeFlow, type SuggestSemanticParentOutputSchema, type SuggestSemanticParentInputSchema,
   suggestArrangementActionFlow, type SuggestArrangementActionInputSchema, type SuggestArrangementActionOutputSchema,
-  suggestNodeGroupCandidatesFlow, type NodeGroupSuggestionSchema, type MapDataSchema as AIAnalysisMapDataSchema,
+  suggestNodeGroupCandidatesFlow, type NodeGroupSuggestionSchema,
+  suggestMapImprovementFlow, type MapImprovementSuggestionSchema, type MapDataSchema as AIMapDataSchema, // Added for map improvement
 } from '@/ai/flows';
 import * as z from 'zod';
 
@@ -143,6 +144,10 @@ export default function ConceptMapEditorPage() {
   const [aiDiscoveredGroup, setAiDiscoveredGroup] = useState<z.infer<typeof NodeGroupSuggestionSchema> | null>(null);
   const [isDiscoverGroupDialogOpen, setIsDiscoverGroupDialogOpen] = useState(false);
   const [isLoadingAIDiscoverGroup, setIsLoadingAIDiscoverGroup] = useState(false);
+
+  const [aiMapImprovementSuggestion, setAiMapImprovementSuggestion] = useState<z.infer<typeof MapImprovementSuggestionSchema> | null>(null);
+  const [isSuggestImprovementDialogOpen, setIsSuggestImprovementDialogOpen] = useState(false);
+  const [isLoadingAIMapImprovement, setIsLoadingAIMapImprovement] = useState(false);
 
   useEffect(() => {
     addDebugLog(`[EditorPage V11] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${useConceptMapStore.getState().initialLoadComplete}`);
@@ -1009,6 +1014,64 @@ export default function ConceptMapEditorPage() {
     }
   }, [aiDiscoveredGroup, addNodeFromHook, updateStoreNode, toast, addDebugLog, applyLayout]);
 
+  const handleRequestAIMapImprovement = useCallback(async () => {
+    if (isLoadingAIMapImprovement || storeIsViewOnlyMode || (storeMapData.nodes && storeMapData.nodes.length < 2)) {
+      if (isLoadingAIMapImprovement) toast({ title: "AI Busy", description: "An AI map improvement suggestion is already in progress." });
+      else if (storeIsViewOnlyMode) toast({ title: "View Only", description: "AI features disabled in view-only mode." });
+      else toast({ title: "Not Enough Nodes", description: "Need at least 2 nodes on the map for AI to suggest an improvement." });
+      return;
+    }
+
+    setIsLoadingAIMapImprovement(true);
+    const loadingToast = toast({ title: "AI Analyzing Map...", description: "Looking for potential improvements...", duration: Infinity });
+    addDebugLog(`[EditorPage] AI Map Improvement triggered for map with ${storeMapData.nodes.length} nodes.`);
+
+    const mappedNodesForAI: z.infer<typeof AIMapDataSchema>['nodes'] = storeMapData.nodes.map(n => ({
+      id: n.id,
+      text: n.text,
+      details: n.details,
+    }));
+    const mappedEdgesForAI: z.infer<typeof AIMapDataSchema>['edges'] = storeMapData.edges.map(e => ({
+      source: e.source,
+      target: e.target,
+      label: e.label,
+    }));
+
+    try {
+      const result = await suggestMapImprovementFlow({ nodes: mappedNodesForAI, edges: mappedEdgesForAI });
+      toast.dismiss(loadingToast.id);
+
+      if (result) {
+        setAiMapImprovementSuggestion(result);
+        setIsSuggestImprovementDialogOpen(true);
+        toast({ title: "AI Suggestion Ready", description: "Review the proposed map improvement." });
+        addDebugLog(`[EditorPage] AI Map Improvement suggestion received: ${JSON.stringify(result)}`);
+      } else {
+        toast({ title: "AI Suggestion", description: "No specific map improvement identified by the AI at this time.", variant: "default" });
+        addDebugLog(`[EditorPage] AI Map Improvement: No suggestion received. Result: ${JSON.stringify(result)}`);
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast.id);
+      console.error("Error suggesting AI map improvement:", error);
+      addDebugLog(`[EditorPage] Error suggesting AI map improvement: ${(error as Error).message}`);
+      toast({ title: "AI Improvement Error", description: (error as Error).message || "Could not get map improvement suggestion.", variant: "destructive" });
+      setAiMapImprovementSuggestion(null);
+    } finally {
+      setIsLoadingAIMapImprovement(false);
+    }
+  }, [storeIsViewOnlyMode, storeMapData, toast, addDebugLog, isLoadingAIMapImprovement]);
+
+  // Placeholder for actual confirmation logic, to be implemented in the next step
+  const handleConfirmAIMapImprovement = useCallback(() => {
+    if (!aiMapImprovementSuggestion) return;
+    console.log('Confirm clicked for AI Map Improvement:', aiMapImprovementSuggestion);
+    // Actual graph manipulation logic will be added in the next subtask
+    toast({ title: "Action Required", description: "Confirmation logic for this improvement type is pending."});
+    setIsSuggestImprovementDialogOpen(false);
+    setAiMapImprovementSuggestion(null);
+  }, [aiMapImprovementSuggestion, toast]);
+
+
   const handleConfirmAISemanticGroup = useCallback(async () => {
     if (!aiSemanticGroupSuggestion || multiSelectedNodeIds.length < 2) {
       addDebugLog('[EditorPage] AI Semantic Group confirmation skipped: No suggestion or not enough nodes.');
@@ -1180,6 +1243,8 @@ export default function ConceptMapEditorPage() {
           onAIDiscoverGroup={handleRequestAIDiscoverGroup}
           isAIDiscoveringGroup={isLoadingAIDiscoverGroup}
           mapNodeCount={storeMapData.nodes.length}
+          onAISuggestImprovement={handleRequestAIMapImprovement}
+          isAISuggestingImprovement={isLoadingAIMapImprovement}
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
@@ -1352,6 +1417,57 @@ export default function ConceptMapEditorPage() {
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setAiDiscoveredGroup(null)}>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmAIDiscoverGroup}>Confirm & Create Group</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {aiMapImprovementSuggestion && (
+          <AlertDialog open={isSuggestImprovementDialogOpen} onOpenChange={(open) => {
+            setIsSuggestImprovementDialogOpen(open);
+            if (!open) setAiMapImprovementSuggestion(null);
+          }}>
+            <AlertDialogContent className="max-w-lg">
+              <AlertDialogHeader>
+                <AlertDialogTitle>AI Map Improvement Suggestion</AlertDialogTitle>
+                <AlertDialogDescription>
+                  <p className="mb-2">AI suggests the following improvement for your map:</p>
+                  {aiMapImprovementSuggestion.type === 'ADD_EDGE' && (
+                    <div>
+                      <strong className="block mt-2 mb-1">Add Edge:</strong>
+                      Connect Node "{storeMapData.nodes.find(n => n.id === aiMapImprovementSuggestion.data.sourceNodeId)?.text || aiMapImprovementSuggestion.data.sourceNodeId}"
+                      to Node "{storeMapData.nodes.find(n => n.id === aiMapImprovementSuggestion.data.targetNodeId)?.text || aiMapImprovementSuggestion.data.targetNodeId}"
+                      with label "{aiMapImprovementSuggestion.data.label}".
+                    </div>
+                  )}
+                  {aiMapImprovementSuggestion.type === 'NEW_INTERMEDIATE_NODE' && (
+                     <div>
+                      <strong className="block mt-2 mb-1">Insert Intermediate Node:</strong>
+                      Between Node "{storeMapData.nodes.find(n => n.id === aiMapImprovementSuggestion.data.sourceNodeId)?.text || aiMapImprovementSuggestion.data.sourceNodeId}"
+                      and Node "{storeMapData.nodes.find(n => n.id === aiMapImprovementSuggestion.data.targetNodeId)?.text || aiMapImprovementSuggestion.data.targetNodeId}".
+                      <br />New Node Text: "{aiMapImprovementSuggestion.data.intermediateNodeText}"
+                      <br />Edge 1: Source to "{aiMapImprovementSuggestion.data.intermediateNodeText}" (Label: "{aiMapImprovementSuggestion.data.labelToIntermediate}")
+                      <br />Edge 2: "{aiMapImprovementSuggestion.data.intermediateNodeText}" to Target (Label: "{aiMapImprovementSuggestion.data.labelFromIntermediate}")
+                    </div>
+                  )}
+                  {aiMapImprovementSuggestion.type === 'FORM_GROUP' && (
+                    <div>
+                      <strong className="block mt-2 mb-1">Form Group:</strong>
+                      Group nodes: {(aiMapImprovementSuggestion.data.nodeIdsToGroup || [])
+                          .map(nodeId => `"${storeMapData.nodes.find(n => n.id === nodeId)?.text || nodeId}"`)
+                          .join(', ')}
+                      <br />Under new parent: "{aiMapImprovementSuggestion.data.suggestedParentName}".
+                    </div>
+                  )}
+                  {aiMapImprovementSuggestion.reason && (
+                    <p className="text-xs text-muted-foreground mt-2">Reason: {aiMapImprovementSuggestion.reason}</p>
+                  )}
+                  <p className="mt-3 text-sm">Do you want to apply this improvement?</p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setAiMapImprovementSuggestion(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmAIMapImprovement}>Confirm</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
