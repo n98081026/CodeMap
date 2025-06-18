@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, // Added LayoutPanelLeft
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, type LucideIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -51,7 +51,8 @@ interface EditorToolbarProps {
   selectedNodeId: string | null;
   numMultiSelectedNodes: number;
   onAutoLayout?: () => void; // Made optional
-  arrangeActions?: ArrangeAction[]; // New prop
+  arrangeActions?: ArrangeAction[];
+  onSuggestAISemanticGroup?: () => void; // New prop
 }
 
 export interface ArrangeAction {
@@ -91,7 +92,8 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   selectedNodeId,
   numMultiSelectedNodes,
   onAutoLayout,
-  arrangeActions, // Destructure new prop
+  arrangeActions,
+  onSuggestAISemanticGroup, // Destructure new prop
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -209,6 +211,25 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-full" />
+
+        {/* Suggest AI Group Button (conditionally rendered) */}
+        {!isViewOnlyMode && numMultiSelectedNodes >= 2 && onSuggestAISemanticGroup && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onSuggestAISemanticGroup}
+                >
+                  <BoxSelect className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Suggest AI Grouping</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="mx-1 h-full" />
+          </>
+        )}
 
         {/* Arrange Selection Button (conditionally rendered) */}
         {!isViewOnlyMode && numMultiSelectedNodes >= 2 && arrangeActions && arrangeActions.length > 0 && (

@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import type { Node as RFNode, Edge as RFEdge } from 'reactflow'; // Added RFEdge
 import { ReactFlowProvider, useReactFlow } from 'reactflow'; // Added useReactFlow
@@ -9,7 +8,7 @@ import dynamic from 'next/dynamic';
 import {
   DagreNodeInput,
   DagreEdgeInput,
-  DagreNodeOutput as LayoutNodeUpdate, // Alias DagreNodeOutput as LayoutNodeUpdate
+  DagreNodeOutput as LayoutNodeUpdate,
 } from '@/types/graph-adapter';
 import type { ArrangeAction } from "@/components/concept-map/editor-toolbar";
 import {
@@ -46,8 +45,8 @@ import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
-import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar'; // Import AIStagingToolbar
-import { Lightbulb, Sparkles, Brain, HelpCircle, CheckCircle, XCircle } from 'lucide-react'; // Added CheckCircle, XCircle
+import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
+import { Lightbulb, Sparkles, Brain, HelpCircle, CheckCircle, XCircle } from 'lucide-react';
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -57,13 +56,13 @@ const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canva
 
 // Mock Dagre Layout Function
 const mockDagreLayout = (nodes: DagreNodeInput[], _edges: DagreEdgeInput[]): LayoutNodeUpdate[] => {
-  let currentX = 50; // Initial X position
-  const nodeY = 100; // Fixed Y position for all nodes in the line
-  const spacing = 50;  // Spacing between nodes
+  let currentX = 50;
+  const nodeY = 100;
+  const spacing = 50;
 
   return nodes.map((node) => {
     const xPos = currentX;
-    currentX += (node.width || 150) + spacing; // Use node width or default
+    currentX += (node.width || 150) + spacing;
     return {
       id: node.id,
       x: xPos,
@@ -90,9 +89,8 @@ export default function ConceptMapEditorPage() {
     mapData: storeMapData, isLoading: isStoreLoading, isSaving: isStoreSaving, error: storeError,
     selectedElementId, selectedElementType, multiSelectedNodeIds,
     aiExtractedConcepts, aiSuggestedRelations,
-    // Staging state from store
     isStagingActive, stagedMapData: storeStagedMapData,
-    commitStagedMapData, clearStagedMapData, deleteFromStagedMapData, // Added deleteFromStagedMapData
+    commitStagedMapData, clearStagedMapData, deleteFromStagedMapData,
     setMapName: setStoreMapName, setIsPublic: setStoreIsPublic, setSharedWithClassroomId: setStoreSharedWithClassroomId,
     deleteNode: deleteStoreNode, updateNode: updateStoreNode,
     updateEdge: updateStoreEdge,
@@ -100,6 +98,7 @@ export default function ConceptMapEditorPage() {
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
     addDebugLog,
+    applyLayout, // Destructure applyLayout directly from the store hook
   } = useConceptMapStore(
     useCallback(s => ({
       mapId: s.mapId, mapName: s.mapName, currentMapOwnerId: s.currentMapOwnerId, currentMapCreatedAt: s.currentMapCreatedAt,
@@ -109,17 +108,16 @@ export default function ConceptMapEditorPage() {
       multiSelectedNodeIds: s.multiSelectedNodeIds, aiExtractedConcepts: s.aiExtractedConcepts,
       aiSuggestedRelations: s.aiSuggestedRelations,
       isStagingActive: s.isStagingActive, stagedMapData: s.stagedMapData,
-      commitStagedMapData: s.commitStagedMapData, clearStagedMapData: s.clearStagedMapData, deleteFromStagedMapData: s.deleteFromStagedMapData, // Added deleteFromStagedMapData
+      commitStagedMapData: s.commitStagedMapData, clearStagedMapData: s.clearStagedMapData, deleteFromStagedMapData: s.deleteFromStagedMapData,
       setMapName: s.setMapName, setIsPublic: s.setIsPublic, setSharedWithClassroomId: s.setSharedWithClassroomId,
       deleteNode: s.deleteNode, updateNode: s.updateNode, updateEdge: s.updateEdge,
       setSelectedElement: s.setSelectedElement, setMultiSelectedNodeIds: s.setMultiSelectedNodeIds,
       importMapData: s.importMapData, setIsViewOnlyMode: s.setIsViewOnlyMode, addDebugLog: s.addDebugLog,
-      applyLayout: s.applyLayout, // Retrieve applyLayout action
+      applyLayout: s.applyLayout,
     }), [])
   );
 
   useEffect(() => {
-    // Log storeMapData changes
     addDebugLog(`[EditorPage V11] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${useConceptMapStore.getState().initialLoadComplete}`);
   }, [storeMapData, isStoreLoading, addDebugLog]);
 
@@ -148,8 +146,7 @@ export default function ConceptMapEditorPage() {
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
     isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
     handleSummarizeSelectedNodes,
-    // Mini Toolbar functions
-    handleMiniToolbarQuickExpand, // Added
+    handleMiniToolbarQuickExpand,
     handleMiniToolbarRewriteConcise,
     addStoreNode: addNodeFromHook,
     addStoreEdge: addEdgeFromHook,
@@ -157,54 +154,42 @@ export default function ConceptMapEditorPage() {
     getNodeSuggestions,
     fetchAndSetEdgeLabelSuggestions,
     fetchAIChildTextSuggestions,
-    aiChildTextSuggestions,    // Add this
-    isLoadingAiChildTexts,   // Add this
+    aiChildTextSuggestions,
+    isLoadingAiChildTexts,
     edgeLabelSuggestions,
     setEdgeLabelSuggestions,
-    conceptExpansionPreview,    // Destructure conceptExpansionPreview state
-    acceptAllExpansionPreviews, // Destructure new function
-    acceptSingleExpansionPreview, // Destructure new function
-    clearExpansionPreview,      // Destructure new function
-    // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
-    removeExtractedConceptsFromSuggestions, // Destructure for use in drop handler
+    conceptExpansionPreview,
+    acceptAllExpansionPreviews,
+    acceptSingleExpansionPreview,
+    clearExpansionPreview,
+    removeExtractedConceptsFromSuggestions,
   } = aiToolsHook;
 
   const reactFlowInstance = useReactFlow();
-
-  // lastPaneClickPosition state was already added in a previous step that was part of a larger diff.
-  // Verifying it's present. If not, this would be the place to add:
-  // const [lastPaneClickPosition, setLastPaneClickPosition] = useState<{ x: number; y: number } | null>(null);
-  // It seems it was correctly added based on the previous successful diff.
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
 
-  // Effect for handling Delete/Backspace key for staged elements
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isStagingActive && selectedStagedElementIds.length > 0 && (event.key === 'Delete' || event.key === 'Backspace')) {
         if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
-          // Do not interfere if user is typing in an input/textarea
           return;
         }
         event.preventDefault();
         deleteFromStagedMapData(selectedStagedElementIds);
-        setSelectedStagedElementIds([]); // Clear selection after deletion
+        setSelectedStagedElementIds([]);
         toast({ title: 'Staged Items Deleted', description: `${selectedStagedElementIds.length} item(s) removed from staging area.` });
       }
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isStagingActive, selectedStagedElementIds, deleteFromStagedMapData, toast, setSelectedStagedElementIds]);
 
-
-  // Memoized callback for saving the map
   const handleSaveMap = useCallback(() => {
     saveMap(storeIsViewOnlyMode);
   }, [saveMap, storeIsViewOnlyMode]);
 
-  // Memoized callbacks for AI modal triggers
   const handleExtractConcepts = useCallback(() => {
     openExtractConceptsModal(selectedElementId || undefined);
   }, [openExtractConceptsModal, selectedElementId]);
@@ -229,30 +214,27 @@ export default function ConceptMapEditorPage() {
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; nodeId: string | null; } | null>(null);
+  const [lastPaneClickPosition, setLastPaneClickPosition] = useState<{ x: number; y: number } | null>(null);
 
   const [floaterState, setFloaterState] = useState<{
     isVisible: boolean;
     position: { x: number; y: number } | null;
     suggestions: SuggestionAction[];
     contextElementId?: string | null;
-    contextType?: 'pane' | 'node' | null;
+    contextType?: 'pane' | 'node' | 'edge' | 'conceptExpansionControls' | null; // Added edge & conceptExpansionControls
+    title?: string;
   }>({ isVisible: false, position: null, suggestions: [], contextElementId: null, contextType: null });
 
   const Floater_handleDismiss = useCallback(() => {
     const currentContextType = floaterState.contextType;
-    // Always hide main floater
     setFloaterState(prev => ({ ...prev, isVisible: false, contextType: null, contextElementId: null }));
-
-    // Specific cleanup based on context
     if (currentContextType === 'edge' && setEdgeLabelSuggestions) {
       setEdgeLabelSuggestions(null);
     } else if (currentContextType === 'conceptExpansionControls' && clearExpansionPreview) {
-      // If user dismissed the controls floater (e.g. Escape, click-outside), clear the underlying preview data
       clearExpansionPreview();
     }
   }, [floaterState.contextType, setEdgeLabelSuggestions, clearExpansionPreview]);
 
-  // useEffect to show floater for edge label suggestions
   useEffect(() => {
     if (edgeLabelSuggestions?.edgeId && edgeLabelSuggestions.labels.length > 0) {
       const edge = reactFlowInstance.getEdge(edgeLabelSuggestions.edgeId);
@@ -260,32 +242,25 @@ export default function ConceptMapEditorPage() {
       if (edge) {
         const sourceNode = allNodes.find(n => n.id === edge.source);
         const targetNode = allNodes.find(n => n.id === edge.target);
-
         let screenPos = { x: 0, y: 0 };
-
         if (sourceNode?.positionAbsolute && targetNode?.positionAbsolute) {
-          // Calculate midpoint in flow coordinates
           const midXFlow = (sourceNode.positionAbsolute.x + targetNode.positionAbsolute.x) / 2;
           const midYFlow = (sourceNode.positionAbsolute.y + targetNode.positionAbsolute.y) / 2;
-          // Add a slight offset to avoid overlapping the edge label editor perfectly
           screenPos = reactFlowInstance.project({ x: midXFlow, y: midYFlow - 30 });
-        } else if (sourceNode?.positionAbsolute) { // Fallback if target node position is not available (e.g. during creation)
+        } else if (sourceNode?.positionAbsolute) {
            screenPos = reactFlowInstance.project({x: sourceNode.positionAbsolute.x + 100, y: sourceNode.positionAbsolute.y - 30});
-        } else { // Fallback to a generic position if node positions are not ready
+        } else {
             const pane = reactFlowInstance.getViewport();
             screenPos = {x: pane.x + 300, y: pane.y + 100};
         }
-
-
         const edgeFloaterSuggestions: SuggestionAction[] = edgeLabelSuggestions.labels.map(label => ({
           id: `edge-label-${edgeLabelSuggestions.edgeId}-${label.replace(/\s+/g, '-')}`,
           label: label,
           action: () => {
-            updateStoreEdge(edgeLabelSuggestions.edgeId, { label: label }); // Use direct store action
+            updateStoreEdge(edgeLabelSuggestions.edgeId, { label: label });
             Floater_handleDismiss();
           }
         }));
-
         setFloaterState({
           isVisible: true,
           position: screenPos,
@@ -296,97 +271,63 @@ export default function ConceptMapEditorPage() {
         });
       }
     } else if (floaterState.isVisible && floaterState.contextType === 'edge' && !edgeLabelSuggestions) {
-      // If suggestions were cleared (e.g. by another action) and floater was for an edge, hide it.
       Floater_handleDismiss();
     }
   }, [edgeLabelSuggestions, reactFlowInstance, updateStoreEdge, Floater_handleDismiss, floaterState.isVisible, floaterState.contextType]);
 
-
   const handleAddNodeFromFloater = useCallback((position?: {x: number, y: number}) => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
     const newNodeText = `Node ${storeMapData.nodes.length + 1}`;
-    // Use provided position or fallback to getNodePlacement if position is not directly from context menu event
     const { x, y } = position || aiToolsHook.getNodePlacement(storeMapData.nodes.length, 'generic', null, null, 20);
     const newNodeId = addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
-    useConceptMapStore.getState().setEditingNodeId(newNodeId); // Auto-focus for editing
+    useConceptMapStore.getState().setEditingNodeId(newNodeId);
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
     Floater_handleDismiss();
   }, [storeIsViewOnlyMode, toast, aiToolsHook.getNodePlacement, addNodeFromHook, storeMapData.nodes, Floater_handleDismiss]);
 
-
   const handlePaneContextMenuRequest = useCallback((event: React.MouseEvent, positionInFlow: {x: number, y: number}) => {
     if (storeIsViewOnlyMode) return;
-    // Close standard node context menu if it's open
     if (contextMenu?.isOpen) closeContextMenu();
-    setLastPaneClickPosition(positionInFlow); // Store click position
-
-    const rawSuggestions = getPaneSuggestions(positionInFlow); // Pass position directly if hook uses it
+    setLastPaneClickPosition(positionInFlow);
+    const rawSuggestions = getPaneSuggestions(positionInFlow);
     const suggestions = rawSuggestions.map(s => {
       if (s.id === 'pane-add-topic') {
-        // Wrap the addStoreNode action to use the stored lastPaneClickPosition
-        return {
-          ...s,
-          action: () => {
-            // The addStoreNode action from getPaneSuggestions already handles position.
-            // We ensure it's called and then dismiss.
-            s.action(); // This should call the addNodeAtPosition with the correct position.
-            Floater_handleDismiss();
-          }
-        };
+        return { ...s, action: () => { s.action(); Floater_handleDismiss(); }};
       }
       return { ...s, action: () => { s.action(); Floater_handleDismiss(); } };
     });
-
-    setFloaterState({ isVisible: true, position: { x: event.clientX, y: event.clientY }, suggestions, contextType: 'pane', contextElementId: null });
-  }, [storeIsViewOnlyMode, getPaneSuggestions, Floater_handleDismiss, contextMenu?.isOpen, closeContextMenu, /* addNodeFromHook, openQuickClusterModal - covered by getPaneSuggestions */]);
+    setFloaterState({ isVisible: true, position: { x: event.clientX, y: event.clientY }, suggestions, contextType: 'pane', contextElementId: null, title: "Pane Actions" });
+  }, [storeIsViewOnlyMode, getPaneSuggestions, Floater_handleDismiss, contextMenu?.isOpen, closeContextMenu]);
 
   const handleNodeContextMenuRequest = useCallback(async (event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
     if (storeIsViewOnlyMode) return;
     event.preventDefault();
     if (contextMenu?.isOpen) closeContextMenu();
-    Floater_handleDismiss(); // Dismiss any existing floater first
-
-    // Fetch AI suggestions for child texts before getting all node suggestions
+    Floater_handleDismiss();
     if (fetchAIChildTextSuggestions) {
       await fetchAIChildTextSuggestions(node);
     }
-
-    let floaterTitle = "Node Actions"; // Default title
+    let floaterTitle = "Node Actions";
     if (isLoadingAiChildTexts) {
       floaterTitle = "Loading Ideas...";
     } else if (aiChildTextSuggestions && aiChildTextSuggestions.length > 0) {
       floaterTitle = "Quick Add Ideas";
     }
-
-    const rawSuggestions = getNodeSuggestions(node); // getNodeSuggestions will now use the updated state
-    const suggestions = rawSuggestions.map(s => ({
-      ...s,
-      action: () => {
-        s.action();
-        Floater_handleDismiss();
-      }
-    }));
-
+    const rawSuggestions = getNodeSuggestions(node);
+    const suggestions = rawSuggestions.map(s => ({ ...s, action: () => { s.action(); Floater_handleDismiss(); }}));
     setFloaterState({
       isVisible: true,
       position: { x: event.clientX, y: event.clientY },
       suggestions: suggestions,
       contextType: 'node',
       contextElementId: node.id,
-      title: floaterTitle // Use the dynamic title
+      title: floaterTitle
     });
   }, [
-    storeIsViewOnlyMode,
-    contextMenu?.isOpen,
-    closeContextMenu,
-    Floater_handleDismiss,
-    getNodeSuggestions,
-    fetchAIChildTextSuggestions,
-    isLoadingAiChildTexts, // Add to dependency array
-    aiChildTextSuggestions  // Add to dependency array
+    storeIsViewOnlyMode, contextMenu?.isOpen, closeContextMenu, Floater_handleDismiss,
+    getNodeSuggestions, fetchAIChildTextSuggestions, isLoadingAiChildTexts, aiChildTextSuggestions
   ]);
 
-  // Handlers for AIStagingToolbar
   const handleCommitStagedData = useCallback(() => {
     commitStagedMapData();
     toast({ title: 'AI Suggestions Committed', description: 'New elements added to your map.' });
@@ -402,7 +343,6 @@ export default function ConceptMapEditorPage() {
     edges: storeStagedMapData?.edges?.length || 0,
   }), [storeStagedMapData]);
 
-  // useEffect to show floater for Concept Expansion Preview controls
   useEffect(() => {
     if (conceptExpansionPreview && conceptExpansionPreview.parentNodeId && reactFlowInstance) {
       const parentNode = reactFlowInstance.getNode(conceptExpansionPreview.parentNodeId);
@@ -411,46 +351,21 @@ export default function ConceptMapEditorPage() {
           x: parentNode.positionAbsolute.x + (parentNode.width || 150) / 2,
           y: parentNode.positionAbsolute.y + (parentNode.height || 70) + 20,
         });
-
         const expansionControlSuggestions: SuggestionAction[] = [
-          {
-            id: 'accept-all-expansion',
-            label: 'Accept All Suggestions',
-            icon: CheckCircle,
-            action: () => {
-              acceptAllExpansionPreviews(); // This will also call setConceptExpansionPreview(null)
-              // Floater_handleDismiss will be called by the floater itself.
-            }
-          },
-          {
-            id: 'clear-expansion',
-            label: 'Clear All Suggestions',
-            icon: XCircle,
-            action: () => {
-              clearExpansionPreview(); // This will also call setConceptExpansionPreview(null)
-              // Floater_handleDismiss will be called by the floater itself.
-            }
-          }
+          { id: 'accept-all-expansion', label: 'Accept All Suggestions', icon: CheckCircle, action: () => { acceptAllExpansionPreviews(); Floater_handleDismiss(); }},
+          { id: 'clear-expansion', label: 'Clear All Suggestions', icon: XCircle, action: () => { clearExpansionPreview(); Floater_handleDismiss(); }}
         ];
-
-        // Only show this floater if another isn't already active for a different purpose,
-        // or if it's already for expansion controls (to allow re-positioning if parent moves)
         if (!floaterState.isVisible || floaterState.contextType === 'conceptExpansionControls') {
           setFloaterState({
-            isVisible: true,
-            position: screenPos,
-            suggestions: expansionControlSuggestions,
-            contextType: 'conceptExpansionControls',
-            contextElementId: parentNode.id,
-            title: "Expansion Preview Controls"
+            isVisible: true, position: screenPos, suggestions: expansionControlSuggestions,
+            contextType: 'conceptExpansionControls', contextElementId: parentNode.id, title: "Expansion Preview Controls"
           });
         }
       }
     } else if (floaterState.isVisible && floaterState.contextType === 'conceptExpansionControls' && !conceptExpansionPreview) {
-      // If preview was cleared (e.g. by accept/clear actions which nullify conceptExpansionPreview), hide this floater.
-      setFloaterState(prev => ({ ...prev, isVisible: false, contextType: null, contextElementId: null }));
+      Floater_handleDismiss();
     }
-  }, [conceptExpansionPreview, reactFlowInstance, acceptAllExpansionPreviews, clearExpansionPreview, floaterState.isVisible, floaterState.contextType]);
+  }, [conceptExpansionPreview, reactFlowInstance, acceptAllExpansionPreviews, clearExpansionPreview, floaterState.isVisible, floaterState.contextType, Floater_handleDismiss]);
 
   const handleConceptSuggestionDrop = useCallback((conceptText: string, position: { x: number; y: number }) => {
     if (storeIsViewOnlyMode) {
@@ -458,13 +373,11 @@ export default function ConceptMapEditorPage() {
       return;
     }
     addNodeFromHook({ text: conceptText, type: 'ai-concept', position, details: '' });
-    // Assuming removeExtractedConceptsFromSuggestions is from aiToolsHook and handles store update
     if (removeExtractedConceptsFromSuggestions) {
         removeExtractedConceptsFromSuggestions([conceptText]);
     }
     toast({ title: 'Concept Added', description: `'${conceptText}' added to the map from suggestion.` });
   }, [storeIsViewOnlyMode, addNodeFromHook, removeExtractedConceptsFromSuggestions, toast]);
-
 
   const handleMapPropertiesChange = useCallback((properties: { name: string; isPublic: boolean; sharedWithClassroomId: string | null; }) => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", description: "Map properties cannot be changed.", variant: "default"}); return; }
@@ -483,7 +396,7 @@ export default function ConceptMapEditorPage() {
 
   const handleAddNodeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
-    const newNodeText = `Node ${storeMapData.nodes.length + 1}`; // Use storeMapData from store for length
+    const newNodeText = `Node ${storeMapData.nodes.length + 1}`;
     const { x, y } = aiToolsHook.getNodePlacement(storeMapData.nodes.length, 'generic', null, null, 20);
     addNodeFromHook({ text: newNodeText, type: 'manual-node', position: { x, y } });
     toast({ title: "Node Added", description: `"${newNodeText}" added.`});
@@ -491,7 +404,7 @@ export default function ConceptMapEditorPage() {
 
   const handleAddEdgeToData = useCallback(() => {
     if (storeIsViewOnlyMode) { toast({ title: "View Only Mode", variant: "default"}); return; }
-    const nodes = storeMapData.nodes; // Use storeMapData from store
+    const nodes = storeMapData.nodes;
     if (nodes.length < 2) { toast({ title: "Cannot Add Edge", description: "At least two nodes are required to add an edge.", variant: "default" }); return; }
     const sourceNode = nodes[nodes.length - 2]; const targetNode = nodes[nodes.length - 1];
     if (!sourceNode || !targetNode) { toast({ title: "Error Adding Edge", description: "Source or target node for edge not found.", variant: "destructive"}); return; }
@@ -524,10 +437,7 @@ export default function ConceptMapEditorPage() {
 
   const handleExportMap = useCallback(() => {
     const mapToExport = {
-        name: mapName,
-        mapData: storeMapData,
-        isPublic: isPublic,
-        sharedWithClassroomId: sharedWithClassroomId,
+        name: mapName, mapData: storeMapData, isPublic: isPublic, sharedWithClassroomId: sharedWithClassroomId,
     };
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(mapToExport, null, 2))}`;
     const link = document.createElement('a');
@@ -561,10 +471,6 @@ export default function ConceptMapEditorPage() {
     if(fileInputRef.current) fileInputRef.current.value = "";
   }, [storeIsViewOnlyMode, toast, importMapData, temporalStoreAPI]);
 
-  // Note: applyLayout is already destructured from the store hook result earlier if the above change is successful.
-  // If not, this line would be an alternative way to get it:
-  // const applyLayout = useConceptMapStore(s => s.applyLayout);
-
   const handleAutoLayout = useCallback(async () => {
     addDebugLog('[EditorPage] handleAutoLayout triggered.');
     if (storeIsViewOnlyMode) {
@@ -572,53 +478,38 @@ export default function ConceptMapEditorPage() {
       addDebugLog('[EditorPage] Auto-layout skipped: view-only mode.');
       return;
     }
-
     if (storeMapData.nodes.length === 0) {
       toast({ title: "Empty Map", description: "Cannot apply layout to an empty map.", variant: "default" });
       addDebugLog('[EditorPage] Auto-layout skipped: empty map.');
       return;
     }
-
     const loadingToast = toast({
       title: 'Applying Auto Layout...',
       description: <div className="flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait.</div>,
-      duration: Infinity, // Persist until dismissed
+      duration: Infinity,
     });
     addDebugLog('[EditorPage] Auto-layout processing started.');
-
     try {
-      // Prepare nodes and edges for Dagre
       const dagreNodes: DagreNodeInput[] = storeMapData.nodes.map(node => ({
-        id: node.id,
-        width: node.width || 150, // Use actual width or default
-        height: node.height || 70, // Use actual height or default
+        id: node.id, width: node.width || 150, height: node.height || 70,
       }));
       const dagreEdges: DagreEdgeInput[] = storeMapData.edges.map(edge => ({
-        source: edge.source,
-        target: edge.target,
+        source: edge.source, target: edge.target,
       }));
       addDebugLog(`[EditorPage] Prepared ${dagreNodes.length} nodes and ${dagreEdges.length} edges for layout.`);
-
-      // Call the mock layout function
       const newPositions = mockDagreLayout(dagreNodes, dagreEdges);
       addDebugLog(`[EditorPage] Layout calculated. ${newPositions.length} new positions received.`);
-
-      // Apply the new layout through the store action
-      applyLayout(newPositions); // Use the destructured applyLayout
+      applyLayout(newPositions);
       addDebugLog('[EditorPage] applyLayout action called.');
-
-      // Fit view after a short delay
       setTimeout(() => {
         if (reactFlowInstance) {
           reactFlowInstance.fitView();
           addDebugLog('[EditorPage] reactFlowInstance.fitView() called.');
         }
       }, 100);
-
       loadingToast.dismiss();
       toast({ title: "Layout Applied", description: "Nodes have been automatically arranged.", variant: "default" });
       addDebugLog('[EditorPage] Auto-layout successfully applied.');
-
     } catch (error) {
       addDebugLog(`[EditorPage] Error during auto-layout: ${error instanceof Error ? error.message : String(error)}`);
       loadingToast.dismiss();
@@ -628,15 +519,7 @@ export default function ConceptMapEditorPage() {
         variant: "destructive",
       });
     }
-  }, [
-    storeIsViewOnlyMode,
-    storeMapData.nodes,
-    storeMapData.edges,
-    applyLayout, // Add applyLayout to dependency array
-    toast,
-    reactFlowInstance,
-    addDebugLog,
-  ]);
+  }, [ storeIsViewOnlyMode, storeMapData.nodes, storeMapData.edges, applyLayout, toast, reactFlowInstance, addDebugLog]);
 
   const handleStartConnectionFromNode = useCallback((nodeId: string) => {
     if (storeIsViewOnlyMode) {
@@ -655,32 +538,27 @@ export default function ConceptMapEditorPage() {
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
-  // Placeholder Alignment & Distribution Handlers
-  const applyLayout = useConceptMapStore(s => s.applyLayout); // Ensure applyLayout is available
-
+  // Alignment & Distribution Handlers
   const handleAlignLefts = useCallback(() => {
-    if (storeIsViewOnlyMode || useConceptMapStore.getState().multiSelectedNodeIds.length < 2) {
+    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || currentMultiSelectedNodeIds.length < 2) {
       toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
     }
-    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
-    if (storeIsViewOnlyMode || selectedIds.length < 2) {
-      toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
-    }
-    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id));
     if (selectedNodes.length < 2) return;
 
     const minX = Math.min(...selectedNodes.map(n => n.x));
     const updates: LayoutNodeUpdate[] = selectedNodes.map(n => ({ id: n.id, x: minX, y: n.y }));
-    applyLayout(updates);
+    if (updates.length > 0) applyLayout(updates);
     toast({ title: "Arrange Action", description: "Nodes aligned to left." });
-  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData, multiSelectedNodeIds]);
 
   const handleAlignCentersH = useCallback(() => {
-    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
-    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || currentMultiSelectedNodeIds.length < 2) {
       toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
     }
-    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id));
     if (selectedNodes.length < 2) return;
 
     const avgCenterX = selectedNodes.reduce((sum, n) => sum + (n.x + (n.width || DEFAULT_NODE_WIDTH) / 2), 0) / selectedNodes.length;
@@ -689,16 +567,16 @@ export default function ConceptMapEditorPage() {
       x: avgCenterX - (n.width || DEFAULT_NODE_WIDTH) / 2,
       y: n.y
     }));
-    applyLayout(updates);
+    if (updates.length > 0) applyLayout(updates);
     toast({ title: "Arrange Action", description: "Nodes aligned to horizontal center." });
-  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData, multiSelectedNodeIds]);
 
   const handleAlignRights = useCallback(() => {
-    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
-    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || currentMultiSelectedNodeIds.length < 2) {
       toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
     }
-    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id));
     if (selectedNodes.length < 2) return;
 
     const maxRight = Math.max(...selectedNodes.map(n => n.x + (n.width || DEFAULT_NODE_WIDTH)));
@@ -707,30 +585,30 @@ export default function ConceptMapEditorPage() {
       x: maxRight - (n.width || DEFAULT_NODE_WIDTH),
       y: n.y
     }));
-    applyLayout(updates);
+    if (updates.length > 0) applyLayout(updates);
     toast({ title: "Arrange Action", description: "Nodes aligned to right." });
-  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData, multiSelectedNodeIds]);
 
   const handleAlignTops = useCallback(() => {
-    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
-    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || currentMultiSelectedNodeIds.length < 2) {
       toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
     }
-    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id));
     if (selectedNodes.length < 2) return;
 
     const minY = Math.min(...selectedNodes.map(n => n.y));
     const updates: LayoutNodeUpdate[] = selectedNodes.map(n => ({ id: n.id, x: n.x, y: minY }));
-    applyLayout(updates);
+    if (updates.length > 0) applyLayout(updates);
     toast({ title: "Arrange Action", description: "Nodes aligned to top." });
-  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData, multiSelectedNodeIds]);
 
   const handleAlignMiddlesV = useCallback(() => {
-    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
-    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || currentMultiSelectedNodeIds.length < 2) {
       toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
     }
-    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id));
     if (selectedNodes.length < 2) return;
 
     const avgCenterY = selectedNodes.reduce((sum, n) => sum + (n.y + (n.height || DEFAULT_NODE_HEIGHT) / 2), 0) / selectedNodes.length;
@@ -739,16 +617,16 @@ export default function ConceptMapEditorPage() {
       x: n.x,
       y: avgCenterY - (n.height || DEFAULT_NODE_HEIGHT) / 2
     }));
-    applyLayout(updates);
+    if (updates.length > 0) applyLayout(updates);
     toast({ title: "Arrange Action", description: "Nodes aligned to vertical middle." });
-  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData, multiSelectedNodeIds]);
 
   const handleAlignBottoms = useCallback(() => {
-    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
-    if (storeIsViewOnlyMode || selectedIds.length < 2) {
+    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || currentMultiSelectedNodeIds.length < 2) {
       toast({ title: "Action Denied", description: "Select at least two nodes to arrange.", variant: "default" }); return;
     }
-    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id));
+    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id));
     if (selectedNodes.length < 2) return;
 
     const maxBottom = Math.max(...selectedNodes.map(n => n.y + (n.height || DEFAULT_NODE_HEIGHT)));
@@ -757,16 +635,16 @@ export default function ConceptMapEditorPage() {
       x: n.x,
       y: maxBottom - (n.height || DEFAULT_NODE_HEIGHT)
     }));
-    applyLayout(updates);
+    if (updates.length > 0) applyLayout(updates);
     toast({ title: "Arrange Action", description: "Nodes aligned to bottom." });
-  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData, multiSelectedNodeIds]);
 
   const handleDistributeHorizontally = useCallback(() => {
-    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
-    if (storeIsViewOnlyMode || selectedIds.length < 3) {
+    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || currentMultiSelectedNodeIds.length < 3) {
       toast({ title: "Action Denied", description: "Select at least three nodes to distribute.", variant: "default" }); return;
     }
-    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id)).sort((a, b) => a.x - b.x);
+    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id)).sort((a, b) => a.x - b.x);
     if (selectedNodes.length < 3) return;
 
     const firstNode = selectedNodes[0];
@@ -774,8 +652,8 @@ export default function ConceptMapEditorPage() {
     const totalSpan = (lastNode.x + (lastNode.width || DEFAULT_NODE_WIDTH)) - firstNode.x;
     const sumOfNodeWidths = selectedNodes.reduce((sum, n) => sum + (n.width || DEFAULT_NODE_WIDTH), 0);
 
-    if (totalSpan <= sumOfNodeWidths) { // Not enough space to distribute, or nodes overlap
-        toast({ title: "Arrange Action", description: "Not enough space to distribute horizontally, or nodes overlap.", variant: "default" });
+    if (totalSpan <= sumOfNodeWidths && selectedNodes.length > 1) {
+        toast({ title: "Arrange Action", description: "Not enough space to distribute horizontally. Try moving nodes further apart.", variant: "default" });
         return;
     }
 
@@ -784,22 +662,25 @@ export default function ConceptMapEditorPage() {
 
     const updates: LayoutNodeUpdate[] = [];
     let currentX = firstNode.x;
-    updates.push({ id: firstNode.id, x: currentX, y: firstNode.y });
+    updates.push({ id: firstNode.id, x: firstNode.x, y: firstNode.y });
 
     for (let i = 1; i < selectedNodes.length; i++) {
-      currentX += (selectedNodes[i-1].width || DEFAULT_NODE_WIDTH) + gap;
+      const prevNodeInLoop = selectedNodes[i-1];
+      const prevNodeProcessedX = updates.find(u => u.id === prevNodeInLoop.id)?.x ?? prevNodeInLoop.x;
+
+      currentX = prevNodeProcessedX + (prevNodeInLoop.width || DEFAULT_NODE_WIDTH) + gap;
       updates.push({ id: selectedNodes[i].id, x: currentX, y: selectedNodes[i].y });
     }
-    applyLayout(updates);
+    if (updates.length > 0) applyLayout(updates);
     toast({ title: "Arrange Action", description: "Nodes distributed horizontally." });
-  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData, multiSelectedNodeIds]);
 
   const handleDistributeVertically = useCallback(() => {
-    const { multiSelectedNodeIds: selectedIds, mapData: currentMapData } = useConceptMapStore.getState();
-    if (storeIsViewOnlyMode || selectedIds.length < 3) {
+    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+    if (storeIsViewOnlyMode || currentMultiSelectedNodeIds.length < 3) {
       toast({ title: "Action Denied", description: "Select at least three nodes to distribute.", variant: "default" }); return;
     }
-    const selectedNodes = currentMapData.nodes.filter(n => selectedIds.includes(n.id)).sort((a, b) => a.y - b.y);
+    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id)).sort((a, b) => a.y - b.y);
     if (selectedNodes.length < 3) return;
 
     const firstNode = selectedNodes[0];
@@ -807,8 +688,8 @@ export default function ConceptMapEditorPage() {
     const totalSpan = (lastNode.y + (lastNode.height || DEFAULT_NODE_HEIGHT)) - firstNode.y;
     const sumOfNodeHeights = selectedNodes.reduce((sum, n) => sum + (n.height || DEFAULT_NODE_HEIGHT), 0);
 
-    if (totalSpan <= sumOfNodeHeights) {
-        toast({ title: "Arrange Action", description: "Not enough space to distribute vertically, or nodes overlap.", variant: "default" });
+    if (totalSpan <= sumOfNodeHeights && selectedNodes.length > 1) {
+        toast({ title: "Arrange Action", description: "Not enough space to distribute vertically. Try moving nodes further apart.", variant: "default" });
         return;
     }
 
@@ -820,12 +701,15 @@ export default function ConceptMapEditorPage() {
     updates.push({ id: firstNode.id, x: firstNode.x, y: currentY });
 
     for (let i = 1; i < selectedNodes.length; i++) {
-      currentY += (selectedNodes[i-1].height || DEFAULT_NODE_HEIGHT) + gap;
+      const prevNodeInLoop = selectedNodes[i-1];
+      const prevNodeProcessedY = updates.find(u => u.id === prevNodeInLoop.id)?.y || prevNodeInLoop.y;
+
+      currentY = prevNodeProcessedY + (prevNodeInLoop.height || DEFAULT_NODE_HEIGHT) + gap;
       updates.push({ id: selectedNodes[i].id, x: selectedNodes[i].x, y: currentY });
     }
-    applyLayout(updates);
+    if (updates.length > 0) applyLayout(updates);
     toast({ title: "Arrange Action", description: "Nodes distributed vertically." });
-  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData.nodes, multiSelectedNodeIds]);
+  }, [storeIsViewOnlyMode, toast, applyLayout, storeMapData, multiSelectedNodeIds]);
 
   const arrangeActions = React.useMemo<ArrangeAction[]>(() => [
     { id: 'alignLeft', label: 'Align Lefts', icon: AlignLeft, action: handleAlignLefts },
@@ -843,6 +727,31 @@ export default function ConceptMapEditorPage() {
     handleAlignTops, handleAlignMiddlesV, handleAlignBottoms,
     handleDistributeHorizontally, handleDistributeVertically
   ]);
+
+  const handleTriggerAISemanticGroup = useCallback(() => {
+    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+
+    if (storeIsViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "AI Grouping suggestion is disabled.", variant: "default" });
+      return;
+    }
+    if (currentMultiSelectedNodeIds.length < 2) {
+      toast({ title: "Selection Required", description: "Please select at least two nodes to suggest an AI group.", variant: "default" });
+      return;
+    }
+
+    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id));
+    const selectedNodesInfo = selectedNodes.map(n => ({ id: n.id, text: n.text }));
+
+    console.log("Placeholder: AI Semantic Grouping triggered for nodes:", selectedNodesInfo);
+    addDebugLog(`[EditorPage] Placeholder: AI Semantic Grouping triggered for ${selectedNodesInfo.length} nodes: ${selectedNodesInfo.map(n=>n.text).join(', ')}`);
+
+    toast({
+      title: "AI Grouping (Pending)",
+      description: `AI analysis for grouping ${selectedNodesInfo.length} selected nodes is a pending feature. Node info logged.`,
+      duration: 7000,
+    });
+  }, [storeIsViewOnlyMode, toast, addDebugLog, storeMapData, multiSelectedNodeIds]); // storeMapData and multiSelectedNodeIds from outer scope
 
   const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => {
     if(!storeIsViewOnlyMode) deleteStoreNode(nodeId);
@@ -903,6 +812,7 @@ export default function ConceptMapEditorPage() {
           numMultiSelectedNodes={multiSelectedNodeIds.length}
           onAutoLayout={handleAutoLayout} // Pass the new handler
           arrangeActions={arrangeActions} // Pass the new arrange actions
+          onSuggestAISemanticGroup={handleTriggerAISemanticGroup} // Pass the new handler
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
@@ -994,3 +904,5 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
+
+[end of src/app/(app)/concept-maps/editor/[mapId]/page.tsx]
