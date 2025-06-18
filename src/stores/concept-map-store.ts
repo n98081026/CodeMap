@@ -178,6 +178,7 @@ deleteFromStagedMapData: (elementIds: string[]) => void;
 
 // Concept expansion preview actions
 setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void;
+updateConceptExpansionPreviewNodeText: (previewNodeId: string, newText: string) => void;
 
 // Layout action
 applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
@@ -203,7 +204,7 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
-  'setConceptExpansionPreview' | 'applyLayout' |
+  'setConceptExpansionPreview' | 'updateConceptExpansionPreviewNodeText' | 'applyLayout' |
   // Exclude new connection mode actions from Omit as they will be defined
   'startConnectionMode' | 'completeConnectionMode'
 > = {
@@ -674,6 +675,24 @@ export const useConceptMapStore = create<ConceptMapState>()(
           isConnectingMode: false,
           connectionSourceNodeId: null,
         });
+      },
+
+      updateConceptExpansionPreviewNodeText: (previewNodeId, newText) => {
+        const currentPreview = get().conceptExpansionPreview;
+        if (currentPreview && currentPreview.previewNodes) {
+          const updatedPreviewNodes = currentPreview.previewNodes.map(node =>
+            node.id === previewNodeId ? { ...node, text: newText } : node
+          );
+          set({
+            conceptExpansionPreview: {
+              ...currentPreview,
+              previewNodes: updatedPreviewNodes,
+            },
+          });
+          get().addDebugLog(`[STORE updateConceptExpansionPreviewNodeText] Updated text for preview node ${previewNodeId}.`);
+        } else {
+          get().addDebugLog(`[STORE updateConceptExpansionPreviewNodeText] No active concept expansion preview or no preview nodes to update for ${previewNodeId}.`);
+        }
       },
     }),
     {

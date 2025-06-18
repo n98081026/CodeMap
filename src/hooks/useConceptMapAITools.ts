@@ -661,6 +661,105 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     }
   }, [isViewOnlyMode, toast, updateStoreEdge]);
 
+  const handleAddQuickChildNode = useCallback((parentNodeId: string, direction?: 'top' | 'right' | 'bottom' | 'left') => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot add child nodes.", variant: "default" });
+      return;
+    }
+    const parentNode = mapData.nodes.find(n => n.id === parentNodeId);
+    if (!parentNode) {
+      toast({ title: "Error", description: "Parent node not found.", variant: "destructive" });
+      return;
+    }
+
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const childIndex = parentNode.childIds?.length || 0;
+    const effectiveDirection = direction || 'bottom';
+
+    const newPosition = getNodePlacement(
+      currentNodes,
+      'child',
+      parentNode,
+      null, // No specific selected node for this calculation
+      GRID_SIZE_FOR_AI_PLACEMENT,
+      childIndex,
+      1, // Assuming we're placing one new child at a time for this action
+      effectiveDirection
+    );
+
+    const newNodeId = addStoreNode({
+      text: "New Idea",
+      type: 'manual-node',
+      position: newPosition,
+      parentNode: parentNodeId,
+    });
+
+    addStoreEdge({
+      source: parentNodeId,
+      target: newNodeId,
+      label: "relates to",
+    });
+
+    toast({ title: "Child Node Added", description: `New idea added ${effectiveDirection} of "${parentNode.text}".` });
+  }, [isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast /* getNodePlacement is a pure util, not needed in deps */]);
+
+  // getNodeSuggestions function (assuming it's defined within the hook or has access to its members)
+  const getNodeSuggestions = useCallback((currentNode: RFNode<CustomNodeData>): SuggestionAction[] => {
+    const suggestions: SuggestionAction[] = [
+      { id: `expand-${currentNode.id}`, label: "Expand Concept (AI)", icon: Sparkles, action: () => openExpandConceptModal(currentNode.id) },
+      { id: `suggest-relations-${currentNode.id}`, label: "Suggest Relations (AI)", icon: Lightbulb, action: () => openSuggestRelationsModal(currentNode.id) },
+      { id: `rewrite-${currentNode.id}`, label: "Rewrite Content (AI)", icon: MessageSquareQuote, action: () => openRewriteNodeContentModal(currentNode.id) },
+      { id: `ask-${currentNode.id}`, label: "Ask Question (AI)", icon: HelpCircle, action: () => openAskQuestionModal(currentNode.id) },
+    ];
+
+    if (!isViewOnlyMode) {
+      suggestions.push({
+        id: `quick-add-child-bottom-${currentNode.id}`,
+        label: "Add Child Below",
+        icon: PlusSquare,
+        action: () => handleAddQuickChildNode(currentNode.id, 'bottom')
+      });
+      suggestions.push({
+        id: `quick-add-child-right-${currentNode.id}`,
+        label: "Add Child Right",
+        icon: PlusSquare,
+        action: () => handleAddQuickChildNode(currentNode.id, 'right')
+      });
+      suggestions.push({
+        id: `quick-add-child-top-${currentNode.id}`,
+        label: "Add Child Above",
+        icon: PlusSquare,
+        action: () => handleAddQuickChildNode(currentNode.id, 'top')
+      });
+      suggestions.push({
+        id: `quick-add-child-left-${currentNode.id}`,
+        label: "Add Child Left",
+        icon: PlusSquare,
+        action: () => handleAddQuickChildNode(currentNode.id, 'left')
+      });
+    }
+    return suggestions;
+  }, [isViewOnlyMode, openExpandConceptModal, openSuggestRelationsModal, openRewriteNodeContentModal, openAskQuestionModal, handleAddQuickChildNode]);
+
+  const getPaneSuggestions = useCallback((position?: {x: number, y: number}): SuggestionAction[] => {
+    const baseSuggestions: SuggestionAction[] = [
+      { id: 'pane-quick-cluster', label: "Quick Cluster (AI)", icon: Brain, action: openQuickClusterModal },
+      // { id: 'pane-generate-snippet', label: "Generate Snippet (AI)", icon: FileText, action: openGenerateSnippetModal },
+    ];
+     if (!isViewOnlyMode && position) {
+      baseSuggestions.unshift({
+        id: 'pane-add-topic',
+        label: "Add New Topic Here",
+        icon: PlusSquare,
+        action: () => {
+            const newNodeId = addStoreNode({ text: "New Topic", type: 'manual-node', position });
+            useConceptMapStore.getState().setEditingNodeId(newNodeId);
+        }
+      });
+    }
+    return baseSuggestions;
+  }, [isViewOnlyMode, openQuickClusterModal, addStoreNode]);
+
 
   return {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
