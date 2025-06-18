@@ -604,6 +604,16 @@ export default function ConceptMapEditorPage() {
     addDebugLog,
   ]);
 
+  const handleStartConnectionFromNode = useCallback((nodeId: string) => {
+    if (storeIsViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot start connections.", variant: "default" });
+      return;
+    }
+    useConceptMapStore.getState().startConnectionMode(nodeId);
+    addDebugLog(`[EditorPage] Start connection mode initiated from node: ${nodeId}`);
+    toast({ title: "Start Connection", description: "Click on a target node to complete the edge.", duration: 3000 });
+  }, [storeIsViewOnlyMode, toast, addDebugLog]);
+
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
     event.preventDefault();
     setContextMenu({ isOpen: true, x: event.clientX, y: event.clientY, nodeId: node.id });
@@ -697,6 +707,7 @@ export default function ConceptMapEditorPage() {
               onGhostNodeAcceptRequest={acceptSingleExpansionPreview}
               onConceptSuggestionDrop={handleConceptSuggestionDrop} // Pass the new drop handler
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
+              onNodeStartConnectionRequest={handleStartConnectionFromNode} // Pass the new handler
             />
           )}
         </div>

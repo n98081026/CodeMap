@@ -32,6 +32,7 @@ interface FlowCanvasCoreProps {
   onNewEdgeSuggestLabels?: (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => Promise<void>;
   onGhostNodeAcceptRequest?: (ghostNodeId: string) => void;
   onConceptSuggestionDrop?: (conceptText: string, position: { x: number; y: number }) => void; // New prop
+  onNodeStartConnectionRequest?: (nodeId: string) => void; // New prop for starting connection from node
   panActivationKeyCode?: string | null;
 }
 
@@ -51,14 +52,20 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onNewEdgeSuggestLabels,
   onGhostNodeAcceptRequest,
   onConceptSuggestionDrop, // Destructure new prop
+  onNodeStartConnectionRequest, // Destructure new prop
   panActivationKeyCode,
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
-  const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
-  const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
+  const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId, completeConnectionMode: storeCompleteConnectionMode, isConnectingMode, connectionSourceNodeId } = useConceptMapStore(
     useCallback(s => ({
-      stagedMapData: s.stagedMapData,
+      addNode: s.addNode, // Assuming addNodeToStore was meant to be this
+      setSelectedElement: s.setSelectedElement,
+      setEditingNodeId: s.setEditingNodeId,
+      isConnectingMode: s.isConnectingMode,
+      connectionSourceNodeId: s.connectionSourceNodeId,
+      completeConnectionMode: s.completeConnectionMode,
+      stagedMapData: s.stagedMapData, // Keep existing ones
       isStagingActive: s.isStagingActive,
       conceptExpansionPreview: s.conceptExpansionPreview
     }), [])
@@ -92,6 +99,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         width: appNode.width,   // Already ensured by store to have defaults
         height: appNode.height, // Already ensured by store to have defaults
         onTriggerAIExpand: onNodeAIExpandTriggered,
+        onStartConnectionRequest: onNodeStartConnectionRequest, // Pass down the handler
       } as CustomNodeData,
       position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
       draggable: !isViewOnlyMode,
@@ -104,7 +112,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Nodes] Processed ${newRfNodes.length} nodes. Setting React Flow nodes.`);
     setRfNodes(newRfNodes);
 
-  }, [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered, setRfNodes]);
+  }, [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered, onNodeStartConnectionRequest, setRfNodes]);
 
 
   // Effect to synchronize edges from the store to React Flow's state
@@ -257,6 +265,30 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     }
   }, [rfNodes, reactFlowInstance]);
 
+  // Effect for cursor change during connection mode
+  useEffect(() => {
+    if (reactFlowInstance?.containerRef?.current) {
+      if (isConnectingMode) {
+        reactFlowInstance.containerRef.current.style.cursor = 'crosshair';
+      } else {
+        reactFlowInstance.containerRef.current.style.cursor = ''; // Revert to default
+      }
+    }
+  }, [reactFlowInstance, isConnectingMode]);
+
+  // Effect for Escape key to cancel connection mode
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isConnectingMode) {
+        storeCompleteConnectionMode();
+        useConceptMapStore.getState().addDebugLog('[FlowCanvasCore] Connection mode cancelled by Escape key.');
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isConnectingMode, storeCompleteConnectionMode]);
 
   const onNodeDragInternal = useCallback((_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>, allNodes: RFNode<CustomNodeData>[]) => {
     if (isViewOnlyMode || !draggedNode.dragging || !draggedNode.width || !draggedNode.height || !draggedNode.positionAbsolute) {
@@ -526,36 +558,83 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const combinedNodes = useMemo(() => [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes], [rfNodes, rfStagedNodes, rfPreviewNodes]);
   const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
 
+  const handleNodeClickInternal = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
+    if (isViewOnlyMode) return;
+
+    if (isConnectingMode && connectionSourceNodeId) {
+      if (node.id === connectionSourceNodeId) {
+        // Clicked on the source node again, cancel connection mode
+        storeCompleteConnectionMode();
+        useConceptMapStore.getState().addDebugLog('[FlowCanvasCore] Connection mode cancelled by clicking source node again.');
+      } else {
+        // Clicked on a target node, complete the connection
+        (onConnectInStore as unknown as (options: any) => string)({ // Assuming onConnectInStore is correctly typed to return edgeId or similar
+          source: connectionSourceNodeId,
+          target: node.id,
+          label: "connects", // Default label
+        });
+        // Suggest labels for the new edge
+        const newEdgeIdProvisional = `${connectionSourceNodeId}-${node.id}`; // Provisional ID, store should confirm
+        onNewEdgeSuggestLabels?.(newEdgeIdProvisional, connectionSourceNodeId, node.id);
+
+        storeCompleteConnectionMode();
+        useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Connection completed: ${connectionSourceNodeId} -> ${node.id}`);
+      }
+      event.stopPropagation(); // Prevent selection change or other node click logic
+      return;
+    }
+
+    // Existing ghost node click logic
+    if (node.data?.isGhost) {
+      onGhostNodeAcceptRequest?.(node.id);
+      return; // Ghost node click shouldn't trigger selection.
+    }
+
+    // Default node click behavior (handled by onSelectionChange via ReactFlow)
+    // If onSelectionChange is not enough, explicit selection call would be here:
+    // onSelectionChange(node.id, 'node');
+  }, [
+    isViewOnlyMode,
+    isConnectingMode,
+    connectionSourceNodeId,
+    storeCompleteConnectionMode,
+    onConnectInStore,
+    onGhostNodeAcceptRequest,
+    onNewEdgeSuggestLabels,
+    // onSelectionChange // if direct call needed
+  ]);
+
+  const handlePaneClickInternal = useCallback((event: React.MouseEvent) => {
+    if (isConnectingMode) {
+      storeCompleteConnectionMode();
+      useConceptMapStore.getState().addDebugLog('[FlowCanvasCore] Connection mode cancelled by pane click.');
+    } else {
+      // Existing pane click logic (usually to clear selection)
+      onSelectionChange(null, null);
+    }
+  }, [isConnectingMode, storeCompleteConnectionMode, onSelectionChange]);
+
+
   return (
     <InteractiveCanvas
       nodes={combinedNodes} // Pass combined nodes
       edges={combinedEdges} // Pass combined edges
       onNodesChange={handleRfNodesChange} // Main nodes changes
       onEdgesChange={handleRfEdgesChange} // Main edges changes
-      // Note: onPreviewNodesChange and onStagedNodesChange are not directly used by InteractiveCanvas events here.
-      // Interactions with preview/staged items (select, delete from stage) are handled via other mechanisms
-      // (e.g., specific UI buttons calling store actions, or selection passed to page for delete key handling).
       onNodesDelete={handleRfNodesDeleted}
       onEdgesDelete={handleRfEdgesDeleted}
       onSelectionChange={handleRfSelectionChange}
-      onConnect={onConnectInStore} // Changed from onConnectInStore to onConnect, as InteractiveCanvas expects onConnect
+      onConnect={onConnectInStore}
       isViewOnlyMode={isViewOnlyMode}
       onNodeContextMenu={(event, node) => {
         if (isViewOnlyMode) return;
-        event.preventDefault(); // Ensure default is prevented here too
+        event.preventDefault();
         onNodeContextMenuRequest?.(event, node);
       }}
       onNodeDrag={onNodeDragInternal}
       onNodeDragStop={onNodeDragStopInternal}
-      onNodeClick={(event, node) => { // Add onNodeClick handler
-        if (isViewOnlyMode) return;
-        if (node.data?.isGhost) {
-          onGhostNodeAcceptRequest?.(node.id);
-        }
-        // Potentially call other general onNodeClick logic if needed for non-ghost nodes,
-        // or let selection be handled by onSelectionChange.
-        // For now, only ghost nodes have a specific click action here.
-      }}
+      onNodeClick={handleNodeClickInternal} // Use the new comprehensive handler
+      onPaneClick={handlePaneClickInternal} // Use the new pane click handler
       onPaneDoubleClick={handlePaneDoubleClickInternal}
       onPaneContextMenu={handlePaneContextMenuInternal}
       activeSnapLines={activeSnapLinesLocal}

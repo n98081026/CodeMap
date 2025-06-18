@@ -124,6 +124,10 @@ interface ConceptMapState {
 // Concept expansion preview state
 conceptExpansionPreview: ConceptExpansionPreviewState | null;
 
+  // Connection mode state
+  isConnectingMode: boolean;
+  connectionSourceNodeId: string | null;
+
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
   setCurrentMapOwnerId: (ownerId: string | null) => void;
@@ -177,8 +181,13 @@ setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => vo
 
 // Layout action
 applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
+
+  // Connection mode actions
+  startConnectionMode: (nodeId: string) => void;
+  completeConnectionMode: () => void;
 }
 
+// TrackedState explicitly omits isConnectingMode and connectionSourceNodeId as they are transient UI states.
 type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview'>;
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
@@ -194,7 +203,9 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
-  'setConceptExpansionPreview' | 'applyLayout' // Added applyLayout
+  'setConceptExpansionPreview' | 'applyLayout' |
+  // Exclude new connection mode actions from Omit as they will be defined
+  'startConnectionMode' | 'completeConnectionMode'
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -220,6 +231,8 @@ const initialStateBase: Omit<ConceptMapState,
   stagedMapData: null,
   isStagingActive: false,
   conceptExpansionPreview: null, // Added concept expansion preview state
+  isConnectingMode: false,
+  connectionSourceNodeId: null,
 };
 
 // Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
@@ -643,11 +656,39 @@ export const useConceptMapStore = create<ConceptMapState>()(
           }
         });
       },
+
+      // Connection Mode Actions
+      startConnectionMode: (nodeId) => {
+        get().addDebugLog(`[STORE startConnectionMode] Starting connection from node: ${nodeId}`);
+        set({
+          isConnectingMode: true,
+          connectionSourceNodeId: nodeId,
+          selectedElementId: null, // Clear selection when starting connection
+          selectedElementType: null,
+          multiSelectedNodeIds: [],
+        });
+      },
+      completeConnectionMode: () => {
+        get().addDebugLog(`[STORE completeConnectionMode] Ending connection mode. Was from: ${get().connectionSourceNodeId}`);
+        set({
+          isConnectingMode: false,
+          connectionSourceNodeId: null,
+        });
+      },
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview };
+        // Explicitly exclude isConnectingMode and connectionSourceNodeId from temporal state
+        const {
+          mapData, mapName, isPublic, sharedWithClassroomId,
+          selectedElementId, selectedElementType, multiSelectedNodeIds,
+          editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview
+        } = state;
+        return {
+          mapData, mapName, isPublic, sharedWithClassroomId,
+          selectedElementId, selectedElementType, multiSelectedNodeIds,
+          editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview
+        };
       },
       limit: 50,
     }

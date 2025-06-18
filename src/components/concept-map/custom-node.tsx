@@ -27,6 +27,7 @@ export interface CustomNodeData {
   onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void; // For hover buttons
   isStaged?: boolean;
   isGhost?: boolean; // Added for ghost node styling
+  onStartConnectionRequest?: (nodeId: string) => void; // New prop for initiating connection mode
   // onTriggerAIExpand?: (nodeId: string) => void; // Retained for potential future direct AI button on node
 }
 
@@ -106,14 +107,11 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   // Placeholder handlers for AI mini toolbar actions
   // Removed handleQuickExpand and handleRewriteConcise as they are now passed directly to the toolbar
 
-  // getNodeRect might not be needed if toolbar is positioned relatively within the node.
-  // Keeping it for now in case future versions of toolbar need screen coords.
-  // const getNodeRect = () => {
-  //   if (nodeRef.current) {
-  //     return nodeRef.current.getBoundingClientRect();
-  //   }
-  //   return null;
-  // };
+  const handleToolbarStartConnection = () => {
+    if (data.onStartConnectionRequest) {
+      data.onStartConnectionRequest(id);
+    }
+  };
 
   useEffect(() => {
     if (selected && nodeRef.current) {
@@ -170,6 +168,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
             onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
             onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}
             onAISuggestRelations={() => aiTools.handleMenuSuggestRelations(id)}
+            onStartConnection={(!nodeIsViewOnly && data.onStartConnectionRequest) ? handleToolbarStartConnection : undefined}
             onDeleteNode={() => deleteNode(id)}
           />
         </div>

@@ -9,12 +9,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Added Popover imports
-import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb, Palette } from 'lucide-react'; // Added Palette
+import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb, Palette, Spline } from 'lucide-react'; // Added Palette and Spline
 
 interface SelectedNodeToolbarProps {
   nodeId: string;
   onEditLabel: () => void;
   onChangeColor: (color: string) => void; // New prop
+  onStartConnection?: () => void; // New prop for starting a connection
   onAIExpand: () => void;
   onAIRewrite: () => void;
   onAISuggestRelations: () => void;
@@ -28,6 +29,7 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   nodeId,
   onEditLabel,
   onChangeColor, // Destructure new prop
+  onStartConnection, // Destructure new prop
   onAIExpand,
   onAIRewrite,
   onAISuggestRelations,
@@ -73,6 +75,10 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
           ))}
         </PopoverContent>
       </Popover>
+
+      <Button variant="ghost" size="icon" onClick={onStartConnection} title="Start Connection" disabled={!onStartConnection}>
+        <Spline className="w-4 h-4" />
+      </Button>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
