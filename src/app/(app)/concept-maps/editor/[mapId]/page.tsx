@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import type { Node as RFNode, Edge as RFEdge } from 'reactflow'; // Added RFEdge
-import { ReactFlowProvider, useReactFlow } from 'reactflow'; // Added useReactFlow
+import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
+import { ReactFlowProvider, useReactFlow } from 'reactflow';
 import dynamic from 'next/dynamic';
 import {
   DagreNodeInput,
@@ -47,6 +47,18 @@ import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
 import { Lightbulb, Sparkles, Brain, HelpCircle, CheckCircle, XCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { suggestSemanticParentNodeFlow, type SuggestSemanticParentOutputSchema, type SuggestSemanticParentInputSchema } from '@/ai/flows';
+import * as z from 'zod';
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -54,7 +66,6 @@ const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canva
   loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
 });
 
-// Mock Dagre Layout Function
 const mockDagreLayout = (nodes: DagreNodeInput[], _edges: DagreEdgeInput[]): LayoutNodeUpdate[] => {
   let currentX = 50;
   const nodeY = 100;
@@ -98,7 +109,7 @@ export default function ConceptMapEditorPage() {
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
     addDebugLog,
-    applyLayout, // Destructure applyLayout directly from the store hook
+    applyLayout,
   } = useConceptMapStore(
     useCallback(s => ({
       mapId: s.mapId, mapName: s.mapName, currentMapOwnerId: s.currentMapOwnerId, currentMapCreatedAt: s.currentMapCreatedAt,
@@ -116,6 +127,10 @@ export default function ConceptMapEditorPage() {
       applyLayout: s.applyLayout,
     }), [])
   );
+
+  const [aiSemanticGroupSuggestion, setAiSemanticGroupSuggestion] = useState<z.infer<typeof SuggestSemanticParentOutputSchema> | null>(null);
+  const [isSuggestGroupDialogOpen, setIsSuggestGroupDialogOpen] = useState(false);
+  const [isLoadingSemanticGroup, setIsLoadingSemanticGroup] = useState(false);
 
   useEffect(() => {
     addDebugLog(`[EditorPage V11] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${useConceptMapStore.getState().initialLoadComplete}`);
@@ -221,7 +236,7 @@ export default function ConceptMapEditorPage() {
     position: { x: number; y: number } | null;
     suggestions: SuggestionAction[];
     contextElementId?: string | null;
-    contextType?: 'pane' | 'node' | 'edge' | 'conceptExpansionControls' | null; // Added edge & conceptExpansionControls
+    contextType?: 'pane' | 'node' | 'edge' | 'conceptExpansionControls' | null;
     title?: string;
   }>({ isVisible: false, position: null, suggestions: [], contextElementId: null, contextType: null });
 
@@ -262,12 +277,8 @@ export default function ConceptMapEditorPage() {
           }
         }));
         setFloaterState({
-          isVisible: true,
-          position: screenPos,
-          suggestions: edgeFloaterSuggestions,
-          contextType: 'edge',
-          contextElementId: edgeLabelSuggestions.edgeId,
-          title: "Suggested Edge Labels"
+          isVisible: true, position: screenPos, suggestions: edgeFloaterSuggestions,
+          contextType: 'edge', contextElementId: edgeLabelSuggestions.edgeId, title: "Suggested Edge Labels"
         });
       }
     } else if (floaterState.isVisible && floaterState.contextType === 'edge' && !edgeLabelSuggestions) {
@@ -316,12 +327,8 @@ export default function ConceptMapEditorPage() {
     const rawSuggestions = getNodeSuggestions(node);
     const suggestions = rawSuggestions.map(s => ({ ...s, action: () => { s.action(); Floater_handleDismiss(); }}));
     setFloaterState({
-      isVisible: true,
-      position: { x: event.clientX, y: event.clientY },
-      suggestions: suggestions,
-      contextType: 'node',
-      contextElementId: node.id,
-      title: floaterTitle
+      isVisible: true, position: { x: event.clientX, y: event.clientY }, suggestions: suggestions,
+      contextType: 'node', contextElementId: node.id, title: floaterTitle
     });
   }, [
     storeIsViewOnlyMode, contextMenu?.isOpen, closeContextMenu, Floater_handleDismiss,
@@ -538,7 +545,6 @@ export default function ConceptMapEditorPage() {
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
-  // Alignment & Distribution Handlers
   const handleAlignLefts = useCallback(() => {
     const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
     if (storeIsViewOnlyMode || currentMultiSelectedNodeIds.length < 2) {
@@ -652,7 +658,7 @@ export default function ConceptMapEditorPage() {
     const totalSpan = (lastNode.x + (lastNode.width || DEFAULT_NODE_WIDTH)) - firstNode.x;
     const sumOfNodeWidths = selectedNodes.reduce((sum, n) => sum + (n.width || DEFAULT_NODE_WIDTH), 0);
 
-    if (totalSpan <= sumOfNodeWidths && selectedNodes.length > 1) {
+    if (totalSpan <= sumOfNodeWidths) {
         toast({ title: "Arrange Action", description: "Not enough space to distribute horizontally. Try moving nodes further apart.", variant: "default" });
         return;
     }
@@ -688,7 +694,7 @@ export default function ConceptMapEditorPage() {
     const totalSpan = (lastNode.y + (lastNode.height || DEFAULT_NODE_HEIGHT)) - firstNode.y;
     const sumOfNodeHeights = selectedNodes.reduce((sum, n) => sum + (n.height || DEFAULT_NODE_HEIGHT), 0);
 
-    if (totalSpan <= sumOfNodeHeights && selectedNodes.length > 1) {
+    if (totalSpan <= sumOfNodeHeights) {
         toast({ title: "Arrange Action", description: "Not enough space to distribute vertically. Try moving nodes further apart.", variant: "default" });
         return;
     }
@@ -728,10 +734,17 @@ export default function ConceptMapEditorPage() {
     handleDistributeHorizontally, handleDistributeVertically
   ]);
 
-  const handleTriggerAISemanticGroup = useCallback(() => {
-    const { multiSelectedNodeIds: currentMultiSelectedNodeIds, mapData: currentMapData } = useConceptMapStore.getState();
+  const handleTriggerAISemanticGroup = useCallback(async () => {
+    if (isLoadingSemanticGroup) {
+      toast({ title: "AI Busy", description: "An AI grouping suggestion is already in progress.", variant: "default" });
+      return;
+    }
+    // Retrieve current isViewOnlyMode and multiSelectedNodeIds from store for the checks
+    const currentStoreState = useConceptMapStore.getState();
+    const currentIsViewOnlyMode = currentStoreState.isViewOnlyMode;
+    const currentMultiSelectedNodeIds = currentStoreState.multiSelectedNodeIds;
 
-    if (storeIsViewOnlyMode) {
+    if (currentIsViewOnlyMode) {
       toast({ title: "View Only Mode", description: "AI Grouping suggestion is disabled.", variant: "default" });
       return;
     }
@@ -740,18 +753,104 @@ export default function ConceptMapEditorPage() {
       return;
     }
 
-    const selectedNodes = currentMapData.nodes.filter(n => currentMultiSelectedNodeIds.includes(n.id));
-    const selectedNodesInfo = selectedNodes.map(n => ({ id: n.id, text: n.text }));
+    setIsLoadingSemanticGroup(true);
+    const loadingToastId = toast({ title: "AI Suggesting Group...", description: "Analyzing selected nodes...", duration: Infinity }).id;
+    addDebugLog(`[EditorPage] AI Semantic Grouping triggered for ${currentMultiSelectedNodeIds.length} nodes.`);
 
-    console.log("Placeholder: AI Semantic Grouping triggered for nodes:", selectedNodesInfo);
-    addDebugLog(`[EditorPage] Placeholder: AI Semantic Grouping triggered for ${selectedNodesInfo.length} nodes: ${selectedNodesInfo.map(n=>n.text).join(', ')}`);
+    const allNodes = currentStoreState.mapData.nodes;
+    const selectedNodesContent = currentMultiSelectedNodeIds
+      .map(id => allNodes.find(node => node.id === id))
+      .filter(node => !!node) // Filter out any undefined nodes (shouldn't happen if IDs are valid)
+      .map(node => ({ id: node!.id, text: node!.text, details: node!.details }));
 
-    toast({
-      title: "AI Grouping (Pending)",
-      description: `AI analysis for grouping ${selectedNodesInfo.length} selected nodes is a pending feature. Node info logged.`,
-      duration: 7000,
+    try {
+      const result = await suggestSemanticParentNodeFlow({ selectedNodesContent });
+      setAiSemanticGroupSuggestion(result);
+      setIsSuggestGroupDialogOpen(true); // This will open the dialog (dialog UI to be built in next step)
+      toast.dismiss(loadingToastId);
+      toast({ title: "AI Suggestion Ready", description: "Review the proposed parent group." });
+      addDebugLog(`[EditorPage] AI Semantic Grouping suggestion received: ${JSON.stringify(result)}`);
+    } catch (error) {
+      console.error("Error suggesting semantic group:", error);
+      addDebugLog(`[EditorPage] Error suggesting semantic group: ${(error as Error).message}`);
+      toast.dismiss(loadingToastId);
+      toast({ title: "AI Grouping Error", description: (error as Error).message || "Could not get group suggestion.", variant: "destructive" });
+      setAiSemanticGroupSuggestion(null);
+    } finally {
+      setIsLoadingSemanticGroup(false);
+    }
+  }, [toast, addDebugLog]);
+
+  const handleConfirmAISemanticGroup = useCallback(async () => {
+    if (!aiSemanticGroupSuggestion || multiSelectedNodeIds.length < 2) {
+      addDebugLog('[EditorPage] AI Semantic Group confirmation skipped: No suggestion or not enough nodes.');
+      return;
+    }
+
+    const selectedNodesData = storeMapData.nodes.filter(node => multiSelectedNodeIds.includes(node.id));
+    if (selectedNodesData.length === 0) {
+      toast({ title: "Error", description: "Selected nodes not found.", variant: "destructive" });
+      addDebugLog('[EditorPage] AI Semantic Group confirmation error: Selected nodes data not found.');
+      return;
+    }
+
+    let totalX = 0;
+    let totalY = 0;
+    selectedNodesData.forEach(node => {
+      totalX += (node.x ?? 0) + (node.width || DEFAULT_NODE_WIDTH) / 2;
+      totalY += (node.y ?? 0) + (node.height || DEFAULT_NODE_HEIGHT) / 2;
     });
-  }, [storeIsViewOnlyMode, toast, addDebugLog, storeMapData, multiSelectedNodeIds]); // storeMapData and multiSelectedNodeIds from outer scope
+    const averageCenterX = totalX / selectedNodesData.length;
+    const averageCenterY = totalY / selectedNodesData.length;
+
+    const newParentX = averageCenterX - DEFAULT_NODE_WIDTH / 2;
+    const newParentY = averageCenterY - DEFAULT_NODE_HEIGHT / 2;
+
+    addDebugLog(`[EditorPage] Confirming AI Semantic Group. Parent: "${aiSemanticGroupSuggestion.parentNodeText}". Children: ${multiSelectedNodeIds.join(', ')}`);
+
+    try {
+      // 1. Add the new parent node
+      const newParentNodeId = addNodeFromHook({
+        text: aiSemanticGroupSuggestion.parentNodeText,
+        position: { x: newParentX, y: newParentY },
+        type: 'ai-group-parent', // Consider making this a distinct type
+        // childIds will be set in a subsequent updateNode call for clarity and to ensure parent exists
+      });
+      addDebugLog(`[EditorPage] New parent node added with ID: ${newParentNodeId}`);
+
+      // 2. Update children to link to the new parent
+      for (const childId of multiSelectedNodeIds) {
+        updateStoreNode(childId, { parentNode: newParentNodeId });
+        addDebugLog(`[EditorPage] Updated child node ${childId} to link to parent ${newParentNodeId}`);
+      }
+
+      // 3. Update the parent node with its new children
+      updateStoreNode(newParentNodeId, { childIds: multiSelectedNodeIds });
+      addDebugLog(`[EditorPage] Updated parent node ${newParentNodeId} with childIds: ${multiSelectedNodeIds.join(', ')}`);
+
+      toast({ title: "AI Group Created", description: `Nodes grouped under '${aiSemanticGroupSuggestion.parentNodeText}'.` });
+      setIsSuggestGroupDialogOpen(false);
+      setAiSemanticGroupSuggestion(null);
+      // Optionally, clear multi-selected nodes or select the new parent node
+      // setStoreMultiSelectedNodeIds([]);
+      // setStoreSelectedElement(newParentNodeId, 'node');
+
+    } catch (error) {
+      console.error("Error confirming AI semantic group:", error);
+      addDebugLog(`[EditorPage] Error confirming AI semantic group: ${(error as Error).message}`);
+      toast({ title: "Grouping Error", description: "Could not create the group. " + (error as Error).message, variant: "destructive" });
+    }
+  }, [
+    aiSemanticGroupSuggestion,
+    multiSelectedNodeIds,
+    storeMapData.nodes,
+    addNodeFromHook,
+    updateStoreNode,
+    toast,
+    addDebugLog,
+    setAiSemanticGroupSuggestion, // ensure state setters are included if they are used
+    setIsSuggestGroupDialogOpen
+  ]);
 
   const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => {
     if(!storeIsViewOnlyMode) deleteStoreNode(nodeId);
@@ -799,7 +898,7 @@ export default function ConceptMapEditorPage() {
           onExpandConcept={handleExpandConcept}
           onQuickCluster={handleQuickCluster}
           onGenerateSnippetFromText={handleGenerateSnippetFromText}
-          onSummarizeSelectedNodes={handleSummarizeSelectedNodes} {/* Assumed stable from hook */}
+          onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
           isViewOnlyMode={storeIsViewOnlyMode}
           onAddNodeToData={handleAddNodeToData}
           onAddEdgeToData={handleAddEdgeToData}
@@ -810,9 +909,9 @@ export default function ConceptMapEditorPage() {
           onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
-          onAutoLayout={handleAutoLayout} // Pass the new handler
-          arrangeActions={arrangeActions} // Pass the new arrange actions
-          onSuggestAISemanticGroup={handleTriggerAISemanticGroup} // Pass the new handler
+          onAutoLayout={handleAutoLayout}
+          arrangeActions={arrangeActions}
+          onSuggestAISemanticGroup={handleTriggerAISemanticGroup}
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
@@ -839,9 +938,9 @@ export default function ConceptMapEditorPage() {
               onStagedElementsSelectionChange={setSelectedStagedElementIds}
               onNewEdgeSuggestLabels={fetchAndSetEdgeLabelSuggestions}
               onGhostNodeAcceptRequest={acceptSingleExpansionPreview}
-              onConceptSuggestionDrop={handleConceptSuggestionDrop} // Pass the new drop handler
+              onConceptSuggestionDrop={handleConceptSuggestionDrop}
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
-              onNodeStartConnectionRequest={handleStartConnectionFromNode} // Pass the new handler
+              onNodeStartConnectionRequest={handleStartConnectionFromNode}
             />
           )}
         </div>
@@ -856,7 +955,7 @@ export default function ConceptMapEditorPage() {
           position={floaterState.position || { x: 0, y: 0 }}
           suggestions={floaterState.suggestions}
           onDismiss={Floater_handleDismiss}
-          title={floaterState.contextType === 'pane' ? "Pane Actions" : floaterState.contextType === 'node' ? "Node Actions" : "Quick Actions"}
+          title={floaterState.title || (floaterState.contextType === 'pane' ? "Pane Actions" : floaterState.contextType === 'node' ? "Node Actions" : "Quick Actions")}
         />
         {contextMenu?.isOpen && contextMenu.nodeId && (
           <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu}
@@ -900,9 +999,35 @@ export default function ConceptMapEditorPage() {
         {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
         {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
         {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
+
+        {aiSemanticGroupSuggestion && (
+          <AlertDialog open={isSuggestGroupDialogOpen} onOpenChange={(open) => {
+            setIsSuggestGroupDialogOpen(open);
+            if (!open) setAiSemanticGroupSuggestion(null); // Clear suggestion if dialog is closed
+          }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>AI Grouping Suggestion</AlertDialogTitle>
+                <AlertDialogDescription>
+                  AI suggests grouping the selected {multiSelectedNodeIds.length} nodes under a new parent node:
+                  <strong className="block mt-2 mb-1">{aiSemanticGroupSuggestion.parentNodeText}</strong>
+                  {aiSemanticGroupSuggestion.groupingReason && (
+                    <span className="text-xs text-muted-foreground">Reason: {aiSemanticGroupSuggestion.groupingReason}</span>
+                  )}
+                  <p className="mt-3 text-sm">If you confirm, the selected nodes will be structurally linked to this new parent.</p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => {
+                  setAiSemanticGroupSuggestion(null);
+                  // setIsSuggestGroupDialogOpen(false); // onOpenChange handles this
+                }}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmAISemanticGroup}>Confirm & Group</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </ReactFlowProvider>
     </div>
   );
 }
-
-[end of src/app/(app)/concept-maps/editor/[mapId]/page.tsx]

@@ -10,6 +10,7 @@ export * from './suggest-edge-label'; // Added new flow
 export * from './suggest-intermediate-node';
 export * from './suggest-quick-child-texts';
 export * from './suggest-relations';
+export * from './suggest-semantic-parent';
 export * from './summarize-nodes-flow';
 
 // IMPORTANT: rewrite-node-content-logic.ts (formerly rewrite-node-content-flow.ts) and its exports
