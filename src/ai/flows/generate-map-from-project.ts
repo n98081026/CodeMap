@@ -41,65 +41,90 @@ const prompt = ai.definePrompt({
   tools: [projectStructureAnalyzerTool], // Make the tool available
   prompt: `You are an expert software architect and system analyst specializing in creating insightful, Whimsical-style concept maps from analyzed project structures.
 
-Your primary task is to generate a concept map that clearly represents a software project's key architectural components, core functionalities, data entities, and their primary interrelationships.
+Your primary task is to generate a concept map that clearly represents a software project's key architectural components, core functionalities, data entities, and their primary interrelationships, adhering to the goals provided.
 
 To obtain the necessary details about the project, you MUST use the 'projectStructureAnalyzerTool'.
 Provide the tool with the 'projectStoragePath': {{{projectStoragePath}}}.
 {{#if userGoals}}
-Also, provide the 'userHint': {{{userGoals}}} to the tool to help focus its analysis.
+Also, provide the 'userHint': {{{userGoals}}} to the tool to help focus its analysis. The tool may flag certain elements as 'hintRelevant' in its output if the hint influences its findings.
 {{/if}}
 
-Once you receive the structured JSON output from 'projectStructureAnalyzerTool', use that information as the basis for your concept map.
-Interpret the "projectName", "inferredLanguagesFrameworks", "projectSummary", "dependencies", "directoryStructureSummary", "keyFiles", and "potentialArchitecturalComponents" fields from the tool's output.
+Once you receive the structured JSON output from 'projectStructureAnalyzerTool' (referred to as 'analysis_output' hereafter), use that information as the basis for your concept map.
+Interpret all fields from 'analysis_output', including "projectName", "projectSummary", "potentialArchitecturalComponents", "keyFiles", "dependencies", and "inferredLanguagesFrameworks".
 
-Based on the analysis from the tool, generate a concept map with the following characteristics:
+**Concept Map Generation Rules:**
 
-1.  **Nodes**: Identify and represent the following conceptual elements. Prioritize items from 'potentialArchitecturalComponents' and 'keyFiles'.
-    *   **Key Features / User Stories**: High-level functionalities (e.g., "User Registration", "Map Creation"). Use type: 'key_feature'.
-    *   **Core Architectural Components / Services**: Major logical blocks (e.g., "Authentication Service", "Data Engine"). Use type: 'service_component'.
-    *   **Primary UI Views / Screens**: Significant UI elements (e.g., "Student Dashboard", "Map Editor"). Use type: 'ui_view'.
-    *   **Data Models / Entities**: Important data structures (e.g., "User Profile", "Classroom Schema"). Use type: 'data_model'.
-    *   **Key Modules / Libraries**: Distinct code modules or libraries (e.g., "API Client", "Validation Utils"). Use type: 'code_module'.
-    *   **External Dependencies / APIs**: External services/APIs identified (e.g., "Payment API", "Cloud Storage"). Use type: 'external_dependency'.
-    *   **User Roles**: Distinct user types if inferable (e.g., "Student", "Teacher"). Use type: 'user_role'.
-    *   **Core Processes / Flows**: Important operational flows (e.g., "Submission Pipeline", "Map Generation"). Use type: 'core_process'.
-    *   Focus on abstraction. Avoid overly granular nodes unless they represent a crucial concept.
+**1. Node Generation (Goal: Enhance Clarity and Relevance):**
+    *   **Primary Nodes from Architectural Components:**
+        *   Each item in \`analysis_output.potentialArchitecturalComponents\` should become a primary node.
+        *   The node \`type\` should be derived from the component's \`type\` (e.g., 'service' becomes 'service_component', 'module' becomes 'code_module', 'ui_area' becomes 'ui_view', 'data_store_interface' becomes 'data_interface', 'external_api' becomes 'external_dependency'). Use 'unknown_component' as a fallback.
+        *   The node \`text\` should be the component's \`name\`.
+        *   The node \`details\` should include the component's \`type\`, its purpose (inferred or from analysis), and a list of its \`relatedFiles\`.
+    *   **Key Feature Nodes:**
+        *   From \`analysis_output.projectSummary\` and the names/descriptions of \`potentialArchitecturalComponents\`, infer 3-7 high-level Key Features or User Stories that describe the project's main functionalities.
+        *   Create a node for each inferred Key Feature. These nodes must have \`type: 'key_feature'\`.
+        *   The \`text\` should be a concise description of the feature (e.g., "User Authentication Management", "Product Discovery and Browsing", "Order Placement and Tracking").
+        *   The \`details\` should briefly explain the feature.
+    *   **Nodes from Key Files (Secondary):**
+        *   An item from \`analysis_output.keyFiles\` should become a node ONLY IF it represents a significant, distinct functionality *not already covered* by a \`potentialArchitecturalComponents\` node OR if it's a critical configuration/manifest file essential for understanding the project structure.
+        *   If a \`keyFile\` becomes a node:
+            *   Its \`type\` should be derived from the \`keyFile.type\` (e.g., 'configuration' becomes 'config_file', 'model' becomes 'data_model', 'entry_point' becomes 'entry_point_file').
+            *   Its \`text\` should be its \`filePath\` or a descriptive name.
+            *   Its \`details\` should include \`keyFile.briefDescription\` and \`keyFile.extractedSymbols\`.
+        *   Otherwise, relevant information from \`keyFiles\` (like \`briefDescription\` or \`extractedSymbols\`) should be incorporated into the \`details\` of the primary architectural component nodes they relate to (based on \`relatedFiles\` lists).
+    *   **User Goal Emphasis:**
+        *   If the \`analysis_output\` contains elements specifically flagged as relevant to the \`userGoals\` (e.g., a property like \`isHintRelevant: true\` on a component or file), ensure these are represented as nodes.
+        *   For such nodes, add a property \`"highlight": true\` in their JSON object.
 
-2.  **Node Properties**: Each node MUST have:
-    *   "id": A unique string identifier (e.g., "feat_user_login", "service_auth").
-    *   "text": A concise, descriptive display label.
-    *   "type": One of the suggested types above. Use "unknown_component" or "code_module" as fallbacks if a more specific type isn't clear.
-    *   "details" (optional): Brief explanation of purpose/responsibilities, possibly derived from 'briefDescription' in 'keyFiles' or inferred.
+**2. Node Properties (Mandatory for all nodes):**
+    *   \`"id"\`: A unique, concise string identifier (e.g., "feat_user_auth", "comp_order_service", "file_package_json"). Use prefixes like \`feat_\`, \`comp_\`, \`file_\`, \`data_\`, \`ext_\` for different types.
+    *   \`"text"\`: A concise, descriptive display label.
+    *   \`"type"\`: The specific type as defined above (e.g., 'key_feature', 'service_component', 'data_model', 'config_file', 'external_dependency', 'data_interface').
+    *   \`"details"\` (optional but highly recommended): Brief explanation of purpose/responsibilities. For components, list key related files.
+    *   \`"highlight"\` (optional): Set to \`true\` if the node is directly relevant to \`userGoals\` as indicated by the analysis tool.
 
-3.  **Relationships (Edges)**: Define meaningful, action-oriented relationships based on the tool's output.
-    *   Infer relationships from dependencies, file structures (e.g., colocation in directories like 'services' might imply interaction), and symbol names (e.g., 'OrderController' using 'OrderService').
-    *   Use descriptive labels like: 'triggers', 'uses_data_from', 'displays_info_for', 'manages_access_to', 'interacts_with_api', 'imports_module', 'depends_on_framework'.
-    *   Focus on primary relationships highlighting architecture, data flow, and user interaction.
-    *   Each edge MUST have: "id" (unique), "source" (node id), "target" (node id), and "label".
+**3. Relationship (Edge) Generation (Goal: Improve Accuracy and Descriptiveness):**
+    *   Define meaningful, action-oriented relationships based on \`analysis_output\`.
+    *   **Infer relationships from:**
+        *   \`relatedFiles\` in \`potentialArchitecturalComponents\` (e.g., if Component A includes a file from Component B's module, they might be related).
+        *   Explicit \`dependencies\` (e.g., a service depending on a library).
+        *   Keywords in \`briefDescription\` or \`extractedSymbols\` from \`keyFiles\` or component descriptions (e.g., "Component X calls API Y", "Service Z writes to DatabaseTableA").
+        *   Common architectural patterns (e.g., a 'Controller' component likely \`sends_requests_to\` a 'Service' component; a 'Service' component \`uses_data_model\` a 'Data Model' node).
+        *   Key Feature nodes should be connected to the primary components that implement them, using labels like \`is_implemented_by\` or \`relies_on_component\`.
+    *   **Edge Labels:**
+        *   MUST be descriptive and action-oriented. Examples: \`authenticates_user_for\`, \`retrieves_data_from\`, \`sends_commands_to\`, \`depends_on_library\`, \`manages_entity\`, \`publishes_event_to\`, \`subscribes_to_event_from\`, \`includes_file_from\`.
+        *   AVOID generic labels like "connects", "related to", or "uses".
+    *   **Edge Structure:** Each edge MUST have:
+        *   \`"id"\`: A unique string identifier (e.g., "edge_auth_user_retrieval").
+        *   \`"source"\`: The \`id\` of the source node.
+        *   \`"target"\`: The \`id\` of the target node.
+        *   \`"label"\`: The descriptive label.
 
-4.  **Clarity, Conciseness, and Structure**:
-    *   Prioritize 10-20 key nodes for a good overview unless the project is very large and the tool provides rich details.
-    *   The map should provide a clear, high-level understanding.
-    *   If 'userGoals' were provided, try to ensure components and relationships relevant to those goals are represented.
+**4. Clarity, Conciseness, and Structure (Goal: Valid and Manageable Output):**
+    *   Aim for a manageable number of nodes (e.g., 15-30 for a medium project) to provide a clear overview. Prioritize broader components and key features over excessive granularity unless a file/detail is critically important.
+    *   The map should provide a clear, high-level understanding of the project's architecture and purpose.
 
-5.  **Output Format**:
+**5. Output Format (Mandatory for Robustness):**
     *   You MUST output the concept map data as a single, well-formed JSON string.
-    *   The JSON object must have two top-level keys: "nodes" (array of node objects) and "edges" (array of edge objects).
-    *   Ensure all node "id" values are unique strings. Edges use these IDs.
-    *   Pay close attention to correct JSON syntax. If the 'parsingErrors' field from the tool output is non-empty, you can optionally include a note about potential incompleteness in the map details or a general node.
+    *   The JSON object must have two top-level keys: \`"nodes"\` (an array of node objects) and \`"edges"\` (an array of edge objects).
+    *   Ensure all node \`id\` values are unique. Edges must use these valid \`id\`s for \`source\` and \`target\`.
+    *   Pay meticulous attention to correct JSON syntax (quotes, commas, brackets).
+    *   If \`analysis_output.parsingErrors\` is non-empty, you may optionally include a general node of type \`info_node\` with \`text: "Project Analysis Note"\` and details summarizing the parsing errors, but prioritize generating the map from the valid parts of the analysis.
 
-Example JSON Output Structure:
+**Example JSON Snippet (Illustrative):**
 {
   "nodes": [
-    { "id": "comp_auth_service", "text": "Authentication Service", "type": "service_component", "details": "Manages user credentials and sessions. Related files: [src/services/authService.ts, src/pages/login.tsx]" },
-    { "id": "mod_cart_module", "text": "Shopping Cart Module", "type": "code_module", "details": "Handles shopping cart logic. Related files: [src/components/ShoppingCart.tsx, src/store/cartStore.ts]" }
+    { "id": "feat_user_onboarding", "text": "User Onboarding Feature", "type": "key_feature", "details": "Handles new user registration, email verification, and profile setup." },
+    { "id": "comp_auth_service", "text": "Authentication Service", "type": "service_component", "details": "Manages user credentials, sessions, and JWT generation. Related files: [src/services/authService.ts, src/controllers/authController.ts]", "highlight": true },
+    { "id": "data_user_profile", "text": "User Profile Model", "type": "data_model", "details": "Defines the structure for user data. From: src/models/User.ts, Symbols: [UserSchema, IUser]" }
   ],
   "edges": [
-    { "id": "edge_1", "source": "mod_cart_module", "target": "comp_auth_service", "label": "requires_user_auth" }
+    { "id": "edge_feat_onboarding_uses_auth", "source": "feat_user_onboarding", "target": "comp_auth_service", "label": "is_implemented_by" },
+    { "id": "edge_auth_service_manages_user_profile", "source": "comp_auth_service", "target": "data_user_profile", "label": "manages_entity" }
   ]
 }
 
-Begin analysis and generate the concept map JSON.
+Begin analysis of the provided project data and generate the concept map JSON according to all the rules specified above.
 `,
 });
 

@@ -65,6 +65,7 @@ These issues make it unreliable to proceed with new coding, refactoring, or even
 
 Once the new, clean environment is confirmed to be ready and accessible:
 
+<<<<<<< HEAD
 1.  **Verify Access:** Perform a simple read operation (e.g., `ls` in the new project root, or reading `package.json`) to confirm tools are targeting the new directory.
 
 2.  **Systematic Code Re-application:** The following features and fixes, previously completed and submitted, will be re-applied systematically. Each major feature will be committed separately if possible to isolate changes.
@@ -169,4 +170,25 @@ Once the new, clean environment is confirmed to be ready and accessible:
     *   Commit all changes to a new branch.
 
 5.  **Await Further Instructions:** Report completion.
+=======
+1.  **Verify Access:** Perform a simple read operation (e.g., `ls` in the new project root) to confirm tools are targeting the new directory.
+2.  **Systematic Code Re-application:**
+    *   **Batch 1: Core GAI Features & Fixes:** Re-implement (via focused subtasks) the previously completed and submitted features:
+        *   Core Node Display Fixes (default dimensions in store, `FlowCanvasCore` sync logic).
+        *   AI Contextual Mini-Toolbar.
+        *   AI Quick-Add / Floating AI Suggestions.
+        *   AI Staging Area (including store changes, display logic, toolbar, and delete-from-stage).
+        *   AI-Suggested Relation Labels.
+        *   Refinable 'Expand Concept' Previews.
+    *   **Batch 2: Initial Refactoring Plan Code:** Re-apply the committed planning artifacts and initial store changes:
+        *   Create `src/types/graph-adapter.ts` with interface definitions.
+        *   Implement the `applyLayout` action in `src/stores/concept-map-store.ts`.
+        *   Implement the refactored `deleteNode` action (with its mock adapter) in `src/stores/concept-map-store.ts`.
+3.  **Final Verification:** Attempt the previously failing UI task as a key test:
+    *   Add the "Auto-layout Map" button to `EditorToolbar.tsx`.
+    *   Connect this button in the editor page (`page.tsx`) to its (initially placeholder) handler.
+4.  **Submit Restored Work:** If all re-application and verification steps are successful, commit the consolidated, restored work to a new branch in the clean repository.
+5.  **Await Further Instructions:** Report completion to you and await direction for new development tasks based on the updated `TODO.md`.
+
+>>>>>>> master
 ---
