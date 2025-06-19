@@ -377,18 +377,16 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
         const midY = (sourcePos.y + targetPos.y) / 2;
 
         // Convert flow coordinates to screen coordinates for absolute HTML positioning
-        const labelScreenPos = project({ x: midX, y: midY - 30 });
+        // const labelScreenPos = project({ x: midX, y: midY - 30 }); // Label is now rendered by React Flow edge
         const acceptButtonScreenPos = project({ x: midX - 28, y: midY }); // Adjusted for spacing
         const rejectButtonScreenPos = project({ x: midX + 28, y: midY }); // Adjusted for spacing
 
         // Line rendering is omitted as per subtask notes, focusing on buttons and label.
+        // The temporary edge itself (including its label) is rendered by FlowCanvasCore.tsx
 
         return (
           <>
-            <div style={{ position: 'absolute', left: labelScreenPos.x, top: labelScreenPos.y, transform: 'translate(-50%, -50%)', background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid hsl(var(--border))', zIndex: 1001, pointerEvents: 'none' }}>
-              {activeVisualEdgeSuggestion.label}
-              {activeVisualEdgeSuggestion.reason && <span className="block text-xs opacity-70" style={{marginTop: '2px'}}>{activeVisualEdgeSuggestion.reason}</span>}
-            </div>
+            {/* The div for the label has been removed. React Flow will render the label on the temporary edge. */}
             <Button
               variant="outline" size="iconSm"
               style={{ position: 'absolute', left: acceptButtonScreenPos.x, top: acceptButtonScreenPos.y, transform: 'translate(-50%, -50%)', zIndex: 1001, backgroundColor: 'hsl(var(--background))', width: '24px', height: '24px' }}

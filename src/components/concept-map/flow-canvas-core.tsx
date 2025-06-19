@@ -261,6 +261,34 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       setRfPreviewEdges([]);
     }
   }, [conceptExpansionPreview, mapDataFromStore.nodes, setRfPreviewNodes, setRfPreviewEdges, reactFlowInstance]);
+
+  // Effect to manage temporary visual edge suggestion
+  useEffect(() => {
+    if (activeVisualEdgeSuggestion) {
+      const tempEdgeId = `suggested-edge-${activeVisualEdgeSuggestion.id}`;
+      const tempEdge: RFEdge = {
+        id: tempEdgeId,
+        source: activeVisualEdgeSuggestion.sourceNodeId,
+        target: activeVisualEdgeSuggestion.targetNodeId,
+        label: activeVisualEdgeSuggestion.label, // React Flow will render this label
+        type: 'orthogonal', // Or 'default' or your custom edge type
+        style: {
+          stroke: 'hsl(var(--primary)/0.7)',
+          strokeDasharray: '8,6',
+          strokeWidth: 2.5,
+          opacity: 0.75,
+        },
+        animated: true,
+        deletable: false,
+        selectable: false,
+        zIndex: 900, // Ensure it's visible, but potentially below other UI like context menus
+      };
+      setRfEdges(prevEdges => [...prevEdges.filter(edge => !edge.id.startsWith('suggested-edge-')), tempEdge]);
+    } else {
+      // Remove any existing temporary suggested edge if activeVisualEdgeSuggestion is null
+      setRfEdges(prevEdges => prevEdges.filter(edge => !edge.id.startsWith('suggested-edge-')));
+    }
+  }, [activeVisualEdgeSuggestion, setRfEdges]);
   
   useEffect(() => {
     // This effect for fitView should ideally run *after* nodes have been set and rendered.
