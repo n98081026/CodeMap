@@ -17,14 +17,18 @@ import {
   refineNodeSuggestionFlow,
   type RefineNodeSuggestionInput,
   type RefineNodeSuggestionOutput,
-  suggestIntermediateNodeFlow, // Added
-  type SuggestIntermediateNodeInput, // Added
-  type SuggestIntermediateNodeOutput, // Added
+  suggestIntermediateNodeFlow,
+  type SuggestIntermediateNodeInput,
+  type SuggestIntermediateNodeOutput,
   aiTidyUpSelectionFlow,
   type AiTidyUpSelectionInput,
   type AiTidyUpSelectionOutput,
-  type NodeLayoutInfo
+  type NodeLayoutInfo,
+  suggestChildNodesFlow,
+  type SuggestChildNodesRequest,
+  type SuggestChildNodesResponse
 } from '@/ai/flows';
+import { runFlow } from '@genkit-ai/flow';
 import { 
     rewriteNodeContent as aiRewriteNodeContent,
     type RewriteNodeContentOutput 
@@ -40,7 +44,7 @@ import type {
 } from '@/ai/flows'; 
 import type { ConceptMapNode, ConceptMapEdge, RFNode } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
-import { GraphAdapterUtility } from '@/lib/graphologyAdapter'; // Added
+import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react';
 
@@ -108,26 +112,42 @@ const _generateNodeSuggestionsLogic = (
 export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const { toast } = useToast();
   const {
-    mapData, selectedElementId, multiSelectedNodeIds,
-    setAiExtractedConcepts, setAiSuggestedRelations,
-    removeExtractedConceptsFromSuggestions, removeSuggestedRelationsFromSuggestions,
-    resetAiSuggestions, addNode: addStoreNode, updateNode: updateStoreNode,
-    addEdge: addStoreEdge, setAiProcessingNodeId, setStagedMapData,
-    setConceptExpansionPreview, conceptExpansionPreview,
-    applyLayout, // Added for AI Tidy Up
+    mapData,
+    selectedElementId,
+    multiSelectedNodeIds,
+    setAiExtractedConcepts,
+    setAiSuggestedRelations,
+    removeExtractedConceptsFromSuggestions,
+    removeSuggestedRelationsFromSuggestions,
+    resetAiSuggestions,
+    addNode: addStoreNode,
+    updateNode: updateStoreNode,
+    updateConceptExpansionPreviewNode,
+    addEdge: addStoreEdge,
+    setAiProcessingNodeId,
+    setStagedMapData,
+    setConceptExpansionPreview,
+    conceptExpansionPreview,
+    applyLayout,
   } = useConceptMapStore(
     useCallback(s => ({
       mapData: s.mapData, selectedElementId: s.selectedElementId, multiSelectedNodeIds: s.multiSelectedNodeIds,
       setAiExtractedConcepts: s.setAiExtractedConcepts, setAiSuggestedRelations: s.setAiSuggestedRelations,
       removeExtractedConceptsFromSuggestions: s.removeExtractedConceptsFromSuggestions,
       removeSuggestedRelationsFromSuggestions: s.removeSuggestedRelationsFromSuggestions,
-      resetAiSuggestions: s.resetAiSuggestions, addNode: s.addNode, updateNode: s.updateNode,
-      addEdge: s.addEdge, setAiProcessingNodeId: s.setAiProcessingNodeId,
-      setStagedMapData: s.setStagedMapData, setConceptExpansionPreview: s.setConceptExpansionPreview,
+      resetAiSuggestions: s.resetAiSuggestions,
+      addNode: s.addNode,
+      updateNode: s.updateNode,
+      updateConceptExpansionPreviewNode: s.updateConceptExpansionPreviewNode,
+      addEdge: s.addEdge,
+      setAiProcessingNodeId: s.setAiProcessingNodeId,
+      setStagedMapData: s.setStagedMapData,
+      setConceptExpansionPreview: s.setConceptExpansionPreview,
       conceptExpansionPreview: s.conceptExpansionPreview,
-      applyLayout: s.applyLayout, // Added for AI Tidy Up
+      applyLayout: s.applyLayout,
     }), [])
   );
+  const addDebugLog = useConceptMapStore.getState().addDebugLog;
 
   // States for various modals
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
@@ -147,6 +167,16 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
   const [refineModalInitialData, setRefineModalInitialData] = useState<RefineModalData | null>(null);
   const [intermediateNodeSuggestion, setIntermediateNodeSuggestion] = useState<IntermediateNodeSuggestionContext | null>(null);
+
+  // State for Suggest Intermediate Node
+  const [isSuggestIntermediateNodeModalOpen, setIsSuggestIntermediateNodeModalOpen] = useState(false);
+  const [intermediateNodeSuggestionData, setIntermediateNodeSuggestionData] = useState<IntermediateNodeSuggestionResponse | null>(null);
+  const [intermediateNodeOriginalEdgeContext, setIntermediateNodeOriginalEdgeContext] = useState<{ edgeId: string; sourceNodeId: string; targetNodeId: string } | null>(null);
+  const [isSuggestingIntermediateNode, setIsSuggestingIntermediateNode] = useState(false);
+
+  // State for Refine Ghost Node Modal
+  const [isRefineGhostNodeModalOpen, setIsRefineGhostNodeModalOpen] = useState(false);
+  const [refiningGhostNodeData, setRefiningGhostNodeData] = useState<{ id: string; currentText: string; currentDetails?: string; } | null>(null);
 
 
   // --- Extract Concepts ---
@@ -872,20 +902,141 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     clearExpansionPreview,
     addStoreNode, 
     addStoreEdge,
-    // Refine Modal
     isRefineModalOpen,
     setIsRefineModalOpen,
     refineModalInitialData,
     openRefineSuggestionModal,
     handleRefineSuggestionConfirm,
-    // Suggest Intermediate Node
     intermediateNodeSuggestion,
     handleSuggestIntermediateNodeRequest,
     confirmAddIntermediateNode,
     clearIntermediateNodeSuggestion,
-    // AI Tidy-Up Selection
     handleAiTidyUpSelection,
   };
+
+  // --- Refine Ghost Node Modal ---
+
+  // --- Refine Ghost Node Modal ---
+  const openRefineGhostNodeModal = useCallback((nodeId: string, currentText: string, currentDetails?: string) => {
+    setRefiningGhostNodeData({ id: nodeId, currentText, currentDetails });
+    setIsRefineGhostNodeModalOpen(true);
+    addDebugLog(`[AITools] Opening RefineGhostNodeModal for preview node: ${nodeId}`);
+  }, [addDebugLog, setIsRefineGhostNodeModalOpen, setRefiningGhostNodeData]);
+
+  const closeRefineGhostNodeModal = useCallback(() => {
+    setIsRefineGhostNodeModalOpen(false);
+    setRefiningGhostNodeData(null);
+    addDebugLog('[AITools] Closed RefineGhostNodeModal.');
+  }, [addDebugLog, setIsRefineGhostNodeModalOpen, setRefiningGhostNodeData]);
+
+  const handleConfirmRefineGhostNode = useCallback((newText: string, newDetails: string) => {
+    if (refiningGhostNodeData) {
+      updateConceptExpansionPreviewNode(
+        refiningGhostNodeData.id,
+        newText,
+        newDetails
+      );
+      toast({ title: "Suggestion Refined", description: `Preview node '${refiningGhostNodeData.id}' updated.` });
+      addDebugLog(`[AITools] Confirmed refinement for preview node: ${refiningGhostNodeData.id}`);
+    }
+    closeRefineGhostNodeModal();
+  }, [refiningGhostNodeData, closeRefineGhostNodeModal, toast, addDebugLog, updateConceptExpansionPreviewNode]);
+
+  const handleSuggestIntermediateNode = useCallback(async (edgeId: string, sourceNodeId: string, targetNodeId: string) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", variant: "default" });
+      return;
+    }
+    useConceptMapStore.getState().addDebugLog(`[AITools] handleSuggestIntermediateNode called for edge: ${edgeId}`);
+    setIsSuggestingIntermediateNode(true);
+
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const currentEdges = useConceptMapStore.getState().mapData.edges;
+    const sourceNode = currentNodes.find(n => n.id === sourceNodeId);
+    const targetNode = currentNodes.find(n => n.id === targetNodeId);
+    const originalEdge = currentEdges.find(e => e.id === edgeId);
+
+    if (!sourceNode || !targetNode || !originalEdge) {
+      toast({ title: "Error", description: "Source/target node or original edge not found.", variant: "destructive" });
+      setIsSuggestingIntermediateNode(false);
+      return;
+    }
+
+    const flowInput: IntermediateNodeSuggestionRequest = {
+      sourceNodeContent: sourceNode.text + (sourceNode.details ? `\n${sourceNode.details}` : ''),
+      targetNodeContent: targetNode.text + (targetNode.details ? `\n${targetNode.details}` : ''),
+      edgeLabel: originalEdge.label,
+    };
+
+    try {
+      const response = await runFlow(suggestIntermediateNodeFlow, flowInput);
+      if (response) {
+        setIntermediateNodeSuggestionData(response);
+        setIntermediateNodeOriginalEdgeContext({ edgeId, sourceNodeId, targetNodeId });
+        setIsSuggestIntermediateNodeModalOpen(true);
+        useConceptMapStore.getState().addDebugLog(`[AITools] Suggestion received: ${response.suggestedNodeText}`);
+      } else {
+        toast({ title: "No Suggestion", description: "AI could not suggest an intermediate node.", variant: "default" });
+      }
+    } catch (error) {
+      console.error("Error suggesting intermediate node:", error);
+      toast({ title: "AI Error", description: `Failed to suggest intermediate node: ${(error as Error).message}`, variant: "destructive" });
+    } finally {
+      setIsSuggestingIntermediateNode(false);
+    }
+  }, [isViewOnlyMode, toast, mapData.nodes, mapData.edges, setIsSuggestingIntermediateNode, setIntermediateNodeSuggestionData, setIntermediateNodeOriginalEdgeContext, setIsSuggestIntermediateNodeModalOpen]); // Added mapData dependencies
+
+  const closeSuggestIntermediateNodeModal = useCallback(() => {
+    setIsSuggestIntermediateNodeModalOpen(false);
+    setIntermediateNodeSuggestionData(null);
+    setIntermediateNodeOriginalEdgeContext(null);
+  }, []); // Removed setters from deps as they are stable
+
+  const confirmAddIntermediateNode = useCallback(() => {
+    if (!intermediateNodeSuggestionData || !intermediateNodeOriginalEdgeContext) {
+      toast({ title: "Error", description: "Missing suggestion data or context.", variant: "destructive" });
+      return;
+    }
+    useConceptMapStore.getState().addDebugLog('[AITools] confirmAddIntermediateNode called');
+
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const sourceNode = currentNodes.find(n => n.id === intermediateNodeOriginalEdgeContext.sourceNodeId);
+    const targetNode = currentNodes.find(n => n.id === intermediateNodeOriginalEdgeContext.targetNodeId);
+
+    let newPosition = { x: 0, y: 0 };
+    if (sourceNode && targetNode) {
+      newPosition = {
+        x: (sourceNode.x + targetNode.x) / 2,
+        y: (sourceNode.y + targetNode.y) / 2 - 50,
+      };
+    } else {
+      newPosition = getNodePlacement(currentNodes, 'generic', null, null, GRID_SIZE_FOR_AI_PLACEMENT);
+    }
+
+    useConceptMapStore.getState().deleteEdge(intermediateNodeOriginalEdgeContext.edgeId);
+    const newNodeId = addStoreNode({
+      text: intermediateNodeSuggestionData.suggestedNodeText,
+      details: intermediateNodeSuggestionData.suggestedNodeDetails,
+      position: newPosition,
+      type: 'ai-intermediate',
+    });
+    addStoreEdge({
+      source: intermediateNodeOriginalEdgeContext.sourceNodeId,
+      target: newNodeId,
+      label: intermediateNodeSuggestionData.labelToSource || 'related to',
+    });
+    addStoreEdge({
+      source: newNodeId,
+      target: intermediateNodeOriginalEdgeContext.targetNodeId,
+      label: intermediateNodeSuggestionData.labelToTarget || 'related to',
+    });
+
+    toast({ title: "Intermediate Node Added", description: `Node "${intermediateNodeSuggestionData.suggestedNodeText}" inserted.` });
+    closeSuggestIntermediateNodeModal();
+  }, [
+      toast, intermediateNodeSuggestionData, intermediateNodeOriginalEdgeContext,
+      closeSuggestIntermediateNodeModal, addStoreNode, addStoreEdge, mapData.nodes // Added mapData.nodes for getNodePlacement
+    ]);
 }
 
 [end of src/hooks/useConceptMapAITools.ts]

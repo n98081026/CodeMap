@@ -86,7 +86,7 @@ const AISuggestionFloater: React.FC<AISuggestionFloaterProps> = ({
           {title && (
             <div className="flex justify-between items-center mb-2">
               <h4 className="text-sm font-semibold">{title}</h4>
-              <Button variant="ghost" size="iconSm" onClick={onDismiss} title="Dismiss">
+              <Button variant="ghost" size="icon" onClick={onDismiss} title="Dismiss">
                 <XIcon className="h-4 w-4" />
               </Button>
             </div>

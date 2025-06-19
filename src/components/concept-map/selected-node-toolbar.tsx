@@ -9,13 +9,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb, Palette, Link as LinkIcon } from 'lucide-react'; // Added LinkIcon
+import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb, Palette, Share2, Link as LinkIcon } from 'lucide-react';
 
 interface SelectedNodeToolbarProps {
   nodeId: string;
   onEditLabel: () => void;
-  onChangeColor: (color: string) => void;
-  onStartConnection: () => void; // New prop
+  onChangeColor: (color: string) => void; // New prop
+  onStartConnection: () => void; // New prop for starting a connection
   onAIExpand: () => void;
   onAIRewrite: () => void;
   onAISuggestRelations: () => void;
@@ -54,6 +54,10 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
     >
       <Button variant="ghost" size="icon" onClick={onEditLabel} title="Edit Label">
         <Type className="w-4 h-4" />
+      </Button>
+
+      <Button variant="ghost" size="icon" onClick={onStartConnection} title="Start Connection">
+        <Share2 className="w-4 h-4" />
       </Button>
 
       <Popover>

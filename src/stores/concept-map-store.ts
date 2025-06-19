@@ -2,8 +2,13 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
+<<<<<<< HEAD
+import { runFlow } from '@genkit-ai/flow';
+import { suggestMapImprovementsFlow, semanticTidyUpFlow, type SemanticTidyUpRequest } from '@/ai/flows'; // Added semanticTidyUpFlow and types
+=======
 // import Graph from 'graphology'; // No longer needed directly here if using adapter
 import { GraphAdapterUtility } from '../../lib/graphologyAdapter'; // Import the utility
+>>>>>>> master
 
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
 import type { LayoutNodeUpdate, GraphologyInstance } from '@/types/graph-adapter'; // Assuming GraphologyInstance is here
@@ -35,6 +40,7 @@ interface ConceptMapState {
   multiSelectedNodeIds: string[];
   editingNodeId: string | null; // For auto-focusing node label input
   aiProcessingNodeId: string | null;
+  connectingNodeId: string | null; // For initiating edge creation from a node
 
   aiExtractedConcepts: string[];
   aiSuggestedRelations: Array<{ source: string; target: string; relation: string }>;
@@ -47,6 +53,7 @@ interface ConceptMapState {
 
 // Concept expansion preview state
 conceptExpansionPreview: ConceptExpansionPreviewState | null;
+updateConceptExpansionPreviewNode: (previewNodeId: string, newText: string, newDetails?: string) => void; // New action
 
 connectingState: { sourceNodeId: string; sourceHandleId?: string | null; } | null;
 
@@ -75,6 +82,9 @@ draggedRelationLabel: string | null; // New state for edge label preview
   setMultiSelectedNodeIds: (ids: string[]) => void;
   setEditingNodeId: (nodeId: string | null) => void; // Action for auto-focus
   setAiProcessingNodeId: (nodeId: string | null) => void;
+  startConnection: (nodeId: string) => void;
+  cancelConnection: () => void;
+  finishConnectionAttempt: (targetNodeId: string) => void; // Renamed
 
   setAiExtractedConcepts: (concepts: string[]) => void;
   setAiSuggestedRelations: (relations: Array<{ source: string; target: string; relation: string }>) => void;
@@ -111,6 +121,47 @@ updatePreviewNode: (parentNodeId: string, previewNodeId: string, updates: Partia
 
 // Layout action
 applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
+<<<<<<< HEAD
+tidySelectedNodes: () => void;
+
+// Structural suggestions
+isFetchingStructuralSuggestions: boolean;
+structuralSuggestions: ProcessedSuggestedEdge[] | null; // For edges
+structuralGroupSuggestions: ProcessedSuggestedGroup[] | null; // For groups
+fetchStructuralSuggestions: () => Promise<void>;
+acceptStructuralSuggestion: (suggestionId: string) => void;
+dismissStructuralSuggestion: (suggestionId: string) => void;
+acceptGroupSuggestion: (suggestionId: string, options?: { createParentNode?: boolean }) => void; // New
+dismissGroupSuggestion: (suggestionId: string) => void; // New
+clearAllStructuralSuggestions: () => void;
+
+// Semantic Tidy Up
+isApplyingSemanticTidyUp: boolean;
+applySemanticTidyUp: () => Promise<void>;
+
+// Pending relation for edge creation from drag-and-drop
+pendingRelationForEdgeCreation: { label: string; sourceNodeId: string; sourceNodeHandle?: string | null; } | null;
+setPendingRelationForEdgeCreation: (data: { label: string; sourceNodeId: string; sourceNodeHandle?: string | null; } | null) => void;
+clearPendingRelationForEdgeCreation: () => void;
+}
+
+export type ProcessedSuggestedEdge = {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+  reason?: string;
+};
+
+export type ProcessedSuggestedGroup = {
+  id: string;
+  nodeIds: string[];
+  label?: string;
+  reason?: string;
+};
+
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' | 'structuralSuggestions' | 'structuralGroupSuggestions'>;
+=======
 
 // Connection mode actions
 startConnectionMode: (nodeId: string, handleId?: string | null) => void;
@@ -127,6 +178,7 @@ setDraggedRelationPreview: (label: string | null) => void; // New action
 }
 
 type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' /* triggerFitView, connectingState, dragPreviewItem, dragPreviewPosition, draggedRelationLabel are not tracked */>;
+>>>>>>> master
 
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -141,11 +193,23 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
+<<<<<<< HEAD
+  'setConceptExpansionPreview' | 'updateConceptExpansionPreviewNode' | 'applyLayout' | 'tidySelectedNodes' |
+  'startConnection' | 'cancelConnection' | 'finishConnectionAttempt' |
+  // Structural suggestions
+  'fetchStructuralSuggestions' | 'acceptStructuralSuggestion' | 'dismissStructuralSuggestion' |
+  'acceptGroupSuggestion' | 'dismissGroupSuggestion' | 'clearAllStructuralSuggestions' |
+  // Semantic Tidy Up
+  'applySemanticTidyUp' |
+  // Pending Relation
+  'setPendingRelationForEdgeCreation' | 'clearPendingRelationForEdgeCreation'
+=======
   'setConceptExpansionPreview' | 'updatePreviewNode' |
   'applyLayout' |
   'startConnectionMode' | 'completeConnectionMode' | 'cancelConnectionMode' |
   'setDragPreview' | 'updateDragPreviewPosition' | 'clearDragPreview' |
   'setDraggedRelationPreview' | 'setTriggerFitView' // Added to Omit
+>>>>>>> master
 > = {
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -165,17 +229,29 @@ const initialStateBase: Omit<ConceptMapState,
   multiSelectedNodeIds: [],
   editingNodeId: null,
   aiProcessingNodeId: null,
+  connectingNodeId: null,
   aiExtractedConcepts: [],
   aiSuggestedRelations: [],
   debugLogs: [],
   stagedMapData: null,
   isStagingActive: false,
   conceptExpansionPreview: null,
+<<<<<<< HEAD
+  // Structural suggestions initial state
+  isFetchingStructuralSuggestions: false,
+  structuralSuggestions: null,
+  structuralGroupSuggestions: null,
+  // Semantic Tidy Up initial state
+  isApplyingSemanticTidyUp: false,
+  // Pending relation initial state
+  pendingRelationForEdgeCreation: null,
+=======
   connectingState: null,
   dragPreviewItem: null,
   dragPreviewPosition: null,
   draggedRelationLabel: null, // Initial value for new state
   triggerFitView: false, // Initial value for new state
+>>>>>>> master
 };
 
 // Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
@@ -213,6 +289,28 @@ export const useConceptMapStore = create<ConceptMapState>()(
       setMultiSelectedNodeIds: (ids) => set({ multiSelectedNodeIds: ids }),
       setEditingNodeId: (nodeId) => set({ editingNodeId: nodeId }),
       setAiProcessingNodeId: (nodeId) => set({ aiProcessingNodeId: nodeId }),
+
+      startConnection: (nodeId) => {
+        get().addDebugLog(`[STORE startConnection] Starting connection from node: ${nodeId}`);
+        set({ connectingNodeId: nodeId, selectedElementId: null, selectedElementType: null, multiSelectedNodeIds: [] }); // Clear selection when starting connection
+      },
+      cancelConnection: () => {
+        get().addDebugLog(`[STORE cancelConnection] Cancelling connection. Was: ${get().connectingNodeId}`);
+        set({ connectingNodeId: null });
+      },
+      finishConnectionAttempt: (targetNodeId) => { // Renamed
+        const sourceNodeId = get().connectingNodeId;
+        if (!sourceNodeId) {
+          get().addDebugLog(`[STORE finishConnectionAttempt] No source node to complete connection. Target: ${targetNodeId}`);
+          return;
+        }
+        get().addDebugLog(`[STORE finishConnectionAttempt] Attempting to complete connection from ${sourceNodeId} to ${targetNodeId}`);
+        // Actual edge creation will be handled by FlowCanvasCore or a similar component
+        // that calls addEdge. For now, just reset connectingNodeId.
+        set({ connectingNodeId: null });
+        // Potentially, select the new edge after creation, or the source/target node.
+        // This might be handled by the component initiating addEdge.
+      },
 
       setAiExtractedConcepts: (concepts) => set({ aiExtractedConcepts: concepts }),
       setAiSuggestedRelations: (relations) => set({ aiSuggestedRelations: relations }),
@@ -589,6 +687,42 @@ export const useConceptMapStore = create<ConceptMapState>()(
         };
       }),
 
+      updateConceptExpansionPreviewNode: (previewNodeId, newText, newDetails) => {
+        set((state) => {
+          if (!state.conceptExpansionPreview || !state.conceptExpansionPreview.previewNodes) {
+            state.addDebugLog(`[STORE updateConceptExpansionPreviewNode] No active concept expansion preview to update node ${previewNodeId}.`);
+            return state; // No preview active, do nothing
+          }
+
+          let nodeFoundAndUpdated = false;
+          const updatedPreviewNodes = state.conceptExpansionPreview.previewNodes.map(node => {
+            if (node.id === previewNodeId) {
+              state.addDebugLog(`[STORE updateConceptExpansionPreviewNode] Updating preview node ${previewNodeId}. New text: "${newText}", New details: "${newDetails !== undefined ? newDetails : 'no change'}".`);
+              nodeFoundAndUpdated = true;
+              return {
+                ...node,
+                text: newText,
+                details: newDetails !== undefined ? newDetails : node.details, // Only update details if newDetails is provided
+              };
+            }
+            return node;
+          });
+
+          if (!nodeFoundAndUpdated) {
+               state.addDebugLog(`[STORE updateConceptExpansionPreviewNode] Preview node ${previewNodeId} not found in current preview. No changes made.`);
+               return state; // Node not found, no change
+          }
+
+          return {
+            ...state,
+            conceptExpansionPreview: {
+              ...state.conceptExpansionPreview,
+              previewNodes: updatedPreviewNodes,
+            },
+          };
+        });
+      },
+
       applyLayout: (updatedNodePositions) => {
         get().addDebugLog(`[STORE applyLayout] Attempting to apply new layout to ${updatedNodePositions.length} nodes.`);
         set((state) => {
@@ -633,6 +767,275 @@ export const useConceptMapStore = create<ConceptMapState>()(
         set({ triggerFitView: true });
       },
 
+<<<<<<< HEAD
+      tidySelectedNodes: () => {
+        const { mapData, multiSelectedNodeIds } = get();
+        const NODE_SPACING = 30; // pixels
+
+        if (multiSelectedNodeIds.length < 2) {
+          get().addDebugLog('[STORE tidySelectedNodes] Less than 2 nodes selected, no action taken.');
+          return;
+        }
+
+        const selectedNodesRaw = mapData.nodes.filter(n => multiSelectedNodeIds.includes(n.id));
+
+        // Defensive check: Ensure all nodes have width and height, defaulting if necessary
+        // This should ideally be guaranteed by node creation logic.
+        const selectedNodes = selectedNodesRaw.map(n => ({
+          ...n,
+          width: n.width ?? 150, // Default width if undefined
+          height: n.height ?? 70, // Default height if undefined
+        }));
+
+
+        if (selectedNodes.length < 2) {
+          get().addDebugLog('[STORE tidySelectedNodes] Filtered selected nodes resulted in less than 2, no action taken.');
+          return;
+        }
+
+        // 1. Find the minimum Y for alignment (Align Tops)
+        const minY = Math.min(...selectedNodes.map(n => n.y));
+
+        // 2. Sort nodes by their current X position
+        selectedNodes.sort((a, b) => a.x - b.x);
+
+        // 3. Distribute horizontally
+        const updatedNodePositions: Array<Partial<ConceptMapNode> & { id: string }> = [];
+        let currentX = selectedNodes[0].x; // Start with the X of the leftmost node
+
+        selectedNodes.forEach((node, index) => {
+          const newPosition: Partial<ConceptMapNode> & { id: string } = {
+            id: node.id,
+            y: minY, // Align to top
+            x: currentX,
+          };
+          updatedNodePositions.push(newPosition);
+
+          // For all but the last node, calculate the start of the next node
+          if (index < selectedNodes.length -1) {
+            currentX += (node.width ?? 150) + NODE_SPACING; // Use actual or default width
+          }
+        });
+
+        get().addDebugLog(`[STORE tidySelectedNodes] Applying tidy layout to ${updatedNodePositions.length} nodes. Target minY: ${minY}.`);
+
+        set((state) => ({
+          mapData: {
+            ...state.mapData,
+            nodes: state.mapData.nodes.map(n => {
+              const updatedNode = updatedNodePositions.find(unp => unp.id === n.id);
+              // Merge only x and y, keep other properties like text, details, etc.
+              return updatedNode ? { ...n, x: updatedNode.x!, y: updatedNode.y! } : n;
+            }),
+          },
+        }));
+      },
+
+      // Structural Suggestions actions
+      fetchStructuralSuggestions: async () => {
+        get().addDebugLog('[STORE fetchStructuralSuggestions] Initiating...');
+        set({
+          isFetchingStructuralSuggestions: true,
+          structuralSuggestions: null,
+          structuralGroupSuggestions: null, // Clear previous group suggestions
+          error: null
+        });
+
+        const { nodes, edges } = get().mapData;
+        const flowInput = {
+          nodes: nodes.map(n => ({ id: n.id, text: n.text, details: n.details })),
+          edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label })),
+        };
+
+        try {
+          const result = await runFlow(suggestMapImprovementsFlow, flowInput); // result is SuggestedImprovements
+
+          const processedEdgeSuggestions: ProcessedSuggestedEdge[] = (result.suggestedEdges || []).map((edge, i) => ({
+            ...edge,
+            id: `struct-edge-${Date.now()}-${i}`, // Changed prefix for clarity
+          }));
+
+          const processedGroupSuggestions: ProcessedSuggestedGroup[] = (result.suggestedGroups || []).map((group, i) => ({
+            ...group,
+            id: `struct-group-${Date.now()}-${i}`,
+          }));
+
+          set({
+            structuralSuggestions: processedEdgeSuggestions,
+            structuralGroupSuggestions: processedGroupSuggestions,
+            isFetchingStructuralSuggestions: false
+          });
+          get().addDebugLog(`[STORE fetchStructuralSuggestions] Received ${processedEdgeSuggestions.length} edge suggestions and ${processedGroupSuggestions.length} group suggestions.`);
+
+          if (processedEdgeSuggestions.length === 0 && processedGroupSuggestions.length === 0) {
+            get().addDebugLog('[STORE fetchStructuralSuggestions] No actionable suggestions received from flow.');
+            // Optionally set a specific message if needed, or rely on UI to indicate no suggestions
+          }
+        } catch (error) {
+          console.error("Error fetching structural suggestions:", error);
+          const errorMsg = error instanceof Error ? error.message : "Failed to fetch structural suggestions.";
+          get().addDebugLog(`[STORE fetchStructuralSuggestions] Error: ${errorMsg}`);
+          set({ isFetchingStructuralSuggestions: false, error: errorMsg, structuralSuggestions: [], structuralGroupSuggestions: [] });
+        }
+      },
+      acceptStructuralSuggestion: (suggestionId: string) => {
+        const suggestion = get().structuralSuggestions?.find(s => s.id === suggestionId);
+        if (suggestion) {
+          get().addDebugLog(`[STORE acceptStructuralSuggestion] Accepting suggestion: ${suggestionId}`);
+          get().addEdge({
+            source: suggestion.source,
+            target: suggestion.target,
+            label: suggestion.label || 'Suggested Connection', // Provide a default label
+            // Potentially add a specific style or type for AI suggested edges
+          });
+          set(state => ({
+            structuralSuggestions: state.structuralSuggestions?.filter(s => s.id !== suggestionId) || null,
+          }));
+        } else {
+          get().addDebugLog(`[STORE acceptStructuralSuggestion] Suggestion not found: ${suggestionId}`);
+        }
+      },
+      dismissStructuralSuggestion: (suggestionId: string) => {
+        get().addDebugLog(`[STORE dismissStructuralSuggestion] Dismissing suggestion: ${suggestionId}`);
+        set(state => ({
+          structuralSuggestions: state.structuralSuggestions?.filter(s => s.id !== suggestionId) || null,
+        }));
+      },
+      clearAllStructuralSuggestions: () => {
+        get().addDebugLog('[STORE clearAllStructuralSuggestions] Clearing all structural suggestions.');
+        set({ structuralSuggestions: [], structuralGroupSuggestions: [] });
+      },
+
+      acceptGroupSuggestion: (suggestionId: string, options?: { createParentNode?: boolean }) => {
+        const suggestion = get().structuralGroupSuggestions?.find(s => s.id === suggestionId);
+        if (!suggestion) {
+          get().addDebugLog(`[STORE acceptGroupSuggestion] Group suggestion not found: ${suggestionId}`);
+          return;
+        }
+        get().addDebugLog(`[STORE acceptGroupSuggestion] Accepting group suggestion: ${suggestionId}`);
+
+        if (options?.createParentNode) {
+          const parentNodeId = uniqueNodeId();
+          const groupNodes = get().mapData.nodes.filter(n => suggestion.nodeIds.includes(n.id));
+
+          if (groupNodes.length === 0) {
+            get().addDebugLog(`[STORE acceptGroupSuggestion] No valid nodes found for group ${suggestionId}.`);
+            return;
+          }
+
+          // Calculate position for the new parent node (centroid of children)
+          let sumX = 0, sumY = 0;
+          groupNodes.forEach(n => { sumX += n.x; sumY += n.y; });
+          const avgX = sumX / groupNodes.length;
+          const avgY = sumY / groupNodes.length;
+          // Position parent slightly above the centroid for better visibility of children
+          const parentPosition = { x: avgX, y: avgY - 100 };
+
+          get().addNode({
+            text: suggestion.label || 'New Group',
+            details: suggestion.reason || 'AI Suggested Group',
+            position: parentPosition,
+            type: 'group-node', // Or a specific type for AI groups
+            // Consider default width/height for group nodes or calculate based on children
+          });
+
+          const updatedNodes = suggestion.nodeIds.map(nodeId => ({
+            id: nodeId,
+            parentNode: parentNodeId,
+            // Optionally, adjust child positions relative to the new parent or to avoid overlaps.
+            // This can be complex and might be better handled by a subsequent layout pass or user action.
+            // For now, just setting parentNode. React Flow might handle basic nesting.
+          }));
+
+          // Batch update nodes to set their parent
+          set(state => ({
+            mapData: {
+              ...state.mapData,
+              nodes: state.mapData.nodes.map(n => {
+                const update = updatedNodes.find(u => u.id === n.id);
+                return update ? { ...n, ...update } : n;
+              }),
+            },
+          }));
+        }
+        // If not creating a parent node, other logic might apply (e.g., highlighting, tagging - not implemented here)
+
+        set(state => ({
+          structuralGroupSuggestions: state.structuralGroupSuggestions?.filter(s => s.id !== suggestionId) || null,
+        }));
+      },
+      dismissGroupSuggestion: (suggestionId: string) => {
+        get().addDebugLog(`[STORE dismissGroupSuggestion] Dismissing group suggestion: ${suggestionId}`);
+        set(state => ({
+          structuralGroupSuggestions: state.structuralGroupSuggestions?.filter(s => s.id !== suggestionId) || null,
+        }));
+      },
+
+      applySemanticTidyUp: async () => {
+        const { mapData, multiSelectedNodeIds, applyLayout, addDebugLog } = get();
+
+        if (multiSelectedNodeIds.length < 2) {
+          addDebugLog('[STORE applySemanticTidyUp] Less than 2 nodes selected. No action.');
+          return;
+        }
+
+        const selectedNodesData = mapData.nodes
+          .filter(n => multiSelectedNodeIds.includes(n.id))
+          .map(n => ({
+            id: n.id,
+            text: n.text || '',
+            details: n.details || '',
+            x: n.x,
+            y: n.y,
+            width: n.width || 150,
+            height: n.height || 70,
+          }));
+
+        if (selectedNodesData.length < 2) {
+          addDebugLog('[STORE applySemanticTidyUp] Filtered selected nodes data resulted in less than 2. No action.');
+          return;
+        }
+
+        addDebugLog(`[STORE applySemanticTidyUp] Initiating for ${selectedNodesData.length} nodes.`);
+        set({ isApplyingSemanticTidyUp: true, error: null });
+
+        try {
+          const suggestedPositions = await runFlow(semanticTidyUpFlow, selectedNodesData as SemanticTidyUpRequest);
+
+          if (suggestedPositions && suggestedPositions.length > 0) {
+            applyLayout(suggestedPositions); // applyLayout expects LayoutNodeUpdate[] which matches SemanticTidyUpResponse
+            addDebugLog(`[STORE applySemanticTidyUp] Successfully applied semantic layout to ${suggestedPositions.length} nodes.`);
+          } else {
+            addDebugLog('[STORE applySemanticTidyUp] Semantic tidy up flow returned no valid positions.');
+            set({ error: "AI Semantic Tidy-Up did not return new positions."});
+          }
+        } catch (err) {
+          console.error("Error during semanticTidyUpFlow execution:", err);
+          const errorMsg = err instanceof Error ? err.message : "Failed to apply AI semantic tidy-up.";
+          addDebugLog(`[STORE applySemanticTidyUp] Error: ${errorMsg}`);
+          set({ error: errorMsg });
+        } finally {
+          set({ isApplyingSemanticTidyUp: false });
+        }
+      },
+
+      setPendingRelationForEdgeCreation: (data) => {
+        if (data) {
+          get().addDebugLog(`[STORE setPendingRelationForEdgeCreation] Setting pending relation: label='${data.label}', source='${data.sourceNodeId}'`);
+        } else {
+          get().addDebugLog(`[STORE setPendingRelationForEdgeCreation] Clearing pending relation (data was null).`);
+        }
+        set({ pendingRelationForEdgeCreation: data });
+        // If setting a pending relation, cancel any node-to-node connection mode
+        if (data) {
+          set({ connectingNodeId: null });
+        }
+      },
+      clearPendingRelationForEdgeCreation: () => {
+        get().addDebugLog('[STORE clearPendingRelationForEdgeCreation] Clearing pending relation.');
+        set({ pendingRelationForEdgeCreation: null });
+      },
+=======
       // Connection Mode Actions
       startConnectionMode: (nodeId, handleId = null) => {
         get().addDebugLog(`[STORE startConnectionMode] Source: ${nodeId}, Handle: ${handleId}`);
@@ -695,11 +1098,13 @@ export const useConceptMapStore = create<ConceptMapState>()(
         }
       },
       setTriggerFitView: (value) => set({ triggerFitView: value }),
+>>>>>>> master
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview };
+    // Exclude connectingNodeId, isApplyingSemanticTidyUp, and pendingRelationForEdgeCreation from temporal state
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions };
       },
       limit: 50,
     }

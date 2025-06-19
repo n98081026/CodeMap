@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -24,16 +23,6 @@ import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal"
 import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
 import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
 import { RefineSuggestionModal } from '@/components/concept-map/refine-suggestion-modal';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'; // Added AlertDialog imports
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { UserRole } from "@/types";
@@ -48,8 +37,9 @@ import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
-import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar'; // Import AIStagingToolbar
-import { Lightbulb, Sparkles, Brain, HelpCircle, CheckCircle, XCircle } from 'lucide-react'; // Added CheckCircle, XCircle
+import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
+import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal'; // Import the new modal
+import { Lightbulb, Sparkles, Brain, HelpCircle, CheckCircle, XCircle } from 'lucide-react';
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -83,6 +73,11 @@ export default function ConceptMapEditorPage() {
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
     addDebugLog,
+    tidySelectedNodes,
+    fetchStructuralSuggestions,
+    isFetchingStructuralSuggestions,
+    applySemanticTidyUp, // Destructure new action
+    isApplyingSemanticTidyUp, // Destructure new state
   } = useConceptMapStore(
     useCallback(s => ({
       mapId: s.mapId, mapName: s.mapName, currentMapOwnerId: s.currentMapOwnerId, currentMapCreatedAt: s.currentMapCreatedAt,
@@ -97,6 +92,11 @@ export default function ConceptMapEditorPage() {
       deleteNode: s.deleteNode, updateNode: s.updateNode, updateEdge: s.updateEdge,
       setSelectedElement: s.setSelectedElement, setMultiSelectedNodeIds: s.setMultiSelectedNodeIds,
       importMapData: s.importMapData, setIsViewOnlyMode: s.setIsViewOnlyMode, addDebugLog: s.addDebugLog,
+      tidySelectedNodes: s.tidySelectedNodes,
+      fetchStructuralSuggestions: s.fetchStructuralSuggestions,
+      isFetchingStructuralSuggestions: s.isFetchingStructuralSuggestions,
+      applySemanticTidyUp: s.applySemanticTidyUp, // Add to selector
+      isApplyingSemanticTidyUp: s.isApplyingSemanticTidyUp, // Add to selector
     }), [])
   );
 
@@ -615,6 +615,26 @@ export default function ConceptMapEditorPage() {
   if (isStoreLoading && !storeError) { return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; }
   if (storeError) { return <div className="p-4 text-destructive flex flex-col items-center justify-center h-full gap-4"><AlertTriangle className="h-10 w-10" /> <p>{storeError}</p> <Button asChild><Link href={getBackLink()}>{getBackButtonText()}</Link></Button></div>; }
 
+  const inspectorAiTools = React.useMemo(() => ({
+    openExpandConceptModal: aiToolsHook.openExpandConceptModal,
+    openRewriteNodeContentModal: aiToolsHook.openRewriteNodeContentModal,
+    suggestIntermediateNode: aiToolsHook.handleSuggestIntermediateNode,
+  }), [aiToolsHook.openExpandConceptModal, aiToolsHook.openRewriteNodeContentModal, aiToolsHook.handleSuggestIntermediateNode]);
+
+  // Prepare props for SuggestIntermediateNodeModal
+  let modalSourceNodeText: string | undefined;
+  let modalTargetNodeText: string | undefined;
+  let modalOriginalEdgeLabel: string | undefined;
+
+  if (intermediateNodeOriginalEdgeContext && storeMapData) {
+    const sourceNode = storeMapData.nodes.find(n => n.id === intermediateNodeOriginalEdgeContext.sourceNodeId);
+    modalSourceNodeText = sourceNode?.text;
+    const targetNode = storeMapData.nodes.find(n => n.id === intermediateNodeOriginalEdgeContext.targetNodeId);
+    modalTargetNodeText = targetNode?.text;
+    const originalEdge = storeMapData.edges.find(e => e.id === intermediateNodeOriginalEdgeContext.edgeId);
+    modalOriginalEdgeLabel = originalEdge?.label;
+  }
+
   const showEmptyMapMessage =
     !isStoreLoading &&
     useConceptMapStore.getState().initialLoadComplete &&
@@ -657,9 +677,12 @@ export default function ConceptMapEditorPage() {
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
           onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
-          numMultiSelectedNodes={multiSelectedNodeIds.length}
-          onAiTidySelection={handleAiTidyUpSelection}
-          onAutoLayout={handleAutoLayout} // Add this new prop
+          numMultiSelectedNodeIds={multiSelectedNodeIds.length}
+          onTidySelection={tidySelectedNodes}
+          onSuggestMapImprovements={fetchStructuralSuggestions}
+          isSuggestingMapImprovements={isFetchingStructuralSuggestions}
+          onApplySemanticTidyUp={applySemanticTidyUp} // Pass the action
+          isApplyingSemanticTidyUp={isApplyingSemanticTidyUp} // Pass the state
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
@@ -688,6 +711,7 @@ export default function ConceptMapEditorPage() {
               onGhostNodeAcceptRequest={acceptSingleExpansionPreview}
               onConceptSuggestionDrop={handleConceptSuggestionDrop} // Pass the new drop handler
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
+              onRefinePreviewNodeRequested={aiToolsHook.openRefineGhostNodeModal} // Pass the new prop
             />
           )}
         </div>
@@ -816,3 +840,10 @@ export default function ConceptMapEditorPage() {
     </div>
   );
 }
+
+// Helper to get the last part of a path, e.g., "new" from "/concept-maps/editor/new"
+// This was removed as routeMapId directly gives the ID or "new".
+// const getMapIdFromPath = (path: string) => {
+//   const parts = path.split('/');
+//   return parts[parts.length - 1];
+// };

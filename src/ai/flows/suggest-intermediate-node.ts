@@ -1,8 +1,8 @@
-// src/ai/flows/suggest-intermediate-node.ts
 'use server';
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { genkit, z } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
+const ai = genkit({ plugins: [googleAI()] });
 
 // 1. Define Input Schema
 export const SuggestIntermediateNodeInputSchema = z.object({
@@ -51,15 +51,15 @@ Original Edge Label (from source to target):
 {{/if}}
 
 Based on this information:
-1.  Suggest the text for a new intermediate node (\`intermediateNodeText\`). This should be a concise label for the concept.
-2.  Optionally, provide brief details for this intermediate node (\`intermediateNodeDetails\`) if elaboration is useful.
-3.  Suggest a new label for the edge from the original source node to your new intermediate node (\`labelSourceToIntermediate\`).
-4.  Suggest a new label for the edge from your new intermediate node to the original target node (\`labelIntermediateToTarget\`).
+1.  Suggest the text for a new intermediate node. This should be a concise label for the concept.
+2.  Optionally, provide brief details for this intermediate node if elaboration is useful.
+3.  Suggest a new label for the edge from the original source node to your new intermediate node.
+4.  Suggest a new label for the edge from your new intermediate node to the original target node.
 
 The new intermediate node and edge labels should create a more detailed or logical pathway from the source to the target. For example, if Source is "User Authentication" and Target is "Access Dashboard" with original label "grants access to", a good intermediate node might be "Session Token" with labels like "generates" and "enables".
 
-Return the output ONLY in the specified JSON format with "intermediateNodeText", "intermediateNodeDetails", "labelSourceToIntermediate", and "labelIntermediateToTarget" keys.
-If no details are appropriate for the intermediate node, the "intermediateNodeDetails" field can be omitted or be an empty string.
+Return the output ONLY in the specified JSON format with keys: intermediateNodeText, intermediateNodeDetails, labelSourceToIntermediate, and labelIntermediateToTarget.
+If no details are appropriate for the intermediate node, the intermediateNodeDetails field can be omitted or be an empty string.
 Edge labels should be action-oriented or descriptive of the relationship.
 `,
 });
@@ -71,14 +71,13 @@ export const suggestIntermediateNodeFlow = ai.defineFlow(
     inputSchema: SuggestIntermediateNodeInputSchema,
     outputSchema: SuggestIntermediateNodeOutputSchema,
   },
-  async (input) => {
+  async (input: SuggestIntermediateNodeInput) => {
     const { output } = await suggestIntermediateNodePrompt(input);
     if (!output) {
       throw new Error("AI did not produce an output for suggesting an intermediate node.");
     }
-    // Ensure required fields are present, even if AI omits them (though schema should enforce)
     if (typeof output.intermediateNodeText !== 'string' || output.intermediateNodeText.trim() === '') {
-        throw new Error("AI output missing or empty refinedText for intermediate node.");
+        throw new Error("AI output missing or empty intermediateNodeText for intermediate node.");
     }
     if (typeof output.labelSourceToIntermediate !== 'string' || output.labelSourceToIntermediate.trim() === '') {
         throw new Error("AI output missing or empty labelSourceToIntermediate.");

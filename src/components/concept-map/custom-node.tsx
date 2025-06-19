@@ -11,9 +11,10 @@ import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added im
 import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
-  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser,
-  Move as MoveIcon, Wand2 // Added Wand2
-} from 'lucide-react'; // Added Loader2
+  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser, Edit3,
+  Move as MoveIcon, Wand2
+} from 'lucide-react';
+import { Button } from '@/components/ui/button'; // Added Button import
 
 export interface CustomNodeData {
   label: string;
@@ -27,6 +28,7 @@ export interface CustomNodeData {
   onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void; // For hover buttons
   isStaged?: boolean;
   isGhost?: boolean; // Added for ghost node styling
+  onRefineGhostNode?: (nodeId: string, currentText: string, currentDetails?: string) => void; // New prop for ghost node refinement
   // onTriggerAIExpand?: (nodeId: string) => void; // Retained for potential future direct AI button on node
 }
 
@@ -35,7 +37,7 @@ const NODE_MAX_WIDTH = 400;
 const NODE_MIN_HEIGHT = 70;
 const NODE_DETAILS_MAX_HEIGHT = 200;
 
-const TYPE_ICONS: { [key: string]: LucideIcon } = {
+const TYPE_ICONS: { [key: string]: any } = {
   'default': Settings2,
   'manual-node': Type,
   'key_feature': Star,
@@ -61,10 +63,11 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     editingNodeId,
     setEditingNodeId,
     aiProcessingNodeId, // Get AI processing state
-    deleteNode,
-    updateNode,
+    deleteNode, // Added deleteNode from store
+    updateNode, // Added updateNode from store
     startConnectionMode, // Added startConnectionMode from store
   } = useConceptMapStore();
+  const { onRefineGhostNode } = data; // Destructure new prop
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
   const isBeingProcessedByAI = aiProcessingNodeId === id; // Check if this node is being processed
@@ -75,6 +78,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
   const [isGhostHovered, setIsGhostHovered] = useState(false); // New state for ghost node hover
   const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
+  const [toolbarHorizontalOffset, setToolbarHorizontalOffset] = useState<number>(0); // For viewport horizontal awareness
   // Removed isHoveredForToolbar state
   const cardRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null); // Ref for the main node div to get its rect
@@ -139,16 +143,33 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
 
   useEffect(() => {
     if (selected && nodeRef.current) {
-      const rect = nodeRef.current.getBoundingClientRect();
+      const nodeRect = nodeRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      const APPROX_TOOLBAR_HEIGHT = 40; // pixels, matches -top-10 (2.5rem = 40px)
-      const OFFSET = 10; // pixels
+      const viewportWidth = window.innerWidth;
 
-      if (rect.top - APPROX_TOOLBAR_HEIGHT - OFFSET > 0) {
+      const APPROX_TOOLBAR_HEIGHT = 40; // pixels, matches -top-10 (2.5rem = 40px for vertical)
+      const APPROX_TOOLBAR_WIDTH = 220; // pixels, estimated width of the toolbar. Adjust if necessary.
+      const VIEWPORT_MARGIN = 10; // pixels, margin from viewport edges
+
+      // Vertical positioning
+      if (nodeRect.top - APPROX_TOOLBAR_HEIGHT - VIEWPORT_MARGIN > 0) {
         setToolbarPosition('above');
       } else {
         setToolbarPosition('below');
       }
+
+      // Horizontal positioning
+      const nodeCenter = nodeRect.left + nodeRect.width / 2;
+      const toolbarCalculatedLeft = nodeCenter - APPROX_TOOLBAR_WIDTH / 2;
+      const toolbarCalculatedRight = nodeCenter + APPROX_TOOLBAR_WIDTH / 2;
+
+      let newHorizontalOffset = 0;
+      if (toolbarCalculatedLeft < VIEWPORT_MARGIN) {
+        newHorizontalOffset = VIEWPORT_MARGIN - toolbarCalculatedLeft;
+      } else if (toolbarCalculatedRight > viewportWidth - VIEWPORT_MARGIN) {
+        newHorizontalOffset = viewportWidth - VIEWPORT_MARGIN - toolbarCalculatedRight;
+      }
+      setToolbarHorizontalOffset(newHorizontalOffset);
     }
   }, [selected, xPos, yPos, data.width, data.height]); // Re-calculate if node moves, resizes or selection changes
 
@@ -182,32 +203,28 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
-      {data.isGhost && isGhostHovered && !nodeIsViewOnly && (
-        <button
+      {data.isGhost && onRefineGhostNode && !globalIsViewOnlyMode && (
+        <Button
+          variant="ghost"
+          size="iconSm" // You might need to define this size in your Button component variants or use an existing small size
+          className="absolute top-0 left-0 m-1 h-5 w-5 p-0.5 z-10 bg-background/70 hover:bg-accent text-foreground" // Ensure text color is visible
+          title="Refine this suggestion"
           onClick={(e) => {
             e.stopPropagation();
-            const currentExpansionPreview = useConceptMapStore.getState().conceptExpansionPreview;
-            if (currentExpansionPreview && currentExpansionPreview.parentNodeId) {
-              aiTools.openRefineSuggestionModal(id, currentExpansionPreview.parentNodeId);
-            } else {
-              console.error("Refine clicked, but no active concept expansion preview or parentNodeId found for ghost node:", id);
-              // Optionally, show a toast error to the user if the toast hook is available here
-              // import { useToast } from '@/hooks/use-toast'; // and then: const { toast } = useToast();
-              // toast({ title: "Error", description: "Cannot refine suggestion: context not found.", variant: "destructive" });
-            }
+            onRefineGhostNode(id, data.label || '', data.details);
           }}
-          className="absolute top-1 left-1 z-10 flex items-center justify-center w-6 h-6 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-all"
-          title="Refine AI Suggestion"
+          onMouseDown={(e) => e.stopPropagation()}
         >
-          <Wand2 className="w-3.5 h-3.5" />
-        </button>
+          <Edit3 className="h-3 w-3" />
+        </Button>
       )}
       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
         <div
           className={cn(
-            "absolute left-1/2 -translate-x-1/2 z-20",
+            "absolute left-1/2 z-20", // Removed -translate-x-1/2, will be handled by style
             toolbarPosition === 'above' ? "-top-10" : "top-full mt-2"
           )}
+          style={{ transform: `translateX(calc(-50% + ${toolbarHorizontalOffset}px))` }}
           // Prevent clicks on the toolbar area from propagating to the node (e.g., deselection)
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
