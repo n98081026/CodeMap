@@ -164,7 +164,7 @@
 - [x] Drag-and-Drop from AI Panel with Preview:
     - [x] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
     - [x] Interaction: Show a preview of the node/edge under the cursor during drag. Release creates the element. (Dragging concepts done, preview on drag is implemented)
-    - [ ] Interaction: Activate snapping guides for drag preview from AI Panel.
+    - [x] Interaction: Activate snapping guides for drag preview from AI Panel. (Preview item now snaps its position to align with nodes/grid, and visual guide lines are shown for node-to-node alignments.)
 
 ### Iterative and Preview-Oriented AI Generation
 - [x] "AI Staging Area" for Cluster/Snippet Generation:
