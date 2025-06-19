@@ -552,28 +552,30 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         const data = JSON.parse(event.dataTransfer.getData('application/json'));
         if (data.type === 'concept-suggestion' && typeof data.text === 'string') {
           const flowPosition = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-          setDraggedItemPreview({ type: data.type, text: data.text, x: flowPosition.x, y: flowPosition.y });
 
-          // Calculate snap lines for drag preview
+          let snappedXPosition = flowPosition.x;
+          let snappedYPosition = flowPosition.y;
+          let xSnappedByNode = false;
+          let ySnappedByNode = false;
           const previewWidth = DEFAULT_NODE_WIDTH;
           const previewHeight = DEFAULT_NODE_HEIGHT;
-          const previewX = flowPosition.x;
-          const previewY = flowPosition.y;
-
           let currentDragSnapLinesLocal: typeof dragPreviewSnapLines = [];
+
           const previewTargetsX = [
-            { type: 'left', value: previewX },
-            { type: 'center', value: previewX + previewWidth / 2 },
-            { type: 'right', value: previewX + previewWidth },
+            { type: 'left', value: flowPosition.x },
+            { type: 'center', value: flowPosition.x + previewWidth / 2 },
+            { type: 'right', value: flowPosition.x + previewWidth },
           ];
           const previewTargetsY = [
-            { type: 'top', value: previewY },
-            { type: 'center', value: previewY + previewHeight / 2 },
-            { type: 'bottom', value: previewY + previewHeight },
+            { type: 'top', value: flowPosition.y },
+            { type: 'center', value: flowPosition.y + previewHeight / 2 },
+            { type: 'bottom', value: flowPosition.y + previewHeight },
           ];
 
-          let minDeltaXPreview = Infinity; let bestSnapXInfoPreview: typeof dragPreviewSnapLines[0] | null = null;
-          let minDeltaYPreview = Infinity; let bestSnapYInfoPreview: typeof dragPreviewSnapLines[0] | null = null;
+          let minDeltaX = SNAP_THRESHOLD;
+          let bestSnapXInfo: { position: number, line: any } | null = null;
+          let minDeltaY = SNAP_THRESHOLD;
+          let bestSnapYInfo: { position: number, line: any } | null = null;
 
           rfNodes.forEach(otherNode => {
             if (!otherNode.width || !otherNode.height || !otherNode.positionAbsolute) return;
@@ -592,35 +594,68 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
               { type: 'bottom', value: otherNodePosition.y + otherHeight },
             ];
 
+            // Check X snaps
             for (const ptx of previewTargetsX) {
               for (const otx of otherTargetsX) {
                 const delta = Math.abs(ptx.value - otx.value);
-                if (delta < SNAP_THRESHOLD && delta < minDeltaXPreview) {
-                  minDeltaXPreview = delta;
-                  bestSnapXInfoPreview = {
-                    type: 'vertical',
-                    x1: otx.value, y1: Math.min(previewY, otherNodePosition.y) - 20,
-                    x2: otx.value, y2: Math.max(previewY + previewHeight, otherNodePosition.y + otherHeight) + 20,
+                if (delta < minDeltaX) {
+                  minDeltaX = delta;
+                  bestSnapXInfo = {
+                    position: otx.value - (ptx.value - flowPosition.x),
+                    line: {
+                      type: 'vertical',
+                      x1: otx.value, y1: Math.min(flowPosition.y, otherNodePosition.y) - 20,
+                      x2: otx.value, y2: Math.max(flowPosition.y + previewHeight, otherNodePosition.y + otherHeight) + 20,
+                    }
                   };
                 }
               }
             }
+            // Check Y snaps
             for (const pty of previewTargetsY) {
               for (const oty of otherTargetsY) {
                 const delta = Math.abs(pty.value - oty.value);
-                if (delta < SNAP_THRESHOLD && delta < minDeltaYPreview) {
-                  minDeltaYPreview = delta;
-                  bestSnapYInfoPreview = {
-                    type: 'horizontal',
-                    x1: Math.min(previewX, otherNodePosition.x) - 20, y1: oty.value,
-                    x2: Math.max(previewX + previewWidth, otherNodePosition.x + otherWidth) + 20, y2: oty.value,
+                if (delta < minDeltaY) {
+                  minDeltaY = delta;
+                  bestSnapYInfo = {
+                    position: oty.value - (pty.value - flowPosition.y),
+                    line: {
+                      type: 'horizontal',
+                      x1: Math.min(flowPosition.x, otherNodePosition.x) - 20, y1: oty.value,
+                      x2: Math.max(flowPosition.x + previewWidth, otherNodePosition.x + otherWidth) + 20, y2: oty.value,
+                    }
                   };
                 }
               }
             }
           });
-          if (bestSnapXInfoPreview) currentDragSnapLinesLocal.push(bestSnapXInfoPreview);
-          if (bestSnapYInfoPreview) currentDragSnapLinesLocal.push(bestSnapYInfoPreview);
+
+          if (bestSnapXInfo) {
+            snappedXPosition = bestSnapXInfo.position;
+            xSnappedByNode = true;
+            currentDragSnapLinesLocal.push(bestSnapXInfo.line);
+          }
+          if (bestSnapYInfo) {
+            snappedYPosition = bestSnapYInfo.position;
+            ySnappedByNode = true;
+            currentDragSnapLinesLocal.push(bestSnapYInfo.line);
+          }
+
+          // Grid Snap Fallback
+          if (!xSnappedByNode) {
+            const gridSnappedX = Math.round(snappedXPosition / GRID_SIZE) * GRID_SIZE;
+            if (Math.abs(snappedXPosition - gridSnappedX) < SNAP_THRESHOLD) {
+              snappedXPosition = gridSnappedX;
+            }
+          }
+          if (!ySnappedByNode) {
+            const gridSnappedY = Math.round(snappedYPosition / GRID_SIZE) * GRID_SIZE;
+            if (Math.abs(snappedYPosition - gridSnappedY) < SNAP_THRESHOLD) {
+              snappedYPosition = gridSnappedY;
+            }
+          }
+
+          setDraggedItemPreview({ type: data.type, text: data.text, x: snappedXPosition, y: snappedYPosition });
           setDragPreviewSnapLines(currentDragSnapLinesLocal);
 
         } else {
@@ -633,7 +668,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         setDragPreviewSnapLines([]);
       }
     }
-  }, [reactFlowInstance, rfNodes, SNAP_THRESHOLD, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT]); // Added rfNodes and other constants
+  }, [reactFlowInstance, rfNodes, SNAP_THRESHOLD, GRID_SIZE, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT, setDragPreviewSnapLines]);
 
   const handleCanvasDragLeave = useCallback((event: React.DragEvent) => {
     const reactFlowBounds = reactFlowInstance?.containerRef?.current?.getBoundingClientRect();
