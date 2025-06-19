@@ -132,8 +132,8 @@
         - [x] Trigger: Context menu on a node.
         - [x] Uses `RewriteNodeContentModal` for tone selection and preview.
         - [x] Creates Genkit flow (`rewriteNodeContentFlow`). Updates node content and type to `ai-rewritten-node`.
-    - [ ] **(Advanced - Future) Explore "AI Structure Suggestions":**
-        - [ ] Analyze map structure and content to propose new connections or organizational improvements (e.g., "These 3 nodes seem related, would you like to group them?" or "Consider linking Node A to Node B because...").
+    - [~] **(Advanced - Future) Explore "AI Structure Suggestions":** (Phase 1 implemented: AI can suggest a single new edge, intermediate node, or group via toolbar action and dialog. Full dynamic overlays or more proactive suggestions pending.)
+        - [x] Analyze map structure and content to propose new connections or organizational improvements (e.g., "These 3 nodes seem related, would you like to group them?" or "Consider linking Node A to Node B because..."). (Initial version for single AI-chosen improvement implemented via toolbar action.)
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
     - [x] **Workflow Review**: Suggestions persist, update status, removed from panel after adding to map. "Expand Concept" no longer populates this panel.
@@ -349,3 +349,5 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
+[end of TODO.md]
