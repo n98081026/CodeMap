@@ -14,6 +14,48 @@ import { EmptyState } from "@/components/ui/empty-state";
 
 const MAPS_PER_PAGE = 9; // Or 10, as you prefer
 
+// Define the new memoized component for displaying a single student concept map card
+interface StudentConceptMapCardProps {
+  map: ConceptMap;
+  onDelete: (mapId: string, mapName: string) => void;
+}
+
+const StudentConceptMapCard: React.FC<StudentConceptMapCardProps> = React.memo(({ map, onDelete }) => {
+  return (
+    <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardHeader>
+        <CardTitle className="text-xl">{map.name}</CardTitle>
+        <CardDescription>
+          {map.isPublic ? "Public" : "Private"}
+          {map.sharedWithClassroomId && ` | Shared with Classroom ID: ${map.sharedWithClassroomId}`}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex-grow">
+        <p className="text-sm text-muted-foreground">
+          Last updated: {new Date(map.updatedAt).toLocaleDateString()}
+        </p>
+        {/* Add more details like node/edge count if available */}
+      </CardContent>
+      <CardFooter className="grid grid-cols-3 gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/concept-maps/editor/${map.id}`}>
+            <Eye className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">View</span>
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/concept-maps/editor/${map.id}?edit=true`}>
+            <Edit className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
+          </Link>
+        </Button>
+        <Button variant="destructive" size="sm" onClick={() => onDelete(map.id, map.name)}>
+          <Trash2 className="mr-1 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Delete</span>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+});
+StudentConceptMapCard.displayName = 'StudentConceptMapCard';
+
 export default function StudentConceptMapsPage() {
   const { user } = useAuth();
   const { toast } = useToast();

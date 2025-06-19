@@ -1,135 +1,147 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { cn } from '@/lib/utils'; // For conditional styling
+import type { LucideIcon } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export interface AICommand {
   id: string;
   label: string;
+  icon?: LucideIcon;
+  action: () => void; // The actual function to call
   description?: string;
-  icon?: React.ElementType; // e.g., Lucide icon
-  action: () => void; // Simplified action for now
 }
 
 interface AICommandPaletteProps {
   isOpen: boolean;
-  targetRef?: React.RefObject<HTMLElement>; // Ref of the input it's attached to
+  targetRect?: DOMRect | null; // For positioning near the text input caret
   commands: AICommand[];
+  filterText: string;
   onSelectCommand: (command: AICommand) => void;
   onClose: () => void;
-  query?: string; // To filter/highlight commands
 }
 
-const AICommandPalette: React.FC<AICommandPaletteProps> = ({
+export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
   isOpen,
-  targetRef,
+  targetRect,
   commands,
+  filterText,
   onSelectCommand,
   onClose,
-  query,
 }) => {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [paletteStyle, setPaletteStyle] = useState<React.CSSProperties>({});
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const paletteRef = useRef<HTMLDivElement>(null);
 
   const filteredCommands = React.useMemo(() => {
-    if (!query) return commands;
+    if (!filterText) {
+      return commands;
+    }
     return commands.filter(command =>
-      command.label.toLowerCase().includes(query.toLowerCase()) ||
-      command.description?.toLowerCase().includes(query.toLowerCase())
+      command.label.toLowerCase().includes(filterText.toLowerCase()) ||
+      command.id.toLowerCase().includes(filterText.toLowerCase())
     );
-  }, [commands, query]);
+  }, [commands, filterText]);
 
   useEffect(() => {
-    if (isOpen && targetRef?.current && paletteRef.current) {
-      const targetRect = targetRef.current.getBoundingClientRect();
-      // Basic positioning: below the targetRef
-      setPaletteStyle({
-        position: 'absolute',
-        top: `${targetRect.bottom + window.scrollY + 2}px`, // +2 for a small gap
-        left: `${targetRect.left + window.scrollX}px`,
-        width: `${targetRect.width}px`, // Match width of target
-        zIndex: 50, // Ensure it's above other elements
-      });
-    }
-  }, [isOpen, targetRef, filteredCommands.length]); // Re-calculate if commands change, affecting height
+    setSelectedIndex(0); // Reset index when filter text changes
+  }, [filterText]);
 
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSelectedIndex(prev => (prev + 1) % filteredCommands.length);
       } else if (event.key === 'ArrowUp') {
         event.preventDefault();
-        setActiveIndex(prev => (prev > 0 ? prev - 1 : filteredCommands.length - 1));
-      } else if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setActiveIndex(prev => (prev < filteredCommands.length - 1 ? prev + 1 : 0));
+        setSelectedIndex(prev => (prev - 1 + filteredCommands.length) % filteredCommands.length);
       } else if (event.key === 'Enter') {
         event.preventDefault();
-        if (activeIndex >= 0 && activeIndex < filteredCommands.length) {
-          onSelectCommand(filteredCommands[activeIndex]);
+        if (filteredCommands[selectedIndex]) {
+          onSelectCommand(filteredCommands[selectedIndex]);
         }
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true); // Use capture phase
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [isOpen, onClose, activeIndex, filteredCommands, onSelectCommand]);
+  }, [isOpen, filteredCommands, selectedIndex, onSelectCommand, onClose]);
 
-  // Reset activeIndex when query changes or commands are re-filtered
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query, filteredCommands.length]);
-
-  // Scroll active item into view
+  // Scroll selected item into view
   useEffect(() => {
     if (isOpen && paletteRef.current) {
-      const activeItem = paletteRef.current.querySelector(`[data-index="${activeIndex}"]`);
-      activeItem?.scrollIntoView({ block: 'nearest' });
+      const selectedButton = paletteRef.current.querySelector(`[data-command-index="${selectedIndex}"]`) as HTMLElement;
+      if (selectedButton) {
+        selectedButton.scrollIntoView({ block: 'nearest' });
+      }
     }
-  }, [isOpen, activeIndex]);
-
+  }, [selectedIndex, isOpen]);
 
   if (!isOpen || filteredCommands.length === 0) {
+    // If no commands match filter, also close or don't show.
+    // Or, show a "No results" message if preferred. For now, just don't show.
+    // If it was open and filter makes commands empty, call onClose.
+    if (isOpen && filteredCommands.length === 0 && commands.length > 0) { // Check commands.length to avoid closing if initially empty due to no commands prop
+        onClose();
+    }
     return null;
   }
 
+  const paletteStyle: React.CSSProperties = {
+    position: 'absolute',
+    zIndex: 2000, // High z-index
+  };
+
+  if (targetRect) {
+    paletteStyle.top = `${targetRect.bottom + window.scrollY + 2}px`; // Position below caret
+    paletteStyle.left = `${targetRect.left + window.scrollX}px`;
+  } else {
+    // Fallback position if targetRect is not available (e.g., center screen)
+    // This should ideally not happen if triggered from an input.
+    paletteStyle.top = '50%';
+    paletteStyle.left = '50%';
+    paletteStyle.transform = 'translate(-50%, -50%)';
+  }
+
   return (
-    <div
-      ref={paletteRef}
-      className="bg-popover border border-border rounded-md shadow-lg p-2 max-h-60 overflow-y-auto"
-      style={paletteStyle}
-    >
-      <ul>
-        {filteredCommands.map((command, index) => {
-          const IconComponent = command.icon;
-          return (
-            <li key={command.id} data-index={index}>
-              <button
-                type="button"
-                onClick={() => onSelectCommand(command)}
+    <div ref={paletteRef} style={paletteStyle}>
+      <Card className="w-72 shadow-xl max-h-72 overflow-y-auto">
+        <CardContent className="p-1">
+          {filteredCommands.map((command, index) => {
+            const IconComponent = command.icon;
+            return (
+              <Button
+                key={command.id}
+                variant="ghost"
+                size="sm"
+                data-command-index={index}
                 className={cn(
-                  "w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  index === activeIndex && "bg-accent text-accent-foreground"
+                  "w-full justify-start text-left flex items-center space-x-2",
+                  index === selectedIndex && "bg-accent text-accent-foreground"
                 )}
+                onClick={() => onSelectCommand(command)}
+                onMouseEnter={() => setSelectedIndex(index)} // Allow mouse hover to change selection
               >
                 {IconComponent && <IconComponent className="h-4 w-4 text-muted-foreground" />}
-                <div className="flex-grow">
-                  <div className="font-medium">{command.label}</div>
-                  {command.description && (
-                    <div className="text-xs text-muted-foreground">{command.description}</div>
-                  )}
+                <div className="flex flex-col">
+                    <span className="font-medium">{command.label}</span>
+                    {command.description && (
+                        <span className="text-xs text-muted-foreground">{command.description}</span>
+                    )}
                 </div>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+              </Button>
+            );
+          })}
+        </CardContent>
+      </Card>
     </div>
   );
 };

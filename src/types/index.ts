@@ -1,4 +1,3 @@
-
 import type { LucideIcon } from "lucide-react"; 
 
 export enum UserRole {
@@ -118,3 +117,12 @@ export interface SystemSettings {
 }
 
 export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>;
+
+// Added VisualEdgeSuggestion interface
+export interface VisualEdgeSuggestion {
+  id: string; // Unique ID for the suggestion itself (e.g., generated with uuid or timestamp)
+  sourceNodeId: string;
+  targetNodeId: string;
+  label: string;
+  reason?: string;
+}

@@ -3,12 +3,28 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import React from 'react'; // Ensure React is imported for React.FC
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+<<<<<<< HEAD
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon
+} from "lucide-react"; // Added Wand2, SearchPlus, TestTube2
+=======
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText,
   Network, AlignHorizontalDistributeCenter
 } from "lucide-react";
+>>>>>>> master
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -41,6 +57,27 @@ interface EditorToolbarProps {
   canRedo: boolean;
   selectedNodeId: string | null;
   numMultiSelectedNodes: number;
+<<<<<<< HEAD
+  onAutoLayout?: () => void; // Made optional
+  arrangeActions?: ArrangeAction[];
+  onSuggestAISemanticGroup?: () => void; // New prop
+  onSuggestAIArrangement?: () => void;
+  isSuggestingAIArrangement?: boolean;
+  onAIDiscoverGroup?: () => void;
+  isAIDiscoveringGroup?: boolean;
+  mapNodeCount?: number;
+  onAISuggestImprovement?: () => void; // Prop from previous step
+  isAISuggestingImprovement?: boolean; // Prop from previous step
+  onTestEdgeOverlay?: () => void;
+}
+
+export interface ArrangeAction {
+  id: string;
+  label: string;
+  icon?: LucideIcon;
+  action: () => void;
+  isSeparator?: boolean;
+=======
   onAutoLayout?: () => void;
   onTidySelection?: () => void;
   onSuggestMapImprovements?: () => void;
@@ -48,6 +85,7 @@ interface EditorToolbarProps {
   onApplySemanticTidyUp?: () => void; // New prop for Semantic Tidy
   isApplyingSemanticTidyUp?: boolean; // New prop for Semantic Tidy
   onAiTidySelection?: () => void; // New prop
+>>>>>>> master
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({
@@ -79,12 +117,25 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   selectedNodeId,
   numMultiSelectedNodes,
   onAutoLayout,
+<<<<<<< HEAD
+  arrangeActions,
+  onSuggestAISemanticGroup,
+  onSuggestAIArrangement,
+  isSuggestingAIArrangement,
+  onAIDiscoverGroup,
+  isAIDiscoveringGroup,
+  mapNodeCount,
+  onAISuggestImprovement, // Destructure from prev step
+  isAISuggestingImprovement, // Destructure from prev step
+  onTestEdgeOverlay,
+=======
   onTidySelection,
   onSuggestMapImprovements,
   isSuggestingMapImprovements,
   onApplySemanticTidyUp, // Destructure new prop
   isApplyingSemanticTidyUp, // Destructure new prop
   onAiTidySelection, // Destructure new prop
+>>>>>>> master
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -266,6 +317,104 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
         <Separator orientation="vertical" className="mx-1 h-full" />
 
+        {/* Suggest AI Group Button (conditionally rendered) */}
+        {!isViewOnlyMode && numMultiSelectedNodes >= 2 && onSuggestAISemanticGroup && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onSuggestAISemanticGroup}
+                >
+                  <BoxSelect className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Suggest AI Grouping</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="mx-1 h-full" />
+          </>
+        )}
+
+        {/* Arrange Selection Button (conditionally rendered) */}
+        {!isViewOnlyMode && numMultiSelectedNodes >= 2 && arrangeActions && arrangeActions.length > 0 && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <LayoutPanelLeft className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {arrangeActions.map((actionItem) => (
+                      actionItem.isSeparator ? (
+                        <DropdownMenuSeparator key={actionItem.id} />
+                      ) : (
+                        <DropdownMenuItem key={actionItem.id} onSelect={actionItem.action}>
+                          {actionItem.icon && <actionItem.icon className="mr-2 h-4 w-4" />}
+                          {actionItem.label}
+                        </DropdownMenuItem>
+                      )
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TooltipTrigger>
+              <TooltipContent>Arrange Selection</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="mx-1 h-full" />
+          </>
+        )}
+
+        {/* AI Suggest Arrangement Button */}
+        {!isViewOnlyMode && numMultiSelectedNodes >= 2 && onSuggestAIArrangement && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onSuggestAIArrangement}
+                  disabled={isSuggestingAIArrangement}
+                >
+                  {isSuggestingAIArrangement ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>AI Suggest Arrangement</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="mx-1 h-full" />
+          </>
+        )}
+
+        {/* AI Discover Group Button */}
+        {!isViewOnlyMode && mapNodeCount && mapNodeCount >= 3 && onAIDiscoverGroup && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onAIDiscoverGroup}
+                  disabled={isAIDiscoveringGroup}
+                >
+                  {isAIDiscoveringGroup ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <SearchPlus className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>AI Discover Potential Group</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="mx-1 h-full" />
+          </>
+        )}
+
         {/* GenAI Tools */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -379,6 +528,24 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           </TooltipTrigger>
           <TooltipContent>{isDebugLogViewerOpen ? "Hide Debug Logs" : "Show Debug Logs"}</TooltipContent>
         </Tooltip>
+
+        {/* Temporary Test Edge Overlay Button */}
+        {onTestEdgeOverlay && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onTestEdgeOverlay}
+                className="border-yellow-500 hover:bg-yellow-500/10"
+              >
+                <TestTube2 className="h-5 w-5 text-yellow-600" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Test Edge Overlay (Dev)</TooltipContent>
+          </Tooltip>
+        )}
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

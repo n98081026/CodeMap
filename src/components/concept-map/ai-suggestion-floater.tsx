@@ -129,10 +129,10 @@ const AISuggestionFloater: React.FC<AISuggestionFloaterProps> = ({
                 );
               }
             })}
-            {suggestions.length === 0 && (
+          </div>
+          {suggestions.length === 0 && (
                 <p className="text-xs text-muted-foreground p-2 text-center">No suggestions available.</p>
             )}
-          </div>
         </CardContent>
       </Card>
     </div>

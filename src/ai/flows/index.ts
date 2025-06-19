@@ -5,12 +5,20 @@ export * from './extract-concepts';
 export * from './generate-map-from-project';
 export * from './generate-map-snippet-from-text';
 export * from './generate-quick-cluster';
-export * from './suggest-relations';
-export * from './summarize-nodes-flow';
 export * from './suggest-edge-label'; // Added new flow
+export * from './suggest-intermediate-node';
+export * from './suggest-quick-child-texts';
+export * from './suggest-relations';
+export * from './suggest-semantic-parent';
+export * from './summarize-nodes-flow';
+export * from './suggest-arrangement-action';
+export {
+  suggestNodeGroupCandidatesFlow,
+  NodeGroupSuggestionSchema,
+} from './suggest-node-group-candidates';
+export * from './suggest-map-improvement';
 export * from './suggest-map-improvements';
 export * from './refine-node-suggestion'; // Added new flow for refining suggestions
-export * from './suggest-intermediate-node'; // Added new flow for intermediate nodes
 export * from './ai-tidy-up-selection'; // Added new flow for tidying selection
 export * from './semanticTidyUpFlow';
 export * from './suggestChildNodesFlow';

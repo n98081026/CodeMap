@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
+import type { VisualEdgeSuggestion } from '@/types';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -31,6 +32,8 @@ import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
 import DragPreviewNode from './drag-preview-node';
 import DragPreviewLabelNode from './drag-preview-label-node'; // Import DragPreviewLabelNode
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { CheckIcon, XIcon } from 'lucide-react';
 
 // Define nodeTypesConfig as top-level constant here
 const nodeTypesConfig: NodeTypes = {
@@ -66,8 +69,19 @@ interface InteractiveCanvasProps {
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string | null;
+<<<<<<< HEAD
+  // Drag preview related props
+  draggedItemPreview?: { type: string; text: string; x: number; y: number; } | null;
+  onCanvasDragLeave?: (event: React.DragEvent) => void;
+  dragPreviewSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
+  // Visual Edge Suggestion Overlay Props
+  activeVisualEdgeSuggestion?: VisualEdgeSuggestion | null;
+  onAcceptVisualEdge?: (suggestionId: string) => void;
+  onRejectVisualEdge?: (suggestionId: string) => void;
+=======
   edgeTypes?: EdgeTypes; // Prop to pass custom edge types
   onNodeDrop?: (event: React.DragEvent, node: RFNode) => void; // New prop for node drop
+>>>>>>> master
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -111,19 +125,62 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onDrop,
   onDragLeave,
   activeSnapLines = [],
+  dragPreviewSnapLines = [], // Destructure with default
   gridSize = 20,
   panActivationKeyCode,
+<<<<<<< HEAD
+  draggedItemPreview, // Destructure new prop
+  onCanvasDragLeave,  // Destructure new prop
+  // Destructure Visual Edge Suggestion Overlay Props
+  activeVisualEdgeSuggestion,
+  onAcceptVisualEdge,
+  onRejectVisualEdge,
+=======
   edgeTypes: propEdgeTypes,
   onNodeDrop, // Destructure onNodeDrop
+>>>>>>> master
 }) => {
   console.log(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length-1]) : 'N/A'}`);
   // Also send to store's debug log for easier collection if console is not always available during testing
   useConceptMapStore.getState().addDebugLog(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node ID: ${nodes && nodes.length > 0 ? nodes[nodes.length-1]?.id : 'N/A'}`);
-  const reactFlowInstance = useReactFlow(); // Get instance for screenToFlowPosition
-  const { viewport, getViewport } = reactFlowInstance;
+  const { project, getNodes: rfGetNodes, getViewport, screenToFlowPosition } = useReactFlow();
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
+<<<<<<< HEAD
+  const allSnapLinesToRender = React.useMemo(() => [
+    ...(activeSnapLines || []),
+    ...(dragPreviewSnapLines || [])
+  ], [activeSnapLines, dragPreviewSnapLines]);
+
+  const handleDragOverOnCanvas = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    if (onDragOver) { // Use destructured prop
+        onDragOver(event);
+    }
+  }, [onDragOver]);
+
+  const handleDropOnCanvas = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    const jsonData = event.dataTransfer.getData('application/json');
+    if (jsonData && reactFlowInstance) {
+        try {
+            const droppedData = JSON.parse(jsonData);
+            if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
+                const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+                onCanvasDrop?.(droppedData, positionInFlow); // Call the new prop from FlowCanvasCore
+            }
+        } catch (e) {
+            console.error("Failed to parse dropped data:", e);
+            useConceptMapStore.getState().addDebugLog("[InteractiveCanvasComponent] Failed to parse dropped data on drop.");
+        }
+    }
+    event.dataTransfer.clearData();
+  }, [reactFlowInstance, onCanvasDrop]);
+
+=======
   // useEffect for translateExtent calculation (remains unchanged)
+>>>>>>> master
   useEffect(() => {
     const currentViewport = getViewport(); 
 
@@ -230,10 +287,16 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onNodeContextMenu,
     onPaneContextMenu,
     onNodeClick,
+<<<<<<< HEAD
+    onDragOver: handleDragOverOnCanvas,
+    onDrop: handleDropOnCanvas,
+    onDragLeave: onCanvasDragLeave, // Pass the new handler
+=======
     onDragOver: onDragOver,
     onDrop: onDrop,
     onDragLeave: onDragLeave,
     onNodeDrop: onNodeDrop, // Pass onNodeDrop to ReactFlow
+>>>>>>> master
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined,
@@ -276,7 +339,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
           size={1}
           color="hsl(var(--border)/0.7)"
         />
-        {activeSnapLines.map((line, index) => (
+        {allSnapLinesToRender.map((line, index) => (
           <svg key={`snapline-${index}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 100 }}>
             <line
               x1={line.x1} y1={line.y1}
@@ -288,6 +351,89 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
           </svg>
         ))}
       </ReactFlow>
+      {/* Render Drag Preview Element */}
+      {draggedItemPreview && !isViewOnlyMode && (
+        <div
+          style={{
+            position: 'absolute',
+            left: `${draggedItemPreview.x}px`, // These are flow coordinates
+            top: `${draggedItemPreview.y}px`,
+            transform: 'translate(-50%, -50%)', // Center on cursor
+            padding: '8px 12px',
+            background: 'hsl(var(--card))',
+            border: '1px dashed hsl(var(--primary))',
+            borderRadius: 'var(--radius, 0.5rem)',
+            color: 'hsl(var(--card-foreground))',
+            fontSize: '0.875rem',
+            opacity: 0.75,
+            pointerEvents: 'none', // Crucial: preview should not intercept mouse events
+            zIndex: 1500,
+          }}
+        >
+          {draggedItemPreview.text}
+        </div>
+      )}
+
+      {/* Visual Edge Suggestion Overlay */}
+      {activeVisualEdgeSuggestion && !isViewOnlyMode && (() => {
+        const sourceNode = nodes.find(n => n.id === activeVisualEdgeSuggestion.sourceNodeId);
+        const targetNode = nodes.find(n => n.id === activeVisualEdgeSuggestion.targetNodeId);
+
+        if (!sourceNode || !targetNode) return null;
+
+        const DEFAULT_NODE_WIDTH = 150;
+        const DEFAULT_NODE_HEIGHT = 70;
+
+        const sourceNodeWidth = sourceNode.width || DEFAULT_NODE_WIDTH;
+        const sourceNodeHeight = sourceNode.height || DEFAULT_NODE_HEIGHT;
+        const targetNodeWidth = targetNode.width || DEFAULT_NODE_WIDTH;
+        const targetNodeHeight = targetNode.height || DEFAULT_NODE_HEIGHT;
+
+        const sourcePosition = sourceNode.positionAbsolute ?? sourceNode.position;
+        const targetPosition = targetNode.positionAbsolute ?? targetNode.position;
+
+        const sourcePos = {
+          x: sourcePosition.x + sourceNodeWidth / 2,
+          y: sourcePosition.y + sourceNodeHeight / 2,
+        };
+        const targetPos = {
+          x: targetPosition.x + targetNodeWidth / 2,
+          y: targetPosition.y + targetNodeHeight / 2,
+        };
+
+        const midX = (sourcePos.x + targetPos.x) / 2;
+        const midY = (sourcePos.y + targetPos.y) / 2;
+
+        // Convert flow coordinates to screen coordinates for absolute HTML positioning
+        // const labelScreenPos = project({ x: midX, y: midY - 30 }); // Label is now rendered by React Flow edge
+        const acceptButtonScreenPos = project({ x: midX - 28, y: midY }); // Adjusted for spacing
+        const rejectButtonScreenPos = project({ x: midX + 28, y: midY }); // Adjusted for spacing
+
+        // Line rendering is omitted as per subtask notes, focusing on buttons and label.
+        // The temporary edge itself (including its label) is rendered by FlowCanvasCore.tsx
+
+        return (
+          <>
+            {/* The div for the label has been removed. React Flow will render the label on the temporary edge. */}
+            <Button
+              variant="outline" size="iconSm"
+              style={{ position: 'absolute', left: acceptButtonScreenPos.x, top: acceptButtonScreenPos.y, transform: 'translate(-50%, -50%)', zIndex: 1001, backgroundColor: 'hsl(var(--background))', width: '24px', height: '24px' }}
+              onClick={() => onAcceptVisualEdge?.(activeVisualEdgeSuggestion.id)}
+              title="Accept suggestion"
+            >
+              <CheckIcon className="h-4 w-4 text-green-600" />
+            </Button>
+            <Button
+              variant="outline" size="iconSm"
+              style={{ position: 'absolute', left: rejectButtonScreenPos.x, top: rejectButtonScreenPos.y, transform: 'translate(-50%, -50%)', zIndex: 1001, backgroundColor: 'hsl(var(--background))', width: '24px', height: '24px' }}
+              onClick={() => onRejectVisualEdge?.(activeVisualEdgeSuggestion.id)}
+              title="Reject suggestion"
+            >
+              <XIcon className="h-4 w-4 text-red-600" />
+            </Button>
+          </>
+        );
+      })()}
     </Card>
   );
 };

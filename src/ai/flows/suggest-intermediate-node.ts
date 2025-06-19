@@ -88,5 +88,3 @@ export const suggestIntermediateNodeFlow = ai.defineFlow(
     return output;
   }
 );
-
-// Ensure this new flow is exported from src/ai/flows/index.ts in a subsequent step.

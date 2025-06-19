@@ -11,10 +11,9 @@ import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added im
 import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
-  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser, Edit3,
-  Move as MoveIcon, Wand2
-} from 'lucide-react';
-import { Button } from '@/components/ui/button'; // Added Button import
+  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser, Box,
+  Move as MoveIcon, Edit2Icon, CheckIcon, XIcon, Wand2 // Added Wand2
+} from 'lucide-react'; // Added Loader2
 
 export interface CustomNodeData {
   label: string;
@@ -28,7 +27,7 @@ export interface CustomNodeData {
   onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void; // For hover buttons
   isStaged?: boolean;
   isGhost?: boolean; // Added for ghost node styling
-  onRefineGhostNode?: (nodeId: string, currentText: string, currentDetails?: string) => void; // New prop for ghost node refinement
+  onStartConnectionRequest?: (nodeId: string) => void; // New prop for initiating connection mode
   // onTriggerAIExpand?: (nodeId: string) => void; // Retained for potential future direct AI button on node
 }
 
@@ -55,6 +54,7 @@ const TYPE_ICONS: { [key: string]: any } = {
   'ai-rewritten-node': MessageSquareQuote,
   'text-derived-concept': Lightbulb,
   'ai-generated': Lightbulb, // Generic for quick cluster/snippet
+  'ai-group-parent': Box,
 };
 
 const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, selected, xPos, yPos }) => {
@@ -82,6 +82,23 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   // Removed isHoveredForToolbar state
   const cardRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null); // Ref for the main node div to get its rect
+  const textareaRef = useRef<HTMLTextAreaElement>(null); // Ref for the inline editing textarea
+
+  const [isInlineEditing, setIsInlineEditing] = useState(false);
+  const [editText, setEditText] = useState(data.label);
+
+  useEffect(() => {
+    if (!isInlineEditing) {
+      setEditText(data.label);
+    }
+  }, [data.label, isInlineEditing]);
+
+  useEffect(() => {
+    if (isInlineEditing && textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.select();
+    }
+  }, [isInlineEditing]);
 
   const nodeWidth = data.width || 'auto';
   const nodeHeight = data.height || 'auto';
@@ -91,7 +108,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     height: typeof nodeHeight === 'number' ? `${nodeHeight}px` : nodeHeight,
     opacity: selected ? 0.95 : 1,
     borderRadius: data.shape === 'ellipse' ? '50%' : '0.5rem', // Use theme radius
-    backgroundColor: data.backgroundColor || 'hsl(var(--card))',
+    backgroundColor: data.type === 'ai-group-parent'
+      ? 'rgba(100, 116, 139, 0.05)' // Equivalent to slate-500/5 (light mode theme)
+      : data.backgroundColor || 'hsl(var(--card))',
   };
 
   const handleNodeDoubleClick = () => {
@@ -112,34 +131,39 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   // Placeholder handlers for AI mini toolbar actions
   // Removed handleQuickExpand and handleRewriteConcise as they are now passed directly to the toolbar
 
-  // Memoized callbacks for SelectedNodeToolbar
-  const handleEditLabel = useCallback(() => {
-    setEditingNodeId(id);
-  }, [id, setEditingNodeId]);
+  const handleToolbarStartConnection = () => {
+    if (data.onStartConnectionRequest) {
+      data.onStartConnectionRequest(id);
+    }
+  };
 
-  const handleChangeColor = useCallback((color: string) => {
-    updateNode(id, { backgroundColor: color });
-  }, [id, updateNode]);
+  const handleStartInlineEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (nodeIsViewOnly) return;
+    setEditText(data.label);
+    setIsInlineEditing(true);
+  };
 
-  const handleStartConnection = useCallback(() => {
-    startConnectionMode(id);
-  }, [id, startConnectionMode]);
+  const handleSaveInlineEdit = () => {
+    if (nodeIsViewOnly) return;
+    useConceptMapStore.getState().updateConceptExpansionPreviewNodeText(id, editText);
+    setIsInlineEditing(false);
+  };
 
-  const handleAIExpand = useCallback(() => {
-    aiTools.handleMiniToolbarQuickExpand(id);
-  }, [aiTools, id]);
+  const handleCancelInlineEdit = () => {
+    setIsInlineEditing(false);
+    setEditText(data.label); // Reset text
+  };
 
-  const handleAIRewrite = useCallback(() => {
-    aiTools.handleMiniToolbarRewriteConcise(id);
-  }, [aiTools, id]);
-
-  const handleAISuggestRelations = useCallback(() => {
-    aiTools.handleMenuSuggestRelations(id);
-  }, [aiTools, id]);
-
-  const handleDeleteNode = useCallback(() => {
-    deleteNode(id);
-  }, [id, deleteNode]);
+  const handleEditTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSaveInlineEdit();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      handleCancelInlineEdit();
+    }
+  };
 
   useEffect(() => {
     if (selected && nodeRef.current) {
@@ -184,7 +208,8 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         // Removed !nodeIsViewOnly && "cursor-grab",
         data.shape === 'ellipse' && 'items-center justify-center text-center p-2',
         data.isStaged && "border-dashed border-blue-500 opacity-80",
-        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
+        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10", // Ghost style
+        data.type === 'ai-group-parent' && "border-2 border-dashed border-slate-500/30 dark:border-slate-600/50"
       )}
       onMouseEnter={() => {
         if (data.isGhost) {
@@ -204,19 +229,14 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       data-node-id={id}
     >
       {data.isGhost && onRefineGhostNode && !globalIsViewOnlyMode && (
-        <Button
-          variant="ghost"
-          size="iconSm" // You might need to define this size in your Button component variants or use an existing small size
-          className="absolute top-0 left-0 m-1 h-5 w-5 p-0.5 z-10 bg-background/70 hover:bg-accent text-foreground" // Ensure text color is visible
+        <button
+          className="absolute top-0 left-0 m-1 h-5 w-5 p-0.5 z-10 bg-background/70 hover:bg-accent text-foreground"
           title="Refine this suggestion"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRefineGhostNode(id, data.label || '', data.details);
-          }}
+          onClick={() => onRefineGhostNode?.(id, data.label || data.text, data.details)}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <Edit3 className="h-3 w-3" />
-        </Button>
+          <Edit2Icon className="h-3 w-3" />
+        </button>
       )}
       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
         <div
@@ -232,13 +252,13 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         >
           <SelectedNodeToolbar
             nodeId={id}
-            onEditLabel={handleEditLabel}
-            onChangeColor={handleChangeColor}
-            onStartConnection={handleStartConnection}
-            onAIExpand={handleAIExpand}
-            onAIRewrite={handleAIRewrite}
-            onAISuggestRelations={handleAISuggestRelations}
-            onDeleteNode={handleDeleteNode}
+            onEditLabel={() => setEditingNodeId(id)}
+            onChangeColor={(color: string) => updateNode(id, { backgroundColor: color })}
+            onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
+            onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}
+            onAISuggestRelations={() => aiTools.handleMenuSuggestRelations(id)}
+            onStartConnection={(!nodeIsViewOnly && data.onStartConnectionRequest) ? handleToolbarStartConnection : undefined}
+            onDeleteNode={() => deleteNode(id)}
           />
         </div>
       )}
@@ -258,45 +278,86 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
           'bg-transparent border-0 shadow-none' // Card itself is transparent
         )}
       >
-        <CardHeader className={cn(
-          // Removed cursor-move
-          "p-2 flex flex-row items-center space-x-2",
-          data.shape === 'ellipse' && 'justify-center items-center flex-col text-center'
-        )}>
-          <TypeIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <CardTitle className={cn(
-            "text-sm font-medium leading-tight line-clamp-2 break-words",
-            data.shape === 'ellipse' && 'text-center'
-          )}>
-            {data.label || "Untitled Node"}
-          </CardTitle>
-        </CardHeader>
+        {data.isGhost && isInlineEditing && !nodeIsViewOnly ? (
+          <div className="p-2 space-y-1 h-full flex flex-col">
+            <Textarea
+              ref={textareaRef}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onKeyDown={handleEditTextareaKeyDown}
+              className="w-full text-xs p-1 resize-none flex-grow bg-background/80"
+              placeholder="Enter node text..."
+              onClick={(e) => e.stopPropagation()} // Prevent node click/selection
+            />
+            <div className="flex justify-end space-x-1">
+              <button
+                className="bg-primary text-primary-foreground rounded-full p-0.5 hover:bg-primary/80"
+                onClick={handleSaveInlineEdit}
+                title="Save (Enter)"
+              >
+                <CheckIcon className="w-4 h-4" />
+              </button>
+              <button
+                className="bg-background text-foreground rounded-full p-0.5 hover:bg-accent"
+                onClick={handleCancelInlineEdit}
+                title="Cancel (Esc)"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <CardHeader className={cn(
+              "p-2 flex flex-row items-center space-x-2",
+              data.shape === 'ellipse' && 'justify-center items-center flex-col text-center'
+            )}>
+              <TypeIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <CardTitle className={cn(
+                "text-sm font-medium leading-tight line-clamp-2 break-words",
+                data.shape === 'ellipse' && 'text-center'
+              )}>
+                {data.label || "Untitled Node"}
+              </CardTitle>
+            </CardHeader>
 
-        {data.details && data.shape !== 'ellipse' && (
-          <CardContent className={cn(
-            "p-2 pt-0 text-xs text-muted-foreground flex-grow",
-            (typeof nodeHeight === 'number' || data.height) ? 'overflow-y-auto' : `max-h-[${NODE_DETAILS_MAX_HEIGHT}px] overflow-y-auto`
-          )}>
-            <ScrollArea className="h-full w-full"> {/* Ensures ScrollArea takes available space */}
-              <div className="whitespace-pre-wrap break-words">
-                {data.details}
-              </div>
-            </ScrollArea>
-          </CardContent>
+            {data.details && data.shape !== 'ellipse' && (
+              <CardContent className={cn(
+                "p-2 pt-0 text-xs text-muted-foreground flex-grow",
+                (typeof nodeHeight === 'number' || data.height) ? 'overflow-y-auto' : `max-h-[${NODE_DETAILS_MAX_HEIGHT}px] overflow-y-auto`
+              )}>
+                <ScrollArea className="h-full w-full">
+                  <div className="whitespace-pre-wrap break-words">
+                    {data.details}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            )}
+          </>
         )}
       </Card>
 
-      {/* Handles */}
-      <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
-      <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Right} id={`${id}-right-target`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
-      <Handle type="source" position={Position.Bottom} id={`${id}-bottom-source`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Bottom} id={`${id}-bottom-target`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
-      <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
-      <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly} />
+      {data.isGhost && isHovered && !isInlineEditing && !nodeIsViewOnly && (
+        <button
+          onClick={handleStartInlineEdit}
+          className="absolute top-1 right-1 z-10 p-0.5 bg-background/80 hover:bg-secondary rounded"
+          title="Refine text"
+        >
+          <Edit2Icon className="w-3 h-3 text-muted-foreground" />
+        </button>
+      )}
 
-      {/* Hover buttons for adding child nodes */}
+      {/* Handles */}
+      <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
+      <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
+      <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
+      <Handle type="target" position={Position.Right} id={`${id}-right-target`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
+      <Handle type="source" position={Position.Bottom} id={`${id}-bottom-source`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
+      <Handle type="target" position={Position.Bottom} id={`${id}-bottom-target`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
+      <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
+      <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
+
+      {/* Hover buttons for adding child nodes (not for ghost nodes) */}
       {!nodeIsViewOnly && isHovered && !data.isGhost && data.onAddChildNodeRequest && hoverButtonPositions.map(btn => (
         <button
           key={btn.pos}

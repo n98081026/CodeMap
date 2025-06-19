@@ -1,8 +1,14 @@
 "use client";
 
+<<<<<<< HEAD
+import React, { useEffect, useCallback, useState, useMemo } from 'react';
+import { ReactFlowProvider, useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, useReactFlow, type OnPaneDoubleClick, type Viewport } from 'reactflow';
+import type { ConceptMapData, ConceptMapNode, ConceptMapEdge, VisualEdgeSuggestion } from '@/types';
+=======
 import React, { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { ReactFlowProvider, useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, useReactFlow, type OnPaneDoubleClick, type Viewport, Node } from 'reactflow';
 import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
+>>>>>>> master
 import { InteractiveCanvas } from './interactive-canvas';
 import type { CustomNodeData } from './custom-node';
 import CustomNodeComponent from './custom-node'; // Import the standard node component
@@ -160,8 +166,15 @@ interface FlowCanvasCoreProps {
   onNewEdgeSuggestLabels?: (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => Promise<void>;
   onGhostNodeAcceptRequest?: (ghostNodeId: string) => void;
   onConceptSuggestionDrop?: (conceptText: string, position: { x: number; y: number }) => void; // New prop
+<<<<<<< HEAD
+  onNodeStartConnectionRequest?: (nodeId: string) => void; // New prop for starting connection from node
+=======
   onRefinePreviewNodeRequested?: (nodeId: string, currentText: string, currentDetails?: string) => void; // New prop for refining ghost nodes
+>>>>>>> master
   panActivationKeyCode?: string | null;
+  activeVisualEdgeSuggestion?: VisualEdgeSuggestion | null;
+  onAcceptVisualEdge?: (suggestionId: string) => void;
+  onRejectVisualEdge?: (suggestionId: string) => void;
 }
 
 // Helper function for snapping logic
@@ -289,9 +302,17 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onStagedElementsSelectionChange,
   onNewEdgeSuggestLabels,
   onGhostNodeAcceptRequest,
+<<<<<<< HEAD
+  onConceptSuggestionDrop, // Destructure new prop
+  onNodeStartConnectionRequest, // Destructure new prop
+=======
   onConceptSuggestionDrop,
   onRefinePreviewNodeRequested, // Destructure new prop
+>>>>>>> master
   panActivationKeyCode,
+  activeVisualEdgeSuggestion,
+  onAcceptVisualEdge,
+  onRejectVisualEdge,
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
@@ -299,6 +320,15 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     addNode: addNodeToStore,
     setSelectedElement,
     setEditingNodeId,
+<<<<<<< HEAD
+    connectingState,
+    completeConnectionMode,
+    cancelConnectionMode,
+    dragPreviewItem,
+    dragPreviewPosition,
+    updateDragPreviewPosition,
+    draggedRelationLabel
+=======
     connectingNodeId,
     finishConnectionAttempt,
     cancelConnection,
@@ -306,6 +336,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     pendingRelationForEdgeCreation,
     setPendingRelationForEdgeCreation,
     clearPendingRelationForEdgeCreation,
+>>>>>>> master
   } = useConceptMapStore();
   const { toast } = useToast();
 
@@ -313,6 +344,16 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     stagedMapData,
     isStagingActive,
     conceptExpansionPreview,
+<<<<<<< HEAD
+    triggerFitView,
+    setTriggerFitView
+  } = useConceptMapStore();
+  const reactFlowInstance = useReactFlow(); // Already present
+
+  const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
+  const [draggedItemPreview, setDraggedItemPreview] = useState<{ type: string; text: string; x: number; y: number; } | null>(null);
+  const [dragPreviewSnapLines, setDragPreviewSnapLines] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
+=======
     structuralSuggestions, // For edges
     structuralGroupSuggestions // For groups
   } = useConceptMapStore(
@@ -329,6 +370,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
   const [dragPreviewData, setDragPreviewData] = useState<{ x: number; y: number; text: string; width: number; height: number } | null>(null);
+>>>>>>> master
 
   // Initialize useNodesState and useEdgesState for main and staged elements.
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState<CustomNodeData>([]);
@@ -366,6 +408,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         width: appNode.width,   // Already ensured by store to have defaults
         height: appNode.height, // Already ensured by store to have defaults
         onTriggerAIExpand: onNodeAIExpandTriggered,
+        onStartConnectionRequest: onNodeStartConnectionRequest, // Pass down the handler
       } as CustomNodeData,
       position: { x: appNode.x ?? 0, y: appNode.y ?? 0 },
       draggable: !isViewOnlyMode,
@@ -373,12 +416,13 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       connectable: !isViewOnlyMode,
       dragHandle: '.node-move-handle',
       parentNode: appNode.parentNode,
+      expandParent: !!appNode.parentNode, // Add this line: true if parentNode exists, false otherwise
     }));
 
     useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal SyncEffect Nodes] Processed ${newRfNodes.length} nodes. Setting React Flow nodes.`);
     setRfNodes(newRfNodes);
 
-  }, [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered, setRfNodes]);
+  }, [mapDataFromStore.nodes, isViewOnlyMode, onNodeAIExpandTriggered, onNodeStartConnectionRequest, setRfNodes]);
 
 
   // Effect to synchronize edges from the store to React Flow's state
@@ -519,7 +563,39 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       setRfPreviewNodes([]);
       setRfPreviewEdges([]);
     }
+<<<<<<< HEAD
+  }, [conceptExpansionPreview, mapDataFromStore.nodes, setRfPreviewNodes, setRfPreviewEdges, reactFlowInstance]);
+
+  // Effect to manage temporary visual edge suggestion
+  useEffect(() => {
+    if (activeVisualEdgeSuggestion) {
+      const tempEdgeId = `suggested-edge-${activeVisualEdgeSuggestion.id}`;
+      const tempEdge: RFEdge = {
+        id: tempEdgeId,
+        source: activeVisualEdgeSuggestion.sourceNodeId,
+        target: activeVisualEdgeSuggestion.targetNodeId,
+        label: activeVisualEdgeSuggestion.label, // React Flow will render this label
+        type: 'orthogonal', // Or 'default' or your custom edge type
+        style: {
+          stroke: 'hsl(var(--primary)/0.7)',
+          strokeDasharray: '8,6',
+          strokeWidth: 2.5,
+          opacity: 0.75,
+        },
+        animated: true,
+        deletable: false,
+        selectable: false,
+        zIndex: 900, // Ensure it's visible, but potentially below other UI like context menus
+      };
+      setRfEdges(prevEdges => [...prevEdges.filter(edge => !edge.id.startsWith('suggested-edge-')), tempEdge]);
+    } else {
+      // Remove any existing temporary suggested edge if activeVisualEdgeSuggestion is null
+      setRfEdges(prevEdges => prevEdges.filter(edge => !edge.id.startsWith('suggested-edge-')));
+    }
+  }, [activeVisualEdgeSuggestion, setRfEdges]);
+=======
   }, [conceptExpansionPreview, mapDataFromStore.nodes, setRfPreviewNodes, setRfPreviewEdges, reactFlowInstance, onRefinePreviewNodeRequested]);
+>>>>>>> master
   
   // Effect to fitView (remains unchanged)
   useEffect(() => {
@@ -539,7 +615,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       setTriggerFitView(false); // Reset the trigger in the store
     }
   }, [triggerFitView, reactFlowInstance, setTriggerFitView]);
-
 
   // Effect for Escape key to cancel connection mode
   useEffect(() => {
@@ -575,7 +650,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       }
     };
   }, [connectingState, reactFlowInstance]);
-
 
   const onNodeDragInternal = useCallback((_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>, allNodes: RFNode<CustomNodeData>[]) => {
     if (isViewOnlyMode || !draggedNode.dragging || !draggedNode.width || !draggedNode.height || !draggedNode.positionAbsolute) {
@@ -790,8 +864,33 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       updateDragPreviewPosition(snappedPosition);
       setActiveSnapLinesLocal(activeSnapLines); // Show snap lines for the preview
     }
-  }, [dragPreviewItem, reactFlowInstance, updateDragPreviewPosition, rfNodes, setActiveSnapLinesLocal]); // Added rfNodes and setActiveSnapLinesLocal
+  }, [dragPreviewItem, reactFlowInstance, updateDragPreviewPosition, rfNodes, setActiveSnapLinesLocal]);
 
+  const handleCanvasDragLeave = useCallback((event: React.DragEvent) => {
+    const reactFlowBounds = reactFlowInstance?.containerRef?.current?.getBoundingClientRect();
+    if (reactFlowBounds &&
+        (event.clientX < reactFlowBounds.left || event.clientX > reactFlowBounds.right ||
+         event.clientY < reactFlowBounds.top || event.clientY > reactFlowBounds.bottom)) {
+      setDraggedItemPreview(null);
+      setDragPreviewSnapLines([]);
+    } else if (!event.relatedTarget) {
+        setDraggedItemPreview(null);
+        setDragPreviewSnapLines([]);
+    }
+  }, [reactFlowInstance, setDragPreviewSnapLines]);
+
+<<<<<<< HEAD
+  const handleCanvasDrop = useCallback((droppedData: {type: string, text: string}, positionInFlow: {x: number, y: number}) => {
+    if (isViewOnlyMode) {
+      setDraggedItemPreview(null);
+      setDragPreviewSnapLines([]);
+      return;
+    }
+    if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
+      const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE; // Snapping the drop position itself
+      const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
+      onConceptSuggestionDrop?.(droppedData.text, { x: snappedX, y: snappedY });
+=======
   const handleCanvasDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     setDragPreviewData(null);
@@ -819,8 +918,11 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     } catch (e) {
       console.error("Failed to parse dropped data in FlowCanvasCore:", e);
       useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Failed to parse dropped data: ${dataString}. Error: ${e}`);
+>>>>>>> master
     }
-  }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE]);
+    setDraggedItemPreview(null);
+    setDragPreviewSnapLines([]);
+  }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE, setDraggedItemPreview, setDragPreviewSnapLines]);
 
   const handleCanvasDragLeave = useCallback((event: React.DragEvent) => {
     // Check if the mouse is leaving the canvas area entirely
@@ -970,21 +1072,86 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
 >>>>>>> master
 
+  const handleNodeClickInternal = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
+    if (isViewOnlyMode) return;
+
+    if (isConnectingMode && connectionSourceNodeId) {
+      if (node.id === connectionSourceNodeId) {
+        // Clicked on the source node again, cancel connection mode
+        storeCompleteConnectionMode();
+        useConceptMapStore.getState().addDebugLog('[FlowCanvasCore] Connection mode cancelled by clicking source node again.');
+      } else {
+        // Clicked on a target node, complete the connection
+        (onConnectInStore as unknown as (options: any) => string)({ // Assuming onConnectInStore is correctly typed to return edgeId or similar
+          source: connectionSourceNodeId,
+          target: node.id,
+          label: "connects", // Default label
+        });
+        // Suggest labels for the new edge
+        const newEdgeIdProvisional = `${connectionSourceNodeId}-${node.id}`; // Provisional ID, store should confirm
+        onNewEdgeSuggestLabels?.(newEdgeIdProvisional, connectionSourceNodeId, node.id);
+
+        storeCompleteConnectionMode();
+        useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] Connection completed: ${connectionSourceNodeId} -> ${node.id}`);
+      }
+      event.stopPropagation(); // Prevent selection change or other node click logic
+      return;
+    }
+
+    // Existing ghost node click logic
+    if (node.data?.isGhost) {
+      onGhostNodeAcceptRequest?.(node.id);
+      return; // Ghost node click shouldn't trigger selection.
+    }
+
+    // Default node click behavior (handled by onSelectionChange via ReactFlow)
+    // If onSelectionChange is not enough, explicit selection call would be here:
+    // onSelectionChange(node.id, 'node');
+  }, [
+    isViewOnlyMode,
+    isConnectingMode,
+    connectionSourceNodeId,
+    storeCompleteConnectionMode,
+    onConnectInStore,
+    onGhostNodeAcceptRequest,
+    onNewEdgeSuggestLabels,
+    // onSelectionChange // if direct call needed
+  ]);
+
+  const handlePaneClickInternal = useCallback((event: React.MouseEvent) => {
+    if (isConnectingMode) {
+      storeCompleteConnectionMode();
+      useConceptMapStore.getState().addDebugLog('[FlowCanvasCore] Connection mode cancelled by pane click.');
+    } else {
+      // Existing pane click logic (usually to clear selection)
+      onSelectionChange(null, null);
+    }
+  }, [isConnectingMode, storeCompleteConnectionMode, onSelectionChange]);
+
+
   return (
+<<<<<<< HEAD
+    <InteractiveCanvas
+      nodes={combinedNodes} // Pass combined nodes
+      edges={combinedEdges} // Pass combined edges
+      onNodesChange={handleRfNodesChange} // Main nodes changes
+      onEdgesChange={handleRfEdgesChange} // Main edges changes
+=======
     <div ref={reactFlowWrapperRef} className={cn('w-full h-full', { 'cursor-crosshair': !!connectingNodeId })}>
       <InteractiveCanvas
         nodes={combinedNodes}
         edges={combinedEdges}
       onNodesChange={handleRfNodesChange}
       onEdgesChange={handleRfEdgesChange}
+>>>>>>> master
       onNodesDelete={handleRfNodesDeleted}
       onEdgesDelete={handleRfEdgesDeleted}
       onSelectionChange={handleRfSelectionChange}
-      onConnect={onConnectInStore} // Changed from onConnectInStore to onConnect, as InteractiveCanvas expects onConnect
+      onConnect={onConnectInStore}
       isViewOnlyMode={isViewOnlyMode}
       onNodeContextMenu={(event, node) => {
         if (isViewOnlyMode) return;
-        event.preventDefault(); // Ensure default is prevented here too
+        event.preventDefault();
         onNodeContextMenuRequest?.(event, node);
       }}
       onNodeDrag={onNodeDragInternal}
@@ -1084,8 +1251,17 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       activeSnapLines={activeSnapLinesLocal}
+      dragPreviewSnapLines={dragPreviewSnapLines} // Pass down the new snap lines
       gridSize={GRID_SIZE}
       panActivationKeyCode={panActivationKeyCode}
+      // Drag preview related props for InteractiveCanvas
+      draggedItemPreview={draggedItemPreview}
+      onCanvasDragOver={handleCanvasDragOver}
+      onCanvasDragLeave={handleCanvasDragLeave}
+      // onDrop is already handleCanvasDrop
+      activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}
+      onAcceptVisualEdge={onAcceptVisualEdge}
+      onRejectVisualEdge={onRejectVisualEdge}
     />
     </div>
   );
@@ -1097,3 +1273,9 @@ const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => (
 );
 
 export default React.memo(FlowCanvasCoreWrapper);
+<<<<<<< HEAD
+    
+
+[end of src/components/concept-map/flow-canvas-core.tsx]
+=======
+>>>>>>> master

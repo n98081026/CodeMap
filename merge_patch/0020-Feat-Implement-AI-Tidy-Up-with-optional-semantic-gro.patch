@@ -1,0 +1,27 @@
+From 72d2cdee69675f8a3f18c00ea1cbe3e8764fd5c3 Mon Sep 17 00:00:00 2001
+From: "google-labs-jules[bot]"
+ <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date: Sun, 15 Jun 2025 00:43:58 +0000
+Subject: [PATCH 20/27] Feat: Implement AI Tidy-Up with optional semantic
+ grouping
+
+This commit completes the "AI Tidy-Up / Smart Alignment (Contextual)" feature. When multiple nodes are selected, you can now trigger an AI action to automatically align and distribute these nodes. Additionally, the AI can now optionally suggest and create a new parent node to semantically group the selection.
+
+Key changes:
+- **`ai-tidy-up-selection.ts` (AI Flow):**
+    - The output schema `AiTidyUpSelectionOutputSchema` now includes an optional `suggestedParentNode: { text: string; type: string; }`.
+    - The prompt for `aiTidyUpSelectionPrompt` was enhanced to instruct me to suggest a parent node (label and type 'ai-group') if the selected nodes form a strong thematic cluster, alongside providing tidied positions.
+- **`useConceptMapAITools.ts` (Hook Logic):**
+    - The `handleAiTidyUpSelection` function was updated to:
+        - Process the `newPositions` from the AI flow and apply them using the store's `applyLayout` action.
+        - If `suggestedParentNode` is present in the AI output:
+            - Calculate a central position for this new parent node based on its children's tidied positions.
+            - Create the parent node using `addStoreNode`.
+            - Update the `parentNode` property of each of the originally selected (and now tidied) nodes to link them to the new parent, using `updateStoreNode`.
+        - Update toast notifications to inform you if nodes were also grouped.
+- **`TODO.md`**: Updated to mark the "AI Tidy-Up" feature, including its semantic grouping enhancement, as complete.
+
+This feature helps you quickly organize selections of nodes and can now also assist in structuring the map by suggesting logical groupings.
+-- 
+2.48.1.windows.1
+

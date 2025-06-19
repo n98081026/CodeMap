@@ -14,6 +14,7 @@ import {
   suggestEdgeLabelFlow,
   type SuggestEdgeLabelInput,
   type SuggestEdgeLabelOutput,
+  suggestQuickChildTextsFlow,
   refineNodeSuggestionFlow,
   type RefineNodeSuggestionInput,
   type RefineNodeSuggestionOutput,
@@ -33,20 +34,11 @@ import {
     rewriteNodeContent as aiRewriteNodeContent,
     type RewriteNodeContentOutput 
 } from '@/ai/flows/rewrite-node-content-logic';
-import type { ConceptExpansionPreviewNode, ConceptExpansionPreviewState } from '@/stores/concept-map-store';
-import type {
-  AskQuestionAboutNodeOutput,
-  ExpandConceptOutput,
-  GenerateMapSnippetOutput,
-  GenerateQuickClusterOutput,
-  SuggestRelationsOutput,
-  SummarizeNodesOutput
-} from '@/ai/flows'; 
 import type { ConceptMapNode, ConceptMapEdge, RFNode } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
-import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react';
+import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote, Loader2 } from 'lucide-react';
 
 export interface ConceptToExpandDetails {
   id: string | null;
@@ -112,6 +104,14 @@ const _generateNodeSuggestionsLogic = (
 export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const { toast } = useToast();
   const {
+<<<<<<< HEAD
+    mapData, selectedElementId, multiSelectedNodeIds,
+    setAiExtractedConcepts, setAiSuggestedRelations,
+    removeExtractedConceptsFromSuggestions, removeSuggestedRelationsFromSuggestions,
+    resetAiSuggestions, addNode: addStoreNode, updateNode: updateStoreNode,
+    addEdge: addStoreEdge, setAiProcessingNodeId, setStagedMapData,
+    setConceptExpansionPreview, conceptExpansionPreview,
+=======
     mapData,
     selectedElementId,
     multiSelectedNodeIds,
@@ -128,6 +128,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     setStagedMapData,
     setConceptExpansionPreview,
     conceptExpansionPreview,
+>>>>>>> master
     applyLayout,
   } = useConceptMapStore(
     useCallback(s => ({
@@ -168,6 +169,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [refineModalInitialData, setRefineModalInitialData] = useState<RefineModalData | null>(null);
   const [intermediateNodeSuggestion, setIntermediateNodeSuggestion] = useState<IntermediateNodeSuggestionContext | null>(null);
 
+<<<<<<< HEAD
+  // State for AI-suggested child texts
+  const [aiChildTextSuggestions, setAiChildTextSuggestions] = useState<string[]>([]);
+  const [isLoadingAiChildTexts, setIsLoadingAiChildTexts] = useState(false);
+=======
   // State for Suggest Intermediate Node
   const [isSuggestIntermediateNodeModalOpen, setIsSuggestIntermediateNodeModalOpen] = useState(false);
   const [intermediateNodeSuggestionData, setIntermediateNodeSuggestionData] = useState<IntermediateNodeSuggestionResponse | null>(null);
@@ -178,6 +184,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [isRefineGhostNodeModalOpen, setIsRefineGhostNodeModalOpen] = useState(false);
   const [refiningGhostNodeData, setRefiningGhostNodeData] = useState<{ id: string; currentText: string; currentDetails?: string; } | null>(null);
 
+>>>>>>> master
 
   // --- Extract Concepts ---
   const openExtractConceptsModal = useCallback((nodeIdForContext?: string) => {
@@ -224,7 +231,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
     resetAiSuggestions();
     let concepts: string[] = [];
-    const currentMapData = useConceptMapStore.getState().mapData; // Get fresh map data
+    const currentMapData = useConceptMapStore.getState().mapData;
     const graphAdapter = new GraphAdapterUtility();
     const graphInstance = graphAdapter.fromArrays(currentMapData.nodes, currentMapData.edges);
 
@@ -244,7 +251,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     }
     setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept A", "Example Concept B"]);
     setIsSuggestRelationsModalOpen(true);
-  }, [isViewOnlyMode, resetAiSuggestions, selectedElementId, multiSelectedNodeIds, toast]); // mapData removed as using currentMapData
+  }, [isViewOnlyMode, resetAiSuggestions, selectedElementId, multiSelectedNodeIds, toast]);
 
   const handleRelationsSuggested = useCallback((relations: SuggestRelationsOutput) => {
     setAiSuggestedRelations(relations);
@@ -289,7 +296,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
     let conceptDetailsToSet: ConceptToExpandDetails | null = null;
     let context: string[] = [];
-    const currentMapData = useConceptMapStore.getState().mapData; // Get fresh map data
+    const currentMapData = useConceptMapStore.getState().mapData;
     const graphAdapter = new GraphAdapterUtility();
     const graphInstance = graphAdapter.fromArrays(currentMapData.nodes, currentMapData.edges);
 
@@ -300,7 +307,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       conceptDetailsToSet = { id: selectedNode.id, text: selectedNode.text, node: selectedNode };
       if (graphInstance.hasNode(selectedNode.id)) {
           const neighborNodeIds = graphAdapter.getNeighborhood(graphInstance, selectedNode.id, { depth: 1, direction: 'all' });
-          context = neighborNodeIds.map(id => currentMapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 5);
+          context = neighborNodeIds.map(id => graphInstance.nodesMap.get(id)?.text).filter((text): text is string => !!text).slice(0, 5);
       }
     } else if (currentMapData.nodes.length > 0) {
       conceptDetailsToSet = { id: null, text: "General Map Topic", node: undefined };
@@ -310,7 +317,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     setConceptToExpandDetails(conceptDetailsToSet);
     setMapContextForExpansion(context);
     setIsExpandConceptModalOpen(true);
-  }, [isViewOnlyMode, selectedElementId, toast]); // mapData removed
+  }, [isViewOnlyMode, selectedElementId, toast]);
 
   const handleConceptExpanded = useCallback(async (output: ExpandConceptOutput) => {
     if (isViewOnlyMode || !conceptToExpandDetails || !conceptToExpandDetails.id) {
@@ -466,12 +473,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   // --- Mini Toolbar Actions ---
   const handleMiniToolbarQuickExpand = useCallback(async (nodeId: string) => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode" }); return; }
-    const sourceNode = mapData.nodes.find(n => n.id === nodeId); // mapData from hook scope is fine here
+    const sourceNode = mapData.nodes.find(n => n.id === nodeId);
     if (!sourceNode) { toast({ title: "Error", description: "Source node not found.", variant: "destructive" }); return; }
     setAiProcessingNodeId(nodeId);
     try {
       const graphAdapter = new GraphAdapterUtility();
-      // Use mapData from hook scope for graph instance creation, as it's stable within this callback
       const graphInstance = graphAdapter.fromArrays(mapData.nodes, mapData.edges);
       let existingMapContext: string[] = [];
       if (graphInstance.hasNode(sourceNode.id)) {
@@ -757,10 +763,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       return;
     }
 
-    // Access store data via getState() for current selection, or use destructured props if preferred
     const currentMapDataNodes = useConceptMapStore.getState().mapData.nodes;
     const currentMultiSelectedNodeIds = useConceptMapStore.getState().multiSelectedNodeIds;
-    const storeApplyLayout = useConceptMapStore.getState().applyLayout; // Using getState() to ensure freshness
+    const storeApplyLayout = useConceptMapStore.getState().applyLayout;
 
     if (currentMultiSelectedNodeIds.length < 2) {
       toast({ title: "Selection Required", description: "Please select at least two nodes to tidy up." });
@@ -807,27 +812,24 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       const output: AiTidyUpSelectionOutput = await aiTidyUpSelectionFlow(input);
 
       if (output.newPositions && output.newPositions.length > 0) {
-        storeApplyLayout(output.newPositions); // Existing line
+        storeApplyLayout(output.newPositions);
 
-        // NEW LOGIC FOR GROUPING STARTS HERE
         if (output.suggestedParentNode && output.suggestedParentNode.text) {
           const { text: parentText, type: parentType } = output.suggestedParentNode;
 
-          // Calculate center position for the new parent node based on the new positions of children
           let sumX = 0;
           let sumY = 0;
 
           const childrenNewPositions = output.newPositions.filter(p =>
-            selectedNodesData.some(sn => sn.id === p.id) // Ensure we only consider original selection
+            selectedNodesData.some(sn => sn.id === p.id)
           );
 
           if (childrenNewPositions.length > 0) {
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             childrenNewPositions.forEach(p => {
-              // Find original node to get its dimensions, as newPositions only has x,y
               const originalNode = selectedNodesData.find(sn => sn.id === p.id);
-              const nodeWidth = originalNode?.width || 150; // Default if not found
-              const nodeHeight = originalNode?.height || 70; // Default if not found
+              const nodeWidth = originalNode?.width || 150;
+              const nodeHeight = originalNode?.height || 70;
 
               sumX += p.x + nodeWidth / 2;
               sumY += p.y + nodeHeight / 2;
@@ -840,18 +842,16 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             const avgCenterY = sumY / childrenNewPositions.length;
 
             const parentNodePosition = {
-              x: Math.round((avgCenterX - (150 / 2)) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT, // Assuming default parent width 150
-              y: Math.round((avgCenterY - (70 / 2)) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT   // Assuming default parent height 70
+              x: Math.round((avgCenterX - (150 / 2)) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT,
+              y: Math.round((avgCenterY - (70 / 2)) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT
             };
 
-            // Add the new parent node
             const newParentNodeId = useConceptMapStore.getState().addNode({
               text: parentText,
               type: parentType || 'ai-group',
               position: parentNodePosition,
             });
 
-            // Update original selected nodes to be children of this new parent
             childrenNewPositions.forEach(childPos => {
               useConceptMapStore.getState().updateNode(childPos.id, { parentNode: newParentNodeId });
             });
@@ -861,7 +861,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
              toast({ title: "AI Tidy-Up Successful", description: "Selected nodes have been rearranged. Grouping was suggested but could not be applied." });
           }
         } else {
-          // No parent node suggested, only positions were applied
           toast({ title: "AI Tidy-Up Successful", description: "Selected nodes have been rearranged." });
         }
       } else {
@@ -873,7 +872,161 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     } finally {
       setAiProcessingNodeId(null);
     }
-  }, [isViewOnlyMode, toast, setAiProcessingNodeId]); // Removed direct store dependencies as using getState()
+  }, [isViewOnlyMode, toast, setAiProcessingNodeId]);
+
+  const handleAddQuickChildNode = useCallback((
+    parentNodeId: string,
+    suggestedText: string,
+    direction?: 'top' | 'right' | 'bottom' | 'left'
+  ) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot add child nodes.", variant: "default" });
+      return;
+    }
+    const parentNode = mapData.nodes.find(n => n.id === parentNodeId);
+    if (!parentNode) {
+      toast({ title: "Error", description: "Parent node not found.", variant: "destructive" });
+      return;
+    }
+
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const childIndex = parentNode.childIds?.length || 0;
+    const effectiveDirection = direction || 'bottom';
+
+    const newPosition = getNodePlacement(
+      currentNodes,
+      'child',
+      parentNode,
+      null,
+      GRID_SIZE_FOR_AI_PLACEMENT,
+      childIndex,
+      1,
+      effectiveDirection
+    );
+
+    const newNodeId = addStoreNode({
+      text: suggestedText,
+      type: 'manual-node',
+      position: newPosition,
+      parentNode: parentNodeId,
+    });
+
+    addStoreEdge({
+      source: parentNodeId,
+      target: newNodeId,
+      label: "relates to",
+    });
+
+    setAiChildTextSuggestions([]);
+    toast({ title: "Child Node Added", description: `"${suggestedText}" added ${effectiveDirection} of "${parentNode.text}".` });
+  }, [isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast]);
+
+  const fetchAIChildTextSuggestions = useCallback(async (node: RFNode<CustomNodeData> | null) => {
+    if (!node || isViewOnlyMode) {
+      setAiChildTextSuggestions([]);
+      return;
+    }
+    setIsLoadingAiChildTexts(true);
+    setAiChildTextSuggestions([]);
+    try {
+      const result = await suggestQuickChildTextsFlow({
+        parentNodeText: node.data.label,
+        parentNodeDetails: node.data.details,
+      });
+      setAiChildTextSuggestions(result.suggestions || []);
+    } catch (error) {
+      console.error("Error fetching AI child text suggestions:", error);
+      toast({ title: "AI Suggestion Error", description: "Could not fetch child text suggestions.", variant: "destructive" });
+      setAiChildTextSuggestions([]);
+    } finally {
+      setIsLoadingAiChildTexts(false);
+    }
+  }, [isViewOnlyMode, toast]);
+
+  const getNodeSuggestions = useCallback((currentNode: RFNode<CustomNodeData>): SuggestionAction[] => {
+    const baseAISuggestions: SuggestionAction[] = [
+      { id: `expand-${currentNode.id}`, label: "Expand Concept (AI)", icon: Sparkles, action: () => openExpandConceptModal(currentNode.id) },
+      { id: `suggest-relations-${currentNode.id}`, label: "Suggest Relations (AI)", icon: Lightbulb, action: () => openSuggestRelationsModal(currentNode.id) },
+      { id: `rewrite-${currentNode.id}`, label: "Rewrite Content (AI)", icon: MessageSquareQuote, action: () => openRewriteNodeContentModal(currentNode.id) },
+      { id: `ask-${currentNode.id}`, label: "Ask Question (AI)", icon: HelpCircle, action: () => openAskQuestionModal(currentNode.id) },
+    ];
+
+    let quickAddSuggestions: SuggestionAction[] = [];
+
+    if (!isViewOnlyMode) {
+      if (isLoadingAiChildTexts) {
+        quickAddSuggestions.push({
+          id: 'loading-ai-child-texts',
+          label: "Loading ideas...",
+          action: () => {},
+          icon: Loader2,
+          disabled: true,
+        });
+      } else if (aiChildTextSuggestions.length > 0) {
+        aiChildTextSuggestions.forEach((text, index) => {
+          quickAddSuggestions.push({
+            id: `ai-add-child-bottom-${currentNode.id}-${index}`,
+            label: `Add: "${text}" (below)`,
+            icon: PlusSquare,
+            action: () => handleAddQuickChildNode(currentNode.id, text, 'bottom')
+          });
+          quickAddSuggestions.push({
+            id: `ai-add-child-right-${currentNode.id}-${index}`,
+            label: `Add: "${text}" (right)`,
+            icon: PlusSquare,
+            action: () => handleAddQuickChildNode(currentNode.id, text, 'right')
+          });
+        });
+        quickAddSuggestions.push({
+          id: 'clear-ai-child-suggestions',
+          label: 'Clear these suggestions',
+          action: () => setAiChildTextSuggestions([]),
+        });
+
+      } else {
+        quickAddSuggestions.push({
+          id: `quick-add-child-bottom-${currentNode.id}`,
+          label: "Add Child Below",
+          icon: PlusSquare,
+          action: () => handleAddQuickChildNode(currentNode.id, "New Idea", 'bottom')
+        });
+        quickAddSuggestions.push({
+          id: `quick-add-child-right-${currentNode.id}`,
+          label: "Add Child Right",
+          icon: PlusSquare,
+          action: () => handleAddQuickChildNode(currentNode.id, "New Idea", 'right')
+        });
+      }
+    }
+    return [...baseAISuggestions, ...quickAddSuggestions];
+  }, [
+    isViewOnlyMode,
+    openExpandConceptModal,
+    openSuggestRelationsModal,
+    openRewriteNodeContentModal,
+    openAskQuestionModal,
+    handleAddQuickChildNode,
+    isLoadingAiChildTexts,
+    aiChildTextSuggestions
+  ]);
+
+  const getPaneSuggestions = useCallback((position?: {x: number, y: number}): SuggestionAction[] => {
+    const baseSuggestions: SuggestionAction[] = [
+      { id: 'pane-quick-cluster', label: "Quick Cluster (AI)", icon: Brain, action: openQuickClusterModal },
+    ];
+     if (!isViewOnlyMode && position) {
+      baseSuggestions.unshift({
+        id: 'pane-add-topic',
+        label: "Add New Topic Here",
+        icon: PlusSquare,
+        action: () => {
+            const newNodeId = addStoreNode({ text: "New Topic", type: 'manual-node', position });
+            useConceptMapStore.getState().setEditingNodeId(newNodeId);
+        }
+      });
+    }
+    return baseSuggestions;
+  }, [isViewOnlyMode, openQuickClusterModal, addStoreNode]);
 
 
   return {
@@ -893,6 +1046,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     handleMiniToolbarRewriteConcise,
     getPaneSuggestions,
     getNodeSuggestions: memoizedGetNodeSuggestions,
+    fetchAIChildTextSuggestions,
+    aiChildTextSuggestions,
+    isLoadingAiChildTexts,
     fetchAndSetEdgeLabelSuggestions,
     edgeLabelSuggestions,
     setEdgeLabelSuggestions,

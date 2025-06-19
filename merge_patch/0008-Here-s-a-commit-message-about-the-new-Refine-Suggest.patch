@@ -1,0 +1,749 @@
+From 89274bd7769c3af36caee4f77ba492e99ad507b4 Mon Sep 17 00:00:00 2001
+From: "google-labs-jules[bot]"
+ <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date: Sat, 14 Jun 2025 11:53:15 +0000
+Subject: [PATCH 08/27] Here's a commit message about the new "Refine
+ Suggestion" feature:
+
+Feat: Implement "Refine Suggestion" for AI-generated ghost nodes
+
+This commit introduces the functionality for you to refine AI-generated suggestions (ghost nodes) that appear during features like "Expand Concept".
+
+Key changes include:
+- **New AI Flow (`refineNodeSuggestionFlow`):**
+    - Created `src/ai/flows/refine-node-suggestion.ts` with a Genkit flow that takes an original node's text/details and your instructions, then returns an AI-refined version.
+    - Exported from `src/ai/flows/index.ts`.
+- **New Modal (`RefineSuggestionModal.tsx`):**
+    - Created `src/components/concept-map/refine-suggestion-modal.tsx` for you to view the current suggestion and input refinement instructions.
+- **Store Update (`concept-map-store.ts`):**
+    - Added an `updatePreviewNode` action to specifically update nodes within the `conceptExpansionPreview` state.
+- **Hook Integration (`useConceptMapAITools.ts`):**
+    - Added state to manage the Refine modal's visibility and data.
+    - Implemented `openRefineSuggestionModal` to initialize and show the modal with ghost node data.
+    - Implemented `handleRefineSuggestionConfirm` to call the new AI flow and then update the specific ghost node in the store using `updatePreviewNode`.
+- **UI Trigger (`custom-node.tsx`):**
+    - The "Refine" icon (Wand2) on ghost nodes now calls `openRefineSuggestionModal`.
+- **Modal Rendering (`page.tsx`):**
+    - The `RefineSuggestionModal` is now rendered in `ConceptMapEditorPage`, controlled by state from `useConceptMapAITools`.
+- **`TODO.md`**: Updated to mark this feature as complete.
+
+This feature allows you more control over AI suggestions by enabling you to iteratively refine the content of preview/ghost nodes before accepting them into the map.
+---
+ TODO.md                                       |   4 +-
+ src/ai/flows/index.ts                         |   1 +
+ src/ai/flows/refine-node-suggestion.ts        |  82 +++++++++
+ .../concept-maps/editor/[mapId]/page.tsx      |  14 ++
+ .../concept-map/ai-suggestion-panel.tsx       |  10 +-
+ src/components/concept-map/custom-node.tsx    |  12 +-
+ .../concept-map/refine-suggestion-modal.tsx   | 141 +++++++++++++++
+ src/hooks/useConceptMapAITools.ts             | 171 ++++++++++++------
+ src/stores/concept-map-store.ts               |  34 +++-
+ 9 files changed, 398 insertions(+), 71 deletions(-)
+ create mode 100644 src/ai/flows/refine-node-suggestion.ts
+ create mode 100644 src/components/concept-map/refine-suggestion-modal.tsx
+
+diff --git a/TODO.md b/TODO.md
+index 1e5045d..6a7b9f3 100644
+--- a/TODO.md
++++ b/TODO.md
+@@ -175,9 +175,7 @@
+ - [x] Refinable "Expand Concept" Previews:
+     - [x] When "Expand Concept" is used, first show new child nodes as temporary "ghost" nodes.
+     - [x] Interaction: Allow clicking individual ghost nodes to accept. Add "Accept All" / "Cancel" controls. (Core acceptance logic done via click and floater)
+-    - [ ] Interaction (Enhancement): Display "Refine" icon on hover over a ghost node to alter its suggestion before acceptance.
+-        - [x] UI: Display "Refine" icon (e.g., Wand2) on ghost node hover with placeholder action.
+-        - [ ] Logic: Implement full "refine suggestion" functionality (e.g., modal, AI call).
++    - [x] Interaction (Enhancement): Display "Refine" icon on hover over a ghost node to alter its suggestion before acceptance.
+ 
+ ### AI-Powered Layout and Structuring Assistance
+ - [ ] "AI Tidy-Up" / Smart Alignment (Contextual):
+diff --git a/src/ai/flows/index.ts b/src/ai/flows/index.ts
+index b13ef0b..6788f26 100644
+--- a/src/ai/flows/index.ts
++++ b/src/ai/flows/index.ts
+@@ -9,6 +9,7 @@ export * from './generate-quick-cluster';
+ export * from './suggest-relations';
+ export * from './summarize-nodes-flow';
+ export * from './suggest-edge-label'; // Added new flow
++export * from './refine-node-suggestion'; // Added new flow for refining suggestions
+ 
+ // IMPORTANT: rewrite-node-content-logic.ts (formerly rewrite-node-content-flow.ts) and its exports
+ // are NOT exported from this barrel file due to persistent module resolution issues.
+diff --git a/src/ai/flows/refine-node-suggestion.ts b/src/ai/flows/refine-node-suggestion.ts
+new file mode 100644
+index 0000000..47f9068
+--- /dev/null
++++ b/src/ai/flows/refine-node-suggestion.ts
+@@ -0,0 +1,82 @@
++// src/ai/flows/refine-node-suggestion.ts
++'use server';
++
++import { ai } from '@/ai/genkit';
++import { z } from 'genkit';
++
++// 1. Define Input Schema
++export const RefineNodeSuggestionInputSchema = z.object({
++  originalText: z.string().describe("The original text content of the node/suggestion."),
++  originalDetails: z.string().optional().describe("The original detailed description of the node/suggestion, if any."),
++  userInstruction: z.string().describe("The user's instruction on how to refine the text/details.")
++});
++export type RefineNodeSuggestionInput = z.infer<typeof RefineNodeSuggestionInputSchema>;
++
++// 2. Define Output Schema
++export const RefineNodeSuggestionOutputSchema = z.object({
++  refinedText: z.string().describe("The AI-refined text content for the node. This should be suitable as a concise node label."),
++  refinedDetails: z.string().optional().describe("The AI-refined detailed description for the node, if applicable. This provides further elaboration.")
++});
++export type RefineNodeSuggestionOutput = z.infer<typeof RefineNodeSuggestionOutputSchema>;
++
++// 3. Define the Genkit Prompt
++const refineNodeSuggestionPrompt = ai.definePrompt({
++  name: 'refineNodeSuggestionPrompt',
++  input: { schema: RefineNodeSuggestionInputSchema },
++  output: { schema: RefineNodeSuggestionOutputSchema },
++  prompt: `You are an AI assistant helping to refine content for nodes in a concept map.
++Your task is to revise the provided original text and original details of a concept map node based on the user's instruction.
++
++Original Node Text:
++{{{originalText}}}
++
++{{#if originalDetails}}
++Original Node Details:
++{{{originalDetails}}}
++{{/if}}
++
++User's Refinement Instruction:
++{{{userInstruction}}}
++
++Please revise the text and details according to the instruction.
++- The 'refinedText' should be concise and suitable for a node label.
++- The 'refinedDetails' (if any) should provide further elaboration.
++- If the instruction implies generating new details where none existed, create them.
++- If the instruction implies removing details, omit them in the output.
++- If the instruction is vague, try your best to improve the clarity or focus of the original content in a general way.
++
++Return the output ONLY in the specified JSON format with "refinedText" and "refinedDetails" keys.
++Example refined output:
++{
++  "refinedText": "Concise Refined Label",
++  "refinedDetails": "Elaborated and refined details based on user instruction."
++}
++If no details are appropriate after refinement, the "refinedDetails" field can be omitted or be an empty string.
++`,
++});
++
++// 4. Define the Genkit Flow
++export const refineNodeSuggestionFlow = ai.defineFlow(
++  {
++    name: 'refineNodeSuggestionFlow',
++    inputSchema: RefineNodeSuggestionInputSchema,
++    outputSchema: RefineNodeSuggestionOutputSchema,
++  },
++  async (input) => {
++    const { output } = await refineNodeSuggestionPrompt(input);
++    if (!output) {
++      throw new Error("AI did not produce an output for refining the node suggestion.");
++    }
++    // Ensure refinedText is always present, even if AI omits it (though schema should enforce)
++    if (typeof output.refinedText !== 'string') {
++        // Attempt to use original text if AI fails to provide refinedText
++        // Or, depending on strictness, could throw error or return a default
++        console.warn("AI output missing refinedText, using originalText as fallback for refinedText.");
++        output.refinedText = input.originalText;
++    }
++    return output;
++  }
++);
++
++// Also, ensure this new flow is exported from the main AI flows index if one exists
++// (e.g., src/ai/flows/index.ts). This subtask only creates the file.
+diff --git a/src/app/(app)/concept-maps/editor/[mapId]/page.tsx b/src/app/(app)/concept-maps/editor/[mapId]/page.tsx
+index b3d603b..f49a865 100644
+--- a/src/app/(app)/concept-maps/editor/[mapId]/page.tsx
++++ b/src/app/(app)/concept-maps/editor/[mapId]/page.tsx
+@@ -23,6 +23,7 @@ import {
+ import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal";
+ import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
+ import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
++import { RefineSuggestionModal } from '@/components/concept-map/refine-suggestion-modal'; // Added import
+ import { useToast } from "@/hooks/use-toast";
+ import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
+ import { UserRole } from "@/types";
+@@ -142,6 +143,11 @@ export default function ConceptMapEditorPage() {
+     clearExpansionPreview,      // Destructure new function
+     // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
+     removeExtractedConceptsFromSuggestions, // Destructure for use in drop handler
++    // For RefineSuggestionModal
++    isRefineModalOpen,
++    setIsRefineModalOpen,
++    refineModalInitialData,
++    handleRefineSuggestionConfirm,
+   } = aiToolsHook;
+ 
+   const reactFlowInstance = useReactFlow();
+@@ -664,6 +670,14 @@ export default function ConceptMapEditorPage() {
+         {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
+         {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
+         {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
++        {isRefineModalOpen && refineModalInitialData && !storeIsViewOnlyMode && (
++          <RefineSuggestionModal
++            isOpen={isRefineModalOpen}
++            onOpenChange={setIsRefineModalOpen}
++            initialData={refineModalInitialData}
++            onConfirm={handleRefineSuggestionConfirm}
++          />
++        )}
+       </ReactFlowProvider>
+     </div>
+   );
+diff --git a/src/components/concept-map/ai-suggestion-panel.tsx b/src/components/concept-map/ai-suggestion-panel.tsx
+index 52f2b1f..b7c5f77 100644
+--- a/src/components/concept-map/ai-suggestion-panel.tsx
++++ b/src/components/concept-map/ai-suggestion-panel.tsx
+@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
+ import type { ConceptMapData, ConceptMapNode } from "@/types";
+ import { cn } from '@/lib/utils';
+ import { EmptyState } from '@/components/layout/empty-state';
+-import useConceptMapStore from '@/stores/concept-map-store'; // Added store import
++import useConceptMapStore from '@/stores/concept-map-store';
+ 
+ interface AISuggestionPanelProps {
+   mapData?: ConceptMapData; 
+@@ -338,14 +338,16 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
+       event.dataTransfer.setData('application/json', JSON.stringify({
+         type: 'concept-suggestion',
+         text: conceptText,
++        // Pass the conceptType if available, or a default
++        conceptType: conceptType || 'ai-concept'
+       }));
+       event.dataTransfer.effectAllowed = 'copy';
+-      setDragPreview({ text: conceptText, type: conceptType || 'ai-concept' }); // Set drag preview
+-      console.log('[AISuggestionPanel] Dragging concept:', conceptText, 'Type:', conceptType || 'ai-concept');
++      setDragPreview({ text: conceptText, type: conceptType || 'ai-concept' });
++      // console.log('[AISuggestionPanel] Dragging concept:', conceptText, 'Type:', conceptType || 'ai-concept');
+     };
+ 
+     const handleDragEnd = () => {
+-      clearDragPreview(); // Clear drag preview
++      clearDragPreview();
+     };
+ 
+     if (item.isEditing && !isViewOnlyMode) {
+diff --git a/src/components/concept-map/custom-node.tsx b/src/components/concept-map/custom-node.tsx
+index 0ec25e0..74ce253 100644
+--- a/src/components/concept-map/custom-node.tsx
++++ b/src/components/concept-map/custom-node.tsx
+@@ -186,9 +186,15 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
+         <button
+           onClick={(e) => {
+             e.stopPropagation();
+-            console.log(`Refine action triggered for ghost node: ${id}, Label: "${data.label}"`);
+-            alert(`Placeholder: Refine AI suggestion for "${data.label}"`);
+-            // Future: Call a function here to open a refine modal or trigger AI refinement
++            const currentExpansionPreview = useConceptMapStore.getState().conceptExpansionPreview;
++            if (currentExpansionPreview && currentExpansionPreview.parentNodeId) {
++              aiTools.openRefineSuggestionModal(id, currentExpansionPreview.parentNodeId);
++            } else {
++              console.error("Refine clicked, but no active concept expansion preview or parentNodeId found for ghost node:", id);
++              // Optionally, show a toast error to the user if the toast hook is available here
++              // import { useToast } from '@/hooks/use-toast'; // and then: const { toast } = useToast();
++              // toast({ title: "Error", description: "Cannot refine suggestion: context not found.", variant: "destructive" });
++            }
+           }}
+           className="absolute top-1 left-1 z-10 flex items-center justify-center w-6 h-6 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-all"
+           title="Refine AI Suggestion"
+diff --git a/src/components/concept-map/refine-suggestion-modal.tsx b/src/components/concept-map/refine-suggestion-modal.tsx
+new file mode 100644
+index 0000000..2354647
+--- /dev/null
++++ b/src/components/concept-map/refine-suggestion-modal.tsx
+@@ -0,0 +1,141 @@
++// src/components/concept-map/refine-suggestion-modal.tsx
++"use client";
++
++import React, { useState, useEffect } from 'react';
++import {
++  Dialog,
++  DialogContent,
++  DialogHeader,
++  DialogTitle,
++  DialogDescription,
++  DialogFooter,
++  DialogClose,
++} from '@/components/ui/dialog';
++import { Button } from '@/components/ui/button';
++import { Textarea } from '@/components/ui/textarea';
++import { Label } from '@/components/ui/label';
++import { ScrollArea } from '@/components/ui/scroll-area';
++import { Loader2 } from 'lucide-react';
++
++interface RefineSuggestionModalProps {
++  isOpen: boolean;
++  onOpenChange: (isOpen: boolean) => void;
++  initialData: {
++    nodeId: string; // Keep nodeId to pass back in onConfirm
++    text: string;
++    details?: string;
++  } | null;
++  onConfirm: (nodeId: string, refinementInstruction: string) => Promise<void>;
++  title?: string;
++  description?: string;
++}
++
++export const RefineSuggestionModal: React.FC<RefineSuggestionModalProps> = ({
++  isOpen,
++  onOpenChange,
++  initialData,
++  onConfirm,
++  title = "Refine AI Suggestion",
++  description = "Provide instructions to the AI on how you'd like to change this suggestion."
++}) => {
++  const [refinementInstruction, setRefinementInstruction] = useState('');
++  const [isProcessing, setIsProcessing] = useState(false);
++
++  useEffect(() => {
++    // Reset instruction when initialData changes (e.g., modal opened for different node)
++    // or when modal is opened
++    if (isOpen) {
++      setRefinementInstruction('');
++    }
++  }, [isOpen, initialData]); // initialData is included to reset if the target item changes while modal might be technically open
++
++  const handleConfirm = async () => {
++    if (!initialData || !refinementInstruction.trim()) return;
++    setIsProcessing(true);
++    try {
++      await onConfirm(initialData.nodeId, refinementInstruction.trim());
++      // Parent component is expected to close the modal upon successful onConfirm
++      // by setting its 'isOpen' prop to false.
++      // onOpenChange(false);
++    } catch (error) {
++      // Error handling (e.g., toast) would typically be done by the caller of onConfirm
++      console.error("Error during refinement:", error);
++    } finally {
++      setIsProcessing(false);
++    }
++  };
++
++  const handleClose = () => {
++    if (!isProcessing) {
++      onOpenChange(false);
++    }
++  };
++
++  if (!initialData && isOpen) {
++    // If modal is open but no data, it's an invalid state, potentially close or show error.
++    // For now, let's just not render the content part if data is missing when open.
++    // Or, parent should ensure initialData is provided if isOpen is true.
++    // To prevent rendering an empty shell if parent logic is flawed:
++    return null;
++  }
++  if (!isOpen) { // Also explicitly don't render if not open
++      return null;
++  }
++
++
++  return (
++    <Dialog open={isOpen} onOpenChange={handleClose}>
++      <DialogContent className="sm:max-w-lg">
++        <DialogHeader>
++          <DialogTitle>{title}</DialogTitle>
++          {description && <DialogDescription>{description}</DialogDescription>}
++        </DialogHeader>
++
++        <div className="grid gap-4 py-4">
++          <div>
++            <Label htmlFor="current-text" className="text-sm font-medium text-muted-foreground">Current Suggestion Text</Label>
++            <ScrollArea className="h-20 w-full rounded-md border p-2 mt-1 text-sm bg-muted">
++              {initialData?.text || "No text provided."}
++            </ScrollArea>
++          </div>
++
++          {(initialData?.details || typeof initialData?.details === 'string') && ( // Check if details is present, even if empty string
++            <div>
++              <Label htmlFor="current-details" className="text-sm font-medium text-muted-foreground">Current Details</Label>
++              <ScrollArea className="h-24 w-full rounded-md border p-2 mt-1 text-sm bg-muted">
++                {initialData.details || <span className="italic">No details provided.</span>}
++              </ScrollArea>
++            </div>
++          )}
++
++          <div>
++            <Label htmlFor="refinement-instruction">Refinement Instructions</Label>
++            <Textarea
++              id="refinement-instruction"
++              placeholder="e.g., Make it more concise, focus on the security aspect, elaborate on its connection to X..."
++              value={refinementInstruction}
++              onChange={(e) => setRefinementInstruction(e.target.value)}
++              className="mt-1 min-h-[80px]"
++              disabled={isProcessing}
++            />
++          </div>
++        </div>
++
++        <DialogFooter>
++          <DialogClose asChild>
++            <Button variant="outline" onClick={handleClose} disabled={isProcessing}>
++              Cancel
++            </Button>
++          </DialogClose>
++          <Button
++            onClick={handleConfirm}
++            disabled={!refinementInstruction.trim() || isProcessing}
++          >
++            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
++            Refine
++          </Button>
++        </DialogFooter>
++      </DialogContent>
++    </Dialog>
++  );
++};
+diff --git a/src/hooks/useConceptMapAITools.ts b/src/hooks/useConceptMapAITools.ts
+index a271570..38ea924 100644
+--- a/src/hooks/useConceptMapAITools.ts
++++ b/src/hooks/useConceptMapAITools.ts
+@@ -13,7 +13,10 @@ import {
+   summarizeNodes as aiSummarizeNodes,
+   suggestEdgeLabelFlow,
+   type SuggestEdgeLabelInput,
+-  type SuggestEdgeLabelOutput
++  type SuggestEdgeLabelOutput,
++  refineNodeSuggestionFlow, // Import new flow
++  type RefineNodeSuggestionInput, // Import new type
++  type RefineNodeSuggestionOutput // Import new type
+ } from '@/ai/flows';
+ import { 
+     rewriteNodeContent as aiRewriteNodeContent,
+@@ -29,7 +32,7 @@ import type {
+   SummarizeNodesOutput
+ } from '@/ai/flows'; 
+ import type { ConceptMapNode, RFNode } from '@/types';
+-import { getNodePlacement } from '@/lib/layout-utils'; // Ensure this is correctly imported
++import { getNodePlacement } from '@/lib/layout-utils';
+ import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
+ import { Lightbulb, Sparkles, Brain, HelpCircle, PlusSquare, MessageSquareQuote } from 'lucide-react';
+ 
+@@ -45,6 +48,14 @@ export interface NodeContentToRewrite {
+     details?: string;
+ }
+ 
++// New interface for refine modal data
++export interface RefineModalData {
++    nodeId: string; // This is the previewNodeId
++    parentNodeId: string; // To correctly call updatePreviewNode
++    text: string;
++    details?: string;
++}
++
+ const GRID_SIZE_FOR_AI_PLACEMENT = 20;
+ 
+ // Externalized logic for generating node suggestions
+@@ -69,21 +80,14 @@ const _generateNodeSuggestionsLogic = (
+     suggestionType: 'content_chip',
+     action: () => {
+       if (isViewOnly) return;
+-      const currentNodes = useConceptMapStore.getState().mapData.nodes; // Get fresh nodes
++      const currentNodes = useConceptMapStore.getState().mapData.nodes;
+       const newPosition = getNodePlacementFunc(
+-        currentNodes,
+-        'child',
+-        sourceNode as ConceptMapNode,
+-        null,
+-        GRID_SIZE_FOR_AI_PLACEMENT,
+-        index,
+-        placeholderSuggestions.length
++        currentNodes, 'child', sourceNode as ConceptMapNode, null,
++        GRID_SIZE_FOR_AI_PLACEMENT, index, placeholderSuggestions.length
+       );
+       addNodeFunc({
+-        text: pSuggestion.text,
+-        type: pSuggestion.type,
+-        position: newPosition,
+-        parentNode: sourceNode.id
++        text: pSuggestion.text, type: pSuggestion.type,
++        position: newPosition, parentNode: sourceNode.id
+       });
+       toastFunc({ title: "Node Added", description: `"${pSuggestion.text}" added near "${(sourceNode as ConceptMapNode).text}".` });
+     }
+@@ -94,38 +98,24 @@ const _generateNodeSuggestionsLogic = (
+ export function useConceptMapAITools(isViewOnlyMode: boolean) {
+   const { toast } = useToast();
+   const {
+-    mapData,
+-    selectedElementId,
+-    multiSelectedNodeIds,
+-    setAiExtractedConcepts,
+-    setAiSuggestedRelations,
+-    removeExtractedConceptsFromSuggestions,
+-    removeSuggestedRelationsFromSuggestions,
+-    resetAiSuggestions,
+-    addNode: addStoreNode,
+-    updateNode: updateStoreNode,
+-    addEdge: addStoreEdge,
+-    setAiProcessingNodeId,
+-    setStagedMapData,
+-    setConceptExpansionPreview,
+-    conceptExpansionPreview,
++    mapData, selectedElementId, multiSelectedNodeIds,
++    setAiExtractedConcepts, setAiSuggestedRelations,
++    removeExtractedConceptsFromSuggestions, removeSuggestedRelationsFromSuggestions,
++    resetAiSuggestions, addNode: addStoreNode, updateNode: updateStoreNode,
++    addEdge: addStoreEdge, setAiProcessingNodeId, setStagedMapData,
++    setConceptExpansionPreview, conceptExpansionPreview,
++    // updatePreviewNode, // Will use getState().updatePreviewNode directly
+   } = useConceptMapStore(
+     useCallback(s => ({
+-      mapData: s.mapData,
+-      selectedElementId: s.selectedElementId,
+-      multiSelectedNodeIds: s.multiSelectedNodeIds,
+-      setAiExtractedConcepts: s.setAiExtractedConcepts,
+-      setAiSuggestedRelations: s.setAiSuggestedRelations,
++      mapData: s.mapData, selectedElementId: s.selectedElementId, multiSelectedNodeIds: s.multiSelectedNodeIds,
++      setAiExtractedConcepts: s.setAiExtractedConcepts, setAiSuggestedRelations: s.setAiSuggestedRelations,
+       removeExtractedConceptsFromSuggestions: s.removeExtractedConceptsFromSuggestions,
+       removeSuggestedRelationsFromSuggestions: s.removeSuggestedRelationsFromSuggestions,
+-      resetAiSuggestions: s.resetAiSuggestions,
+-      addNode: s.addNode,
+-      updateNode: s.updateNode,
+-      addEdge: s.addEdge,
+-      setAiProcessingNodeId: s.setAiProcessingNodeId,
+-      setStagedMapData: s.setStagedMapData,
+-      setConceptExpansionPreview: s.setConceptExpansionPreview,
++      resetAiSuggestions: s.resetAiSuggestions, addNode: s.addNode, updateNode: s.updateNode,
++      addEdge: s.addEdge, setAiProcessingNodeId: s.setAiProcessingNodeId,
++      setStagedMapData: s.setStagedMapData, setConceptExpansionPreview: s.setConceptExpansionPreview,
+       conceptExpansionPreview: s.conceptExpansionPreview,
++      // updatePreviewNode: s.updatePreviewNode, // Not needed in selector if using getState()
+     }), [])
+   );
+ 
+@@ -144,6 +134,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
+   const [nodeContentToRewrite, setNodeContentToRewrite] = useState<NodeContentToRewrite | null>(null);
+   const [edgeLabelSuggestions, setEdgeLabelSuggestions] = useState<{ edgeId: string; labels: string[] } | null>(null);
+ 
++  // State for RefineSuggestionModal
++  const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
++  const [refineModalInitialData, setRefineModalInitialData] = useState<RefineModalData | null>(null);
++
++
+   // --- Extract Concepts ---
+   const openExtractConceptsModal = useCallback((nodeIdForContext?: string) => {
+     if (isViewOnlyMode) { toast({ title: "View Only Mode", description: "AI tools are disabled.", variant: "default" }); return; }
+@@ -509,12 +504,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
+     ];
+   }, [isViewOnlyMode, addStoreNode, openQuickClusterModal]);
+ 
+-  // This is the function that needs to be correctly returned and memoized by the hook.
+-  // It will call the external _generateNodeSuggestionsLogic.
+   const memoizedGetNodeSuggestions = useCallback((sourceNode: RFNode<any> | ConceptMapNode): SuggestionAction[] => {
+-    // Now, call the external logic function, passing dependencies from the hook's scope
+     return _generateNodeSuggestionsLogic(sourceNode, isViewOnlyMode, addStoreNode, getNodePlacement, toast);
+-  }, [isViewOnlyMode, addStoreNode, toast]); // getNodePlacement is stable as it's an import
++  }, [isViewOnlyMode, addStoreNode, toast]);
+ 
+   // --- Concept Expansion Preview Lifecycle ---
+   const acceptAllExpansionPreviews = useCallback(() => {
+@@ -527,11 +519,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
+       const currentNodes = useConceptMapStore.getState().mapData.nodes;
+       const position = getNodePlacement(currentNodes, 'child', parentNode, null, GRID_SIZE_FOR_AI_PLACEMENT, index, previewNodes.length);
+       const newNodeId = addStoreNode({
+-        text: previewNode.text,
+-        type: 'ai-expanded',
+-        details: previewNode.details,
+-        position: position,
+-        parentNode: parentNodeId,
++        text: previewNode.text, type: 'ai-expanded', details: previewNode.details,
++        position: position, parentNode: parentNodeId,
+       });
+       addStoreEdge({ source: parentNodeId, target: newNodeId, label: previewNode.relationLabel });
+     });
+@@ -548,7 +537,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
+     const previewNodeData = previewNodes.find(pn => pn.id === previewNodeId);
+     if (!previewNodeData) { toast({ title: "Error", description: "Preview node data not found."}); return; }
+ 
+-    // Find index of this node for placement (if multiple previews were shown)
+     const nodeIndex = previewNodes.findIndex(pn => pn.id === previewNodeId);
+     const totalNodesInPreview = previewNodes.length;
+ 
+@@ -556,22 +544,18 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
+     const position = getNodePlacement(currentNodes, 'child', parentNode, null, GRID_SIZE_FOR_AI_PLACEMENT, nodeIndex, totalNodesInPreview);
+ 
+     const newNodeId = addStoreNode({
+-      text: previewNodeData.text,
+-      type: 'ai-expanded',
+-      details: previewNodeData.details,
+-      position: position,
+-      parentNode: parentNodeId,
++      text: previewNodeData.text, type: 'ai-expanded', details: previewNodeData.details,
++      position: position, parentNode: parentNodeId,
+     });
+     addStoreEdge({ source: parentNodeId, target: newNodeId, label: previewNodeData.relationLabel });
+ 
+     toast({ title: "Suggestion Added", description: `Concept "${previewNodeData.text}" added and linked.` });
+ 
+-    // Remove the accepted node from the preview list
+     const remainingPreviewNodes = previewNodes.filter(pn => pn.id !== previewNodeId);
+     if (remainingPreviewNodes.length > 0) {
+       setConceptExpansionPreview({ parentNodeId, previewNodes: remainingPreviewNodes });
+     } else {
+-      setConceptExpansionPreview(null); // Clear if all accepted
++      setConceptExpansionPreview(null);
+     }
+   }, [conceptExpansionPreview, isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast, setConceptExpansionPreview]);
+ 
+@@ -579,6 +563,69 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
+     setConceptExpansionPreview(null);
+   }, [setConceptExpansionPreview]);
+ 
++  // --- Refine Suggestion Modal Logic ---
++  const openRefineSuggestionModal = useCallback((previewNodeId: string, parentNodeIdForPreview: string) => {
++    if (isViewOnlyMode) {
++      toast({ title: "View Only Mode", variant: "default" });
++      return;
++    }
++    const currentPreview = useConceptMapStore.getState().conceptExpansionPreview;
++    if (currentPreview && currentPreview.parentNodeId === parentNodeIdForPreview) {
++      const nodeToRefine = currentPreview.previewNodes.find(n => n.id === previewNodeId);
++      if (nodeToRefine) {
++        setRefineModalInitialData({
++          nodeId: nodeToRefine.id, // This is the previewNodeId
++          parentNodeId: parentNodeIdForPreview,
++          text: nodeToRefine.text,
++          details: nodeToRefine.details
++        });
++        setIsRefineModalOpen(true);
++      } else {
++        toast({ title: "Error", description: "Preview node to refine not found.", variant: "destructive" });
++      }
++    } else {
++      toast({ title: "Error", description: "No active expansion preview for this context.", variant: "destructive" });
++    }
++  }, [isViewOnlyMode, toast]); // Removed conceptExpansionPreview from deps, using getState()
++
++  const handleRefineSuggestionConfirm = useCallback(async (refinementInstruction: string) => {
++    if (!refineModalInitialData) {
++      toast({ title: "Error", description: "No data available for refinement.", variant: "destructive" });
++      return;
++    }
++    if (isViewOnlyMode) {
++      toast({ title: "View Only Mode", variant: "default" });
++      return;
++    }
++
++    const { nodeId: previewNodeId, parentNodeId, text: originalText, details: originalDetails } = refineModalInitialData;
++
++    setAiProcessingNodeId(parentNodeId);
++    setIsRefineModalOpen(false);
++
++    try {
++      const input: RefineNodeSuggestionInput = {
++        originalText,
++        originalDetails,
++        userInstruction: refinementInstruction,
++      };
++      const output: RefineNodeSuggestionOutput = await refineNodeSuggestionFlow(input);
++
++      useConceptMapStore.getState().updatePreviewNode(parentNodeId, previewNodeId, {
++        text: output.refinedText,
++        details: output.refinedDetails,
++      });
++
++      toast({ title: "Suggestion Refined", description: "The AI suggestion has been updated." });
++    } catch (error) {
++      console.error("Error refining suggestion:", error);
++      toast({ title: "Refinement Failed", description: (error as Error).message, variant: "destructive" });
++    } finally {
++      setAiProcessingNodeId(null);
++      setRefineModalInitialData(null);
++    }
++  }, [refineModalInitialData, isViewOnlyMode, toast, setAiProcessingNodeId]);
++
+ 
+   return {
+     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
+@@ -596,7 +643,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
+     handleMiniToolbarQuickExpand,
+     handleMiniToolbarRewriteConcise,
+     getPaneSuggestions,
+-    getNodeSuggestions: memoizedGetNodeSuggestions, // Return the memoized version
++    getNodeSuggestions: memoizedGetNodeSuggestions,
+     fetchAndSetEdgeLabelSuggestions,
+     edgeLabelSuggestions,
+     setEdgeLabelSuggestions,
+@@ -606,6 +653,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
+     clearExpansionPreview,
+     addStoreNode, 
+     addStoreEdge,
++    // Refine Modal
++    isRefineModalOpen,
++    setIsRefineModalOpen,
++    refineModalInitialData,
++    openRefineSuggestionModal,
++    handleRefineSuggestionConfirm, // This will be passed to the modal from the page
+   };
+ }
+ 
+diff --git a/src/stores/concept-map-store.ts b/src/stores/concept-map-store.ts
+index 6f626b3..20921ed 100644
+--- a/src/stores/concept-map-store.ts
++++ b/src/stores/concept-map-store.ts
+@@ -119,6 +119,7 @@ deleteFromStagedMapData: (elementIds: string[]) => void;
+ 
+ // Concept expansion preview actions
+ setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void;
++updatePreviewNode: (parentNodeId: string, previewNodeId: string, updates: Partial<ConceptExpansionPreviewNode>) => void; // Added action
+ 
+ // Layout action
+ applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
+@@ -149,9 +150,10 @@ const initialStateBase: Omit<ConceptMapState,
+   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
+   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
+   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
+-  'setConceptExpansionPreview' | 'applyLayout' |
++  'setConceptExpansionPreview' | 'updatePreviewNode' | // Added updatePreviewNode to Omit
++  'applyLayout' |
+   'startConnectionMode' | 'completeConnectionMode' | 'cancelConnectionMode' |
+-  'setDragPreview' | 'updateDragPreviewPosition' | 'clearDragPreview' // Added drag preview actions
++  'setDragPreview' | 'updateDragPreviewPosition' | 'clearDragPreview'
+ > = {
+   mapId: null,
+   mapName: 'Untitled Concept Map',
+@@ -559,6 +561,34 @@ export const useConceptMapStore = create<ConceptMapState>()(
+         get().addDebugLog(`[STORE setConceptExpansionPreview] Setting preview for parent ${preview?.parentNodeId}. Nodes: ${preview?.previewNodes?.length ?? 0}`);
+         set({ conceptExpansionPreview: preview });
+       },
++      updatePreviewNode: (parentNodeId, previewNodeId, updates) => set((state) => {
++        if (!state.conceptExpansionPreview || state.conceptExpansionPreview.parentNodeId !== parentNodeId) {
++          console.warn('[STORE updatePreviewNode] No matching concept expansion preview active for parentNodeId:', parentNodeId);
++          return state;
++        }
++        const updatedPreviewNodes = state.conceptExpansionPreview.previewNodes.map(node =>
++          node.id === previewNodeId
++            ? { ...node, ...updates }
++            : node
++        );
++
++        const originalNode = state.conceptExpansionPreview.previewNodes.find(n => n.id === previewNodeId);
++        const updatedNode = updatedPreviewNodes.find(n => n.id === previewNodeId);
++
++        if (!originalNode || !updatedNode || JSON.stringify(originalNode) === JSON.stringify(updatedNode)) {
++          console.warn('[STORE updatePreviewNode] Preview node not found or no actual update for previewNodeId:', previewNodeId, 'Updates:', updates);
++          return state;
++        }
++
++        get().addDebugLog(`[STORE updatePreviewNode] Updated preview node ${previewNodeId} for parent ${parentNodeId}. Updates: ${JSON.stringify(updates)}`);
++        return {
++          ...state,
++          conceptExpansionPreview: {
++            ...state.conceptExpansionPreview,
++            previewNodes: updatedPreviewNodes,
++          },
++        };
++      }),
+ 
+       applyLayout: (updatedNodePositions) => {
+         get().addDebugLog(`[STORE applyLayout] Attempting to apply new layout to ${updatedNodePositions.length} nodes.`);
+-- 
+2.48.1.windows.1
+
