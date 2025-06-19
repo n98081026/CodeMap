@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler } from "lucide-react"; 
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, GitMerge } from "lucide-react"; // Added GitMerge
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
@@ -24,10 +24,11 @@ interface PropertiesInspectorProps {
   selectedElement?: ConceptMapNode | ConceptMapEdge | null; 
   selectedElementType?: 'node' | 'edge' | null;
   onSelectedElementPropertyUpdate?: (updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>) => void;
+  onSuggestIntermediateNode?: (edgeId: string) => void; // New prop
 
   isNewMapMode?: boolean; 
   isViewOnlyMode?: boolean;
-  editingNodeId?: string | null; // Added prop
+  editingNodeId?: string | null;
 }
 
 export const PropertiesInspector = React.memo(function PropertiesInspector({ 
@@ -36,12 +37,13 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   selectedElement,
   selectedElementType,
   onSelectedElementPropertyUpdate,
+  onSuggestIntermediateNode, // Destructure new prop
   isNewMapMode, 
   isViewOnlyMode,
-  editingNodeId, // Destructure new prop
+  editingNodeId,
 }: PropertiesInspectorProps) {
   
-  const nodeLabelInputRef = useRef<HTMLInputElement>(null); // Ref for node label input
+  const nodeLabelInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (
@@ -430,6 +432,33 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
                 <SelectItem value="arrowclosed">Arrow (Closed)</SelectItem>
             </SelectContent>
         </Select>
+      </div>
+
+      {/* AI Edge Actions Section */}
+      <div className="mt-4 pt-4 border-t">
+        <Label
+          className={cn(
+            "flex items-center gap-2 mb-2 text-sm font-medium",
+            (isViewOnlyMode || !onSuggestIntermediateNode) && "text-muted-foreground/70"
+          )}
+        >
+          <GitMerge className="h-4 w-4" />
+          AI Edge Actions
+        </Label>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => {
+            if (selectedElement && selectedElementType === 'edge' && onSuggestIntermediateNode) {
+              onSuggestIntermediateNode((selectedElement as ConceptMapEdge).id);
+            }
+          }}
+          disabled={isViewOnlyMode || !onSuggestIntermediateNode || !selectedElement || selectedElementType !== 'edge'}
+          title="Let AI suggest an intermediate concept between the connected nodes."
+        >
+          Suggest Intermediate Node
+        </Button>
       </div>
     </>
   );

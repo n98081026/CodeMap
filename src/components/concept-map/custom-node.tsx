@@ -1,5 +1,5 @@
 "use client";
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState, useCallback } from 'react'; // Imported useCallback
 import { Handle, Position, type NodeProps } from 'reactflow';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +12,7 @@ import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
   SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser,
-  Move as MoveIcon // Added MoveIcon
+  Move as MoveIcon, Wand2 // Added Wand2
 } from 'lucide-react'; // Added Loader2
 
 export interface CustomNodeData {
@@ -61,8 +61,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     editingNodeId,
     setEditingNodeId,
     aiProcessingNodeId, // Get AI processing state
-    deleteNode, // Added deleteNode from store
-    updateNode, // Added updateNode from store
+    deleteNode,
+    updateNode,
+    startConnectionMode, // Added startConnectionMode from store
   } = useConceptMapStore();
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
@@ -72,6 +73,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const aiTools = useConceptMapAITools(nodeIsViewOnly);
 
   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
+  const [isGhostHovered, setIsGhostHovered] = useState(false); // New state for ghost node hover
   const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
   // Removed isHoveredForToolbar state
   const cardRef = useRef<HTMLDivElement>(null);
@@ -106,14 +108,34 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   // Placeholder handlers for AI mini toolbar actions
   // Removed handleQuickExpand and handleRewriteConcise as they are now passed directly to the toolbar
 
-  // getNodeRect might not be needed if toolbar is positioned relatively within the node.
-  // Keeping it for now in case future versions of toolbar need screen coords.
-  // const getNodeRect = () => {
-  //   if (nodeRef.current) {
-  //     return nodeRef.current.getBoundingClientRect();
-  //   }
-  //   return null;
-  // };
+  // Memoized callbacks for SelectedNodeToolbar
+  const handleEditLabel = useCallback(() => {
+    setEditingNodeId(id);
+  }, [id, setEditingNodeId]);
+
+  const handleChangeColor = useCallback((color: string) => {
+    updateNode(id, { backgroundColor: color });
+  }, [id, updateNode]);
+
+  const handleStartConnection = useCallback(() => {
+    startConnectionMode(id);
+  }, [id, startConnectionMode]);
+
+  const handleAIExpand = useCallback(() => {
+    aiTools.handleMiniToolbarQuickExpand(id);
+  }, [aiTools, id]);
+
+  const handleAIRewrite = useCallback(() => {
+    aiTools.handleMiniToolbarRewriteConcise(id);
+  }, [aiTools, id]);
+
+  const handleAISuggestRelations = useCallback(() => {
+    aiTools.handleMenuSuggestRelations(id);
+  }, [aiTools, id]);
+
+  const handleDeleteNode = useCallback(() => {
+    deleteNode(id);
+  }, [id, deleteNode]);
 
   useEffect(() => {
     if (selected && nodeRef.current) {
@@ -144,14 +166,42 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
       )}
       onMouseEnter={() => {
-        if (data.isGhost) return; // Do not trigger hover effects for ghost nodes
-        setIsHovered(true);
-        // Removed setIsHoveredForToolbar(true);
+        if (data.isGhost) {
+          setIsGhostHovered(true);
+        } else {
+          setIsHovered(true);
+        }
       }}
-      onMouseLeave={() => { setIsHovered(false); /* Removed setIsHoveredForToolbar(false); */ }}
+      onMouseLeave={() => {
+        if (data.isGhost) {
+          setIsGhostHovered(false);
+        } else {
+          setIsHovered(false);
+        }
+      }}
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
+      {data.isGhost && isGhostHovered && !nodeIsViewOnly && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const currentExpansionPreview = useConceptMapStore.getState().conceptExpansionPreview;
+            if (currentExpansionPreview && currentExpansionPreview.parentNodeId) {
+              aiTools.openRefineSuggestionModal(id, currentExpansionPreview.parentNodeId);
+            } else {
+              console.error("Refine clicked, but no active concept expansion preview or parentNodeId found for ghost node:", id);
+              // Optionally, show a toast error to the user if the toast hook is available here
+              // import { useToast } from '@/hooks/use-toast'; // and then: const { toast } = useToast();
+              // toast({ title: "Error", description: "Cannot refine suggestion: context not found.", variant: "destructive" });
+            }
+          }}
+          className="absolute top-1 left-1 z-10 flex items-center justify-center w-6 h-6 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-all"
+          title="Refine AI Suggestion"
+        >
+          <Wand2 className="w-3.5 h-3.5" />
+        </button>
+      )}
       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
         <div
           className={cn(
@@ -165,12 +215,13 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         >
           <SelectedNodeToolbar
             nodeId={id}
-            onEditLabel={() => setEditingNodeId(id)}
-            onChangeColor={(color: string) => updateNode(id, { backgroundColor: color })}
-            onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
-            onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}
-            onAISuggestRelations={() => aiTools.handleMenuSuggestRelations(id)}
-            onDeleteNode={() => deleteNode(id)}
+            onEditLabel={handleEditLabel}
+            onChangeColor={handleChangeColor}
+            onStartConnection={handleStartConnection}
+            onAIExpand={handleAIExpand}
+            onAIRewrite={handleAIRewrite}
+            onAISuggestRelations={handleAISuggestRelations}
+            onDeleteNode={handleDeleteNode}
           />
         </div>
       )}

@@ -16,6 +16,127 @@ export interface RFConceptMapEdgeDataFromCore extends OrthogonalEdgeData {}
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8; // Pixels for snapping sensitivity
 
+interface SnapResult {
+  snappedPosition: { x: number; y: number };
+  activeSnapLines: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
+}
+
+function calculateSnappedPositionAndLines(
+  targetNodePos: { x: number; y: number },
+  targetNodeDims: { width: number; height: number },
+  nodesToSnapAgainst: RFNode<CustomNodeData>[],
+  gridSize: number,
+  snapThreshold: number,
+  excludeId?: string
+): SnapResult {
+  let currentDragSnapLines: SnapResult['activeSnapLines'] = [];
+  let snappedXPosition = targetNodePos.x;
+  let snappedYPosition = targetNodePos.y;
+  let xSnappedByNode = false;
+  let ySnappedByNode = false;
+
+  const targetNodeWidth = targetNodeDims.width;
+  const targetNodeHeight = targetNodeDims.height;
+
+  const effectiveNodesToSnapAgainst = excludeId
+    ? nodesToSnapAgainst.filter(n => n.id !== excludeId)
+    : nodesToSnapAgainst;
+
+  const draggedTargetsX = [
+    { type: 'left', value: targetNodePos.x },
+    { type: 'center', value: targetNodePos.x + targetNodeWidth / 2 },
+    { type: 'right', value: targetNodePos.x + targetNodeWidth },
+  ];
+  const draggedTargetsY = [
+    { type: 'top', value: targetNodePos.y },
+    { type: 'center', value: targetNodePos.y + targetNodeHeight / 2 },
+    { type: 'bottom', value: targetNodePos.y + targetNodeHeight },
+  ];
+
+  let minDeltaX = Infinity; let bestSnapXInfo: { position: number, line: SnapResult['activeSnapLines'][0] } | null = null;
+  let minDeltaY = Infinity; let bestSnapYInfo: { position: number, line: SnapResult['activeSnapLines'][0] } | null = null;
+
+  effectiveNodesToSnapAgainst.forEach(otherNode => {
+    if (!otherNode.width || !otherNode.height || !otherNode.positionAbsolute) return;
+
+    const otherWidth = otherNode.width;
+    const otherHeight = otherNode.height;
+    const otherNodePosition = otherNode.positionAbsolute;
+
+    const otherTargetsX = [
+      { type: 'left', value: otherNodePosition.x },
+      { type: 'center', value: otherNodePosition.x + otherWidth / 2 },
+      { type: 'right', value: otherNodePosition.x + otherWidth },
+    ];
+    const otherTargetsY = [
+      { type: 'top', value: otherNodePosition.y },
+      { type: 'center', value: otherNodePosition.y + otherHeight / 2 },
+      { type: 'bottom', value: otherNodePosition.y + otherHeight },
+    ];
+
+    for (const dtX of draggedTargetsX) {
+      for (const otX of otherTargetsX) {
+        const delta = Math.abs(dtX.value - otX.value);
+        if (delta < snapThreshold && delta < minDeltaX) {
+          minDeltaX = delta;
+          bestSnapXInfo = {
+            position: otX.value - (dtX.value - targetNodePos.x),
+            line: {
+              type: 'vertical',
+              x1: otX.value, y1: Math.min(targetNodePos.y, otherNodePosition.y) - 20,
+              x2: otX.value, y2: Math.max(targetNodePos.y + targetNodeHeight, otherNodePosition.y + otherHeight) + 20,
+            }
+          };
+        }
+      }
+    }
+
+    for (const dtY of draggedTargetsY) {
+      for (const otY of otherTargetsY) {
+        const delta = Math.abs(dtY.value - otY.value);
+        if (delta < snapThreshold && delta < minDeltaY) {
+          minDeltaY = delta;
+          bestSnapYInfo = {
+            position: otY.value - (dtY.value - targetNodePos.y),
+            line: {
+              type: 'horizontal',
+              x1: Math.min(targetNodePos.x, otherNodePosition.x) - 20, y1: otY.value,
+              x2: Math.max(targetNodePos.x + targetNodeWidth, otherNodePosition.x + otherWidth) + 20, y2: otY.value,
+            }
+          };
+        }
+      }
+    }
+  });
+
+  if (bestSnapXInfo !== null) {
+    snappedXPosition = bestSnapXInfo.position;
+    xSnappedByNode = true;
+    currentDragSnapLines.push(bestSnapXInfo.line);
+  }
+  if (bestSnapYInfo !== null) {
+    snappedYPosition = bestSnapYInfo.position;
+    ySnappedByNode = true;
+    currentDragSnapLines.push(bestSnapYInfo.line);
+  }
+
+  if (!xSnappedByNode) {
+    const gridSnappedX = Math.round(targetNodePos.x / gridSize) * gridSize;
+    if (Math.abs(targetNodePos.x - gridSnappedX) < snapThreshold) {
+      snappedXPosition = gridSnappedX;
+    }
+  }
+  if (!ySnappedByNode) {
+    const gridSnappedY = Math.round(targetNodePos.y / gridSize) * gridSize;
+    if (Math.abs(targetNodePos.y - gridSnappedY) < snapThreshold) {
+      snappedYPosition = gridSnappedY;
+    }
+  }
+
+  return { snappedPosition: { x: snappedXPosition, y: snappedYPosition }, activeSnapLines: currentDragSnapLines };
+}
+
+
 interface FlowCanvasCoreProps {
   mapDataFromStore: ConceptMapData;
   isViewOnlyMode?: boolean;
@@ -55,15 +176,35 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
-  const { addNode: addNodeToStore, setSelectedElement, setEditingNodeId } = useConceptMapStore();
-  const { stagedMapData, isStagingActive, conceptExpansionPreview } = useConceptMapStore(
+  const {
+    addNode: addNodeToStore,
+    setSelectedElement,
+    setEditingNodeId,
+    connectingState,
+    completeConnectionMode,
+    cancelConnectionMode,
+    dragPreviewItem,
+    dragPreviewPosition,
+    updateDragPreviewPosition,
+    draggedRelationLabel    // Added
+  } = useConceptMapStore();
+  const {
+    stagedMapData,
+    isStagingActive,
+    conceptExpansionPreview,
+    triggerFitView,         // Added for fitView
+    setTriggerFitView       // Added for fitView
+  } = useConceptMapStore(
     useCallback(s => ({
       stagedMapData: s.stagedMapData,
       isStagingActive: s.isStagingActive,
-      conceptExpansionPreview: s.conceptExpansionPreview
+      conceptExpansionPreview: s.conceptExpansionPreview,
+      triggerFitView: s.triggerFitView,             // Added for fitView
+      setTriggerFitView: s.setTriggerFitView,       // Added for fitView
+      // dragPreviewItem and dragPreviewPosition are not needed here as they are directly accessed
     }), [])
   );
-  const reactFlowInstance = useReactFlow();
+  const reactFlowInstance = useReactFlow(); // Already present
 
   const [activeSnapLinesLocal, setActiveSnapLinesLocal] = useState<Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>>([]);
 
@@ -257,6 +398,51 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     }
   }, [rfNodes, reactFlowInstance]);
 
+  // Effect for fitView trigger from store
+  useEffect(() => {
+    if (triggerFitView && reactFlowInstance && typeof reactFlowInstance.fitView === 'function') {
+      useConceptMapStore.getState().addDebugLog('[FlowCanvasCoreInternal fitViewEffect] Triggered fitView.');
+      reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
+      setTriggerFitView(false); // Reset the trigger in the store
+    }
+  }, [triggerFitView, reactFlowInstance, setTriggerFitView]);
+
+
+  // Effect for Escape key to cancel connection mode
+  useEffect(() => {
+    if (!connectingState) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        cancelConnectionMode();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [connectingState, cancelConnectionMode]);
+
+  // Effect for cursor change during connection mode
+  useEffect(() => {
+    if (!reactFlowInstance) return;
+    const paneElement = reactFlowInstance.getViewportNode()?.closest('.react-flow__pane');
+
+    if (paneElement instanceof HTMLElement) {
+      if (connectingState) {
+        paneElement.style.cursor = 'crosshair';
+      } else {
+        paneElement.style.cursor = 'default'; // Or 'grab' if that's your default
+      }
+    }
+    // Cleanup function to reset cursor if component unmounts while in connecting state
+    return () => {
+      if (paneElement instanceof HTMLElement) {
+        paneElement.style.cursor = 'default'; // Or 'grab'
+      }
+    };
+  }, [connectingState, reactFlowInstance]);
+
 
   const onNodeDragInternal = useCallback((_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>, allNodes: RFNode<CustomNodeData>[]) => {
     if (isViewOnlyMode || !draggedNode.dragging || !draggedNode.width || !draggedNode.height || !draggedNode.positionAbsolute) {
@@ -264,118 +450,20 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       return;
     }
 
-    let currentDragSnapLines: typeof activeSnapLinesLocal = [];
-    let snappedXPosition = draggedNode.positionAbsolute.x;
-    let snappedYPosition = draggedNode.positionAbsolute.y;
-    let xSnappedByNode = false;
-    let ySnappedByNode = false;
+    const { snappedPosition, activeSnapLines } = calculateSnappedPositionAndLines(
+      draggedNode.positionAbsolute,
+      { width: draggedNode.width, height: draggedNode.height },
+      allNodes, // These are rfNodes which should have .positionAbsolute
+      GRID_SIZE,
+      SNAP_THRESHOLD,
+      draggedNode.id
+    );
 
-    const draggedNodeWidth = draggedNode.width;
-    const draggedNodeHeight = draggedNode.height;
-
-    // Potential snap points for the dragged node
-    const draggedTargetsX = [
-      { type: 'left', value: draggedNode.positionAbsolute.x },
-      { type: 'center', value: draggedNode.positionAbsolute.x + draggedNodeWidth / 2 },
-      { type: 'right', value: draggedNode.positionAbsolute.x + draggedNodeWidth },
-    ];
-    const draggedTargetsY = [
-      { type: 'top', value: draggedNode.positionAbsolute.y },
-      { type: 'center', value: draggedNode.positionAbsolute.y + draggedNodeHeight / 2 },
-      { type: 'bottom', value: draggedNode.positionAbsolute.y + draggedNodeHeight },
-    ];
-
-    // Find the best snap for X and Y independently
-    let minDeltaX = Infinity; let bestSnapXInfo: { position: number, line: typeof activeSnapLinesLocal[0] } | null = null;
-    let minDeltaY = Infinity; let bestSnapYInfo: { position: number, line: typeof activeSnapLinesLocal[0] } | null = null;
-
-    allNodes.forEach(otherNode => {
-      if (otherNode.id === draggedNode.id || !otherNode.width || !otherNode.height || !otherNode.positionAbsolute) return;
-
-      const otherWidth = otherNode.width;
-      const otherHeight = otherNode.height;
-      const otherNodePosition = otherNode.positionAbsolute;
-
-      // Potential snap points for the other node
-      const otherTargetsX = [
-        { type: 'left', value: otherNodePosition.x },
-        { type: 'center', value: otherNodePosition.x + otherWidth / 2 },
-        { type: 'right', value: otherNodePosition.x + otherWidth },
-      ];
-      const otherTargetsY = [
-        { type: 'top', value: otherNodePosition.y },
-        { type: 'center', value: otherNodePosition.y + otherHeight / 2 },
-        { type: 'bottom', value: otherNodePosition.y + otherHeight },
-      ];
-
-      // Check X snaps
-      for (const dtX of draggedTargetsX) {
-        for (const otX of otherTargetsX) {
-          const delta = Math.abs(dtX.value - otX.value);
-          if (delta < SNAP_THRESHOLD && delta < minDeltaX) {
-            minDeltaX = delta;
-            bestSnapXInfo = {
-              position: otX.value - (dtX.value - draggedNode.positionAbsolute.x), // Calculate new X for draggedNode
-              line: {
-                type: 'vertical',
-                x1: otX.value, y1: Math.min(draggedNode.positionAbsolute.y, otherNodePosition.y) - 20,
-                x2: otX.value, y2: Math.max(draggedNode.positionAbsolute.y + draggedNodeHeight, otherNodePosition.y + otherHeight) + 20,
-              }
-            };
-          }
-        }
-      }
-
-      // Check Y snaps
-      for (const dtY of draggedTargetsY) {
-        for (const otY of otherTargetsY) {
-          const delta = Math.abs(dtY.value - otY.value);
-          if (delta < SNAP_THRESHOLD && delta < minDeltaY) {
-            minDeltaY = delta;
-            bestSnapYInfo = {
-              position: otY.value - (dtY.value - draggedNode.positionAbsolute.y), // Calculate new Y for draggedNode
-              line: {
-                type: 'horizontal',
-                x1: Math.min(draggedNode.positionAbsolute.x, otherNodePosition.x) - 20, y1: otY.value,
-                x2: Math.max(draggedNode.positionAbsolute.x + draggedNodeWidth, otherNodePosition.x + otherWidth) + 20, y2: otY.value,
-              }
-            };
-          }
-        }
-      }
-    });
-
-    if (bestSnapXInfo !== null) {
-      snappedXPosition = bestSnapXInfo.position;
-      xSnappedByNode = true;
-      currentDragSnapLines.push(bestSnapXInfo.line);
+    if (draggedNode.positionAbsolute.x !== snappedPosition.x || draggedNode.positionAbsolute.y !== snappedPosition.y) {
+      onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: snappedPosition, dragging: true }]);
     }
-    if (bestSnapYInfo !== null) {
-      snappedYPosition = bestSnapYInfo.position;
-      ySnappedByNode = true;
-      currentDragSnapLines.push(bestSnapYInfo.line);
-    }
-
-    // Snap to grid if not snapped to another node
-    if (!xSnappedByNode) {
-      const gridSnappedX = Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
-      if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) {
-        snappedXPosition = gridSnappedX;
-      }
-    }
-    if (!ySnappedByNode) {
-      const gridSnappedY = Math.round(draggedNode.positionAbsolute.y / GRID_SIZE) * GRID_SIZE;
-      if (Math.abs(draggedNode.positionAbsolute.y - gridSnappedY) < SNAP_THRESHOLD) {
-        snappedYPosition = gridSnappedY;
-      }
-    }
-    
-    // Apply the snapped position if it changed
-    if (draggedNode.positionAbsolute.x !== snappedXPosition || draggedNode.positionAbsolute.y !== snappedYPosition) {
-      onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: { x: snappedXPosition, y: snappedYPosition }, dragging: true }]);
-    }
-    setActiveSnapLinesLocal(currentDragSnapLines);
-  }, [isViewOnlyMode, SNAP_THRESHOLD, GRID_SIZE, onNodesChangeReactFlow]);
+    setActiveSnapLinesLocal(activeSnapLines);
+  }, [isViewOnlyMode, onNodesChangeReactFlow, setActiveSnapLinesLocal]); // GRID_SIZE and SNAP_THRESHOLD are constants
 
 
   const onNodeDragStopInternal = useCallback(
@@ -511,7 +599,27 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
-  }, []);
+
+    if (dragPreviewItem && reactFlowInstance) {
+      const flowPosition = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      const PREVIEW_DIMS = { width: 150, height: 70 }; // Standard preview dimensions
+
+      // Ensure rfNodes passed to calculateSnappedPositionAndLines have necessary properties
+      const validRfNodesForSnapping = rfNodes.filter(n => n.width && n.height && n.positionAbsolute);
+
+      const { snappedPosition, activeSnapLines } = calculateSnappedPositionAndLines(
+        flowPosition,
+        PREVIEW_DIMS,
+        validRfNodesForSnapping,
+        GRID_SIZE,
+        SNAP_THRESHOLD
+        // No excludeId for drag preview as it's not part of rfNodes
+      );
+
+      updateDragPreviewPosition(snappedPosition);
+      setActiveSnapLinesLocal(activeSnapLines); // Show snap lines for the preview
+    }
+  }, [dragPreviewItem, reactFlowInstance, updateDragPreviewPosition, rfNodes, setActiveSnapLinesLocal]); // Added rfNodes and setActiveSnapLinesLocal
 
   const handleCanvasDrop = useCallback((droppedData: {type: string, text: string}, positionInFlow: {x: number, y: number}) => {
     if (isViewOnlyMode) return;
@@ -523,7 +631,35 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   }, [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop, GRID_SIZE]);
 
   // Combine main, staged, and preview elements for rendering
-  const combinedNodes = useMemo(() => [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes], [rfNodes, rfStagedNodes, rfPreviewNodes]);
+  const combinedNodes = useMemo(() => {
+    let nodes = [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes];
+    if (dragPreviewItem && dragPreviewPosition) {
+      const previewNodeForDrag: RFNode = {
+        id: 'drag-preview-node',
+        type: 'dragPreviewNode',
+        position: dragPreviewPosition,
+        data: dragPreviewItem,
+        draggable: false,
+        selectable: false,
+        width: 150,
+        height: 70,
+      };
+      nodes.push(previewNodeForDrag);
+    } else if (draggedRelationLabel && dragPreviewPosition) { // Check for draggedRelationLabel
+      const previewLabelNode: RFNode = {
+        id: 'drag-preview-relation-label',
+        type: 'dragPreviewLabel', // Ensure this type is registered in InteractiveCanvas
+        position: dragPreviewPosition,
+        data: { label: draggedRelationLabel },
+        draggable: false,
+        selectable: false,
+        // width/height will be auto from the component's style
+      };
+      nodes.push(previewLabelNode);
+    }
+    return nodes;
+  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewItem, dragPreviewPosition, draggedRelationLabel]);
+
   const combinedEdges = useMemo(() => [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges], [rfEdges, rfStagedEdges, rfPreviewEdges]);
 
   return (
@@ -547,14 +683,28 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       }}
       onNodeDrag={onNodeDragInternal}
       onNodeDragStop={onNodeDragStopInternal}
-      onNodeClick={(event, node) => { // Add onNodeClick handler
+      onNodeClick={(event, node) => {
         if (isViewOnlyMode) return;
-        if (node.data?.isGhost) {
+
+        if (connectingState) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (node.id !== connectingState.sourceNodeId) {
+            completeConnectionMode(node.id, null); // Assuming targetHandleId is null for now
+          } else {
+            // Optionally, cancel if clicking the source node again, or do nothing
+            // cancelConnectionMode();
+          }
+        } else if (node.data?.isGhost) {
           onGhostNodeAcceptRequest?.(node.id);
         }
-        // Potentially call other general onNodeClick logic if needed for non-ghost nodes,
-        // or let selection be handled by onSelectionChange.
-        // For now, only ghost nodes have a specific click action here.
+        // Other node click logic can go here if not in connectingState
+      }}
+      onPaneClick={(event) => { // Added onPaneClick
+        if (connectingState) {
+          cancelConnectionMode();
+        }
+        // Other pane click logic (e.g., deselecting elements) is usually handled by React Flow internally or via onSelectionChange
       }}
       onPaneDoubleClick={handlePaneDoubleClickInternal}
       onPaneContextMenu={handlePaneContextMenuInternal}
