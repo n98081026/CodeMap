@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, type LucideIcon
-} from "lucide-react"; // Added Wand2, SearchPlus
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon
+} from "lucide-react"; // Added Wand2, SearchPlus, TestTube2
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -58,6 +58,9 @@ interface EditorToolbarProps {
   onAIDiscoverGroup?: () => void;
   isAIDiscoveringGroup?: boolean;
   mapNodeCount?: number;
+  onAISuggestImprovement?: () => void; // Prop from previous step
+  isAISuggestingImprovement?: boolean; // Prop from previous step
+  onTestEdgeOverlay?: () => void;
 }
 
 export interface ArrangeAction {
@@ -104,6 +107,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onAIDiscoverGroup,
   isAIDiscoveringGroup,
   mapNodeCount,
+  onAISuggestImprovement, // Destructure from prev step
+  isAISuggestingImprovement, // Destructure from prev step
+  onTestEdgeOverlay,
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -391,6 +397,24 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           </TooltipTrigger>
           <TooltipContent>{isDebugLogViewerOpen ? "Hide Debug Logs" : "Show Debug Logs"}</TooltipContent>
         </Tooltip>
+
+        {/* Temporary Test Edge Overlay Button */}
+        {onTestEdgeOverlay && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onTestEdgeOverlay}
+                className="border-yellow-500 hover:bg-yellow-500/10"
+              >
+                <TestTube2 className="h-5 w-5 text-yellow-600" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Test Edge Overlay (Dev)</TooltipContent>
+          </Tooltip>
+        )}
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

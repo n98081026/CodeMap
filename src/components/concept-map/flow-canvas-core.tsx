@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { ReactFlowProvider, useNodesState, useEdgesState, type Node as RFNode, type Edge as RFEdge, type OnNodesChange, type OnEdgesChange, type OnNodesDelete, type OnEdgesDelete, type SelectionChanges, type Connection, useReactFlow, type OnPaneDoubleClick, type Viewport } from 'reactflow';
-import type { ConceptMapData, ConceptMapNode, ConceptMapEdge } from '@/types';
+import type { ConceptMapData, ConceptMapNode, ConceptMapEdge, VisualEdgeSuggestion } from '@/types';
 import { InteractiveCanvas } from './interactive-canvas';
 import type { CustomNodeData } from './custom-node';
 import type { OrthogonalEdgeData } from './orthogonal-edge';
@@ -34,6 +33,9 @@ interface FlowCanvasCoreProps {
   onConceptSuggestionDrop?: (conceptText: string, position: { x: number; y: number }) => void; // New prop
   onNodeStartConnectionRequest?: (nodeId: string) => void; // New prop for starting connection from node
   panActivationKeyCode?: string | null;
+  activeVisualEdgeSuggestion?: VisualEdgeSuggestion | null;
+  onAcceptVisualEdge?: (suggestionId: string) => void;
+  onRejectVisualEdge?: (suggestionId: string) => void;
 }
 
 const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
@@ -54,6 +56,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   onConceptSuggestionDrop, // Destructure new prop
   onNodeStartConnectionRequest, // Destructure new prop
   panActivationKeyCode,
+  activeVisualEdgeSuggestion,
+  onAcceptVisualEdge,
+  onRejectVisualEdge,
 }) => {
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`);
   useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore V11] Received mapDataFromStore. Nodes: ${mapDataFromStore.nodes?.length ?? 'N/A'}, Edges: ${mapDataFromStore.edges?.length ?? 'N/A'}`);
@@ -790,6 +795,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       onCanvasDragOver={handleCanvasDragOver}
       onCanvasDragLeave={handleCanvasDragLeave}
       // onDrop is already handleCanvasDrop
+      activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}
+      onAcceptVisualEdge={onAcceptVisualEdge}
+      onRejectVisualEdge={onRejectVisualEdge}
     />
   );
 };
@@ -803,3 +811,5 @@ const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => {
 
 export default React.memo(FlowCanvasCoreWrapper);
     
+
+[end of src/components/concept-map/flow-canvas-core.tsx]

@@ -91,8 +91,13 @@ export type DagreLayoutUtility = (layoutInput: DagreLayoutInput) => DagreLayoutO
  * independent of a direct Graphology dependency, especially if the utility
  * implementing `GraphAdapterUtility` handles the Graphology import internally.
  * The actual instance would provide methods for graph traversal, manipulation, etc.
+ *
+ * For the mock implementation, this will be a simplified structure.
  */
-export type GraphologyInstance = any;
+export type GraphologyInstance = {
+  nodesMap: Map<string, ConceptMapNode>;
+  edges: ConceptMapEdge[];
+};
 
 /**
  * Defines a contract for a utility or adapter that performs graph operations,

@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
+import type { VisualEdgeSuggestion } from '@/types';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -29,6 +30,8 @@ import useConceptMapStore from '@/stores/concept-map-store'; // Added import
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
 import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { CheckIcon, XIcon } from 'lucide-react';
 
 // Define nodeTypesConfig and edgeTypesConfig as top-level constants here
 const nodeTypesConfig: NodeTypes = {
@@ -64,6 +67,10 @@ interface InteractiveCanvasProps {
   draggedItemPreview?: { type: string; text: string; x: number; y: number; } | null;
   onCanvasDragLeave?: (event: React.DragEvent) => void;
   dragPreviewSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
+  // Visual Edge Suggestion Overlay Props
+  activeVisualEdgeSuggestion?: VisualEdgeSuggestion | null;
+  onAcceptVisualEdge?: (suggestionId: string) => void;
+  onRejectVisualEdge?: (suggestionId: string) => void;
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -111,12 +118,15 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   panActivationKeyCode,
   draggedItemPreview, // Destructure new prop
   onCanvasDragLeave,  // Destructure new prop
+  // Destructure Visual Edge Suggestion Overlay Props
+  activeVisualEdgeSuggestion,
+  onAcceptVisualEdge,
+  onRejectVisualEdge,
 }) => {
   console.log(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length-1]) : 'N/A'}`);
   // Also send to store's debug log for easier collection if console is not always available during testing
   useConceptMapStore.getState().addDebugLog(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node ID: ${nodes && nodes.length > 0 ? nodes[nodes.length-1]?.id : 'N/A'}`);
-  const reactFlowInstance = useReactFlow(); // Get instance for screenToFlowPosition
-  const { viewport, getViewport } = reactFlowInstance;
+  const { project, getNodes: rfGetNodes, getViewport, screenToFlowPosition } = useReactFlow();
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
   const allSnapLinesToRender = React.useMemo(() => [
@@ -127,10 +137,10 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   const handleDragOverOnCanvas = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
-    if (props.onDragOver) { // Call parent's onDragOver if provided
-        props.onDragOver(event);
+    if (onDragOver) { // Use destructured prop
+        onDragOver(event);
     }
-  }, [props.onDragOver]);
+  }, [onDragOver]);
 
   const handleDropOnCanvas = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -335,6 +345,69 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
           {draggedItemPreview.text}
         </div>
       )}
+
+      {/* Visual Edge Suggestion Overlay */}
+      {activeVisualEdgeSuggestion && !isViewOnlyMode && (() => {
+        const sourceNode = nodes.find(n => n.id === activeVisualEdgeSuggestion.sourceNodeId);
+        const targetNode = nodes.find(n => n.id === activeVisualEdgeSuggestion.targetNodeId);
+
+        if (!sourceNode || !targetNode) return null;
+
+        const DEFAULT_NODE_WIDTH = 150;
+        const DEFAULT_NODE_HEIGHT = 70;
+
+        const sourceNodeWidth = sourceNode.width || DEFAULT_NODE_WIDTH;
+        const sourceNodeHeight = sourceNode.height || DEFAULT_NODE_HEIGHT;
+        const targetNodeWidth = targetNode.width || DEFAULT_NODE_WIDTH;
+        const targetNodeHeight = targetNode.height || DEFAULT_NODE_HEIGHT;
+
+        const sourcePosition = sourceNode.positionAbsolute ?? sourceNode.position;
+        const targetPosition = targetNode.positionAbsolute ?? targetNode.position;
+
+        const sourcePos = {
+          x: sourcePosition.x + sourceNodeWidth / 2,
+          y: sourcePosition.y + sourceNodeHeight / 2,
+        };
+        const targetPos = {
+          x: targetPosition.x + targetNodeWidth / 2,
+          y: targetPosition.y + targetNodeHeight / 2,
+        };
+
+        const midX = (sourcePos.x + targetPos.x) / 2;
+        const midY = (sourcePos.y + targetPos.y) / 2;
+
+        // Convert flow coordinates to screen coordinates for absolute HTML positioning
+        const labelScreenPos = project({ x: midX, y: midY - 30 });
+        const acceptButtonScreenPos = project({ x: midX - 28, y: midY }); // Adjusted for spacing
+        const rejectButtonScreenPos = project({ x: midX + 28, y: midY }); // Adjusted for spacing
+
+        // Line rendering is omitted as per subtask notes, focusing on buttons and label.
+
+        return (
+          <>
+            <div style={{ position: 'absolute', left: labelScreenPos.x, top: labelScreenPos.y, transform: 'translate(-50%, -50%)', background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid hsl(var(--border))', zIndex: 1001, pointerEvents: 'none' }}>
+              {activeVisualEdgeSuggestion.label}
+              {activeVisualEdgeSuggestion.reason && <span className="block text-xs opacity-70" style={{marginTop: '2px'}}>{activeVisualEdgeSuggestion.reason}</span>}
+            </div>
+            <Button
+              variant="outline" size="iconSm"
+              style={{ position: 'absolute', left: acceptButtonScreenPos.x, top: acceptButtonScreenPos.y, transform: 'translate(-50%, -50%)', zIndex: 1001, backgroundColor: 'hsl(var(--background))', width: '24px', height: '24px' }}
+              onClick={() => onAcceptVisualEdge?.(activeVisualEdgeSuggestion.id)}
+              title="Accept suggestion"
+            >
+              <CheckIcon className="h-4 w-4 text-green-600" />
+            </Button>
+            <Button
+              variant="outline" size="iconSm"
+              style={{ position: 'absolute', left: rejectButtonScreenPos.x, top: rejectButtonScreenPos.y, transform: 'translate(-50%, -50%)', zIndex: 1001, backgroundColor: 'hsl(var(--background))', width: '24px', height: '24px' }}
+              onClick={() => onRejectVisualEdge?.(activeVisualEdgeSuggestion.id)}
+              title="Reject suggestion"
+            >
+              <XIcon className="h-4 w-4 text-red-600" />
+            </Button>
+          </>
+        );
+      })()}
     </Card>
   );
 };

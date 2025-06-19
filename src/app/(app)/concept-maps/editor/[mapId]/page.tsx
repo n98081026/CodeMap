@@ -64,6 +64,7 @@ import {
   suggestMapImprovementFlow, type MapImprovementSuggestionSchema, type MapDataSchema as AIMapDataSchema, // Added for map improvement
 } from '@/ai/flows';
 import * as z from 'zod';
+import type { VisualEdgeSuggestion } from '@/types';
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -148,6 +149,8 @@ export default function ConceptMapEditorPage() {
   const [aiMapImprovementSuggestion, setAiMapImprovementSuggestion] = useState<z.infer<typeof MapImprovementSuggestionSchema> | null>(null);
   const [isSuggestImprovementDialogOpen, setIsSuggestImprovementDialogOpen] = useState(false);
   const [isLoadingAIMapImprovement, setIsLoadingAIMapImprovement] = useState(false);
+
+  const [activeVisualEdgeSuggestion, setActiveVisualEdgeSuggestion] = useState<VisualEdgeSuggestion | null>(null);
 
   useEffect(() => {
     addDebugLog(`[EditorPage V11] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${useConceptMapStore.getState().initialLoadComplete}`);
@@ -1274,6 +1277,9 @@ export default function ConceptMapEditorPage() {
               onConceptSuggestionDrop={handleConceptSuggestionDrop}
               onNodeAIExpandTriggered={(nodeId) => aiToolsHook.openExpandConceptModal(nodeId)}
               onNodeStartConnectionRequest={handleStartConnectionFromNode}
+              activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}
+              onAcceptVisualEdge={handleAcceptVisualEdge}
+              onRejectVisualEdge={handleRejectVisualEdge}
             />
           )}
         </div>
