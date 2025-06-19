@@ -277,8 +277,6 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
         - [x] Defined specific node types (`ai-summary-node`, `ai-rewritten-node`, `ai-expanded` for generated children, `ai-concept` from panel, `text-derived-concept`, `ai-generated`) and mapped them to styles/icons.
 - [ ] Conduct further React component memoization: Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (`SelectedNodeToolbar` and its props from `CustomNodeComponent` now memoized).
     - [x] Ensure callbacks passed as props *to* `EditorToolbar` from its parent page (e.g., `mapId/page.tsx`) are memoized using `useCallback`.
-## Performance Optimizations
-// This section was duplicated, the content above is the primary one. Removing this duplicate.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
@@ -398,8 +396,6 @@ This section outlines the plan to investigate and integrate the Cognee library (
     - Description: Ensure the frontend can correctly render concept maps based on data originating from Cognee. Address any structural differences or new data fields.
 - [ ] **Step 8: Testing and Refinement**
     - Description: Conduct thorough testing with various code repositories. Refine Cognee interaction (e.g., prompts if applicable), data transformation, and evaluate the overall quality of the generated concept maps.
-
-[end of TODO.md]
 
 [end of TODO.md]
 

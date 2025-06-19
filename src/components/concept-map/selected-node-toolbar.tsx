@@ -24,7 +24,6 @@ interface SelectedNodeToolbarProps {
 
 const PREDEFINED_COLORS = ['#FFFFFF', '#FFF1F0', '#E6F7FF', '#F6FFED', '#FFFBE6', '#F0F0F0', '#D9D9D9', '#B5F5EC', '#E6F7FF', '#CFE2F3', '#D9EAD3', '#FFF2CC', '#FFE5CC', '#F4CCCC', '#EAD1DC'];
 
-
 const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   nodeId,
   onEditLabel,
