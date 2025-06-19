@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
@@ -31,10 +30,11 @@ interface PropertiesInspectorProps {
   selectedElement?: ConceptMapNode | ConceptMapEdge | null; 
   selectedElementType?: 'node' | 'edge' | null;
   onSelectedElementPropertyUpdate?: (updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>) => void;
+  onSuggestIntermediateNode?: (edgeId: string) => void; // New prop
 
   isNewMapMode?: boolean; 
   isViewOnlyMode?: boolean;
-  editingNodeId?: string | null; // Added prop
+  editingNodeId?: string | null;
 }
 
 export const PropertiesInspector = React.memo(function PropertiesInspector({ 
@@ -43,9 +43,10 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   selectedElement,
   selectedElementType,
   onSelectedElementPropertyUpdate,
+  onSuggestIntermediateNode, // Destructure new prop
   isNewMapMode, 
   isViewOnlyMode,
-  editingNodeId, // Destructure new prop
+  editingNodeId,
 }: PropertiesInspectorProps) {
   
   const nodeLabelInputRef = useRef<HTMLInputElement>(null); // Ref for node label input
@@ -61,7 +62,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const [isSuggestIntermediateDialogOpen, setIsSuggestIntermediateDialogOpen] = useState(false);
   const [isLoadingAISuggestion, setIsLoadingAISuggestion] = useState(false);
   const { toast } = useToast();
-
 
   useEffect(() => {
     if (

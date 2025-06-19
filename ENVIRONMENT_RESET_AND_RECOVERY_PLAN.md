@@ -65,6 +65,112 @@ These issues make it unreliable to proceed with new coding, refactoring, or even
 
 Once the new, clean environment is confirmed to be ready and accessible:
 
+<<<<<<< HEAD
+1.  **Verify Access:** Perform a simple read operation (e.g., `ls` in the new project root, or reading `package.json`) to confirm tools are targeting the new directory.
+
+2.  **Systematic Code Re-application:** The following features and fixes, previously completed and submitted, will be re-applied systematically. Each major feature will be committed separately if possible to isolate changes.
+
+    *   **Batch 1: Core GAI Features & Foundational Fixes:**
+
+        *   **A. Core Node Display Fixes:**
+            *   **File:** `src/stores/concept-map-store.ts`
+                *   In `addNode` action: Define `NODE_DEFAULT_WIDTH = 150`, `NODE_DEFAULT_HEIGHT = 70`.
+                *   Ensure `newNode` object creation uses these defaults for `width` and `height` if not provided in `options` (e.g., `width: options.width ?? NODE_DEFAULT_WIDTH`).
+            *   **File:** `src/components/concept-map/flow-canvas-core.tsx`
+                *   Refactor node and edge synchronization: Remove `useMemo` for `initialRfNodes`/`initialRfEdges` that were passed to `useNodesState`/`useEdgesState` initializers.
+                *   Initialize `useNodesState` and `useEdgesState` for main map elements, staged elements, and preview elements with empty arrays (`[]`).
+                *   Implement distinct `useEffect` hooks for each set (main, staged, preview) that:
+                    *   Depend on their respective source data from the store (e.g., `mapDataFromStore.nodes` for main nodes).
+                    *   Map the source data to React Flow compatible node/edge arrays.
+                    *   Call the appropriate `setRfNodes` / `setRfEdges` (or `setRfStagedNodes`, `setRfPreviewNodes`, etc.).
+                    *   Ensure flags like `isStaged: true` or `isGhost: true` are correctly applied in the `data` object of respective nodes during mapping.
+
+        *   **B. AI Contextual Mini-Toolbar:**
+            *   **File:** `src/components/concept-map/ai-mini-toolbar.tsx` (Create if not present)
+                *   Define component with props: `nodeId`, `nodeRect`, `isVisible`, `onQuickExpand`, `onRewriteConcise`.
+                *   Layout with buttons for "Quick Expand" and "Rewrite Concise".
+            *   **File:** `src/components/concept-map/custom-node.tsx`
+                *   Add hover state (`isHoveredForToolbar`) and `nodeRef`.
+                *   Conditionally render `AISuggestionMiniToolbar` on hover (if not `isGhost` or `isViewOnlyMode`).
+                *   Pass handlers that will call AI tool hook functions.
+            *   **File:** `src/hooks/useConceptMapAITools.ts`
+                *   Implement `handleMiniToolbarQuickExpand(nodeId)`: Calls `aiExpandConcept` (prompted for one idea), then sets `conceptExpansionPreview` (as per "Refinable Expand" logic).
+                *   Implement `handleMiniToolbarRewriteConcise(nodeId)`: Calls `aiRewriteNodeContent` (prompted for conciseness), updates node in store.
+            *   **File:** `src/app/(app)/concept-maps/editor/[mapId]/page.tsx`
+                *   Ensure `useConceptMapAITools` is used and its functions are available for `CustomNodeComponent` to call (e.g. by `CustomNodeComponent` using the hook directly).
+
+        *   **C. AI Quick-Add / Floating AI Suggestions (`AISuggestionFloater`):**
+            *   **File:** `src/components/concept-map/ai-suggestion-floater.tsx` (Create if not present)
+                *   Define component with props: `isVisible`, `position`, `suggestions: SuggestionAction[]`, `onDismiss`, `title?`.
+                *   Renders a floating panel with clickable suggestion items. Handles Escape/click-outside for dismissal.
+            *   **File:** `src/hooks/useConceptMapAITools.ts`
+                *   Implement `getPaneSuggestions(panePosition)`: Returns `SuggestionAction[]` for pane context.
+                *   Implement `getNodeSuggestions(node)`: Returns `SuggestionAction[]` for node context.
+            *   **File:** `src/app/(app)/concept-maps/editor/[mapId]/page.tsx`
+                *   Add `floaterState` to manage visibility, position, suggestions.
+                *   Implement `handlePaneContextMenuRequest` and `handleNodeContextMenuRequest` to use suggestion getters and update `floaterState`.
+                *   Implement `Floater_handleDismiss`.
+            *   **File:** `src/components/concept-map/flow-canvas-core.tsx`
+                *   Add `onPaneContextMenuRequest` and `onNodeContextMenuRequest` props.
+                *   Implement `onPaneContextMenu` and `onNodeContextMenu` handlers.
+
+        *   **D. AI Staging Area:**
+            *   **File:** `src/stores/concept-map-store.ts`
+                *   Add state: `stagedMapData`, `isStagingActive`. Actions: `setStagedMapData`, `clearStagedMapData`, `commitStagedMapData`.
+            *   **File:** `src/hooks/useConceptMapAITools.ts`
+                *   Refactor `handleClusterGenerated`, `handleSnippetGenerated` to call `setStagedMapData`.
+            *   **File:** `src/components/concept-map/flow-canvas-core.tsx`
+                *   Subscribe to staging state. Add `rfStagedNodes`, etc. `useEffect` to map `stagedMapData` with `isStaged: true` flag. Add to `combinedNodes`.
+            *   **File:** `src/components/concept-map/custom-node.tsx`
+                *   Add `isStaged?: boolean` to `CustomNodeData`. Apply distinct styling.
+            *   **File:** `src/components/concept-map/ai-staging-toolbar.tsx` (Create)
+                *   Props: `isVisible`, `onCommit`, `onClear`, `stagedItemCount`.
+            *   **File:** `src/app/(app)/concept-maps/editor/[mapId]/page.tsx`
+                *   Integrate `AIStagingToolbar`. Implement deletion from stage.
+
+        *   **E. AI-Suggested Relation Labels:**
+            *   **File:** `src/ai/flows/suggest-edge-label.ts` (Create) - `suggestEdgeLabelFlow`.
+            *   **File:** `src/hooks/useConceptMapAITools.ts`
+                *   Add `edgeLabelSuggestions` state (e.g. an object with edgeId and labels array). Implement `fetchAndSetEdgeLabelSuggestions`.
+            *   **File:** `src/stores/concept-map-store.ts`: `addEdge` returns new edge ID.
+            *   **File:** `src/components/concept-map/flow-canvas-core.tsx`: `handleRfConnect` calls `props.onNewEdgeSuggestLabels`.
+            *   **File:** `src/app/(app)/concept-maps/editor/[mapId]/page.tsx`:
+                *   `useEffect` on `edgeLabelSuggestions` shows `AISuggestionFloater`. Actions call `updateStoreEdge`.
+
+        *   **F. Refinable 'Expand Concept' Previews:**
+            *   **File:** `src/stores/concept-map-store.ts`
+                *   Add state: `conceptExpansionPreview`. Action: `setConceptExpansionPreview`.
+            *   **File:** `src/hooks/useConceptMapAITools.ts`
+                *   Refactor `handleConceptExpanded`, `handleMiniToolbarQuickExpand` to call `setConceptExpansionPreview`.
+                *   Implement `acceptAllExpansionPreviews`, `acceptSingleExpansionPreview`, `clearExpansionPreview`.
+            *   **File:** `src/components/concept-map/flow-canvas-core.tsx`
+                *   Subscribe to preview state. Add `rfPreviewNodes`, etc. `useEffect` to map `conceptExpansionPreview.previewNodes` with `isGhost: true` flag. Add to `combinedNodes`. Implement `onNodeClick` for ghost acceptance.
+            *   **File:** `src/components/concept-map/custom-node.tsx`
+                *   Add `isGhost?: boolean` to `CustomNodeData`. Apply styling. Disable hover toolbar.
+            *   **File:** `src/app/(app)/concept-maps/editor/[mapId]/page.tsx`
+                *   Pass `acceptSingleExpansionPreview` as `onGhostNodeAcceptRequest`. `useEffect` on preview state shows `AISuggestionFloater` with Accept All/Clear All actions.
+
+    *   **Batch 2: Initial Refactoring Plan Code (Interfaces & Store Actions):**
+
+        *   **A. Create `src/types/graph-adapter.ts`:**
+            *   Define interfaces for Dagre and GraphAdapter utilities.
+        *   **B. Implement `applyLayout` Action in `src/stores/concept-map-store.ts`:**
+            *   Add `applyLayout(updatedNodePositions: LayoutNodeUpdate[])` action.
+        *   **C. Refactor `deleteNode` Action in `src/stores/concept-map-store.ts`:**
+            *   Modify `deleteNode` to use (mocked) `GraphAdapter.getDescendants`.
+
+3.  **Final Verification (Attempt Previously Failed UI Task):**
+
+    *   **A. Add "Auto-layout Map" Button to `src/components/concept-map/editor-toolbar.tsx`:**
+        *   Add button, icon, props for `onAutoLayout`.
+    *   **B. Connect Button in `src/app/(app)/concept-maps/editor/[mapId]/page.tsx`:**
+        *   Define placeholder `handleAutoLayout`. Pass prop to `EditorToolbar`.
+
+4.  **Submit Restored Work:** (If all successful)
+    *   Commit all changes to a new branch.
+
+5.  **Await Further Instructions:** Report completion.
+=======
 1.  **Verify Access:** Perform a simple read operation (e.g., `ls` in the new project root) to confirm tools are targeting the new directory.
 2.  **Systematic Code Re-application:**
     *   **Batch 1: Core GAI Features & Fixes:** Re-implement (via focused subtasks) the previously completed and submitted features:
@@ -84,4 +190,5 @@ Once the new, clean environment is confirmed to be ready and accessible:
 4.  **Submit Restored Work:** If all re-application and verification steps are successful, commit the consolidated, restored work to a new branch in the clean repository.
 5.  **Await Further Instructions:** Report completion to you and await direction for new development tasks based on the updated `TODO.md`.
 
+>>>>>>> master
 ---

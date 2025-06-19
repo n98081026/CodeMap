@@ -66,8 +66,8 @@
     - [x] **`AISuggestionPanel`**: Area (toggleable Sheet) displaying AI suggestions with "Add to Map" functionality. Suggestions persist, update status, can be edited before adding, removed after adding. "Expand Concept" feature now adds nodes directly to the map, bypassing this panel.
     - [x] **Zustand Store (`concept-map-store.ts`)**: Manages client-side state for the concept map editor, including map data, selections, AI suggestions, and UI states. Undo/Redo history implemented with `zundo`.
     - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
-- [ ] ### Component Refinements
-    - [ ] **`custom-node.tsx` Refinement:**
+- [x] ### Component Refinements
+    - [x] **`custom-node.tsx` Refinement:**
         - [x] Review `getNodeRect` function (currently commented out): confirm if it's still needed for any toolbar/element positioning logic or if it can be safely removed.
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history). Context API for Auth.
@@ -102,8 +102,12 @@
     - [x] Frontend handles saving the generated map (via API) and updating submission status (within `ProjectUploadForm` and `useConceptMapAITools` for other AI-generated maps).
 - [x] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`)**:
     - [x] Input schema updated to `projectStoragePath` and `userHint`.
-    - [x] Mock logic acknowledges these inputs and varies output based on hint (e.g., "e-commerce", "data pipeline").
-    - [x] Mock logic supports a special hint (`_USE_FIXED_MOCK_PROJECT_A_`) to return a predefined, detailed project analysis object.
+    - [x] Mock logic acknowledges inputs and varies output based on hints (e.g., "e-commerce", "data pipeline", basic "node" `package.json` parsing).
+    - [x] Mock logic supports a `_USE_FIXED_MOCK_PROJECT_A_` hint for a predefined detailed static analysis.
+    - [x] Mock logic supports a `_USE_SIMULATED_FS_NODE_PROJECT_` hint for a richer Node.js project simulation (includes conceptual `package.json`, `README.md`, `.js` files, `config/settings.json`; basic content extraction).
+    - [x] Mock logic supports a `_USE_SIMULATED_FS_PY_PROJECT_` hint for a richer Python project simulation (includes conceptual `.py` files, `requirements.txt`, `README.md`; basic content extraction).
+    - [x] Mock logic supports a `_USE_SIMULATED_FS_JAVA_PROJECT_` hint for a richer Java (Maven/Spring Boot) project simulation (includes conceptual `pom.xml`, `.java` files in packages, `README.md`; basic content extraction).
+    - [x] Mock logic now also supports a `_USE_SIMULATED_FS_CSHARP_PROJECT_` hint for a richer C# (ASP.NET Core) project simulation (includes conceptual `.csproj`, `appsettings.json`, `.cs` files in namespaces, `README.md`; basic content extraction like dependencies, classes, methods, properties, usings). (Note: All File System (FS) simulations are still mocks with no real file system operations or Supabase Storage integration).
 - [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**:
     - [x] Input schema updated to `projectStoragePath` and `userGoals`.
     - [x] Prompt explicitly instructs use of `projectStructureAnalyzerTool` with these inputs.
@@ -177,9 +181,9 @@
     - [x] Interaction (Enhancement): Display "Refine" icon on hover over a ghost node to alter its suggestion before acceptance.
 
 ### AI-Powered Layout and Structuring Assistance
-- [~] "AI Tidy-Up" / Smart Alignment (Contextual). (Algorithmic alignment/distribution tools implemented. AI Semantic Grouping Phase 1: parent name suggestion, structural linking, and initial visual grouping/child layout implemented. Full AI-driven aspects & advanced semantic grouping pending.)
-    - [x] On selection of multiple nodes, offer an "AI Tidy selection" option (mini-toolbar/context menu). (Non-AI Alignment/Distribution tools added to EditorToolbar)
-    - [x] AI attempts to align, distribute, or semantically group (e.g., temporary parent node). (Algorithmic align/distribute tools implemented, with AI suggesting which arrangement action to apply. AI semantic group suggestion for user-selected nodes (Phase 1) done. AI discovering group candidates from map (Phase 1) also done. Further AI-driven layout/grouping refinements are future work under more specific tasks.)
+- [x] "AI Tidy-Up" / Smart Alignment (Contextual):
+    - [x] On selection of multiple nodes, offer an "AI Tidy selection" option (Implemented in EditorToolbar, AI aligns/distributes).
+    - [x] (Enhancement) AI attempts to also semantically group selected nodes (e.g., create temporary parent node). (AI flow can now suggest a parent, and hook logic implements its creation and re-parenting of children).
 - [ ] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
     - [ ] AI periodically/on-demand scans map for structural improvement opportunities.
     - [ ] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?".
@@ -196,7 +200,7 @@
 - [x] AI-Suggested Relation Labels:
     - [x] When a user manually draws an edge, AI automatically suggests a relevant label based on source/target content. (Genkit flow created, hook updated, suggestions shown in floater)
     - [x] Interaction: Suggested label appears temporarily. User can click to accept, type to overwrite, or ignore. (Floater shows suggestions, click updates label)
-- [x] "Suggest Intermediate Node" on Edge Selection:
+- [x] "Suggest Intermediate Node" on Edge Selection: (Implemented via Properties Inspector for selected edge)
     - [x] If an edge is selected, AI action to "Suggest intermediate concept".
     - [x] AI proposes a node to sit between source/target, splitting original edge and linking through the new node.
 
@@ -260,11 +264,8 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
     - [x] **Visual Cues for AI-Generated Content:**
         - [x] Ensured AI-generated nodes (from panel, direct generation like "Summarize", "Rewrite", or "Expand Concept") have distinct visual styles and icons via `CustomNodeComponent`.
         - [x] Defined specific node types (`ai-summary-node`, `ai-rewritten-node`, `ai-expanded` for generated children, `ai-concept` from panel, `text-derived-concept`, `ai-generated`) and mapped them to styles/icons.
-
-## Performance Optimizations
-- [x] Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
-- [x] Investigate large list rendering: For pages like Admin User Management or long classroom student lists, evaluate if virtualization techniques (e.g., `react-window` or `tanstack-virtual`) are needed as data scales. (Admin Users page virtualization verified as pre-existing)
-- [x] Conduct further React component memoization: Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (Key list pages and items reviewed and refactored/verified)
+- [x] Conduct further React component memoization: Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (`SelectedNodeToolbar` and its props from `CustomNodeComponent` now memoized).
+    - [x] Ensure callbacks passed as props *to* `EditorToolbar` from its parent page (e.g., `mapId/page.tsx`) are memoized using `useCallback`.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
@@ -337,12 +338,6 @@ This section outlines tasks to fully migrate to Supabase.
 - View-only mode for concept map editor is implemented.
 - Developer role switcher added to profile page for easier testing.
 - Developer test buttons previously on Project UploadForm have been removed for simplicity.
-
-This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
-The main remaining area for full Supabase connection is:
-*   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
-*   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
-*   Thorough testing and deployment preparations (out of scope).
 
 This covers a very large portion of the Supabase integration tasks and modularization. The application is now significantly more robust, data-driven, and maintainable.
 The main remaining area for full Supabase connection is:

@@ -1,7 +1,8 @@
-
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
+// import Graph from 'graphology'; // No longer needed directly here if using adapter
+import { GraphAdapterUtility } from '../../lib/graphologyAdapter'; // Import the utility
 
 import type { ConceptMap, ConceptMapData } from '@/types';
 // LayoutNodeUpdate might also come from graph-adapter if it's related
@@ -124,9 +125,16 @@ interface ConceptMapState {
 // Concept expansion preview state
 conceptExpansionPreview: ConceptExpansionPreviewState | null;
 
-  // Connection mode state
-  isConnectingMode: boolean;
-  connectionSourceNodeId: string | null;
+// Connection mode state
+isConnectingMode: boolean;
+connectionSourceNodeId: string | null;
+
+// Drag preview state
+dragPreviewItem: { text: string; type: string; } | null;
+dragPreviewPosition: { x: number; y: number; } | null;
+draggedRelationLabel: string | null; // New state for edge label preview
+
+  triggerFitView: boolean; // For auto-layout fitView trigger
 
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
@@ -183,9 +191,9 @@ updateConceptExpansionPreviewNodeText: (previewNodeId: string, newText: string) 
 // Layout action
 applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
 
-  // Connection mode actions
-  startConnectionMode: (nodeId: string) => void;
-  completeConnectionMode: () => void;
+// Connection mode actions
+startConnectionMode: (nodeId: string) => void;
+completeConnectionMode: () => void;
 }
 
 // TrackedState explicitly omits isConnectingMode and connectionSourceNodeId as they are transient UI states.
@@ -205,7 +213,6 @@ const initialStateBase: Omit<ConceptMapState,
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
   'setConceptExpansionPreview' | 'updateConceptExpansionPreviewNodeText' | 'applyLayout' |
-  // Exclude new connection mode actions from Omit as they will be defined
   'startConnectionMode' | 'completeConnectionMode'
 > = {
   mapId: null,
@@ -231,9 +238,13 @@ const initialStateBase: Omit<ConceptMapState,
   debugLogs: [],
   stagedMapData: null,
   isStagingActive: false,
-  conceptExpansionPreview: null, // Added concept expansion preview state
+  conceptExpansionPreview: null,
   isConnectingMode: false,
   connectionSourceNodeId: null,
+  dragPreviewItem: null,
+  dragPreviewPosition: null,
+  draggedRelationLabel: null,
+  triggerFitView: false,
 };
 
 // Define ConceptExpansionPreviewNode and ConceptExpansionPreviewState types
@@ -435,9 +446,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
       })),
 
       deleteNode: (nodeIdToDelete) => {
-        get().addDebugLog(`[STORE deleteNode] Attempting to delete node: ${nodeIdToDelete} and its descendants.`);
+        get().addDebugLog(`[STORE deleteNode GraphAdapter] Attempting to delete node: ${nodeIdToDelete} and its descendants.`);
         set((state) => {
-          const nodes = state.mapData.nodes;
           const nodes = state.mapData.nodes;
           const edges = state.mapData.edges;
 
@@ -445,9 +455,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
           // This allows for graph traversal to find all related nodes (e.g., descendants).
           const graphInstance = graphAdapter.fromArrays(nodes, edges);
 
-          if (!graphInstance.nodesMap.has(nodeIdToDelete)) {
-             get().addDebugLog(`[STORE deleteNode] Node ${nodeIdToDelete} not found. No changes made.`);
-             return state;
+          if (!graphInstance.hasNode(nodeIdToDelete)) {
+            get().addDebugLog(`[STORE deleteNode GraphAdapter] Node ${nodeIdToDelete} not found in graph. No changes made.`);
+            return state; // Return current state if node doesn't exist
           }
 
           // Use the graph adapter to find all descendant nodes for comprehensive deletion.
@@ -455,47 +465,50 @@ export const useConceptMapStore = create<ConceptMapState>()(
           const descendants = graphAdapter.getDescendants(graphInstance, nodeIdToDelete);
           const nodesToDeleteSet = new Set<string>([nodeIdToDelete, ...descendants]);
 
-          get().addDebugLog(`[STORE deleteNode] Full set of nodes to delete (including descendants): ${JSON.stringify(Array.from(nodesToDeleteSet))}`);
-
-          let newNodes = nodes.filter(node => !nodesToDeleteSet.has(node.id));
-
-          const nodeBeingDeletedDirectly = nodes.find(n => n.id === nodeIdToDelete);
-          if (nodeBeingDeletedDirectly?.parentNode) {
-            const parentNodeId = nodeBeingDeletedDirectly.parentNode;
-            newNodes = newNodes.map(node => {
-              if (node.id === parentNodeId) {
-                const newChildIds = (node.childIds || []).filter(id => id !== nodeIdToDelete);
-                get().addDebugLog(`[STORE deleteNode] Updating parent ${parentNodeId}, removing child ${nodeIdToDelete}. New childIds: ${JSON.stringify(newChildIds)}`);
-                return { ...node, childIds: newChildIds };
-              }
-              return node;
-            });
-          }
-
-          const newEdges = edges.filter(
-            edge => !nodesToDeleteSet.has(edge.source) && !nodesToDeleteSet.has(edge.target)
+          const nodesToKeepIntermediate = nodes.filter(node => !nodesToDeleteSet.has(node.id));
+          const edgesToKeep = edges.filter(edge =>
+            !nodesToDeleteSet.has(edge.source) && !nodesToDeleteSet.has(edge.target)
           );
 
+          // Update childIds for parents of any deleted nodes (only considering parents that are NOT themselves deleted)
+          const finalNodesToKeep = nodesToKeepIntermediate.map(node => {
+            if (node.childIds && node.childIds.length > 0) {
+              const newChildIds = node.childIds.filter(childId => !nodesToDeleteSet.has(childId));
+              if (newChildIds.length !== node.childIds.length) {
+                get().addDebugLog(`[STORE deleteNode GraphAdapter] Updating parent ${node.id}, removing deleted children. Old childIds: ${JSON.stringify(node.childIds)}, New: ${JSON.stringify(newChildIds)}`);
+                return { ...node, childIds: newChildIds };
+              }
+            }
+            return node;
+          });
+
+          // Clear selection if any of the deleted nodes were selected
           let newSelectedElementId = state.selectedElementId;
           let newSelectedElementType = state.selectedElementType;
+
           if (state.selectedElementId && nodesToDeleteSet.has(state.selectedElementId)) {
             newSelectedElementId = null;
             newSelectedElementType = null;
-            get().addDebugLog(`[STORE deleteNode] Cleared selection as deleted node was selected.`);
+            get().addDebugLog(`[STORE deleteNode GraphAdapter] Cleared selection as a deleted node was selected.`);
+          } else if (state.selectedElementType === 'edge' && state.selectedElementId) {
+            // If an edge was selected, check if it was removed
+            const selectedEdgeWasRemoved = !edgesToKeep.find(e => e.id === state.selectedElementId);
+            if (selectedEdgeWasRemoved) {
+              newSelectedElementId = null;
+              newSelectedElementType = null;
+              get().addDebugLog(`[STORE deleteNode GraphAdapter] Cleared selection as a selected edge was removed.`);
+            }
           }
+
           const newMultiSelectedNodeIds = state.multiSelectedNodeIds.filter(id => !nodesToDeleteSet.has(id));
-          const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDeleteSet.has(state.aiProcessingNodeId) && nodesToDeleteSet.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
+          const newAiProcessingNodeId = state.aiProcessingNodeId && nodesToDeleteSet.has(state.aiProcessingNodeId) ? null : state.aiProcessingNodeId;
           const newEditingNodeId = state.editingNodeId && nodesToDeleteSet.has(state.editingNodeId) ? null : state.editingNodeId;
 
-          if (newNodes.length === nodes.length && newEdges.length === edges.length && newSelectedElementId === state.selectedElementId && newMultiSelectedNodeIds.length === state.multiSelectedNodeIds.length ) {
-            get().addDebugLog(`[STORE deleteNode] No effective changes to nodes/edges arrays or selection after filtering.`);
-          }
-
-          get().addDebugLog(`[STORE deleteNode] Deletion complete. Nodes remaining: ${newNodes.length}, Edges remaining: ${newEdges.length}`);
+          get().addDebugLog(`[STORE deleteNode GraphAdapter] Deletion complete. Nodes remaining: ${finalNodesToKeep.length}, Edges remaining: ${edgesToKeep.length}`);
           return {
             mapData: {
-              nodes: newNodes,
-              edges: newEdges,
+              nodes: finalNodesToKeep,
+              edges: edgesToKeep,
             },
             selectedElementId: newSelectedElementId,
             selectedElementType: newSelectedElementType,
@@ -506,7 +519,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
         });
       },
 
-      addEdge: (options) => set((state) => {
+      addEdge: (options) => {
         const newEdge: ConceptMapEdge = {
           id: uniqueEdgeId(),
           source: options.source,
@@ -618,6 +631,34 @@ export const useConceptMapStore = create<ConceptMapState>()(
         get().addDebugLog(`[STORE setConceptExpansionPreview] Setting preview for parent ${preview?.parentNodeId}. Nodes: ${preview?.previewNodes?.length ?? 0}`);
         set({ conceptExpansionPreview: preview });
       },
+      updatePreviewNode: (parentNodeId, previewNodeId, updates) => set((state) => {
+        if (!state.conceptExpansionPreview || state.conceptExpansionPreview.parentNodeId !== parentNodeId) {
+          console.warn('[STORE updatePreviewNode] No matching concept expansion preview active for parentNodeId:', parentNodeId);
+          return state;
+        }
+        const updatedPreviewNodes = state.conceptExpansionPreview.previewNodes.map(node =>
+          node.id === previewNodeId
+            ? { ...node, ...updates }
+            : node
+        );
+
+        const originalNode = state.conceptExpansionPreview.previewNodes.find(n => n.id === previewNodeId);
+        const updatedNode = updatedPreviewNodes.find(n => n.id === previewNodeId);
+
+        if (!originalNode || !updatedNode || JSON.stringify(originalNode) === JSON.stringify(updatedNode)) {
+          console.warn('[STORE updatePreviewNode] Preview node not found or no actual update for previewNodeId:', previewNodeId, 'Updates:', updates);
+          return state;
+        }
+
+        get().addDebugLog(`[STORE updatePreviewNode] Updated preview node ${previewNodeId} for parent ${parentNodeId}. Updates: ${JSON.stringify(updates)}`);
+        return {
+          ...state,
+          conceptExpansionPreview: {
+            ...state.conceptExpansionPreview,
+            previewNodes: updatedPreviewNodes,
+          },
+        };
+      }),
 
       applyLayout: (updatedNodePositions) => {
         get().addDebugLog(`[STORE applyLayout] Attempting to apply new layout to ${updatedNodePositions.length} nodes.`);
@@ -653,9 +694,14 @@ export const useConceptMapStore = create<ConceptMapState>()(
             };
           } else {
             get().addDebugLog(`[STORE applyLayout] No actual position changes detected. State not updated.`);
-            return state;
+            return state; // Return current state if no changes
           }
         });
+        // After positions are applied (or if no changes but still called), trigger fitView
+        // This ensures fitView is attempted even if the layout algorithm returns same positions
+        // but other map elements might have changed that require a fitView (though less likely for applyLayout).
+        // Crucially, it runs after the state update from applyLayout is processed.
+        set({ triggerFitView: true });
       },
 
       // Connection Mode Actions

@@ -223,8 +223,27 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Shuffle className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isViewOnlyMode ? "Auto-layout Map (Disabled)" : !onAutoLayout ? "Auto-layout (Not Configured)" : "Auto-layout Map (Experimental)"}</TooltipContent>
+          <TooltipContent>{isViewOnlyMode ? "Shuffle Layout (Disabled)" : !onAutoLayout ? "Shuffle Layout (Not Configured)" : "Shuffle Layout (Experimental)"}</TooltipContent>
         </Tooltip>
+
+        {/* New Auto-layout (Dagre) Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={isViewOnlyMode || !onAutoLayout} // Assuming onAutoLayout will be reused/adapted for Dagre
+              onClick={() => onAutoLayout?.()} // Temporarily using onAutoLayout; will be connected properly later
+              aria-label="Auto-layout Map (Dagre)"
+            >
+              <Network className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isViewOnlyMode ? "Auto-layout (Disabled)" : !onAutoLayout ? "Auto-layout (Not Configured)" : "Auto-layout Map (Dagre)"}</p>
+          </TooltipContent>
+        </Tooltip>
+
 
         <Separator orientation="vertical" className="mx-1 h-full" />
 
@@ -376,6 +395,27 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             </Button>
           </TooltipTrigger>
           <TooltipContent>{getSummarizeNodesTooltip()}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleGenAIClick(onAiTidySelection!, "AI Tidy Selection")}
+              disabled={isViewOnlyMode || numMultiSelectedNodes < 2 || !onAiTidySelection}
+            >
+              <AlignHorizontalDistributeCenter className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode
+              ? "AI Tidy (Disabled in View Mode)"
+              : numMultiSelectedNodes < 2
+              ? "AI Tidy (Select 2+ nodes)"
+              : !onAiTidySelection
+              ? "AI Tidy (Not available)"
+              : "AI Tidy Selection"}
+          </TooltipContent>
         </Tooltip>
 
 

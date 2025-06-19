@@ -33,6 +33,17 @@ import {
 import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal";
 import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
 import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
+import { RefineSuggestionModal } from '@/components/concept-map/refine-suggestion-modal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'; // Added AlertDialog imports
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { UserRole } from "@/types";
@@ -40,6 +51,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
+import { DagreLayoutUtility } from "../../../../lib/dagreLayoutUtility"; // Adjusted path
+import type { DagreLayoutOptions, NodeLayoutInput, EdgeLayoutInput } from "../../../../types/graph-adapter"; // Adjusted path
 
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
@@ -169,6 +182,15 @@ export default function ConceptMapEditorPage() {
   const canUndo = temporalState.pastStates.length > 0;
   const canRedo = temporalState.futureStates.length > 0;
 
+  // Memoized undo/redo handlers
+  const handleUndo = useCallback(() => {
+    temporalStoreAPI.getState().undo();
+  }, [temporalStoreAPI]);
+
+  const handleRedo = useCallback(() => {
+    temporalStoreAPI.getState().redo();
+  }, [temporalStoreAPI]);
+
   const { saveMap } = useConceptMapDataManager({ routeMapId, user });
 
   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
@@ -198,6 +220,15 @@ export default function ConceptMapEditorPage() {
     acceptSingleExpansionPreview,
     clearExpansionPreview,
     removeExtractedConceptsFromSuggestions,
+    isRefineModalOpen,
+    setIsRefineModalOpen,
+    refineModalInitialData,
+    handleRefineSuggestionConfirm,
+    intermediateNodeSuggestion,
+    handleSuggestIntermediateNodeRequest,
+    confirmAddIntermediateNode,
+    clearIntermediateNodeSuggestion,
+    handleAiTidyUpSelection,
   } = aiToolsHook;
 
   const reactFlowInstance = useReactFlow();
@@ -1235,10 +1266,11 @@ export default function ConceptMapEditorPage() {
           onToggleProperties={onTogglePropertiesInspector}
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
-          onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
+          onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
-          onAutoLayout={handleAutoLayout}
+          onAiTidySelection={handleAiTidyUpSelection}
+          onAutoLayout={handleAutoLayout} // Add this new prop
           arrangeActions={arrangeActions}
           onSuggestAISemanticGroup={handleTriggerAISemanticGroup}
           onSuggestAIArrangement={handleRequestAIArrangementSuggestion}
@@ -1311,6 +1343,7 @@ export default function ConceptMapEditorPage() {
             <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
               selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType}
               onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
+              onSuggestIntermediateNode={handleSuggestIntermediateNodeRequest} // Pass the handler
               isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} />
           </SheetContent>
         </Sheet>
@@ -1338,142 +1371,67 @@ export default function ConceptMapEditorPage() {
         {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
         {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
         {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
-
-        {aiSemanticGroupSuggestion && (
-          <AlertDialog open={isSuggestGroupDialogOpen} onOpenChange={(open) => {
-            setIsSuggestGroupDialogOpen(open);
-            if (!open) setAiSemanticGroupSuggestion(null); // Clear suggestion if dialog is closed
-          }}>
+        {isRefineModalOpen && refineModalInitialData && !storeIsViewOnlyMode && (
+          <RefineSuggestionModal
+            isOpen={isRefineModalOpen}
+            onOpenChange={setIsRefineModalOpen}
+            initialData={refineModalInitialData}
+            onConfirm={handleRefineSuggestionConfirm}
+          />
+        )}
+        {intermediateNodeSuggestion && !storeIsViewOnlyMode && (
+          <AlertDialog
+            open={!!intermediateNodeSuggestion}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                clearIntermediateNodeSuggestion();
+              }
+            }}
+          >
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>AI Grouping Suggestion</AlertDialogTitle>
+                <AlertDialogTitle>AI Suggestion: Add Intermediate Node</AlertDialogTitle>
                 <AlertDialogDescription>
-                  AI suggests grouping the selected {multiSelectedNodeIds.length} nodes under a new parent node:
-                  <strong className="block mt-2 mb-1">{aiSemanticGroupSuggestion.parentNodeText}</strong>
-                  {aiSemanticGroupSuggestion.groupingReason && (
-                    <span className="text-xs text-muted-foreground">Reason: {aiSemanticGroupSuggestion.groupingReason}</span>
-                  )}
-                  <p className="mt-3 text-sm">If you confirm, the selected nodes will be structurally linked to this new parent.</p>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => {
-                  setAiSemanticGroupSuggestion(null);
-                  // setIsSuggestGroupDialogOpen(false); // onOpenChange handles this
-                }}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmAISemanticGroup}>Confirm & Group</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-
-        {aiArrangementSuggestion && (
-          <AlertDialog open={isSuggestArrangementDialogOpen} onOpenChange={(open) => {
-            setIsSuggestArrangementDialogOpen(open);
-            if (!open) setAiArrangementSuggestion(null);
-          }}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>AI Arrangement Suggestion</AlertDialogTitle>
-                <AlertDialogDescription>
-                  <p className="mb-2">AI suggests the following arrangement for the {multiSelectedNodeIds.length} selected nodes:</p>
-                  <strong className="block mt-2 mb-1 capitalize">
-                    {(arrangeActions.find(a => a.id === aiArrangementSuggestion.actionId)?.label || aiArrangementSuggestion.actionId).replace(/\(H\)/g, '(Horizontal)').replace(/\(V\)/g, '(Vertical)')}
-                  </strong>
-                  {aiArrangementSuggestion.reason && (
-                    <span className="text-xs text-muted-foreground">Reason: {aiArrangementSuggestion.reason}</span>
-                  )}
-                  <p className="mt-3 text-sm">Do you want to apply this arrangement?</p>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setAiArrangementSuggestion(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmAIArrangement}>Confirm & Apply</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-
-        {aiDiscoveredGroup && (
-          <AlertDialog open={isDiscoverGroupDialogOpen} onOpenChange={(open) => {
-            setIsDiscoverGroupDialogOpen(open);
-            if (!open) setAiDiscoveredGroup(null);
-          }}>
-            <AlertDialogContent className="max-w-lg">
-              <AlertDialogHeader>
-                <AlertDialogTitle>AI Discovered Group Suggestion</AlertDialogTitle>
-                <AlertDialogDescription>
-                  <p className="mb-2">AI has identified a potential group of nodes:</p>
-                  <div className="my-2 p-3 bg-muted/50 rounded-md border">
-                    <p className="font-semibold text-foreground mb-1">Suggested Parent Name: <span className="font-normal">{aiDiscoveredGroup.suggestedParentName}</span></p>
-                    {aiDiscoveredGroup.reason && (
-                      <p className="text-xs text-muted-foreground mb-2">Reason: {aiDiscoveredGroup.reason}</p>
+                  <p className="mb-2">
+                    AI suggests adding node: <strong className="text-primary">{intermediateNodeSuggestion.intermediateNodeText}</strong>
+                    {intermediateNodeSuggestion.intermediateNodeDetails && (
+                      <span className="text-xs text-muted-foreground block"> (Details: {intermediateNodeSuggestion.intermediateNodeDetails})</span>
                     )}
-                    <p className="text-xs font-medium text-muted-foreground">Nodes to be grouped:</p>
-                    <ul className="list-disc list-inside text-xs text-muted-foreground max-h-32 overflow-y-auto">
-                      {(aiDiscoveredGroup.nodeIdsToGroup || [])
-                        .map(nodeId => storeMapData.nodes.find(n => n.id === nodeId)?.text || nodeId)
-                        .map(text => <li key={text}>{text}</li>)
-                      }
-                    </ul>
-                  </div>
-                  <p className="mt-3 text-sm">If you confirm, these nodes will be structurally linked to the new parent node, and an initial layout will be applied.</p>
+                  </p>
+                  <p>
+                    This will be placed between
+                    '<strong className="text-secondary-foreground">{intermediateNodeSuggestion.sourceNode.text}</strong>'
+                    and '<strong className="text-secondary-foreground">{intermediateNodeSuggestion.targetNode.text}</strong>'.
+                  </p>
+                  <p className="mt-2">The existing connection will be replaced by two new connections:</p>
+                  <ul className="list-disc pl-5 mt-1 text-sm">
+                    <li>
+                      {intermediateNodeSuggestion.sourceNode.text}
+                      <span className="text-muted-foreground"> → </span>
+                      <strong className="text-blue-600">'{intermediateNodeSuggestion.labelSourceToIntermediate}'</strong>
+                      <span className="text-muted-foreground"> → </span>
+                      {intermediateNodeSuggestion.intermediateNodeText}
+                    </li>
+                    <li>
+                      {intermediateNodeSuggestion.intermediateNodeText}
+                      <span className="text-muted-foreground"> → </span>
+                      <strong className="text-blue-600">'{intermediateNodeSuggestion.labelIntermediateToTarget}'</strong>
+                      <span className="text-muted-foreground"> → </span>
+                      {intermediateNodeSuggestion.targetNode.text}
+                    </li>
+                  </ul>
+                  <p className="mt-3">Do you want to apply this change?</p>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setAiDiscoveredGroup(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmAIDiscoverGroup}>Confirm & Create Group</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-
-        {aiMapImprovementSuggestion && (
-          <AlertDialog open={isSuggestImprovementDialogOpen} onOpenChange={(open) => {
-            setIsSuggestImprovementDialogOpen(open);
-            if (!open) setAiMapImprovementSuggestion(null);
-          }}>
-            <AlertDialogContent className="max-w-lg">
-              <AlertDialogHeader>
-                <AlertDialogTitle>AI Map Improvement Suggestion</AlertDialogTitle>
-                <AlertDialogDescription>
-                  <p className="mb-2">AI suggests the following improvement for your map:</p>
-                  {aiMapImprovementSuggestion.type === 'ADD_EDGE' && (
-                    <div>
-                      <strong className="block mt-2 mb-1">Add Edge:</strong>
-                      Connect Node "{storeMapData.nodes.find(n => n.id === aiMapImprovementSuggestion.data.sourceNodeId)?.text || aiMapImprovementSuggestion.data.sourceNodeId}"
-                      to Node "{storeMapData.nodes.find(n => n.id === aiMapImprovementSuggestion.data.targetNodeId)?.text || aiMapImprovementSuggestion.data.targetNodeId}"
-                      with label "{aiMapImprovementSuggestion.data.label}".
-                    </div>
-                  )}
-                  {aiMapImprovementSuggestion.type === 'NEW_INTERMEDIATE_NODE' && (
-                     <div>
-                      <strong className="block mt-2 mb-1">Insert Intermediate Node:</strong>
-                      Between Node "{storeMapData.nodes.find(n => n.id === aiMapImprovementSuggestion.data.sourceNodeId)?.text || aiMapImprovementSuggestion.data.sourceNodeId}"
-                      and Node "{storeMapData.nodes.find(n => n.id === aiMapImprovementSuggestion.data.targetNodeId)?.text || aiMapImprovementSuggestion.data.targetNodeId}".
-                      <br />New Node Text: "{aiMapImprovementSuggestion.data.intermediateNodeText}"
-                      <br />Edge 1: Source to "{aiMapImprovementSuggestion.data.intermediateNodeText}" (Label: "{aiMapImprovementSuggestion.data.labelToIntermediate}")
-                      <br />Edge 2: "{aiMapImprovementSuggestion.data.intermediateNodeText}" to Target (Label: "{aiMapImprovementSuggestion.data.labelFromIntermediate}")
-                    </div>
-                  )}
-                  {aiMapImprovementSuggestion.type === 'FORM_GROUP' && (
-                    <div>
-                      <strong className="block mt-2 mb-1">Form Group:</strong>
-                      Group nodes: {(aiMapImprovementSuggestion.data.nodeIdsToGroup || [])
-                          .map(nodeId => `"${storeMapData.nodes.find(n => n.id === nodeId)?.text || nodeId}"`)
-                          .join(', ')}
-                      <br />Under new parent: "{aiMapImprovementSuggestion.data.suggestedParentName}".
-                    </div>
-                  )}
-                  {aiMapImprovementSuggestion.reason && (
-                    <p className="text-xs text-muted-foreground mt-2">Reason: {aiMapImprovementSuggestion.reason}</p>
-                  )}
-                  <p className="mt-3 text-sm">Do you want to apply this improvement?</p>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setAiMapImprovementSuggestion(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmAIMapImprovement}>Confirm</AlertDialogAction>
+                <AlertDialogCancel onClick={clearIntermediateNodeSuggestion}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    confirmAddIntermediateNode();
+                  }}
+                >
+                  Add Node & Reconnect
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

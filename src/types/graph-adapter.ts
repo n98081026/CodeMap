@@ -1,4 +1,4 @@
-import type { ConceptMapNode, ConceptMapEdge } from '@/types'; // Assuming global types are in src/types/index.ts
+import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 
 // --- Dagre Related Types ---
 
@@ -80,7 +80,6 @@ export interface DagreLayoutOutput {
  */
 export type DagreLayoutUtility = (layoutInput: DagreLayoutInput) => DagreLayoutOutput;
 
-
 // --- Graphology Related Types ---
 
 /**
@@ -99,12 +98,21 @@ export type GraphologyInstance = {
   edges: ConceptMapEdge[];
 };
 
+export interface GraphAdapterOptions {
+  // isDirected?: boolean; // Example: can be extended later
+}
+
+export interface NeighborhoodOptions {
+  depth?: number;        // Default: 1
+  direction?: 'in' | 'out' | 'both'; // Default: 'both'
+}
+
 /**
  * Defines a contract for a utility or adapter that performs graph operations,
  * often abstracting a specific graph library like Graphology.
  * This interface provides a standardized way to interact with graph data structures.
  */
-export interface GraphAdapterUtility {
+export interface GraphAdapter { // Renamed from GraphAdapterUtility
   /**
    * Creates a graph instance from arrays of nodes and edges.
    *
@@ -112,7 +120,11 @@ export interface GraphAdapterUtility {
    * @param edges - An array of `ConceptMapEdge` objects representing the graph's edges.
    * @returns A `GraphologyInstance` (or a compatible graph representation) populated with the provided nodes and edges.
    */
-  fromArrays: (nodes: ConceptMapNode[], edges: ConceptMapEdge[]) => GraphologyInstance;
+  fromArrays(
+    nodes: ConceptMapNode[],
+    edges: ConceptMapEdge[],
+    options?: GraphAdapterOptions // Added options here
+  ): GraphologyInstance;
 
   /**
    * Converts a graph instance back to arrays of nodes and edges.
@@ -121,7 +133,9 @@ export interface GraphAdapterUtility {
    * @param graphInstance - The graph instance (e.g., `GraphologyInstance`) to convert.
    * @returns An object containing `nodes` (array of `ConceptMapNode`) and `edges` (array of `ConceptMapEdge`).
    */
-  toArrays: (graphInstance: GraphologyInstance) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+  toArrays(
+    graphInstance: GraphologyInstance
+  ): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
 
   /**
    * Retrieves all descendant node IDs for a given node ID.
@@ -131,7 +145,10 @@ export interface GraphAdapterUtility {
    * @param nodeId - The ID of the node for which to find descendants.
    * @returns An array of strings, where each string is the ID of a descendant node.
    */
-  getDescendants: (graphInstance: GraphologyInstance, nodeId: string) => string[];
+  getDescendants(
+    graphInstance: GraphologyInstance,
+    nodeId: string
+  ): string[];
 
   /**
    * Retrieves all ancestor node IDs for a given node ID.
@@ -141,7 +158,10 @@ export interface GraphAdapterUtility {
    * @param nodeId - The ID of the node for which to find ancestors.
    * @returns An array of strings, where each string is the ID of an ancestor node.
    */
-  getAncestors: (graphInstance: GraphologyInstance, nodeId: string) => string[];
+  getAncestors(
+    graphInstance: GraphologyInstance,
+    nodeId: string
+  ): string[];
 
   /**
    * Retrieves node IDs in the neighborhood of a given node.
@@ -154,11 +174,11 @@ export interface GraphAdapterUtility {
    *   `direction`: 'in' for predecessors, 'out' for successors, 'both' for all neighbors.
    * @returns An array of strings, where each string is the ID of a node in the specified neighborhood.
    */
-  getNeighborhood: (
+  getNeighborhood(
     graphInstance: GraphologyInstance,
     nodeId: string,
-    options?: { depth?: number; direction?: 'in' | 'out' | 'both' }
-  ) => string[];
+    options?: NeighborhoodOptions // Use defined type
+  ): string[];
 
   /**
    * Extracts a subgraph containing only the specified node IDs and the edges between them.
@@ -167,10 +187,10 @@ export interface GraphAdapterUtility {
    * @param nodeIds - An array of node IDs to include in the subgraph.
    * @returns An object containing `nodes` and `edges` arrays that form the requested subgraph.
    */
-  getSubgraphData: (
+  getSubgraphData(
     graphInstance: GraphologyInstance,
     nodeIds: string[]
-  ) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+  ): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
 
   // Future methods could be added here, e.g.:
   // hasCycle: (graphInstance: GraphologyInstance) => boolean;

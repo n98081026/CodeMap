@@ -29,6 +29,8 @@ import { Card } from '@/components/ui/card';
 import useConceptMapStore from '@/stores/concept-map-store'; // Added import
 import CustomNodeComponent, { type CustomNodeData } from './custom-node';
 import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
+import DragPreviewNode from './drag-preview-node';
+import DragPreviewLabelNode from './drag-preview-label-node'; // Import DragPreviewLabelNode
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { CheckIcon, XIcon } from 'lucide-react';
@@ -36,6 +38,8 @@ import { CheckIcon, XIcon } from 'lucide-react';
 // Define nodeTypesConfig and edgeTypesConfig as top-level constants here
 const nodeTypesConfig: NodeTypes = {
   customConceptNode: CustomNodeComponent,
+  dragPreviewNode: DragPreviewNode,
+  dragPreviewLabel: DragPreviewLabelNode, // New entry for label preview
 };
 
 const edgeTypesConfig: EdgeTypes = {

@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { memo } from 'react'; // Imported memo
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,7 +24,6 @@ interface SelectedNodeToolbarProps {
 
 const PREDEFINED_COLORS = ['#FFFFFF', '#FFF1F0', '#E6F7FF', '#F6FFED', '#FFFBE6', '#F0F0F0', '#D9D9D9', '#B5F5EC', '#E6F7FF', '#CFE2F3', '#D9EAD3', '#FFF2CC', '#FFE5CC', '#F4CCCC', '#EAD1DC'];
 
-
 const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   nodeId,
   onEditLabel,
@@ -34,7 +33,7 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   onAIRewrite,
   onAISuggestRelations,
   onDeleteNode,
-}) => {
+}) => { // Renamed to SelectedNodeToolbarInternal for memo wrapping
   // Stop propagation for all events within the toolbar to prevent node deselection or other interactions with the node itself.
   const handleInteraction = (e: React.MouseEvent | React.TouchEvent | React.PointerEvent) => {
     e.stopPropagation();
@@ -68,7 +67,7 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
             <button
               key={color}
               title={color === '#FFFFFF' ? 'Default (Clear)' : color}
-              onClick={() => onChangeColor(color === '#FFFFFF' ? '' : color)} // Send empty string for default/clear
+              onClick={() => onChangeColor(color === '#FFFFFF' ? '' : color)}
               className="w-5 h-5 rounded-full border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
               style={{ backgroundColor: color }}
             />
@@ -110,4 +109,4 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   );
 };
 
-export default SelectedNodeToolbar;
+export default memo(SelectedNodeToolbar); // Wrapped with memo

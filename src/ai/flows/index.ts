@@ -12,8 +12,13 @@ export * from './suggest-relations';
 export * from './suggest-semantic-parent';
 export * from './summarize-nodes-flow';
 export * from './suggest-arrangement-action';
-export * from './suggest-node-group-candidates';
+export {
+  suggestNodeGroupCandidatesFlow,
+  NodeGroupSuggestionSchema,
+} from './suggest-node-group-candidates';
 export * from './suggest-map-improvement';
+export * from './refine-node-suggestion'; // Added new flow for refining suggestions
+export * from './ai-tidy-up-selection'; // Added new flow for tidying selection
 
 // IMPORTANT: rewrite-node-content-logic.ts (formerly rewrite-node-content-flow.ts) and its exports
 // are NOT exported from this barrel file due to persistent module resolution issues.
