@@ -36,7 +36,7 @@ const NODE_MAX_WIDTH = 400;
 const NODE_MIN_HEIGHT = 70;
 const NODE_DETAILS_MAX_HEIGHT = 200;
 
-const TYPE_ICONS: { [key: string]: LucideIcon } = {
+const TYPE_ICONS: { [key: string]: any } = {
   'default': Settings2,
   'manual-node': Type,
   'key_feature': Star,
@@ -63,10 +63,11 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     editingNodeId,
     setEditingNodeId,
     aiProcessingNodeId, // Get AI processing state
-    deleteNode,
-    updateNode,
+    deleteNode, // Added deleteNode from store
+    updateNode, // Added updateNode from store
     startConnectionMode, // Added startConnectionMode from store
   } = useConceptMapStore();
+  const { onRefineGhostNode } = data; // Destructure new prop
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
   const isBeingProcessedByAI = aiProcessingNodeId === id; // Check if this node is being processed
@@ -77,6 +78,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
   const [isGhostHovered, setIsGhostHovered] = useState(false); // New state for ghost node hover
   const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
+  const [toolbarHorizontalOffset, setToolbarHorizontalOffset] = useState<number>(0); // For viewport horizontal awareness
   // Removed isHoveredForToolbar state
   const cardRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null); // Ref for the main node div to get its rect
@@ -165,16 +167,33 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
 
   useEffect(() => {
     if (selected && nodeRef.current) {
-      const rect = nodeRef.current.getBoundingClientRect();
+      const nodeRect = nodeRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      const APPROX_TOOLBAR_HEIGHT = 40; // pixels, matches -top-10 (2.5rem = 40px)
-      const OFFSET = 10; // pixels
+      const viewportWidth = window.innerWidth;
 
-      if (rect.top - APPROX_TOOLBAR_HEIGHT - OFFSET > 0) {
+      const APPROX_TOOLBAR_HEIGHT = 40; // pixels, matches -top-10 (2.5rem = 40px for vertical)
+      const APPROX_TOOLBAR_WIDTH = 220; // pixels, estimated width of the toolbar. Adjust if necessary.
+      const VIEWPORT_MARGIN = 10; // pixels, margin from viewport edges
+
+      // Vertical positioning
+      if (nodeRect.top - APPROX_TOOLBAR_HEIGHT - VIEWPORT_MARGIN > 0) {
         setToolbarPosition('above');
       } else {
         setToolbarPosition('below');
       }
+
+      // Horizontal positioning
+      const nodeCenter = nodeRect.left + nodeRect.width / 2;
+      const toolbarCalculatedLeft = nodeCenter - APPROX_TOOLBAR_WIDTH / 2;
+      const toolbarCalculatedRight = nodeCenter + APPROX_TOOLBAR_WIDTH / 2;
+
+      let newHorizontalOffset = 0;
+      if (toolbarCalculatedLeft < VIEWPORT_MARGIN) {
+        newHorizontalOffset = VIEWPORT_MARGIN - toolbarCalculatedLeft;
+      } else if (toolbarCalculatedRight > viewportWidth - VIEWPORT_MARGIN) {
+        newHorizontalOffset = viewportWidth - VIEWPORT_MARGIN - toolbarCalculatedRight;
+      }
+      setToolbarHorizontalOffset(newHorizontalOffset);
     }
   }, [selected, xPos, yPos, data.width, data.height]); // Re-calculate if node moves, resizes or selection changes
 
@@ -209,32 +228,23 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
-      {data.isGhost && isGhostHovered && !nodeIsViewOnly && (
+      {data.isGhost && onRefineGhostNode && !globalIsViewOnlyMode && (
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const currentExpansionPreview = useConceptMapStore.getState().conceptExpansionPreview;
-            if (currentExpansionPreview && currentExpansionPreview.parentNodeId) {
-              aiTools.openRefineSuggestionModal(id, currentExpansionPreview.parentNodeId);
-            } else {
-              console.error("Refine clicked, but no active concept expansion preview or parentNodeId found for ghost node:", id);
-              // Optionally, show a toast error to the user if the toast hook is available here
-              // import { useToast } from '@/hooks/use-toast'; // and then: const { toast } = useToast();
-              // toast({ title: "Error", description: "Cannot refine suggestion: context not found.", variant: "destructive" });
-            }
-          }}
-          className="absolute top-1 left-1 z-10 flex items-center justify-center w-6 h-6 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-all"
-          title="Refine AI Suggestion"
+          className="absolute top-0 left-0 m-1 h-5 w-5 p-0.5 z-10 bg-background/70 hover:bg-accent text-foreground"
+          title="Refine this suggestion"
+          onClick={() => onRefineGhostNode?.(id, data.label || data.text, data.details)}
+          onMouseDown={(e) => e.stopPropagation()}
         >
-          <Wand2 className="w-3.5 h-3.5" />
+          <Edit2Icon className="h-3 w-3" />
         </button>
       )}
       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
         <div
           className={cn(
-            "absolute left-1/2 -translate-x-1/2 z-20",
+            "absolute left-1/2 z-20", // Removed -translate-x-1/2, will be handled by style
             toolbarPosition === 'above' ? "-top-10" : "top-full mt-2"
           )}
+          style={{ transform: `translateX(calc(-50% + ${toolbarHorizontalOffset}px))` }}
           // Prevent clicks on the toolbar area from propagating to the node (e.g., deselection)
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -280,12 +290,20 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
               onClick={(e) => e.stopPropagation()} // Prevent node click/selection
             />
             <div className="flex justify-end space-x-1">
-              <Button variant="ghost" size="icon" onClick={handleSaveInlineEdit} title="Save (Enter)">
-                <CheckIcon className="w-4 h-4 text-green-500" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleCancelInlineEdit} title="Cancel (Esc)">
-                <XIcon className="w-4 h-4 text-red-500" />
-              </Button>
+              <button
+                className="bg-primary text-primary-foreground rounded-full p-0.5 hover:bg-primary/80"
+                onClick={handleSaveInlineEdit}
+                title="Save (Enter)"
+              >
+                <CheckIcon className="w-4 h-4" />
+              </button>
+              <button
+                className="bg-background text-foreground rounded-full p-0.5 hover:bg-accent"
+                onClick={handleCancelInlineEdit}
+                title="Cancel (Esc)"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
             </div>
           </div>
         ) : (

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+<<<<<<< HEAD
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -18,6 +19,12 @@ import {
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon
 } from "lucide-react"; // Added Wand2, SearchPlus, TestTube2
+=======
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText,
+  Network, AlignHorizontalDistributeCenter
+} from "lucide-react";
+>>>>>>> master
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -50,6 +57,7 @@ interface EditorToolbarProps {
   canRedo: boolean;
   selectedNodeId: string | null;
   numMultiSelectedNodes: number;
+<<<<<<< HEAD
   onAutoLayout?: () => void; // Made optional
   arrangeActions?: ArrangeAction[];
   onSuggestAISemanticGroup?: () => void; // New prop
@@ -69,6 +77,15 @@ export interface ArrangeAction {
   icon?: LucideIcon;
   action: () => void;
   isSeparator?: boolean;
+=======
+  onAutoLayout?: () => void;
+  onTidySelection?: () => void;
+  onSuggestMapImprovements?: () => void;
+  isSuggestingMapImprovements?: boolean;
+  onApplySemanticTidyUp?: () => void; // New prop for Semantic Tidy
+  isApplyingSemanticTidyUp?: boolean; // New prop for Semantic Tidy
+  onAiTidySelection?: () => void; // New prop
+>>>>>>> master
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({
@@ -100,6 +117,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   selectedNodeId,
   numMultiSelectedNodes,
   onAutoLayout,
+<<<<<<< HEAD
   arrangeActions,
   onSuggestAISemanticGroup,
   onSuggestAIArrangement,
@@ -110,6 +128,14 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onAISuggestImprovement, // Destructure from prev step
   isAISuggestingImprovement, // Destructure from prev step
   onTestEdgeOverlay,
+=======
+  onTidySelection,
+  onSuggestMapImprovements,
+  isSuggestingMapImprovements,
+  onApplySemanticTidyUp, // Destructure new prop
+  isApplyingSemanticTidyUp, // Destructure new prop
+  onAiTidySelection, // Destructure new prop
+>>>>>>> master
 }: EditorToolbarProps) {
   const { toast } = useToast();
 
@@ -224,6 +250,50 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             </Button>
           </TooltipTrigger>
           <TooltipContent>{isViewOnlyMode ? "Shuffle Layout (Disabled)" : !onAutoLayout ? "Shuffle Layout (Not Configured)" : "Shuffle Layout (Experimental)"}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onTidySelection?.()}
+              disabled={isViewOnlyMode || !onTidySelection || numMultiSelectedNodes < 2}
+            >
+              <LayoutGrid className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode
+              ? "Tidy Selection (Disabled in View Mode)"
+              : !onTidySelection
+              ? "Tidy Selection (Not Configured)"
+              : numMultiSelectedNodes < 2
+              ? "Tidy Selection (Select 2+ nodes)"
+              : "Tidy Selected Nodes"}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleGenAIClick(onApplySemanticTidyUp!, "AI Semantic Tidy")}
+              disabled={isViewOnlyMode || !onApplySemanticTidyUp || isApplyingSemanticTidyUp || numMultiSelectedNodes < 2}
+            >
+              {isApplyingSemanticTidyUp ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode
+              ? "AI Semantic Tidy (Disabled in View Mode)"
+              : !onApplySemanticTidyUp
+              ? "AI Semantic Tidy (Not Configured)"
+              : isApplyingSemanticTidyUp
+              ? "Processing..."
+              : numMultiSelectedNodes < 2
+              ? "AI Semantic Tidy (Select 2+ nodes)"
+              : "Arrange Selected Nodes with AI (Semantic Tidy)"}
+          </TooltipContent>
         </Tooltip>
 
         {/* New Auto-layout (Dagre) Button */}
@@ -346,6 +416,27 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         )}
 
         {/* GenAI Tools */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleGenAIClick(onSuggestMapImprovements!, "Suggest Map Improvements")}
+              disabled={isViewOnlyMode || !onSuggestMapImprovements || isSuggestingMapImprovements}
+            >
+              {isSuggestingMapImprovements ? <Loader2 className="h-5 w-5 animate-spin" /> : <ScanSearch className="h-5 w-5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode
+              ? "Suggest Improvements (Disabled in View Mode)"
+              : !onSuggestMapImprovements
+              ? "Suggest Improvements (Not Configured)"
+              : isSuggestingMapImprovements
+              ? "Processing..."
+              : "Scan Map for Structure Suggestions (AI)"}
+          </TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onQuickCluster, "Quick AI Cluster")} disabled={isViewOnlyMode}>

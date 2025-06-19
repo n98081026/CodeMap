@@ -17,8 +17,11 @@ export {
   NodeGroupSuggestionSchema,
 } from './suggest-node-group-candidates';
 export * from './suggest-map-improvement';
+export * from './suggest-map-improvements';
 export * from './refine-node-suggestion'; // Added new flow for refining suggestions
 export * from './ai-tidy-up-selection'; // Added new flow for tidying selection
+export * from './semanticTidyUpFlow';
+export * from './suggestChildNodesFlow';
 
 // IMPORTANT: rewrite-node-content-logic.ts (formerly rewrite-node-content-flow.ts) and its exports
 // are NOT exported from this barrel file due to persistent module resolution issues.

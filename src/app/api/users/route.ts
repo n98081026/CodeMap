@@ -2,10 +2,24 @@
 // src/app/api/users/route.ts
 import { NextResponse } from 'next/server';
 import { getAllUsers } from '@/services/users/userService';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { UserRole } from '@/types';
 
 export async function GET(request: Request) {
   try {
-    // TODO: Add authentication and authorization checks here to ensure only admins can access this.
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError) { return NextResponse.json({ message: "Authentication error" }, { status: 500 }); }
+    if (!user) { return NextResponse.json({ message: "Authentication required" }, { status: 401 }); }
+
+    const userRole = user.user_metadata?.role as UserRole;
+    if (userRole !== UserRole.ADMIN) {
+      return NextResponse.json({ message: "Forbidden: Admin access required to list all users." }, { status: 403 });
+    }
+    // Admin can proceed...
     
     const { searchParams } = new URL(request.url);
     const pageParam = searchParams.get('page');

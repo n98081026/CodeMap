@@ -85,7 +85,6 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
     }
   }, [selectedIndex, isOpen]);
 
-
   if (!isOpen || filteredCommands.length === 0) {
     // If no commands match filter, also close or don't show.
     // Or, show a "No results" message if preferred. For now, just don't show.

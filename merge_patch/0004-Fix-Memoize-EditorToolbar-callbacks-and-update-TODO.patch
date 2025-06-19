@@ -1,0 +1,71 @@
+From 78ebe410881f3926cc485e72110f36b2fc0ba4c7 Mon Sep 17 00:00:00 2001
+From: "google-labs-jules[bot]"
+ <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date: Sat, 14 Jun 2025 10:28:26 +0000
+Subject: [PATCH 04/27] Fix: Memoize EditorToolbar callbacks and update TODO
+
+Memoized the `onUndo` and `onRedo` callbacks passed to the
+`EditorToolbar` component from `ConceptMapEditorPage` using
+`useCallback`. This optimization enhances performance by ensuring
+stable prop references for the memoized `EditorToolbar`.
+
+The corresponding task in `TODO.md` has been marked as complete.
+---
+ TODO.md                                            |  4 ++--
+ src/app/(app)/concept-maps/editor/[mapId]/page.tsx | 11 ++++++++++-
+ 2 files changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/TODO.md b/TODO.md
+index efb7a82..78ba250 100644
+--- a/TODO.md
++++ b/TODO.md
+@@ -158,7 +158,7 @@
+     - [x] Display a small, floating toolbar near selected/hovered node with 2-3 most relevant AI actions (e.g., Expand, Summarize, Rewrite).
+     - [x] Interaction: Icons for quick actions. Clicking an icon performs a default action or opens a streamlined input. (Core AI connections made, further refinement of actions can continue)
+ - [ ] **SelectedNodeToolbar Enhancements:**
+-    - [ ] Implement "Change Color" functionality (e.g., via a popover color picker).
++    - [x] Implement "Change Color" functionality (e.g., via a popover color picker).
+     - [x] Implement "Start Connection via button" (alternative to dragging handles).
+     - [ ] Investigate/Implement dynamic, viewport-aware positioning for the toolbar.
+ - [x] Drag-and-Drop from AI Panel with Preview:
+@@ -260,7 +260,7 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
+         - [x] Ensured AI-generated nodes (from panel, direct generation like "Summarize", "Rewrite", or "Expand Concept") have distinct visual styles and icons via `CustomNodeComponent`.
+         - [x] Defined specific node types (`ai-summary-node`, `ai-rewritten-node`, `ai-expanded` for generated children, `ai-concept` from panel, `text-derived-concept`, `ai-generated`) and mapped them to styles/icons.
+ - [ ] Conduct further React component memoization: Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (`SelectedNodeToolbar` and its props from `CustomNodeComponent` now memoized).
+-    - [ ] Ensure callbacks passed as props *to* `EditorToolbar` from its parent page (e.g., `mapId/page.tsx`) are memoized using `useCallback`.
++    - [x] Ensure callbacks passed as props *to* `EditorToolbar` from its parent page (e.g., `mapId/page.tsx`) are memoized using `useCallback`.
+ ## Performance Optimizations
+ // This section was duplicated, the content above is the primary one. Removing this duplicate.
+ 
+diff --git a/src/app/(app)/concept-maps/editor/[mapId]/page.tsx b/src/app/(app)/concept-maps/editor/[mapId]/page.tsx
+index d931f00..b3d603b 100644
+--- a/src/app/(app)/concept-maps/editor/[mapId]/page.tsx
++++ b/src/app/(app)/concept-maps/editor/[mapId]/page.tsx
+@@ -105,6 +105,15 @@ export default function ConceptMapEditorPage() {
+   const canUndo = temporalState.pastStates.length > 0;
+   const canRedo = temporalState.futureStates.length > 0;
+ 
++  // Memoized undo/redo handlers
++  const handleUndo = useCallback(() => {
++    temporalStoreAPI.getState().undo();
++  }, [temporalStoreAPI]);
++
++  const handleRedo = useCallback(() => {
++    temporalStoreAPI.getState().redo();
++  }, [temporalStoreAPI]);
++
+   const { saveMap } = useConceptMapDataManager({ routeMapId, user });
+ 
+   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
+@@ -566,7 +575,7 @@ export default function ConceptMapEditorPage() {
+           onToggleProperties={onTogglePropertiesInspector}
+           onToggleAiPanel={onToggleAiPanel}
+           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
+-          onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
++          onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo}
+           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
+           numMultiSelectedNodes={multiSelectedNodeIds.length}
+         />
+-- 
+2.48.1.windows.1
+

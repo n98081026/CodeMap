@@ -61,17 +61,14 @@ export function useAdminDashboardMetrics(): AdminDashboardMetrics {
     // Fetch Classrooms Count
     setClassroomsMetric(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const classroomsResponse = await fetch('/api/classrooms');
+      // Fetch a minimal paginated response to get the totalCount
+      const classroomsResponse = await fetch('/api/classrooms?page=1&limit=1');
       if (!classroomsResponse.ok) {
         const errData = await classroomsResponse.json();
         throw new Error(`Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`);
       }
-      const classroomsData = await classroomsResponse.json();
-      if (Array.isArray(classroomsData)) {
-        setClassroomsMetric({ count: classroomsData.length, isLoading: false, error: null });
-      } else { 
-        setClassroomsMetric({ count: classroomsData.totalCount || 0, isLoading: false, error: null });
-      }
+      const classroomsData = await classroomsResponse.json() as { classrooms: any[], totalCount: number };
+      setClassroomsMetric({ count: classroomsData.totalCount, isLoading: false, error: null });
     } catch (err) {
       const errorMessage = (err as Error).message;
       console.error("Error fetching classrooms count for admin dashboard:", errorMessage);

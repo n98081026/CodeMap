@@ -35,20 +35,21 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { CheckIcon, XIcon } from 'lucide-react';
 
-// Define nodeTypesConfig and edgeTypesConfig as top-level constants here
+// Define nodeTypesConfig as top-level constant here
 const nodeTypesConfig: NodeTypes = {
   customConceptNode: CustomNodeComponent,
   dragPreviewNode: DragPreviewNode,
   dragPreviewLabel: DragPreviewLabelNode, // New entry for label preview
 };
 
-const edgeTypesConfig: EdgeTypes = {
+// Default edgeTypesConfig, can be overridden by prop
+const defaultEdgeTypesConfig: EdgeTypes = {
   orthogonal: OrthogonalEdge,
 };
 
 interface InteractiveCanvasProps {
   nodes: Node<CustomNodeData>[];
-  edges: Edge<OrthogonalEdgeData>[];
+  edges: Edge<OrthogonalEdgeData>[]; // This type might need to be more generic if SuggestionEdgeData is very different
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onNodesDelete?: OnNodesDelete;
@@ -62,11 +63,13 @@ interface InteractiveCanvasProps {
   onPaneDoubleClick?: OnPaneDoubleClick;
   onPaneContextMenu?: (event: React.MouseEvent) => void;
   onNodeClick?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
-  onDragOver?: (event: React.DragEvent) => void; // Prop from parent (FlowCanvasCore)
-  onCanvasDrop?: (data: {type: string, text: string}, position: {x:number, y:number}) => void; // New prop for parsed drop data
+  onDragOver?: (event: React.DragEvent) => void;
+  onDrop?: (event: React.DragEvent) => void;
+  onDragLeave?: (event: React.DragEvent) => void; // Added onDragLeave
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string | null;
+<<<<<<< HEAD
   // Drag preview related props
   draggedItemPreview?: { type: string; text: string; x: number; y: number; } | null;
   onCanvasDragLeave?: (event: React.DragEvent) => void;
@@ -75,6 +78,10 @@ interface InteractiveCanvasProps {
   activeVisualEdgeSuggestion?: VisualEdgeSuggestion | null;
   onAcceptVisualEdge?: (suggestionId: string) => void;
   onRejectVisualEdge?: (suggestionId: string) => void;
+=======
+  edgeTypes?: EdgeTypes; // Prop to pass custom edge types
+  onNodeDrop?: (event: React.DragEvent, node: RFNode) => void; // New prop for node drop
+>>>>>>> master
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -115,17 +122,23 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onPaneContextMenu,
   onNodeClick,
   onDragOver,
-  onCanvasDrop, // Destructure new prop
+  onDrop,
+  onDragLeave,
   activeSnapLines = [],
   dragPreviewSnapLines = [], // Destructure with default
   gridSize = 20,
   panActivationKeyCode,
+<<<<<<< HEAD
   draggedItemPreview, // Destructure new prop
   onCanvasDragLeave,  // Destructure new prop
   // Destructure Visual Edge Suggestion Overlay Props
   activeVisualEdgeSuggestion,
   onAcceptVisualEdge,
   onRejectVisualEdge,
+=======
+  edgeTypes: propEdgeTypes,
+  onNodeDrop, // Destructure onNodeDrop
+>>>>>>> master
 }) => {
   console.log(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length-1]) : 'N/A'}`);
   // Also send to store's debug log for easier collection if console is not always available during testing
@@ -133,6 +146,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   const { project, getNodes: rfGetNodes, getViewport, screenToFlowPosition } = useReactFlow();
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
+<<<<<<< HEAD
   const allSnapLinesToRender = React.useMemo(() => [
     ...(activeSnapLines || []),
     ...(dragPreviewSnapLines || [])
@@ -164,6 +178,9 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     event.dataTransfer.clearData();
   }, [reactFlowInstance, onCanvasDrop]);
 
+=======
+  // useEffect for translateExtent calculation (remains unchanged)
+>>>>>>> master
   useEffect(() => {
     const currentViewport = getViewport(); 
 
@@ -266,13 +283,20 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     className: "bg-background",
     proOptions: { hideAttribution: true },
     nodeTypes: nodeTypesConfig,
-    edgeTypes: edgeTypesConfig,
+    edgeTypes: propEdgeTypes || defaultEdgeTypesConfig, // Use passed edgeTypes or default
     onNodeContextMenu,
     onPaneContextMenu,
     onNodeClick,
+<<<<<<< HEAD
     onDragOver: handleDragOverOnCanvas,
     onDrop: handleDropOnCanvas,
     onDragLeave: onCanvasDragLeave, // Pass the new handler
+=======
+    onDragOver: onDragOver,
+    onDrop: onDrop,
+    onDragLeave: onDragLeave,
+    onNodeDrop: onNodeDrop, // Pass onNodeDrop to ReactFlow
+>>>>>>> master
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined,

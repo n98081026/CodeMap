@@ -1,0 +1,209 @@
+From ba86e67ace9710e95a9cd692e703a7b1a7140bce Mon Sep 17 00:00:00 2001
+From: "google-labs-jules[bot]"
+ <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date: Sun, 15 Jun 2025 01:34:04 +0000
+Subject: [PATCH 24/27] I've defined the TypeScript interfaces for
+ `GraphAdapter` (for Graphology operations) and `DagreLayoutUtility` (for
+ Dagre.js layout calculations) in `src/types/graph-adapter.ts`.
+
+These interfaces will help integrate these libraries to provide advanced graph analysis and automated layout capabilities.
+
+The `GraphAdapter` interface includes methods for:
+- Converting to/from Graphology instances from/to arrays of ConceptMapNode/Edge.
+- Retrieving descendants, ancestors, and neighborhoods.
+- Extracting subgraph data.
+
+The `DagreLayoutUtility` interface defines a method for calculating node positions based on a set of nodes, edges, and layout options.
+
+I've also updated `TODO.md` to reflect that these interface definition tasks are now complete.
+---
+ TODO.md                    | 22 +++++-----
+ src/types/graph-adapter.ts | 83 +++++++++++++++++++++++---------------
+ 2 files changed, 61 insertions(+), 44 deletions(-)
+
+diff --git a/TODO.md b/TODO.md
+index c3e7522..d31bda4 100644
+--- a/TODO.md
++++ b/TODO.md
+@@ -210,18 +210,18 @@
+ This plan outlines a potential refactoring to incorporate Graphology for more robust data management and Dagre for automated graph layout. Implementation is contingent on tool stability and/or user provision of core utility libraries.
+ 
+ **Phase 1: Define Utility Interfaces & Core Store Logic**
+-- [ ] **Define `DagreLayoutUtility` Interface:**
+-    - Input: `nodes: Array<{id, width, height}>`, `edges: Array<{source, target}>`, `options?: {direction?, rankSep?, nodeSep?}`.
+-    - Output: `nodes: Array<{id, x, y}>` (top-left coordinates for React Flow).
++- [x] **Define `DagreLayoutUtility` Interface:** (TypeScript interfaces defined in `src/types/graph-adapter.ts`)
++    - Input: `nodes: Array<{id: string, width: number, height: number}>`, `edges: Array<{source: string, target: string}>`, `options?: {direction?: 'TB' | 'BT' | 'LR' | 'RL', rankSep?: number, nodeSep?: number, edgeSep?: number, marginx?: number, marginy?: number}`.
++    - Output: `Promise<Array<{id: string, x: number, y: number}>>` (top-left coordinates for React Flow, async).
+     - Responsibility: Encapsulates Dagre.js layout calculation.
+-- [ ] **Define `GraphAdapter` Utility Interface (for Graphology):**
+-    - `fromArrays(nodes, edges) => GraphologyInstance`
+-    - `toArrays(graphInstance) => {nodes, edges}` (if needed for full graph conversion)
+-    - `getDescendants(graphInstance, nodeId) => string[]`
+-    - `getAncestors(graphInstance, nodeId) => string[]`
+-    - `getNeighborhood(graphInstance, nodeId, options) => string[]`
+-    - `getSubgraph(graphInstance, nodeIds) => {nodes, edges}` (React Flow compatible arrays)
+-    - Responsibility: Encapsulates common Graphology operations on data sourced from store arrays.
++- [x] **Define `GraphAdapter` Interface (for Graphology):** (TypeScript interfaces defined in `src/types/graph-adapter.ts`)
++    - `fromArrays(nodes: ConceptMapNode[], edges: ConceptMapEdge[], options?: GraphAdapterOptions): GraphologyInstance;`
++    - `toArrays(graphInstance: GraphologyInstance): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };`
++    - `getDescendants(graphInstance: GraphologyInstance, nodeId: string): string[];`
++    - `getAncestors(graphInstance: GraphologyInstance, nodeId: string): string[];`
++    - `getNeighborhood(graphInstance: GraphologyInstance, nodeId: string, options?: NeighborhoodOptions): string[];`
++    - `getSubgraphData(graphInstance: GraphologyInstance, nodeIds: string[]): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };`
++    - Responsibility: Encapsulates common Graphology operations.
+ - [x] **Store: Implement `applyLayout` Action (`concept-map-store.ts`):**
+     - Takes `updatedNodePositions: Array<{id, x, y}>` (from `DagreLayoutUtility`).
+     - Updates `x, y` for corresponding nodes in `mapData.nodes`.
+diff --git a/src/types/graph-adapter.ts b/src/types/graph-adapter.ts
+index 0bcf4f5..002ee5c 100644
+--- a/src/types/graph-adapter.ts
++++ b/src/types/graph-adapter.ts
+@@ -1,45 +1,41 @@
+-import type { ConceptMapNode, ConceptMapEdge } from '@/types'; // Assuming global types are in src/types/index.ts
++import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+ 
+ // --- Dagre Related Types ---
+-export interface DagreNodeInput {
++export interface NodeLayoutInput {
+   id: string;
+   width: number;
+   height: number;
+ }
+ 
+-export interface DagreEdgeInput {
++export interface EdgeLayoutInput {
+   source: string;
+   target: string;
+ }
+ 
+ export interface DagreLayoutOptions {
+-  direction?: 'TB' | 'LR' | 'BT' | 'RL';
+-  rankSep?: number;
+-  nodeSep?: number;
+-  edgeSep?: number;
++  direction?: 'TB' | 'BT' | 'LR' | 'RL';
++  ranksep?: number;
++  nodesep?: number;
++  edgesep?: number;
++  marginx?: number;
++  marginy?: number;
+ }
+ 
+-export interface DagreLayoutInput {
+-  nodes: DagreNodeInput[];
+-  edges: DagreEdgeInput[];
+-  options?: DagreLayoutOptions;
+-}
+-
+-export interface DagreNodeOutput {
++export interface NodePositionOutput {
+   id: string;
+-  x: number;
+-  y: number;
++  x: number; // Top-left x
++  y: number; // Top-left y
+ }
+ 
+-export interface DagreLayoutOutput {
+-  nodes: DagreNodeOutput[];
++// This defines the shape of a function/utility
++export interface DagreLayoutUtility {
++  (
++    nodes: NodeLayoutInput[],
++    edges: EdgeLayoutInput[],
++    options?: DagreLayoutOptions
++  ): Promise<NodePositionOutput[]>;
+ }
+ 
+-/**
+- * Conceptual type for a Dagre layout utility function.
+- */
+-export type DagreLayoutUtility = (layoutInput: DagreLayoutInput) => DagreLayoutOutput;
+-
+ 
+ // --- Graphology Related Types ---
+ 
+@@ -51,48 +47,69 @@ export type DagreLayoutUtility = (layoutInput: DagreLayoutInput) => DagreLayoutO
+  */
+ export type GraphologyInstance = any;
+ 
++export interface GraphAdapterOptions {
++  // isDirected?: boolean; // Example: can be extended later
++}
++
++export interface NeighborhoodOptions {
++  depth?: number;        // Default: 1
++  direction?: 'in' | 'out' | 'both'; // Default: 'both'
++}
++
+ /**
+  * Defines the contract for a utility/adapter that performs Graphology operations.
+  * The actual implementation of these functions would use the Graphology library.
+  */
+-export interface GraphAdapterUtility {
++export interface GraphAdapter { // Renamed from GraphAdapterUtility
+   /**
+    * Creates a Graphology instance from arrays of nodes and edges.
+    */
+-  fromArrays: (nodes: ConceptMapNode[], edges: ConceptMapEdge[]) => GraphologyInstance;
++  fromArrays(
++    nodes: ConceptMapNode[],
++    edges: ConceptMapEdge[],
++    options?: GraphAdapterOptions // Added options here
++  ): GraphologyInstance;
+ 
+   /**
+    * Converts a Graphology instance back to React Flow compatible node and edge arrays.
+    * (May not always be needed if utilities return specific processed data).
+    */
+-  toArrays: (graphInstance: GraphologyInstance) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
++  toArrays(
++    graphInstance: GraphologyInstance
++  ): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+ 
+   /**
+    * Gets all descendant IDs for a given node.
+    */
+-  getDescendants: (graphInstance: GraphologyInstance, nodeId: string) => string[];
++  getDescendants(
++    graphInstance: GraphologyInstance,
++    nodeId: string
++  ): string[];
+ 
+   /**
+    * Gets all ancestor IDs for a given node (e.g., path to root or all unique ancestors).
+    */
+-  getAncestors: (graphInstance: GraphologyInstance, nodeId: string) => string[];
++  getAncestors(
++    graphInstance: GraphologyInstance,
++    nodeId: string
++  ): string[];
+ 
+   /**
+    * Gets node IDs in the neighborhood of a given node, up to a certain depth.
+    */
+-  getNeighborhood: (
++  getNeighborhood(
+     graphInstance: GraphologyInstance,
+     nodeId: string,
+-    options?: { depth?: number; direction?: 'in' | 'out' | 'both' }
+-  ) => string[];
++    options?: NeighborhoodOptions // Use defined type
++  ): string[];
+ 
+   /**
+    * Extracts a subgraph containing specified node IDs and returns it as React Flow compatible arrays.
+    */
+-  getSubgraphData: (
++  getSubgraphData(
+     graphInstance: GraphologyInstance,
+     nodeIds: string[]
+-  ) => { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
++  ): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+ 
+   // Future methods could be added here, e.g.:
+   // hasCycle: (graphInstance: GraphologyInstance) => boolean;
+-- 
+2.48.1.windows.1
+

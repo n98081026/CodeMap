@@ -1,0 +1,28 @@
+From b3f85314301620df20c086fb0c44fdb35e94bec3 Mon Sep 17 00:00:00 2001
+From: "google-labs-jules[bot]"
+ <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date: Sun, 15 Jun 2025 01:33:48 +0000
+Subject: [PATCH 23/27] Feat: Add C# project simulation to
+ projectStructureAnalyzerTool
+
+This commit further enhances the mocking capabilities of `projectStructureAnalyzerTool.ts` by adding a simulation for C# (ASP.NET Core) projects.
+
+Key changes to `projectStructureAnalyzerTool.ts`:
+- Defined conceptual file content for a sample C# / ASP.NET Core Web API project (including `.csproj`, `Program.cs`, `appsettings.json`, controllers, models, services, and `README.md`).
+- Implemented basic simulated "parsing" for these conceptual C# project files:
+    - Extracts H1 from `README.md`.
+    - Parses `.csproj` for NuGet package dependencies.
+    - Parses `appsettings.json` for top-level configuration keys.
+    - Extracts namespaces, using directives, public class/interface/enum names, public method names, and public property names from `.cs` files using regex.
+- Introduced a new hint, `_USE_SIMULATED_FS_CSHARP_PROJECT_`, which triggers this C# project simulation.
+- When activated, I generate a `ProjectAnalysisOutput` with C#-specific details, including:
+    - `inferredLanguagesFrameworks` (C#, ASP.NET Core, Entity Framework Core if detected).
+    - NuGet dependencies.
+    - `keyFiles` for C# source files with extracted symbols.
+    - Simulated `directoryStructureSummary` reflecting namespaces/folders.
+- Hint priorities were adjusted to correctly incorporate this new simulation path.
+
+The `TODO.md` file has been updated to reflect these new C# simulation capabilities of the project analyzer. This provides more diverse and detailed mock data for testing AI flows.
+-- 
+2.48.1.windows.1
+

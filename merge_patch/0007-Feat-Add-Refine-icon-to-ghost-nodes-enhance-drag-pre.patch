@@ -1,0 +1,411 @@
+From f00dc13b0d11a322ff098db907146494e4034ebc Mon Sep 17 00:00:00 2001
+From: "google-labs-jules[bot]"
+ <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date: Sat, 14 Jun 2025 11:14:43 +0000
+Subject: [PATCH 07/27] Feat: Add Refine icon to ghost nodes & enhance drag
+ preview snapping
+
+This commit introduces two UI/UX enhancements for concept map interactions:
+
+1.  **"Refine" Icon for Ghost Nodes:**
+    *   In `custom-node.tsx`, a "Refine" icon (Wand2) now appears on hover over AI-generated ghost nodes (in edit mode).
+    *   Clicking this icon currently triggers a placeholder action (console log and alert), laying the groundwork for future functionality to refine AI suggestions.
+
+2.  **Enhanced Drag Preview Snapping:**
+    *   In `flow-canvas-core.tsx`, the snapping logic has been refactored into a reusable utility `calculateSnappedPositionAndLines`.
+    *   The drag preview for items dragged from the `AISuggestionPanel` now utilizes this enhanced snapping logic.
+    *   As a result, the drag preview snaps not only to the grid but also to the edges and centers of existing nodes on the canvas.
+    *   Visual snap lines are also displayed for the drag preview, consistent with regular node dragging.
+
+`TODO.md` has been updated to reflect the status of these features.
+---
+ TODO.md                                       |   4 +-
+ src/components/concept-map/custom-node.tsx    |  33 ++-
+ .../concept-map/flow-canvas-core.tsx          | 270 ++++++++++--------
+ 3 files changed, 184 insertions(+), 123 deletions(-)
+
+diff --git a/TODO.md b/TODO.md
+index 30df096..1e5045d 100644
+--- a/TODO.md
++++ b/TODO.md
+@@ -165,7 +165,7 @@
+     - [x] Allow dragging concepts/relations from AISuggestionPanel directly onto the canvas.
+     - [x] Interaction: Show a preview of the **node** under the cursor during drag (snapped to grid). (Implemented for nodes dragged from AI Panel).
+     - [ ] Interaction (Enhancement): Show a preview for dragging **edges** from AI Panel (if applicable, or for edges dragged from other UI elements).
+-    - [ ] Interaction (Enhancement): Ensure node-to-node snapping guides actively interact with the node drag preview (current preview snaps to grid).
++    - [x] Interaction (Enhancement): Ensure node-to-node snapping guides actively interact with the node drag preview (current preview snaps to grid).
+ 
+ ### Iterative and Preview-Oriented AI Generation
+ - [x] "AI Staging Area" for Cluster/Snippet Generation:
+@@ -176,6 +176,8 @@
+     - [x] When "Expand Concept" is used, first show new child nodes as temporary "ghost" nodes.
+     - [x] Interaction: Allow clicking individual ghost nodes to accept. Add "Accept All" / "Cancel" controls. (Core acceptance logic done via click and floater)
+     - [ ] Interaction (Enhancement): Display "Refine" icon on hover over a ghost node to alter its suggestion before acceptance.
++        - [x] UI: Display "Refine" icon (e.g., Wand2) on ghost node hover with placeholder action.
++        - [ ] Logic: Implement full "refine suggestion" functionality (e.g., modal, AI call).
+ 
+ ### AI-Powered Layout and Structuring Assistance
+ - [ ] "AI Tidy-Up" / Smart Alignment (Contextual):
+diff --git a/src/components/concept-map/custom-node.tsx b/src/components/concept-map/custom-node.tsx
+index dc6c95d..0ec25e0 100644
+--- a/src/components/concept-map/custom-node.tsx
++++ b/src/components/concept-map/custom-node.tsx
+@@ -12,7 +12,7 @@ import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
+ import {
+   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
+   SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser,
+-  Move as MoveIcon // Added MoveIcon
++  Move as MoveIcon, Wand2 // Added Wand2
+ } from 'lucide-react'; // Added Loader2
+ 
+ export interface CustomNodeData {
+@@ -73,6 +73,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
+   const aiTools = useConceptMapAITools(nodeIsViewOnly);
+ 
+   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
++  const [isGhostHovered, setIsGhostHovered] = useState(false); // New state for ghost node hover
+   const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
+   // Removed isHoveredForToolbar state
+   const cardRef = useRef<HTMLDivElement>(null);
+@@ -165,14 +166,36 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
+         data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
+       )}
+       onMouseEnter={() => {
+-        if (data.isGhost) return; // Do not trigger hover effects for ghost nodes
+-        setIsHovered(true);
+-        // Removed setIsHoveredForToolbar(true);
++        if (data.isGhost) {
++          setIsGhostHovered(true);
++        } else {
++          setIsHovered(true);
++        }
++      }}
++      onMouseLeave={() => {
++        if (data.isGhost) {
++          setIsGhostHovered(false);
++        } else {
++          setIsHovered(false);
++        }
+       }}
+-      onMouseLeave={() => { setIsHovered(false); /* Removed setIsHoveredForToolbar(false); */ }}
+       onDoubleClick={handleNodeDoubleClick}
+       data-node-id={id}
+     >
++      {data.isGhost && isGhostHovered && !nodeIsViewOnly && (
++        <button
++          onClick={(e) => {
++            e.stopPropagation();
++            console.log(`Refine action triggered for ghost node: ${id}, Label: "${data.label}"`);
++            alert(`Placeholder: Refine AI suggestion for "${data.label}"`);
++            // Future: Call a function here to open a refine modal or trigger AI refinement
++          }}
++          className="absolute top-1 left-1 z-10 flex items-center justify-center w-6 h-6 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-all"
++          title="Refine AI Suggestion"
++        >
++          <Wand2 className="w-3.5 h-3.5" />
++        </button>
++      )}
+       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
+         <div
+           className={cn(
+diff --git a/src/components/concept-map/flow-canvas-core.tsx b/src/components/concept-map/flow-canvas-core.tsx
+index 6a749c9..c883e84 100644
+--- a/src/components/concept-map/flow-canvas-core.tsx
++++ b/src/components/concept-map/flow-canvas-core.tsx
+@@ -16,6 +16,127 @@ export interface RFConceptMapEdgeDataFromCore extends OrthogonalEdgeData {}
+ const GRID_SIZE = 20;
+ const SNAP_THRESHOLD = 8; // Pixels for snapping sensitivity
+ 
++interface SnapResult {
++  snappedPosition: { x: number; y: number };
++  activeSnapLines: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
++}
++
++function calculateSnappedPositionAndLines(
++  targetNodePos: { x: number; y: number },
++  targetNodeDims: { width: number; height: number },
++  nodesToSnapAgainst: RFNode<CustomNodeData>[],
++  gridSize: number,
++  snapThreshold: number,
++  excludeId?: string
++): SnapResult {
++  let currentDragSnapLines: SnapResult['activeSnapLines'] = [];
++  let snappedXPosition = targetNodePos.x;
++  let snappedYPosition = targetNodePos.y;
++  let xSnappedByNode = false;
++  let ySnappedByNode = false;
++
++  const targetNodeWidth = targetNodeDims.width;
++  const targetNodeHeight = targetNodeDims.height;
++
++  const effectiveNodesToSnapAgainst = excludeId
++    ? nodesToSnapAgainst.filter(n => n.id !== excludeId)
++    : nodesToSnapAgainst;
++
++  const draggedTargetsX = [
++    { type: 'left', value: targetNodePos.x },
++    { type: 'center', value: targetNodePos.x + targetNodeWidth / 2 },
++    { type: 'right', value: targetNodePos.x + targetNodeWidth },
++  ];
++  const draggedTargetsY = [
++    { type: 'top', value: targetNodePos.y },
++    { type: 'center', value: targetNodePos.y + targetNodeHeight / 2 },
++    { type: 'bottom', value: targetNodePos.y + targetNodeHeight },
++  ];
++
++  let minDeltaX = Infinity; let bestSnapXInfo: { position: number, line: SnapResult['activeSnapLines'][0] } | null = null;
++  let minDeltaY = Infinity; let bestSnapYInfo: { position: number, line: SnapResult['activeSnapLines'][0] } | null = null;
++
++  effectiveNodesToSnapAgainst.forEach(otherNode => {
++    if (!otherNode.width || !otherNode.height || !otherNode.positionAbsolute) return;
++
++    const otherWidth = otherNode.width;
++    const otherHeight = otherNode.height;
++    const otherNodePosition = otherNode.positionAbsolute;
++
++    const otherTargetsX = [
++      { type: 'left', value: otherNodePosition.x },
++      { type: 'center', value: otherNodePosition.x + otherWidth / 2 },
++      { type: 'right', value: otherNodePosition.x + otherWidth },
++    ];
++    const otherTargetsY = [
++      { type: 'top', value: otherNodePosition.y },
++      { type: 'center', value: otherNodePosition.y + otherHeight / 2 },
++      { type: 'bottom', value: otherNodePosition.y + otherHeight },
++    ];
++
++    for (const dtX of draggedTargetsX) {
++      for (const otX of otherTargetsX) {
++        const delta = Math.abs(dtX.value - otX.value);
++        if (delta < snapThreshold && delta < minDeltaX) {
++          minDeltaX = delta;
++          bestSnapXInfo = {
++            position: otX.value - (dtX.value - targetNodePos.x),
++            line: {
++              type: 'vertical',
++              x1: otX.value, y1: Math.min(targetNodePos.y, otherNodePosition.y) - 20,
++              x2: otX.value, y2: Math.max(targetNodePos.y + targetNodeHeight, otherNodePosition.y + otherHeight) + 20,
++            }
++          };
++        }
++      }
++    }
++
++    for (const dtY of draggedTargetsY) {
++      for (const otY of otherTargetsY) {
++        const delta = Math.abs(dtY.value - otY.value);
++        if (delta < snapThreshold && delta < minDeltaY) {
++          minDeltaY = delta;
++          bestSnapYInfo = {
++            position: otY.value - (dtY.value - targetNodePos.y),
++            line: {
++              type: 'horizontal',
++              x1: Math.min(targetNodePos.x, otherNodePosition.x) - 20, y1: otY.value,
++              x2: Math.max(targetNodePos.x + targetNodeWidth, otherNodePosition.x + otherWidth) + 20, y2: otY.value,
++            }
++          };
++        }
++      }
++    }
++  });
++
++  if (bestSnapXInfo !== null) {
++    snappedXPosition = bestSnapXInfo.position;
++    xSnappedByNode = true;
++    currentDragSnapLines.push(bestSnapXInfo.line);
++  }
++  if (bestSnapYInfo !== null) {
++    snappedYPosition = bestSnapYInfo.position;
++    ySnappedByNode = true;
++    currentDragSnapLines.push(bestSnapYInfo.line);
++  }
++
++  if (!xSnappedByNode) {
++    const gridSnappedX = Math.round(targetNodePos.x / gridSize) * gridSize;
++    if (Math.abs(targetNodePos.x - gridSnappedX) < snapThreshold) {
++      snappedXPosition = gridSnappedX;
++    }
++  }
++  if (!ySnappedByNode) {
++    const gridSnappedY = Math.round(targetNodePos.y / gridSize) * gridSize;
++    if (Math.abs(targetNodePos.y - gridSnappedY) < snapThreshold) {
++      snappedYPosition = gridSnappedY;
++    }
++  }
++
++  return { snappedPosition: { x: snappedXPosition, y: snappedYPosition }, activeSnapLines: currentDragSnapLines };
++}
++
++
+ interface FlowCanvasCoreProps {
+   mapDataFromStore: ConceptMapData;
+   isViewOnlyMode?: boolean;
+@@ -310,118 +431,20 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
+       return;
+     }
+ 
+-    let currentDragSnapLines: typeof activeSnapLinesLocal = [];
+-    let snappedXPosition = draggedNode.positionAbsolute.x;
+-    let snappedYPosition = draggedNode.positionAbsolute.y;
+-    let xSnappedByNode = false;
+-    let ySnappedByNode = false;
+-
+-    const draggedNodeWidth = draggedNode.width;
+-    const draggedNodeHeight = draggedNode.height;
+-
+-    // Potential snap points for the dragged node
+-    const draggedTargetsX = [
+-      { type: 'left', value: draggedNode.positionAbsolute.x },
+-      { type: 'center', value: draggedNode.positionAbsolute.x + draggedNodeWidth / 2 },
+-      { type: 'right', value: draggedNode.positionAbsolute.x + draggedNodeWidth },
+-    ];
+-    const draggedTargetsY = [
+-      { type: 'top', value: draggedNode.positionAbsolute.y },
+-      { type: 'center', value: draggedNode.positionAbsolute.y + draggedNodeHeight / 2 },
+-      { type: 'bottom', value: draggedNode.positionAbsolute.y + draggedNodeHeight },
+-    ];
+-
+-    // Find the best snap for X and Y independently
+-    let minDeltaX = Infinity; let bestSnapXInfo: { position: number, line: typeof activeSnapLinesLocal[0] } | null = null;
+-    let minDeltaY = Infinity; let bestSnapYInfo: { position: number, line: typeof activeSnapLinesLocal[0] } | null = null;
+-
+-    allNodes.forEach(otherNode => {
+-      if (otherNode.id === draggedNode.id || !otherNode.width || !otherNode.height || !otherNode.positionAbsolute) return;
+-
+-      const otherWidth = otherNode.width;
+-      const otherHeight = otherNode.height;
+-      const otherNodePosition = otherNode.positionAbsolute;
+-
+-      // Potential snap points for the other node
+-      const otherTargetsX = [
+-        { type: 'left', value: otherNodePosition.x },
+-        { type: 'center', value: otherNodePosition.x + otherWidth / 2 },
+-        { type: 'right', value: otherNodePosition.x + otherWidth },
+-      ];
+-      const otherTargetsY = [
+-        { type: 'top', value: otherNodePosition.y },
+-        { type: 'center', value: otherNodePosition.y + otherHeight / 2 },
+-        { type: 'bottom', value: otherNodePosition.y + otherHeight },
+-      ];
+-
+-      // Check X snaps
+-      for (const dtX of draggedTargetsX) {
+-        for (const otX of otherTargetsX) {
+-          const delta = Math.abs(dtX.value - otX.value);
+-          if (delta < SNAP_THRESHOLD && delta < minDeltaX) {
+-            minDeltaX = delta;
+-            bestSnapXInfo = {
+-              position: otX.value - (dtX.value - draggedNode.positionAbsolute.x), // Calculate new X for draggedNode
+-              line: {
+-                type: 'vertical',
+-                x1: otX.value, y1: Math.min(draggedNode.positionAbsolute.y, otherNodePosition.y) - 20,
+-                x2: otX.value, y2: Math.max(draggedNode.positionAbsolute.y + draggedNodeHeight, otherNodePosition.y + otherHeight) + 20,
+-              }
+-            };
+-          }
+-        }
+-      }
+-
+-      // Check Y snaps
+-      for (const dtY of draggedTargetsY) {
+-        for (const otY of otherTargetsY) {
+-          const delta = Math.abs(dtY.value - otY.value);
+-          if (delta < SNAP_THRESHOLD && delta < minDeltaY) {
+-            minDeltaY = delta;
+-            bestSnapYInfo = {
+-              position: otY.value - (dtY.value - draggedNode.positionAbsolute.y), // Calculate new Y for draggedNode
+-              line: {
+-                type: 'horizontal',
+-                x1: Math.min(draggedNode.positionAbsolute.x, otherNodePosition.x) - 20, y1: otY.value,
+-                x2: Math.max(draggedNode.positionAbsolute.x + draggedNodeWidth, otherNodePosition.x + otherWidth) + 20, y2: otY.value,
+-              }
+-            };
+-          }
+-        }
+-      }
+-    });
+-
+-    if (bestSnapXInfo !== null) {
+-      snappedXPosition = bestSnapXInfo.position;
+-      xSnappedByNode = true;
+-      currentDragSnapLines.push(bestSnapXInfo.line);
+-    }
+-    if (bestSnapYInfo !== null) {
+-      snappedYPosition = bestSnapYInfo.position;
+-      ySnappedByNode = true;
+-      currentDragSnapLines.push(bestSnapYInfo.line);
+-    }
+-
+-    // Snap to grid if not snapped to another node
+-    if (!xSnappedByNode) {
+-      const gridSnappedX = Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
+-      if (Math.abs(draggedNode.positionAbsolute.x - gridSnappedX) < SNAP_THRESHOLD) {
+-        snappedXPosition = gridSnappedX;
+-      }
++    const { snappedPosition, activeSnapLines } = calculateSnappedPositionAndLines(
++      draggedNode.positionAbsolute,
++      { width: draggedNode.width, height: draggedNode.height },
++      allNodes, // These are rfNodes which should have .positionAbsolute
++      GRID_SIZE,
++      SNAP_THRESHOLD,
++      draggedNode.id
++    );
++
++    if (draggedNode.positionAbsolute.x !== snappedPosition.x || draggedNode.positionAbsolute.y !== snappedPosition.y) {
++      onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: snappedPosition, dragging: true }]);
+     }
+-    if (!ySnappedByNode) {
+-      const gridSnappedY = Math.round(draggedNode.positionAbsolute.y / GRID_SIZE) * GRID_SIZE;
+-      if (Math.abs(draggedNode.positionAbsolute.y - gridSnappedY) < SNAP_THRESHOLD) {
+-        snappedYPosition = gridSnappedY;
+-      }
+-    }
+-    
+-    // Apply the snapped position if it changed
+-    if (draggedNode.positionAbsolute.x !== snappedXPosition || draggedNode.positionAbsolute.y !== snappedYPosition) {
+-      onNodesChangeReactFlow([{ id: draggedNode.id, type: 'position', position: { x: snappedXPosition, y: snappedYPosition }, dragging: true }]);
+-    }
+-    setActiveSnapLinesLocal(currentDragSnapLines);
+-  }, [isViewOnlyMode, SNAP_THRESHOLD, GRID_SIZE, onNodesChangeReactFlow]);
++    setActiveSnapLinesLocal(activeSnapLines);
++  }, [isViewOnlyMode, onNodesChangeReactFlow, setActiveSnapLinesLocal]); // GRID_SIZE and SNAP_THRESHOLD are constants
+ 
+ 
+   const onNodeDragStopInternal = useCallback(
+@@ -557,14 +580,27 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
+   const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
+     event.preventDefault();
+     event.dataTransfer.dropEffect = 'copy';
+-    if (dragPreviewItem && reactFlowInstance) { // Check if in drag preview mode
++
++    if (dragPreviewItem && reactFlowInstance) {
+       const flowPosition = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+-      // Snap to grid for smoother preview positioning
+-      const snappedX = Math.round(flowPosition.x / GRID_SIZE) * GRID_SIZE;
+-      const snappedY = Math.round(flowPosition.y / GRID_SIZE) * GRID_SIZE;
+-      updateDragPreviewPosition({ x: snappedX, y: snappedY });
++      const PREVIEW_DIMS = { width: 150, height: 70 }; // Standard preview dimensions
++
++      // Ensure rfNodes passed to calculateSnappedPositionAndLines have necessary properties
++      const validRfNodesForSnapping = rfNodes.filter(n => n.width && n.height && n.positionAbsolute);
++
++      const { snappedPosition, activeSnapLines } = calculateSnappedPositionAndLines(
++        flowPosition,
++        PREVIEW_DIMS,
++        validRfNodesForSnapping,
++        GRID_SIZE,
++        SNAP_THRESHOLD
++        // No excludeId for drag preview as it's not part of rfNodes
++      );
++
++      updateDragPreviewPosition(snappedPosition);
++      setActiveSnapLinesLocal(activeSnapLines); // Show snap lines for the preview
+     }
+-  }, [dragPreviewItem, reactFlowInstance, updateDragPreviewPosition, GRID_SIZE]);
++  }, [dragPreviewItem, reactFlowInstance, updateDragPreviewPosition, rfNodes, setActiveSnapLinesLocal]); // Added rfNodes and setActiveSnapLinesLocal
+ 
+   const handleCanvasDrop = useCallback((droppedData: {type: string, text: string}, positionInFlow: {x: number, y: number}) => {
+     if (isViewOnlyMode) return;
+-- 
+2.48.1.windows.1
+

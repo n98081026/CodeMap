@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -192,6 +191,15 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     const clearSelectionForCategory = () => {
       if (itemKeyPrefix.startsWith('extracted-')) setSelectedExtractedIndices(new Set());
       else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(new Set());
+    };
+
+    const handleRelationDragStart = (event: React.DragEvent<HTMLDivElement>, relationLabel: string) => {
+      event.dataTransfer.setData('application/json', JSON.stringify({
+        type: 'relation-suggestion',
+        label: relationLabel,
+      }));
+      event.dataTransfer.effectAllowed = 'copy';
+      console.log('[AISuggestionPanel] Dragging relation:', relationLabel);
     };
 
     const handleAddSelected = () => {

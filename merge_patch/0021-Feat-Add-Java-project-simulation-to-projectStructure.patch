@@ -1,0 +1,374 @@
+From 1823475fd1de0b2b54f449f7aa205b413af57a2f Mon Sep 17 00:00:00 2001
+From: "google-labs-jules[bot]"
+ <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date: Sun, 15 Jun 2025 00:44:16 +0000
+Subject: [PATCH 21/27] Feat: Add Java project simulation to
+ projectStructureAnalyzerTool
+
+This commit further enhances the mocking capabilities of `projectStructureAnalyzerTool.ts` by adding a simulation for Java (Maven/Spring Boot) projects.
+
+Key changes to `projectStructureAnalyzerTool.ts`:
+- Defined conceptual file content for a sample Java project (including `pom.xml`, `README.md`, and `.java` files with typical package structure).
+- Implemented basic simulated "parsing" for these conceptual Java files:
+    - Extracts H1 from `README.md`.
+    - Parses `pom.xml` for dependencies.
+    - Extracts package, imports, public class/interface names, and public method names from `.java` files using regex.
+- Introduced a new hint, `_USE_SIMULATED_FS_JAVA_PROJECT_`, which triggers this Java project simulation.
+- When activated, a `ProjectAnalysisOutput` is generated with Java-specific details, including:
+    - `inferredLanguagesFrameworks` (Java, Spring Boot if detected).
+    - Maven dependencies.
+    - `keyFiles` for Java source files with extracted symbols.
+    - Simulated `directoryStructureSummary` reflecting Java packages.
+- Hint priorities were adjusted to correctly incorporate this new simulation path.
+
+The `TODO.md` file has been updated to reflect these new Java simulation capabilities of the project analyzer. This provides more diverse and detailed mock data for testing AI flows.
+---
+ TODO.md                               |   9 +-
+ src/ai/tools/project-analyzer-tool.ts | 297 ++++++++++++++++++++++++++
+ 2 files changed, 302 insertions(+), 4 deletions(-)
+
+diff --git a/TODO.md b/TODO.md
+index 114e380..4cb4cbc 100644
+--- a/TODO.md
++++ b/TODO.md
+@@ -102,10 +102,11 @@
+     - [x] Frontend handles saving the generated map (via API) and updating submission status (within `ProjectUploadForm` and `useConceptMapAITools` for other AI-generated maps).
+ - [x] **Genkit Tool - Project Analyzer (`projectStructureAnalyzerTool`)**:
+     - [x] Input schema updated to `projectStoragePath` and `userHint`.
+-        - [x] Mock logic acknowledges inputs and varies output based on hints (e.g., "e-commerce", "data pipeline", basic "node" `package.json` parsing).
+-        - [x] Mock logic supports a `_USE_FIXED_MOCK_PROJECT_A_` hint for a predefined detailed static analysis.
+-        - [x] Mock logic supports a `_USE_SIMULATED_FS_NODE_PROJECT_` hint for a richer Node.js project simulation (conceptual file traversal & basic content extraction).
+-        - [x] Mock logic now also supports a `_USE_SIMULATED_FS_PY_PROJECT_` hint for a richer Python project simulation (conceptual file traversal for .py files, requirements.txt, README, and basic content extraction like class/function names, imports, dependencies). (Note: All FS simulations are still mocks with no real file system operations or Supabase Storage integration).
++    - [x] Mock logic acknowledges inputs and varies output based on hints (e.g., "e-commerce", "data pipeline", basic "node" `package.json` parsing).
++    - [x] Mock logic supports a `_USE_FIXED_MOCK_PROJECT_A_` hint for a predefined detailed static analysis.
++    - [x] Mock logic supports a `_USE_SIMULATED_FS_NODE_PROJECT_` hint for a richer Node.js project simulation (includes conceptual `package.json`, `README.md`, `.js` files, `config/settings.json`; basic content extraction).
++    - [x] Mock logic supports a `_USE_SIMULATED_FS_PY_PROJECT_` hint for a richer Python project simulation (includes conceptual `.py` files, `requirements.txt`, `README.md`; basic content extraction).
++    - [x] Mock logic now also supports a `_USE_SIMULATED_FS_JAVA_PROJECT_` hint for a richer Java (Maven/Spring Boot) project simulation (includes conceptual `pom.xml`, `.java` files in packages, `README.md`; basic content extraction like dependencies, classes, methods, imports). (Note: All File System (FS) simulations are still mocks with no real file system operations or Supabase Storage integration).
+ - [x] **Modify `generateMapFromProject` Genkit Flow for Tool Use**:
+     - [x] Input schema updated to `projectStoragePath` and `userGoals`.
+     - [x] Prompt explicitly instructs use of `projectStructureAnalyzerTool` with these inputs.
+diff --git a/src/ai/tools/project-analyzer-tool.ts b/src/ai/tools/project-analyzer-tool.ts
+index 78d3ba7..84da5d9 100644
+--- a/src/ai/tools/project-analyzer-tool.ts
++++ b/src/ai/tools/project-analyzer-tool.ts
+@@ -229,6 +229,203 @@ const SIMULATED_PY_MODELS_PY = `from pydantic import BaseModel\n\nclass Item(Bas
+ const SIMULATED_PY_SERVICES_PY = `from .models import Item\n\ndef get_main_message():\n    return "Data from core service"\n\nclass ItemService:\n    def get_item(self, item_id: int) -> Item | None:\n        if item_id == 1:\n            return Item(name="Sample Item", price=10.0)\n        return None`;
+ const SIMULATED_PY_HELPERS_PY = `import os\n\ndef format_response(data: dict):\n    return { "status": "success", "data": data }\n\ndef _internal_helper():\n    pass`;
+ 
++// Simulated Java File Contents
++const SIMULATED_POM_XML = `
++<project xmlns="http://maven.apache.org/POM/4.0.0"
++         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
++    <modelVersion>4.0.0</modelVersion>
++    <groupId>com.example</groupId>
++    <artifactId>myservice</artifactId>
++    <version>1.0-SNAPSHOT</version>
++    <packaging>jar</packaging>
++
++    <parent>
++        <groupId>org.springframework.boot</groupId>
++        <artifactId>spring-boot-starter-parent</artifactId>
++        <version>2.7.5</version>
++        <relativePath/> <!-- lookup parent from repository -->
++    </parent>
++
++    <properties>
++        <java.version>11</java.version>
++    </properties>
++
++    <dependencies>
++        <dependency>
++            <groupId>org.springframework.boot</groupId>
++            <artifactId>spring-boot-starter-web</artifactId>
++        </dependency>
++        <dependency>
++            <groupId>org.springframework.boot</groupId>
++            <artifactId>spring-boot-starter-data-jpa</artifactId>
++        </dependency>
++        <dependency>
++            <groupId>com.h2database</groupId>
++            <artifactId>h2</artifactId>
++            <scope>runtime</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.projectlombok</groupId>
++            <artifactId>lombok</artifactId>
++            <optional>true</optional>
++        </dependency>
++        <dependency>
++            <groupId>org.springframework.boot</groupId>
++            <artifactId>spring-boot-starter-test</artifactId>
++            <scope>test</scope>
++        </dependency>
++    </dependencies>
++
++    <build>
++        <plugins>
++            <plugin>
++                <groupId>org.springframework.boot</groupId>
++                <artifactId>spring-boot-maven-plugin</artifactId>
++            </plugin>
++        </plugins>
++    </build>
++</project>
++`;
++
++const SIMULATED_JAVA_README_MD = `
++# MyService Java Application
++
++This is a sample Spring Boot application demonstrating a simple item service.
++It uses Spring Web, Spring Data JPA, and H2 database.
++
++Key features:
++- REST API for items
++- Basic CRUD operations
++`;
++
++const SIMULATED_JAVA_MAIN_APP = `
++package com.example.myservice;
++
++import org.springframework.boot.SpringApplication;
++import org.springframework.boot.autoconfigure.SpringBootApplication;
++
++@SpringBootApplication
++public class MyServiceApplication {
++
++    public static void main(String[] args) {
++        SpringApplication.run(MyServiceApplication.class, args);
++    }
++
++    public String getGreeting() {
++        return "Hello from MyServiceApplication!";
++    }
++}
++`;
++
++const SIMULATED_JAVA_CONTROLLER = `
++package com.example.myservice.controller;
++
++import com.example.myservice.model.Item;
++import com.example.myservice.service.ItemService;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.http.ResponseEntity;
++import org.springframework.web.bind.annotation.*;
++import java.util.List;
++
++@RestController
++@RequestMapping("/api/items")
++public class ItemController {
++
++    @Autowired
++    private ItemService itemService;
++
++    @GetMapping("/{id}")
++    public ResponseEntity<Item> getItemById(@PathVariable Long id) {
++        return itemService.findById(id)
++                .map(ResponseEntity::ok)
++                .orElse(ResponseEntity.notFound().build());
++    }
++
++    @PostMapping
++    public Item createItem(@RequestBody Item item) {
++        return itemService.save(item);
++    }
++
++    public List<Item> getAllItems() {
++        return itemService.findAll();
++    }
++}
++`;
++
++const SIMULATED_JAVA_SERVICE = `
++package com.example.myservice.service;
++
++import com.example.myservice.model.Item;
++import com.example.myservice.repository.ItemRepository;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.stereotype.Service;
++import java.util.List;
++import java.util.Optional;
++
++@Service
++public class ItemService {
++
++    @Autowired
++    private ItemRepository itemRepository;
++
++    public Optional<Item> findById(Long id) {
++        return itemRepository.findById(id);
++    }
++
++    public Item save(Item item) {
++        return itemRepository.save(item);
++    }
++
++    public List<Item> findAll() {
++        return itemRepository.findAll();
++    }
++
++    private void internalLogicHelper() {
++        // some internal logic
++    }
++}
++`;
++
++const SIMULATED_JAVA_MODEL = `
++package com.example.myservice.model;
++
++import javax.persistence.Entity;
++import javax.persistence.Id;
++import javax.persistence.GeneratedValue;
++import javax.persistence.GenerationType;
++
++@Entity
++public class Item {
++
++    @Id
++    @GeneratedValue(strategy = GenerationType.IDENTITY)
++    private Long id;
++    private String name;
++    private String description;
++
++    // Constructors, getters, setters (omitted for brevity but implied by @Entity)
++    public Item() {}
++
++    public Long getId() { return id; }
++    public void setId(Long id) { this.id = id; }
++    public String getName() { return name; }
++    public void setName(String name) { this.name = name; }
++}
++`;
++
++const SIMULATED_JAVA_REPO = `
++package com.example.myservice.repository;
++
++import com.example.myservice.model.Item;
++import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.stereotype.Repository;
++
++@Repository
++public interface ItemRepository extends JpaRepository<Item, Long> {
++    // Custom query methods can be defined here
++}
++`;
+ 
+ // Helper function to extract H1 from Markdown (simplified)
+ const getReadmeSummary = (readmeContent: string): string | undefined => {
+@@ -236,6 +433,48 @@ const getReadmeSummary = (readmeContent: string): string | undefined => {
+   return h1Match ? h1Match[1] : undefined;
+ };
+ 
++// Java specific helper functions
++const parsePomXmlDependencies = (xmlContent: string): string[] => {
++  const depRegex = /<dependency>\s*<groupId>(.*?)<\/groupId>\s*<artifactId>(.*?)<\/artifactId>[\s\S]*?<\/dependency>/gm;
++  const dependencies: string[] = [];
++  let match;
++  while ((match = depRegex.exec(xmlContent)) !== null) {
++    dependencies.push(`${match[1]}:${match[2]}`);
++  }
++  return dependencies;
++};
++const extractJavaPackage = (javaContent: string): string | null => {
++  const match = javaContent.match(/^package\s+([\w.]+);/m);
++  return match ? match[1] : null;
++};
++const extractJavaImports = (javaContent: string): string[] => {
++  const importRegex = /^import\s+([\w.*]+);/gm;
++  const imports = new Set<string>();
++  let match;
++  while ((match = importRegex.exec(javaContent)) !== null) {
++    imports.add(match[1]);
++  }
++  return Array.from(imports);
++};
++const extractJavaPublicClassesInterfaces = (javaContent: string): string[] => {
++  const classRegex = /^public\s+(?:class|interface)\s+(\w+)/gm;
++  const classes: string[] = [];
++  let match;
++  while ((match = classRegex.exec(javaContent)) !== null) {
++    classes.push(match[1]);
++  }
++  return classes;
++};
++const extractJavaPublicMethods = (javaContent: string): string[] => {
++  const methodRegex = /^\s*public\s+(?:static\s+|final\s+)?(?:[\w<>\s\[\].,?]+)\s+(\w+)\s*\([^)]*\)\s*(?:throws\s+[\w.,\s]+)?\s*[{;]/gm;
++  const methods: string[] = [];
++  let match;
++  while ((match = methodRegex.exec(javaContent)) !== null) {
++    methods.push(match[1]);
++  }
++  return methods;
++};
++
+ // Helper function to "extract" function names from JS (simplified regex)
+ const extractJsFunctions = (jsContent: string): string[] => {
+   const functionRegex = /function\s+([A-Za-z0-9_]+)\s*\(|const\s+([A-Za-z0-9_]+)\s*=\s*\(.*\)\s*=>|const\s+([A-Za-z0-9_]+)\s*=\s*function|module\.exports\s*\.\s*([A-Za-z0-9_]+)\s*=\s*function|module\.exports\s*=\s*{\s*([A-Za-z0-9_,\s]+)\s*}/g;
+@@ -418,6 +657,64 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
+       console.error("Error in _USE_SIMULATED_FS_PY_PROJECT_ block:", e);
+       return { projectName: "Simulated Python FS Error", projectSummary: "Error during Python FS sim processing.", inferredLanguagesFrameworks:[], parsingErrors: [(e as Error).message] };
+     }
++  } else if (input.userHint === "_USE_SIMULATED_FS_JAVA_PROJECT_") {
++    console.log("Returning detailed simulated Java project analysis.");
++    try {
++      const pomDependencies = parsePomXmlDependencies(SIMULATED_POM_XML);
++      const readmeProjectName = getReadmeSummary(SIMULATED_JAVA_README_MD) || "Simulated Java Service";
++
++      const mainAppSymbols = [...extractJavaPublicClassesInterfaces(SIMULATED_JAVA_MAIN_APP), ...extractJavaPublicMethods(SIMULATED_JAVA_MAIN_APP)];
++      const controllerSymbols = [...extractJavaPublicClassesInterfaces(SIMULATED_JAVA_CONTROLLER), ...extractJavaPublicMethods(SIMULATED_JAVA_CONTROLLER)];
++      const serviceSymbols = [...extractJavaPublicClassesInterfaces(SIMULATED_JAVA_SERVICE), ...extractJavaPublicMethods(SIMULATED_JAVA_SERVICE)];
++      const modelSymbols = extractJavaPublicClassesInterfaces(SIMULATED_JAVA_MODEL); // Typically fields/getters/setters, classes are key
++      const repoSymbols = extractJavaPublicClassesInterfaces(SIMULATED_JAVA_REPO);
++
++      const keyFilesData: KeyFile[] = [
++        { filePath: "pom.xml", type: "manifest", briefDescription: "Maven project configuration and dependencies.", extractedSymbols: pomDependencies.map(d => d.split(':')[1]) }, // Just artifactId
++        { filePath: "README.md", type: "readme", briefDescription: "Project README." },
++        { filePath: "src/main/java/com/example/myservice/MyServiceApplication.java", type: "entry_point", briefDescription: "Main Spring Boot application class.", extractedSymbols: mainAppSymbols },
++        { filePath: "src/main/java/com/example/myservice/controller/ItemController.java", type: "service_definition", briefDescription: "Item REST controller.", extractedSymbols: controllerSymbols },
++        { filePath: "src/main/java/com/example/myservice/service/ItemService.java", type: "service_definition", briefDescription: "Item business logic service.", extractedSymbols: serviceSymbols },
++        { filePath: "src/main/java/com/example/myservice/model/Item.java", type: "model", briefDescription: "Item data model.", extractedSymbols: modelSymbols },
++        { filePath: "src/main/java/com/example/myservice/repository/ItemRepository.java", type: "data_store_interface", briefDescription: "Item data repository interface.", extractedSymbols: repoSymbols },
++      ];
++
++      const inferredFrameworksList: { name: string; confidence: 'high' | 'medium' | 'low'; }[] = [{ name: "Java", confidence: "high" as const }];
++      if (pomDependencies.some(d => d.includes("spring-boot-starter-web"))) {
++        inferredFrameworksList.push({ name: "Spring Boot", confidence: "high" as const });
++      }
++      if (pomDependencies.some(d => d.includes("spring-boot-starter-data-jpa"))) {
++        inferredFrameworksList.push({ name: "Spring Data JPA", confidence: "high" as const });
++      }
++
++
++      const output: ProjectAnalysisOutput = {
++        projectName: readmeProjectName,
++        projectSummary: SIMULATED_JAVA_README_MD.substring(SIMULATED_JAVA_README_MD.indexOf('\n') + 1).trim(),
++        inferredLanguagesFrameworks: inferredFrameworksList,
++        dependencies: { maven: pomDependencies },
++        directoryStructureSummary: [
++          { path: "src/main/java/com/example/myservice", fileCounts: { ".java": 1 }, inferredPurpose: "Main application package" },
++          { path: "src/main/java/com/example/myservice/controller", fileCounts: { ".java": 1 }, inferredPurpose: "Controllers" },
++          { path: "src/main/java/com/example/myservice/service", fileCounts: { ".java": 1 }, inferredPurpose: "Services" },
++          { path: "src/main/java/com/example/myservice/model", fileCounts: { ".java": 1 }, inferredPurpose: "Models" },
++          { path: "src/main/java/com/example/myservice/repository", fileCounts: { ".java": 1 }, inferredPurpose: "Repositories" }
++        ],
++        keyFiles: keyFilesData,
++        potentialArchitecturalComponents: [
++          { name: "Item API Controller", type: "service", relatedFiles: ["src/main/java/com/example/myservice/controller/ItemController.java"] },
++          { name: "Item Business Service", type: "service", relatedFiles: ["src/main/java/com/example/myservice/service/ItemService.java"] },
++          { name: "Item Data Model", type: "data_store_interface", relatedFiles: ["src/main/java/com/example/myservice/model/Item.java"] },
++          { name: "Item JPA Repository", type: "data_store_interface", relatedFiles: ["src/main/java/com/example/myservice/repository/ItemRepository.java"] },
++        ],
++        parsingErrors: []
++      };
++      await new Promise(resolve => setTimeout(resolve, 500));
++      return output;
++    } catch (e) {
++      console.error("Error in _USE_SIMULATED_FS_JAVA_PROJECT_ block:", e);
++      return { projectName: "Simulated Java FS Error", projectSummary: "Error during Java FS sim processing.", inferredLanguagesFrameworks:[], parsingErrors: [(e as Error).message] };
++    }
+   }
+ 
+   let foundPackageJsonDataForSimpleNodeHint: any = null;
+-- 
+2.48.1.windows.1
+
