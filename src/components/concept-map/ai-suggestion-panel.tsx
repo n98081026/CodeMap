@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -11,7 +10,8 @@ import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Layers, Link2, Box, 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
-import { EmptyState } from '@/components/layout/empty-state'; 
+import { EmptyState } from '@/components/layout/empty-state';
+import useConceptMapStore from '@/stores/concept-map-store';
 
 interface AISuggestionPanelProps {
   mapData?: ConceptMapData; 
@@ -52,6 +52,13 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   onClearSuggestedRelations,
   isViewOnlyMode
 }: AISuggestionPanelProps) {
+  const { setDragPreview, clearDragPreview, setDraggedRelationPreview } = useConceptMapStore(
+    useCallback(s => ({
+      setDragPreview: s.setDragPreview,
+      clearDragPreview: s.clearDragPreview,
+      setDraggedRelationPreview: s.setDraggedRelationPreview // Added
+    }), [])
+  );
 
   const [editableExtracted, setEditableExtracted] = useState<EditableSuggestion[]>([]);
   const [editableRelations, setEditableRelations] = useState<EditableRelationSuggestion[]>([]);
@@ -339,14 +346,20 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     const isExactMatch = itemStatus === 'exact-match';
     const isSimilarMatch = itemStatus === 'similar-match';
 
-    const handleDragStart = (event: React.DragEvent<HTMLDivElement>, conceptText: string) => {
+    const handleDragStart = (event: React.DragEvent<HTMLDivElement>, conceptText: string, conceptType?: string) => {
       event.dataTransfer.setData('application/json', JSON.stringify({
-        type: 'concept-suggestion', // To identify the type of dragged item on drop
+        type: 'concept-suggestion',
         text: conceptText,
+        // Pass the conceptType if available, or a default
+        conceptType: conceptType || 'ai-concept'
       }));
       event.dataTransfer.effectAllowed = 'copy';
-      // Optionally, use store's addDebugLog if available globally or via context/prop
-      console.log('[AISuggestionPanel] Dragging concept:', conceptText);
+      setDragPreview({ text: conceptText, type: conceptType || 'ai-concept' });
+      // console.log('[AISuggestionPanel] Dragging concept:', conceptText, 'Type:', conceptType || 'ai-concept');
+    };
+
+    const handleDragEnd = () => {
+      clearDragPreview();
     };
 
     if (item.isEditing && !isViewOnlyMode) {
@@ -370,8 +383,9 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     return (
       <div
         className="flex items-center justify-between w-full group"
-        draggable={!isViewOnlyMode && !item.isEditing && !isExactMatch} // Only allow dragging for non-editing, non-exact match, non-viewOnly items
-        onDragStart={(e) => !isViewOnlyMode && !item.isEditing && !isExactMatch && handleDragStart(e, item.current)}
+        draggable={!isViewOnlyMode && !item.isEditing && !isExactMatch}
+        onDragStart={(e) => !isViewOnlyMode && !item.isEditing && !isExactMatch && handleDragStart(e, item.current, 'ai-concept')} // Pass a default type
+        onDragEnd={handleDragEnd} // Add onDragEnd
         title={!isViewOnlyMode && !item.isEditing && !isExactMatch ? "Drag this concept to the canvas" : ""}
       >
         <Label
@@ -425,15 +439,25 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
 
     return (
       <div
-        className={cn(
-            "flex items-center text-sm group w-full",
-            (!isViewOnlyMode && !item.isEditing) ? "cursor-grab" : "cursor-default"
-        )}
+        className="flex items-center text-sm group w-full"
         draggable={!isViewOnlyMode && !item.isEditing}
-        onDragStart={(e) => !isViewOnlyMode && !item.isEditing && handleRelationDragStart(e, item.current.relation)}
-        title={!isViewOnlyMode && !item.isEditing ? "Drag this relation to an edge on the canvas" : ""}
+        onDragStart={(e) => {
+          if (isViewOnlyMode || item.isEditing) return;
+          e.dataTransfer.setData('application/json', JSON.stringify({
+            type: 'relation-suggestion',
+            sourceText: item.current.source,
+            targetText: item.current.target,
+            label: item.current.relation,
+          }));
+          e.dataTransfer.effectAllowed = 'copy';
+          setDraggedRelationPreview(item.current.relation);
+        }}
+        onDragEnd={() => {
+          if (!isViewOnlyMode) clearDragPreview();
+        }}
+        title={!isViewOnlyMode && !item.isEditing ? "Drag this relation to the canvas (experimental)" : ""}
       >
-        <GitFork className="h-4 w-4 mr-2 text-purple-500 flex-shrink-0"/>
+        <GitFork className={cn("h-4 w-4 mr-2 text-purple-500 flex-shrink-0", !isViewOnlyMode && !item.isEditing && "cursor-grab")} />
         {renderField('source', relationNodeExistence?.source)}
         <span className="mx-1">→</span>
         {renderField('target', relationNodeExistence?.target)}

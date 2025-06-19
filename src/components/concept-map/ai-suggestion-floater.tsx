@@ -2,17 +2,16 @@
 
 import React, { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card'; // Using Card for styling
-import { Button } from '@/components/ui/button'; // For suggestion items
-import { XIcon } from 'lucide-react'; // Example icon for a dismiss button or part of suggestions
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { XIcon, PlusCircleIcon } from 'lucide-react'; // Added PlusCircleIcon
 
 export interface SuggestionAction {
-  id: string; // For key prop
+  id: string;
   label: string;
-  icon?: React.ElementType; // e.g., Lucide icon
-  action: () => void; // Callback when clicked
-  contentType?: 'text' | 'node' | 'action'; // Type of content
-  content?: string | Record<string, any>; // Actual content for 'text' or 'node'
+  icon?: React.ElementType;
+  action: () => void;
+  suggestionType?: 'action' | 'content_chip'; // New property
 }
 
 export interface AISuggestionFloaterProps {
@@ -87,32 +86,48 @@ const AISuggestionFloater: React.FC<AISuggestionFloaterProps> = ({
           {title && (
             <div className="flex justify-between items-center mb-2">
               <h4 className="text-sm font-semibold">{title}</h4>
-              <Button variant="ghost" size="iconSm" onClick={onDismiss} title="Dismiss">
+              <Button variant="ghost" size="icon" onClick={onDismiss} title="Dismiss">
                 <XIcon className="h-4 w-4" />
               </Button>
             </div>
           )}
           <div className="flex flex-col space-y-1">
             {suggestions.map((suggestion) => {
-              const IconComponent = suggestion.icon;
-              return (
-                <Button
-                  key={suggestion.id}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    // The suggestion.action() is now responsible for handling content.
-                    // It should ideally incorporate the logic for adding text/node if needed.
-                    suggestion.action();
-                    onDismiss(); // Dismiss after action
-                  }}
-                  className="justify-start w-full text-left"
-                >
-                  {IconComponent && <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />}
-                  {/* Display suggestion.label, which could be the content itself or a description */}
-                  <span className="flex-grow truncate">{suggestion.label}</span>
-                </Button>
-              );
+              if (suggestion.suggestionType === 'content_chip') {
+                return (
+                  <Button
+                    key={suggestion.id}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      suggestion.action();
+                      onDismiss();
+                    }}
+                    className="justify-start w-full text-left text-muted-foreground hover:text-accent-foreground hover:bg-accent"
+                    title={`Add: ${suggestion.label}`}
+                  >
+                    <PlusCircleIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="flex-grow truncate">{suggestion.label}</span>
+                  </Button>
+                );
+              } else {
+                const IconComponent = suggestion.icon;
+                return (
+                  <Button
+                    key={suggestion.id}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      suggestion.action();
+                      onDismiss(); // Dismiss after action
+                    }}
+                    className="justify-start w-full text-left"
+                  >
+                    {IconComponent && <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />}
+                    <span className="flex-grow truncate">{suggestion.label}</span>
+                  </Button>
+                );
+              }
             })}
             {suggestions.length === 0 && (
                 <p className="text-xs text-muted-foreground p-2 text-center">No suggestions available.</p>

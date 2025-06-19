@@ -1,5 +1,5 @@
 "use client";
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState, useCallback } from 'react'; // Imported useCallback
 import { Handle, Position, type NodeProps } from 'reactflow';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,8 +11,8 @@ import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added im
 import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
-  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser, Edit3, // Added Edit3
-  Move as MoveIcon
+  SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser, Edit3,
+  Move as MoveIcon, Wand2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button'; // Added Button import
 
@@ -37,7 +37,7 @@ const NODE_MAX_WIDTH = 400;
 const NODE_MIN_HEIGHT = 70;
 const NODE_DETAILS_MAX_HEIGHT = 200;
 
-const TYPE_ICONS: { [key: string]: LucideIcon } = {
+const TYPE_ICONS: { [key: string]: any } = {
   'default': Settings2,
   'manual-node': Type,
   'key_feature': Star,
@@ -65,7 +65,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     aiProcessingNodeId, // Get AI processing state
     deleteNode, // Added deleteNode from store
     updateNode, // Added updateNode from store
-    startConnection, // Added for starting connection mode
+    startConnectionMode, // Added startConnectionMode from store
   } = useConceptMapStore();
   const { onRefineGhostNode } = data; // Destructure new prop
 
@@ -76,6 +76,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const aiTools = useConceptMapAITools(nodeIsViewOnly);
 
   const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
+  const [isGhostHovered, setIsGhostHovered] = useState(false); // New state for ghost node hover
   const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
   const [toolbarHorizontalOffset, setToolbarHorizontalOffset] = useState<number>(0); // For viewport horizontal awareness
   // Removed isHoveredForToolbar state
@@ -110,6 +111,35 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
 
   // Placeholder handlers for AI mini toolbar actions
   // Removed handleQuickExpand and handleRewriteConcise as they are now passed directly to the toolbar
+
+  // Memoized callbacks for SelectedNodeToolbar
+  const handleEditLabel = useCallback(() => {
+    setEditingNodeId(id);
+  }, [id, setEditingNodeId]);
+
+  const handleChangeColor = useCallback((color: string) => {
+    updateNode(id, { backgroundColor: color });
+  }, [id, updateNode]);
+
+  const handleStartConnection = useCallback(() => {
+    startConnectionMode(id);
+  }, [id, startConnectionMode]);
+
+  const handleAIExpand = useCallback(() => {
+    aiTools.handleMiniToolbarQuickExpand(id);
+  }, [aiTools, id]);
+
+  const handleAIRewrite = useCallback(() => {
+    aiTools.handleMiniToolbarRewriteConcise(id);
+  }, [aiTools, id]);
+
+  const handleAISuggestRelations = useCallback(() => {
+    aiTools.handleMenuSuggestRelations(id);
+  }, [aiTools, id]);
+
+  const handleDeleteNode = useCallback(() => {
+    deleteNode(id);
+  }, [id, deleteNode]);
 
   useEffect(() => {
     if (selected && nodeRef.current) {
@@ -157,11 +187,19 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10" // Ghost style
       )}
       onMouseEnter={() => {
-        if (data.isGhost) return; // Do not trigger hover effects for ghost nodes
-        setIsHovered(true);
-        // Removed setIsHoveredForToolbar(true);
+        if (data.isGhost) {
+          setIsGhostHovered(true);
+        } else {
+          setIsHovered(true);
+        }
       }}
-      onMouseLeave={() => { setIsHovered(false); /* Removed setIsHoveredForToolbar(false); */ }}
+      onMouseLeave={() => {
+        if (data.isGhost) {
+          setIsGhostHovered(false);
+        } else {
+          setIsHovered(false);
+        }
+      }}
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
@@ -194,13 +232,13 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         >
           <SelectedNodeToolbar
             nodeId={id}
-            onEditLabel={() => setEditingNodeId(id)}
-            onStartConnection={() => startConnection(id)} // Pass the action
-            onChangeColor={(color: string) => updateNode(id, { backgroundColor: color })}
-            onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
-            onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}
-            onAISuggestRelations={() => aiTools.handleMenuSuggestRelations(id)}
-            onDeleteNode={() => deleteNode(id)}
+            onEditLabel={handleEditLabel}
+            onChangeColor={handleChangeColor}
+            onStartConnection={handleStartConnection}
+            onAIExpand={handleAIExpand}
+            onAIRewrite={handleAIRewrite}
+            onAISuggestRelations={handleAISuggestRelations}
+            onDeleteNode={handleDeleteNode}
           />
         </div>
       )}

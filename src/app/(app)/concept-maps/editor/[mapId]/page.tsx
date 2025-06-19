@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -23,7 +22,7 @@ import {
 import { QuickClusterModal } from "@/components/concept-map/quick-cluster-modal";
 import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-modal";
 import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
-import { RefineGhostNodeModal } from "@/components/concept-map/RefineGhostNodeModal"; // Import RefineGhostNodeModal
+import { RefineSuggestionModal } from '@/components/concept-map/refine-suggestion-modal';
 import { useToast } from "@/hooks/use-toast";
 import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { UserRole } from "@/types";
@@ -31,6 +30,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
+import { DagreLayoutUtility } from "../../../../lib/dagreLayoutUtility"; // Adjusted path
+import type { DagreLayoutOptions, NodeLayoutInput, EdgeLayoutInput } from "../../../../types/graph-adapter"; // Adjusted path
 
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
@@ -117,6 +118,15 @@ export default function ConceptMapEditorPage() {
   const canUndo = temporalState.pastStates.length > 0;
   const canRedo = temporalState.futureStates.length > 0;
 
+  // Memoized undo/redo handlers
+  const handleUndo = useCallback(() => {
+    temporalStoreAPI.getState().undo();
+  }, [temporalStoreAPI]);
+
+  const handleRedo = useCallback(() => {
+    temporalStoreAPI.getState().redo();
+  }, [temporalStoreAPI]);
+
   const { saveMap } = useConceptMapDataManager({ routeMapId, user });
 
   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
@@ -145,18 +155,17 @@ export default function ConceptMapEditorPage() {
     clearExpansionPreview,      // Destructure new function
     // Ensure getNodePlacement is available if not already destructured, or use aiToolsHook.getNodePlacement
     removeExtractedConceptsFromSuggestions, // Destructure for use in drop handler
-    // For Suggest Intermediate Node Modal
-    isSuggestIntermediateNodeModalOpen,
-    intermediateNodeSuggestionData,
-    intermediateNodeOriginalEdgeContext,
+    // For RefineSuggestionModal
+    isRefineModalOpen,
+    setIsRefineModalOpen,
+    refineModalInitialData,
+    handleRefineSuggestionConfirm,
+    // For SuggestIntermediateNode
+    intermediateNodeSuggestion,
+    handleSuggestIntermediateNodeRequest,
     confirmAddIntermediateNode,
-    closeSuggestIntermediateNodeModal,
-    // For Refine Ghost Node Modal
-    isRefineGhostNodeModalOpen,
-    refiningGhostNodeData,
-    openRefineGhostNodeModal,
-    closeRefineGhostNodeModal,
-    handleConfirmRefineGhostNode,
+    clearIntermediateNodeSuggestion,
+    handleAiTidyUpSelection, // Add this new one
   } = aiToolsHook;
 
   const reactFlowInstance = useReactFlow();
@@ -166,6 +175,62 @@ export default function ConceptMapEditorPage() {
   // const [lastPaneClickPosition, setLastPaneClickPosition] = useState<{ x: number; y: number } | null>(null);
   // It seems it was correctly added based on the previous successful diff.
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
+
+  const handleAutoLayout = async () => {
+    const { mapData, applyLayout } = useConceptMapStore.getState();
+    const currentNodes = mapData.nodes;
+    const currentEdges = mapData.edges;
+
+    addDebugLog(`[EditorPage] Attempting auto-layout (Dagre) for ${currentNodes.length} nodes and ${currentEdges.length} edges.`);
+
+    if (currentNodes.length === 0) {
+      toast.info("No nodes to layout.");
+      return;
+    }
+
+    const toastId = "dagre-layout";
+    toast.loading("Calculating auto-layout...", { id: toastId });
+
+    try {
+      const dagreNodes: NodeLayoutInput[] = currentNodes.map(node => ({
+        id: node.id,
+        width: node.width || 150, // Use node's width or default
+        height: node.height || 40, // Use node's height or default
+        label: node.text, // Optional, for dagre debugging
+      }));
+
+      const dagreEdges: EdgeLayoutInput[] = currentEdges.map(edge => ({
+        source: edge.source,
+        target: edge.target,
+        // Add other relevant edge properties if DagreLayoutUtility supports them (e.g., weight, minlen)
+      }));
+
+      const layoutUtility = new DagreLayoutUtility();
+      const layoutOptions: DagreLayoutOptions = {
+        direction: 'TB',
+        ranksep: 70,
+        nodesep: 50,
+        edgesep: 10,
+        marginx: 20,
+        marginy: 20,
+        defaultNodeWidth: 150,
+        defaultNodeHeight: 40,
+      };
+
+      const newPositions = await layoutUtility.layout(dagreNodes, dagreEdges, layoutOptions);
+
+      if (newPositions && newPositions.length > 0) {
+        applyLayout(newPositions); // This action should update nodes and set triggerFitView in store
+        toast.success("Layout updated successfully!", { id: toastId });
+      } else {
+        toast.error("Failed to calculate layout.", { id: toastId });
+      }
+    } catch (error) {
+      console.error("Error applying Dagre layout:", error);
+      addDebugLog(`[EditorPage] Error applying Dagre layout: ${(error as Error).message}`);
+      toast.error("Error applying layout. Check console for details.", { id: toastId });
+    }
+  };
 
   // Effect for handling Delete/Backspace key for staged elements
   useEffect(() => {
@@ -610,7 +675,7 @@ export default function ConceptMapEditorPage() {
           onToggleProperties={onTogglePropertiesInspector}
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
-          onUndo={temporalStoreAPI.getState().undo} onRedo={temporalStoreAPI.getState().redo} canUndo={canUndo} canRedo={canRedo}
+          onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo}
           selectedNodeId={selectedElementType === 'node' ? selectedElementId : null}
           numMultiSelectedNodeIds={multiSelectedNodeIds.length}
           onTidySelection={tidySelectedNodes}
@@ -678,10 +743,8 @@ export default function ConceptMapEditorPage() {
             <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange}
               selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType}
               onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector}
-              isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode}
-              editingNodeId={selectedElementType === 'node' ? useConceptMapStore.getState().editingNodeId : null} // Pass editingNodeId
-              aiTools={inspectorAiTools}
-            />
+              onSuggestIntermediateNode={handleSuggestIntermediateNodeRequest} // Pass the handler
+              isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} />
           </SheetContent>
         </Sheet>
         <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
@@ -708,27 +771,70 @@ export default function ConceptMapEditorPage() {
         {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
         {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <AskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
         {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <RewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
-
-        {isSuggestIntermediateNodeModalOpen && intermediateNodeSuggestionData && (
-          <SuggestIntermediateNodeModal
-            isOpen={isSuggestIntermediateNodeModalOpen}
-            onOpenChange={(openState) => { if (!openState) closeSuggestIntermediateNodeModal(); }}
-            suggestionData={intermediateNodeSuggestionData}
-            onConfirm={confirmAddIntermediateNode}
-            onCancel={closeSuggestIntermediateNodeModal}
-            sourceNodeText={modalSourceNodeText}
-            targetNodeText={modalTargetNodeText}
-            originalEdgeLabel={modalOriginalEdgeLabel}
+        {isRefineModalOpen && refineModalInitialData && !storeIsViewOnlyMode && (
+          <RefineSuggestionModal
+            isOpen={isRefineModalOpen}
+            onOpenChange={setIsRefineModalOpen}
+            initialData={refineModalInitialData}
+            onConfirm={handleRefineSuggestionConfirm}
           />
         )}
-        {isRefineGhostNodeModalOpen && refiningGhostNodeData && (
-          <RefineGhostNodeModal
-            isOpen={isRefineGhostNodeModalOpen}
-            onOpenChange={(open) => { if(!open) closeRefineGhostNodeModal(); }}
-            initialText={refiningGhostNodeData.currentText}
-            initialDetails={refiningGhostNodeData.currentDetails}
-            onSubmit={handleConfirmRefineGhostNode}
-          />
+        {intermediateNodeSuggestion && !storeIsViewOnlyMode && (
+          <AlertDialog
+            open={!!intermediateNodeSuggestion}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                clearIntermediateNodeSuggestion();
+              }
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>AI Suggestion: Add Intermediate Node</AlertDialogTitle>
+                <AlertDialogDescription>
+                  <p className="mb-2">
+                    AI suggests adding node: <strong className="text-primary">{intermediateNodeSuggestion.intermediateNodeText}</strong>
+                    {intermediateNodeSuggestion.intermediateNodeDetails && (
+                      <span className="text-xs text-muted-foreground block"> (Details: {intermediateNodeSuggestion.intermediateNodeDetails})</span>
+                    )}
+                  </p>
+                  <p>
+                    This will be placed between
+                    '<strong className="text-secondary-foreground">{intermediateNodeSuggestion.sourceNode.text}</strong>'
+                    and '<strong className="text-secondary-foreground">{intermediateNodeSuggestion.targetNode.text}</strong>'.
+                  </p>
+                  <p className="mt-2">The existing connection will be replaced by two new connections:</p>
+                  <ul className="list-disc pl-5 mt-1 text-sm">
+                    <li>
+                      {intermediateNodeSuggestion.sourceNode.text}
+                      <span className="text-muted-foreground"> → </span>
+                      <strong className="text-blue-600">'{intermediateNodeSuggestion.labelSourceToIntermediate}'</strong>
+                      <span className="text-muted-foreground"> → </span>
+                      {intermediateNodeSuggestion.intermediateNodeText}
+                    </li>
+                    <li>
+                      {intermediateNodeSuggestion.intermediateNodeText}
+                      <span className="text-muted-foreground"> → </span>
+                      <strong className="text-blue-600">'{intermediateNodeSuggestion.labelIntermediateToTarget}'</strong>
+                      <span className="text-muted-foreground"> → </span>
+                      {intermediateNodeSuggestion.targetNode.text}
+                    </li>
+                  </ul>
+                  <p className="mt-3">Do you want to apply this change?</p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={clearIntermediateNodeSuggestion}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    confirmAddIntermediateNode();
+                  }}
+                >
+                  Add Node & Reconnect
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </ReactFlowProvider>
     </div>
