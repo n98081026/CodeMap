@@ -13,8 +13,13 @@ import { InteractiveCanvas } from './interactive-canvas';
 import type { CustomNodeData } from './custom-node';
 import CustomNodeComponent from './custom-node'; // Import the standard node component
 import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
-import SuggestionEdge from './SuggestionEdge';
-import GroupSuggestionOverlayNode, { type GroupSuggestionOverlayData } from './GroupSuggestionOverlayNode'; // Import new overlay node
+// import SuggestionEdge from './SuggestionEdge'; // Already seems to be imported or similar
+// import GroupSuggestionOverlayNode, { type GroupSuggestionOverlayData } from './GroupSuggestionOverlayNode'; // Already seems to be imported or similar
+
+// Imports for the new suggestion components
+import SuggestedEdge from './SuggestedEdge'; // Corrected import name based on subtask
+import SuggestedIntermediateNode from './SuggestedIntermediateNode';
+import SuggestedGroupOverlayNode from './SuggestedGroupOverlayNode'; // Ensure this is the correct one if multiple exist
 import { getMarkerDefinition } from './orthogonal-edge';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { getNodePlacement } from '@/lib/layout-utils';
@@ -383,12 +388,20 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 
   const edgeTypes = useMemo(() => ({
     orthogonal: OrthogonalEdge,
-    suggestionEdge: SuggestionEdge,
+    // suggestionEdge: SuggestionEdge, // This was from a previous version, replaced by 'suggested-edge'
+    'suggested-edge': SuggestedEdge, // New custom edge type for suggestions
   }), []);
 
   const nodeTypes = useMemo(() => ({
     customConceptNode: CustomNodeComponent, // Standard node
-    groupSuggestionOverlay: GroupSuggestionOverlayNode, // New overlay node type
+    // groupSuggestionOverlay: GroupSuggestionOverlayNode, // This was from a previous version
+    'suggested-intermediate-node': SuggestedIntermediateNode, // New custom node for intermediate suggestions
+    'suggested-group-overlay-node': SuggestedGroupOverlayNode, // New custom node for group overlays
+    // Ensure 'dragPreviewNode' and 'dragPreviewLabel' are also defined if used from combinedNodes
+    dragPreviewNode: CustomNodeComponent, // Or a specific preview node component
+    dragPreviewLabel: ({ data }: { data: { label: string } }) => <div style={{ padding: 5, background: '#fff', border: '1px solid #ddd', borderRadius: '4px' }}>{data.label}</div>,
+
+
   }), []);
 
   // Effect to synchronize MAIN nodes from the store to React Flow's state
@@ -948,6 +961,94 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   // Combine main, staged, and preview elements for rendering
   const combinedNodes = useMemo(() => {
     let baseNodes = [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes];
+    // let baseNodes = [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes];
+    // The new structuralSuggestions from the store will be the source for suggestion elements.
+    // Any existing logic for groupSuggestionOverlays or structuralSuggestions (for edges)
+    // in this component's local state or from other store slices needs to be reconciled.
+    // For this subtask, we assume `structuralSuggestions` from the store is the sole source.
+
+    const { nodes: currentMapNodes, edges: currentMapEdges } = mapDataFromStore; // For position calculations
+
+    const suggestionElements = structuralSuggestions.flatMap(suggestion => {
+      if (suggestion.type === 'ADD_EDGE') {
+        // ADD_EDGE is handled in combinedEdges
+        return [];
+      } else if (suggestion.type === 'NEW_INTERMEDIATE_NODE') {
+        const { sourceNodeId, targetNodeId, intermediateNodeText } = suggestion.data;
+        const sourceNode = currentMapNodes.find(n => n.id === sourceNodeId);
+        const targetNode = currentMapNodes.find(n => n.id === targetNodeId);
+        let position = { x: 100, y: 100 }; // Default position
+
+        if (sourceNode && targetNode && sourceNode.x && sourceNode.y && targetNode.x && targetNode.y) {
+          position = {
+            x: (sourceNode.x + targetNode.x) / 2 - 75, // Center between source/target, offset for node width
+            y: (sourceNode.y + targetNode.y) / 2 - 35, // Center, offset for node height
+          };
+        } else if (sourceNode && sourceNode.x && sourceNode.y) {
+          position = { x: sourceNode.x + (sourceNode.width || 150) + 50, y: sourceNode.y };
+        }
+        // Ensure position is not undefined
+        position.x = position.x ?? 100;
+        position.y = position.y ?? 100;
+
+
+        return [{
+          id: `suggestion-${suggestion.id}`,
+          type: 'suggested-intermediate-node',
+          position: position,
+          data: {
+            suggestionId: suggestion.id, // Pass the original suggestion ID
+            suggestionData: suggestion.data, // This is NewIntermediateNodeDataSchema
+            reason: suggestion.reason,
+            // type: suggestion.type, // Already known by component type
+          },
+          selectable: true,
+          draggable: false, // Or true if they should be movable
+          zIndex: 100, // Ensure suggestions are above regular nodes/edges if needed
+        }];
+      } else if (suggestion.type === 'FORM_GROUP') {
+        const { nodeIdsToGroup, suggestedParentName } = suggestion.data;
+        const groupNodes = currentMapNodes.filter(n => nodeIdsToGroup.includes(n.id) && n.x !== undefined && n.y !== undefined && n.width !== undefined && n.height !== undefined);
+
+        if (groupNodes.length === 0) return [];
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        groupNodes.forEach(n => {
+          minX = Math.min(minX, n.x!);
+          minY = Math.min(minY, n.y!);
+          maxX = Math.max(maxX, n.x! + n.width!);
+          maxY = Math.max(maxY, n.y! + n.height!);
+        });
+
+        const PADDING = 30; // Padding around the bounding box
+        const position = { x: minX - PADDING, y: minY - PADDING };
+        const width = maxX - minX + 2 * PADDING;
+        const height = maxY - minY + 2 * PADDING;
+
+        return [{
+          id: `suggestion-${suggestion.id}`,
+          type: 'suggested-group-overlay-node',
+          position: position,
+          data: {
+            suggestionId: suggestion.id,
+            suggestionData: suggestion.data, // FormGroupDataSchema
+            reason: suggestion.reason,
+            // type: suggestion.type,
+            width: width, // Pass calculated width
+            height: height, // Pass calculated height
+          },
+          width: width, // Set node width for React Flow
+          height: height, // Set node height for React Flow
+          selectable: true,
+          draggable: false,
+          zIndex: 50, // Render below intermediate nodes but above normal map elements if needed
+        }];
+      }
+      return [];
+    });
+
+    let baseNodes = [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes, ...suggestionElements];
+
     if (dragPreviewData) {
       baseNodes.push({
         id: 'drag-preview-node',
@@ -990,29 +1091,45 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewData, groupSuggestionOverlays]);
 
   const combinedEdges = useMemo(() => {
-    const baseEdges = [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges];
-    if (structuralSuggestions && structuralSuggestions.length > 0) {
-      const suggestionFlowEdges = structuralSuggestions.map((suggestion) => ({
-        id: suggestion.id,
-        source: suggestion.source,
-        target: suggestion.target,
-        label: suggestion.label || '',
-        type: 'suggestionEdge', // Use the new custom edge type
-        data: {
-            label: suggestion.label || '',
-            isSuggestion: true,
+    let baseEdges = [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges];
+
+    // Add edges from the new structuralSuggestions store
+    const newSuggestionEdges = structuralSuggestions
+      .filter(suggestion => suggestion.type === 'ADD_EDGE')
+      .map(suggestion => {
+        const edgeData = suggestion.data as any; // Cast to any, assuming it's AddEdgeData
+        return {
+          id: `suggestion-${suggestion.id}`, // Prefix to avoid clashes
+          source: edgeData.sourceNodeId,
+          target: edgeData.targetNodeId,
+          label: edgeData.label,
+          type: 'suggested-edge', // Use the new custom edge type
+          data: {
+            suggestionId: suggestion.id, // Pass the original suggestion ID
+            suggestionData: edgeData, // This is AddEdgeDataSchema
             reason: suggestion.reason,
-            // Explicitly don't set color/lineType here if style dictates it
-        } as OrthogonalEdgeData, // Cast is okay if OrthogonalEdgeData is simple
-        style: { stroke: '#7c3aed', strokeDasharray: '8 6', opacity: 0.8, strokeWidth: 2 }, // Distinct style
-        markerEnd: getMarkerDefinition('arrowclosed', '#7c3aed'),
-        selectable: true,
-        zIndex: 1,
-      }));
-      baseEdges.push(...suggestionFlowEdges);
-    }
+            // type: suggestion.type, // Already known by component type
+          },
+          // Default styling for suggested edges (can be overridden by component)
+          style: { stroke: '#7c3aed', strokeDasharray: '8 6', opacity: 0.8, strokeWidth: 2.5 },
+          markerEnd: getMarkerDefinition('arrowclosed', '#7c3aed'), // Example marker
+          selectable: true,
+          zIndex: 100, // Ensure suggestions are visible
+        };
+      });
+
+    baseEdges = [...baseEdges, ...newSuggestionEdges];
+
+    // The existing logic for structuralSuggestions (if it was for a different type of suggestion)
+    // might need to be reviewed or removed if the new `structuralSuggestions` store replaces it.
+    // For now, I'm assuming the new store is the primary source.
+    // If `structuralSuggestions` in the `useEffect` was for a different kind of edge,
+    // that logic might need to be merged or adapted.
+    // The provided snippet already had a `structuralSuggestions` for edges.
+    // I'm replacing its usage with the new store-based `structuralSuggestions`.
+
     return baseEdges;
-  }, [rfEdges, rfStagedEdges, rfPreviewEdges, structuralSuggestions]);
+  }, [rfEdges, rfStagedEdges, rfPreviewEdges, structuralSuggestions, mapDataFromStore.nodes]); // Added mapDataFromStore.nodes for position calculation
 
   // Handle Escape key to cancel connection or pending relation
   useEffect(() => {

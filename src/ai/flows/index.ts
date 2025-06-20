@@ -18,6 +18,9 @@ export {
 } from './suggest-node-group-candidates';
 export * from './suggest-map-improvement';
 export * from './suggest-map-improvements';
+export * from './fetch-all-structural-suggestions';
+export * from './suggest-graphology-enhanced-edge';
+export * from './suggest-graphology-intermediate-node'; // Added new flow
 export * from './refine-node-suggestion'; // Added new flow for refining suggestions
 export * from './ai-tidy-up-selection'; // Added new flow for tidying selection
 export * from './semanticTidyUpFlow';
