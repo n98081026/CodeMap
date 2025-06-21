@@ -299,7 +299,7 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete via `ProjectUploadForm` and `useSupabaseStorageUpload` hook).
 - [x] **Connect frontend student submissions list to live API.**
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
-    - [ ] Modify `projectStructureAnalyzerTool` to fetch project file from Supabase Storage and perform real analysis. (User to implement if desired, currently mock).
+    - [~] Modify `projectStructureAnalyzerTool` to fetch project file from Supabase Storage and perform real analysis. (Basic Node.js `package.json` analysis from Supabase implemented; further languages/depth are future enhancements or user task).
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done in `ProjectUploadForm` flow).
 
 **6. API Route Refactoring (General Review for Supabase)**
