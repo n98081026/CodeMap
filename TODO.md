@@ -184,10 +184,10 @@
 - [x] "AI Tidy-Up" / Smart Alignment (Contextual):
     - [x] On selection of multiple nodes, offer an "AI Tidy selection" option (Implemented in EditorToolbar, AI aligns/distributes).
     - [x] (Enhancement) AI attempts to also semantically group selected nodes (e.g., create temporary parent node). (AI flow can now suggest a parent, and hook logic implements its creation and re-parenting of children).
-- [ ] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
-    - [ ] AI periodically/on-demand scans map for structural improvement opportunities.
-    - [ ] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?".
-    - [ ] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options.
+- [x] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
+    - [x] AI periodically/on-demand scans map for structural improvement opportunities. (On-demand implemented via EditorToolbar button calling `suggestMapImprovementsFlow`)
+    - [x] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?". (Implemented using `SuggestionEdge.tsx` and `GroupSuggestionOverlayNode.tsx`)
+    - [x] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options. (Implemented via component interactions with store actions)
 
 ### Streamlined GAI Input & Feedback
 - [x] Slash Commands ("/ai") in Node Text (Evolution of existing TODO item):
