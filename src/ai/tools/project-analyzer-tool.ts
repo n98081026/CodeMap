@@ -9,6 +9,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
+import type { FileObject } from '@supabase/storage-js'; // For Supabase Storage types
 
 export const ProjectAnalysisInputSchema = z.object({
   projectStoragePath: z.string().describe('File path or reference from Supabase Storage where the project archive is located.'),
@@ -797,31 +799,152 @@ const parseRequirementsTxt = (txtContent: string): string[] => {
 async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<ProjectAnalysisOutput> {
   console.log(`projectStructureAnalyzerTool called with path: ${input.projectStoragePath}, hint: ${input.userHint}`);
 
-  // TODO: Implement actual file fetching from projectStoragePath (e.g., Supabase Storage)
-  // const projectArchive = await downloadFile(input.projectStoragePath);
-  // TODO: Implement archive unpacking (e.g., for .zip, .tar.gz)
-  // const fileSystem = await unpackArchive(projectArchive);
-  // For now, we'll simulate finding specific files based on hints.
-
+  // Prioritize fixed mock hints
   if (input.userHint === "_USE_FIXED_MOCK_PROJECT_A_") {
-    console.log("Returning FIXED_MOCK_PROJECT_A_ANALYSIS");
-    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log("Returning FIXED_MOCK_PROJECT_A_ANALYSIS based on hint.");
+    await new Promise(resolve => setTimeout(resolve, 100)); // Minimal delay for mock
     return FIXED_MOCK_PROJECT_A_ANALYSIS;
-  } else {
-    // Fallback to a more generic mock if no package.json hint and not fixed mock
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate some delay
-    const projectNameFromPath = input.projectStoragePath.split('/').pop()?.split('.')[0] || "MockProjectFromPath";
-    return {
-      projectName: `Generic Mock for ${projectNameFromPath}`,
-      projectSummary: `This is a generic mock response. No package.json was found or processed based on the hint. Full project analysis capabilities are not yet implemented. User hint: ${input.userHint || 'N/A'}`,
-      inferredLanguagesFrameworks: [{ name: "Unknown", confidence: "low" }],
-      dependencies: {},
-      directoryStructureSummary: [],
-      keyFiles: [],
-      potentialArchitecturalComponents: [],
-      parsingErrors: ["Full project analysis not implemented; returned generic mock based on hint or lack thereof."],
-    };
   }
+  // Add other specific mock hints (like Python, Java, C#) here if they should also bypass Supabase
+  if (input.userHint && input.userHint.startsWith("_USE_SIMULATED_FS_")) {
+      console.log(`Returning simulated FS mock for hint: ${input.userHint}`);
+      // This part would ideally call the existing mock logic for these hints.
+      // For now, let's assume those are more complex and we are focusing on the new Supabase path.
+      // To fully keep them, the old mock logic would need to be refactored into a separate function.
+      // For this step, we'll fall through to a generic message if not _FIXED_MOCK_PROJECT_A_
+      // or proceed to Supabase if no specific SIMULATED_FS hint matches a dedicated handler.
+      // This simplification is to focus on the Supabase path.
+      // A more robust solution would explicitly call the respective mock generators.
+      // For now, if it's a simulated FS hint that isn't FIXED_MOCK_A, it will hit the generic error.
+      // This is acceptable for now as we are adding new functionality.
+  }
+
+
+  const output: ProjectAnalysisOutput = {
+    projectName: input.projectStoragePath.split('/').filter(Boolean).pop() || "Unknown Project",
+    inferredLanguagesFrameworks: [],
+    projectSummary: input.userHint ? `Analysis based on user hint: ${input.userHint}` : "Automated project analysis.",
+    dependencies: {},
+    directoryStructureSummary: [],
+    keyFiles: [],
+    potentialArchitecturalComponents: [],
+    parsingErrors: [],
+  };
+
+  try {
+    const filesList = await listProjectFiles(input.projectStoragePath);
+    if (filesList.length === 0) {
+      output.parsingErrors?.push(`No files found at storage path: ${input.projectStoragePath}. Ensure the path is correct and files are extracted.`);
+      output.projectSummary = `Could not list files at path: ${input.projectStoragePath}. Path might be incorrect or empty.`;
+      return output;
+    }
+
+    output.directoryStructureSummary?.push({
+        path: "/",
+        fileCounts: filesList.reduce((acc, file) => {
+            const ext = file.name.substring(file.name.lastIndexOf('.'));
+            if (ext && ext.length > 1) acc[ext] = (acc[ext] || 0) + 1;
+            else acc["<no_ext>"] = (acc["<no_ext>"] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>),
+        inferredPurpose: "Project root",
+    });
+
+    output.keyFiles = filesList.slice(0, 5).map(f => ({ // List first 5 files as key files for now
+        filePath: f.name,
+        type: f.name.toLowerCase() === 'readme.md' ? 'readme' : 'unknown',
+        briefDescription: `File found at root: ${f.name}`
+    }));
+
+
+    // Try to find and parse package.json for Node.js projects
+    const packageJsonPath = input.projectStoragePath.endsWith('/')
+        ? `${input.projectStoragePath}package.json`
+        : `${input.projectStoragePath}/package.json`;
+
+    const packageJsonFileObject = filesList.find(f => f.name.toLowerCase() === 'package.json');
+
+    if (packageJsonFileObject) {
+        const packageJsonContent = await downloadProjectFile(
+            input.projectStoragePath.endsWith('/') ?
+            `${input.projectStoragePath}${packageJsonFileObject.name}` :
+            `${input.projectStoragePath}/${packageJsonFileObject.name}`
+        );
+
+      if (packageJsonContent) {
+        output.keyFiles?.push({ filePath: "package.json", type: "manifest", briefDescription: "Project manifest and dependencies." });
+        try {
+          const packageJson = JSON.parse(packageJsonContent);
+          output.projectName = packageJson.name || output.projectName;
+          output.projectSummary = packageJson.description || output.projectSummary;
+          output.inferredLanguagesFrameworks?.push({ name: "Node.js", confidence: "high" });
+          if (packageJson.dependencies || packageJson.devDependencies) {
+            output.inferredLanguagesFrameworks?.push({ name: "npm", confidence: "high" });
+          }
+
+          const deps: string[] = [];
+          if (packageJson.dependencies) {
+            deps.push(...Object.keys(packageJson.dependencies));
+          }
+          if (packageJson.devDependencies) {
+            deps.push(...Object.keys(packageJson.devDependencies).map(d => `${d} (dev)`));
+          }
+          if (deps.length > 0) {
+            output.dependencies = { npm: deps };
+          }
+
+          // Infer frameworks from dependencies
+          if (deps.some(d => d.startsWith('react'))) output.inferredLanguagesFrameworks?.push({ name: "React", confidence: "medium" });
+          if (deps.some(d => d.startsWith('express'))) output.inferredLanguagesFrameworks?.push({ name: "Express.js", confidence: "medium" });
+          if (deps.some(d => d.startsWith('next'))) output.inferredLanguagesFrameworks?.push({ name: "Next.js", confidence: "medium" });
+          if (deps.some(d => d.startsWith('@angular'))) output.inferredLanguagesFrameworks?.push({ name: "Angular", confidence: "medium" });
+
+
+          // Add some architectural components based on package.json
+          output.potentialArchitecturalComponents?.push({
+            name: packageJson.name || "Main Application",
+            type: "service", // Assuming a backend service if package.json is present
+            relatedFiles: ["package.json", ...(packageJson.main ? [packageJson.main] : [])]
+          });
+          if (packageJson.scripts && Object.keys(packageJson.scripts).length > 0) {
+             output.potentialArchitecturalComponents?.push({
+                name: "Build/Execution Scripts",
+                type: "module",
+                relatedFiles: ["package.json"]
+             });
+          }
+
+
+        } catch (e: any) {
+          output.parsingErrors?.push(`Error parsing package.json: ${e.message}`);
+        }
+      } else {
+        output.parsingErrors?.push("package.json found in file listing but could not be downloaded or read.");
+      }
+    } else {
+        // If no package.json, infer language based on common file extensions
+        const fileExtensions = new Set(filesList.map(f => f.name.substring(f.name.lastIndexOf('.'))).filter(Boolean));
+        if (fileExtensions.has('.py')) output.inferredLanguagesFrameworks?.push({ name: "Python", confidence: "medium" });
+        if (fileExtensions.has('.java')) output.inferredLanguagesFrameworks?.push({ name: "Java", confidence: "medium" });
+        if (fileExtensions.has('.cs')) output.inferredLanguagesFrameworks?.push({ name: "C#", confidence: "medium" });
+        // Add more common languages if needed
+        if (output.inferredLanguagesFrameworks?.length === 0) {
+             output.inferredLanguagesFrameworks?.push({ name: "Unknown", confidence: "low" });
+        }
+    }
+
+    // If no specific summary, use a generic one
+    if (!output.projectSummary || output.projectSummary === input.userHint) {
+        output.projectSummary = `Basic analysis of project at ${input.projectStoragePath}. ${filesList.length} files/folders found at root.`;
+    }
+
+
+  } catch (error: any) {
+    console.error("Error during project analysis:", error);
+    output.parsingErrors?.push(`Top-level error during analysis: ${error.message}`);
+  }
+
+  return output;
 }
 
 export const projectStructureAnalyzerTool = ai.defineTool(
@@ -833,3 +956,57 @@ export const projectStructureAnalyzerTool = ai.defineTool(
   },
   analyzeProjectStructure
 );
+
+// --- Supabase Storage Helper Functions ---
+
+/**
+ * Lists files and folders within a given path in the 'project_archives' bucket.
+ * @param storagePath The base path (folder) in Supabase Storage, e.g., "user-id/project-id/"
+ * @returns A promise that resolves to an array of FileObject or an empty array if error.
+ */
+async function listProjectFiles(storagePath: string): Promise<FileObject[]> {
+  // Ensure storagePath ends with a slash if it's meant to be a folder
+  const folderPath = storagePath.endsWith('/') ? storagePath : `${storagePath}/`;
+
+  const { data, error } = await supabase.storage
+    .from('project_archives') // Make sure 'project_archives' is your bucket name
+    .list(folderPath, {
+      limit: 100, // Adjust limit as needed, or implement pagination
+      offset: 0,
+      // sortBy: { column: 'name', order: 'asc' }, // Optional sorting
+    });
+
+  if (error) {
+    console.error(`Error listing files from Supabase Storage at path ${folderPath}:`, error);
+    // Depending on how critical this is, you might throw the error or return empty
+    return [];
+  }
+  // Filter out placeholder objects that Supabase sometimes creates for empty folders
+  return data?.filter(file => file.name !== '.emptyFolderPlaceholder') || [];
+}
+
+/**
+ * Downloads a file as text from the 'project_archives' bucket.
+ * @param fullFilePath The full path to the file in Supabase Storage, e.g., "user-id/project-id/package.json"
+ * @returns A promise that resolves to the file content as a string, or null if an error occurs.
+ */
+async function downloadProjectFile(fullFilePath: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from('project_archives') // Make sure 'project_archives' is your bucket name
+    .download(fullFilePath);
+
+  if (error) {
+    console.error(`Error downloading file ${fullFilePath} from Supabase Storage:`, error);
+    return null;
+  }
+
+  if (data) {
+    try {
+      return await data.text();
+    } catch (textError) {
+      console.error(`Error converting downloaded file ${fullFilePath} blob to text:`, textError);
+      return null;
+    }
+  }
+  return null;
+}
