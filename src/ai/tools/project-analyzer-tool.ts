@@ -86,6 +86,13 @@ interface ExtractedCodeElement {
   // Add more fields as needed, e.g. for variables:
   dataType?: string; // For variables
   value?: string; // For simple variable initializers
+  comments?: string; // Added for TS AST
+  semanticPurpose?: string; // Added for AI summary
+  classMethods?: string[]; // For classes
+  classProperties?: string[]; // For classes
+  astNode?: ts.Node; // Store the AST node for functions/methods for later analysis (e.g. call graph)
+  localCalls?: Array<{ targetName: string; targetType: 'function' | 'method'; targetParentName?: string; line: number }>; // For local call detection
+  parentName?: string; // For methods, the name of their class
 }
 
 interface ExtractedImport {
@@ -106,12 +113,21 @@ interface ExtractedExport {
 
 
 // --- JavaScript AST Analysis (Acorn) ---
-function analyzeJavaScriptAST(fileName: string, fileContent: string, generateNodeId: Function, fileSpecificPrefix: string): { analysisSummary: string, detailedNodes: DetailedNode[], error?: string } {
-  const elements: ExtractedCodeElement[] = [];
+async function analyzeJavaScriptAST(fileName: string, fileContent: string, generateNodeId: Function, fileSpecificPrefix: string): Promise<{ analysisSummary: string, detailedNodes: DetailedNode[], error?: string }> {
+  const elements: ExtractedCodeElement[] = []; // Still useful for overall counts in summary
   const imports: ExtractedImport[] = [];
   const exports: ExtractedExport[] = [];
-  const detailedNodes: DetailedNode[] = [];
+  const detailedNodesOutput: DetailedNode[] = []; // Final list of nodes for output
+  const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: any }> = [];
   let ast: acorn.Node | undefined;
+
+  interface SummarizationTask {
+    uniqueId: string;
+    inputForFlow: SummarizeCodeElementInput;
+    originalNodeInfo: ExtractedCodeElement; // Will include astNode
+    nodeType: 'function' | 'class'; // To distinguish for summarizer
+  }
+  const summarizationTasks: SummarizationTask[] = [];
 
   try {
     ast = acorn.parse(fileContent, { ecmaVersion: 'latest', sourceType: 'module', locations: true, comments: true });
@@ -119,82 +135,72 @@ function analyzeJavaScriptAST(fileName: string, fileContent: string, generateNod
     return { error: `JS AST parsing failed: ${e.message}`, analysisSummary: `Failed to parse JS content: ${e.message}`, detailedNodes: [] };
   }
 
-  // Comments are not easily associated with nodes in Acorn without extra logic
-  // For now, comments are not passed to the summarizer from Acorn.
-
-  const processAcornNode = async (node: any, type: 'function' | 'class', name: string, isExported: boolean, params?: any[], superClass?: string, methods?: any[]) => {
-    const elementInfo: ExtractedCodeElement = {
-      name,
-      kind: type,
-      isExported,
-      startLine: node.loc?.start.line,
-      endLine: node.loc?.end.line,
-      params: params?.map((p: any) => ({ name: p.type === 'Identifier' ? p.name : (p.left?.name || '[pattern]') })), // Handle destructuring in params a bit
-      superClass,
-      // Acorn doesn't easily give full method signatures, so we'll pass names
-      // classMethods: methods?.map((m: any) => m.key.name || '[unknown_method]'),
-    };
-
-    let semanticPurpose = "Semantic purpose not summarized.";
-    try {
-      const summarizerInput: SummarizeCodeElementInput = {
-        elementType: type,
-        elementName: name,
-        filePath: fileName,
-        signature: type === 'function' ? `(${elementInfo.params?.map(p => p.name).join(', ') || ''})` : (superClass ? `extends ${superClass}` : undefined),
-        comments: undefined, // Acorn comment association is non-trivial
-        isExported: isExported,
-        classMethods: type === 'class' ? methods?.map((m:any) => m.key.name || '[unknown_method]') : undefined,
-        classProperties: undefined, // Acorn property extraction is also more involved
-      };
-      const summaryResult = await summarizeCodeElementPurposeFlow.run(summarizerInput);
-      if (summaryResult?.semanticSummary) {
-        semanticPurpose = summaryResult.semanticSummary;
-      }
-    } catch (e: any) {
-      console.warn(`[Acorn Analyzer] Error summarizing ${type} ${name} in ${fileName}: ${e.message}`);
-      semanticPurpose = "Error during semantic summarization.";
-    }
-
-    elementInfo.semanticPurpose = semanticPurpose;
-    const details = `${semanticPurpose}\nExported: ${isExported}. ${params ? `Params: ${params.map(p=>p.name).join(', ')}. ` : ''}${superClass ? `Extends: ${superClass}. ` : ''}${methods ? `Methods: ${methods.map(m=>m.key.name).join(', ')}` : ''}`;
-    detailedNodes.push({
-      id: generateNodeId(fileSpecificPrefix, elementInfo.kind, elementInfo.name, detailedNodes.length),
-      label: `${elementInfo.name} (${elementInfo.kind})`,
-      type: `js_${elementInfo.kind}`,
-      details,
-      lineNumbers: elementInfo.startLine ? `${elementInfo.startLine}-${elementInfo.endLine}` : undefined,
-      structuredInfo: elementInfo
-    });
-    elements.push(elementInfo); // Keep original elements array for summary count if needed
-  };
-
-
-  // Acorn walk is synchronous, so we collect promises and await them later.
-  // However, defineFlow().run() is async.
-  // For simplicity in this pass, we'll make the outer function async and await inside the walk.
-  // This is generally not ideal for performance with acorn-walk but will work.
-  // A better approach would be to collect all data first, then process summaries in a Promise.all.
-  // Given the constraints, sequential await is used.
-
-  const walkPromises: Promise<void>[] = [];
-
+  // Phase 1: Data Collection
   acornWalk.simple(ast, {
-    async FunctionDeclaration(node: any) {
+    FunctionDeclaration(node: any) {
       const isExported = node.parentNode?.type === 'ExportNamedDeclaration' || node.parentNode?.type === 'ExportDefaultDeclaration';
-      await processAcornNode(node, 'function', node.id?.name || '[anonymous_func]', isExported, node.params);
+      const name = node.id?.name || '[anonymous_func]';
+      const originalNodeInfo: ExtractedCodeElement = {
+        name,
+        kind: 'function',
+        isExported,
+        startLine: node.loc?.start.line,
+        endLine: node.loc?.end.line,
+        params: node.params?.map((p: any) => ({ name: p.type === 'Identifier' ? p.name : (p.left?.name || '[pattern]') })),
+        isAsync: node.async,
+        astNode: node, // Store Acorn node
+      };
+      elements.push(originalNodeInfo);
+      localDefinitions.push({ name, kind: 'function', node });
+      summarizationTasks.push({
+        uniqueId: generateNodeId(fileSpecificPrefix, 'function', name, summarizationTasks.length),
+        inputForFlow: {
+          elementType: 'function',
+          elementName: name,
+          filePath: fileName,
+          signature: `(${(originalNodeInfo.params?.map(p => p.name).join(', ') || '')})`,
+          comments: undefined, // Acorn comment association is non-trivial
+          isExported: isExported,
+        },
+        originalNodeInfo,
+        nodeType: 'function',
+      });
     },
-    async VariableDeclaration(node: any) {
-      for (const declaration of node.declarations) {
+    VariableDeclaration(node: any) {
+      node.declarations.forEach((declaration: any) => {
         if (declaration.id?.name && (declaration.init?.type === 'ArrowFunctionExpression' || declaration.init?.type === 'FunctionExpression')) {
           const isExported = node.parentNode?.type === 'ExportNamedDeclaration';
-          await processAcornNode(declaration, 'function', declaration.id.name, isExported, declaration.init.params);
+          const name = declaration.id.name;
+          const originalNodeInfo: ExtractedCodeElement = {
+            name,
+            kind: 'function', // Treat as function
+            isExported,
+            startLine: node.loc?.start.line,
+            endLine: node.loc?.end.line,
+            params: declaration.init.params?.map((p: any) => ({ name: p.type === 'Identifier' ? p.name : (p.left?.name || '[pattern]') })),
+            isAsync: declaration.init.async,
+        astNode: declaration.init, // Store Acorn FunctionExpression/ArrowFunctionExpression node
+          };
+          elements.push(originalNodeInfo);
+      localDefinitions.push({ name, kind: 'function', node: declaration.init });
+          summarizationTasks.push({
+            uniqueId: generateNodeId(fileSpecificPrefix, 'function', name, summarizationTasks.length),
+            inputForFlow: {
+              elementType: 'function',
+              elementName: name,
+              filePath: fileName,
+              signature: `(${(originalNodeInfo.params?.map(p => p.name).join(', ') || '')})`,
+              comments: undefined,
+              isExported: isExported,
+            },
+            originalNodeInfo,
+            nodeType: 'function',
+          });
         } else if (declaration.id?.name && node.kind && (node.parentNode?.type === 'Program' || node.parentNode?.type === 'ExportNamedDeclaration')) {
-           // For non-function variables, we don't call the summarizer currently, just list them.
-           const simpleVarElement = { name: declaration.id.name, kind: 'variable', isExported: node.parentNode?.type === 'ExportNamedDeclaration', startLine: node.loc?.start.line, endLine: node.loc?.end.line };
-           elements.push(simpleVarElement);
-           detailedNodes.push({
-              id: generateNodeId(fileSpecificPrefix, 'variable', simpleVarElement.name, detailedNodes.length),
+           const simpleVarElement: ExtractedCodeElement = { name: declaration.id.name, kind: 'variable', isExported: node.parentNode?.type === 'ExportNamedDeclaration', startLine: node.loc?.start.line, endLine: node.loc?.end.line };
+           elements.push(simpleVarElement); // Add to general elements for count
+           detailedNodesOutput.push({ // Add directly as it's not summarized
+              id: generateNodeId(fileSpecificPrefix, 'variable', simpleVarElement.name, detailedNodesOutput.length),
               label: `${simpleVarElement.name} (variable)`,
               type: 'js_variable',
               details: `Exported: ${simpleVarElement.isExported}`,
@@ -202,17 +208,50 @@ function analyzeJavaScriptAST(fileName: string, fileContent: string, generateNod
               structuredInfo: simpleVarElement
            });
         }
-      }
+      });
     },
-    async ClassDeclaration(node: any) {
+    ClassDeclaration(node: any) {
       const isExported = node.parentNode?.type === 'ExportNamedDeclaration' || node.parentNode?.type === 'ExportDefaultDeclaration';
+      const name = node.id?.name || '[anonymous_class]';
       const methods = node.body.body.filter((item:any) => item.type === 'MethodDefinition');
-      await processAcornNode(node, 'class', node.id?.name || '[anonymous_class]', isExported, undefined, node.superClass?.name, methods);
+      const originalNodeInfo: ExtractedCodeElement = {
+        name,
+        kind: 'class',
+        isExported,
+        superClass: node.superClass?.name,
+        startLine: node.loc?.start.line,
+        endLine: node.loc?.end.line,
+        classMethods: methods?.map((m:any) => m.key.name || '[unknown_method]'),
+        astNode: node, // Store Acorn ClassDeclaration node
+      };
+      elements.push(originalNodeInfo);
+      // Add methods to localDefinitions
+      methods.forEach((methodNode: any) => {
+        if (methodNode.key) { // Ensure method has a name
+            const methodName = methodNode.key.name || methodNode.key.value; // Handle computed names if necessary, though less common for 'this' calls
+            localDefinitions.push({ name: methodName, kind: 'method', parentName: name, node: methodNode.value }); // methodNode.value is FunctionExpression
+        }
+      });
+      summarizationTasks.push({
+        uniqueId: generateNodeId(fileSpecificPrefix, 'class', name, summarizationTasks.length),
+        inputForFlow: {
+          elementType: 'class',
+          elementName: name,
+          filePath: fileName,
+          signature: node.superClass?.name ? `extends ${node.superClass.name}` : undefined,
+          comments: undefined,
+          isExported: isExported,
+          classMethods: originalNodeInfo.classMethods,
+          classProperties: undefined, // Acorn property extraction more involved
+        },
+        originalNodeInfo,
+        nodeType: 'class',
+      });
     },
-    ImportDeclaration(node: any) { // Synchronous processing for imports/exports
+    ImportDeclaration(node: any) {
       imports.push({ source: node.source.value, specifiers: node.specifiers.map((s: any) => ({ importedName: s.imported?.name, localName: s.local.name, isDefault: s.type === 'ImportDefaultSpecifier', isNamespace: s.type === 'ImportNamespaceSpecifier'})), startLine: node.loc?.start.line, endLine: node.loc?.end.line });
     },
-    ExportNamedDeclaration(node: any) { // Synchronous
+    ExportNamedDeclaration(node: any) {
       let names: string[] = [];
       if (node.declaration) {
         if (node.declaration.id) names.push(node.declaration.id.name);
@@ -222,20 +261,115 @@ function analyzeJavaScriptAST(fileName: string, fileContent: string, generateNod
       }
       exports.push({ type: 'named', names, source: node.source?.value, startLine: node.loc?.start.line, endLine: node.loc?.end.line });
     },
-    ExportDefaultDeclaration(node: any) { // Synchronous
+    ExportDefaultDeclaration(node: any) {
       exports.push({ type: 'default', declarationType: node.declaration.type, names: [node.declaration.id?.name || (node.declaration.type === 'Identifier' ? node.declaration.name : '[anonymous_default]')], startLine: node.loc?.start.line, endLine: node.loc?.end.line });
     },
-    ExportAllDeclaration(node: any) { // Synchronous
+    ExportAllDeclaration(node: any) {
       exports.push({ type: 'all', source: node.source.value, startLine: node.loc?.start.line, endLine: node.loc?.end.line });
     }
-  }, (ast as any)); // Cast to any to allow acorn-walk to work with its internal typings for Node
+  }, (ast as any));
 
-  // Populate imports and exports into detailedNodes (synchronously, as they don't call LLM)
-  imports.forEach((imp, i) => detailedNodes.push({ id: generateNodeId(fileSpecificPrefix, 'import', imp.source, i), label: `Import from '${imp.source}'`, type: 'js_import', details: imp.specifiers.map(s => s.localName + (s.importedName && s.importedName !== s.localName ? ` as ${s.importedName}` : '')).join(', '), lineNumbers: imp.startLine ? `${imp.startLine}-${imp.endLine}`: undefined, structuredInfo: imp }));
-  exports.forEach((exp, i) => detailedNodes.push({ id: generateNodeId(fileSpecificPrefix, 'export', exp.type, i), label: `Export ${exp.type}`, type: `js_export_${exp.type}`, details: exp.names?.join(', ') || (exp.source ? `* from ${exp.source}`: exp.declarationType), lineNumbers: exp.startLine ? `${exp.startLine}-${exp.endLine}`: undefined, structuredInfo: exp }));
+  // Phase 2: Parallel Summarization
+  const summarizationPromises = summarizationTasks.map(task =>
+    summarizeCodeElementPurposeFlow.run(task.inputForFlow)
+      .then(summaryResult => ({
+        uniqueId: task.uniqueId,
+        semanticSummary: summaryResult.semanticSummary || "Purpose unclear from available data.",
+      }))
+      .catch(error => {
+        console.warn(`[Acorn Analyzer] Error summarizing ${task.nodeType} ${task.originalNodeInfo.name} in ${fileName}: ${error.message}`);
+        return {
+          uniqueId: task.uniqueId,
+          semanticSummary: "Error during semantic summarization.",
+        };
+      })
+  );
+  const allSummaryResults = await Promise.all(summarizationPromises);
+  const summaryMap = new Map(allSummaryResults.map(r => [r.uniqueId, r.semanticSummary]));
 
-  const summary = `JavaScript file '${fileName}' (AST analysis): Found ${elements.filter(e=>e.kind==='function').length} functions, ${elements.filter(e=>e.kind==='class').length} classes, ${imports.length} imports, ${exports.length} exports, and ${elements.filter(e=>e.kind==='variable').length} top-level variables. Semantic summaries attempted for functions/classes.`;
-  return { analysisSummary: summary, detailedNodes };
+  // Phase 3: Integration
+  summarizationTasks.forEach(task => {
+    const semanticPurpose = summaryMap.get(task.uniqueId) || "Semantic purpose not determined.";
+    task.originalNodeInfo.semanticPurpose = semanticPurpose;
+    task.originalNodeInfo.localCalls = []; // Initialize
+
+    // Second pass for local call detection, only for functions/methods
+    if ((task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'class') && task.originalNodeInfo.astNode) { // Class itself doesn't have calls, its methods do.
+        if (task.originalNodeInfo.kind === 'function' && task.originalNodeInfo.astNode.body) {
+            acornWalk.simple(task.originalNodeInfo.astNode.body, {
+                CallExpression(callExprNode: any) {
+                    if (callExprNode.callee.type === 'Identifier') {
+                        const calleeName = callExprNode.callee.name;
+                        const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'function' && !def.parentName); // Top-level function
+                        if (targetDef) {
+                            task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', line: callExprNode.loc.start.line });
+                        }
+                    }
+                    // No direct 'this.method()' equivalent for top-level functions in the same way as classes.
+                    // Could extend to IIFEs or other patterns if needed, but keeping it simple.
+                }
+            });
+        } else if (task.originalNodeInfo.kind === 'class') {
+            // Iterate through methods of this class (which are in localDefinitions)
+            // and for each method, traverse its body to find calls.
+            const className = task.originalNodeInfo.name;
+            const methodsOfThisClass = localDefinitions.filter(def => def.kind === 'method' && def.parentName === className);
+
+            methodsOfThisClass.forEach(methodDef => {
+                // Find the corresponding summarization task for this method to attach calls, if it exists
+                // This part is a bit tricky because summarization tasks are for top-level elements (classes, functions)
+                // We need to attach calls to the methods within the class's structuredInfo or create separate nodes for methods.
+                // For now, let's assume classMethods in originalNodeInfo can be enriched, or we adjust the model.
+                // Let's simplify: add calls to the class's localCalls for now, indicating method calls.
+                // A more granular approach would be to have method-level entries in detailedNodesOutput.
+                if (methodDef.node && methodDef.node.body) { // methodDef.node is the FunctionExpression
+                    acornWalk.simple(methodDef.node.body, {
+                        CallExpression(callExprNode: any) {
+                            const callLine = callExprNode.loc.start.line;
+                            if (callExprNode.callee.type === 'Identifier') {
+                                const calleeName = callExprNode.callee.name;
+                                // Call to another global/module function
+                                const targetGlobalFunc = localDefinitions.find(def => def.name === calleeName && def.kind === 'function' && !def.parentName);
+                                if (targetGlobalFunc) {
+                                    task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', line: callLine });
+                                }
+                            } else if (callExprNode.callee.type === 'MemberExpression' && callExprNode.callee.object.type === 'ThisExpression') {
+                                const calleeName = callExprNode.callee.property.name;
+                                // Call to another method of the same class
+                                const targetMethod = localDefinitions.find(def => def.name === calleeName && def.kind === 'method' && def.parentName === className);
+                                if (targetMethod) {
+                                    task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: className, line: callLine });
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    let details = `${semanticPurpose}\nExported: ${task.originalNodeInfo.isExported}. ${task.originalNodeInfo.params ? `Params: ${task.originalNodeInfo.params.map(p=>p.name).join(', ')}. ` : ''}${task.originalNodeInfo.superClass ? `Extends: ${task.originalNodeInfo.superClass}. ` : ''}${task.originalNodeInfo.classMethods ? `Methods: ${task.originalNodeInfo.classMethods.join(', ')}` : ''}`;
+    if (task.originalNodeInfo.localCalls && task.originalNodeInfo.localCalls.length > 0) {
+      details += `\nLocal Calls: ${task.originalNodeInfo.localCalls.map(call => `${call.targetParentName ? `${call.targetParentName}.` : ''}${call.targetName}() (line ${call.line})`).join(', ')}.`;
+    }
+
+    detailedNodesOutput.push({
+      id: task.uniqueId, // Use the same uniqueId for the final node ID
+      label: `${task.originalNodeInfo.name} (${task.originalNodeInfo.kind})`,
+      type: `js_${task.originalNodeInfo.kind}`,
+      details,
+      lineNumbers: task.originalNodeInfo.startLine ? `${task.originalNodeInfo.startLine}-${task.originalNodeInfo.endLine}` : undefined,
+      structuredInfo: task.originalNodeInfo,
+    });
+  });
+
+  // Add imports and exports to detailedNodesOutput (they were not summarized)
+  imports.forEach((imp, i) => detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'import', imp.source, detailedNodesOutput.length + i), label: `Import from '${imp.source}'`, type: 'js_import', details: imp.specifiers.map(s => s.localName + (s.importedName && s.importedName !== s.localName ? ` as ${s.importedName}` : '')).join(', '), lineNumbers: imp.startLine ? `${imp.startLine}-${imp.endLine}`: undefined, structuredInfo: imp }));
+  exports.forEach((exp, i) => detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'export', exp.type, detailedNodesOutput.length + i), label: `Export ${exp.type}`, type: `js_export_${exp.type}`, details: exp.names?.join(', ') || (exp.source ? `* from ${exp.source}`: exp.declarationType), lineNumbers: exp.startLine ? `${exp.startLine}-${exp.endLine}`: undefined, structuredInfo: exp }));
+
+  const totalLocalCalls = detailedNodesOutput.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0);
+  const summary = `JavaScript file '${fileName}' (AST analysis): Found ${elements.filter(e=>e.kind==='function').length} functions, ${elements.filter(e=>e.kind==='class').length} classes, ${imports.length} imports, ${exports.length} exports, ${elements.filter(e=>e.kind==='variable').length} top-level variables, and ${totalLocalCalls} detected local calls. Semantic summaries attempted for functions/classes.`;
+  return { analysisSummary: summary, detailedNodes: detailedNodesOutput };
 }
 
 // --- TypeScript AST Analysis ---
@@ -244,7 +378,9 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
   const elements: ExtractedCodeElement[] = [];
   const imports: ExtractedImport[] = [];
   const exports: ExtractedExport[] = [];
-  const detailedNodes: DetailedNode[] = []; // Initialize detailedNodes here
+  const detailedNodesOutput: DetailedNode[] = [];
+  const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: ts.Node }> = [];
+
 
   const scriptKind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const sourceFile = ts.createSourceFile(fileName, fileContent, ts.ScriptTarget.Latest, true, scriptKind);
@@ -253,8 +389,16 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
   if (diagnostics.length > 0) {
     const errorMsg = "TypeScript AST parsing/binding produced diagnostics: " + diagnostics.map(d => ts.flattenDiagnosticMessageText(d.messageText, "\n")).join("; ");
     console.warn(`[TS AST Analyzer] Diagnostics for ${fileName}: ${errorMsg}`);
-    return { error: errorMsg, analysisSummary: `Failed to fully parse TS: ${errorMsg}`, detailedNodes:[] };
+    return { error: errorMsg, analysisSummary: `Failed to fully parse TS: ${errorMsg}`, detailedNodes: [] };
   }
+
+  interface SummarizationTask {
+    uniqueId: string;
+    inputForFlow: SummarizeCodeElementInput;
+    originalNodeInfo: ExtractedCodeElement; // Will include astNode
+    nodeType: 'function' | 'class';
+  }
+  const summarizationTasks: SummarizationTask[] = [];
 
   // Helper to get JSDoc comments
   function getJSDocComments(node: ts.Node, sourceFile: ts.SourceFile): string | undefined {
@@ -283,7 +427,7 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
     return comments.length > 0 ? comments.join('\n') : undefined;
   }
 
-  async function visitNode(node: ts.Node) {
+  function visitNodeRecursive(node: ts.Node) { // Renamed to avoid conflict, this is the recursive part
     const startLine = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
     const endLine = sourceFile.getLineAndCharacterOfPosition(node.getEnd()).line + 1;
     const lineNumbers = `${startLine}-${endLine}`;
@@ -294,14 +438,21 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
 
     let elementInfo: ExtractedCodeElement | null = null;
     let summarizerInput: SummarizeCodeElementInput | null = null;
-    let nodeTypeForSummarizer: 'function' | 'class' | undefined = undefined;
+    let nodeTypeForSummarizer: 'function' | 'class' | undefined = undefined; // To guide summarizer task creation
 
     if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
       nodeTypeForSummarizer = 'function';
       const name = node.name?.getText(sourceFile) || (ts.isMethodDeclaration(node) ? '[constructor_or_method]' : '[anonymous_func]');
       const params = node.parameters.map(p => ({ name: p.name.getText(sourceFile), type: p.type?.getText(sourceFile) }));
       const returnType = node.type?.getText(sourceFile);
-      elementInfo = { name, kind: ts.isMethodDeclaration(node) ? 'method' : 'function', params, returnType, isAsync: modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword), isExported, isDefaultExport, startLine, endLine, comments };
+      let parentName: string | undefined = undefined;
+      if (ts.isMethodDeclaration(node) && (ts.isClassDeclaration(node.parent) || ts.isClassExpression(node.parent))) {
+        parentName = node.parent.name?.getText(sourceFile) || '[anonymous_class_parent]';
+      }
+      elementInfo = { name, kind: ts.isMethodDeclaration(node) ? 'method' : 'function', params, returnType, isAsync: modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword), isExported, isDefaultExport, startLine, endLine, comments, astNode: node, parentName };
+
+      // Add to localDefinitions for call graph analysis
+      localDefinitions.push({ name, kind: elementInfo.kind as 'function' | 'method', parentName, node });
 
       summarizerInput = {
         elementType: nodeTypeForSummarizer,
@@ -321,8 +472,8 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
 
       const classMethods = node.members.filter(ts.isMethodDeclaration).map(m => `${m.name?.getText(sourceFile)}(${m.parameters.map(p => p.name.getText(sourceFile) + (p.type ? ": "+p.type.getText(sourceFile):"")).join(', ')})` + (m.type ? ": "+m.type.getText(sourceFile): ""));
       const classProperties = node.members.filter(ts.isPropertyDeclaration).map(p => `${p.name?.getText(sourceFile)}${p.type ? ": "+p.type.getText(sourceFile): ""}`);
-
-      elementInfo = { name, kind: 'class', superClass, implementedInterfaces, isExported, isDefaultExport, startLine, endLine, comments, classMethods, classProperties };
+      elementInfo = { name, kind: 'class', superClass, implementedInterfaces, isExported, isDefaultExport, startLine, endLine, comments, classMethods, classProperties, astNode: node };
+      // Note: Classes themselves are not added to localDefinitions for call *targets*, but their methods are.
 
       summarizerInput = {
         elementType: nodeTypeForSummarizer,
@@ -337,42 +488,49 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
     } else if (ts.isInterfaceDeclaration(node) || ts.isEnumDeclaration(node) || ts.isTypeAliasDeclaration(node)) {
       // Potentially summarize these too, but for now, just basic info
       const kind = ts.isInterfaceDeclaration(node) ? 'interface' : ts.isEnumDeclaration(node) ? 'enum' : 'type_alias';
-      elementInfo = { name: node.name.getText(sourceFile), kind, isExported, isDefaultExport, startLine, endLine, comments };
+      elementInfo = { name: node.name.getText(sourceFile), kind, isExported, isDefaultExport, startLine, endLine, comments, semanticPurpose: "Not summarized by type." };
     } else if (ts.isVariableStatement(node)) {
         const isVarExported = node.modifiers?.some(mod => mod.kind === ts.SyntaxKind.ExportKeyword);
         for (const decl of node.declarationList.declarations) {
             if(ts.isIdentifier(decl.name)) {
-                 const varName = decl.name.text;
-                 const varType = decl.type?.getText(sourceFile);
-                 const varInitializer = decl.initializer;
-                 let varKind: 'variable' | 'function' = 'variable';
-                 let varParams: any[] | undefined;
-                 let varReturnType: string | undefined;
-                 let varSignatureForSummarizer: string | undefined;
+              const varName = decl.name.text;
+              const varType = decl.type?.getText(sourceFile);
+              const varInitializer = decl.initializer;
+              let varKind: 'variable' | 'function' = 'variable';
+              let varParams: any[] | undefined;
+              let varReturnType: string | undefined;
 
-                 if (varInitializer && (ts.isArrowFunction(varInitializer) || ts.isFunctionExpression(varInitializer))) {
-                    varKind = 'function'; // Treat arrow functions/function expressions assigned to vars as functions
-                    nodeTypeForSummarizer = 'function';
-                    varParams = varInitializer.parameters.map(p => ({ name: p.name.getText(sourceFile), type: p.type?.getText(sourceFile) }));
-                    varReturnType = varInitializer.type?.getText(sourceFile);
-                    varSignatureForSummarizer = `(${varParams.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ')})` + (varReturnType ? `: ${varReturnType}` : '');
-                 }
+              if (varInitializer && (ts.isArrowFunction(varInitializer) || ts.isFunctionExpression(varInitializer))) {
+                varKind = 'function';
+                nodeTypeForSummarizer = 'function';
+                varParams = varInitializer.parameters.map(p => ({ name: p.name.getText(sourceFile), type: p.type?.getText(sourceFile) }));
+                varReturnType = varInitializer.type?.getText(sourceFile);
+              }
+              // Check if it's a top-level const arrow function or a class property arrow function
+              let parentNameForVarFunc: string | undefined = undefined;
+              if (node.parent && (ts.isClassDeclaration(node.parent) || ts.isClassExpression(node.parent)) && node.parent.name) {
+                 // This is a property in a class, potentially an arrow function method
+                 parentNameForVarFunc = node.parent.name.getText(sourceFile);
+              }
 
-                 elementInfo = { name: varName, kind: varKind, dataType: varType, value: varInitializer?.getText(sourceFile).substring(0,50), isExported: isVarExported, startLine, endLine, comments, params: varParams, returnType: varReturnType };
+              elementInfo = { name: varName, kind: varKind, dataType: varType, value: varInitializer?.getText(sourceFile).substring(0,50), isExported: isVarExported, startLine, endLine, comments, params: varParams, returnType: varReturnType, astNode: decl, parentName: parentNameForVarFunc };
 
-                 if (nodeTypeForSummarizer === 'function') {
-                     summarizerInput = {
-                        elementType: 'function',
-                        elementName: varName,
-                        signature: varSignatureForSummarizer,
-                        filePath: fileName,
-                        comments,
-                        isExported: isVarExported,
-                     };
-                 } else {
-                    // For non-function variables, no summarizer call yet
-                    summarizerInput = null;
-                 }
+              if (nodeTypeForSummarizer === 'function' && elementInfo) {
+                if (varKind === 'function') { // Add to localDefinitions if it's a function
+                    localDefinitions.push({ name: varName, kind: 'function', parentName: parentNameForVarFunc, node: decl });
+                }
+                summarizerInput = {
+                  elementType: 'function',
+                  elementName: varName,
+                  signature: `(${varParams?.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ') || ''})` + (varReturnType ? `: ${varReturnType}` : ''),
+                  filePath: fileName,
+                  comments,
+                  isExported: isVarExported,
+                };
+              } else {
+                summarizerInput = null;
+                if(elementInfo) elementInfo.semanticPurpose = "Not summarized by type.";
+              }
             }
             if (elementInfo) break; // Process first declaration for now if it's a multi-declaration
         }
@@ -380,43 +538,28 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
 
 
     if (elementInfo) {
-      let semanticPurpose = "Semantic purpose not summarized.";
       if (summarizerInput && (nodeTypeForSummarizer === 'function' || nodeTypeForSummarizer === 'class')) {
-        try {
-          const summaryResult = await summarizeCodeElementPurposeFlow.run(summarizerInput);
-          if (summaryResult?.semanticSummary) {
-            semanticPurpose = summaryResult.semanticSummary;
-          }
-        } catch (e: any) {
-          console.warn(`[TS AST Analyzer] Error summarizing ${summarizerInput.elementType} ${summarizerInput.elementName} in ${fileName}: ${e.message}`);
-          semanticPurpose = "Error during semantic summarization.";
-        }
+        summarizationTasks.push({
+          uniqueId: generateNodeId(fileSpecificPrefix, elementInfo.kind, elementInfo.name, summarizationTasks.length),
+          inputForFlow: summarizerInput,
+          originalNodeInfo: { ...elementInfo }, // Clone to avoid mutation issues if any
+          nodeType: nodeTypeForSummarizer,
+        });
       }
-      elementInfo.semanticPurpose = semanticPurpose;
-      elements.push(elementInfo); // Add to overall elements list
+      elements.push(elementInfo); // Still collect all elements for summary counts
 
-      let details = `${semanticPurpose}\n`;
-      details += `${elementInfo.isExported ? (elementInfo.isDefaultExport ? 'Default Export. ' : 'Exported. ') : 'Not Exported. '}`;
-      if (elementInfo.kind === 'function' || elementInfo.kind === 'method') {
-        details += `${elementInfo.params ? `Params: ${elementInfo.params.map(p=>`${p.name}${p.type ? `: ${p.type}`:''}`).join(', ')}. ` : ''}`;
-        details += `${elementInfo.returnType ? `Returns: ${elementInfo.returnType}. ` : ''}`;
-      } else if (elementInfo.kind === 'class') {
-        details += `${elementInfo.superClass ? `Extends: ${elementInfo.superClass}. ` : ''}`;
-        details += `${elementInfo.implementedInterfaces ? `Implements: ${elementInfo.implementedInterfaces.join(', ')}. ` : ''}`;
-        // classMethods and classProperties are already in structuredInfo, could add brief mention here if desired
+      // If not summarizable, add directly to detailedNodesOutput here (e.g. interfaces, enums)
+      if (!nodeTypeForSummarizer && elementInfo.kind !== 'variable') { // Variables already handled if not function-like
+         detailedNodesOutput.push({
+            id: generateNodeId(fileSpecificPrefix, elementInfo.kind, elementInfo.name, detailedNodesOutput.length),
+            label: `${elementInfo.name} (${elementInfo.kind})`,
+            type: `ts_${elementInfo.kind}`,
+            details: `Exported: ${elementInfo.isExported}. Comments: ${elementInfo.comments ? 'Available' : 'None'}. ${elementInfo.semanticPurpose || ''}`,
+            lineNumbers: `${elementInfo.startLine}-${elementInfo.endLine}`,
+            structuredInfo: elementInfo,
+        });
       }
-      details += `Comments: ${elementInfo.comments ? 'Available (see structuredInfo)' : 'None'}.`;
-
-      detailedNodes.push({
-        id: generateNodeId(fileSpecificPrefix, elementInfo.kind, elementInfo.name, detailedNodes.length),
-        label: `${elementInfo.name} (${elementInfo.kind})`,
-        type: `ts_${elementInfo.kind}`,
-        details: details.trim(),
-        lineNumbers: `${elementInfo.startLine}-${elementInfo.endLine}`,
-        structuredInfo: elementInfo
-      });
     } else if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-      // ... (import processing, unchanged, synchronous)
       const specifiers: any[] = [];
       if(node.importClause) {
         if(node.importClause.name) specifiers.push({ localName: node.importClause.name.text, isDefault: true });
@@ -429,29 +572,117 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
         }
       }
       imports.push({ source: node.moduleSpecifier.text, specifiers, startLine, endLine });
-      detailedNodes.push({ id: generateNodeId(fileSpecificPrefix, 'import', node.moduleSpecifier.text, detailedNodes.length), label: `Import from '${node.moduleSpecifier.text}'`, type: 'ts_import', details: specifiers.map(s => s.localName + (s.importedName && s.importedName !== s.localName ? ` as ${s.importedName}` : '')).join(', '), lineNumbers, structuredInfo: { source: node.moduleSpecifier.text, specifiers, startLine, endLine } });
+      detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'import', node.moduleSpecifier.text, detailedNodesOutput.length), label: `Import from '${node.moduleSpecifier.text}'`, type: 'ts_import', details: specifiers.map(s => s.localName + (s.importedName && s.importedName !== s.localName ? ` as ${s.importedName}` : '')).join(', '), lineNumbers, structuredInfo: { source: node.moduleSpecifier.text, specifiers, startLine, endLine } });
     } else if (ts.isExportDeclaration(node)) {
-      // ... (export processing, unchanged, synchronous)
       const names = node.exportClause && ts.isNamedExports(node.exportClause) ? node.exportClause.elements.map(el => el.name.text) : undefined;
       exports.push({ type: 'named', names, source: node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : undefined, startLine, endLine });
-      detailedNodes.push({ id: generateNodeId(fileSpecificPrefix, 'export', 'named', detailedNodes.length), label: `Export ${names?.join(', ') || '*'}`, type: 'ts_export_named', details: `Source: ${node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : 'local'}`, lineNumbers, structuredInfo: { type: 'named', names, source: node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : undefined, startLine, endLine } });
+      detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'export', 'named', detailedNodesOutput.length), label: `Export ${names?.join(', ') || '*'}`, type: 'ts_export_named', details: `Source: ${node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : 'local'}`, lineNumbers, structuredInfo: { type: 'named', names, source: node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : undefined, startLine, endLine } });
     } else if (ts.isExportAssignment(node)) { // export default ...
-      // ... (export assignment processing, unchanged, synchronous)
       exports.push({ type: 'default', names: [node.expression.getText(sourceFile).substring(0,50)], startLine, endLine });
-      detailedNodes.push({ id: generateNodeId(fileSpecificPrefix, 'export', 'default', detailedNodes.length), label: `Export Default`, type: 'ts_export_default', details: node.expression.getText(sourceFile).substring(0,100), lineNumbers, structuredInfo: { type: 'default', expression: node.expression.getText(sourceFile), startLine, endLine } });
+      detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'export', 'default', detailedNodesOutput.length), label: `Export Default`, type: 'ts_export_default', details: node.expression.getText(sourceFile).substring(0,100), lineNumbers, structuredInfo: { type: 'default', expression: node.expression.getText(sourceFile), startLine, endLine } });
     }
 
-    // Original: ts.forEachChild(node, visitNode);
-    // New: Iterate over children and await if visitNode is async
     for (const child of node.getChildren(sourceFile)) {
-        await visitNode(child);
+        visitNodeRecursive(child); // Recursive call
     }
   }
 
-  await visitNode(sourceFile); // Make the initial call awaitable
+  // Phase 1: Data Collection (Recursive)
+  visitNodeRecursive(sourceFile);
 
-  const summary = `TypeScript file '${fileName}' (AST analysis): Found ${elements.filter(e=>e.kind==='function'||e.kind==='method').length} functions/methods, ${elements.filter(e=>e.kind==='class').length} classes, ${elements.filter(e=>e.kind==='interface').length} interfaces, ${imports.length} imports, ${exports.length} exports. Semantic summaries attempted.`;
-  return { analysisSummary: summary, detailedNodes };
+  // Phase 2: Parallel Summarization
+  const summarizationPromises = summarizationTasks.map(task =>
+    summarizeCodeElementPurposeFlow.run(task.inputForFlow)
+      .then(summaryResult => ({
+        uniqueId: task.uniqueId,
+        semanticSummary: summaryResult.semanticSummary || "Purpose unclear from available data.",
+      }))
+      .catch(error => {
+        console.warn(`[TS AST Analyzer] Error summarizing ${task.nodeType} ${task.originalNodeInfo.name} in ${fileName}: ${error.message}`);
+        return {
+          uniqueId: task.uniqueId,
+          semanticSummary: "Error during semantic summarization.",
+        };
+      })
+  );
+  const allSummaryResults = await Promise.all(summarizationPromises);
+  const summaryMap = new Map(allSummaryResults.map(r => [r.uniqueId, r.semanticSummary]));
+
+  // Phase 3: Integration (including local call detection)
+  summarizationTasks.forEach(task => {
+    const semanticPurpose = summaryMap.get(task.uniqueId) || "Semantic purpose not determined.";
+    task.originalNodeInfo.semanticPurpose = semanticPurpose;
+    task.originalNodeInfo.localCalls = []; // Initialize
+
+    // Second pass for local call detection, only for functions/methods
+    if ((task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'method') && task.originalNodeInfo.astNode) {
+      const findCallsVisitor = (currentNode: ts.Node) => {
+        if (ts.isCallExpression(currentNode)) {
+          const callExpr = currentNode;
+          const callLine = sourceFile.getLineAndCharacterOfPosition(callExpr.getStart(sourceFile)).line + 1;
+
+          if (ts.isIdentifier(callExpr.expression)) {
+            const calleeName = callExpr.expression.getText(sourceFile);
+            // Check for top-level functions or functions defined in the same scope (not handling closures deeply here)
+            const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'function' && !def.parentName);
+            if (targetDef) {
+              task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', line: callLine });
+            }
+          } else if (ts.isPropertyAccessExpression(callExpr.expression)) {
+            const propAccess = callExpr.expression;
+            if (propAccess.expression.kind === ts.SyntaxKind.ThisKeyword) {
+              const calleeName = propAccess.name.getText(sourceFile);
+              const currentElementParentName = task.originalNodeInfo.parentName; // class name of the current method
+              if (currentElementParentName) {
+                const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'method' && def.parentName === currentElementParentName);
+                if (targetDef) {
+                  task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: currentElementParentName, line: callLine });
+                }
+              }
+            }
+            // Could also handle calls like `this.props.someFunc()` or `object.method()` if `object` is a known local class instance.
+            // For simplicity, focusing on direct `this.method()` and global `func()` calls.
+          }
+        }
+        ts.forEachChild(currentNode, findCallsVisitor);
+      };
+
+      // Traverse the body of the function/method AST node
+      // @ts-ignore - body property exists on function/method like nodes
+      if (task.originalNodeInfo.astNode.body) {
+         // @ts-ignore
+        ts.forEachChild(task.originalNodeInfo.astNode.body, findCallsVisitor);
+      }
+    }
+
+    let details = `${semanticPurpose}\n`;
+    details += `${task.originalNodeInfo.isExported ? (task.originalNodeInfo.isDefaultExport ? 'Default Export. ' : 'Exported. ') : 'Not Exported. '}`;
+    if (task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'method') {
+      details += `${task.originalNodeInfo.params ? `Params: ${task.originalNodeInfo.params.map(p=>`${p.name}${p.type ? `: ${p.type}`:''}`).join(', ')}. ` : ''}`;
+      details += `${task.originalNodeInfo.returnType ? `Returns: ${task.originalNodeInfo.returnType}. ` : ''}`;
+    } else if (task.originalNodeInfo.kind === 'class') {
+      details += `${task.originalNodeInfo.superClass ? `Extends: ${task.originalNodeInfo.superClass}. ` : ''}`;
+      details += `${task.originalNodeInfo.implementedInterfaces ? `Implements: ${task.originalNodeInfo.implementedInterfaces.join(', ')}. ` : ''}`;
+    }
+    details += `Comments: ${task.originalNodeInfo.comments ? 'Available (see structuredInfo)' : 'None'}.`;
+
+    if (task.originalNodeInfo.localCalls && task.originalNodeInfo.localCalls.length > 0) {
+      details += `\nLocal Calls: ${task.originalNodeInfo.localCalls.map(call => `${call.targetParentName ? `${call.targetParentName}.` : ''}${call.targetName}() (line ${call.line})`).join(', ')}.`;
+    }
+
+    detailedNodesOutput.push({
+      id: task.uniqueId, // Use the same uniqueId
+      label: `${task.originalNodeInfo.name} (${task.originalNodeInfo.kind})`,
+      type: `ts_${task.originalNodeInfo.kind}`,
+      details: details.trim(),
+      lineNumbers: `${task.originalNodeInfo.startLine}-${task.originalNodeInfo.endLine}`,
+      structuredInfo: task.originalNodeInfo,
+    });
+  });
+
+  const totalLocalCalls = detailedNodesOutput.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0);
+  const summary = `TypeScript file '${fileName}' (AST analysis): Found ${elements.filter(e=>e.kind==='function'||e.kind==='method').length} functions/methods, ${elements.filter(e=>e.kind==='class').length} classes, ${elements.filter(e=>e.kind==='interface').length} interfaces, ${imports.length} imports, ${exports.length} exports, and ${totalLocalCalls} detected local calls. Semantic summaries attempted.`;
+  return { analysisSummary: summary, detailedNodes: detailedNodesOutput };
 }
 
 // --- Fallback and other analyzers (package.json, generic.json, markdown, plain_text, fallback, python regex) ---
