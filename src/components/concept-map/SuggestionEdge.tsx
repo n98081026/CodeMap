@@ -35,8 +35,8 @@ const SuggestionEdge: React.FC<EdgeProps<SuggestionEdgeData>> = ({
   data,
 }) => {
   // const { setEdges } = useReactFlow(); // Not using this as actions directly modify store, which updates edges
-  const acceptStructuralSuggestion = useConceptMapStore(s => s.acceptStructuralSuggestion);
-  const dismissStructuralSuggestion = useConceptMapStore(s => s.dismissStructuralSuggestion);
+  const acceptStructuralEdgeSuggestion = useConceptMapStore(s => s.acceptStructuralEdgeSuggestion);
+  const dismissStructuralEdgeSuggestion = useConceptMapStore(s => s.dismissStructuralEdgeSuggestion);
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -49,12 +49,12 @@ const SuggestionEdge: React.FC<EdgeProps<SuggestionEdgeData>> = ({
 
   const handleAccept = (event: React.MouseEvent) => {
     event.stopPropagation();
-    acceptStructuralSuggestion(id);
+    acceptStructuralEdgeSuggestion(id);
   };
 
   const handleDismiss = (event: React.MouseEvent) => {
     event.stopPropagation();
-    dismissStructuralSuggestion(id);
+    dismissStructuralEdgeSuggestion(id);
   };
 
   return (

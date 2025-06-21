@@ -208,10 +208,10 @@ isFetchingStructuralSuggestions: boolean;
 structuralSuggestions: ProcessedSuggestedEdge[] | null; // For edges
 structuralGroupSuggestions: ProcessedSuggestedGroup[] | null; // For groups
 fetchStructuralSuggestions: () => Promise<void>;
-acceptStructuralSuggestion: (suggestionId: string) => void;
-dismissStructuralSuggestion: (suggestionId: string) => void;
-acceptGroupSuggestion: (suggestionId: string, options?: { createParentNode?: boolean }) => void; // New
-dismissGroupSuggestion: (suggestionId: string) => void; // New
+  acceptStructuralEdgeSuggestion: (suggestionId: string) => void; // Renamed
+  dismissStructuralEdgeSuggestion: (suggestionId: string) => void; // Renamed
+  acceptStructuralGroupSuggestion: (suggestionId: string, options?: { createParentNode?: boolean }) => void;
+  dismissStructuralGroupSuggestion: (suggestionId: string) => void;
 clearAllStructuralSuggestions: () => void;
 
 // Semantic Tidy Up
@@ -276,8 +276,8 @@ const initialStateBase: Omit<ConceptMapState,
   'setConceptExpansionPreview' | 'updateConceptExpansionPreviewNode' | 'applyLayout' | 'tidySelectedNodes' |
   'startConnection' | 'cancelConnection' | 'finishConnectionAttempt' |
   // Structural suggestions
-  'fetchStructuralSuggestions' | 'acceptStructuralSuggestion' | 'dismissStructuralSuggestion' |
-  'acceptGroupSuggestion' | 'dismissGroupSuggestion' | 'clearAllStructuralSuggestions' |
+  'fetchStructuralSuggestions' | 'acceptStructuralEdgeSuggestion' | 'dismissStructuralEdgeSuggestion' |
+  'acceptStructuralGroupSuggestion' | 'dismissStructuralGroupSuggestion' | 'clearAllStructuralSuggestions' |
   // Semantic Tidy Up
   'applySemanticTidyUp' |
   // Pending Relation
@@ -969,25 +969,24 @@ export const useConceptMapStore = create<ConceptMapState>()(
           set({ isFetchingStructuralSuggestions: false, error: errorMsg, structuralSuggestions: [], structuralGroupSuggestions: [] });
         }
       },
-      acceptStructuralSuggestion: (suggestionId: string) => {
+      acceptStructuralEdgeSuggestion: (suggestionId: string) => { // Renamed
         const suggestion = get().structuralSuggestions?.find(s => s.id === suggestionId);
         if (suggestion) {
-          get().addDebugLog(`[STORE acceptStructuralSuggestion] Accepting suggestion: ${suggestionId}`);
-          get().addEdge({
+          get().addDebugLog(`[STORE acceptStructuralEdgeSuggestion] Accepting suggestion: ${suggestionId}`);
+          get().addEdge({ // addEdge is a store action
             source: suggestion.source,
             target: suggestion.target,
             label: suggestion.label || 'Suggested Connection', // Provide a default label
-            // Potentially add a specific style or type for AI suggested edges
           });
           set(state => ({
             structuralSuggestions: state.structuralSuggestions?.filter(s => s.id !== suggestionId) || null,
           }));
         } else {
-          get().addDebugLog(`[STORE acceptStructuralSuggestion] Suggestion not found: ${suggestionId}`);
+          get().addDebugLog(`[STORE acceptStructuralEdgeSuggestion] Suggestion not found: ${suggestionId}`);
         }
       },
-      dismissStructuralSuggestion: (suggestionId: string) => {
-        get().addDebugLog(`[STORE dismissStructuralSuggestion] Dismissing suggestion: ${suggestionId}`);
+      dismissStructuralEdgeSuggestion: (suggestionId: string) => { // Renamed
+        get().addDebugLog(`[STORE dismissStructuralEdgeSuggestion] Dismissing suggestion: ${suggestionId}`);
         set(state => ({
           structuralSuggestions: state.structuralSuggestions?.filter(s => s.id !== suggestionId) || null,
         }));
@@ -997,66 +996,55 @@ export const useConceptMapStore = create<ConceptMapState>()(
         set({ structuralSuggestions: [], structuralGroupSuggestions: [] });
       },
 
-      acceptGroupSuggestion: (suggestionId: string, options?: { createParentNode?: boolean }) => {
+      acceptStructuralGroupSuggestion: (suggestionId: string, options?: { createParentNode?: boolean }) => {
         const suggestion = get().structuralGroupSuggestions?.find(s => s.id === suggestionId);
         if (!suggestion) {
-          get().addDebugLog(`[STORE acceptGroupSuggestion] Group suggestion not found: ${suggestionId}`);
+          get().addDebugLog(`[STORE acceptStructuralGroupSuggestion] Group suggestion not found: ${suggestionId}`);
           return;
         }
-        get().addDebugLog(`[STORE acceptGroupSuggestion] Accepting group suggestion: ${suggestionId}`);
+        get().addDebugLog(`[STORE acceptStructuralGroupSuggestion] Accepting group suggestion: ${suggestionId}`);
 
         if (options?.createParentNode) {
-          const parentNodeId = uniqueNodeId();
+          const parentNodeId = get().addNode({ // Use store's addNode to get a unique ID
+            text: suggestion.label || 'New Group',
+            details: suggestion.reason || 'AI Suggested Group',
+            position: { x: 0, y: 0 }, // Placeholder, will be updated
+            type: 'group-node',
+          });
+
           const groupNodes = get().mapData.nodes.filter(n => suggestion.nodeIds.includes(n.id));
 
           if (groupNodes.length === 0) {
-            get().addDebugLog(`[STORE acceptGroupSuggestion] No valid nodes found for group ${suggestionId}.`);
+            get().addDebugLog(`[STORE acceptStructuralGroupSuggestion] No valid nodes found for group ${suggestionId}. Removing parent.`);
+            get().deleteNode(parentNodeId); // Clean up parent if no children
             return;
           }
 
-          // Calculate position for the new parent node (centroid of children)
           let sumX = 0, sumY = 0;
           groupNodes.forEach(n => { sumX += n.x; sumY += n.y; });
           const avgX = sumX / groupNodes.length;
           const avgY = sumY / groupNodes.length;
-          // Position parent slightly above the centroid for better visibility of children
-          const parentPosition = { x: avgX, y: avgY - 100 };
+          const parentPosition = { x: avgX, y: avgY - 120 }; // Position parent above children
 
-          get().addNode({
-            text: suggestion.label || 'New Group',
-            details: suggestion.reason || 'AI Suggested Group',
-            position: parentPosition,
-            type: 'group-node', // Or a specific type for AI groups
-            // Consider default width/height for group nodes or calculate based on children
+          // Update parent node's position
+          get().updateNode(parentNodeId, { x: parentPosition.x, y: parentPosition.y });
+
+          // Update children and add edges
+          suggestion.nodeIds.forEach(childId => {
+            get().updateNode(childId, { parentNode: parentNodeId });
+            get().addEdge({ // addEdge is a store action
+              source: parentNodeId,
+              target: childId,
+              label: 'includes', // Default label for parent-child
+            });
           });
-
-          const updatedNodes = suggestion.nodeIds.map(nodeId => ({
-            id: nodeId,
-            parentNode: parentNodeId,
-            // Optionally, adjust child positions relative to the new parent or to avoid overlaps.
-            // This can be complex and might be better handled by a subsequent layout pass or user action.
-            // For now, just setting parentNode. React Flow might handle basic nesting.
-          }));
-
-          // Batch update nodes to set their parent
-          set(state => ({
-            mapData: {
-              ...state.mapData,
-              nodes: state.mapData.nodes.map(n => {
-                const update = updatedNodes.find(u => u.id === n.id);
-                return update ? { ...n, ...update } : n;
-              }),
-            },
-          }));
         }
-        // If not creating a parent node, other logic might apply (e.g., highlighting, tagging - not implemented here)
-
         set(state => ({
           structuralGroupSuggestions: state.structuralGroupSuggestions?.filter(s => s.id !== suggestionId) || null,
         }));
       },
-      dismissGroupSuggestion: (suggestionId: string) => {
-        get().addDebugLog(`[STORE dismissGroupSuggestion] Dismissing group suggestion: ${suggestionId}`);
+      dismissStructuralGroupSuggestion: (suggestionId: string) => {
+        get().addDebugLog(`[STORE dismissStructuralGroupSuggestion] Dismissing group suggestion: ${suggestionId}`);
         set(state => ({
           structuralGroupSuggestions: state.structuralGroupSuggestions?.filter(s => s.id !== suggestionId) || null,
         }));

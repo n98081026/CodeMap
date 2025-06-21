@@ -173,3 +173,160 @@ describe('useConceptMapStore - deleteNode action', () => {
 // If these tests fail due to the mocking strategy not working as expected with Jest/Zustand internals,
 // the tests for descendant deletion would need to be re-evaluated or the store refactored.
 // For now, this attempts to test the store's internal logic as best as possible given the current structure.
+
+// Mock @genkit-ai/flow
+jest.mock('@genkit-ai/flow', () => ({
+  runFlow: jest.fn(),
+}));
+import { runFlow } from '@genkit-ai/flow'; // Import the mocked function
+
+describe('useConceptMapStore - Structural Suggestions', () => {
+  beforeEach(() => {
+    const freshInitialState = {
+      ...initialStateBase,
+      mapData: { nodes: [mockNode('n1'), mockNode('n2'), mockNode('n3')], edges: [] },
+      structuralSuggestions: null,
+      structuralGroupSuggestions: null,
+      isFetchingStructuralSuggestions: false,
+    };
+    useConceptMapStore.setState(freshInitialState, true);
+    (runFlow as jest.Mock).mockClear();
+  });
+
+  describe('fetchStructuralSuggestions', () => {
+    it('should fetch and process edge and group suggestions', async () => {
+      const mockAiResponse = {
+        suggestedEdges: [{ source: 'n1', target: 'n2', label: 'connects to', reason: 'related' }],
+        suggestedGroups: [{ nodeIds: ['n1', 'n3'], groupLabel: 'Group A', reason: 'themed' }],
+      };
+      (runFlow as jest.Mock).mockResolvedValue(mockAiResponse);
+
+      await useConceptMapStore.getState().fetchStructuralSuggestions();
+
+      const state = useConceptMapStore.getState();
+      expect(state.isFetchingStructuralSuggestions).toBe(false);
+      expect(state.structuralSuggestions).toHaveLength(1);
+      expect(state.structuralSuggestions?.[0].source).toBe('n1');
+      expect(state.structuralSuggestions?.[0].label).toBe('connects to');
+      expect(state.structuralGroupSuggestions).toHaveLength(1);
+      expect(state.structuralGroupSuggestions?.[0].nodeIds).toEqual(['n1', 'n3']);
+      expect(state.structuralGroupSuggestions?.[0].label).toBe('Group A');
+      expect(runFlow).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle no suggestions returned from AI', async () => {
+      (runFlow as jest.Mock).mockResolvedValue({ suggestedEdges: [], suggestedGroups: [] });
+      await useConceptMapStore.getState().fetchStructuralSuggestions();
+      const state = useConceptMapStore.getState();
+      expect(state.structuralSuggestions).toEqual([]);
+      expect(state.structuralGroupSuggestions).toEqual([]);
+    });
+
+    it('should handle errors during fetching', async () => {
+      (runFlow as jest.Mock).mockRejectedValue(new Error('AI error'));
+      await useConceptMapStore.getState().fetchStructuralSuggestions();
+      const state = useConceptMapStore.getState();
+      expect(state.isFetchingStructuralSuggestions).toBe(false);
+      expect(state.error).toBe('AI error');
+      expect(state.structuralSuggestions).toEqual([]);
+      expect(state.structuralGroupSuggestions).toEqual([]);
+    });
+
+    it('should set loading state correctly', async () => {
+      (runFlow as jest.Mock).mockResolvedValue({ suggestedEdges: [], suggestedGroups: [] });
+      const promise = useConceptMapStore.getState().fetchStructuralSuggestions();
+      expect(useConceptMapStore.getState().isFetchingStructuralSuggestions).toBe(true);
+      await promise;
+      expect(useConceptMapStore.getState().isFetchingStructuralSuggestions).toBe(false);
+    });
+  });
+
+  describe('acceptStructuralEdgeSuggestion', () => {
+    it('should add an edge and remove the suggestion', () => {
+      const suggestionId = 'edge-sugg-1';
+      useConceptMapStore.setState({
+        structuralSuggestions: [{ id: suggestionId, source: 'n1', target: 'n2', label: 'suggested', reason: 'test' }]
+      });
+      useConceptMapStore.getState().acceptStructuralEdgeSuggestion(suggestionId);
+      const state = useConceptMapStore.getState();
+      expect(state.mapData.edges).toHaveLength(1);
+      expect(state.mapData.edges[0].source).toBe('n1');
+      expect(state.mapData.edges[0].target).toBe('n2');
+      expect(state.mapData.edges[0].label).toBe('suggested');
+      expect(state.structuralSuggestions).toHaveLength(0);
+    });
+  });
+
+  describe('dismissStructuralEdgeSuggestion', () => {
+    it('should remove the edge suggestion', () => {
+      const suggestionId = 'edge-sugg-1';
+      useConceptMapStore.setState({
+        structuralSuggestions: [{ id: suggestionId, source: 'n1', target: 'n2', label: 'suggested', reason: 'test' }]
+      });
+      useConceptMapStore.getState().dismissStructuralEdgeSuggestion(suggestionId);
+      expect(useConceptMapStore.getState().structuralSuggestions).toHaveLength(0);
+    });
+  });
+
+  describe('acceptStructuralGroupSuggestion', () => {
+    beforeEach(() => {
+        // Ensure nodes n1, n2, n3 exist with positions
+        const nodes = [
+            mockNode('n1', 10, 10),
+            mockNode('n2', 100, 10),
+            mockNode('n3', 50, 100),
+        ];
+        useConceptMapStore.setState({ mapData: { ...useConceptMapStore.getState().mapData, nodes }});
+    });
+
+    it('should create a parent node, re-parent children, add edges, and remove suggestion', () => {
+      const suggestionId = 'group-sugg-1';
+      useConceptMapStore.setState({
+        structuralGroupSuggestions: [{ id: suggestionId, nodeIds: ['n1', 'n2'], label: 'Test Group', reason: 'group test' }]
+      });
+
+      useConceptMapStore.getState().acceptStructuralGroupSuggestion(suggestionId, { createParentNode: true });
+
+      const state = useConceptMapStore.getState();
+      const parentNode = state.mapData.nodes.find(n => n.text === 'Test Group');
+      expect(parentNode).toBeDefined();
+      expect(parentNode?.type).toBe('group-node');
+
+      const child1 = state.mapData.nodes.find(n => n.id === 'n1');
+      const child2 = state.mapData.nodes.find(n => n.id === 'n2');
+      expect(child1?.parentNode).toBe(parentNode?.id);
+      expect(child2?.parentNode).toBe(parentNode?.id);
+
+      const edgesToParent = state.mapData.edges.filter(e => e.source === parentNode?.id);
+      expect(edgesToParent).toHaveLength(2);
+      expect(edgesToParent.some(e => e.target === 'n1' && e.label === 'includes')).toBe(true);
+      expect(edgesToParent.some(e => e.target === 'n2' && e.label === 'includes')).toBe(true);
+
+      expect(state.structuralGroupSuggestions).toHaveLength(0);
+    });
+  });
+
+  describe('dismissStructuralGroupSuggestion', () => {
+    it('should remove the group suggestion', () => {
+      const suggestionId = 'group-sugg-1';
+      useConceptMapStore.setState({
+        structuralGroupSuggestions: [{ id: suggestionId, nodeIds: ['n1', 'n2'], label: 'Test Group', reason: 'group test' }]
+      });
+      useConceptMapStore.getState().dismissStructuralGroupSuggestion(suggestionId);
+      expect(useConceptMapStore.getState().structuralGroupSuggestions).toHaveLength(0);
+    });
+  });
+
+  describe('clearAllStructuralSuggestions', () => {
+    it('should clear both edge and group suggestions', () => {
+      useConceptMapStore.setState({
+        structuralSuggestions: [{ id: 'edge-sugg-1', source: 'n1', target: 'n2', label: 'suggested', reason: 'test' }],
+        structuralGroupSuggestions: [{ id: 'group-sugg-1', nodeIds: ['n1', 'n2'], label: 'Test Group', reason: 'group test' }]
+      });
+      useConceptMapStore.getState().clearAllStructuralSuggestions();
+      const state = useConceptMapStore.getState();
+      expect(state.structuralSuggestions).toEqual([]);
+      expect(state.structuralGroupSuggestions).toEqual([]);
+    });
+  });
+});

@@ -20,6 +20,7 @@ import {
   type RefineNodeSuggestionOutput,
   suggestIntermediateNodeFlow,
   type SuggestIntermediateNodeInput,
+  type IntermediateNodeSuggestionResponse, // Corrected type
   type SuggestIntermediateNodeOutput,
   aiTidyUpSelectionFlow,
   type AiTidyUpSelectionInput,
@@ -27,14 +28,24 @@ import {
   type NodeLayoutInfo,
   suggestChildNodesFlow,
   type SuggestChildNodesRequest,
-  type SuggestChildNodesResponse
+  type SuggestChildNodesResponse,
+  suggestMapImprovementsFlow,
+  type SuggestedImprovements,
+  type SuggestedEdge,
+  type SuggestedGroup,
+  type ExpandConceptOutput, // Added
+  type AskQuestionAboutNodeOutput, // Added
+  type GenerateQuickClusterOutput, // Added
+  type GenerateMapSnippetOutput, // Added
+  type SuggestRelationsOutput, // Added
+  type SummarizeNodesOutput, // Added
 } from '@/ai/flows';
 import { runFlow } from '@genkit-ai/flow';
 import { 
     rewriteNodeContent as aiRewriteNodeContent,
     type RewriteNodeContentOutput 
 } from '@/ai/flows/rewrite-node-content-logic';
-import type { ConceptMapNode, ConceptMapEdge, RFNode } from '@/types';
+import type { ConceptMapNode, ConceptMapEdge, RFNode, CustomNodeData, ConceptExpansionPreviewNode } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
@@ -67,51 +78,12 @@ export interface IntermediateNodeSuggestionContext extends SuggestIntermediateNo
 
 const GRID_SIZE_FOR_AI_PLACEMENT = 20;
 
-const _generateNodeSuggestionsLogic = (
-  sourceNode: RFNode<any> | ConceptMapNode,
-  isViewOnly: boolean,
-  addNodeFunc: ReturnType<typeof useConceptMapStore>['addNode'],
-  getNodePlacementFunc: typeof getNodePlacement,
-  toastFunc: ReturnType<typeof useToast>['toast']
-): SuggestionAction[] => {
-  if (isViewOnly) return [];
-  const placeholderSuggestions = [
-    { text: "Related Idea Alpha", type: 'default' },
-    { text: "Sub-topic Beta", type: 'default' },
-    { text: "Supporting Detail Gamma", type: 'ai-suggested' },
-  ];
-  return placeholderSuggestions.map((pSuggestion, index) => ({
-    id: `add-suggested-node-${sourceNode.id}-${index}`,
-    label: pSuggestion.text,
-    suggestionType: 'content_chip',
-    action: () => {
-      if (isViewOnly) return;
-      const currentNodes = useConceptMapStore.getState().mapData.nodes;
-      const newPosition = getNodePlacementFunc(
-        currentNodes, 'child', sourceNode as ConceptMapNode, null,
-        GRID_SIZE_FOR_AI_PLACEMENT, index, placeholderSuggestions.length
-      );
-      addNodeFunc({
-        text: pSuggestion.text, type: pSuggestion.type,
-        position: newPosition, parentNode: sourceNode.id
-      });
-      toastFunc({ title: "Node Added", description: `"${pSuggestion.text}" added near "${(sourceNode as ConceptMapNode).text}".` });
-    }
-  }));
-};
-
+// _generateNodeSuggestionsLogic seems to be unused after recent changes, can be reviewed for removal later
+// const _generateNodeSuggestionsLogic = ( ... )
 
 export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const { toast } = useToast();
   const {
-<<<<<<< HEAD
-    mapData, selectedElementId, multiSelectedNodeIds,
-    setAiExtractedConcepts, setAiSuggestedRelations,
-    removeExtractedConceptsFromSuggestions, removeSuggestedRelationsFromSuggestions,
-    resetAiSuggestions, addNode: addStoreNode, updateNode: updateStoreNode,
-    addEdge: addStoreEdge, setAiProcessingNodeId, setStagedMapData,
-    setConceptExpansionPreview, conceptExpansionPreview,
-=======
     mapData,
     selectedElementId,
     multiSelectedNodeIds,
@@ -128,8 +100,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     setStagedMapData,
     setConceptExpansionPreview,
     conceptExpansionPreview,
->>>>>>> master
     applyLayout,
+    // For structural suggestions
+    fetchStructuralSuggestions: storeFetchStructuralSuggestions,
+    isFetchingStructuralSuggestions: storeIsFetchingStructuralSuggestions,
+    clearAllStructuralSuggestions: storeClearAllStructuralSuggestions,
   } = useConceptMapStore(
     useCallback(s => ({
       mapData: s.mapData, selectedElementId: s.selectedElementId, multiSelectedNodeIds: s.multiSelectedNodeIds,
@@ -146,11 +121,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       setConceptExpansionPreview: s.setConceptExpansionPreview,
       conceptExpansionPreview: s.conceptExpansionPreview,
       applyLayout: s.applyLayout,
+      fetchStructuralSuggestions: s.fetchStructuralSuggestions,
+      isFetchingStructuralSuggestions: s.isFetchingStructuralSuggestions,
+      clearAllStructuralSuggestions: s.clearAllStructuralSuggestions,
     }), [])
   );
   const addDebugLog = useConceptMapStore.getState().addDebugLog;
 
-  // States for various modals
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] = useState(false);
   const [textForExtraction, setTextForExtraction] = useState("");
   const [isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen] = useState(false);
@@ -165,26 +142,23 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen] = useState(false);
   const [nodeContentToRewrite, setNodeContentToRewrite] = useState<NodeContentToRewrite | null>(null);
   const [edgeLabelSuggestions, setEdgeLabelSuggestions] = useState<{ edgeId: string; labels: string[] } | null>(null);
-  const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
+  const [isRefineModalOpen, setIsRefineModalOpen] = useState(false); // Used for refining expansion preview nodes
   const [refineModalInitialData, setRefineModalInitialData] = useState<RefineModalData | null>(null);
-  const [intermediateNodeSuggestion, setIntermediateNodeSuggestion] = useState<IntermediateNodeSuggestionContext | null>(null);
 
-<<<<<<< HEAD
-  // State for AI-suggested child texts
-  const [aiChildTextSuggestions, setAiChildTextSuggestions] = useState<string[]>([]);
-  const [isLoadingAiChildTexts, setIsLoadingAiChildTexts] = useState(false);
-=======
-  // State for Suggest Intermediate Node
+  // States for Intermediate Node Suggestion
   const [isSuggestIntermediateNodeModalOpen, setIsSuggestIntermediateNodeModalOpen] = useState(false);
   const [intermediateNodeSuggestionData, setIntermediateNodeSuggestionData] = useState<IntermediateNodeSuggestionResponse | null>(null);
   const [intermediateNodeOriginalEdgeContext, setIntermediateNodeOriginalEdgeContext] = useState<{ edgeId: string; sourceNodeId: string; targetNodeId: string } | null>(null);
   const [isSuggestingIntermediateNode, setIsSuggestingIntermediateNode] = useState(false);
 
-  // State for Refine Ghost Node Modal
+  // State for AI-suggested child texts (for floater)
+  const [aiChildTextSuggestions, setAiChildTextSuggestions] = useState<string[]>([]);
+  const [isLoadingAiChildTexts, setIsLoadingAiChildTexts] = useState(false);
+
+  // State for Refine Ghost Node Modal (specific for concept expansion previews)
   const [isRefineGhostNodeModalOpen, setIsRefineGhostNodeModalOpen] = useState(false);
   const [refiningGhostNodeData, setRefiningGhostNodeData] = useState<{ id: string; currentText: string; currentDetails?: string; } | null>(null);
 
->>>>>>> master
 
   // --- Extract Concepts ---
   const openExtractConceptsModal = useCallback((nodeIdForContext?: string) => {
@@ -232,7 +206,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     resetAiSuggestions();
     let concepts: string[] = [];
     const currentMapData = useConceptMapStore.getState().mapData;
-    const graphAdapter = new GraphAdapterUtility();
+    const graphAdapter = new GraphAdapterUtility(); // This is the mock or real adapter
     const graphInstance = graphAdapter.fromArrays(currentMapData.nodes, currentMapData.edges);
 
     const targetNodeId = nodeIdForContext || selectedElementId;
@@ -242,7 +216,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         concepts = multiSelectedNodeIds.map(id => currentMapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text);
     } else if (selectedNode) {
         concepts.push(selectedNode.text);
-        if (graphInstance.hasNode(selectedNode.id)) {
+        // Assuming graphInstance.nodesMap is part of the GraphologyInstance type from your adapter
+        if (graphInstance && graphInstance.nodesMap && graphInstance.nodesMap.has(selectedNode.id)) {
             const neighborNodeIds = graphAdapter.getNeighborhood(graphInstance, selectedNode.id, { depth: 1, direction: 'all' });
             concepts.push(...neighborNodeIds.map(id => currentMapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 4));
         }
@@ -251,10 +226,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     }
     setConceptsForRelationSuggestion(concepts.length > 0 ? concepts : ["Example Concept A", "Example Concept B"]);
     setIsSuggestRelationsModalOpen(true);
-  }, [isViewOnlyMode, resetAiSuggestions, selectedElementId, multiSelectedNodeIds, toast]);
+  }, [isViewOnlyMode, resetAiSuggestions, selectedElementId, multiSelectedNodeIds, mapData.nodes, mapData.edges, toast]); // mapData.nodes and mapData.edges added
 
   const handleRelationsSuggested = useCallback((relations: SuggestRelationsOutput) => {
-    setAiSuggestedRelations(relations);
+    setAiSuggestedRelations(relations.relations); // Assuming SuggestRelationsOutput has a `relations` array
   }, [setAiSuggestedRelations]);
 
   const addSuggestedRelationsToMap = useCallback((selectedRelations: Array<{ source: string; target: string; relation: string }>) => {
@@ -305,19 +280,19 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
     if (selectedNode) {
       conceptDetailsToSet = { id: selectedNode.id, text: selectedNode.text, node: selectedNode };
-      if (graphInstance.hasNode(selectedNode.id)) {
+      if (graphInstance && graphInstance.nodesMap && graphInstance.nodesMap.has(selectedNode.id)) {
           const neighborNodeIds = graphAdapter.getNeighborhood(graphInstance, selectedNode.id, { depth: 1, direction: 'all' });
-          context = neighborNodeIds.map(id => graphInstance.nodesMap.get(id)?.text).filter((text): text is string => !!text).slice(0, 5);
+          context = neighborNodeIds.map(id => currentMapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 5);
       }
     } else if (currentMapData.nodes.length > 0) {
-      conceptDetailsToSet = { id: null, text: "General Map Topic", node: undefined };
+      conceptDetailsToSet = { id: null, text: "General Map Topic", node: undefined }; // No specific node ID
     } else {
-        conceptDetailsToSet = {id: null, text: "", node: undefined};
+        conceptDetailsToSet = {id: null, text: "", node: undefined}; // Empty map
     }
     setConceptToExpandDetails(conceptDetailsToSet);
     setMapContextForExpansion(context);
     setIsExpandConceptModalOpen(true);
-  }, [isViewOnlyMode, selectedElementId, toast]);
+  }, [isViewOnlyMode, selectedElementId, mapData.nodes, mapData.edges, toast]); // mapData.nodes and mapData.edges added
 
   const handleConceptExpanded = useCallback(async (output: ExpandConceptOutput) => {
     if (isViewOnlyMode || !conceptToExpandDetails || !conceptToExpandDetails.id) {
@@ -353,7 +328,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   // --- Quick Cluster ---
   const openQuickClusterModal = useCallback(() => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
-    resetAiSuggestions();
+    resetAiSuggestions(); // Consider if this is needed or if it should append
     setIsQuickClusterModalOpen(true);
   }, [isViewOnlyMode, resetAiSuggestions, toast]);
 
@@ -362,17 +337,17 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     const tempNodes: ConceptMapNode[] = output.nodes.map((aiNode, index) => ({
       id: `staged-node-${Date.now()}-${index}`,
       text: aiNode.text, type: aiNode.type || 'ai-generated', details: aiNode.details || '',
-      x: (index % 5) * 170, y: Math.floor(index / 5) * 120,
-      width: 150, height: 70, childIds: [],
+      x: (index % 5) * 170, y: Math.floor(index / 5) * 120, // Basic grid layout
+      width: 150, height: 70, childIds: [], // Initialize childIds
     }));
     const tempNodeIdMap = new Map<string, string>();
-    tempNodes.forEach(n => tempNodeIdMap.set(n.text, n.id));
+    tempNodes.forEach(n => tempNodeIdMap.set(n.text, n.id)); // Map by original text for linking
     const tempEdges = (output.edges || []).map((aiEdge, index) => ({
       id: `staged-edge-${Date.now()}-${index}`,
-      source: tempNodeIdMap.get(aiEdge.sourceText) || `unknown-source-${aiEdge.sourceText}`,
-      target: tempNodeIdMap.get(aiEdge.targetText) || `unknown-target-${aiEdge.targetText}`,
+      source: tempNodeIdMap.get(aiEdge.sourceText) || `unknown-source-${aiEdge.sourceText}`, // Handle if source not found
+      target: tempNodeIdMap.get(aiEdge.targetText) || `unknown-target-${aiEdge.targetText}`, // Handle if target not found
       label: aiEdge.relationLabel,
-    })).filter(e => !e.source.startsWith('unknown-') && !e.target.startsWith('unknown-'));
+    })).filter(e => !e.source.startsWith('unknown-') && !e.target.startsWith('unknown-')); // Filter out edges with unresolved nodes
     setStagedMapData({ nodes: tempNodes, edges: tempEdges });
     toast({ title: "AI Cluster Ready for Staging", description: `Proposed ${tempNodes.length} nodes and ${tempEdges.length} edges.` });
   }, [isViewOnlyMode, setStagedMapData, toast]);
@@ -380,7 +355,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   // --- Generate Snippet ---
   const openGenerateSnippetModal = useCallback(() => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
-    resetAiSuggestions();
+    resetAiSuggestions(); // Consider if this is needed
     setIsGenerateSnippetModalOpen(true);
   }, [isViewOnlyMode, resetAiSuggestions, toast]);
 
@@ -390,7 +365,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       id: `staged-node-${Date.now()}-${index}`,
       text: aiNode.text, type: aiNode.type || 'text-derived-concept', details: aiNode.details || '',
       x: (index % 5) * 170, y: Math.floor(index / 5) * 120,
-      width: 150, height: 70, childIds: [],
+      width: 150, height: 70, childIds: [], // Initialize childIds
     }));
     const tempNodeIdMap = new Map<string, string>();
     tempNodes.forEach(n => tempNodeIdMap.set(n.text, n.id));
@@ -480,7 +455,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       const graphAdapter = new GraphAdapterUtility();
       const graphInstance = graphAdapter.fromArrays(mapData.nodes, mapData.edges);
       let existingMapContext: string[] = [];
-      if (graphInstance.hasNode(sourceNode.id)) {
+      if (graphInstance && graphInstance.nodesMap && graphInstance.nodesMap.has(sourceNode.id)) {
           const neighborNodeIds = graphAdapter.getNeighborhood(graphInstance, sourceNode.id, { depth: 1, direction: 'all' });
           existingMapContext = neighborNodeIds.map(id => mapData.nodes.find(n => n.id === id)?.text).filter((text): text is string => !!text).slice(0, 2);
       }
@@ -506,7 +481,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       toast({ title: "Error Quick Expand", description: (error as Error).message, variant: "destructive" });
       setConceptExpansionPreview(null);
     } finally { setAiProcessingNodeId(null); }
-  }, [isViewOnlyMode, toast, mapData, setConceptExpansionPreview, setAiProcessingNodeId]);
+  }, [isViewOnlyMode, toast, mapData, setConceptExpansionPreview, setAiProcessingNodeId]); // mapData instead of mapData.nodes, mapData.edges
 
   const handleMiniToolbarRewriteConcise = useCallback(async (nodeId: string) => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode" }); return; }
@@ -522,7 +497,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       toast({ title: "Rewrite Concise Successful" });
     } catch (error) { toast({ title: "Error Rewrite Concise", description: (error as Error).message, variant: "destructive" }); }
     finally { setAiProcessingNodeId(null); }
-  }, [isViewOnlyMode, toast, mapData, updateStoreNode, setAiProcessingNodeId]);
+  }, [isViewOnlyMode, toast, mapData.nodes, updateStoreNode, setAiProcessingNodeId]); // mapData.nodes
 
   // --- Edge Label Suggestions ---
   const fetchAndSetEdgeLabelSuggestions = useCallback(async (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => {
@@ -549,18 +524,123 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     }
   }, [isViewOnlyMode, toast]);
 
-  // --- Pane/Node Suggestions for Floater ---
-  const getPaneSuggestions = useCallback((position: {x: number, y: number}): SuggestionAction[] => {
-    if (isViewOnlyMode) return [];
-    return [
-      { id: 'pane-add-topic', label: 'Add New Node Here', icon: PlusSquare, action: () => addStoreNode({ text: 'New Node', type: 'default', position }) },
-      { id: 'pane-quick-cluster', label: 'Quick AI Cluster', icon: Sparkles, action: () => openQuickClusterModal() },
-    ];
-  }, [isViewOnlyMode, addStoreNode, openQuickClusterModal]);
+  // --- Quick Add Child Node (from Floater) ---
+  const handleAddQuickChildNode = useCallback((
+    parentNodeId: string,
+    suggestedText: string,
+    direction?: 'top' | 'right' | 'bottom' | 'left'
+  ) => {
+    if (isViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Cannot add child nodes.", variant: "default" });
+      return;
+    }
+    const parentNode = mapData.nodes.find(n => n.id === parentNodeId);
+    if (!parentNode) {
+      toast({ title: "Error", description: "Parent node not found.", variant: "destructive" });
+      return;
+    }
 
-  const memoizedGetNodeSuggestions = useCallback((sourceNode: RFNode<any> | ConceptMapNode): SuggestionAction[] => {
-    return _generateNodeSuggestionsLogic(sourceNode, isViewOnlyMode, addStoreNode, getNodePlacement, toast);
-  }, [isViewOnlyMode, addStoreNode, toast]);
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const childIndex = parentNode.childIds?.length || 0;
+    const effectiveDirection = direction || 'bottom';
+
+    const newPosition = getNodePlacement(
+      currentNodes, 'child', parentNode, null,
+      GRID_SIZE_FOR_AI_PLACEMENT, childIndex, 1, effectiveDirection
+    );
+
+    const newNodeId = addStoreNode({
+      text: suggestedText, type: 'manual-node',
+      position: newPosition, parentNode: parentNodeId,
+    });
+
+    addStoreEdge({ source: parentNodeId, target: newNodeId, label: "relates to" });
+    setAiChildTextSuggestions([]); // Clear suggestions after adding one
+    toast({ title: "Child Node Added", description: `"${suggestedText}" added ${effectiveDirection} of "${parentNode.text}".` });
+  }, [isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast]); // mapData.nodes
+
+  // --- Fetch AI Child Text Suggestions (for Floater) ---
+  const fetchAIChildTextSuggestions = useCallback(async (node: RFNode<CustomNodeData> | null) => {
+    if (!node || isViewOnlyMode) { setAiChildTextSuggestions([]); return; }
+    setIsLoadingAiChildTexts(true);
+    setAiChildTextSuggestions([]); // Clear previous before fetching new
+    try {
+      const result = await suggestQuickChildTextsFlow({
+        parentNodeText: node.data.label,
+        parentNodeDetails: node.data.details,
+      });
+      setAiChildTextSuggestions(result.suggestions || []);
+    } catch (error) {
+      console.error("Error fetching AI child text suggestions:", error);
+      toast({ title: "AI Suggestion Error", description: "Could not fetch child text suggestions.", variant: "destructive" });
+      setAiChildTextSuggestions([]);
+    } finally {
+      setIsLoadingAiChildTexts(false);
+    }
+  }, [isViewOnlyMode, toast]);
+
+  // --- Pane/Node Suggestions for Floater ---
+  const getNodeSuggestions = useCallback((currentNode: RFNode<CustomNodeData>): SuggestionAction[] => {
+    const baseAISuggestions: SuggestionAction[] = [
+      { id: `expand-${currentNode.id}`, label: "Expand Concept (AI)", icon: Sparkles, action: () => openExpandConceptModal(currentNode.id) },
+      { id: `suggest-relations-${currentNode.id}`, label: "Suggest Relations (AI)", icon: Lightbulb, action: () => openSuggestRelationsModal(currentNode.id) },
+      { id: `rewrite-${currentNode.id}`, label: "Rewrite Content (AI)", icon: MessageSquareQuote, action: () => openRewriteNodeContentModal(currentNode.id) },
+      { id: `ask-${currentNode.id}`, label: "Ask Question (AI)", icon: HelpCircle, action: () => openAskQuestionModal(currentNode.id) },
+    ];
+
+    let quickAddSuggestions: SuggestionAction[] = [];
+
+    if (!isViewOnlyMode) {
+      if (isLoadingAiChildTexts) {
+        quickAddSuggestions.push({
+          id: 'loading-ai-child-texts', label: "Loading ideas...", action: () => {}, icon: Loader2, disabled: true,
+        });
+      } else if (aiChildTextSuggestions.length > 0) {
+        aiChildTextSuggestions.forEach((text, index) => {
+          quickAddSuggestions.push({
+            id: `ai-add-child-bottom-${currentNode.id}-${index}`, label: `Add: "${text}" (below)`, icon: PlusSquare,
+            action: () => handleAddQuickChildNode(currentNode.id, text, 'bottom')
+          });
+          quickAddSuggestions.push({
+            id: `ai-add-child-right-${currentNode.id}-${index}`, label: `Add: "${text}" (right)`, icon: PlusSquare,
+            action: () => handleAddQuickChildNode(currentNode.id, text, 'right')
+          });
+        });
+        quickAddSuggestions.push({
+          id: 'clear-ai-child-suggestions', label: 'Clear these suggestions', action: () => setAiChildTextSuggestions([]),
+        });
+      } else { // Offer manual add if no AI suggestions or not loading
+        quickAddSuggestions.push({
+          id: `quick-add-child-bottom-${currentNode.id}`, label: "Add Child Below", icon: PlusSquare,
+          action: () => handleAddQuickChildNode(currentNode.id, "New Idea", 'bottom')
+        });
+        quickAddSuggestions.push({
+          id: `quick-add-child-right-${currentNode.id}`, label: "Add Child Right", icon: PlusSquare,
+          action: () => handleAddQuickChildNode(currentNode.id, "New Idea", 'right')
+        });
+      }
+    }
+    return [...baseAISuggestions, ...quickAddSuggestions];
+  }, [
+    isViewOnlyMode, openExpandConceptModal, openSuggestRelationsModal, openRewriteNodeContentModal,
+    openAskQuestionModal, handleAddQuickChildNode, isLoadingAiChildTexts, aiChildTextSuggestions
+  ]);
+
+  const getPaneSuggestions = useCallback((position?: {x: number, y: number}): SuggestionAction[] => {
+    const baseSuggestions: SuggestionAction[] = [
+      { id: 'pane-quick-cluster', label: "Quick Cluster (AI)", icon: Brain, action: openQuickClusterModal },
+    ];
+     if (!isViewOnlyMode && position) {
+      baseSuggestions.unshift({
+        id: 'pane-add-topic', label: "Add New Topic Here", icon: PlusSquare,
+        action: () => {
+            const newNodeId = addStoreNode({ text: "New Topic", type: 'manual-node', position });
+            useConceptMapStore.getState().setEditingNodeId(newNodeId);
+        }
+      });
+    }
+    return baseSuggestions;
+  }, [isViewOnlyMode, openQuickClusterModal, addStoreNode]);
 
   // --- Concept Expansion Preview Lifecycle ---
   const acceptAllExpansionPreviews = useCallback(() => {
@@ -580,7 +660,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     });
     toast({ title: "Suggestions Added", description: `${previewNodes.length} new concepts added and linked.` });
     setConceptExpansionPreview(null);
-  }, [conceptExpansionPreview, isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast, setConceptExpansionPreview]);
+  }, [conceptExpansionPreview, isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast, setConceptExpansionPreview]); // mapData.nodes
 
   const acceptSingleExpansionPreview = useCallback((previewNodeId: string) => {
     if (!conceptExpansionPreview || isViewOnlyMode) return;
@@ -611,65 +691,40 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     } else {
       setConceptExpansionPreview(null);
     }
-  }, [conceptExpansionPreview, isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast, setConceptExpansionPreview]);
+  }, [conceptExpansionPreview, isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast, setConceptExpansionPreview]); // mapData.nodes
 
   const clearExpansionPreview = useCallback(() => {
     setConceptExpansionPreview(null);
   }, [setConceptExpansionPreview]);
 
-  // --- Refine Suggestion Modal Logic ---
+  // --- Refine Suggestion Modal Logic (for expansion previews) ---
   const openRefineSuggestionModal = useCallback((previewNodeId: string, parentNodeIdForPreview: string) => {
-    if (isViewOnlyMode) {
-      toast({ title: "View Only Mode", variant: "default" });
-      return;
-    }
+    if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
     const currentPreview = useConceptMapStore.getState().conceptExpansionPreview;
     if (currentPreview && currentPreview.parentNodeId === parentNodeIdForPreview) {
       const nodeToRefine = currentPreview.previewNodes.find(n => n.id === previewNodeId);
       if (nodeToRefine) {
         setRefineModalInitialData({
-          nodeId: nodeToRefine.id,
-          parentNodeId: parentNodeIdForPreview,
-          text: nodeToRefine.text,
-          details: nodeToRefine.details
+          nodeId: nodeToRefine.id, parentNodeId: parentNodeIdForPreview,
+          text: nodeToRefine.text, details: nodeToRefine.details
         });
         setIsRefineModalOpen(true);
-      } else {
-        toast({ title: "Error", description: "Preview node to refine not found.", variant: "destructive" });
-      }
-    } else {
-      toast({ title: "Error", description: "No active expansion preview for this context.", variant: "destructive" });
-    }
+      } else { toast({ title: "Error", description: "Preview node to refine not found.", variant: "destructive" }); }
+    } else { toast({ title: "Error", description: "No active expansion preview for this context.", variant: "destructive" }); }
   }, [isViewOnlyMode, toast]);
 
   const handleRefineSuggestionConfirm = useCallback(async (refinementInstruction: string) => {
-    if (!refineModalInitialData) {
-      toast({ title: "Error", description: "No data available for refinement.", variant: "destructive" });
-      return;
-    }
-    if (isViewOnlyMode) {
-      toast({ title: "View Only Mode", variant: "default" });
-      return;
-    }
+    if (!refineModalInitialData) { toast({ title: "Error", description: "No data available for refinement.", variant: "destructive" }); return; }
+    if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
 
     const { nodeId: previewNodeId, parentNodeId, text: originalText, details: originalDetails } = refineModalInitialData;
-
-    setAiProcessingNodeId(parentNodeId);
+    setAiProcessingNodeId(parentNodeId); // Use parent as processing indicator
     setIsRefineModalOpen(false);
-
     try {
-      const input: RefineNodeSuggestionInput = {
-        originalText,
-        originalDetails,
-        userInstruction: refinementInstruction,
-      };
-      const output: RefineNodeSuggestionOutput = await refineNodeSuggestionFlow(input);
-
-      useConceptMapStore.getState().updatePreviewNode(parentNodeId, previewNodeId, {
-        text: output.refinedText,
-        details: output.refinedDetails,
+      const output: RefineNodeSuggestionOutput = await refineNodeSuggestionFlow({
+        originalText, originalDetails, userInstruction: refinementInstruction,
       });
-
+      updateConceptExpansionPreviewNode(previewNodeId, output.refinedText, output.refinedDetails); // Use the specific store action
       toast({ title: "Suggestion Refined", description: "The AI suggestion has been updated." });
     } catch (error) {
       console.error("Error refining suggestion:", error);
@@ -678,187 +733,156 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       setAiProcessingNodeId(null);
       setRefineModalInitialData(null);
     }
-  }, [refineModalInitialData, isViewOnlyMode, toast, setAiProcessingNodeId]);
+  }, [refineModalInitialData, isViewOnlyMode, toast, setAiProcessingNodeId, updateConceptExpansionPreviewNode]);
+
+  // --- Refine Ghost Node Modal (for expansion previews, direct call from ghost node UI) ---
+  const openRefineGhostNodeModal = useCallback((nodeId: string, currentText: string, currentDetails?: string) => {
+    setRefiningGhostNodeData({ id: nodeId, currentText, currentDetails });
+    setIsRefineGhostNodeModalOpen(true);
+    addDebugLog(`[AITools] Opening RefineGhostNodeModal for preview node: ${nodeId}`);
+  }, [addDebugLog]);
+
+  const closeRefineGhostNodeModal = useCallback(() => {
+    setIsRefineGhostNodeModalOpen(false);
+    setRefiningGhostNodeData(null);
+    addDebugLog('[AITools] Closed RefineGhostNodeModal.');
+  }, [addDebugLog]);
+
+  const handleConfirmRefineGhostNode = useCallback((newText: string, newDetails: string) => {
+    if (refiningGhostNodeData) {
+      updateConceptExpansionPreviewNode(refiningGhostNodeData.id, newText, newDetails);
+      toast({ title: "Suggestion Refined", description: `Preview node '${refiningGhostNodeData.id}' updated.` });
+      addDebugLog(`[AITools] Confirmed refinement for preview node: ${refiningGhostNodeData.id}`);
+    }
+    closeRefineGhostNodeModal();
+  }, [refiningGhostNodeData, closeRefineGhostNodeModal, toast, addDebugLog, updateConceptExpansionPreviewNode]);
 
   // --- Suggest Intermediate Node Logic ---
-  const handleSuggestIntermediateNodeRequest = useCallback(async (edgeId: string) => {
-    if (isViewOnlyMode) {
-      toast({ title: "View Only Mode", description: "AI suggestions are disabled." });
-      return;
+  const handleSuggestIntermediateNode = useCallback(async (edgeId: string, sourceNodeId: string, targetNodeId: string) => {
+    if (isViewOnlyMode) { toast({ title: "View Only Mode", variant: "default" }); return; }
+    addDebugLog(`[AITools] handleSuggestIntermediateNode called for edge: ${edgeId}`);
+    setIsSuggestingIntermediateNode(true);
+    const currentNodes = useConceptMapStore.getState().mapData.nodes;
+    const currentEdges = useConceptMapStore.getState().mapData.edges;
+    const sourceNode = currentNodes.find(n => n.id === sourceNodeId);
+    const targetNode = currentNodes.find(n => n.id === targetNodeId);
+    const originalEdge = currentEdges.find(e => e.id === edgeId);
+
+    if (!sourceNode || !targetNode || !originalEdge) {
+      toast({ title: "Error", description: "Source/target node or original edge not found.", variant: "destructive" });
+      setIsSuggestingIntermediateNode(false); return;
     }
-    const { nodes, edges } = useConceptMapStore.getState().mapData;
-    const originalEdge = edges.find(e => e.id === edgeId);
-    if (!originalEdge) {
-      toast({ title: "Error", description: "Original edge not found.", variant: "destructive" });
-      return;
-    }
-    const sourceNode = nodes.find(n => n.id === originalEdge.source);
-    const targetNode = nodes.find(n => n.id === originalEdge.target);
-    if (!sourceNode || !targetNode) {
-      toast({ title: "Error", description: "Source or target node for the edge not found.", variant: "destructive" });
-      return;
-    }
-    setAiProcessingNodeId(edgeId);
-    toast({ title: "AI Thinking...", description: "Suggesting an intermediate node." });
+    const flowInput: SuggestIntermediateNodeInput = {
+      sourceNodeText: sourceNode.text, sourceNodeDetails: sourceNode.details,
+      targetNodeText: targetNode.text, targetNodeDetails: targetNode.details,
+      existingEdgeLabel: originalEdge.label,
+    };
     try {
-      const flowInput: SuggestIntermediateNodeInput = {
-        sourceNodeText: sourceNode.text, sourceNodeDetails: sourceNode.details,
-        targetNodeText: targetNode.text, targetNodeDetails: targetNode.details,
-        existingEdgeLabel: originalEdge.label
-      };
-      const suggestionOutput = await suggestIntermediateNodeFlow(flowInput);
-      setIntermediateNodeSuggestion({
-        ...suggestionOutput,
-        originalEdgeId: edgeId, sourceNode, targetNode
-      });
+      const response = await runFlow(suggestIntermediateNodeFlow, flowInput);
+      if (response) {
+        setIntermediateNodeSuggestionData(response);
+        setIntermediateNodeOriginalEdgeContext({ edgeId, sourceNodeId, targetNodeId });
+        setIsSuggestIntermediateNodeModalOpen(true);
+        addDebugLog(`[AITools] Suggestion received: ${response.suggestedNodeText}`);
+      } else {
+        toast({ title: "No Suggestion", description: "AI could not suggest an intermediate node.", variant: "default" });
+      }
     } catch (error) {
       console.error("Error suggesting intermediate node:", error);
-      toast({ title: "AI Suggestion Failed", description: (error as Error).message, variant: "destructive" });
-      setIntermediateNodeSuggestion(null);
+      toast({ title: "AI Error", description: `Failed to suggest intermediate node: ${(error as Error).message}`, variant: "destructive" });
     } finally {
-      setAiProcessingNodeId(null);
+      setIsSuggestingIntermediateNode(false);
     }
-  }, [isViewOnlyMode, toast, setAiProcessingNodeId]);
+  }, [isViewOnlyMode, toast, addDebugLog]);
+
+  const closeSuggestIntermediateNodeModal = useCallback(() => {
+    setIsSuggestIntermediateNodeModalOpen(false);
+    setIntermediateNodeSuggestionData(null);
+    setIntermediateNodeOriginalEdgeContext(null);
+  }, []);
 
   const confirmAddIntermediateNode = useCallback(() => {
-    if (!intermediateNodeSuggestion) {
-      toast({ title: "Error", description: "No suggestion to confirm.", variant: "destructive" });
-      return;
+    if (!intermediateNodeSuggestionData || !intermediateNodeOriginalEdgeContext) {
+      toast({ title: "Error", description: "Missing suggestion data or context.", variant: "destructive" }); return;
     }
-    if (isViewOnlyMode) {
-      toast({ title: "View Only Mode", description: "Cannot modify map." });
-      setIntermediateNodeSuggestion(null);
-      return;
-    }
-    const {
-      intermediateNodeText, intermediateNodeDetails,
-      labelSourceToIntermediate, labelIntermediateToTarget,
-      originalEdgeId, sourceNode, targetNode
-    } = intermediateNodeSuggestion;
-
+    addDebugLog('[AITools] confirmAddIntermediateNode called');
     const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const newPosition = getNodePlacement(
-      currentNodes, 'child', sourceNode, null,
-      GRID_SIZE_FOR_AI_PLACEMENT, (sourceNode.childIds?.length || 0), (sourceNode.childIds?.length || 0) + 1
-    );
+    const sourceNode = currentNodes.find(n => n.id === intermediateNodeOriginalEdgeContext.sourceNodeId);
+    const targetNode = currentNodes.find(n => n.id === intermediateNodeOriginalEdgeContext.targetNodeId);
+    let newPosition = { x: 0, y: 0 };
+    if (sourceNode && targetNode) {
+      newPosition = { x: (sourceNode.x + targetNode.x) / 2, y: (sourceNode.y + targetNode.y) / 2 - 50 };
+    } else {
+      newPosition = getNodePlacement(currentNodes, 'generic', null, null, GRID_SIZE_FOR_AI_PLACEMENT);
+    }
+    useConceptMapStore.getState().deleteEdge(intermediateNodeOriginalEdgeContext.edgeId);
     const newNodeId = addStoreNode({
-      text: intermediateNodeText, details: intermediateNodeDetails || '',
-      type: 'ai-intermediate', position: newPosition,
+      text: intermediateNodeSuggestionData.suggestedNodeText,
+      details: intermediateNodeSuggestionData.suggestedNodeDetails,
+      position: newPosition, type: 'ai-intermediate',
     });
-    useConceptMapStore.getState().deleteEdge(originalEdgeId);
-    addStoreEdge({ source: sourceNode.id, target: newNodeId, label: labelSourceToIntermediate });
-    addStoreEdge({ source: newNodeId, target: targetNode.id, label: labelIntermediateToTarget });
-    toast({ title: "Intermediate Node Added", description: `Node "${intermediateNodeText}" added and connections updated.` });
-    setIntermediateNodeSuggestion(null);
-  }, [intermediateNodeSuggestion, isViewOnlyMode, addStoreNode, addStoreEdge, toast, getNodePlacement]);
-
-  const clearIntermediateNodeSuggestion = useCallback(() => {
-    setIntermediateNodeSuggestion(null);
-  }, []);
+    addStoreEdge({
+      source: intermediateNodeOriginalEdgeContext.sourceNodeId, target: newNodeId,
+      label: intermediateNodeSuggestionData.labelToSource || 'related to',
+    });
+    addStoreEdge({
+      source: newNodeId, target: intermediateNodeOriginalEdgeContext.targetNodeId,
+      label: intermediateNodeSuggestionData.labelToTarget || 'related to',
+    });
+    toast({ title: "Intermediate Node Added", description: `Node "${intermediateNodeSuggestionData.suggestedNodeText}" inserted.` });
+    closeSuggestIntermediateNodeModal();
+  }, [toast, intermediateNodeSuggestionData, intermediateNodeOriginalEdgeContext, closeSuggestIntermediateNodeModal, addStoreNode, addStoreEdge, addDebugLog]);
 
   // --- AI Tidy-Up Selection ---
   const handleAiTidyUpSelection = useCallback(async () => {
-    if (isViewOnlyMode) {
-      toast({ title: "View Only Mode", description: "AI Tidy Up is disabled." });
-      return;
-    }
-
+    if (isViewOnlyMode) { toast({ title: "View Only Mode", description: "AI Tidy Up is disabled." }); return; }
     const currentMapDataNodes = useConceptMapStore.getState().mapData.nodes;
     const currentMultiSelectedNodeIds = useConceptMapStore.getState().multiSelectedNodeIds;
     const storeApplyLayout = useConceptMapStore.getState().applyLayout;
 
-    if (currentMultiSelectedNodeIds.length < 2) {
-      toast({ title: "Selection Required", description: "Please select at least two nodes to tidy up." });
-      return;
-    }
-
+    if (currentMultiSelectedNodeIds.length < 2) { toast({ title: "Selection Required", description: "Please select at least two nodes to tidy up." }); return; }
     const selectedNodesData: NodeLayoutInfo[] = currentMultiSelectedNodeIds
       .map(id => {
         const node = currentMapDataNodes.find(n => n.id === id);
-        if (node &&
-            typeof node.x === 'number' &&
-            typeof node.y === 'number' &&
-            typeof node.width === 'number' &&
-            typeof node.height === 'number'
-           ) {
-          return {
-            id: node.id,
-            x: node.x,
-            y: node.y,
-            width: node.width,
-            height: node.height,
-            text: node.text,
-            type: node.type
-          };
-        }
-        return null;
-      })
-      .filter((n): n is NodeLayoutInfo => n !== null);
+        if (node && typeof node.x === 'number' && typeof node.y === 'number' && typeof node.width === 'number' && typeof node.height === 'number') {
+          return { id: node.id, x: node.x, y: node.y, width: node.width, height: node.height, text: node.text, type: node.type };
+        } return null;
+      }).filter((n): n is NodeLayoutInfo => n !== null);
 
     if (selectedNodesData.length < 2) {
-      toast({
-        title: "Not Enough Valid Node Data",
-        description: "Could not retrieve enough valid data (including position and dimensions) for the selected nodes to perform tidy up.",
-        variant: "destructive"
-      });
-      return;
+      toast({ title: "Not Enough Valid Node Data", description: "Could not retrieve enough valid data for tidy up.", variant: "destructive" }); return;
     }
-
     setAiProcessingNodeId("ai-tidy-up");
     toast({ title: "AI Tidy-Up", description: "AI is tidying up the selected nodes...", duration: 3000 });
-
     try {
-      const input: AiTidyUpSelectionInput = { nodes: selectedNodesData };
-      const output: AiTidyUpSelectionOutput = await aiTidyUpSelectionFlow(input);
-
+      const output: AiTidyUpSelectionOutput = await aiTidyUpSelectionFlow({ nodes: selectedNodesData });
       if (output.newPositions && output.newPositions.length > 0) {
         storeApplyLayout(output.newPositions);
-
         if (output.suggestedParentNode && output.suggestedParentNode.text) {
           const { text: parentText, type: parentType } = output.suggestedParentNode;
-
-          let sumX = 0;
-          let sumY = 0;
-
-          const childrenNewPositions = output.newPositions.filter(p =>
-            selectedNodesData.some(sn => sn.id === p.id)
-          );
-
+          let sumX = 0, sumY = 0;
+          const childrenNewPositions = output.newPositions.filter(p => selectedNodesData.some(sn => sn.id === p.id));
           if (childrenNewPositions.length > 0) {
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             childrenNewPositions.forEach(p => {
               const originalNode = selectedNodesData.find(sn => sn.id === p.id);
-              const nodeWidth = originalNode?.width || 150;
-              const nodeHeight = originalNode?.height || 70;
-
-              sumX += p.x + nodeWidth / 2;
-              sumY += p.y + nodeHeight / 2;
-              minX = Math.min(minX, p.x);
-              minY = Math.min(minY, p.y);
-              maxX = Math.max(maxX, p.x + nodeWidth);
-              maxY = Math.max(maxY, p.y + nodeHeight);
+              sumX += p.x + (originalNode?.width || 150) / 2;
+              sumY += p.y + (originalNode?.height || 70) / 2;
             });
             const avgCenterX = sumX / childrenNewPositions.length;
             const avgCenterY = sumY / childrenNewPositions.length;
-
             const parentNodePosition = {
-              x: Math.round((avgCenterX - (150 / 2)) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT,
-              y: Math.round((avgCenterY - (70 / 2)) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT
+              x: Math.round((avgCenterX - 75) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT,
+              y: Math.round((avgCenterY - 35) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT
             };
-
             const newParentNodeId = useConceptMapStore.getState().addNode({
-              text: parentText,
-              type: parentType || 'ai-group',
-              position: parentNodePosition,
+              text: parentText, type: parentType || 'ai-group', position: parentNodePosition,
             });
-
             childrenNewPositions.forEach(childPos => {
               useConceptMapStore.getState().updateNode(childPos.id, { parentNode: newParentNodeId });
             });
-
             toast({ title: "AI Tidy-Up & Grouping Successful", description: `Selected nodes rearranged and grouped under "${parentText}".` });
           } else {
-             toast({ title: "AI Tidy-Up Successful", description: "Selected nodes have been rearranged. Grouping was suggested but could not be applied." });
+             toast({ title: "AI Tidy-Up Successful", description: "Selected nodes rearranged. Grouping suggested but could not be applied." });
           }
         } else {
           toast({ title: "AI Tidy-Up Successful", description: "Selected nodes have been rearranged." });
@@ -874,325 +898,56 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     }
   }, [isViewOnlyMode, toast, setAiProcessingNodeId]);
 
-  const handleAddQuickChildNode = useCallback((
-    parentNodeId: string,
-    suggestedText: string,
-    direction?: 'top' | 'right' | 'bottom' | 'left'
-  ) => {
+  // --- Handle Suggest Map Improvements (Structural Suggestions) ---
+  const handleSuggestMapImprovements = useCallback(async () => {
     if (isViewOnlyMode) {
-      toast({ title: "View Only Mode", description: "Cannot add child nodes.", variant: "default" });
+      toast({ title: "View Only Mode", description: "Cannot suggest map improvements." });
       return;
     }
-    const parentNode = mapData.nodes.find(n => n.id === parentNodeId);
-    if (!parentNode) {
-      toast({ title: "Error", description: "Parent node not found.", variant: "destructive" });
-      return;
-    }
-
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const childIndex = parentNode.childIds?.length || 0;
-    const effectiveDirection = direction || 'bottom';
-
-    const newPosition = getNodePlacement(
-      currentNodes,
-      'child',
-      parentNode,
-      null,
-      GRID_SIZE_FOR_AI_PLACEMENT,
-      childIndex,
-      1,
-      effectiveDirection
-    );
-
-    const newNodeId = addStoreNode({
-      text: suggestedText,
-      type: 'manual-node',
-      position: newPosition,
-      parentNode: parentNodeId,
-    });
-
-    addStoreEdge({
-      source: parentNodeId,
-      target: newNodeId,
-      label: "relates to",
-    });
-
-    setAiChildTextSuggestions([]);
-    toast({ title: "Child Node Added", description: `"${suggestedText}" added ${effectiveDirection} of "${parentNode.text}".` });
-  }, [isViewOnlyMode, mapData.nodes, addStoreNode, addStoreEdge, toast]);
-
-  const fetchAIChildTextSuggestions = useCallback(async (node: RFNode<CustomNodeData> | null) => {
-    if (!node || isViewOnlyMode) {
-      setAiChildTextSuggestions([]);
-      return;
-    }
-    setIsLoadingAiChildTexts(true);
-    setAiChildTextSuggestions([]);
+    addDebugLog('[AITools] handleSuggestMapImprovements called');
+    storeClearAllStructuralSuggestions(); // Clear previous before fetching new
     try {
-      const result = await suggestQuickChildTextsFlow({
-        parentNodeText: node.data.label,
-        parentNodeDetails: node.data.details,
-      });
-      setAiChildTextSuggestions(result.suggestions || []);
-    } catch (error) {
-      console.error("Error fetching AI child text suggestions:", error);
-      toast({ title: "AI Suggestion Error", description: "Could not fetch child text suggestions.", variant: "destructive" });
-      setAiChildTextSuggestions([]);
-    } finally {
-      setIsLoadingAiChildTexts(false);
-    }
-  }, [isViewOnlyMode, toast]);
-
-  const getNodeSuggestions = useCallback((currentNode: RFNode<CustomNodeData>): SuggestionAction[] => {
-    const baseAISuggestions: SuggestionAction[] = [
-      { id: `expand-${currentNode.id}`, label: "Expand Concept (AI)", icon: Sparkles, action: () => openExpandConceptModal(currentNode.id) },
-      { id: `suggest-relations-${currentNode.id}`, label: "Suggest Relations (AI)", icon: Lightbulb, action: () => openSuggestRelationsModal(currentNode.id) },
-      { id: `rewrite-${currentNode.id}`, label: "Rewrite Content (AI)", icon: MessageSquareQuote, action: () => openRewriteNodeContentModal(currentNode.id) },
-      { id: `ask-${currentNode.id}`, label: "Ask Question (AI)", icon: HelpCircle, action: () => openAskQuestionModal(currentNode.id) },
-    ];
-
-    let quickAddSuggestions: SuggestionAction[] = [];
-
-    if (!isViewOnlyMode) {
-      if (isLoadingAiChildTexts) {
-        quickAddSuggestions.push({
-          id: 'loading-ai-child-texts',
-          label: "Loading ideas...",
-          action: () => {},
-          icon: Loader2,
-          disabled: true,
-        });
-      } else if (aiChildTextSuggestions.length > 0) {
-        aiChildTextSuggestions.forEach((text, index) => {
-          quickAddSuggestions.push({
-            id: `ai-add-child-bottom-${currentNode.id}-${index}`,
-            label: `Add: "${text}" (below)`,
-            icon: PlusSquare,
-            action: () => handleAddQuickChildNode(currentNode.id, text, 'bottom')
-          });
-          quickAddSuggestions.push({
-            id: `ai-add-child-right-${currentNode.id}-${index}`,
-            label: `Add: "${text}" (right)`,
-            icon: PlusSquare,
-            action: () => handleAddQuickChildNode(currentNode.id, text, 'right')
-          });
-        });
-        quickAddSuggestions.push({
-          id: 'clear-ai-child-suggestions',
-          label: 'Clear these suggestions',
-          action: () => setAiChildTextSuggestions([]),
-        });
-
+      await storeFetchStructuralSuggestions(); // This now handles loading state and sets suggestions in store
+      // Toast for success/no new suggestions will be handled by the store action or here based on resulting state
+      const { structuralSuggestions, structuralGroupSuggestions } = useConceptMapStore.getState();
+      const totalSuggestions = (structuralSuggestions?.length || 0) + (structuralGroupSuggestions?.length || 0);
+      if (totalSuggestions > 0) {
+        toast({ title: "AI Map Analysis Complete", description: `${totalSuggestions} structural suggestions found.` });
       } else {
-        quickAddSuggestions.push({
-          id: `quick-add-child-bottom-${currentNode.id}`,
-          label: "Add Child Below",
-          icon: PlusSquare,
-          action: () => handleAddQuickChildNode(currentNode.id, "New Idea", 'bottom')
-        });
-        quickAddSuggestions.push({
-          id: `quick-add-child-right-${currentNode.id}`,
-          label: "Add Child Right",
-          icon: PlusSquare,
-          action: () => handleAddQuickChildNode(currentNode.id, "New Idea", 'right')
-        });
+        toast({ title: "AI Map Analysis Complete", description: "No new structural suggestions found at this time.", variant: "default" });
       }
+    } catch (error) { // This catch might be redundant if storeFetchStructuralSuggestions handles its own errors and toasts
+      console.error("Error fetching structural suggestions from hook:", error);
+      toast({ title: "AI Map Analysis Failed", description: (error as Error).message, variant: "destructive" });
     }
-    return [...baseAISuggestions, ...quickAddSuggestions];
-  }, [
-    isViewOnlyMode,
-    openExpandConceptModal,
-    openSuggestRelationsModal,
-    openRewriteNodeContentModal,
-    openAskQuestionModal,
-    handleAddQuickChildNode,
-    isLoadingAiChildTexts,
-    aiChildTextSuggestions
-  ]);
-
-  const getPaneSuggestions = useCallback((position?: {x: number, y: number}): SuggestionAction[] => {
-    const baseSuggestions: SuggestionAction[] = [
-      { id: 'pane-quick-cluster', label: "Quick Cluster (AI)", icon: Brain, action: openQuickClusterModal },
-    ];
-     if (!isViewOnlyMode && position) {
-      baseSuggestions.unshift({
-        id: 'pane-add-topic',
-        label: "Add New Topic Here",
-        icon: PlusSquare,
-        action: () => {
-            const newNodeId = addStoreNode({ text: "New Topic", type: 'manual-node', position });
-            useConceptMapStore.getState().setEditingNodeId(newNodeId);
-        }
-      });
-    }
-    return baseSuggestions;
-  }, [isViewOnlyMode, openQuickClusterModal, addStoreNode]);
+  }, [isViewOnlyMode, toast, addDebugLog, storeFetchStructuralSuggestions, storeClearAllStructuralSuggestions]);
 
 
   return {
     isExtractConceptsModalOpen, setIsExtractConceptsModalOpen, textForExtraction, openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     isSuggestRelationsModalOpen, setIsSuggestRelationsModalOpen, conceptsForRelationSuggestion, openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
     isExpandConceptModalOpen, setIsExpandConceptModalOpen,
-    conceptToExpandDetails,
-    mapContextForExpansion,
-    openExpandConceptModal,
-    handleConceptExpanded, 
+    conceptToExpandDetails, mapContextForExpansion, openExpandConceptModal, handleConceptExpanded,
     isQuickClusterModalOpen, setIsQuickClusterModalOpen, openQuickClusterModal, handleClusterGenerated,
     isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen, openGenerateSnippetModal, handleSnippetGenerated,
-    isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered, 
-    isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm, 
+    isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered,
+    isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
     handleSummarizeSelectedNodes,
-    handleMiniToolbarQuickExpand,
-    handleMiniToolbarRewriteConcise,
-    getPaneSuggestions,
-    getNodeSuggestions: memoizedGetNodeSuggestions,
-    fetchAIChildTextSuggestions,
-    aiChildTextSuggestions,
-    isLoadingAiChildTexts,
-    fetchAndSetEdgeLabelSuggestions,
-    edgeLabelSuggestions,
-    setEdgeLabelSuggestions,
-    conceptExpansionPreview,
-    acceptAllExpansionPreviews,
-    acceptSingleExpansionPreview,
-    clearExpansionPreview,
-    addStoreNode, 
-    addStoreEdge,
-    isRefineModalOpen,
-    setIsRefineModalOpen,
-    refineModalInitialData,
-    openRefineSuggestionModal,
-    handleRefineSuggestionConfirm,
-    intermediateNodeSuggestion,
-    handleSuggestIntermediateNodeRequest,
-    confirmAddIntermediateNode,
-    clearIntermediateNodeSuggestion,
+    handleMiniToolbarQuickExpand, handleMiniToolbarRewriteConcise,
+    getPaneSuggestions, getNodeSuggestions,
+    fetchAIChildTextSuggestions, aiChildTextSuggestions, isLoadingAiChildTexts,
+    fetchAndSetEdgeLabelSuggestions, edgeLabelSuggestions, setEdgeLabelSuggestions,
+    conceptExpansionPreview, acceptAllExpansionPreviews, acceptSingleExpansionPreview, clearExpansionPreview,
+    addStoreNode, addStoreEdge, // Exposing store actions directly for some cases like quick add child
+    isRefineModalOpen, setIsRefineModalOpen, refineModalInitialData, openRefineSuggestionModal, handleRefineSuggestionConfirm,
+    // For Intermediate Node
+    isSuggestIntermediateNodeModalOpen, setIsSuggestIntermediateNodeModalOpen, intermediateNodeSuggestionData,
+    handleSuggestIntermediateNode, confirmAddIntermediateNode, closeSuggestIntermediateNodeModal, isSuggestingIntermediateNode,
+    // For Ghost Node Refinement (expansion previews)
+    isRefineGhostNodeModalOpen, openRefineGhostNodeModal, closeRefineGhostNodeModal, handleConfirmRefineGhostNode, refiningGhostNodeData,
     handleAiTidyUpSelection,
+    // For Structural Suggestions
+    handleSuggestMapImprovements, // New function exposed
+    isFetchingStructuralSuggestions: storeIsFetchingStructuralSuggestions, // Expose loading state from store
   };
-
-  // --- Refine Ghost Node Modal ---
-
-  // --- Refine Ghost Node Modal ---
-  const openRefineGhostNodeModal = useCallback((nodeId: string, currentText: string, currentDetails?: string) => {
-    setRefiningGhostNodeData({ id: nodeId, currentText, currentDetails });
-    setIsRefineGhostNodeModalOpen(true);
-    addDebugLog(`[AITools] Opening RefineGhostNodeModal for preview node: ${nodeId}`);
-  }, [addDebugLog, setIsRefineGhostNodeModalOpen, setRefiningGhostNodeData]);
-
-  const closeRefineGhostNodeModal = useCallback(() => {
-    setIsRefineGhostNodeModalOpen(false);
-    setRefiningGhostNodeData(null);
-    addDebugLog('[AITools] Closed RefineGhostNodeModal.');
-  }, [addDebugLog, setIsRefineGhostNodeModalOpen, setRefiningGhostNodeData]);
-
-  const handleConfirmRefineGhostNode = useCallback((newText: string, newDetails: string) => {
-    if (refiningGhostNodeData) {
-      updateConceptExpansionPreviewNode(
-        refiningGhostNodeData.id,
-        newText,
-        newDetails
-      );
-      toast({ title: "Suggestion Refined", description: `Preview node '${refiningGhostNodeData.id}' updated.` });
-      addDebugLog(`[AITools] Confirmed refinement for preview node: ${refiningGhostNodeData.id}`);
-    }
-    closeRefineGhostNodeModal();
-  }, [refiningGhostNodeData, closeRefineGhostNodeModal, toast, addDebugLog, updateConceptExpansionPreviewNode]);
-
-  const handleSuggestIntermediateNode = useCallback(async (edgeId: string, sourceNodeId: string, targetNodeId: string) => {
-    if (isViewOnlyMode) {
-      toast({ title: "View Only Mode", variant: "default" });
-      return;
-    }
-    useConceptMapStore.getState().addDebugLog(`[AITools] handleSuggestIntermediateNode called for edge: ${edgeId}`);
-    setIsSuggestingIntermediateNode(true);
-
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const currentEdges = useConceptMapStore.getState().mapData.edges;
-    const sourceNode = currentNodes.find(n => n.id === sourceNodeId);
-    const targetNode = currentNodes.find(n => n.id === targetNodeId);
-    const originalEdge = currentEdges.find(e => e.id === edgeId);
-
-    if (!sourceNode || !targetNode || !originalEdge) {
-      toast({ title: "Error", description: "Source/target node or original edge not found.", variant: "destructive" });
-      setIsSuggestingIntermediateNode(false);
-      return;
-    }
-
-    const flowInput: IntermediateNodeSuggestionRequest = {
-      sourceNodeContent: sourceNode.text + (sourceNode.details ? `\n${sourceNode.details}` : ''),
-      targetNodeContent: targetNode.text + (targetNode.details ? `\n${targetNode.details}` : ''),
-      edgeLabel: originalEdge.label,
-    };
-
-    try {
-      const response = await runFlow(suggestIntermediateNodeFlow, flowInput);
-      if (response) {
-        setIntermediateNodeSuggestionData(response);
-        setIntermediateNodeOriginalEdgeContext({ edgeId, sourceNodeId, targetNodeId });
-        setIsSuggestIntermediateNodeModalOpen(true);
-        useConceptMapStore.getState().addDebugLog(`[AITools] Suggestion received: ${response.suggestedNodeText}`);
-      } else {
-        toast({ title: "No Suggestion", description: "AI could not suggest an intermediate node.", variant: "default" });
-      }
-    } catch (error) {
-      console.error("Error suggesting intermediate node:", error);
-      toast({ title: "AI Error", description: `Failed to suggest intermediate node: ${(error as Error).message}`, variant: "destructive" });
-    } finally {
-      setIsSuggestingIntermediateNode(false);
-    }
-  }, [isViewOnlyMode, toast, mapData.nodes, mapData.edges, setIsSuggestingIntermediateNode, setIntermediateNodeSuggestionData, setIntermediateNodeOriginalEdgeContext, setIsSuggestIntermediateNodeModalOpen]); // Added mapData dependencies
-
-  const closeSuggestIntermediateNodeModal = useCallback(() => {
-    setIsSuggestIntermediateNodeModalOpen(false);
-    setIntermediateNodeSuggestionData(null);
-    setIntermediateNodeOriginalEdgeContext(null);
-  }, []); // Removed setters from deps as they are stable
-
-  const confirmAddIntermediateNode = useCallback(() => {
-    if (!intermediateNodeSuggestionData || !intermediateNodeOriginalEdgeContext) {
-      toast({ title: "Error", description: "Missing suggestion data or context.", variant: "destructive" });
-      return;
-    }
-    useConceptMapStore.getState().addDebugLog('[AITools] confirmAddIntermediateNode called');
-
-    const currentNodes = useConceptMapStore.getState().mapData.nodes;
-    const sourceNode = currentNodes.find(n => n.id === intermediateNodeOriginalEdgeContext.sourceNodeId);
-    const targetNode = currentNodes.find(n => n.id === intermediateNodeOriginalEdgeContext.targetNodeId);
-
-    let newPosition = { x: 0, y: 0 };
-    if (sourceNode && targetNode) {
-      newPosition = {
-        x: (sourceNode.x + targetNode.x) / 2,
-        y: (sourceNode.y + targetNode.y) / 2 - 50,
-      };
-    } else {
-      newPosition = getNodePlacement(currentNodes, 'generic', null, null, GRID_SIZE_FOR_AI_PLACEMENT);
-    }
-
-    useConceptMapStore.getState().deleteEdge(intermediateNodeOriginalEdgeContext.edgeId);
-    const newNodeId = addStoreNode({
-      text: intermediateNodeSuggestionData.suggestedNodeText,
-      details: intermediateNodeSuggestionData.suggestedNodeDetails,
-      position: newPosition,
-      type: 'ai-intermediate',
-    });
-    addStoreEdge({
-      source: intermediateNodeOriginalEdgeContext.sourceNodeId,
-      target: newNodeId,
-      label: intermediateNodeSuggestionData.labelToSource || 'related to',
-    });
-    addStoreEdge({
-      source: newNodeId,
-      target: intermediateNodeOriginalEdgeContext.targetNodeId,
-      label: intermediateNodeSuggestionData.labelToTarget || 'related to',
-    });
-
-    toast({ title: "Intermediate Node Added", description: `Node "${intermediateNodeSuggestionData.suggestedNodeText}" inserted.` });
-    closeSuggestIntermediateNodeModal();
-  }, [
-      toast, intermediateNodeSuggestionData, intermediateNodeOriginalEdgeContext,
-      closeSuggestIntermediateNodeModal, addStoreNode, addStoreEdge, mapData.nodes // Added mapData.nodes for getNodePlacement
-    ]);
 }
-
-[end of src/hooks/useConceptMapAITools.ts]
