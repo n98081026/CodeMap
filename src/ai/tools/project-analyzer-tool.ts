@@ -12,6 +12,7 @@ import path from 'path';
 import * as acorn from 'acorn';
 import * as acornWalk from 'acorn-walk';
 import * as ts from 'typescript';
+import { parse as pythonParse } from 'python-parser'; // Assuming this is the correct import
 
 // Input schema remains the same
 export const ProjectAnalysisInputSchema = z.object({
@@ -371,6 +372,154 @@ async function analyzeJavaScriptAST(fileName: string, fileContent: string, gener
   const summary = `JavaScript file '${fileName}' (AST analysis): Found ${elements.filter(e=>e.kind==='function').length} functions, ${elements.filter(e=>e.kind==='class').length} classes, ${imports.length} imports, ${exports.length} exports, ${elements.filter(e=>e.kind==='variable').length} top-level variables, and ${totalLocalCalls} detected local calls. Semantic summaries attempted for functions/classes.`;
   return { analysisSummary: summary, detailedNodes: detailedNodesOutput };
 }
+
+// --- Python AST Analysis (python-parser) ---
+function getPyNodeText(pyAstNode: any, fileContent: string): string {
+  // python-parser nodes often have 'start' and 'end' properties for raw offsets
+  if (pyAstNode && pyAstNode.start !== undefined && pyAstNode.end !== undefined) {
+    return fileContent.substring(pyAstNode.start, pyAstNode.end);
+  }
+  if (pyAstNode && pyAstNode.name) return pyAstNode.name; // For simple names
+  if (pyAstNode && pyAstNode.id) return pyAstNode.id; // For identifiers
+  // Add more specific cases if needed based on library's AST structure for e.g. dotted names
+  return '[unknown_py_node_text]';
+}
+
+function analyzePythonAST(fileName: string, fileContent: string, generateNodeId: Function, fileSpecificPrefix: string): { analysisSummary: string, detailedNodes: DetailedNode[], error?: string } {
+  const extractedFunctions: ExtractedCodeElement[] = [];
+  const extractedClasses: Array<ExtractedCodeElement & { methods: ExtractedCodeElement[] }> = [];
+  const extractedImports: Array<{ type: string, source?: string, names: Array<{name: string, asName?: string}>, level?: number, lineNumbers?: string }> = [];
+  const detailedNodes: DetailedNode[] = [];
+
+  let ast;
+  try {
+    ast = pythonParse(fileContent);
+  } catch (e: any) {
+    return { error: 'Python AST parsing failed: ' + e.message, analysisSummary: 'Failed to parse Python content.', detailedNodes: [] };
+  }
+
+  // Helper to get line numbers if available (structure might vary)
+  const getLineInfo = (node: any) => node.lineno ? `${node.lineno}${node.end_lineno ? `-${node.end_lineno}` : ''}`: undefined;
+
+
+  function visitPyNode(node: any, currentClassName?: string) {
+    if (!node) return;
+
+    const nodeType = node.type; // Assuming 'type' field exists, similar to Python's 'ast' module
+
+    if (nodeType === 'FunctionDef' || nodeType === 'AsyncFunctionDef') {
+      const funcName = node.name;
+      const params = node.args?.args?.map((arg: any) => ({
+        name: arg.arg,
+        annotation: arg.annotation ? getPyNodeText(arg.annotation, fileContent) : undefined
+      })) || [];
+      const decorators = node.decorator_list?.map((d: any) => getPyNodeText(d, fileContent)) || [];
+      let docstring: string | undefined = undefined;
+      if (node.body && node.body.length > 0 && node.body[0].type === 'Expr' && node.body[0].value?.type === 'Constant' && typeof node.body[0].value.value === 'string') {
+        docstring = node.body[0].value.value;
+      }
+
+      const funcData: ExtractedCodeElement = {
+        name: funcName,
+        kind: currentClassName ? 'method' : 'function',
+        params,
+        decorators,
+        comments: docstring, // Using 'comments' field for docstring
+        startLine: node.lineno,
+        endLine: node.end_lineno || node.lineno, // end_lineno might not always be present
+        parentName: currentClassName,
+        isAsync: nodeType === 'AsyncFunctionDef',
+      };
+
+      if (currentClassName) {
+        const classObj = extractedClasses.find(c => c.name === currentClassName);
+        classObj?.methods.push(funcData);
+      } else {
+        extractedFunctions.push(funcData);
+      }
+      // Don't recurse into body of functions yet for this pass, focus on top-level structures
+    } else if (nodeType === 'ClassDef') {
+      const className = node.name;
+      const bases = node.bases?.map((b: any) => getPyNodeText(b, fileContent)) || [];
+      const decorators = node.decorator_list?.map((d: any) => getPyNodeText(d, fileContent)) || [];
+      let docstring: string | undefined = undefined;
+      if (node.body && node.body.length > 0 && node.body[0].type === 'Expr' && node.body[0].value?.type === 'Constant' && typeof node.body[0].value.value === 'string') {
+        docstring = node.body[0].value.value;
+      }
+
+      const classData: ExtractedCodeElement & { methods: ExtractedCodeElement[] } = {
+        name: className,
+        kind: 'class',
+        superClass: bases.join(', '), // Simple representation
+        decorators,
+        comments: docstring,
+        startLine: node.lineno,
+        endLine: node.end_lineno || node.lineno,
+        methods: [],
+      };
+      extractedClasses.push(classData);
+      node.body?.forEach((child: any) => visitPyNode(child, className)); // Visit children to find methods
+    } else if (nodeType === 'Import') {
+      const names = node.names?.map((alias: any) => ({ name: alias.name, asName: alias.asname })) || [];
+      extractedImports.push({ type: 'Import', names, lineNumbers: getLineInfo(node) });
+    } else if (nodeType === 'ImportFrom') {
+      const moduleName = node.module || '';
+      const names = node.names?.map((alias: any) => ({ name: alias.name, asName: alias.asname })) || [];
+      extractedImports.push({ type: 'ImportFrom', source: moduleName, names, level: node.level, lineNumbers: getLineInfo(node) });
+    } else if (Array.isArray(node)) { // Some parsers return list of statements for body
+        node.forEach(child => visitPyNode(child, currentClassName));
+    } else if (node.body && Array.isArray(node.body)) { // For Module node or other block nodes
+        node.body.forEach((child: any) => visitPyNode(child, currentClassName));
+    }
+     // Add other specific node types if needed: If, For, While, Try, With (if they have 'body')
+  }
+
+  if (ast && ast.type === 'Module' && Array.isArray(ast.body)) {
+    ast.body.forEach((node: any) => visitPyNode(node));
+  } else if (ast) { // Fallback if root is not Module or body is not array (depends on parser specifics)
+    visitPyNode(ast);
+  }
+
+  // Format detailedNodes
+  extractedFunctions.forEach((func, i) => {
+    detailedNodes.push({
+      id: generateNodeId(fileSpecificPrefix, func.kind, func.name, i),
+      label: `${func.name} (${func.kind})`,
+      type: `py_${func.kind}`,
+      details: `Params: ${func.params?.map(p => `${p.name}${p.annotation ? `:${p.annotation}`:''}`).join(', ') || '()'}\nDecorators: ${func.decorators?.join(', ') || 'None'}\nDocstring: ${func.comments || 'None'}`,
+      lineNumbers: `${func.startLine}-${func.endLine}`,
+      structuredInfo: func,
+    });
+  });
+
+  extractedClasses.forEach((cls, i) => {
+    detailedNodes.push({
+      id: generateNodeId(fileSpecificPrefix, 'class', cls.name, i),
+      label: `${cls.name} (class)`,
+      type: 'py_class',
+      details: `Bases: ${cls.superClass || 'object'}\nDecorators: ${cls.decorators?.join(', ') || 'None'}\nMethods: ${cls.methods.map(m => m.name).join(', ') || 'None'}\nDocstring: ${cls.comments || 'None'}`,
+      lineNumbers: `${cls.startLine}-${cls.endLine}`,
+      structuredInfo: cls,
+    });
+    // Optionally, create separate nodes for methods if desired, or keep them nested in class structuredInfo
+  });
+
+  extractedImports.forEach((imp, i) => {
+    const importLabel = imp.type === 'ImportFrom' ? `From ${imp.source || '.'} import ${imp.names.map(n => n.name + (n.asName ? ` as ${n.asName}`:'')).join(', ')}` : `Import ${imp.names.map(n => n.name + (n.asName ? ` as ${n.asName}`:'')).join(', ')}`;
+    detailedNodes.push({
+      id: generateNodeId(fileSpecificPrefix, 'import', (imp.source || imp.names[0]?.name || 'module'), i),
+      label: importLabel.substring(0, 100) + (importLabel.length > 100 ? '...' : ''), // Truncate long import labels
+      type: 'py_import',
+      details: importLabel,
+      lineNumbers: imp.lineNumbers,
+      structuredInfo: imp,
+    });
+  });
+
+  const analysisSummary = `Python file '${fileName}' (AST analysis): Found ${extractedFunctions.length} functions, ${extractedClasses.length} classes, and ${extractedImports.length} import statements.`;
+  return { analysisSummary, detailedNodes };
+}
+
 
 // --- TypeScript AST Analysis ---
 // Make the function async to use await for summarizeCodeElementPurposeFlow
@@ -841,14 +990,22 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
         const tsAstResult = await analyzeTypeScriptAST(fileName, fileContent, generateNodeId, fileSpecificPrefix);
         if (tsAstResult.error && fileContent) { // Ensure fileContent is valid for fallback
           console.warn(`[AnalyzerToolV2] AST parsing failed for TypeScript file ${fileName}: ${tsAstResult.error}. Falling back to regex.`);
-          analysisResult = analyzeSourceCodeRegexFallback(fileName, fileContent, 'typescript', generateNodeId, fileSpecificPrefix);
+          analysisResult = analyzeSourceCodeRegexFallback(fileName, fileContent, 'typescript', generateNodeId, fileSpecificPrefix); // Keep 'typescript' for fallback type
           analysisResult.analysisSummary = `TypeScript AST parsing failed: ${tsAstResult.error}. --- Using Regex Fallback: ${analysisResult.analysisSummary}`;
         } else {
           analysisResult = tsAstResult;
         }
         break;
       case 'python':
-        analysisResult = analyzeSourceCodeRegexFallback(fileName, fileContent, 'python', generateNodeId, fileSpecificPrefix);
+        // Call the new Python AST analyzer
+        const pyAstResult = analyzePythonAST(fileName, fileContent, generateNodeId, fileSpecificPrefix);
+        if (pyAstResult.error && fileContent) {
+            console.warn(`[AnalyzerToolV2] AST parsing failed for Python file ${fileName}: ${pyAstResult.error}. Falling back to regex.`);
+            analysisResult = analyzeSourceCodeRegexFallback(fileName, fileContent, 'python', generateNodeId, fileSpecificPrefix);
+            analysisResult.analysisSummary = `Python AST parsing failed: ${pyAstResult.error}. --- Using Regex Fallback: ${analysisResult.analysisSummary}`;
+        } else {
+            analysisResult = pyAstResult;
+        }
         break;
       case 'text':
         analysisResult = analyzePlainText(fileName, fileContent, generateNodeId, fileSpecificPrefix);

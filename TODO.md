@@ -47,6 +47,7 @@
     - [ ] Develop Project Analysis Microservice:
         - [ ] Task consumer from message queue. (Out of Scope).
         - [~] File downloader from Supabase storage for AI tool implemented (supabaseFileFetcherTool). projectStructureAnalyzerTool now uses this to fetch file properties and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types (JSON, MD, Py, Txt). Further deep semantic analysis user-defined/pending. Unpacker out of scope. (generateMapFromProject flow prompt updated).
+            - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
         - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` is mock, now accepts storage path and user goals, and special hints for predefined mock outputs).
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output, creates new ConceptMap record via Supabase service - handled in `ProjectUploadForm` flow after AI tool returns).
         - [x] Map Data Formatter & Persister (saves generated map via Supabase service, updates submission status with real map ID - handled in `ProjectUploadForm` flow).
@@ -303,6 +304,7 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **Connect frontend student submissions list to live API.**
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
     - [~] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated.
+        - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done in `ProjectUploadForm` flow).
 
 **6. API Route Refactoring (General Review for Supabase)**
