@@ -2,52 +2,36 @@ import { defineFlow } from '@genkit-ai/flow';
 import { generate } from 'genkit/ai';
 import { geminiPro } from 'genkitx/googleai';
 import { z } from 'zod';
-import { GraphAdapterUtility } from '../../lib/graphologyAdapter'; // Corrected path
-import type { ConceptMapNode, ConceptMapEdge } from '../../types'; // Assuming types are here
+import { GraphAdapterUtility } from '../../lib/graphologyAdapter';
+import type { ConceptMapNode, ConceptMapEdge } from '../../types';
+import { connectedComponents } from 'graphology-components'; // For connected components count
 
-// Input schema for the flow - ensure it matches what the store provides
+// Input schema for the flow
 const NodesAndEdgesSchema = z.object({
   nodes: z.array(z.object({
     id: z.string(),
-    text: z.string().optional(), // text is actually label in ConceptMapNode
+    text: z.string().optional(),
     details: z.string().optional(),
-    // Add other ConceptMapNode fields if needed by GraphAdapter or for context
-    x: z.number().optional(),
-    y: z.number().optional(),
-    type: z.string().optional(),
-    width: z.number().optional(),
-    height: z.number().optional(),
-    parentNode: z.string().optional().nullable(),
-    childIds: z.array(z.string()).optional(),
-    backgroundColor: z.string().optional().nullable(),
-    shape: z.string().optional(), // Assuming shape is string like 'rectangle'
+    x: z.number().optional(), y: z.number().optional(), type: z.string().optional(),
+    width: z.number().optional(), height: z.number().optional(),
+    parentNode: z.string().optional().nullable(), childIds: z.array(z.string()).optional(),
+    backgroundColor: z.string().optional().nullable(), shape: z.string().optional(),
   })),
   edges: z.array(z.object({
-    id: z.string(), // Edges from store also have IDs
-    source: z.string(),
-    target: z.string(),
-    label: z.string().optional(),
-    // Add other ConceptMapEdge fields if needed
-    type: z.string().optional(),
-    color: z.string().optional().nullable(),
-    lineType: z.string().optional(), // Assuming 'solid' | 'dashed'
-    markerStart: z.string().optional().nullable(),
+    id: z.string(), source: z.string(), target: z.string(), label: z.string().optional(),
+    type: z.string().optional(), color: z.string().optional().nullable(),
+    lineType: z.string().optional(), markerStart: z.string().optional().nullable(),
     markerEnd: z.string().optional().nullable(),
   })),
 });
 
 export const SuggestedEdgeSchema = z.object({
-  source: z.string(),
-  target: z.string(),
-  label: z.string().optional(),
-  reason: z.string().optional(),
+  source: z.string(), target: z.string(), label: z.string().optional(), reason: z.string().optional(),
 });
 export type SuggestedEdge = z.infer<typeof SuggestedEdgeSchema>;
 
 export const SuggestedGroupSchema = z.object({
-  nodeIds: z.array(z.string()).min(2, "A group must contain at least two nodes."),
-  groupLabel: z.string().optional(),
-  reason: z.string().optional(),
+  nodeIds: z.array(z.string()).min(2), groupLabel: z.string().optional(), reason: z.string().optional(),
 });
 export type SuggestedGroup = z.infer<typeof SuggestedGroupSchema>;
 
@@ -62,111 +46,133 @@ export const suggestMapImprovementsFlow = defineFlow(
     name: 'suggestMapImprovementsFlow',
     inputSchema: NodesAndEdgesSchema,
     outputSchema: SuggestedImprovementsSchema,
-    authPolicy: (auth, input) => {
-      // if (!auth) { /* ... */ }
-    }
+    authPolicy: (auth, input) => { /* ... */ }
   },
   async (mapData) => {
     console.log(`[suggestMapImprovementsFlow] Received map with ${mapData.nodes.length} nodes and ${mapData.edges.length} edges.`);
-
     if (mapData.nodes.length < 2) {
       console.log("[suggestMapImprovementsFlow] Not enough nodes for meaningful suggestions.");
       return { suggestedEdges: [], suggestedGroups: [] };
     }
 
-    let graphAnalysisContext = "No specific graph analysis performed for this iteration.";
+    let graphAnalysisInsights = "Graph analysis insights:\n";
     try {
       const graphAdapter = new GraphAdapterUtility();
-      // Map ConceptMapNode to the structure GraphAdapterUtility expects if different,
-      // but current GraphAdapterUtility directly uses ConceptMapNode.
       const graphInstance = graphAdapter.fromArrays(
-        mapData.nodes as ConceptMapNode[], // Cast if necessary, ensure types align
-        mapData.edges as ConceptMapEdge[]   // Cast if necessary
+        mapData.nodes as ConceptMapNode[],
+        mapData.edges as ConceptMapEdge[]
       );
 
-      if (graphInstance.order > 0) { // Ensure graph is not empty
+      if (graphInstance.order > 0) {
+        // Betweenness Centrality
         const centralities = graphAdapter.getBetweennessCentrality(graphInstance);
-        const sortedCentrality = Object.entries(centralities)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 5); // Top 5 central nodes
+        const sortedCentrality = Object.entries(centralities).sort(([,a],[,b]) => b-a).slice(0,5);
+        if (sortedCentrality.length > 0) {
+          graphAnalysisInsights += `- Top 5 High Betweenness Centrality Nodes (potential bridges/brokers): ${sortedCentrality.map(([id, score]) => `${mapData.nodes.find(n=>n.id===id)?.text || id} (score: ${score.toFixed(3)})`).join(', ')}\n`;
+        }
 
+        // Degree Centrality
+        const degrees = graphAdapter.getDegreeCentrality?.(graphInstance) || {}; // Use optional chaining if method might not exist
+        const sortedDegree = Object.entries(degrees).sort(([,a],[,b]) => b-a).slice(0,5);
+        if (sortedDegree.length > 0) {
+            graphAnalysisInsights += `- Top 5 High Degree Centrality Nodes (hubs): ${sortedDegree.map(([id, score]) => `${mapData.nodes.find(n=>n.id===id)?.text || id} (degree: ${score})`).join(', ')}\n`;
+        }
+
+        // Communities
         const communities = graphAdapter.detectCommunities(graphInstance);
         const communitySummary: Record<string, string[]> = {};
-        for (const [nodeId, communityId] of Object.entries(communities)) {
-          const communityKey = `Community ${communityId}`;
-          if (!communitySummary[communityKey]) {
-            communitySummary[communityKey] = [];
-          }
-          communitySummary[communityKey].push(nodeId);
+        let communityCount = 0;
+        if (Object.keys(communities).length > 0) {
+            const distinctCommunities = new Set(Object.values(communities));
+            communityCount = distinctCommunities.size;
+            for (const [nodeId, communityId] of Object.entries(communities)) {
+              const communityKey = `Community ${communityId}`;
+              if (!communitySummary[communityKey]) communitySummary[communityKey] = [];
+              communitySummary[communityKey].push(mapData.nodes.find(n=>n.id===nodeId)?.text || nodeId);
+            }
+        }
+        if (communityCount > 0 && communityCount < mapData.nodes.length) {
+            graphAnalysisInsights += `- Detected ${communityCount} Communities: ${JSON.stringify(communitySummary)}\n`;
+        } else if (communityCount > 0) {
+            graphAnalysisInsights += `- Community detection resulted in each node being its own community or all nodes in one main group.\n`;
         }
 
-        graphAnalysisContext = `Graph Analysis Insights:\n`;
-        if (sortedCentrality.length > 0) {
-            graphAnalysisContext += `- High Centrality Nodes (potential bridges/hubs): ${sortedCentrality.map(([id, score]) => `${id} (score: ${score.toFixed(3)})`).join(', ')}\n`;
+        // Connected Components
+        const components = connectedComponents(graphInstance);
+        const numConnectedComponents = components.length;
+        graphAnalysisInsights += `- Number of Connected Components: ${numConnectedComponents}\n`;
+        if (numConnectedComponents > 1) {
+            graphAnalysisInsights += `  (Consider suggesting edges to bridge these components if semantically relevant.)\n`;
         }
-        if (Object.keys(communitySummary).length > 0 && Object.keys(communitySummary).length < mapData.nodes.length) { // Only if communities are meaningful
-            graphAnalysisContext += `- Detected Communities: ${JSON.stringify(communitySummary)}\n`;
-        } else if (Object.keys(communitySummary).length > 0) {
-            graphAnalysisContext += `- Community detection resulted in each node being its own community or all nodes in one.\n`;
-        }
+
+      } else {
+        graphAnalysisInsights = "Graph is empty, no analysis performed.\n";
       }
     } catch (e: any) {
         console.error("[suggestMapImprovementsFlow] Error during graph analysis:", e.message);
-        graphAnalysisContext = "Graph analysis encountered an error.";
+        graphAnalysisInsights = "Graph analysis encountered an error.\n";
     }
 
-
-    const mapDataString = `Nodes:\n${JSON.stringify(mapData.nodes.map(n => ({id: n.id, text: n.text, details: n.details})), null, 2)}\n\nEdges:\n${JSON.stringify(mapData.edges.map(e => ({source: e.source, target: e.target, label: e.label})), null, 2)}`;
+    const mapDataString = `Nodes:\n${JSON.stringify(mapData.nodes.map(n => ({id: n.id, text: n.text, details: n.details?.substring(0,100)})), null, 2)}\n\nEdges:\n${JSON.stringify(mapData.edges.map(e => ({source: e.source, target: e.target, label: e.label})), null, 2)}`;
 
     const prompt = `
-You are an expert concept map analyst. Based on the following concept map data AND graph analysis insights, suggest new connections (edges) AND logical groupings of nodes that would enhance the map's structure, completeness, or semantic coherence.
-Consider semantic relationships between node content (text and details), existing structural patterns, AND the provided graph metrics.
+You are an expert concept map analyst and knowledge architect. Your goal is to suggest ONE high-impact structural improvement OR ONE logical grouping to enhance a given concept map.
+Base your suggestions on both the semantic content of nodes/edges AND the provided graph analysis insights.
 
-Map Data:
+**Map Data:**
 ${mapDataString}
 
-${graphAnalysisContext}
+**Graph Analysis Insights:**
+${graphAnalysisInsights}
 
-Existing Edges (for easy reference, do not suggest these exact connections again):
+**Existing Edges (for reference, do not suggest exact duplicates):**
 ${JSON.stringify(mapData.edges.map(e => ({ from: e.source, to: e.target, label: e.label })), null, 2)}
 
-Your task is to provide two types of suggestions:
-1.  **Suggested Edges:**
-    *   Identify pairs of nodes (by their IDs) that are not currently connected but should be.
-    *   For each suggested new edge, provide: 'source' (node ID), 'target' (node ID), 'label' (concise, meaningful), and 'reason' (brief explanation, potentially referencing graph insights like "connecting two distinct communities" or "linking a central node to an underserved area").
-    *   Do NOT suggest connecting a node to itself.
-    *   Do NOT suggest edges that already exist (check source/target pairs).
-2.  **Suggested Groups:**
-    *   Identify sets of two or more nodes that are closely related and could be logically grouped together.
-    *   For each suggested group, provide: 'nodeIds' (an array of original node IDs), 'groupLabel' (a concise label for the group), and 'reason' (why these nodes form a group, potentially referencing graph insights like "these nodes form a detected community" or "these nodes are all connected to a hub").
+**Your Task: Provide ONE of the following suggestion types:**
 
-Output Format:
-Return ONLY a valid JSON object with two keys: "suggestedEdges" and "suggestedGroups".
-Each key should hold an array of suggestion objects conforming to their respective structures.
-If no suggestions of a particular type (edges or groups) are found, return an empty array for that key (e.g., "suggestedGroups": []).
+1.  **Suggested Edge:**
+    *   **When to Suggest:**
+        *   If two nodes are semantically related but not connected.
+        *   To bridge two distinct 'Detected Communities' if a clear semantic link exists between nodes in each.
+        *   To connect a 'High Centrality Node' to an area it doesn't currently serve but should.
+        *   If 'Number of Connected Components' > 1, to link nodes from different components.
+    *   **Details:** Provide 'source' (node ID), 'target' (node ID), a concise 'label' (action-oriented, e.g., "clarifies", "depends on", "leads to"), and a 'reason'.
+    *   **Reasoning:** Your 'reason' MUST explicitly mention which graph insight (if any) and which semantic clues support this edge. E.g., "Connects high-centrality node 'X' to underserved community 'Y' based on shared keywords in their details." or "Bridges two components; Node A and Node B are thematically linked."
+    *   **Constraints:** Do NOT suggest connecting a node to itself or an already existing edge.
 
-Example Output:
+2.  **Suggested Group:**
+    *   **When to Suggest:**
+        *   If a 'Detected Community' represents a strong, coherent theme not yet explicitly grouped.
+        *   If several nodes are all direct children of a 'High Degree Centrality Node' (hub) and share a common sub-theme.
+        *   If multiple nodes appear semantically related and could be abstracted under a new parent concept.
+    *   **Details:** Provide 'nodeIds' (array of 2-5 node IDs), 'groupLabel' (concise name for the new parent/group), and 'reason'.
+    *   **Reasoning:** Your 'reason' MUST reference graph insights or semantic patterns. E.g., "These nodes form a detected community and share keywords related to 'data processing'." or "Groups related leaf nodes under hub 'Z'."
+
+**Output Format (Return ONLY ONE suggestion type - either 'suggestedEdges' array with one edge, OR 'suggestedGroups' array with one group):**
+Return a valid JSON object. If suggesting an edge, the "suggestedGroups" array should be empty, and vice-versa.
+If no single high-impact suggestion is evident, you MAY return empty arrays for both.
+
+Example for ADD_EDGE:
 {
-  "suggestedEdges": [
-    { "source": "node-123", "target": "node-456", "label": "supports", "reason": "Node 123's details mention concepts elaborated in Node 456. This also connects two distinct communities identified in the graph analysis." }
-  ],
-  "suggestedGroups": [
-    { "nodeIds": ["node-abc", "node-def", "node-ghi"], "groupLabel": "Core Authentication Flow", "reason": "These nodes represent sequential steps in user authentication and were identified as a dense community." }
-  ]
+  "suggestedEdges": [{ "source": "node-123", "target": "node-456", "label": "clarifies_concept_of", "reason": "Node-123 (high centrality) details are expanded by Node-456. This connects two previously separate communities." }],
+  "suggestedGroups": []
+}
+Example for FORM_GROUP:
+{
+  "suggestedEdges": [],
+  "suggestedGroups": [{ "nodeIds": ["node-abc", "node-def"], "groupLabel": "Data Input Modules", "reason": "Nodes 'node-abc' and 'node-def' form a detected community related to data ingestion." }]
 }
 
-Provide only the JSON object as your output.
+Provide only the JSON object as your output. Focus on quality and relevance over quantity.
 `;
 
     try {
       const llmResponse = await generate({
-        model: geminiPro,
-        prompt: prompt,
-        output: { format: 'json', schema: SuggestedImprovementsSchema },
-        config: { temperature: 0.4 }, // Slightly increased temp for more varied suggestions with new context
+        model: geminiPro, prompt: prompt, output: { format: 'json', schema: SuggestedImprovementsSchema },
+        config: { temperature: 0.5 }, // Slightly higher temp for more creative interpretation of metrics
       });
-
       const output = llmResponse.output();
+      // ... (rest of post-processing logic as before)
       const rawEdges = output?.suggestedEdges || [];
       const rawGroups = output?.suggestedGroups || [];
       console.log(`[suggestMapImprovementsFlow] LLM generated ${rawEdges.length} raw edge suggestions and ${rawGroups.length} raw group suggestions.`);
@@ -182,10 +188,7 @@ Provide only the JSON object as your output.
 
       const validGroupSuggestions = rawGroups
         .filter(g => g.nodeIds && Array.isArray(g.nodeIds) && g.nodeIds.length >= 2)
-        .map(g => ({
-          ...g,
-          nodeIds: g.nodeIds.filter(id => existingNodeIds.has(id)),
-        }))
+        .map(g => ({ ...g, nodeIds: g.nodeIds.filter(id => existingNodeIds.has(id)), }))
         .filter(g => g.nodeIds.length >= 2);
 
       console.log(`[suggestMapImprovementsFlow] Returning ${validEdgeSuggestions.length} valid edge suggestions and ${validGroupSuggestions.length} valid group suggestions after filtering.`);
