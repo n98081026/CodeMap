@@ -212,12 +212,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             throw new Error(`Role mismatch. You selected '${role}', but your account role is '${fetchedProfile.role}'. Please log in with the correct role.`);
         }
          setUser(fetchedProfile);
-         switch (fetchedProfile.role) {
-            case UserRole.ADMIN: router.replace('/application/admin/dashboard'); break;
-            case UserRole.TEACHER: router.replace('/application/teacher/dashboard'); break;
-            case UserRole.STUDENT: router.replace('/application/student/dashboard'); break;
-            default: router.replace('/login'); 
-        }
+         setUser(fetchedProfile);
+         // Navigate to a general app page first, or student dashboard as a sensible default
+         // Specific role dashboards can be accessed via sidebar/navbar
+         router.replace('/application/student/dashboard'); // Default to student dashboard or a new general one
       } else {
           await supabase.auth.signOut();
           throw new Error("User profile not found after Supabase login. Please ensure your profile exists or contact support.");

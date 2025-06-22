@@ -100,6 +100,11 @@ interface ConceptMapState {
   // Pending relation for edge creation
   pendingRelationForEdgeCreation: { label: string; sourceNodeId: string; sourceNodeHandle?: string | null; } | null;
 
+  // Overview Mode State
+  isOverviewModeActive: boolean;
+  projectOverviewData: GenerateProjectOverviewOutput | null; // Using the type from the new flow
+  isFetchingOverview: boolean;
+
   // Actions
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
@@ -188,6 +193,13 @@ interface ConceptMapState {
   setDraggedRelationPreview: (label: string | null) => void;
   setTriggerFitView: (value: boolean) => void;
 
+  // Overview Mode Actions
+  toggleOverviewMode: () => void;
+  setProjectOverviewData: (data: GenerateProjectOverviewOutput | null) => void;
+  setIsFetchingOverview: (fetching: boolean) => void;
+  fetchProjectOverview: (input: GenerateProjectOverviewInput) => Promise<void>;
+
+
   setStructuralSuggestions: (suggestions: z.infer<typeof StructuralSuggestionItemSchema>[]) => void;
   addStructuralSuggestion: (suggestion: z.infer<typeof StructuralSuggestionItemSchema>) => void;
   updateStructuralSuggestion: (updatedSuggestion: Partial<z.infer<typeof StructuralSuggestionItemSchema>> & { id: string }) => void;
@@ -246,7 +258,7 @@ const initialStateBase: Omit<ConceptMapState,
   'initializeNewMap' | 'setLoadedMap' | 'importMapData' | 'resetStore' |
   'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' |
   'setStagedMapData' | 'clearStagedMapData' | 'commitStagedMapData' | 'deleteFromStagedMapData' |
-  'setConceptExpansionPreview' | 'updateConceptExpansionPreviewNode' | 'updateConceptExpansionPreviewNodeText' | // Added both for safety
+  'setConceptExpansionPreview' | 'updateConceptExpansionPreviewNode' | 'updateConceptExpansionPreviewNodeText' |
   'applyLayout' | 'tidySelectedNodes' |
   'fetchStructuralSuggestions' | 'acceptStructuralEdgeSuggestion' | 'dismissStructuralEdgeSuggestion' |
   'acceptStructuralGroupSuggestion' | 'dismissStructuralGroupSuggestion' | 'clearAllStructuralSuggestions' |
@@ -254,7 +266,9 @@ const initialStateBase: Omit<ConceptMapState,
   'setPendingRelationForEdgeCreation' | 'clearPendingRelationForEdgeCreation' |
   'startConnectionMode' | 'completeConnectionMode' | 'cancelConnectionMode' |
   'setDragPreview' | 'updateDragPreviewPosition' | 'clearDragPreview' |
-  'setDraggedRelationPreview' | 'setTriggerFitView'
+  'setDraggedRelationPreview' | 'setTriggerFitView' |
+  // Overview Mode Actions
+  'toggleOverviewMode' | 'setProjectOverviewData' | 'setIsFetchingOverview' | 'fetchProjectOverview'
 > = {
 =======
 const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> = {
@@ -301,18 +315,19 @@ const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> = {
   structuralGroupSuggestions: null,
   isApplyingSemanticTidyUp: false,
   pendingRelationForEdgeCreation: null,
+  // Overview Mode Initial State
+  isOverviewModeActive: false,
+  projectOverviewData: null,
+  isFetchingOverview: false,
 };
 
-export interface ConceptExpansionPreviewNode {
-  id: string;
-  text: string;
-  relationLabel: string;
-  details?: string;
-}
-export interface ConceptExpansionPreviewState {
-  parentNodeId: string;
-  previewNodes: ConceptExpansionPreviewNode[];
-}
+// Moved these interfaces to the top of the file for better organization if they are exported or widely used.
+// Re-declaring here if not moved, or ensure they are imported if moved.
+// export interface ConceptExpansionPreviewNode { ... }
+// export interface ConceptExpansionPreviewState { ... }
+
+// Import for GenerateProjectOverview types (assuming it's created)
+import { type GenerateProjectOverviewInput, type GenerateProjectOverviewOutput, generateProjectOverviewFlow } from '@/ai/flows/generate-project-overview';
 =======
   structuralSuggestions: [],
 };
@@ -451,12 +466,45 @@ export const useConceptMapStore = create<ConceptMapState>()(
       clearDragPreview: () => set({ dragPreviewItem: null, dragPreviewPosition: null, draggedRelationLabel: null }),
       setDraggedRelationPreview: (label) => set({ draggedRelationLabel: label }),
       setTriggerFitView: (value) => set({ triggerFitView: value }),
-      // __internalGraphAdapterForTesting: graphAdapter, // Keep if tests rely on it
+
+      // Overview Mode Action Implementations
+      toggleOverviewMode: () => set((state) => ({
+        isOverviewModeActive: !state.isOverviewModeActive,
+        // Optionally clear other selections when entering/exiting overview mode
+        selectedElementId: null,
+        selectedElementType: null,
+        multiSelectedNodeIds: [],
+      })),
+      setProjectOverviewData: (data) => set({ projectOverviewData: data, isFetchingOverview: false }),
+      setIsFetchingOverview: (fetching) => set({ isFetchingOverview: fetching }),
+      fetchProjectOverview: async (input) => {
+        if (get().isFetchingOverview) return;
+        set({ isFetchingOverview: true, projectOverviewData: null, error: null });
+        try {
+          const overviewData = await generateProjectOverviewFlow(input);
+          if (overviewData.error) {
+            throw new Error(overviewData.error);
+          }
+          set({ projectOverviewData: overviewData, isFetchingOverview: false });
+        } catch (e: any) {
+          console.error("Error fetching project overview:", e);
+          set({
+            projectOverviewData: {
+              overallSummary: "Failed to generate overview.",
+              keyModules: [],
+              error: e.message
+            },
+            isFetchingOverview: false,
+            error: `Overview Error: ${e.message}`
+          });
+        }
+      },
+      // __internalGraphAdapterForTesting: graphAdapter,
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions, isOverviewModeActive, projectOverviewData } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions, isOverviewModeActive, projectOverviewData }; // Added overview state to tracked
 =======
       initializeNewMap: (userId: string) => {
         get().addDebugLog(`[STORE initializeNewMap] User: ${userId}.`);

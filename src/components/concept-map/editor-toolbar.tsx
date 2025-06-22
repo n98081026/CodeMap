@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff // Added Eye, EyeOff for overview toggle
 } from "lucide-react"; // Added Wand2, SearchPlus, TestTube2
 =======
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
@@ -69,9 +69,11 @@ interface EditorToolbarProps {
   onAIDiscoverGroup?: () => void;
   isAIDiscoveringGroup?: boolean;
   mapNodeCount?: number;
-  onAISuggestImprovement?: () => void; // Prop from previous step
-  isAISuggestingImprovement?: boolean; // Prop from previous step
+  onAISuggestImprovement?: () => void;
+  isAISuggestingImprovement?: boolean;
   onTestEdgeOverlay?: () => void;
+  onToggleOverviewMode?: () => void; // New prop for toggling overview mode
+  isOverviewModeActive?: boolean; // New prop to indicate if overview mode is active
 }
 
 export interface ArrangeAction {
@@ -131,8 +133,10 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   isAIDiscoveringGroup,
   mapNodeCount,
   onAISuggestImprovement, // Destructure from prev step
-  isAISuggestingImprovement, // Destructure from prev step
+  isAISuggestingImprovement,
   onTestEdgeOverlay,
+  onToggleOverviewMode, // Destructure new prop
+  isOverviewModeActive, // Destructure new prop
 =======
   onTidySelection,
   onSuggestMapImprovements,
@@ -647,6 +651,24 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           </TooltipTrigger>
           <TooltipContent>{isAiPanelOpen ? "Hide AI Suggestions" : "Show AI Suggestions"}</TooltipContent>
         </Tooltip>
+
+        {/* Toggle Overview Mode Button */}
+        {onToggleOverviewMode && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleOverviewMode}
+                className={cn(isOverviewModeActive && "bg-accent text-accent-foreground")}
+                disabled={isViewOnlyMode} // Consider if view-only should also disable this
+              >
+                {isOverviewModeActive ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isOverviewModeActive ? "Exit Overview Mode" : "Show Project Overview (AI)"}</TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </TooltipProvider>
   );

@@ -1,19 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
 import { ReactFlowProvider, useReactFlow } from 'reactflow';
 import dynamic from 'next/dynamic';
-// DagreNodeInput, DagreEdgeInput, LayoutNodeUpdate are already imported from '@/types/graph-adapter'
-// We will use NodeLayoutInput, EdgeLayoutInput, DagreLayoutOptions from the same types file for Dagre utility
-import type { DagreNodeInput, DagreEdgeInput, DagreNodeOutput as LayoutNodeUpdate, NodeLayoutInput, EdgeLayoutInput, DagreLayoutOptions } from '@/types/graph-adapter';
+import type { NodeLayoutInput, EdgeLayoutInput, DagreLayoutOptions, LayoutNodeUpdate } from '@/types/graph-adapter';
 import type { ArrangeAction } from "@/components/concept-map/editor-toolbar";
-import {
-  AlignLeft, AlignCenterHorizontal, AlignRight,
-  AlignTop, AlignCenterVertical, AlignBottom,
-  Columns, Rows,
-} from 'lucide-react';
+import { AlignLeft, AlignCenterHorizontal, AlignRight, AlignTop, AlignCenterVertical, AlignBottom } from 'lucide-react';
 
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
@@ -21,7 +15,7 @@ import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Compass, Share2, Loader2, AlertTriangle, Save, EyeOff, HelpCircle } from "lucide-react";
+import { ArrowLeft, Compass, Share2, Loader2, EyeOff, HelpCircle, Save } from "lucide-react";
 import {
   ExtractConceptsModal,
   SuggestRelationsModal,
@@ -33,20 +27,20 @@ import { GenerateSnippetModal } from "@/components/concept-map/generate-snippet-
 import { RewriteNodeContentModal } from "@/components/concept-map/rewrite-node-content-modal";
 import { RefineSuggestionModal } from '@/components/concept-map/refine-suggestion-modal';
 import { useToast } from "@/hooks/use-toast";
-import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge } from "@/types";
+import type { ConceptMap, ConceptMapData, ConceptMapNode, ConceptMapEdge, VisualEdgeSuggestion } from "@/types";
 import { UserRole } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import { DagreLayoutUtility } from "../../../../lib/dagreLayoutUtility";
+import ProjectOverviewDisplay from "@/components/concept-map/project-overview-display"; // Import the new component
 
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
-import { Lightbulb, Sparkles, Brain, CheckCircle, XCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,30 +51,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  suggestSemanticParentNodeFlow, type SuggestSemanticParentOutputSchema, type SuggestSemanticParentInputSchema,
-  suggestArrangementActionFlow, type SuggestArrangementActionInputSchema, type SuggestArrangementActionOutputSchema,
-  suggestNodeGroupCandidatesFlow, type NodeGroupSuggestionSchema,
-  suggestMapImprovementFlow, type MapImprovementSuggestionSchema, type MapDataSchema as AIMapDataSchema,
-} from '@/ai/flows';
-import * as z from 'zod';
-import type { VisualEdgeSuggestion } from '@/types';
 import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
+import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
   ssr: false,
   loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
 });
-
-<<<<<<< HEAD
-// mockDagreLayout is no longer needed as we will use the real utility.
-// const mockDagreLayout = (nodes: DagreNodeInput[], _edges: DagreEdgeInput[]): LayoutNodeUpdate[] => {
-//   ...
-// };
-=======
-// Removed mockDagreLayout function
->>>>>>> master
 
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;
@@ -91,7 +69,6 @@ export default function ConceptMapEditorPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
-  const reactFlowInstance = useReactFlow(); // Moved here to be available for handleAutoLayout
 
   const routeMapId = paramsHook.mapId as string;
   const isViewOnlyModeQueryParam = searchParams.get('viewOnly') === 'true';
@@ -110,12 +87,15 @@ export default function ConceptMapEditorPage() {
     importMapData,
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
     addDebugLog,
-    applyLayout: storeApplyLayout, // Renamed to avoid conflict
-    // tidySelectedNodes, // Removed as it's a different type of layout
-    // fetchStructuralSuggestions, // These are for AI suggestions, not full Dagre layout
-    // isFetchingStructuralSuggestions,
+    applyLayout: storeApplyLayout,
     applySemanticTidyUp,
     isApplyingSemanticTidyUp,
+    // Overview Mode State and Actions from Zustand
+    isOverviewModeActive,
+    projectOverviewData,
+    isFetchingOverview,
+    toggleOverviewMode,
+    fetchProjectOverview,
   } = useConceptMapStore(
     useCallback(s => ({
       mapId: s.mapId, mapName: s.mapName, currentMapOwnerId: s.currentMapOwnerId, currentMapCreatedAt: s.currentMapCreatedAt,
@@ -130,29 +110,36 @@ export default function ConceptMapEditorPage() {
       deleteNode: s.deleteNode, updateNode: s.updateNode, updateEdge: s.updateEdge,
       setSelectedElement: s.setSelectedElement, setMultiSelectedNodeIds: s.setMultiSelectedNodeIds,
       importMapData: s.importMapData, setIsViewOnlyMode: s.setIsViewOnlyMode, addDebugLog: s.addDebugLog,
-      applyLayout: s.applyLayout, // Selected applyLayout
+      applyLayout: s.applyLayout,
       applySemanticTidyUp: s.applySemanticTidyUp,
       isApplyingSemanticTidyUp: s.isApplyingSemanticTidyUp,
+      // Overview Mode
+      isOverviewModeActive: s.isOverviewModeActive,
+      projectOverviewData: s.projectOverviewData,
+      isFetchingOverview: s.isFetchingOverview,
+      toggleOverviewMode: s.toggleOverviewMode,
+      fetchProjectOverview: s.fetchProjectOverview,
     }), [])
   );
 
-  // ... (rest of the state and useEffects from the original file, unchanged)
-  const [aiSemanticGroupSuggestion, setAiSemanticGroupSuggestion] = useState<z.infer<typeof SuggestSemanticParentOutputSchema> | null>(null);
+  const reactFlowInstance = useReactFlow(); // Moved here to be available for handleAutoLayout
+
+  const [aiSemanticGroupSuggestion, setAiSemanticGroupSuggestion] = useState<any | null>(null);
   const [isSuggestGroupDialogOpen, setIsSuggestGroupDialogOpen] = useState(false);
   const [isLoadingSemanticGroup, setIsLoadingSemanticGroup] = useState(false);
-  const [aiArrangementSuggestion, setAiArrangementSuggestion] = useState<z.infer<typeof SuggestArrangementActionOutputSchema>['suggestion'] | null>(null);
+  const [aiArrangementSuggestion, setAiArrangementSuggestion] = useState<any | null>(null);
   const [isSuggestArrangementDialogOpen, setIsSuggestArrangementDialogOpen] = useState(false);
   const [isLoadingAIArrangement, setIsLoadingAIArrangement] = useState(false);
-  const [aiDiscoveredGroup, setAiDiscoveredGroup] = useState<z.infer<typeof NodeGroupSuggestionSchema> | null>(null);
+  const [aiDiscoveredGroup, setAiDiscoveredGroup] = useState<any | null>(null);
   const [isDiscoverGroupDialogOpen, setIsDiscoverGroupDialogOpen] = useState(false);
   const [isLoadingAIDiscoverGroup, setIsLoadingAIDiscoverGroup] = useState(false);
-  const [aiMapImprovementSuggestion, setAiMapImprovementSuggestion] = useState<z.infer<typeof MapImprovementSuggestionSchema> | null>(null);
+  const [aiMapImprovementSuggestion, setAiMapImprovementSuggestion] = useState<any | null>(null);
   const [isSuggestImprovementDialogOpen, setIsSuggestImprovementDialogOpen] = useState(false);
   const [isLoadingAIMapImprovement, setIsLoadingAIMapImprovement] = useState(false);
   const [activeVisualEdgeSuggestion, setActiveVisualEdgeSuggestion] = useState<VisualEdgeSuggestion | null>(null);
 
   useEffect(() => {
-    addDebugLog(`[EditorPage V11] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${useConceptMapStore.getState().initialLoadComplete}`);
+    addDebugLog(`[EditorPage V12] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${useConceptMapStore.getState().initialLoadComplete}`);
   }, [storeMapData, isStoreLoading, addDebugLog]);
 
   useEffect(() => {
@@ -168,12 +155,10 @@ export default function ConceptMapEditorPage() {
   const canUndo = temporalState.pastStates.length > 0;
   const canRedo = temporalState.futureStates.length > 0;
 
-  const handleUndo = useCallback(() => { temporalStoreAPI.getState().undo(); }, [temporalStoreAPI]);
-  const handleRedo = useCallback(() => { temporalStoreAPI.getState().redo(); }, [temporalStoreAPI]);
-  const { saveMap } = useConceptMapDataManager({ routeMapId, user });
+  const { saveMap, currentSubmissionId } = useConceptMapDataManager({ routeMapId, user });
 
   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
-  const { /* ... all aiToolsHook exports ... */
+  const {
     openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
     openExpandConceptModal, handleConceptExpanded,
@@ -189,9 +174,7 @@ export default function ConceptMapEditorPage() {
     conceptExpansionPreview, acceptAllExpansionPreviews, acceptSingleExpansionPreview, clearExpansionPreview,
     isRefineModalOpen, setIsRefineModalOpen, refineModalInitialData, handleRefineSuggestionConfirm, openRefineSuggestionModal,
     intermediateNodeSuggestion, handleSuggestIntermediateNodeRequest, confirmAddIntermediateNode, clearIntermediateNodeSuggestion,
-    handleAiTidyUpSelection,
-    // Destructure newly added items if they were part of the hook, or call them directly from aiToolsHook.
-    // For this task, handleAutoLayout is defined in this page component.
+    handleAiTidyUpSelection, handleDagreLayoutSelection
   } = aiToolsHook;
 
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
@@ -199,9 +182,7 @@ export default function ConceptMapEditorPage() {
    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isStagingActive && selectedStagedElementIds.length > 0 && (event.key === 'Delete' || event.key === 'Backspace')) {
-        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
-          return;
-        }
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) { return; }
         event.preventDefault();
         deleteFromStagedMapData(selectedStagedElementIds);
         setSelectedStagedElementIds([]);
@@ -224,24 +205,34 @@ export default function ConceptMapEditorPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; nodeId: string | null; } | null>(null);
 
-  // ... (floaterState, Floater_handleDismiss, and other useEffects and handlers from original, unchanged)
   const [floaterState, setFloaterState] = useState<{ isVisible: boolean; position: { x: number; y: number } | null; suggestions: SuggestionAction[]; contextElementId?: string | null; contextType?: 'pane' | 'node' | 'edge' | 'conceptExpansionControls' | null; title?: string; }>({ isVisible: false, position: null, suggestions: [], contextElementId: null, contextType: null });
   const Floater_handleDismiss = useCallback(() => { /* ... */ }, [floaterState.contextType, setEdgeLabelSuggestions, clearExpansionPreview]);
   useEffect(() => { /* for edgeLabelSuggestions */ }, [edgeLabelSuggestions, reactFlowInstance, updateStoreEdge, Floater_handleDismiss, floaterState.isVisible, floaterState.contextType]);
   const handleAddNodeFromFloater = useCallback((position?: {x: number, y: number}) => { /* ... */ }, [storeIsViewOnlyMode, toast, aiToolsHook.getNodePlacement, addNodeFromHook, storeMapData.nodes, Floater_handleDismiss]);
-  const handlePaneContextMenuRequest = useCallback((event: React.MouseEvent, positionInFlow: {x: number, y: number}) => { /* ... */ }, [storeIsViewOnlyMode, getPaneSuggestions, Floater_handleDismiss, contextMenu, closeContextMenu]); // Added contextMenu, closeContextMenu
-  const handleNodeContextMenuRequest = useCallback(async (event: React.MouseEvent, node: RFNode<CustomNodeData>) => { /* ... */ }, [storeIsViewOnlyMode, contextMenu, closeContextMenu, Floater_handleDismiss, getNodeSuggestions, fetchAIChildTextSuggestions, isLoadingAiChildTexts, aiChildTextSuggestions]); // Added contextMenu, closeContextMenu
-  const handleCommitStagedData = useCallback(() => { /* ... */ }, [commitStagedMapData, toast]);
-  const handleClearStagedData = useCallback(() => { /* ... */ }, [clearStagedMapData, toast]);
+  const handlePaneContextMenuRequest = useCallback((event: React.MouseEvent, positionInFlow: {x: number, y: number}) => { /* ... */ }, [storeIsViewOnlyMode, getPaneSuggestions, Floater_handleDismiss, contextMenu, ()=>setContextMenu(null)]);
+  const handleNodeContextMenuRequest = useCallback(async (event: React.MouseEvent, node: RFNode<CustomNodeData>) => { /* ... */ }, [storeIsViewOnlyMode, contextMenu, ()=>setContextMenu(null), Floater_handleDismiss, getNodeSuggestions, fetchAIChildTextSuggestions, isLoadingAiChildTexts, aiChildTextSuggestions]);
+  const handleCommitStagedData = useCallback(() => { commitStagedMapData(); toast({title: "Staged items added to map."})}, [commitStagedMapData, toast]);
+  const handleClearStagedData = useCallback(() => { clearStagedMapData(); toast({title: "Staging area cleared."})}, [clearStagedMapData, toast]);
   const stagedItemCount = React.useMemo(() => ({ nodes: storeStagedMapData?.nodes?.length || 0, edges: storeStagedMapData?.edges?.length || 0, }), [storeStagedMapData]);
   useEffect(() => { /* for conceptExpansionPreview */ }, [conceptExpansionPreview, reactFlowInstance, acceptAllExpansionPreviews, clearExpansionPreview, floaterState.isVisible, floaterState.contextType, Floater_handleDismiss]);
-  const handleConceptSuggestionDrop = useCallback((conceptText: string, position: { x: number; y: number }) => { /* ... */ }, [storeIsViewOnlyMode, addNodeFromHook, removeExtractedConceptsFromSuggestions, toast]);
+  const handleConceptSuggestionDrop = useCallback((conceptItem: ExtractedConceptItem, position: { x: number; y: number }) => {
+    if (storeIsViewOnlyMode) return;
+    addNodeFromHook({
+        text: conceptItem.concept,
+        type: 'ai-concept', // Or derive from conceptItem if it has a type
+        position,
+        details: conceptItem.context ? `Context: ${conceptItem.context}${conceptItem.source ? `\nSource: "${conceptItem.source}"` : ''}` : conceptItem.source ? `Source: "${conceptItem.source}"` : ''
+    });
+    // Optionally remove from suggestions if onAddExtractedConcepts handles it, or call a specific removal function
+    toast({ title: "Concept Added", description: `"${conceptItem.concept}" added from suggestions.` });
+  }, [storeIsViewOnlyMode, addNodeFromHook, toast]);
+
   const handleMapPropertiesChange = useCallback((properties: { name: string; isPublic: boolean; sharedWithClassroomId: string | null; }) => { /* ... */ }, [storeIsViewOnlyMode, toast, setStoreMapName, setStoreIsPublic, setStoreSharedWithClassroomId]);
   const handleFlowSelectionChange = useCallback((elementId: string | null, elementType: 'node' | 'edge' | null) => { setStoreSelectedElement(elementId, elementType); }, [setStoreSelectedElement]);
   const handleMultiNodeSelectionChange = useCallback((nodeIds: string[]) => { setStoreMultiSelectedNodeIds(nodeIds); }, [setStoreMultiSelectedNodeIds]);
   const handleAddNodeToData = useCallback(() => { /* ... */ }, [storeIsViewOnlyMode, toast, aiToolsHook.getNodePlacement, addNodeFromHook, storeMapData.nodes]);
   const handleAddEdgeToData = useCallback(() => { /* ... */ }, [storeIsViewOnlyMode, toast, addEdgeFromHook, storeMapData.nodes]);
-  const getRoleBasedDashboardLink = useCallback(() => { return user ? `/application/${user.role}/dashboard` : '/login'; }, [user]);
+  const getRoleBasedDashboardLink = useCallback(() => { return user ? `/application/${user.role === 'unknown' ? 'student' : user.role}/dashboard` : '/login'; }, [user]);
   const getBackLink = useCallback(() => { return user && user.role === UserRole.TEACHER ? "/application/teacher/classrooms" : "/application/student/concept-maps"; }, [user]);
   const getBackButtonText = useCallback(() => { return user && user.role === UserRole.TEACHER ? "Back to Classrooms" : "Back to My Maps"; }, [user]);
   const onTogglePropertiesInspector = useCallback(() => setIsPropertiesInspectorOpen(prev => !prev), []);
@@ -256,7 +247,6 @@ export default function ConceptMapEditorPage() {
   const handleTriggerImport = useCallback(() => { /* ... */ }, [storeIsViewOnlyMode, toast]);
   const handleFileSelectedForImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => { /* ... */ }, [storeIsViewOnlyMode, toast, importMapData, temporalStoreAPI]);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
-  // ... (Alignment and Distribution handlers: handleAlignLefts, etc. - these are separate from full Dagre layout)
   const handleAlignLefts = useCallback(() => { /* ... */ }, [storeIsViewOnlyMode, toast, storeApplyLayout, storeMapData, multiSelectedNodeIds]);
   const handleAlignCentersH = useCallback(() => { /* ... */ }, [storeIsViewOnlyMode, toast, storeApplyLayout, storeMapData, multiSelectedNodeIds]);
   const handleAlignRights = useCallback(() => { /* ... */ }, [storeIsViewOnlyMode, toast, storeApplyLayout, storeMapData, multiSelectedNodeIds]);
@@ -266,7 +256,6 @@ export default function ConceptMapEditorPage() {
   const handleDistributeHorizontally = useCallback(() => { /* ... */ }, [storeIsViewOnlyMode, toast, storeApplyLayout, storeMapData, multiSelectedNodeIds]);
   const handleDistributeVertically = useCallback(() => { /* ... */ }, [storeIsViewOnlyMode, toast, storeApplyLayout, storeMapData, multiSelectedNodeIds]);
   const arrangeActions = React.useMemo<ArrangeAction[]>(() => [ /* ... */ ], [ handleAlignLefts, handleAlignCentersH, handleAlignRights, handleAlignTops, handleAlignMiddlesV, handleAlignBottoms, handleDistributeHorizontally, handleDistributeVertically ]);
-  // ... (AI Semantic Group, AI Arrangement Suggestion, AI Discover Group, AI Map Improvement handlers - these are for specific AI suggestions, not full Dagre layout)
   const handleTriggerAISemanticGroup = useCallback(async () => { /* ... */ }, [toast, addDebugLog, isLoadingSemanticGroup, storeIsViewOnlyMode, multiSelectedNodeIds, storeMapData.nodes]);
   const handleRequestAIArrangementSuggestion = useCallback(async () => { /* ... */ }, [storeIsViewOnlyMode, multiSelectedNodeIds, toast, addDebugLog, isLoadingAIArrangement, storeMapData.nodes]);
   const handleConfirmAIArrangement = useCallback(() => { /* ... */ }, [aiArrangementSuggestion, arrangeActions, toast, addDebugLog, handleAlignLefts, handleAlignCentersH, handleAlignRights, handleAlignTops, handleAlignMiddlesV, handleAlignBottoms, handleDistributeHorizontally, handleDistributeVertically]);
@@ -277,42 +266,35 @@ export default function ConceptMapEditorPage() {
   const handleConfirmAISemanticGroup = useCallback(async () => { /* ... */ }, [aiSemanticGroupSuggestion, multiSelectedNodeIds, storeMapData.nodes, addNodeFromHook, updateStoreNode, toast, addDebugLog, storeApplyLayout]);
   const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => { /* ... */ }, [storeIsViewOnlyMode, deleteStoreNode, closeContextMenu]);
   const handleSelectedElementPropertyUpdateInspector = useCallback((updates: any) => { /* ... */ }, [storeIsViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
-  const inspectorAiTools = React.useMemo(() => ({ /* ... */ }), [aiToolsHook.openExpandConceptModal, aiToolsHook.openRewriteNodeContentModal, aiToolsHook.handleSuggestIntermediateNode]);
-  let modalSourceNodeText: string | undefined, modalTargetNodeText: string | undefined, modalOriginalEdgeLabel: string | undefined;
-  // if (intermediateNodeOriginalEdgeContext && storeMapData) { /* ... */ } // This is for AI tools hook, not page
+  const inspectorAiTools = React.useMemo(() => ({ /* ... */ }), [aiToolsHook.openExpandConceptModal, aiToolsHook.openRewriteNodeContentModal, aiToolsHook.handleSuggestIntermediateNodeRequest]);
   const showEmptyMapMessage = !isStoreLoading && useConceptMapStore.getState().initialLoadComplete && !storeError && routeMapId !== 'new' && storeMapData.nodes.length === 0 && storeMapId === routeMapId;
-  const handleStartConnectionFromNode = useCallback((nodeId: string) => { /* ... */ }, [storeIsViewOnlyMode, toast, addDebugLog]); // Added from previous version
-  const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => { /* ... */ }, []); // Added from previous version
-  const handleAcceptVisualEdge = () => {}; // Placeholder
-  const handleRejectVisualEdge = () => {}; // Placeholder
+  const handleStartConnectionFromNode = useCallback((nodeId: string) => { /* ... */ }, [storeIsViewOnlyMode, toast, addDebugLog]);
+  const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => { /* ... */ }, []);
+  const handleAcceptVisualEdge = () => { setActiveVisualEdgeSuggestion(null); };
+  const handleRejectVisualEdge = () => { setActiveVisualEdgeSuggestion(null); };
 
-  // MODIFIED handleAutoLayout
   const handleAutoLayout = useCallback(async () => {
     addDebugLog('[EditorPage] Dagre Auto-Layout triggered.');
     if (storeIsViewOnlyMode) {
       toast({ title: "View Only Mode", description: "Auto-layout is disabled.", variant: "default" });
       return;
     }
-
     const currentGlobalNodes = reactFlowInstance.getNodes();
     if (currentGlobalNodes.length === 0) {
       toast({ title: "Empty Map", description: "Cannot apply layout to an empty map." });
       return;
     }
-
     const loadingToast = toast({
       title: 'Applying Dagre Auto Layout...',
       description: <div className="flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait.</div>,
-      duration: Infinity, // Keep open until dismissed
+      duration: Infinity,
     });
-
     try {
       const nodesForDagre: NodeLayoutInput[] = currentGlobalNodes.map(n => ({
         id: n.id,
         width: n.width || DEFAULT_NODE_WIDTH,
         height: n.height || DEFAULT_NODE_HEIGHT,
       })).filter(n => n.width && n.height) as NodeLayoutInput[];
-
       if (nodesForDagre.length === 0 && currentGlobalNodes.length > 0) {
         toast.dismiss(loadingToast.id);
         toast({ title: "Layout Warning", description: "Could not determine dimensions for layout for any node.", variant: "destructive" });
@@ -323,73 +305,78 @@ export default function ConceptMapEditorPage() {
         toast({ title: "Layout Info", description: "Not enough nodes with dimensions to perform auto-layout." });
         return;
       }
-
       const currentGlobalEdges = useConceptMapStore.getState().mapData.edges;
       const edgesForDagre: EdgeLayoutInput[] = currentGlobalEdges.map(e => ({
         source: e.source,
         target: e.target,
-        id: e.id, // Pass edge ID
+        id: e.id,
       }));
-<<<<<<< HEAD
-      const dagreEdges: DagreEdgeInput[] = storeMapData.edges.map(edge => ({
-        source: edge.source, target: edge.target,
-      }));
-      addDebugLog(`[EditorPage] Prepared ${dagreNodes.length} nodes and ${dagreEdges.length} edges for layout.`);
-
-      const dagreUtil = new DagreLayoutUtility();
-      const layoutOptions: DagreLayoutOptions = {
-=======
-
       addDebugLog(`[EditorPage] Prepared ${nodesForDagre.length} nodes and ${edgesForDagre.length} edges for Dagre layout.`);
-
       const dagreUtil = new DagreLayoutUtility();
       const dagreOptions: DagreLayoutOptions = {
->>>>>>> master
-        direction: 'TB', // Top-to-Bottom
-        ranksep: 70,
-        nodesep: 60,
-        edgesep: 20,
-        defaultNodeWidth: DEFAULT_NODE_WIDTH,
-<<<<<<< HEAD
-        defaultNodeHeight: DEFAULT_NODE_HEIGHT,
+        direction: 'TB', ranksep: 70, nodesep: 60, edgesep: 20,
+        defaultNodeWidth: DEFAULT_NODE_WIDTH, defaultNodeHeight: DEFAULT_NODE_HEIGHT
       };
-      const newPositions = await dagreUtil.layout(dagreNodes, dagreEdges, layoutOptions);
-
-      addDebugLog(`[EditorPage] Layout calculated. ${newPositions.length} new positions received.`);
-      applyLayout(newPositions);
-      addDebugLog('[EditorPage] applyLayout action called.');
-=======
-        defaultNodeHeight: DEFAULT_NODE_HEIGHT
-      };
-
       const newPositions = await dagreUtil.layout(nodesForDagre, edgesForDagre, dagreOptions);
       addDebugLog(`[EditorPage] Dagre layout calculated. ${newPositions.length} new positions received.`);
-
       storeApplyLayout(newPositions);
       addDebugLog('[EditorPage] store.applyLayout action called for Dagre.');
-
->>>>>>> master
       setTimeout(() => {
         if (reactFlowInstance) {
           reactFlowInstance.fitView({padding: 0.1, duration: 300});
           addDebugLog('[EditorPage] reactFlowInstance.fitView() called after Dagre layout.');
         }
       }, 100);
-
       toast.dismiss(loadingToast.id);
       toast({ title: "Map Auto-Layout Applied", description: "The entire map has been arranged using Dagre." });
       addDebugLog('[EditorPage] Dagre auto-layout successfully applied.');
-
     } catch (e: any) {
       addDebugLog(`[EditorPage] Error during Dagre auto-layout: ${e.message}`);
       toast.dismiss(loadingToast.id);
-      toast({
-        title: "Auto-Layout Failed",
-        description: e.message || "An unexpected error occurred during Dagre layout.",
-        variant: "destructive",
-      });
+      toast({ title: "Auto-Layout Failed", description: e.message || "An unexpected error occurred during Dagre layout.", variant: "destructive" });
     }
-  }, [ storeIsViewOnlyMode, reactFlowInstance, storeApplyLayout, toast, addDebugLog ]); // Removed storeMapData dependencies, uses reactFlowInstance.getNodes()
+  }, [ storeIsViewOnlyMode, reactFlowInstance, storeApplyLayout, toast, addDebugLog ]);
+
+  const handleToggleOverviewMode = useCallback(() => {
+    if (storeIsViewOnlyMode) {
+      toast({ title: "View Only Mode", description: "Overview mode toggle is disabled."});
+      return;
+    }
+    const newOverviewModeState = !isOverviewModeActive;
+    toggleOverviewMode(); // Toggle the state in Zustand
+
+    if (newOverviewModeState && !projectOverviewData && currentSubmissionId) {
+        // Fetch overview data only if entering overview mode and data is not already there
+        // And if there's a submission ID to fetch data for (or adapt for current map content)
+        const overviewInput: GenerateProjectOverviewInput = {
+            projectStoragePath: `submission_related_path_for_${currentSubmissionId}`, // This needs to be the actual storage path
+            userGoals: "Provide a high-level overview of this project." // Generic goal
+        };
+        // Check if currentSubmissionId has a valid path, or if mapId can be used to derive project path
+        // For now, this part is conceptual as direct projectStoragePath might not be available here.
+        // A more robust solution would fetch based on mapId or submissionId if available.
+        if(currentSubmissionId) { // Or some other way to get project context
+            // This is a placeholder. You need a way to get projectStoragePath.
+            // Perhaps from the submission record linked to currentMapId or via a new prop.
+            console.warn("Attempting to fetch project overview, but projectStoragePath needs to be correctly determined from current context (e.g., submission or map metadata).");
+            // fetchProjectOverview(overviewInput);
+            toast({title: "Overview Mode", description: "Fetching project overview... (Placeholder - actual fetch needs project path)", variant: "default"});
+        } else if (!currentSubmissionId && storeMapData.nodes.length > 0) {
+            // Fallback: if no submission, maybe try to generate overview from current map nodes?
+            // This would require the overview flow to accept map data directly.
+            // For now, we'll just show a message.
+             toast({title: "Overview Mode", description: "Overview for current ad-hoc map not yet supported. Upload a project for full overview.", variant: "default"});
+             // Or, set a mock overview data for demonstration
+             useConceptMapStore.getState().setProjectOverviewData({
+                 overallSummary: "This is an ad-hoc map. Upload a project to get a full AI-generated overview.",
+                 keyModules: storeMapData.nodes.slice(0,3).map(n => ({name: n.text, description: n.details || "A concept in the map."}))
+             });
+        } else {
+            toast({title: "Overview Mode", description: "No project context to generate overview.", variant: "default"});
+        }
+    }
+  }, [storeIsViewOnlyMode, toast, toggleOverviewMode, isOverviewModeActive, projectOverviewData, fetchProjectOverview, currentSubmissionId, storeMapData.nodes]);
+
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col">
@@ -403,7 +390,7 @@ export default function ConceptMapEditorPage() {
         {!storeIsViewOnlyMode && <Button onClick={handleSaveMap} disabled={isStoreSaving || storeIsViewOnlyMode}>{isStoreSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save</Button>}
         <Button asChild variant="outline"><Link href={getBackLink()}><ArrowLeft className="mr-2 h-4 w-4" /> {getBackButtonText()}</Link></Button>
       </DashboardHeader>
-      <ReactFlowProvider> {/* ReactFlowProvider should wrap components using useReactFlow() */}
+      <ReactFlowProvider>
         <EditorToolbar
           onNewMap={handleNewMap}
           onSaveMap={handleSaveMap}
@@ -424,24 +411,47 @@ export default function ConceptMapEditorPage() {
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen} isAiPanelOpen={isAiPanelOpen}
           onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo}
-          selectedNodeId={selectedElementId} // Pass selectedElementId
+          selectedNodeId={selectedElementId}
           numMultiSelectedNodeIds={multiSelectedNodeIds.length}
-          onAutoLayout={handleAutoLayout} // Pass the modified handleAutoLayout
-          onTidySelection={(aiToolsHook as any).tidySelectedNodes} // Example, ensure tidySelectedNodes is in aiToolsHook if used
-          onSuggestMapImprovements={(aiToolsHook as any).fetchStructuralSuggestions} // Example
-          isSuggestingMapImprovements={(aiToolsHook as any).isFetchingStructuralSuggestions} // Example
+          onAutoLayout={handleAutoLayout}
+          onTidySelection={(aiToolsHook as any).tidySelectedNodes}
+          onSuggestMapImprovements={(aiToolsHook as any).fetchStructuralSuggestions}
+          isSuggestingMapImprovements={(aiToolsHook as any).isFetchingStructuralSuggestions}
           onApplySemanticTidyUp={applySemanticTidyUp}
           isApplyingSemanticTidyUp={isApplyingSemanticTidyUp}
-          onAiTidySelection={handleAiTidyUpSelection} // Pass the AI Tidy selection from the hook
-          // arrangeActions, onSuggestAISemanticGroup, etc. should also be passed if they are used by EditorToolbar
-          // For now, focusing on onAutoLayout
+          onAiTidySelection={handleAiTidyUpSelection}
+          onDagreTidySelection={handleDagreLayoutSelection}
+          isDagreTidying={aiToolsHook.isDagreTidying}
+          onToggleOverviewMode={handleToggleOverviewMode} // Pass handler
+          isOverviewModeActive={isOverviewModeActive} // Pass state
         />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
               <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
-              {/* ... empty map message ... */}
+              <h2 className="text-xl font-semibold mb-2">Empty Map</h2>
+                <p className="text-muted-foreground mb-4">
+                    It looks like this concept map is empty or could not be loaded.
+                </p>
+                <div className="flex gap-4">
+                    <Button onClick={handleNewMap} variant="default_primary">
+                        <Compass className="mr-2 h-4 w-4" /> Create a New Map
+                    </Button>
+                    <Button onClick={() => router.back()} variant="outline">
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
+                    </Button>
+                </div>
             </div>
+          ) : isOverviewModeActive ? (
+            <ProjectOverviewDisplay
+              overviewData={projectOverviewData}
+              isLoading={isFetchingOverview}
+              onModuleClick={(moduleName) => {
+                // Placeholder: Implement logic to focus/filter map based on moduleName
+                toast({ title: "Module Clicked (Overview)", description: `Would filter map for: ${moduleName}`});
+                toggleOverviewMode(); // Exit overview mode to see detail
+              }}
+            />
           ) : (
             <FlowCanvasCore
               mapDataFromStore={storeMapData} isViewOnlyMode={storeIsViewOnlyMode}
@@ -461,17 +471,17 @@ export default function ConceptMapEditorPage() {
               activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}
               onAcceptVisualEdge={handleAcceptVisualEdge}
               onRejectVisualEdge={handleRejectVisualEdge}
-              onRefinePreviewNodeRequested={(aiToolsHook as any).openRefineGhostNodeModal} // Ensure this is available
+              onRefinePreviewNodeRequested={(aiToolsHook as any).openRefineGhostNodeModal}
             />
           )}
         </div>
-        {/* ... (Rest of Modals, Dialogs, Sheets etc.) ... */}
-        <AIStagingToolbar isVisible={isStagingActive} onCommit={handleCommitStagedData} onClear={handleClearStagedData} stagedItemCount={stagedItemCount} />
-        <AISuggestionFloater isVisible={floaterState.isVisible} position={floaterState.position || {x:0,y:0}} suggestions={floaterState.suggestions} onDismiss={Floater_handleDismiss} title={floaterState.title || "Quick Actions"} />
-        {contextMenu?.isOpen && contextMenu.nodeId && ( <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu} onDeleteNode={handleDeleteNodeFromContextMenu} onExpandConcept={() => { openExpandConceptModal(contextMenu.nodeId!); closeContextMenu(); }} onSuggestRelations={() => { openSuggestRelationsModal(contextMenu.nodeId!); closeContextMenu(); }} onExtractConcepts={() => { openExtractConceptsModal(contextMenu.nodeId!); closeContextMenu(); }} onAskQuestion={() => { openAskQuestionModal(contextMenu.nodeId!); closeContextMenu(); }} onRewriteContent={() => { openRewriteNodeContentModal(contextMenu.nodeId!); closeContextMenu(); }} isViewOnlyMode={storeIsViewOnlyMode} /> )}
-        <Sheet open={isPropertiesInspectorOpen} onOpenChange={setIsPropertiesInspectorOpen}> <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto"> <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange} selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType} onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector} onSuggestIntermediateNode={handleSuggestIntermediateNodeRequest} isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} /> </SheetContent> </Sheet>
-        <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}> <SheetContent side="bottom" className="h-[40vh] sm:h-1/3"> <AISuggestionPanel currentMapNodes={storeMapData.nodes} extractedConcepts={aiExtractedConcepts} suggestedRelations={aiSuggestedRelations} onAddExtractedConcepts={addExtractedConceptsToMap} onAddSuggestedRelations={addSuggestedRelationsToMap} onClearExtractedConcepts={() => useConceptMapStore.getState().setAiExtractedConcepts([])} onClearSuggestedRelations={() => useConceptMapStore.getState().setAiSuggestedRelations([])} isViewOnlyMode={storeIsViewOnlyMode} /> </SheetContent> </Sheet>
-        {/* GenAI Modals */}
+
+        <AIStagingToolbar isVisible={isStagingActive && !isOverviewModeActive} onCommit={handleCommitStagedData} onClear={handleClearStagedData} stagedItemCount={stagedItemCount} />
+        <AISuggestionFloater isVisible={floaterState.isVisible && !isOverviewModeActive} position={floaterState.position || {x:0,y:0}} suggestions={floaterState.suggestions} onDismiss={Floater_handleDismiss} title={floaterState.title || "Quick Actions"} />
+        {contextMenu?.isOpen && contextMenu.nodeId && !isOverviewModeActive && ( <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu} onDeleteNode={handleDeleteNodeFromContextMenu} onExpandConcept={() => { openExpandConceptModal(contextMenu.nodeId!); closeContextMenu(); }} onSuggestRelations={() => { openSuggestRelationsModal(contextMenu.nodeId!); closeContextMenu(); }} onExtractConcepts={() => { openExtractConceptsModal(contextMenu.nodeId!); closeContextMenu(); }} onAskQuestion={() => { openAskQuestionModal(contextMenu.nodeId!); closeContextMenu(); }} onRewriteContent={() => { openRewriteNodeContentModal(contextMenu.nodeId!); closeContextMenu(); }} isViewOnlyMode={storeIsViewOnlyMode} /> )}
+        <Sheet open={isPropertiesInspectorOpen && !isOverviewModeActive} onOpenChange={setIsPropertiesInspectorOpen}> <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto"> <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange} selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType} onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector} onSuggestIntermediateNode={handleSuggestIntermediateNodeRequest} isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} /> </SheetContent> </Sheet>
+        <Sheet open={isAiPanelOpen && !isOverviewModeActive} onOpenChange={setIsAiPanelOpen}> <SheetContent side="bottom" className="h-[40vh] sm:h-1/3"> <AISuggestionPanel currentMapNodes={storeMapData.nodes} extractedConcepts={aiToolsHook.aiExtractedConcepts} suggestedRelations={aiToolsHook.aiSuggestedRelations} onAddExtractedConcepts={aiToolsHook.addExtractedConceptsToMap} onAddSuggestedRelations={aiToolsHook.addSuggestedRelationsToMap} onClearExtractedConcepts={() => useConceptMapStore.getState().setAiExtractedConcepts([])} onClearSuggestedRelations={() => useConceptMapStore.getState().setAiSuggestedRelations([])} isViewOnlyMode={storeIsViewOnlyMode} /> </SheetContent> </Sheet>
+
         {aiToolsHook.isExtractConceptsModalOpen && !storeIsViewOnlyMode && <ExtractConceptsModal initialText={aiToolsHook.textForExtraction} onConceptsExtracted={aiToolsHook.handleConceptsExtracted} onOpenChange={aiToolsHook.setIsExtractConceptsModalOpen} />}
         {aiToolsHook.isSuggestRelationsModalOpen && !storeIsViewOnlyMode && <SuggestRelationsModal initialConcepts={aiToolsHook.conceptsForRelationSuggestion} onRelationsSuggested={aiToolsHook.handleRelationsSuggested} onOpenChange={aiToolsHook.setIsSuggestRelationsModalOpen} />}
         {aiToolsHook.isExpandConceptModalOpen && !storeIsViewOnlyMode && aiToolsHook.conceptToExpandDetails && (<ExpandConceptModal initialConceptText={aiToolsHook.conceptToExpandDetails.text} existingMapContext={aiToolsHook.mapContextForExpansion} onConceptExpanded={aiToolsHook.handleConceptExpanded} onOpenChange={aiToolsHook.setIsExpandConceptModalOpen} /> )}
@@ -480,7 +490,7 @@ export default function ConceptMapEditorPage() {
         {aiToolsHook.isAskQuestionModalOpen && !storeIsViewOnlyMode && aiToolsHook.nodeContextForQuestion && <AskQuestionModal nodeContext={aiToolsHook.nodeContextForQuestion} onQuestionAnswered={aiToolsHook.handleQuestionAnswered} onOpenChange={aiToolsHook.setIsAskQuestionModalOpen} />}
         {aiToolsHook.isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && aiToolsHook.nodeContentToRewrite && <RewriteNodeContentModal nodeContent={aiToolsHook.nodeContentToRewrite} onRewriteConfirm={aiToolsHook.handleRewriteNodeContentConfirm} onOpenChange={aiToolsHook.setIsRewriteNodeContentModalOpen} />}
         {aiToolsHook.isRefineModalOpen && aiToolsHook.refineModalInitialData && !storeIsViewOnlyMode && ( <RefineSuggestionModal isOpen={aiToolsHook.isRefineModalOpen} onOpenChange={aiToolsHook.setIsRefineModalOpen} initialData={aiToolsHook.refineModalInitialData} onConfirm={aiToolsHook.handleRefineSuggestionConfirm} /> )}
-        {intermediateNodeSuggestion && !storeIsViewOnlyMode && ( <AlertDialog open={!!intermediateNodeSuggestion} onOpenChange={(isOpen) => { if (!isOpen) clearIntermediateNodeSuggestion(); }} > {/* ... AlertDialogContent ... */} </AlertDialog> )}
+        {intermediateNodeSuggestion && !storeIsViewOnlyMode && ( <AlertDialog open={!!intermediateNodeSuggestion} onOpenChange={(isOpen) => { if (!isOpen) clearIntermediateNodeSuggestion(); }} > <AlertDialogContent> <AlertDialogHeader> <AlertDialogTitle>AI Suggestion: Intermediate Node</AlertDialogTitle> <AlertDialogDescription> The AI suggests adding an intermediate node. {/* ... */ } </AlertDialogDescription> </AlertDialogHeader> <AlertDialogFooter> <AlertDialogCancel onClick={clearIntermediateNodeSuggestion}>Cancel</AlertDialogCancel> <AlertDialogAction onClick={confirmAddIntermediateNode}>Confirm</AlertDialogAction> </AlertDialogFooter> </AlertDialogContent> </AlertDialog> )}
 
       </ReactFlowProvider>
     </div>

@@ -473,11 +473,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     setAiProcessingNodeId(parentNodeId);
     try {
         if (output.expandedIdeas && output.expandedIdeas.length > 0) {
-            const mappedPreviewNodes = output.expandedIdeas.map((idea:any, index:number) => ({ // Type idea properly
+            const mappedPreviewNodes = output.expandedIdeas.map((idea, index:number) => ({
                 id: `preview-exp-${parentNodeId}-${Date.now()}-${index}`,
                 text: idea.text,
                 relationLabel: idea.relationLabel || 'related to',
-                details: idea.details || '',
+                // Prepend reasoning to details if available
+                details: idea.reasoning ? `AI Rationale: ${idea.reasoning}${idea.details ? `\n\n${idea.details}` : ''}` : (idea.details || ''),
             }));
             setConceptExpansionPreview({ parentNodeId, previewNodes: mappedPreviewNodes });
             toast({ title: "AI Suggestions Ready", description: "Review the suggested concepts for expansion." });

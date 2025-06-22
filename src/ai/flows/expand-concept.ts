@@ -27,12 +27,13 @@ export type ExpandConceptInput = z.infer<typeof ExpandConceptInputSchema>;
 
 const ExpandedIdeaSchema = z.object({
   text: z.string().describe("The text for the new expanded idea/node."),
-  relationLabel: z.string().optional().describe("A brief label for the relationship from the parent concept to this new idea, e.g., 'leads to', 'example of', 'supports'. Default is 'related to' if not provided.")
+  relationLabel: z.string().optional().describe("A brief label for the relationship from the parent concept to this new idea, e.g., 'leads to', 'example of', 'supports'. Default is 'related to' if not provided."),
+  reasoning: z.string().optional().describe("A brief explanation for why this specific idea is suggested as an expansion, linking it to the parent concept or user prompt.")
 });
 
 const ExpandConceptOutputSchema = z.object({
   expandedIdeas: z.array(ExpandedIdeaSchema)
-    .describe('A list of new concepts (as objects with text and optional relationLabel) related to the input concept.'),
+    .describe('A list of new concepts (as objects with text, optional relationLabel, and optional reasoning) related to the input concept.'),
 });
 export type ExpandConceptOutput = z.infer<typeof ExpandConceptOutputSchema>;
 
@@ -65,6 +66,7 @@ Please generate a list of 3 to 5 new, concise ideas that are closely related to 
 For each idea, provide:
 1.  "text": The main text for the new idea/node.
 2.  "relationLabel" (optional): A brief, action-oriented label describing how this new idea relates to the original "{{concept}}" (e.g., "supports", "example of", "leads to", "challenges"). If no specific relation is obvious, you can omit this or use a generic like "related to".
+3.  "reasoning" (optional): A short explanation (1 sentence) for why this idea is a relevant expansion of "{{concept}}", especially if it addresses the userRefinementPrompt or clarifies its connection.
 
 These new ideas should broaden understanding by offering a variety of the following:
 - **Sub-components or specific examples** of "{{concept}}".
@@ -78,14 +80,14 @@ Aim for variety in the types of suggestions.
 The ideas should be distinct and offer clear avenues for further exploration.
 Avoid suggesting ideas that are too similar to "{{concept}}" itself or to those already in existingMapContext.
 
-Output strictly as a JSON object with a single key "expandedIdeas", where the value is an array of objects, each having "text" and optionally "relationLabel".
+Output strictly as a JSON object with a single key "expandedIdeas", where the value is an array of objects, each having "text", optionally "relationLabel", and optionally "reasoning".
 Example:
 {
   "expandedIdeas": [
-    { "text": "Specific Example of Concept", "relationLabel": "is an example of" },
-    { "text": "Key Implication", "relationLabel": "results in" },
-    { "text": "Next Logical Step" },
-    { "text": "Alternative Viewpoint", "relationLabel": "contrasts with" }
+    { "text": "Specific Example of Concept", "relationLabel": "is an example of", "reasoning": "Provides a concrete instance of the parent concept." },
+    { "text": "Key Implication", "relationLabel": "results in", "reasoning": "Highlights a direct consequence of the concept." },
+    { "text": "Next Logical Step", "reasoning": "Suggests a process that typically follows from this concept." },
+    { "text": "Alternative Viewpoint", "relationLabel": "contrasts with", "reasoning": "Offers a different perspective for broader understanding." }
   ]
 }
   `,

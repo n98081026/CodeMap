@@ -22,23 +22,26 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   // Student specific
-  { href: '/application/student/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['student'], exact: true },
-  { href: '/application/student/classrooms', label: 'My Classrooms', icon: BookOpen, roles: ['student'] },
-  { href: '/application/student/concept-maps', label: 'My Concept Maps', icon: Share2, roles: ['student'] },
-  { href: '/application/student/projects/submit', label: 'Submit Project', icon: FileText, roles: ['student'] },
-  { href: '/application/student/projects/submissions', label: 'My Submissions', icon: FolderKanban, roles: ['student'], separatorAfter: true },
+  // Common personal items (visible to all roles, including those without a specific Student/Teacher/Admin role)
+  { href: '/application/student/dashboard', label: 'My Dashboard', icon: LayoutDashboard, roles: ['student', 'teacher', 'admin', 'unknown'], exact: true, separatorAfter: true }, // Default dashboard
+  { href: '/application/student/concept-maps', label: 'My Concept Maps', icon: Share2, roles: ['student', 'teacher', 'admin', 'unknown'] },
+  { href: '/application/student/projects/submit', label: 'Analyze Project', icon: FileText, roles: ['student', 'teacher', 'admin', 'unknown'] },
+  { href: '/application/student/projects/submissions', label: 'My Analyses', icon: FolderKanban, roles: ['student', 'teacher', 'admin', 'unknown'], separatorAfter: true },
+
+  // Student specific (only if role is student and they might have classroom specific views)
+  { href: '/application/student/classrooms', label: 'My Classrooms', icon: BookOpen, roles: ['student'], condition: (user) => user.role === 'student', separatorAfter: true },
   
   // Teacher specific
-  { href: '/application/teacher/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['teacher', 'admin'], exact: true },
-  { href: '/application/teacher/classrooms', label: 'Manage Classrooms', icon: BookOpen, roles: ['teacher', 'admin'], separatorAfter: true },
+  { href: '/application/teacher/dashboard', label: 'Teacher Dashboard', icon: LayoutDashboard, roles: ['teacher', 'admin'], condition: (user) => user.role === 'teacher' || user.role === 'admin' },
+  { href: '/application/teacher/classrooms', label: 'Manage Classrooms', icon: BookOpen, roles: ['teacher', 'admin'], condition: (user) => user.role === 'teacher' || user.role === 'admin', separatorAfter: true },
     
   // Admin specific
-  { href: '/application/admin/dashboard', label: 'Admin Dashboard', icon: LayoutDashboard, roles: ['admin'], exact: true },
-  { href: '/application/admin/users', label: 'User Management', icon: Users, roles: ['admin'] },
-  { href: '/application/admin/settings', label: 'System Settings', icon: Settings, roles: ['admin'], separatorAfter: true },
+  { href: '/application/admin/dashboard', label: 'Admin Panel', icon: Settings, roles: ['admin'], condition: (user) => user.role === 'admin' },
+  { href: '/application/admin/users', label: 'User Management', icon: Users, roles: ['admin'], condition: (user) => user.role === 'admin' },
+  { href: '/application/admin/settings', label: 'System Settings', icon: Settings, roles: ['admin'], condition: (user) => user.role === 'admin', separatorAfter: true },
 
-  // Common for all authenticated users
-  { href: '/application/profile', label: 'My Profile', icon: UserCircle, roles: ['student', 'teacher', 'admin'], exact: true },
+  // Profile - common to all
+  { href: '/application/profile', label: 'My Profile', icon: UserCircle, roles: ['student', 'teacher', 'admin', 'unknown'], exact: true },
 ];
 
 export const SidebarNav = React.memo(function SidebarNav() {
@@ -47,7 +50,14 @@ export const SidebarNav = React.memo(function SidebarNav() {
 
   if (!user) return null;
 
-  const filteredNavItems = navItems.filter(item => item.roles.includes(user.role));
+  // Determine effective role, defaulting to 'unknown' if not standard or null
+  const effectiveRole = user.role && ['student', 'teacher', 'admin'].includes(user.role) ? user.role : 'unknown';
+
+  const filteredNavItems = navItems.filter(item => {
+    const roleMatch = item.roles.includes(effectiveRole);
+    const conditionMatch = item.condition ? item.condition(user) : true;
+    return roleMatch && conditionMatch;
+  });
 
   return (
     <nav className="flex flex-col space-y-1 px-2 py-4">

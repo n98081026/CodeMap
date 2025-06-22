@@ -365,19 +365,63 @@ The main remaining area for full Supabase connection is:
     - [ ] **"Guest Mode" or "Try Without Login":** Explore options for users to try basic features or view example maps without mandatory registration. (Higher effort)
     - [ ] **Interactive Tutorial/Walkthrough:** Implement a guided tour for first-time users highlighting key features like project upload, map generation, and basic AI interactions. (Higher effort)
     - [x] **Clearer "User Goals" Input:** Provide examples or tooltips for the "User Goals" field during project upload to reduce user confusion. (Implemented in `ProjectUploadForm`)
-    - [ ] **Role-Agnostic Starting Point:** Offer a clear "Personal Use" or "Quick Analyze" path for users not immediately identifying as "Student" or "Teacher".
+    - [x] **Role-Agnostic Starting Point:** Offer a clear "Personal Use" or "Quick Analyze" path for users not immediately identifying as "Student" or "Teacher". (Implemented: Default to student/general dashboard, sidebar adjusts roles)
 - [ ] **Map Interaction & Interpretation:**
     - [ ] **"Human-Readable" Summaries:** For generated maps, provide a high-level, plain-language summary of the project structure and key components alongside the visual map.
     - [x] **Contextual Help for Map Elements:** Add tooltips or "?" icons to map nodes and properties inspector fields to explain technical terms in simple language. (Implemented for Node Type and Details in `PropertiesInspector`)
-    - [ ] **Smart Map Presentation:**
-        - [ ] Investigate options to auto-focus or highlight key areas of large maps based on "User Goals" or initial analysis.
-        - [ ] Provide more intuitive filtering/folding options for complex maps to reduce visual clutter. (Potentially complex, depends on graph library capabilities)
+    - [ ] **Smart Map Presentation (Super-Simple Overview Mode):**
+        - [ ] **Phase 1: AI-Generated High-Level Summary & Key Modules:**
+            - [x] Create `generateProjectOverviewFlow` to produce a concise text summary and identify 3-5 top-level modules/components with plain-language descriptions. (Implemented in `generate-project-overview.ts`)
+        - [ ] **Phase 2: UI for Overview Mode:**
+            - [x] Add "Overview Mode" toggle button to `EditorToolbar`. (Implemented)
+            - [x] Add state management for overview mode (`isOverviewModeActive`, `projectOverviewData`, `isFetchingOverview`) and actions (`toggleOverviewMode`, `fetchProjectOverview`) in `concept-map-store.ts`. (Implemented)
+            - [x] Create `ProjectOverviewDisplay.tsx` component to render the summary and key modules. (Implemented)
+            - [x] Conditionally render `ProjectOverviewDisplay` or `FlowCanvasCore` in `mapId/page.tsx` based on `isOverviewModeActive`. (Implemented)
+            - [ ] When active, `ProjectOverviewDisplay` shows the AI-generated text summary.
+            - [ ] `ProjectOverviewDisplay` shows a simplified diagram with identified top-level modules as large, clearly labeled nodes. Edges might be omitted or simplified.
+            - [ ] Each module node in `ProjectOverviewDisplay` should display its plain-language description on hover or click.
+        - [ ] **Phase 3 (Future): Interactive Drill-Down from Overview Mode:**
+            - [ ] Clicking a module in Overview Mode transitions the main map view to focus on/filter for that module's components.
     - [ ] **Visual Feedback & Progress:**
         - [ ] For long-running AI operations (analysis, suggestions), provide more engaging progress indicators or estimated time remaining.
         - [ ] Ensure error messages are user-friendly and suggest potential solutions or next steps.
 - [ ] **AI Interaction Refinements:**
-    - [ ] **Preview for AI Actions:** Where feasible, show a "ghost" preview of AI-suggested changes (new nodes, edges) before the user commits them to the map.
+    - [ ] **AI Explanations ("Why?"):**
+        - [x] **Suggest Relations:** Modify `suggestRelationsFlow` to include a `reason` field. (Implemented)
+        - [x] **Suggest Relations UI:** Update `AISuggestionPanel` to display the `reason` for suggested relations. (Implemented)
+        - [x] **Extract Concepts:** Modify `extractConceptsFlow` to include `context` and `source` for extracted concepts. (Implemented)
+        - [x] **Extract Concepts UI:** Update `AISuggestionPanel` to display `context` and `source` for extracted concepts. (Implemented)
+        - [x] **Expand Concept:** Modify `expandConceptFlow` to include `reasoning` for expanded ideas. (Implemented)
+        - [x] **Expand Concept UI:** Update `useConceptMapAITools` to prepend `reasoning` to the `details` of new nodes from expansion. (Implemented)
+    - [ ] **Preview for AI Actions:** Where feasible, show a "ghost" preview of AI-suggested changes (new nodes, edges) before the user commits them to the map. (Partially implemented with "Expand Concept" previews)
     - [ ] **Simplified AI Prompts/Inputs:** Review AI feature modals to ensure prompts and options are clear to non-technical users.
+- [ ] **Content & Help:**
+    - [ ] **"Ordinary User" Example Library:**
+        - [ ] **Content Curation:** Identify and prepare 2-3 simple, relatable example projects (e.g., small Python game, basic website/blog source).
+        - [ ] **Zip Projects:** Package these example projects into ZIP files.
+        - [ ] **Storage:** Upload ZIP files to a publicly accessible location or include in `public/examples/` if small enough.
+        - [ ] **Pre-generate Maps:** Use CodeMap to generate and save the JSON representation of the concept maps for these examples. Store these in `src/lib/example-maps/`.
+        - [ ] **UI - Examples Page/Section:** Design and implement a new page (e.g., `/application/examples`) or a section on a dashboard to list these examples.
+        - [ ] **UI - Example Item Display:** Each example should show its name, a "plain-language" description of what it is and what CodeMap helps reveal about it.
+        - [ ] **Functionality - Load Example:** Implement a "Load Example" button for each. Clicking it should:
+            - Fetch/load the pre-generated map JSON.
+            - Load this data into the concept map editor (possibly in a read-only or "ट्राई करें" mode).
+            - (Optional) Display a brief guide or key points about the example map.
+- [ ] **Interactive Q&A (Chatbot-Style):**
+    - [ ] **Phase 1: Node-Specific Q&A UI & Basic Flow:**
+        - [ ] **UI Element:** Add an "Ask AI about this node" button/icon to `PropertiesInspector` (when a node is selected) or the `NodeContextMenu`.
+        - [ ] **Input Modal/Popover:** Clicking the button opens a small modal or popover with a text input for the user's question and a "Send" button.
+        - [ ] **Genkit Flow (`askQuestionAboutNodeFlow`):**
+            - [ ] Create `src/ai/flows/ask-question-about-node.ts`.
+            - [ ] Define input schema: `{ nodeId: string, nodeText: string, nodeDetails?: string, nodeType?: string, userQuestion: string }`.
+            - [ ] Define output schema: `{ answer: string, error?: string }`.
+            - [ ] Implement the flow: Takes node info and question, prompts an LLM to answer in simple terms based *only* on the provided node context.
+        - [ ] **Triggering Flow:** In the UI, when the user submits a question, gather selected node data and call this flow.
+        - [ ] **Displaying Answer:** Display the LLM's textual answer within the modal/popover. Handle loading and error states.
+    - [ ] **Phase 2 (Future): Contextual Q&A (Edges, Multiple Nodes, Map-level):**
+        - [ ] Extend UI to allow questions when an edge is selected or multiple nodes are selected.
+        - [ ] Enhance `askQuestionAboutNodeFlow` or create new flows to handle questions about relationships or broader map context.
+        - [ ] This might involve passing more of the `mapData` (or a relevant subgraph) to the LLM.
 - [ ] **General Usability:**
     - [ ] **Performance for Large Projects:** Continuously monitor and optimize performance when analyzing large codebases and rendering complex maps.
     - [ ] **Clarity of Value Proposition:** Ensure the application's homepage and initial views clearly communicate the benefits of using CodeMap in simple terms (e.g., "Understand code faster," "Visualize complex projects easily").

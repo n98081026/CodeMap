@@ -15,10 +15,14 @@ export const AllStructuralSuggestionsSchema = z.array(StructuralSuggestionItemSc
 
 // Specific data schemas for each suggestion type, to be used by the orchestrating flow
 // and potentially by the client for type assertion/parsing if needed.
+
+// This AddEdgeDataSchema is for structural suggestions like "link X to Y"
+// The suggestRelationsFlow output is different and handled by its own schema.
 export const AddEdgeDataSchema = z.object({
     sourceNodeId: z.string(),
     targetNodeId: z.string(),
-    label: z.string(), // Made label mandatory as per original suggestMapImprovementFlow
+    label: z.string(),
+    reason: z.string().optional(), // Added reason here as well for consistency if structural suggestions also provide it
 });
 
 export const NewIntermediateNodeDataSchema = z.object({
