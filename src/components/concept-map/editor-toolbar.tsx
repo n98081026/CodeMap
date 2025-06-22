@@ -22,7 +22,7 @@ import {
 =======
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText,
-  Network, AlignHorizontalDistributeCenter
+  Network, AlignHorizontalDistributeCenter, Grid // Added Grid icon
 } from "lucide-react";
 >>>>>>> master
 import { useToast } from "@/hooks/use-toast";
@@ -85,6 +85,8 @@ export interface ArrangeAction {
   onApplySemanticTidyUp?: () => void; // New prop for Semantic Tidy
   isApplyingSemanticTidyUp?: boolean; // New prop for Semantic Tidy
   onAiTidySelection?: () => void; // New prop
+  onDagreTidySelection?: () => void; // For Dagre-based selection tidy
+  isDagreTidying?: boolean;         // Loading state for Dagre tidy
 >>>>>>> master
 }
 
@@ -135,6 +137,8 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onApplySemanticTidyUp, // Destructure new prop
   isApplyingSemanticTidyUp, // Destructure new prop
   onAiTidySelection, // Destructure new prop
+  onDagreTidySelection,
+  isDagreTidying,
 >>>>>>> master
 }: EditorToolbarProps) {
   const { toast } = useToast();
@@ -296,21 +300,43 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           </TooltipContent>
         </Tooltip>
 
-        {/* New Auto-layout (Dagre) Button */}
+        {/* New Auto-layout (Dagre) Button - Full Map */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="outline"
               size="icon"
-              disabled={isViewOnlyMode || !onAutoLayout} // Assuming onAutoLayout will be reused/adapted for Dagre
-              onClick={() => onAutoLayout?.()} // Temporarily using onAutoLayout; will be connected properly later
-              aria-label="Auto-layout Map (Dagre)"
+              disabled={isViewOnlyMode || !onAutoLayout}
+              onClick={() => onAutoLayout?.()}
+              aria-label="Auto-layout Full Map (Dagre)"
             >
               <Network className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>{isViewOnlyMode ? "Auto-layout (Disabled)" : !onAutoLayout ? "Auto-layout (Not Configured)" : "Auto-layout Map (Dagre)"}</p>
+            <p>{isViewOnlyMode ? "Auto-layout Full Map (Disabled)" : !onAutoLayout ? "Auto-layout Full Map (Not Configured)" : "Auto-layout Full Map (Dagre)"}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Dagre Tidy Selection Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleGenAIClick(onDagreTidySelection!, "Dagre Tidy Selection")}
+              disabled={isViewOnlyMode || !onDagreTidySelection || isDagreTidying || numMultiSelectedNodeIds < 2}
+              aria-label="Tidy Selected Subgraph (Dagre)"
+            >
+              {isDagreTidying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Grid className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode ? "Tidy Selection (Dagre - Disabled)"
+              : !onDagreTidySelection ? "Tidy Selection (Dagre - Not Configured)"
+              : numMultiSelectedNodeIds < 2 ? "Tidy Selection (Dagre - Select 2+ nodes)"
+              : isDagreTidying ? "Processing..."
+              : "Tidy Selected Subgraph (Dagre)"}
           </TooltipContent>
         </Tooltip>
 
