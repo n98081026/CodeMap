@@ -36,7 +36,7 @@ const generateOverviewPrompt = ai.definePrompt({
   name: 'generateProjectOverviewPrompt',
   input: { schema: z.object({ analyzedStructure: ProjectAnalysisOutputSchema, userGoals: z.string().optional() }) },
   output: { schema: GenerateProjectOverviewOutputSchema },
-  prompt: `You are an expert software architect skilled at quickly understanding and summarizing codebases for a general audience.
+  prompt: `You are an expert software architect skilled at quickly understanding and summarizing codebases **for a general audience, including those who may not be programmers.** Your goal is to provide a high-level, easy-to-grasp overview.
 Given the following analyzed project structure:
 
 Project Name: {{analyzedStructure.analyzedFileName}}
@@ -51,21 +51,22 @@ Key identified elements (sample):
 User Goals/Hints (if any): {{userGoals}}
 
 Your tasks are:
-1.  **Overall Summary**: Write a concise (2-4 sentences) high-level summary of the project. Describe its main purpose and, if evident, its primary technology stack. Use plain, easy-to-understand language. Avoid overly technical jargon.
-2.  **Identify Key Modules/Components**: Identify 3-5 (but no less than 2 and no more than 7) of the most important top-level modules, components, or functional areas of this project based on the analysis. For each key module:
-    *   "name": A short, descriptive name for the module (e.g., "User Authentication", "Data Processing Pipeline", "UI Rendering Engine").
-    *   "description": A 1-2 sentence plain-language description of what this module primarily does or is responsible for.
-    *   "filePaths" (optional): If specific files clearly define this module, list 1-3 of the most relevant file paths. This is optional.
+1.  **Overall Summary**: Write a concise (2-4 sentences) high-level summary of the project. Describe its main purpose and, if truly evident and widely recognizable (e.g., "built with Python and React"), its primary technology stack. **Use plain, everyday language. Avoid technical jargon unless absolutely necessary and briefly explained.** Imagine you're explaining this to a project manager or a new team member from a non-technical department.
+2.  **Identify Key Modules/Components**: Identify 3-5 (but no less than 2 and no more than 7) of the most important **conceptual, high-level functional areas or main parts** of this project, based on the analysis. These should be understandable to someone trying to get a general idea of what the project *does* and how it's broadly organized, rather than just code-level directories. For each key module:
+    *   "name": A short, descriptive, and intuitive name for the module (e.g., "User Sign-up & Login", "Product Catalog Display", "Payment Processing Gateway", "Main Data Analysis Engine").
+    *   "description": A 1-2 sentence **plain-language description of what this module's primary responsibility or purpose is from a user's or business perspective.** What does it achieve?
+    *   "filePaths" (optional): If specific files clearly define this module, list 1-3 of the most relevant file paths. This is optional and should only be included if it adds significant clarity for a slightly more technical user.
 
 Focus on providing a simplified, bird's-eye view that a non-expert could grasp. If user goals are provided, try to tailor the summary and module identification to those goals.
 
 Output strictly as a JSON object matching the specified output schema.
 Ensure 'keyModules' array has between 2 and 7 items.
-If the provided analysis seems insufficient to generate a meaningful overview (e.g., very few files, parsing errors), set the 'error' field in the output and make 'overallSummary' and 'keyModules' reflect this uncertainty or unavailability.
+If the provided analysis seems insufficient to generate a meaningful overview (e.g., very few files, parsing errors in analysisSummary), set the 'error' field in the output. In such cases, 'overallSummary' should state that a detailed overview couldn't be generated and why, and 'keyModules' can be an empty array or contain a single entry like {"name": "Project Files", "description": "General collection of project files, detailed structure not clear from analysis."}.
+
 Example for 'keyModules':
 [
-  { "name": "User Service", "description": "Handles all user account creation, login, and profile management.", "filePaths": ["src/services/user.ts", "src/controllers/authController.ts"] },
-  { "name": "Order Processing", "description": "Manages the lifecycle of customer orders, from creation to fulfillment." }
+  { "name": "User Account Management", "description": "Handles everything related to user registration, login, and profile updates.", "filePaths": ["src/services/user.ts", "src/controllers/authController.ts"] },
+  { "name": "Order Processing System", "description": "Manages how customer orders are taken, processed, and tracked through to fulfillment." }
 ]
 `,
 });
