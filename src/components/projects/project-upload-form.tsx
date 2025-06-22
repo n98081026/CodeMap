@@ -13,10 +13,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription, // Added for tooltip hint
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Added
+import { Info } from "lucide-react"; // Added
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types";
@@ -310,7 +313,27 @@ export function ProjectUploadForm() {
             name="userGoals"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Analysis Goals/Hints (Optional)</FormLabel>
+                <div className="flex items-center space-x-2">
+                  <FormLabel>Analysis Goals/Hints (Optional)</FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p className="text-sm">
+                          Help the AI understand what you're interested in. For example:
+                        </p>
+                        <ul className="list-disc list-inside mt-1 text-xs">
+                          <li>"Understand the main functional modules"</li>
+                          <li>"Identify key classes and their relationships"</li>
+                          <li>"Get a quick overview of the project architecture"</li>
+                          <li>"Focus on user authentication and API routes"</li>
+                        </ul>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <FormControl>
                   <Textarea
                     placeholder="e.g., Focus on API routes, user authentication flow, or key data models."
@@ -320,8 +343,10 @@ export function ProjectUploadForm() {
                     disabled={isBusyOverall}
                   />
                 </FormControl>
+                <FormDescription className="text-xs">
+                  Max 500 characters. Providing clear goals can improve the generated map's relevance.
+                </FormDescription>
                 <FormMessage />
-                <p className="text-sm text-muted-foreground">Provide hints for the AI. Max 500 characters.</p>
               </FormItem>
             )}
           />

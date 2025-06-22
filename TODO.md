@@ -359,3 +359,25 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
+## User Experience (UX) Enhancements - "Ordinary User" Perspective
+- [ ] **Onboarding & Initial Experience:**
+    - [ ] **"Guest Mode" or "Try Without Login":** Explore options for users to try basic features or view example maps without mandatory registration. (Higher effort)
+    - [ ] **Interactive Tutorial/Walkthrough:** Implement a guided tour for first-time users highlighting key features like project upload, map generation, and basic AI interactions. (Higher effort)
+    - [x] **Clearer "User Goals" Input:** Provide examples or tooltips for the "User Goals" field during project upload to reduce user confusion. (Implemented in `ProjectUploadForm`)
+    - [ ] **Role-Agnostic Starting Point:** Offer a clear "Personal Use" or "Quick Analyze" path for users not immediately identifying as "Student" or "Teacher".
+- [ ] **Map Interaction & Interpretation:**
+    - [ ] **"Human-Readable" Summaries:** For generated maps, provide a high-level, plain-language summary of the project structure and key components alongside the visual map.
+    - [x] **Contextual Help for Map Elements:** Add tooltips or "?" icons to map nodes and properties inspector fields to explain technical terms in simple language. (Implemented for Node Type and Details in `PropertiesInspector`)
+    - [ ] **Smart Map Presentation:**
+        - [ ] Investigate options to auto-focus or highlight key areas of large maps based on "User Goals" or initial analysis.
+        - [ ] Provide more intuitive filtering/folding options for complex maps to reduce visual clutter. (Potentially complex, depends on graph library capabilities)
+    - [ ] **Visual Feedback & Progress:**
+        - [ ] For long-running AI operations (analysis, suggestions), provide more engaging progress indicators or estimated time remaining.
+        - [ ] Ensure error messages are user-friendly and suggest potential solutions or next steps.
+- [ ] **AI Interaction Refinements:**
+    - [ ] **Preview for AI Actions:** Where feasible, show a "ghost" preview of AI-suggested changes (new nodes, edges) before the user commits them to the map.
+    - [ ] **Simplified AI Prompts/Inputs:** Review AI feature modals to ensure prompts and options are clear to non-technical users.
+- [ ] **General Usability:**
+    - [ ] **Performance for Large Projects:** Continuously monitor and optimize performance when analyzing large codebases and rendering complex maps.
+    - [ ] **Clarity of Value Proposition:** Ensure the application's homepage and initial views clearly communicate the benefits of using CodeMap in simple terms (e.g., "Understand code faster," "Visualize complex projects easily").

@@ -1,7 +1,7 @@
 "use client";
 
 <<<<<<< HEAD
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 =======
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 >>>>>>> master
@@ -10,12 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 <<<<<<< HEAD
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Sparkles, MessageSquareQuote, Brain, HelpCircle, Lightbulb } from "lucide-react";
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles, GitMerge, Info, HelpCircle, MessageSquareQuote, Lightbulb } from "lucide-react"; // Added Info
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
-import { AICommandPalette, type AICommand } from './ai-command-palette';
-import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
-import useConceptMapStore from '@/stores/concept-map-store';
+import AICommandPalette, { type AICommand } from './ai-command-palette'; // Import AICommandPalette
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Added
+import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added
+import useConceptMapStore from '@/stores/concept-map-store'; // Added
 =======
 import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles, GitMerge } from "lucide-react";
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
@@ -546,7 +547,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         <Label htmlFor="nodeLabel" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Label (Text)</Label>
         <Input 
             id="nodeLabel"
-            ref={nodeLabelInputRef} // Assign ref here
+            ref={nodeLabelInputRef}
             value={elementLabelValue} 
             onChange={handleElementLabelChange} 
             disabled={isViewOnlyMode} 
@@ -554,7 +555,21 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         />
       </div>
       <div className="mt-2">
-        <Label htmlFor="nodeDetails" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Details (type "/ai" for commands)</Label>
+        <div className="flex items-center space-x-2 mb-1">
+            <Label htmlFor="nodeDetails" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Details</Label>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-sm">
+                        Provide more context or a description for this node. You can also type <code className="bg-muted px-1 py-0.5 rounded-sm">/ai</code> to access AI commands for content generation or refinement.
+                        </p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </div>
         <Textarea 
             id="nodeDetails"
 <<<<<<< HEAD
@@ -577,9 +592,23 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           onClose={handleClosePalette}
         />
       </div>
-      {/* Node Type input - removed handleElementNodeTypeChange as it was identical to handleElementLabelChange's old logic and not palette related */}
+      {/* Node Type input */}
       <div className="mt-2">
-        <Label htmlFor="nodeType" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Type</Label>
+        <div className="flex items-center space-x-2 mb-1">
+            <Label htmlFor="nodeType" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Type</Label>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-sm">
+                        Categorize your node. Examples: <code className="bg-muted px-1 py-0.5 rounded-sm">component</code>, <code className="bg-muted px-1 py-0.5 rounded-sm">service</code>, <code className="bg-muted px-1 py-0.5 rounded-sm">database</code>, <code className="bg-muted px-1 py-0.5 rounded-sm">feature</code>, or specific types like <code className="bg-muted px-1 py-0.5 rounded-sm">js_function</code>, <code className="bg-muted px-1 py-0.5 rounded-sm">ai-summary-node</code>.
+                        </p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </div>
         <Input 
           id="nodeType" 
           value={elementNodeTypeValue} 
@@ -588,7 +617,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             onSelectedElementPropertyUpdate({ type: e.target.value });
           }}
           disabled={isViewOnlyMode} 
-          placeholder="e.g., service, component"
+          placeholder="e.g., service, component, ai-summary"
           className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
         /> 
       </div>
