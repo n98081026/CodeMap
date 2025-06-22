@@ -8,6 +8,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
 import type { FileObject } from '@supabase/storage-js'; // For Supabase Storage types
+import AdmZip from 'adm-zip'; // Library for handling ZIP files
 
 export const ProjectAnalysisInputSchema = z.object({
   projectStoragePath: z.string().describe('File path or reference from Supabase Storage where the project archive is located.'),
@@ -119,12 +120,69 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
   };
 
   try {
-    const filesList = await listProjectFiles(input.projectStoragePath);
-    if (filesList.length === 0) {
-      output.parsingErrors?.push(`No files found at storage path: ${input.projectStoragePath}. Ensure the path is correct and files are extracted.`);
-      output.projectSummary = `Could not list files at path: ${input.projectStoragePath}. Path might be incorrect or empty.`;
-      return output;
+    let filesToAnalyze: Array<{ name: string; content?: string | Buffer }> = [];
+    let isArchive = false;
+
+    if (input.projectStoragePath.toLowerCase().endsWith('.zip')) {
+      isArchive = true;
+      console.log("Detected .zip extension, attempting to download and unpack archive.");
+      const archiveBuffer = await downloadProjectFileAsBuffer(input.projectStoragePath);
+      if (archiveBuffer) {
+        const unpackResult = await unpackZipBuffer(archiveBuffer);
+        if (unpackResult) {
+          filesToAnalyze = unpackResult.files.map(file => ({ name: file.name, content: file.content }));
+          if (unpackResult.entryErrors.length > 0) {
+            output.parsingErrors?.push(...unpackResult.entryErrors);
+          }
+          console.log(`Unpacked ${filesToAnalyze.length} files from archive. Encountered ${unpackResult.entryErrors.length} entry errors.`);
+          if (filesToAnalyze.length === 0 && unpackResult.entryErrors.some(e => e.startsWith("Critical ZIP unpacking error"))) {
+            // If critical error happened early and no files were processed, it's a critical failure.
+             output.parsingErrors?.push(`Critical failure to unpack ZIP archive: ${input.projectStoragePath}`);
+             return output;
+          }
+        } else { // Should not happen if unpackZipBuffer always returns UnpackResult or null (and null is not expected anymore)
+          output.parsingErrors?.push(`Failed to unpack ZIP archive (null result): ${input.projectStoragePath}`);
+          return output; // Critical error
+        }
+      } else {
+        output.parsingErrors?.push(`Failed to download ZIP archive: ${input.projectStoragePath}`);
+        return output; // Critical error, cannot proceed
+      }
+    } else {
+      // Assume flat file structure, list files directly from storage path
+      console.log("No .zip extension detected, listing files from storage path.");
+      const listedFiles = await listProjectFiles(input.projectStoragePath);
+      filesToAnalyze = listedFiles.map(f => ({ name: f.name })); // Content will be fetched on demand
     }
+
+    if (filesToAnalyze.length === 0 && !isArchive) { // if not an archive and still no files, then it's an issue.
+        output.parsingErrors?.push(`No files found at storage path or in archive: ${input.projectStoragePath}.`);
+        output.projectSummary = `Could not list files at path: ${input.projectStoragePath}. Path might be incorrect or empty.`;
+        return output;
+    } else if (filesToAnalyze.length === 0 && isArchive) {
+        output.parsingErrors?.push(`ZIP archive at ${input.projectStoragePath} was empty or contained no processable files.`);
+        return output;
+    }
+
+
+    // Helper to get file content, either from memory (unpacked) or by downloading
+    const getFileContent = async (fileName: string): Promise<string | null> => {
+        const fileInMemory = filesToAnalyze.find(f => f.name === fileName && f.content);
+        if (fileInMemory?.content) {
+            return typeof fileInMemory.content === 'string' ? fileInMemory.content : fileInMemory.content.toString('utf-8');
+        }
+        // If not an archive or content not preloaded, download it
+        if (!isArchive) {
+            const fullPath = input.projectStoragePath.endsWith('/')
+                ? `${input.projectStoragePath}${fileName}`
+                : `${input.projectStoragePath}/${fileName}`;
+            return await downloadProjectFile(fullPath);
+        }
+        return null; // File not found in archive or content not string
+    };
+
+    const fileListForSummary = isArchive ? filesToAnalyze : filesToAnalyze.map(f => ({name: f.name}));
+
 
     output.directoryStructureSummary?.push({
         path: "/",
@@ -152,11 +210,7 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
     const packageJsonFileObject = filesList.find(f => f.name.toLowerCase() === 'package.json');
     if (packageJsonFileObject) {
         // ... (Node.js analysis logic as before) ...
-        const packageJsonContent = await downloadProjectFile(
-            input.projectStoragePath.endsWith('/') ?
-            `${input.projectStoragePath}${packageJsonFileObject.name}` :
-            `${input.projectStoragePath}/${packageJsonFileObject.name}`
-        );
+        const packageJsonContent = await getFileContent(packageJsonFileObject.name); // Use getFileContent
       if (packageJsonContent) {
         if (!output.keyFiles?.find(kf => kf.filePath === packageJsonFileObject.name)) {
             output.keyFiles?.push({ filePath: packageJsonFileObject.name, type: "manifest", briefDescription: "Project manifest and dependencies (Node.js)." });
@@ -180,11 +234,51 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
           if (deps.length > 0) output.dependencies = { ...output.dependencies, npm: deps };
 
           if (deps.some(d => d.startsWith('react'))) output.inferredLanguagesFrameworks?.push({ name: "React", confidence: "medium" });
+
+          // Deeper Node.js analysis: list source files and extract imports
+          const sourceFileExtensions = ['.js', '.jsx', '.ts', '.tsx'];
+          const sourceFiles = filesToAnalyze.filter(f => sourceFileExtensions.some(ext => f.name.endsWith(ext)));
+
+          // Limit processing for performance
+          const MAX_SOURCE_FILES_TO_PROCESS = 20;
+          let processedSourceFilesCount = 0;
+
+          for (const sourceFile of sourceFiles) {
+            if (processedSourceFilesCount >= MAX_SOURCE_FILES_TO_PROCESS) break;
+
+            const fileContent = await getFileContent(sourceFile.name);
+            if (fileContent) {
+              const imports = extractJsImports(fileContent);
+              let fileType: KeyFileSchema['type'] = 'utility'; // Default
+              if (sourceFile.name.includes('/services/')) fileType = 'service_definition';
+              else if (sourceFile.name.includes('/components/') || sourceFile.name.includes('/pages/') || sourceFile.name.includes('/app/')) fileType = 'ui_component';
+              else if (sourceFile.name.match(/index\.(js|ts)x?$/) || sourceFile.name.match(/app\.(js|ts)x?$/) || sourceFile.name.match(/server\.(js|ts)$/)) fileType = 'entry_point';
+
+              const existingKf = output.keyFiles?.find(kf => kf.filePath === sourceFile.name);
+              if (existingKf) {
+                existingKf.type = existingKf.type === 'unknown' ? fileType : existingKf.type; // Update type if more specific
+                existingKf.details = existingKf.details ? `${existingKf.details}\nImports: ${imports.join(', ')}` : `Imports: ${imports.join(', ')}`;
+                if (imports.length > 0) existingKf.briefDescription = (existingKf.briefDescription || "") + " Contains module imports.";
+              } else {
+                 output.keyFiles?.push({
+                    filePath: sourceFile.name,
+                    type: fileType,
+                    briefDescription: `Source file. ${imports.length > 0 ? "Contains module imports." : ""}`,
+                    details: imports.length > 0 ? `Imports: ${imports.join(', ')}` : undefined,
+                 });
+              }
+              processedSourceFilesCount++;
+            } else {
+              output.parsingErrors?.push(`Could not read content for source file: ${sourceFile.name}`);
+            }
+          }
+
+
         } catch (e: any) {
           output.parsingErrors?.push(`Error parsing package.json: ${e.message}`);
         }
-      } else {
-        output.parsingErrors?.push("package.json found in listing but could not be downloaded/read.");
+      } else if (packageJsonFileObject) { // Check if file object existed, meaning download failed
+        output.parsingErrors?.push(`package.json found in listing but could not be downloaded/read.`);
       }
     }
 
@@ -631,4 +725,73 @@ async function downloadProjectFile(fullFilePath: string): Promise<string | null>
     }
   }
   return null;
+}
+
+/**
+ * Downloads a file as a Buffer from the 'project_archives' bucket.
+ * @param fullFilePath The full path to the file in Supabase Storage.
+ * @returns A promise that resolves to the file content as a Buffer, or null if an error occurs.
+ */
+async function downloadProjectFileAsBuffer(fullFilePath: string): Promise<Buffer | null> {
+  const { data, error } = await supabase.storage
+    .from('project_archives')
+    .download(fullFilePath);
+
+  if (error) {
+    console.error(`Error downloading file ${fullFilePath} as buffer from Supabase Storage:`, error);
+    return null;
+  }
+  if (data) {
+    try {
+      const arrayBuffer = await data.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch (bufferError) {
+      console.error(`Error converting downloaded file ${fullFilePath} blob to ArrayBuffer/Buffer:`, bufferError);
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Unpacks a ZIP buffer in memory.
+ * @param buffer The ZIP file content as a Buffer.
+ * @returns A promise that resolves to an object containing extracted files and any entry-specific errors, or null if critical ZIP error.
+ */
+interface UnpackResult {
+  files: Array<{ name: string; content: string | Buffer }>;
+  entryErrors: string[];
+}
+async function unpackZipBuffer(buffer: Buffer): Promise<UnpackResult | null> {
+  const files: Array<{ name: string; content: string | Buffer }> = [];
+  const entryErrors: string[] = [];
+  try {
+    const zip = new AdmZip(buffer);
+    const zipEntries = zip.getEntries();
+
+    for (const zipEntry of zipEntries) {
+      if (!zipEntry.isDirectory) {
+        const isLikelyText = /\.(txt|json|md|xml|html|css|js|ts|py|java|cs|c|cpp|h|hpp|sh|yaml|yml|toml)$/i.test(zipEntry.entryName);
+        try {
+            const contentBuffer = zipEntry.getData();
+            if (isLikelyText) {
+                files.push({ name: zipEntry.entryName, content: contentBuffer.toString('utf8') });
+            } else {
+                files.push({ name: zipEntry.entryName, content: contentBuffer });
+            }
+        } catch (e: any) {
+            const errorMsg = `Error reading data for zip entry ${zipEntry.entryName}: ${e.message || e}`;
+            console.error(errorMsg);
+            entryErrors.push(errorMsg);
+        }
+      }
+    }
+    return { files, entryErrors };
+  } catch (error: any) {
+    console.error("Critical error unpacking ZIP buffer:", error);
+    entryErrors.push(`Critical ZIP unpacking error: ${error.message || error}`);
+    // Return any files successfully processed before critical error, plus the errors.
+    // If the error is in `new AdmZip(buffer)` itself, files will be empty.
+    return { files, entryErrors };
+  }
 }
