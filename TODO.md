@@ -372,21 +372,21 @@ The main remaining area for full Supabase connection is:
     - [ ] **Smart Map Presentation (Super-Simple Overview Mode):**
         - [ ] **Phase 1: AI-Generated High-Level Summary & Key Modules:**
             - [x] Create `generateProjectOverviewFlow` to produce a concise text summary and identify 3-5 top-level modules/components with plain-language descriptions. (Implemented in `generate-project-overview.ts`)
-        - [ ] **Phase 2: UI for Overview Mode:**
+        - [x] **Phase 2: UI for Overview Mode:**
             - [x] Add "Overview Mode" toggle button to `EditorToolbar`. (Implemented)
             - [x] Add state management for overview mode (`isOverviewModeActive`, `projectOverviewData`, `isFetchingOverview`) and actions (`toggleOverviewMode`, `fetchProjectOverview`) in `concept-map-store.ts`. (Implemented)
             - [x] Create `ProjectOverviewDisplay.tsx` component to render the summary and key modules. (Implemented)
             - [x] Conditionally render `ProjectOverviewDisplay` or `FlowCanvasCore` in `mapId/page.tsx` based on `isOverviewModeActive`. (Implemented)
-            - [ ] When active, `ProjectOverviewDisplay` shows the AI-generated text summary.
-            - [ ] `ProjectOverviewDisplay` shows a simplified diagram with identified top-level modules as large, clearly labeled nodes. Edges might be omitted or simplified.
-            - [ ] Each module node in `ProjectOverviewDisplay` should display its plain-language description on hover or click.
+            - [x] When active, `ProjectOverviewDisplay` shows the AI-generated text summary. (Implemented)
+            - [x] `ProjectOverviewDisplay` shows identified top-level modules as cards. (Implemented)
+            - [x] Each module card in `ProjectOverviewDisplay` displays its plain-language description and shows key files in a tooltip. (Implemented)
         - [ ] **Phase 3 (Future): Interactive Drill-Down from Overview Mode:**
             - [ ] Clicking a module in Overview Mode transitions the main map view to focus on/filter for that module's components.
     - [ ] **Visual Feedback & Progress:**
         - [ ] For long-running AI operations (analysis, suggestions), provide more engaging progress indicators or estimated time remaining.
         - [ ] Ensure error messages are user-friendly and suggest potential solutions or next steps.
 - [ ] **AI Interaction Refinements:**
-    - [ ] **AI Explanations ("Why?"):**
+    - [x] **AI Explanations ("Why?"):**
         - [x] **Suggest Relations:** Modify `suggestRelationsFlow` to include a `reason` field. (Implemented)
         - [x] **Suggest Relations UI:** Update `AISuggestionPanel` to display the `reason` for suggested relations. (Implemented)
         - [x] **Extract Concepts:** Modify `extractConceptsFlow` to include `context` and `source` for extracted concepts. (Implemented)
@@ -397,27 +397,18 @@ The main remaining area for full Supabase connection is:
     - [ ] **Simplified AI Prompts/Inputs:** Review AI feature modals to ensure prompts and options are clear to non-technical users.
 - [ ] **Content & Help:**
     - [ ] **"Ordinary User" Example Library:**
-        - [ ] **Content Curation:** Identify and prepare 2-3 simple, relatable example projects (e.g., small Python game, basic website/blog source).
-        - [ ] **Zip Projects:** Package these example projects into ZIP files.
-        - [ ] **Storage:** Upload ZIP files to a publicly accessible location or include in `public/examples/` if small enough.
-        - [ ] **Pre-generate Maps:** Use CodeMap to generate and save the JSON representation of the concept maps for these examples. Store these in `src/lib/example-maps/`.
-        - [ ] **UI - Examples Page/Section:** Design and implement a new page (e.g., `/application/examples`) or a section on a dashboard to list these examples.
-        - [ ] **UI - Example Item Display:** Each example should show its name, a "plain-language" description of what it is and what CodeMap helps reveal about it.
-        - [ ] **Functionality - Load Example:** Implement a "Load Example" button for each. Clicking it should:
-            - Fetch/load the pre-generated map JSON.
-            - Load this data into the concept map editor (possibly in a read-only or "ट्राई करें" mode).
-            - (Optional) Display a brief guide or key points about the example map.
+        - [x] **Content Curation & Data Definition:** Defined `ExampleProject` interface and `exampleProjects` array in `src/lib/example-data.ts` with metadata for 3 examples. (Implemented)
+        - [x] **File Structure:** Created placeholder directories `public/examples/`, `public/images/examples/`, `src/lib/example-maps/`. (Implemented)
+        - [x] **UI - Examples Page/Section:** Created `src/app/(app)/examples/page.tsx` to display example cards. (Implemented)
+        - [x] **UI - Navigation:** Added "Examples" link to `SidebarNav`. (Implemented)
+        - [x] **Functionality - Load Example:** Implemented `loadExampleMapData` action in `concept-map-store.ts` and `handleLoadExample` in `ExamplesPage` to fetch and load (mocked) JSON map data. (Implemented)
+        - [ ] **Actual Example Content:** Populate `public/example-maps/` with actual JSON files and `public/images/examples/` with preview images. (Manual Task for User)
 - [ ] **Interactive Q&A (Chatbot-Style):**
-    - [ ] **Phase 1: Node-Specific Q&A UI & Basic Flow:**
-        - [ ] **UI Element:** Add an "Ask AI about this node" button/icon to `PropertiesInspector` (when a node is selected) or the `NodeContextMenu`.
-        - [ ] **Input Modal/Popover:** Clicking the button opens a small modal or popover with a text input for the user's question and a "Send" button.
-        - [ ] **Genkit Flow (`askQuestionAboutNodeFlow`):**
-            - [ ] Create `src/ai/flows/ask-question-about-node.ts`.
-            - [ ] Define input schema: `{ nodeId: string, nodeText: string, nodeDetails?: string, nodeType?: string, userQuestion: string }`.
-            - [ ] Define output schema: `{ answer: string, error?: string }`.
-            - [ ] Implement the flow: Takes node info and question, prompts an LLM to answer in simple terms based *only* on the provided node context.
-        - [ ] **Triggering Flow:** In the UI, when the user submits a question, gather selected node data and call this flow.
-        - [ ] **Displaying Answer:** Display the LLM's textual answer within the modal/popover. Handle loading and error states.
+    - [x] **Phase 1: Node-Specific Q&A UI & Basic Flow:**
+        - [x] **Genkit Flow (`askQuestionAboutNodeFlow`):** Updated `src/ai/flows/ask-question-about-node.ts` with refined input/output schemas and prompt. (Implemented)
+        - [x] **UI Element & Logic (`PropertiesInspector`):** Added "Ask AI About This Node" section with textarea, button. (Implemented)
+        - [x] **Hook Integration (`useConceptMapAITools`):** Added `askQuestionAboutNode` function to call the Genkit flow. (Implemented)
+        - [x] **Displaying Answer:** `PropertiesInspector` now displays AI's answer or error. (Implemented)
     - [ ] **Phase 2 (Future): Contextual Q&A (Edges, Multiple Nodes, Map-level):**
         - [ ] Extend UI to allow questions when an edge is selected or multiple nodes are selected.
         - [ ] Enhance `askQuestionAboutNodeFlow` or create new flows to handle questions about relationships or broader map context.

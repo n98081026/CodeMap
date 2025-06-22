@@ -199,6 +199,8 @@ interface ConceptMapState {
   setIsFetchingOverview: (fetching: boolean) => void;
   fetchProjectOverview: (input: GenerateProjectOverviewInput) => Promise<void>;
 
+  // Example Map Loading
+  loadExampleMapData: (mapData: ConceptMapData, exampleName: string) => void;
 
   setStructuralSuggestions: (suggestions: z.infer<typeof StructuralSuggestionItemSchema>[]) => void;
   addStructuralSuggestion: (suggestion: z.infer<typeof StructuralSuggestionItemSchema>) => void;
@@ -268,7 +270,9 @@ const initialStateBase: Omit<ConceptMapState,
   'setDragPreview' | 'updateDragPreviewPosition' | 'clearDragPreview' |
   'setDraggedRelationPreview' | 'setTriggerFitView' |
   // Overview Mode Actions
-  'toggleOverviewMode' | 'setProjectOverviewData' | 'setIsFetchingOverview' | 'fetchProjectOverview'
+  'toggleOverviewMode' | 'setProjectOverviewData' | 'setIsFetchingOverview' | 'fetchProjectOverview' |
+  // Example Map Loading
+  'loadExampleMapData'
 > = {
 =======
 const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> = {
@@ -500,11 +504,55 @@ export const useConceptMapStore = create<ConceptMapState>()(
         }
       },
       // __internalGraphAdapterForTesting: graphAdapter,
+
+      // Example Map Loading Implementation
+      loadExampleMapData: (mapData, exampleName) => {
+        get().addDebugLog(`[STORE loadExampleMapData] Loading example: ${exampleName}`);
+        set({
+          // Reset most of the map-specific state, similar to setLoadedMap but with example context
+          mapId: `example-${exampleName.toLowerCase().replace(/\s+/g, '-')}`, // Create a pseudo-ID
+          mapName: `${exampleName} (Example)`,
+          currentMapOwnerId: 'example-user', // Generic owner
+          currentMapCreatedAt: new Date().toISOString(),
+          isPublic: true, // Examples are public
+          sharedWithClassroomId: null,
+          mapData: mapData,
+          isNewMapMode: false, // It's a loaded map, not a new one from scratch
+          isViewOnlyMode: true, // Load examples in view-only mode by default
+          isLoading: false,
+          initialLoadComplete: true,
+          error: null,
+          // Reset selections and UI states
+          selectedElementId: null,
+          selectedElementType: null,
+          multiSelectedNodeIds: [],
+          editingNodeId: null,
+          aiProcessingNodeId: null,
+          connectingNodeId: null,
+          isConnectingMode: false,
+          connectionSourceNodeId: null,
+          stagedMapData: null,
+          isStagingActive: false,
+          conceptExpansionPreview: null,
+          isOverviewModeActive: false, // Exit overview mode when loading a new map
+          projectOverviewData: null,
+          isFetchingOverview: false,
+          // Keep debug logs if desired, or clear them:
+          // debugLogs: get().debugLogs,
+          // Clear AI suggestions from previous map
+          aiExtractedConcepts: [],
+          aiSuggestedRelations: [],
+          structuralSuggestions: [],
+          structuralGroupSuggestions: [],
+        });
+        useConceptMapStore.temporal.getState().clear(); // Clear undo/redo history for the new example
+        set({ triggerFitView: true }); // Trigger fitView for the newly loaded example map
+      },
     }),
     {
       partialize: (state): TrackedState => {
         const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions, isOverviewModeActive, projectOverviewData } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions, isOverviewModeActive, projectOverviewData }; // Added overview state to tracked
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, structuralSuggestions, structuralGroupSuggestions, isOverviewModeActive, projectOverviewData };
 =======
       initializeNewMap: (userId: string) => {
         get().addDebugLog(`[STORE initializeNewMap] User: ${userId}.`);

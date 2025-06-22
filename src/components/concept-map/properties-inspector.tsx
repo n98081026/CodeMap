@@ -10,13 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 <<<<<<< HEAD
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles, GitMerge, Info, HelpCircle, MessageSquareQuote, Lightbulb } from "lucide-react"; // Added Info
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles, GitMerge, Info, HelpCircle, MessageSquareQuote, Lightbulb, MessageCircleQuestion, Loader2 as LoaderIcon, AlertTriangle as AlertTriangleIcon, Send } from "lucide-react"; // Added MessageCircleQuestion, LoaderIcon, AlertTriangleIcon, Send
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
-import AICommandPalette, { type AICommand } from './ai-command-palette'; // Import AICommandPalette
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Added
-import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added
-import useConceptMapStore from '@/stores/concept-map-store'; // Added
+import AICommandPalette, { type AICommand } from './ai-command-palette';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+import useConceptMapStore from '@/stores/concept-map-store';
 =======
 import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles, GitMerge } from "lucide-react";
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
@@ -81,6 +81,12 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const [isSuggestIntermediateDialogOpen, setIsSuggestIntermediateDialogOpen] = useState(false);
   const [isLoadingAISuggestion, setIsLoadingAISuggestion] = useState(false);
   const { toast } = useToast();
+
+  // State for Node Q&A
+  const [nodeQuestion, setNodeQuestion] = useState("");
+  const [aiNodeAnswer, setAiNodeAnswer] = useState<string | null>(null);
+  const [isAskingNodeQuestion, setIsAskingNodeQuestion] = useState(false);
+  const [askNodeQuestionError, setAskNodeQuestionError] = useState<string | null>(null);
 =======
   const nodeLabelInputRef = useRef<HTMLInputElement>(null);
   const nodeDetailsTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -697,8 +703,82 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             Reset to Auto-Size
         </Button>
       </div>
+
+      {/* Node Q&A Section */}
+      <div className="mt-4 pt-4 border-t">
+        <div className="flex items-center gap-2 mb-2">
+          <MessageCircleQuestion className="h-5 w-5 text-muted-foreground" />
+          <h4 className="font-semibold text-md">Ask AI About This Node</h4>
+        </div>
+        <Textarea
+          id="nodeQuestion"
+          value={nodeQuestion}
+          onChange={(e) => setNodeQuestion(e.target.value)}
+          placeholder="e.g., What is the main purpose of this node? How does it relate to X?"
+          rows={2}
+          className="resize-none mb-2"
+          disabled={isViewOnlyMode || isAskingNodeQuestion}
+        />
+        <Button
+          onClick={handleAskAIAboutNode}
+          disabled={isViewOnlyMode || isAskingNodeQuestion || !nodeQuestion.trim() || !selectedElement}
+          className="w-full"
+          size="sm"
+        >
+          {isAskingNodeQuestion ? <LoaderIcon className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+          Ask AI
+        </Button>
+        {isAskingNodeQuestion && <p className="text-xs text-muted-foreground mt-1 text-center">AI is thinking...</p>}
+        {askNodeQuestionError && (
+          <div className="mt-2 text-xs text-destructive bg-destructive/10 p-2 rounded-md flex items-start">
+            <AlertTriangleIcon className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+            <p>{askNodeQuestionError}</p>
+          </div>
+        )}
+        {aiNodeAnswer && !isAskingNodeQuestion && !askNodeQuestionError && (
+          <div className="mt-2 text-xs text-foreground bg-muted/50 p-3 rounded-md whitespace-pre-wrap">
+             <strong className="font-medium">AI Answer:</strong> {aiNodeAnswer}
+          </div>
+        )}
+      </div>
     </>
   );
+
+  const handleAskAIAboutNode = useCallback(async () => {
+    if (isViewOnlyMode || !selectedElement || selectedElementType !== 'node' || !nodeQuestion.trim()) {
+      return;
+    }
+    setIsAskingNodeQuestion(true);
+    setAiNodeAnswer(null);
+    setAskNodeQuestionError(null);
+
+    try {
+      const node = selectedElement as ConceptMapNode;
+      // Assuming aiToolsHook.askQuestionAboutNode is implemented in useConceptMapAITools
+      const result = await aiToolsHook.askQuestionAboutNode(
+        node.id,
+        node.text,
+        node.details,
+        node.type,
+        nodeQuestion
+      );
+      if (result.error) {
+        setAskNodeQuestionError(result.error);
+        setAiNodeAnswer(result.answer || "AI could not provide a specific answer due to an error.");
+      } else {
+        setAiNodeAnswer(result.answer);
+      }
+    } catch (error) {
+      const errorMsg = (error instanceof Error) ? error.message : "An unknown error occurred.";
+      setAskNodeQuestionError(errorMsg);
+      setAiNodeAnswer("Failed to get an answer from AI.");
+      toast({ title: "AI Question Error", description: errorMsg, variant: "destructive" });
+    } finally {
+      setIsAskingNodeQuestion(false);
+      // Do not clear nodeQuestion here, user might want to refine it.
+    }
+  }, [isViewOnlyMode, selectedElement, selectedElementType, nodeQuestion, aiToolsHook, toast]);
+
 
   const renderEdgeProperties = () => (
      <>

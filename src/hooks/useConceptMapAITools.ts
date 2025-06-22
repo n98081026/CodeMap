@@ -723,6 +723,31 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
     // New Dagre Layout
     handleDagreLayoutSelection,
+
+    // Node Q&A
+    askQuestionAboutNode: async (nodeId: string, nodeText: string, nodeDetails: string | undefined, nodeType: string | undefined, userQuestion: string): Promise<AskQuestionAboutNodeOutput> => {
+      if (isViewOnlyMode) {
+        toast({ title: "View Only", description: "Cannot ask AI questions in view-only mode." });
+        return { answer: "View only mode.", error: "Interaction disabled." };
+      }
+      addDebugLog(`[AITools] Asking question about node ${nodeId}: "${userQuestion}"`);
+      try {
+        const result = await aiAskQuestionAboutNode({ // Direct call to the imported flow
+          nodeId,
+          nodeText,
+          nodeDetails,
+          nodeType,
+          userQuestion
+        });
+        if (result.error) {
+          toast({ title: "AI Question Error", description: result.error, variant: "destructive" });
+        }
+        return result;
+      } catch (error: any) {
+        toast({ title: "AI Question Failed", description: error.message || "Unknown error", variant: "destructive" });
+        return { answer: "Failed to process question.", error: error.message || "Unknown error" };
+      }
+    },
 >>>>>>> master
   };
 }

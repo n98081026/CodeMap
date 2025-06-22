@@ -41,7 +41,10 @@ const navItems: NavItem[] = [
   { href: '/application/admin/settings', label: 'System Settings', icon: Settings, roles: ['admin'], condition: (user) => user.role === 'admin', separatorAfter: true },
 
   // Profile - common to all
-  { href: '/application/profile', label: 'My Profile', icon: UserCircle, roles: ['student', 'teacher', 'admin', 'unknown'], exact: true },
+  { href: '/application/profile', label: 'My Profile', icon: UserCircle, roles: ['student', 'teacher', 'admin', 'unknown'], exact: true, separatorAfter: true },
+
+  // Examples Page - common to all
+  { href: '/application/examples', label: 'Examples', icon: BookCopy, roles: ['student', 'teacher', 'admin', 'unknown'], exact: true },
 ];
 
 export const SidebarNav = React.memo(function SidebarNav() {
