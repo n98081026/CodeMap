@@ -76,21 +76,10 @@ const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canva
   loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
 });
 
-const mockDagreLayout = (nodes: DagreNodeInput[], _edges: DagreEdgeInput[]): LayoutNodeUpdate[] => {
-  let currentX = 50;
-  const nodeY = 100;
-  const spacing = 50;
-
-  return nodes.map((node) => {
-    const xPos = currentX;
-    currentX += (node.width || 150) + spacing;
-    return {
-      id: node.id,
-      x: xPos,
-      y: nodeY,
-    };
-  });
-};
+// mockDagreLayout is no longer needed as we will use the real utility.
+// const mockDagreLayout = (nodes: DagreNodeInput[], _edges: DagreEdgeInput[]): LayoutNodeUpdate[] => {
+//   ...
+// };
 
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;
@@ -554,7 +543,18 @@ export default function ConceptMapEditorPage() {
         source: edge.source, target: edge.target,
       }));
       addDebugLog(`[EditorPage] Prepared ${dagreNodes.length} nodes and ${dagreEdges.length} edges for layout.`);
-      const newPositions = mockDagreLayout(dagreNodes, dagreEdges);
+
+      const dagreUtil = new DagreLayoutUtility();
+      const layoutOptions: DagreLayoutOptions = {
+        direction: 'TB', // Top-to-Bottom
+        ranksep: 70,
+        nodesep: 60,
+        edgesep: 20,
+        defaultNodeWidth: DEFAULT_NODE_WIDTH,
+        defaultNodeHeight: DEFAULT_NODE_HEIGHT,
+      };
+      const newPositions = await dagreUtil.layout(dagreNodes, dagreEdges, layoutOptions);
+
       addDebugLog(`[EditorPage] Layout calculated. ${newPositions.length} new positions received.`);
       applyLayout(newPositions);
       addDebugLog('[EditorPage] applyLayout action called.');
