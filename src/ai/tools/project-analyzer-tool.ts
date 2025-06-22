@@ -299,7 +299,8 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
 
         if (requirementsTxtFile) {
             const reqPath = input.projectStoragePath.endsWith('/') ? `${input.projectStoragePath}${requirementsTxtFile.name}` : `${input.projectStoragePath}/${requirementsTxtFile.name}`;
-            const reqContent = await downloadProjectFile(reqPath);
+            // const reqContent = await downloadProjectFile(reqPath); // Use getFileContent for consistency
+            const reqContent = await getFileContent(requirementsTxtFile.name);
             if (reqContent) {
                 if (!output.keyFiles?.find(kf => kf.filePath === requirementsTxtFile.name)) {
                      output.keyFiles?.push({ filePath: requirementsTxtFile.name, type: "manifest", briefDescription: "Python project dependencies." });
@@ -312,15 +313,14 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
                         if (pipLang) pipLang.confidence = "high"; else output.inferredLanguagesFrameworks?.push({ name: "pip", confidence: "high" });
                     }
                 } catch (e: any) { output.parsingErrors?.push(`Error parsing requirements.txt: ${e.message}`); }
-            } else { output.parsingErrors?.push(`${requirementsTxtFile.name} found in listing but could not be downloaded.`);}
+            } else { output.parsingErrors?.push(`${requirementsTxtFile.name} found in listing but could not be downloaded/read.`);}
         }
-        // ... (metadata extraction and component inference for Python as before)
+
         let projectNameFromPyMetadata: string | undefined;
         let projectVersionFromPyMetadata: string | undefined;
 
         if (pyprojectTomlFile) {
-            const pyprojectTomlPath = input.projectStoragePath.endsWith('/') ? `${input.projectStoragePath}${pyprojectTomlFile.name}` : `${input.projectStoragePath}/${pyprojectTomlFile.name}`;
-            const pyprojectTomlContent = await downloadProjectFile(pyprojectTomlPath);
+            const pyprojectTomlContent = await getFileContent(pyprojectTomlFile.name);
             if (pyprojectTomlContent) {
                 if (!output.keyFiles?.find(kf => kf.filePath === pyprojectTomlFile.name)) {
                     output.keyFiles?.push({ filePath: pyprojectTomlFile.name, type: "manifest", briefDescription: "Project metadata and build configuration (TOML)." });
@@ -329,12 +329,11 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
                 if (nameMatch && nameMatch[1]) projectNameFromPyMetadata = nameMatch[1];
                 const versionMatch = pyprojectTomlContent.match(/version\s*=\s*["']([^"']+)["']/);
                 if (versionMatch && versionMatch[1]) projectVersionFromPyMetadata = versionMatch[1];
-            } else { output.parsingErrors?.push(`${pyprojectTomlFile.name} found in listing but could not be downloaded.`);}
+            } else { output.parsingErrors?.push(`${pyprojectTomlFile.name} found in listing but could not be downloaded/read.`);}
         }
-        // ... (setup.py and README processing as before) ...
+
         if (!projectNameFromPyMetadata && setupPyFile) {
-            const setupPyPath = input.projectStoragePath.endsWith('/') ? `${input.projectStoragePath}${setupPyFile.name}` : `${input.projectStoragePath}/${setupPyFile.name}`;
-            const setupPyContent = await downloadProjectFile(setupPyPath);
+            const setupPyContent = await getFileContent(setupPyFile.name);
             if (setupPyContent) {
                  if (!output.keyFiles?.find(kf => kf.filePath === setupPyFile.name)) {
                     output.keyFiles?.push({ filePath: setupPyFile.name, type: "manifest", briefDescription: "Project metadata and build script (Python)." });
@@ -343,8 +342,9 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
                 if (nameMatch && nameMatch[1]) projectNameFromPyMetadata = nameMatch[1];
                 const versionMatch = setupPyContent.match(/version\s*=\s*["']([^"']+)["']/);
                 if (versionMatch && versionMatch[1]) projectVersionFromPyMetadata = versionMatch[1];
-            } else { output.parsingErrors?.push(`${setupPyFile.name} found in listing but could not be downloaded.`);}
+            } else { output.parsingErrors?.push(`${setupPyFile.name} found in listing but could not be downloaded/read.`);}
         }
+
         if (projectNameFromPyMetadata && (!output.projectName || output.projectName === (input.projectStoragePath.split('/').filter(Boolean).pop()))) {
             output.projectName = projectNameFromPyMetadata;
         }
@@ -353,6 +353,59 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
             if (output.projectSummary && !output.projectSummary.includes(versionString)) output.projectSummary += versionString;
             else if (!output.projectSummary) output.projectSummary = `Version: ${projectVersionFromPyMetadata}`;
         }
+
+        // Deeper Python source file analysis
+        const pythonSourceFiles = filesToAnalyze.filter(f => f.name.endsWith('.py'));
+        const MAX_PY_FILES_TO_PROCESS = 20; // Similar limit as Node.js
+        let processedPyFilesCount = 0;
+
+        for (const pyFile of pythonSourceFiles) {
+            if (processedPyFilesCount >= MAX_PY_FILES_TO_PROCESS) break;
+            // Skip common virtual environment folders and __pycache__
+            if (pyFile.name.includes('/venv/') || pyFile.name.includes('/.venv/') || pyFile.name.includes('__pycache__')) {
+                continue;
+            }
+
+            const fileContent = await getFileContent(pyFile.name);
+            if (fileContent) {
+                const imports = extractPyImports(fileContent);
+                const classes = extractPyClasses(fileContent);
+                const functions = extractPyFunctions(fileContent);
+                const symbols = [...classes, ...functions];
+
+                let fileType: KeyFileSchema['type'] = 'utility';
+                if (pyFile.name.toLowerCase().endsWith('views.py') || pyFile.name.toLowerCase().endsWith('routes.py')) fileType = 'service_definition';
+                else if (pyFile.name.toLowerCase().endsWith('models.py')) fileType = 'model';
+                else if (pyFile.name.toLowerCase() === 'app.py' || pyFile.name.toLowerCase() === 'main.py' || pyFile.name.toLowerCase() === 'manage.py') fileType = 'entry_point';
+                else if (classes.length > 0 && functions.length === 0) fileType = 'model'; // Heuristic: file with mostly classes might be models
+                else if (functions.length > 0 && classes.length === 0) fileType = 'utility'; // Heuristic: file with mostly functions
+
+                const existingKf = output.keyFiles?.find(kf => kf.filePath === pyFile.name);
+                let detailsString = "";
+                if (imports.length > 0) detailsString += `Imports: ${imports.join(', ')}`;
+                if (symbols.length > 0) detailsString += (detailsString ? '\n' : '') + `Symbols: ${symbols.join(', ')}`;
+
+
+                if (existingKf) {
+                    existingKf.type = existingKf.type === 'unknown' ? fileType : existingKf.type;
+                    existingKf.details = (existingKf.details ? `${existingKf.details}\n` : '') + detailsString;
+                    existingKf.extractedSymbols = [...new Set([...(existingKf.extractedSymbols || []), ...symbols])];
+                    if (!existingKf.briefDescription?.includes("Python source file")) existingKf.briefDescription = (existingKf.briefDescription || "") + " Python source file.";
+                } else {
+                    output.keyFiles?.push({
+                        filePath: pyFile.name,
+                        type: fileType,
+                        briefDescription: `Python source file. ${symbols.length > 0 ? "Contains classes/functions." : ""} ${imports.length > 0 ? "Contains imports." : ""}`.trim(),
+                        details: detailsString || undefined,
+                        extractedSymbols: symbols.length > 0 ? symbols : undefined,
+                    });
+                }
+                processedPyFilesCount++;
+            } else {
+                output.parsingErrors?.push(`Could not read content for Python source file: ${pyFile.name}`);
+            }
+        }
+        // ... (component inference for Python as before)
     }
 
 
@@ -794,4 +847,94 @@ async function unpackZipBuffer(buffer: Buffer): Promise<UnpackResult | null> {
     // If the error is in `new AdmZip(buffer)` itself, files will be empty.
     return { files, entryErrors };
   }
+
+/**
+ * Extracts import/require statements from JavaScript/TypeScript content using regex.
+ * This is a simplified parser.
+ * @param content The string content of the JS/TS file.
+ * @returns An array of module names or paths.
+ */
+function extractJsImports(content: string): string[] {
+  const imports = new Set<string>();
+  const requireRegex = /require\s*\(\s*['"]([^'"\n]+)['"]\s*\)/g;
+  let match;
+  while ((match = requireRegex.exec(content)) !== null) { imports.add(match[1]); }
+  const importRegex = /import\s+.*?from\s*['"]([^'"\n]+)['"]/g;
+  while ((match = importRegex.exec(content)) !== null) { imports.add(match[1]); }
+  const dynamicImportRegex = /import\s*\(\s*['"]([^'"\n]+)['"]\s*\)/g;
+  while ((match = dynamicImportRegex.exec(content)) !== null) { imports.add(match[1]); }
+  return Array.from(imports);
+}
+
+/**
+ * Extracts import statements from Python code content using regex.
+ * Handles `import module` and `from module import ...` statements.
+ * @param content The string content of the Python file.
+ * @returns An array of unique imported module names.
+ */
+function extractPyImports(content: string): string[] {
+  const imports = new Set<string>();
+  // Matches: import module1, module2 as m2, module3.submodule
+  const importRegex = /^\s*import\s+([A-Za-z0-9_.,\s]+)/gm;
+  let match;
+  while ((match = importRegex.exec(content)) !== null) {
+    const modules = match[1].split(',');
+    modules.forEach(mod => {
+      const moduleName = mod.trim().split('.')[0].split(' as ')[0].trim();
+      if (moduleName) imports.add(moduleName);
+    });
+  }
+
+  // Matches: from module import name1, name2 as n2
+  // Matches: from .relative_module import name
+  // Matches: from ..another_relative import name
+  const fromImportRegex = /^\s*from\s+([A-Za-z0-9_.]+|\.+[A-Za-z0-9_.]*)\s+import\s+/gm;
+  while ((match = fromImportRegex.exec(content)) !== null) {
+    const moduleName = match[1].trim().split('.')[0];
+    if (moduleName && moduleName !== '.') {
+        imports.add(moduleName.startsWith('.') ? moduleName.substring(1) : moduleName);
+    } else if (moduleName === '.') {
+        // local package import - can be ignored for now or logged
+    }
+  }
+  return Array.from(imports).filter(Boolean);
+}
+
+/**
+ * Extracts class names from Python code content using regex.
+ * @param content The string content of the Python file.
+ * @returns An array of unique class names.
+ */
+function extractPyClasses(content: string): string[] {
+  const classes = new Set<string>();
+  // Matches: class ClassName: or class ClassName(Parent):
+  // It also tries to handle potential decorators by looking for 'class' at the start of a line (after whitespace)
+  const classRegex = /^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\((?:.|\n)*?\))?\s*:/gm;
+  let match;
+  while ((match = classRegex.exec(content)) !== null) {
+    classes.add(match[1]);
+  }
+  return Array.from(classes);
+}
+
+/**
+ * Extracts top-level function names from Python code content using regex.
+ * @param content The string content of the Python file.
+ * @returns An array of unique function names (excluding common private/magic methods).
+ */
+function extractPyFunctions(content: string): string[] {
+  const functions = new Set<string>();
+  // Matches: def function_name(...):
+  // Excludes common magic methods like __init__
+  const funcRegex = /^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((?:.|\n)*?\)\s*:/gm;
+  let match;
+  while ((match = funcRegex.exec(content)) !== null) {
+    const funcName = match[1];
+    // Optional: Filter out private methods (e.g., _my_private_func) or magic methods
+    if (!funcName.startsWith('_')) { // Simple filter for dunder/private methods
+        functions.add(funcName);
+    }
+  }
+  return Array.from(functions);
+}
 }
