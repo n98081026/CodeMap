@@ -355,27 +355,48 @@ export default function ConceptMapEditorPage() {
         // Check if currentSubmissionId has a valid path, or if mapId can be used to derive project path
         // For now, this part is conceptual as direct projectStoragePath might not be available here.
         // A more robust solution would fetch based on mapId or submissionId if available.
-        if(currentSubmissionId) { // Or some other way to get project context
-            // This is a placeholder. You need a way to get projectStoragePath.
-            // Perhaps from the submission record linked to currentMapId or via a new prop.
-            console.warn("Attempting to fetch project overview, but projectStoragePath needs to be correctly determined from current context (e.g., submission or map metadata).");
-            // fetchProjectOverview(overviewInput);
-            toast({title: "Overview Mode", description: "Fetching project overview... (Placeholder - actual fetch needs project path)", variant: "default"});
+        if(currentSubmissionId) {
+            // This is a placeholder for deriving projectStoragePath from currentSubmissionId
+            // In a real application, you'd fetch submission details to get its fileStoragePath
+            const projectStoragePath = useConceptMapStore.getState().mapData.projectFileStoragePath || // Check if already in mapData
+                                     `user-${user?.id}/project-archives/some-path-derived-from-${currentSubmissionId}.zip`; // Placeholder
+
+            if (!projectStoragePath || projectStoragePath.includes("some-path-derived-from")) {
+                 console.warn("Overview: projectStoragePath could not be reliably determined for submission ID:", currentSubmissionId);
+                 toast({title: "Overview Generation", description: "Could not determine project source for overview. Displaying generic info if possible.", variant: "default"});
+                 // Provide some minimal data or rely on the flow's error handling
+                 useConceptMapStore.getState().setProjectOverviewData({
+                    overallSummary: "Project source information is unclear. Cannot generate a detailed AI overview for this map at the moment.",
+                    keyModules: [],
+                    error: "Project source path not found."
+                 });
+                 return; // Prevent calling fetchProjectOverview with bad path
+            }
+
+            const overviewInput: GenerateProjectOverviewInput = {
+                projectStoragePath,
+                userGoals: "Provide a high-level overview of this project's structure and purpose."
+            };
+            fetchProjectOverview(overviewInput); // This now internally handles toasts and loading states via callAIWithStandardFeedback
         } else if (!currentSubmissionId && storeMapData.nodes.length > 0) {
-            // Fallback: if no submission, maybe try to generate overview from current map nodes?
-            // This would require the overview flow to accept map data directly.
-            // For now, we'll just show a message.
-             toast({title: "Overview Mode", description: "Overview for current ad-hoc map not yet supported. Upload a project for full overview.", variant: "default"});
-             // Or, set a mock overview data for demonstration
+             toast({title: "Overview Mode", description: "Generating a basic overview from current map content...", variant: "default"});
              useConceptMapStore.getState().setProjectOverviewData({
-                 overallSummary: "This is an ad-hoc map. Upload a project to get a full AI-generated overview.",
-                 keyModules: storeMapData.nodes.slice(0,3).map(n => ({name: n.text, description: n.details || "A concept in the map."}))
+                 overallSummary: "This is an overview based on the current concepts on your map. For a more detailed AI analysis, please upload a project.",
+                 keyModules: storeMapData.nodes.slice(0,Math.min(5, storeMapData.nodes.length)).map(n => ({
+                    name: n.text,
+                    description: n.details || "A key concept from the map."
+                 }))
              });
         } else {
-            toast({title: "Overview Mode", description: "No project context to generate overview.", variant: "default"});
+            toast({title: "Overview Mode", description: "No project context or map content to generate an overview from.", variant: "default"});
+             useConceptMapStore.getState().setProjectOverviewData({
+                 overallSummary: "No content available to generate an overview. Try uploading a project or adding nodes to your map.",
+                 keyModules: [],
+                 error: "No content for overview."
+             });
         }
     }
-  }, [storeIsViewOnlyMode, toast, toggleOverviewMode, isOverviewModeActive, projectOverviewData, fetchProjectOverview, currentSubmissionId, storeMapData.nodes]);
+  }, [storeIsViewOnlyMode, toast, toggleOverviewMode, isOverviewModeActive, projectOverviewData, fetchProjectOverview, currentSubmissionId, storeMapData.nodes, user?.id]);
 
 
   return (

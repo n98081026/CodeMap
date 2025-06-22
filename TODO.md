@@ -380,6 +380,7 @@ The main remaining area for full Supabase connection is:
             - [x] When active, `ProjectOverviewDisplay` shows the AI-generated text summary. (Implemented)
             - [x] `ProjectOverviewDisplay` shows identified top-level modules as cards. (Implemented)
             - [x] Each module card in `ProjectOverviewDisplay` displays its plain-language description and shows key files in a tooltip. (Implemented)
+            - [ ] (Deferred) `ProjectOverviewDisplay` shows simplified connections between key modules. (Deferred due to complexity of inferring/displaying meaningful top-level connections without direct AI output for it).
         - [ ] **Phase 3 (Future): Interactive Drill-Down from Overview Mode:**
             - [ ] Clicking a module in Overview Mode transitions the main map view to focus on/filter for that module's components.
     - [ ] **Visual Feedback & Progress:**
@@ -408,17 +409,64 @@ The main remaining area for full Supabase connection is:
         - [x] **UI - Examples Page/Section:** Created `src/app/(app)/examples/page.tsx` to display example cards. (Implemented)
         - [x] **UI - Navigation:** Added "Examples" link to `SidebarNav`. (Implemented)
         - [x] **Functionality - Load Example:** Implemented `loadExampleMapData` action in `concept-map-store.ts` and `handleLoadExample` in `ExamplesPage` to fetch and load (mocked) JSON map data. (Implemented)
-        - [ ] **Actual Example Content:** Populate `public/example-maps/` with actual JSON files and `public/images/examples/` with preview images. (Manual Task for User)
-- [ ] **Interactive Q&A (Chatbot-Style):**
-    - [x] **Phase 1: Node-Specific Q&A UI & Basic Flow:**
-        - [x] **Genkit Flow (`askQuestionAboutNodeFlow`):** Updated `src/ai/flows/ask-question-about-node.ts` with refined input/output schemas and prompt. (Implemented)
-        - [x] **UI Element & Logic (`PropertiesInspector`):** Added "Ask AI About This Node" section with textarea, button. (Implemented)
-        - [x] **Hook Integration (`useConceptMapAITools`):** Added `askQuestionAboutNode` function to call the Genkit flow. (Implemented)
-        - [x] **Displaying Answer:** `PropertiesInspector` now displays AI's answer or error. (Implemented)
-    - [ ] **Phase 2 (Future): Contextual Q&A (Edges, Multiple Nodes, Map-level):**
-        - [ ] Extend UI to allow questions when an edge is selected or multiple nodes are selected.
-        - [ ] Enhance `askQuestionAboutNodeFlow` or create new flows to handle questions about relationships or broader map context.
-        - [ ] This might involve passing more of the `mapData` (or a relevant subgraph) to the LLM.
-- [ ] **General Usability:**
-    - [ ] **Performance for Large Projects:** Continuously monitor and optimize performance when analyzing large codebases and rendering complex maps.
-    - [ ] **Clarity of Value Proposition:** Ensure the application's homepage and initial views clearly communicate the benefits of using CodeMap in simple terms (e.g., "Understand code faster," "Visualize complex projects easily").
+        - [ ] **Actual Example Content:** Populate `public/example-maps/` with actual JSON files and `public/images/examples/` with preview images. (Manual Task for User, Blocked for Agent)
+- [ ] **Advanced UX Features (Future/Higher Effort - Needs Further Breakdown & Prioritization):**
+    - [ ] **Full Interactive Tutorial/Onboarding:**
+        - [ ] **Design Phase:** Define key user flows for tutorial (e.g., first project analysis, using a core AI tool).
+        - [ ] **Tool Selection:** Evaluate and select a suitable frontend library (e.g., Shepherd.js, Intro.js) or decide on custom implementation.
+        - [ ] **Content Creation:** Write tutorial steps, explanations, and highlight target UI elements.
+        - [ ] **Implementation:** Integrate selected library/custom solution into relevant pages/components.
+        - [ ] **State Management:** Implement logic to track tutorial completion for users (e.g., in user profile or local storage).
+    - [ ] **Guest Mode:**
+        - [ ] **Scope Definition:** Determine which features are available to guest users (e.g., view public examples only, limited analysis on predefined small projects).
+        - [ ] **Auth Logic Modification:** Adjust `AuthContext` and routing to allow access to certain parts of the app without full authentication.
+        - [ ] **UI Adaptation:** Design and implement a guest-specific UI layout, potentially with more prominent calls to action for registration/login.
+        - [ ] **Data Handling:** Ensure guest user data (if any is generated temporarily) is handled appropriately (e.g., not persisted or clearly marked as temporary).
+    - [ ] **Overview Mode - Interactive Drill-Down (Phase 3):**
+        - [ ] **Design Interaction:** Define how clicking a module in overview mode affects the main map (e.g., filter nodes, zoom to relevant area, load a sub-map if applicable).
+        - [ ] **Store/State Logic:** Update `concept-map-store.ts` to handle focus/filter states based on overview module selection.
+        - [ ] **Component Updates:** Modify `ProjectOverviewDisplay.tsx` to trigger these actions and `FlowCanvasCore.tsx` to respond to filter/focus states.
+    - [ ] **Interactive Q&A - Contextual Q&A (Phase 2):**
+        - [ ] **Edge Q&A:**
+            - [ ] Design UI for asking questions about a selected edge (e.g., in `PropertiesInspector` or context menu).
+            - [ ] Create `askQuestionAboutEdgeFlow`: Input (source node, target node, edge label, user question), Output (answer).
+            - [ ] Integrate with UI.
+        - [ ] **Multi-Node/Map-Level Q&A:**
+            - [ ] Design UI for broader questions (e.g., a persistent chat icon, or a dedicated Q&A panel).
+            - [ ] Create `askQuestionAboutMapContextFlow`: Input (current map nodes/edges or summary, user question), Output (answer).
+            - [ ] This flow might need to be more sophisticated, potentially using RAG with project documentation or more extensive map data.
+    - [ ] **Comprehensive AI Action Previews (Beyond Expand Concept):**
+        - [ ] **Phase 1: Review & Design (Current Focus)**
+            - [x] **1.1: Review AI Tools & Identify Preview Needs**
+                - [x] Systematically list AI tools modifying the map significantly (AI Tidy-Up/Semantic Grouping, Dynamic Structure Suggestions if they apply changes, Suggest Intermediate Node, AI-Suggested Relation Labels, Summarize Selected Nodes).
+                - [x] For each, assess current preview, user confusion risk, and desirability of explicit preview.
+            - [x] **1.2: Design UI/UX for Previews**
+                - [x] Decided: Leverage AI Staging Area for `Suggest Intermediate Node` and `Summarize Selected Nodes (AI)`.
+                - [x] Decided: Implement "Ghost Element Preview" with localized confirmation for `AI Tidy-Up (Align/Distribute)`.
+                - [x] Decided: Refine `PROPOSE_GROUP` popover to allow inline name editing.
+                - [x] Standardized "Accept", "Cancel" actions (either via Staging Toolbar or local popups).
+                - [x] Evaluated `AIStagingToolbar` vs. localized confirmations based on context.
+            - [x] **1.3: Design Technical Implementation Strategy**
+                - [x] Staging Area Path: Defined `stagedMapData` extension, flow output requirements, store actions (`stageAIGeneratedElements`, `acceptStagedChanges` enhancement), and `useConceptMapAITools.ts` updates.
+                - [x] Ghost Elements Path: Defined `ghostPreviewData` store slice & actions, `GhostNodeComponent`, `FlowCanvasCore.tsx` rendering logic, and `GhostPreviewToolbar`.
+                - [x] Popover Refinement Path: Defined UI change for popover (text input) and store action update.
+        - [ ] **Phase 2: Implementation (Iterative) - NEXT**
+            - [ ] Implement for 1-2 high-priority tools (e.g., "Suggest Intermediate Node", "Summarize Selected Nodes").
+            - [ ] Test thoroughly.
+        - [ ] **Phase 3: Refinement & Rollout**
+            - [ ] Gather feedback.
+            - [ ] Refine based on feedback.
+            - [ ] Roll out to other AI tools.
+- [ ] **Continuous Improvement & Maintenance:**
+    - [ ] **Performance for Large Projects:**
+        - [ ] **Frontend Profiling:** Use React DevTools Profiler and browser performance tools to identify bottlenecks in rendering large maps (many nodes/edges).
+        - [ ] **Optimization Techniques:** Investigate and implement techniques like node/edge virtualization (e.g., `react-flow-renderer`'s `onlyRenderVisibleElements` or custom solutions), debouncing updates, memoization.
+        - [ ] **Backend/AI Flow Profiling:** For `projectStructureAnalyzerTool` and other potentially long-running flows, analyze execution time for large inputs and identify optimization opportunities (e.g., more efficient parsing, batched LLM calls if applicable).
+    - [ ] **Clarity of Value Proposition (Iterative):**
+        - [ ] **User Feedback Loop:** Establish a mechanism for collecting user feedback on UI clarity and perceived value (e.g., in-app feedback form, user surveys - external to agent).
+        - [ ] **Landing Page/Homepage Review:** Periodically review and A/B test (if possible) homepage messaging to ensure it clearly communicates CodeMap's benefits to target users.
+    - [ ] **Comprehensive Automated Testing:**
+        - [ ] **Unit Tests for Core Logic:** Write Jest/Vitest unit tests for utility functions, complex store actions, and critical non-UI logic in services/hooks.
+        - [ ] **Component Tests:** Use React Testing Library to test individual UI components, especially those with complex interactions or state.
+        - [ ] **Integration Tests for AI Flows:** (Requires Genkit testing utilities or mocking strategies) Test individual Genkit flows with mock inputs and validate their output structure and key content.
+        - [ ] **E2E Tests:** Plan and (manually or with tools like Playwright/Cypress) implement E2E tests for key user journeys (e.g., registration, project upload & analysis, core map interactions, AI tool usage).

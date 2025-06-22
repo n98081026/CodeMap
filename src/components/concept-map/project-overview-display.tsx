@@ -86,6 +86,7 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg font-semibold flex items-center">
+                  <Package className="mr-2 h-5 w-5 text-muted-foreground flex-shrink-0" /> {/* Added Package icon */}
                   {module.name}
                   {module.filePaths && module.filePaths.length > 0 && (
                     <TooltipProvider>

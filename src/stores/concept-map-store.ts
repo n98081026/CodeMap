@@ -32,6 +32,15 @@ export interface ConceptExpansionPreviewState {
   previewNodes: ConceptExpansionPreviewNode[];
 }
 
+export interface StagedMapDataWithContext {
+  nodes: ConceptMapNode[];
+  edges: ConceptMapEdge[];
+  actionType?: 'intermediateNode' | 'summarizeNodes' | 'quickCluster' | 'generateSnippet';
+  originalElementId?: string;
+  // For 'intermediateNode', this will be the original edge ID.
+  // Could also be originalElementIds?: string[] for actions affecting multiple elements.
+}
+
 interface ConceptMapState {
   mapId: string | null;
   mapName: string;
@@ -61,7 +70,7 @@ interface ConceptMapState {
   debugLogs: string[];
 <<<<<<< HEAD
 
-  stagedMapData: ConceptMapData | null;
+  stagedMapData: StagedMapDataWithContext | null;
   isStagingActive: boolean;
 
   conceptExpansionPreview: ConceptExpansionPreviewState | null;
@@ -153,9 +162,9 @@ interface ConceptMapState {
 >>>>>>> master
   updateEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
   deleteEdge: (edgeId: string) => void;
-  setStagedMapData: (data: ConceptMapData | null) => void;
+  setStagedMapData: (data: StagedMapDataWithContext | null) => void; // Updated type
   clearStagedMapData: () => void;
-  commitStagedMapData: () => void;
+  commitStagedMapData: () => void; // Will be enhanced
   deleteFromStagedMapData: (elementIds: string[]) => void;
   setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void;
 <<<<<<< HEAD
@@ -628,11 +637,53 @@ export const useConceptMapStore = create<ConceptMapState>()(
       },
       updateEdge: (edgeId, updates) => set((state) => ({ mapData: { ...state.mapData, edges: state.mapData.edges.map((edge) => edge.id === edgeId ? { ...edge, ...updates } : edge) } })),
       deleteEdge: (edgeId) => set((state) => ({ mapData: { ...state.mapData, edges: state.mapData.edges.filter((edge) => edge.id !== edgeId) }, selectedElementId: state.selectedElementId === edgeId ? null : state.selectedElementId, selectedElementType: state.selectedElementId === edgeId ? null : state.selectedElementType })),
-      setStagedMapData: (data) => set({ stagedMapData: data, isStagingActive: !!data }),
+      setStagedMapData: (data: StagedMapDataWithContext | null) => set({ stagedMapData: data, isStagingActive: !!data }),
       clearStagedMapData: () => set({ stagedMapData: null, isStagingActive: false }),
       commitStagedMapData: () => {
-        const stagedData = get().stagedMapData; if (!stagedData) return;
-        set((state) => ({ mapData: { nodes: [...state.mapData.nodes, ...stagedData.nodes.map(n => ({ ...n, id: uniqueNodeId() }))], edges: [...(state.mapData.edges || []), ...(stagedData.edges || []).map(e => ({ ...e, id: uniqueEdgeId() }))] }, stagedMapData: null, isStagingActive: false }));
+        const stagedData = get().stagedMapData; // this is now StagedMapDataWithContext | null
+        if (!stagedData) return;
+
+        set((state) => {
+          let finalNodes = [...state.mapData.nodes];
+          let finalEdges = [...state.mapData.edges];
+
+          // Handle action-specific logic BEFORE adding new elements
+          if (stagedData.actionType === 'intermediateNode' && stagedData.originalElementId) {
+            finalEdges = finalEdges.filter(edge => edge.id !== stagedData.originalElementId);
+            get().addDebugLog(`[STORE commitStagedMapData] Original edge ${stagedData.originalElementId} deleted for intermediateNode action.`);
+          }
+          // TODO: Add other actionType handlers here if they involve removing/modifying existing elements, e.g. summarizeNodes if it were to replace.
+
+          // Add new staged elements. Ensure unique IDs if they are potentially conflicting (e.g. if IDs were like 'preview-node-1')
+          // The current uniqueId mapping for all new nodes/edges in commitStagedMapData (the old one) might be too aggressive if some staged items should retain IDs.
+          // For now, let's assume staged items from AI flows are meant to be new and get new IDs.
+          // If AI flows generate fixed IDs that need to be preserved, this logic would need adjustment.
+          // The previous logic of unconditionally assigning new IDs to all staged items:
+          // finalNodes = [...finalNodes, ...stagedData.nodes.map(n => ({ ...n, id: uniqueNodeId() }))];
+          // finalEdges = [...finalEdges, ...(stagedData.edges || []).map(e => ({ ...e, id: uniqueEdgeId() }))];
+          // Let's refine this: if a node/edge from staging already exists in mapData, it should not be re-added.
+          // However, for AI generated content, they are usually intended as new.
+          // A simpler approach for now: AI generated elements for staging should perhaps not have IDs set by the AI, or have temporary ones.
+          // The store's addNode/addEdge should always assign the final ID.
+          // The `confirmAddIntermediateNode` in useConceptMapAITools already calls addStoreNode, addStoreEdge which generate IDs.
+          // So, the `stagedData` nodes/edges should already have their final IDs if they were created via those functions.
+          // If `stagedData` is populated directly with AI output that has its own IDs, then new IDs are needed.
+          // The current `intermediateNodeSuggestion` in `useConceptMapAITools` doesn't create nodes/edges itself, it just holds data.
+          // The `confirmAddIntermediateNode` *does* create them.
+          // So, if `setStagedMapData` is called with elements that *don't* have final IDs yet, they need them.
+          // Let's assume elements in `stagedData.nodes/edges` might have temporary IDs or be ID-less.
+          // The current `commitStagedMapData` (old version) ALWAYS gives new IDs. This is safest.
+
+          finalNodes = [...finalNodes, ...stagedData.nodes.map(n => ({ ...n, id: uniqueNodeId() }))]; // Ensure new nodes get unique IDs
+          finalEdges = [...finalEdges, ...(stagedData.edges || []).map(e => ({ ...e, id: uniqueEdgeId() }))]; // Ensure new edges get unique IDs
+
+          return {
+            mapData: { nodes: finalNodes, edges: finalEdges },
+            stagedMapData: null,
+            isStagingActive: false,
+          };
+        });
+        get().addDebugLog(`[STORE commitStagedMapData] Committed staged data. Action: ${stagedData.actionType || 'none'}`);
       },
       deleteFromStagedMapData: (elementIdsToRemove) => {
         const currentStagedData = get().stagedMapData; if (!currentStagedData) return;

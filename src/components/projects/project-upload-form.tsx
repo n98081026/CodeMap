@@ -158,16 +158,27 @@ export function ProjectUploadForm() {
   const processAISteps = useCallback(async (submission: ProjectSubmission, userGoals?: string) => {
     if (!user) throw new Error("User not authenticated for AI processing.");
     setIsProcessingAIInDialog(true);
-    toast({ title: "AI Processing Started", description: `Analysis of "${submission.originalFileName}" is starting...` });
+    let loadingToastId: string | number | undefined = undefined;
 
     try {
-      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.PROCESSING);
+      loadingToastId = toast({
+        title: "AI Analysis Initiated",
+        description: `Preparing to analyze "${submission.originalFileName}"...`,
+        duration: 999999,
+      }).id;
+
+      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.PROCESSING); // Initial status update
+
+      toast.update(loadingToastId, { description: "Step 1/3: Analyzing project structure..." });
       const projectStoragePath = submission.fileStoragePath;
       if (!projectStoragePath) {
           throw new Error("File storage path is missing. Cannot proceed with AI analysis.");
       }
 
       const aiInputUserGoals = userGoals || `Analyze the project: ${submission.originalFileName}`;
+      // generateMapFromProject internally calls projectStructureAnalyzerTool then the LLM prompt
+      // We consider this whole step as "generating map data"
+      toast.update(loadingToastId, { description: "Step 2/3: Generating concept map data with AI..." });
       const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals: aiInputUserGoals });
 
       let parsedMapData: ConceptMapData;
@@ -180,6 +191,7 @@ export function ProjectUploadForm() {
         throw new Error(`Failed to parse AI map data: ${(parseError as Error).message}`);
       }
 
+      toast.update(loadingToastId, { description: "Step 3/3: Saving generated map..." });
       const newMapPayload = {
         name: `AI Map for ${submission.originalFileName.split('.')[0]}`,
         ownerId: user.id, mapData: parsedMapData, isPublic: false,
@@ -194,12 +206,18 @@ export function ProjectUploadForm() {
       }
       const createdMap: ConceptMap = await mapCreateResponse.json();
       await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.COMPLETED, createdMap.id);
-      toast({ title: "AI Map Generated!", description: `Map "${createdMap.name}" created and linked.`, duration: 7000 });
+
+      if(loadingToastId) toast.dismiss(loadingToastId);
+      toast({ title: "AI Map Generated Successfully!", description: `Map "${createdMap.name}" created and linked.`, duration: 7000 });
       return createdMap;
+
     } catch (aiError) {
+      if(loadingToastId) toast.dismiss(loadingToastId);
       console.error("AI Map Generation/Saving Error:", aiError);
-      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing failed");
-      throw aiError;
+      const errorMessage = (aiError as Error).message || "AI processing failed";
+      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.FAILED, null, errorMessage);
+      // The toast for failure is now part of the main onSubmit's catch block or handleConfirmAIGeneration's catch
+      throw new Error(errorMessage); // Re-throw to be caught by the caller
     } finally {
       setIsProcessingAIInDialog(false);
     }

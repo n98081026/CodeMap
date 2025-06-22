@@ -95,7 +95,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [edgeLabelSuggestions, setEdgeLabelSuggestions] = useState<{ edgeId: string; labels: string[] } | null>(null);
   const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
   const [refineModalInitialData, setRefineModalInitialData] = useState<RefineModalData | null>(null);
-  const [intermediateNodeSuggestion, setIntermediateNodeSuggestion] = useState<IntermediateNodeSuggestionContext | null>(null);
+  // const [intermediateNodeSuggestion, setIntermediateNodeSuggestion] = useState<IntermediateNodeSuggestionContext | null>(null); // Removed for staging area
   const [aiChildTextSuggestions, setAiChildTextSuggestions] = useState<string[]>([]);
   const [isLoadingAiChildTexts, setIsLoadingAiChildTexts] = useState(false);
   const [isDagreTidying, setIsDagreTidying] = useState(false);
@@ -381,20 +381,41 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     );
     if (output && output.summary && output.summary.text) {
         const centralPoint = selectedNodes.reduce((acc, node) => ({ x: acc.x + (node.x || 0), y: acc.y + (node.y || 0) }), { x: 0, y: 0 });
-        centralPoint.x = selectedNodes.length > 0 ? centralPoint.x / selectedNodes.length : (reactFlowInstance.getViewport().x + reactFlowInstance.getViewport().width / 2); // Fallback to viewport center
-        centralPoint.y = selectedNodes.length > 0 ? centralPoint.y / selectedNodes.length : (reactFlowInstance.getViewport().y + reactFlowInstance.getViewport().height / 2);
+        centralPoint.x = selectedNodes.length > 0 ? centralPoint.x / selectedNodes.length : (reactFlowInstance.getViewport().x + (reactFlowInstance.getViewport().width || DEFAULT_NODE_WIDTH) / 2);
+        centralPoint.y = selectedNodes.length > 0 ? centralPoint.y / selectedNodes.length : (reactFlowInstance.getViewport().y + (reactFlowInstance.getViewport().height || DEFAULT_NODE_HEIGHT) / 2);
 
         const summaryNodePosition = getNodePlacement( mapData.nodes, 'generic', null,
             {id: 'summary-center', x: centralPoint.x, y: centralPoint.y, width: 0, height: 0, text:'', type:''},
             GRID_SIZE_FOR_AI_PLACEMENT);
-        addStoreNode({
-          text: output.summary.text,
-          details: output.summary.details || `Summary of: ${selectedNodes.map(n => n.text).join(', ')}`,
-          type: 'ai-summary-node', position: { x: summaryNodePosition.x, y: summaryNodePosition.y - (selectedNodes.length > 1 ? 100 : 0) }, // Adjust y if single node
-          width: 200, height: 100,
+
+        const tempSummaryNodeId = `staged-summary-${Date.now()}`;
+        const summaryNode: ConceptMapNode = {
+            id: tempSummaryNodeId,
+            text: output.summary.text,
+            details: output.summary.details || `Summary of: ${selectedNodes.map(n => n.text).join(', ')}`,
+            type: 'ai-summary-node', // Or 'staged-ai-summary'
+            position: { x: summaryNodePosition.x, y: summaryNodePosition.y - (selectedNodes.length > 1 ? 100 : 0) },
+            width: 200,
+            height: 100,
+            childIds: [],
+        };
+
+        const edgesToSummarizedNodes: ConceptMapEdge[] = selectedNodes.map(node => ({
+            id: `staged-summaryedge-${node.id}-${Date.now()}`, // Temporary ID
+            source: tempSummaryNodeId,
+            target: node.id,
+            label: 'summary of',
+        }));
+
+        useConceptMapStore.getState().setStagedMapData({
+            nodes: [summaryNode],
+            edges: edgesToSummarizedNodes,
+            actionType: 'summarizeNodes',
         });
+        // Old direct add: addStoreNode({ ... });
     }
-  }, [isViewOnlyMode, mapData.nodes, multiSelectedNodeIds, addStoreNode, toast, callAIWithStandardFeedback, reactFlowInstance]);
+  }, [isViewOnlyMode, mapData.nodes, multiSelectedNodeIds, toast, callAIWithStandardFeedback, reactFlowInstance]);
+  // Removed addStoreNode from dependency array as it's no longer directly called.
 
   const handleMiniToolbarQuickExpand = useCallback(async (nodeId: string) => {
     const sourceNode = mapData.nodes.find(n => n.id === nodeId);
@@ -512,28 +533,44 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         { loadingMessage: "AI is thinking of an intermediate concept...", successTitle: "Intermediate Node Suggested", successDescription: (res) => `AI suggests adding '${res.intermediateNodeText}'. Review the details.`}
     );
     if (output) {
-        setIntermediateNodeSuggestion({ ...output, originalEdgeId: edgeId, sourceNode, targetNode });
+        // Construct node and edges for staging
+        const tempNodeId = `staged-intermediate-${Date.now()}`;
+        const midX = (sourceNode.x + targetNode.x) / 2;
+        const midY = (sourceNode.y + targetNode.y) / 2;
+
+        const intermediateNode: ConceptMapNode = {
+            id: tempNodeId, // Temporary ID for staging
+            text: output.intermediateNodeText,
+            details: output.intermediateNodeDetails ? `${output.intermediateNodeDetails}${output.reasoning ? `\n\nAI Rationale: ${output.reasoning}` : ''}` : (output.reasoning ? `AI Rationale: ${output.reasoning}` : ''),
+            type: 'ai-intermediate', // Or a more generic 'staged-ai' type
+            position: { x: midX, y: midY + 30 }, // Adjust position as needed
+            width: DEFAULT_NODE_WIDTH,
+            height: DEFAULT_NODE_HEIGHT,
+            childIds: [],
+        };
+        const edgeToIntermediate: ConceptMapEdge = {
+            id: `staged-edge1-${Date.now()}`, // Temporary ID
+            source: sourceNode.id,
+            target: tempNodeId,
+            label: output.labelSourceToIntermediate,
+        };
+        const edgeFromIntermediate: ConceptMapEdge = {
+            id: `staged-edge2-${Date.now()}`, // Temporary ID
+            source: tempNodeId,
+            target: targetNode.id,
+            label: output.labelIntermediateToTarget,
+        };
+
+        useConceptMapStore.getState().setStagedMapData({
+            nodes: [intermediateNode],
+            edges: [edgeToIntermediate, edgeFromIntermediate],
+            actionType: 'intermediateNode',
+            originalElementId: edge.id,
+        });
     }
-  }, [mapData, toast, callAIWithStandardFeedback]);
+  }, [mapData, toast, callAIWithStandardFeedback]); // Removed addStoreNode, addStoreEdge from deps
 
-  const confirmAddIntermediateNode = useCallback(() => {
-    if (!intermediateNodeSuggestion) return;
-    const { intermediateNodeText, intermediateNodeDetails, labelSourceToIntermediate, labelIntermediateToTarget, originalEdgeId, sourceNode, targetNode, reasoning } = intermediateNodeSuggestion;
-    const midX = (sourceNode.x + targetNode.x) / 2;
-    const midY = (sourceNode.y + targetNode.y) / 2;
-    const newNodeId = addStoreNode({
-      text: intermediateNodeText,
-      details: intermediateNodeDetails ? `${intermediateNodeDetails}${reasoning ? `\n\nAI Rationale: ${reasoning}` : ''}` : (reasoning ? `AI Rationale: ${reasoning}` : ''),
-      position: { x: midX, y: midY + 30 }, type: 'ai-intermediate',
-    });
-    addStoreEdge({ source: sourceNode.id, target: newNodeId, label: labelSourceToIntermediate });
-    addStoreEdge({ source: newNodeId, target: targetNode.id, label: labelIntermediateToTarget });
-    useConceptMapStore.getState().deleteEdge(originalEdgeId);
-    toast({ title: "Success", description: "Intermediate node added." });
-    setIntermediateNodeSuggestion(null);
-  }, [intermediateNodeSuggestion, addStoreNode, addStoreEdge, toast]);
-
-  const clearIntermediateNodeSuggestion = useCallback(() => setIntermediateNodeSuggestion(null), []);
+  // confirmAddIntermediateNode and clearIntermediateNodeSuggestion are removed as staging toolbar handles this.
 
   const handleAiTidyUpSelection = useCallback(async () => {
     if (multiSelectedNodeIds.length < 2) { toast({ title: "Selection Required", description: "Select at least two nodes for AI Tidy Up."}); return; }
@@ -652,7 +689,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     isAskQuestionModalOpen, setIsAskQuestionModalOpen, nodeContextForQuestion, openAskQuestionModal, handleQuestionAnswered, 
     isRewriteNodeContentModalOpen, setIsRewriteNodeContentModalOpen, nodeContentToRewrite, openRewriteNodeContentModal, handleRewriteNodeContentConfirm, 
     isRefineModalOpen, setIsRefineModalOpen, refineModalInitialData, openRefineSuggestionModal, handleRefineSuggestionConfirm,
-    intermediateNodeSuggestion, handleSuggestIntermediateNodeRequest, confirmAddIntermediateNode, clearIntermediateNodeSuggestion,
+    handleSuggestIntermediateNodeRequest, // intermediateNodeSuggestion, confirmAddIntermediateNode, clearIntermediateNodeSuggestion removed
     handleSummarizeSelectedNodes,
     handleMiniToolbarQuickExpand,
     handleMiniToolbarRewriteConcise,
