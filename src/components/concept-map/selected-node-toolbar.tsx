@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo } from 'react'; // Imported memo
+import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -8,23 +8,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-<<<<<<< HEAD
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Added Popover imports
-import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb, Palette, Spline } from 'lucide-react'; // Added Palette and Spline
-=======
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Type, Sparkles, MessageSquareQuote, Trash2, Lightbulb, Palette, Share2, Link as LinkIcon } from 'lucide-react';
->>>>>>> master
+import {
+    Type,
+    Sparkles,
+    MessageSquareQuote,
+    Trash2,
+    Lightbulb,
+    Palette,
+    Share2,
+    LayoutGrid
+} from 'lucide-react';
+import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added
+import useConceptMapStore from '@/stores/concept-map-store'; // Added to get isViewOnlyMode if needed
 
 interface SelectedNodeToolbarProps {
   nodeId: string;
+  numMultiSelectedNodes: number;
+  multiSelectedNodeIds: string[];
   onEditLabel: () => void;
-  onChangeColor: (color: string) => void; // New prop
-<<<<<<< HEAD
-  onStartConnection?: () => void; // New prop for starting a connection
-=======
-  onStartConnection: () => void; // New prop for starting a connection
->>>>>>> master
+  onChangeColor: (color: string) => void;
+  onStartConnection: () => void;
   onAIExpand: () => void;
   onAIRewrite: () => void;
   onAISuggestRelations: () => void;
@@ -35,15 +39,19 @@ const PREDEFINED_COLORS = ['#FFFFFF', '#FFF1F0', '#E6F7FF', '#F6FFED', '#FFFBE6'
 
 const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   nodeId,
+  numMultiSelectedNodes,
+  multiSelectedNodeIds, // Will be used by the actual Dagre call via handleDagreLayoutSelection
   onEditLabel,
-  onChangeColor, // Destructure new prop
-  onStartConnection, // Destructure new prop
+  onChangeColor,
+  onStartConnection,
   onAIExpand,
   onAIRewrite,
   onAISuggestRelations,
   onDeleteNode,
-}) => { // Renamed to SelectedNodeToolbarInternal for memo wrapping
-  // Stop propagation for all events within the toolbar to prevent node deselection or other interactions with the node itself.
+}) => {
+  const isViewOnlyMode = useConceptMapStore(state => state.isViewOnlyMode); // Get from store
+  const { handleDagreLayoutSelection } = useConceptMapAITools(isViewOnlyMode); // Get the new function
+
   const handleInteraction = (e: React.MouseEvent | React.TouchEvent | React.PointerEvent) => {
     e.stopPropagation();
   };
@@ -59,7 +67,6 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
       onTouchEnd={handleInteraction}
       onPointerDown={handleInteraction}
       onPointerUp={handleInteraction}
-      // Add other event handlers if necessary, e.g., onContextMenu
     >
       <Button variant="ghost" size="icon" onClick={onEditLabel} title="Edit Label">
         <Type className="w-4 h-4" />
@@ -88,8 +95,14 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
         </PopoverContent>
       </Popover>
 
-      <Button variant="ghost" size="icon" onClick={onStartConnection} title="Start Connection" disabled={!onStartConnection}>
-        <Spline className="w-4 h-4" />
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleDagreLayoutSelection} // Use the new handler
+        title="Auto-Layout Selection (Dagre)"
+        disabled={numMultiSelectedNodes < 2 || isViewOnlyMode} // Also disable in view-only mode
+      >
+        <LayoutGrid className="w-4 h-4" />
       </Button>
 
       <DropdownMenu>
@@ -111,7 +124,6 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
             <MessageSquareQuote className="w-4 h-4 mr-2" />
             Rewrite Content
           </DropdownMenuItem>
-          {/* Add more AI actions here if needed in the future */}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -122,4 +134,4 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   );
 };
 
-export default memo(SelectedNodeToolbar); // Wrapped with memo
+export default memo(SelectedNodeToolbar);

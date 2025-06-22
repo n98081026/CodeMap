@@ -1,11 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react'; // Added useState
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import React from 'react'; // Ensure React is imported for React.FC
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+// React was imported twice, removed one instance
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
 <<<<<<< HEAD
@@ -22,12 +20,17 @@ import {
 =======
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText,
+<<<<<<< HEAD
   Network, AlignHorizontalDistributeCenter, Grid // Added Grid icon
+=======
+  Network, AlignHorizontalDistributeCenter, BrainCircuit // Added BrainCircuit for new button
+>>>>>>> master
 } from "lucide-react";
 >>>>>>> master
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import useConceptMapStore from '@/stores/concept-map-store';
+import { fetchAllStructuralSuggestionsFlow } from '@/ai/flows'; // Import the new flow
 
 interface EditorToolbarProps {
   onNewMap: () => void;
@@ -142,6 +145,8 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 >>>>>>> master
 }: EditorToolbarProps) {
   const { toast } = useToast();
+  const store = useConceptMapStore(); // Get store instance for actions
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const handleGenAIClick = React.useCallback((actionCallback: () => void, toolName: string) => {
     if (isViewOnlyMode) {
@@ -300,7 +305,51 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           </TooltipContent>
         </Tooltip>
 
+<<<<<<< HEAD
         {/* New Auto-layout (Dagre) Button - Full Map */}
+=======
+        {/* New "Suggest Structural Improvements" Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={async () => {
+                if (isViewOnlyMode) {
+                  toast({ title: "View Only Mode", description: "Cannot suggest improvements in view-only mode.", variant: "default" });
+                  return;
+                }
+                setIsLoadingSuggestions(true);
+                try {
+                  const currentMapData = store.getState().mapData;
+                  // Prepare mapData in the format expected by the flow (nodes and edges only with required fields)
+                  const flowInput = {
+                    nodes: currentMapData.nodes.map(n => ({ id: n.id, text: n.text, details: n.details || "" })),
+                    edges: currentMapData.edges.map(e => ({ source: e.source, target: e.target, label: e.label || "" })),
+                  };
+                  const results = await fetchAllStructuralSuggestionsFlow.run(flowInput as any); // Cast as any if schema mismatch, ensure correct schema
+                  store.getState().setStructuralSuggestions(results);
+                  toast({ title: "AI Suggestions", description: `Received ${results.length} structural suggestions.` });
+                } catch (error) {
+                  console.error("Failed to fetch structural suggestions", error);
+                  toast({ title: "Error", description: "Failed to fetch AI structural suggestions.", variant: "destructive" });
+                  store.getState().clearStructuralSuggestions(); // Clear any stale suggestions
+                } finally {
+                  setIsLoadingSuggestions(false);
+                }
+              }}
+              disabled={isViewOnlyMode || isLoadingSuggestions}
+            >
+              {isLoadingSuggestions ? <Loader2 className="h-5 w-5 animate-spin" /> : <BrainCircuit className="h-5 w-5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode ? "Suggest Improvements (Disabled)" : isLoadingSuggestions ? "Loading..." : "Suggest Structural Improvements (AI)"}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* New Auto-layout (Dagre) Button */}
+>>>>>>> master
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

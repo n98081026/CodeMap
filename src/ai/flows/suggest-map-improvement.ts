@@ -34,6 +34,7 @@ const NewIntermediateNodeDataSchema = z.object({
   intermediateNodeText: z.string(),
   labelToIntermediate: z.string(),
   labelFromIntermediate: z.string(),
+  originalEdgeId: z.string().optional(), // Added field
 });
 
 const FormGroupDataSchema = z.object({
@@ -85,7 +86,7 @@ export const suggestMapImprovementFlow = defineFlow(
       Analyze the provided concept map data (nodes and edges). Your goal is to suggest ONE high-impact structural improvement.
       The types of improvements you can suggest are:
       1.  ADD_EDGE: Suggest adding a new edge between two existing, currently unconnected (or weakly connected) nodes if it reveals a significant missing relationship. Provide 'sourceNodeId', 'targetNodeId', and a 'label' for the new edge.
-      2.  NEW_INTERMEDIATE_NODE: Suggest inserting a new intermediate node between two existing connected nodes if their current relationship could be clarified or broken down. Provide 'sourceNodeId' (original source), 'targetNodeId' (original target), 'intermediateNodeText' for the new node, 'labelToIntermediate' (for source to new node), and 'labelFromIntermediate' (for new node to target).
+      2.  NEW_INTERMEDIATE_NODE: Suggest inserting a new intermediate node between two existing connected nodes if their current relationship could be clarified or broken down. Provide 'sourceNodeId' (original source), 'targetNodeId' (original target), 'intermediateNodeText' for the new node, 'labelToIntermediate' (for source to new node), 'labelFromIntermediate' (for new node to target), and optionally 'originalEdgeId' (ID of the edge being replaced).
       3.  FORM_GROUP: Suggest grouping 2 to 5 existing nodes under a new parent node if they represent a strong, coherent sub-theme not yet explicitly grouped. Provide 'nodeIdsToGroup' (an array of existing node IDs) and 'suggestedParentName' for the new parent.
 
       Map Data:
@@ -102,7 +103,7 @@ export const suggestMapImprovementFlow = defineFlow(
       Example for FORM_GROUP:
       { "type": "FORM_GROUP", "data": { "nodeIdsToGroup": ["node2", "node3"], "suggestedParentName": "Core Methods" }, "reason": "Nodes 2 and 3 both describe core methodologies." }
       Example for NEW_INTERMEDIATE_NODE:
-      { "type": "NEW_INTERMEDIATE_NODE", "data": { "sourceNodeId": "nodeA", "targetNodeId": "nodeC", "intermediateNodeText": "Bridge Concept B", "labelToIntermediate": "leads to", "labelFromIntermediate": "then to" }, "reason": "Concept B clarifies the path from A to C." }
+      { "type": "NEW_INTERMEDIATE_NODE", "data": { "sourceNodeId": "nodeA", "targetNodeId": "nodeC", "intermediateNodeText": "Bridge Concept B", "labelToIntermediate": "leads to", "labelFromIntermediate": "then to", "originalEdgeId": "edge_AC_original" }, "reason": "Concept B clarifies the path from A to C." }
     `;
 
     const llmResponse = await generate({
