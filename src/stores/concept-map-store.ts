@@ -114,6 +114,20 @@ interface ConceptMapState {
   projectOverviewData: GenerateProjectOverviewOutput | null; // Using the type from the new flow
   isFetchingOverview: boolean;
 
+  // Ghost Preview State
+  ghostPreviewData: {
+    nodes: Array<{
+      id: string; // Original node ID
+      x: number; // Proposed new X
+      y: number; // Proposed new Y
+      originalX?: number;
+      originalY?: number;
+      width?: number; // Original width, for rendering ghost accurately
+      height?: number; // Original height
+    }>;
+    // Could add 'edges' here if ghost edges are needed later
+  } | null;
+
   // Actions
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
@@ -211,6 +225,11 @@ interface ConceptMapState {
   // Example Map Loading
   loadExampleMapData: (mapData: ConceptMapData, exampleName: string) => void;
 
+  // Ghost Preview Actions
+  setGhostPreview: (nodesToPreview: Array<{id: string, x: number, y: number, width?: number, height?: number}>) => void;
+  acceptGhostPreview: () => void;
+  cancelGhostPreview: () => void;
+
   setStructuralSuggestions: (suggestions: z.infer<typeof StructuralSuggestionItemSchema>[]) => void;
   addStructuralSuggestion: (suggestion: z.infer<typeof StructuralSuggestionItemSchema>) => void;
   updateStructuralSuggestion: (updatedSuggestion: Partial<z.infer<typeof StructuralSuggestionItemSchema>> & { id: string }) => void;
@@ -223,6 +242,8 @@ interface ConceptMapState {
 
 const initialStateBaseOmitKeys = [
   'setMapId', 'setMapName', 'setCurrentMapOwnerId', 'setCurrentMapCreatedAt', 'setIsPublic',
+  // Ghost Preview Action Omissions
+  'setGhostPreview', 'acceptGhostPreview', 'cancelGhostPreview',
   'setSharedWithClassroomId', 'setIsNewMapMode', 'setIsViewOnlyMode', 'setInitialLoadComplete', 'setIsLoading', 'setIsSaving', 'setError',
   'setSelectedElement', 'setMultiSelectedNodeIds', 'setEditingNodeId', 'setAiProcessingNodeId',
   'setAiExtractedConcepts', 'setAiSuggestedRelations',
@@ -343,9 +364,10 @@ const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> = {
 import { type GenerateProjectOverviewInput, type GenerateProjectOverviewOutput, generateProjectOverviewFlow } from '@/ai/flows/generate-project-overview';
 =======
   structuralSuggestions: [],
+  ghostPreviewData: null,
 };
 
-type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview'>;
+type TrackedState = Pick<ConceptMapState, 'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' | 'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' | 'editingNodeId' | 'stagedMapData' | 'isStagingActive' | 'conceptExpansionPreview' | 'ghostPreviewData'>;
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 >>>>>>> master
 
@@ -773,6 +795,40 @@ export const useConceptMapStore = create<ConceptMapState>()(
         });
         get().addDebugLog(`[STORE applyFormGroupSuggestion] Group node ${newGroupId} created. Children: ${nodeIds.join(', ')} parented.`);
         return newGroupId;
+      },
+
+      // Ghost Preview Action Implementations
+      setGhostPreview: (nodesToPreview) => {
+        const currentNodes = get().mapData.nodes;
+        const previewNodesWithOriginalData = nodesToPreview.map(previewNode => {
+          const originalNode = currentNodes.find(n => n.id === previewNode.id);
+          return {
+            ...previewNode,
+            originalX: originalNode?.x,
+            originalY: originalNode?.y,
+            width: originalNode?.width || previewNode.width || 150, // Use original, then preview, then default
+            height: originalNode?.height || previewNode.height || 70, // Use original, then preview, then default
+          };
+        });
+        set({ ghostPreviewData: { nodes: previewNodesWithOriginalData } });
+        get().addDebugLog(`[STORE setGhostPreview] Ghost preview set for ${nodesToPreview.length} nodes.`);
+      },
+      acceptGhostPreview: () => {
+        const previewData = get().ghostPreviewData;
+        if (!previewData) return;
+        const updates: LayoutNodeUpdate[] = previewData.nodes.map(node => ({
+          id: node.id,
+          x: node.x,
+          y: node.y,
+          // width and height are not changed by layout, they are for rendering the ghost
+        }));
+        get().applyLayout(updates); // applyLayout should handle updating mapData.nodes
+        set({ ghostPreviewData: null });
+        get().addDebugLog(`[STORE acceptGhostPreview] Ghost preview accepted and applied.`);
+      },
+      cancelGhostPreview: () => {
+        set({ ghostPreviewData: null });
+        get().addDebugLog(`[STORE cancelGhostPreview] Ghost preview cancelled.`);
       },
     }),
     {

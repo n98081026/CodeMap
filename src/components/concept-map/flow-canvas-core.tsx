@@ -10,6 +10,7 @@ import OrthogonalEdge, { type OrthogonalEdgeData, getMarkerDefinition } from './
 import SuggestedEdge from './SuggestedEdge';
 import SuggestedIntermediateNode from './SuggestedIntermediateNode';
 import SuggestedGroupOverlayNode from './SuggestedGroupOverlayNode';
+import GhostNodeComponent from './GhostNodeComponent'; // Import GhostNodeComponent
 import useConceptMapStore from '@/stores/concept-map-store';
 import { getNodePlacement } from '@/lib/layout-utils';
 import { cn } from '@/lib/utils';
@@ -246,6 +247,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       stagedMapData: s.stagedMapData,
       isStagingActive: s.isStagingActive,
       conceptExpansionPreview: s.conceptExpansionPreview,
+    ghostPreviewData: s.ghostPreviewData, // Get ghostPreviewData
     }), [])
   );
   const [rfStagedNodes, setRfStagedNodes, onStagedNodesChange] = useNodesState<CustomNodeData>([]);
@@ -262,6 +264,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     customConceptNode: CustomNodeComponent,
     'suggested-intermediate-node': SuggestedIntermediateNode,
     'suggested-group-overlay-node': SuggestedGroupOverlayNode,
+    ghostNode: GhostNodeComponent, // Add ghostNode type
     dragPreviewNode: CustomNodeComponent,
     dragPreviewLabel: ({ data }: { data: { label: string } }) => <div style={{ padding: 5, background: '#fff', border: '1px solid #ddd', borderRadius: '4px' }}>{data.label}</div>,
   }), []);
@@ -573,8 +576,44 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   }, []);
 
   const combinedNodes = useMemo(() => {
-    let baseNodes = [...rfNodes, ...rfStagedNodes, ...rfPreviewNodes];
+    const ghostNodeIds = new Set(ghostPreviewData?.nodes.map(n => n.id) || []);
+
+    // Update rfNodes to include isDimmed if they have a ghost preview
+    const updatedRfNodes = rfNodes.map(node => {
+      if (ghostNodeIds.has(node.id)) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            isDimmed: true,
+          },
+        };
+      }
+      return node;
+    });
+
+    let baseNodes = [...updatedRfNodes, ...rfStagedNodes, ...rfPreviewNodes];
     const currentMapNodesForSuggestions = mapDataFromStore.nodes;
+
+    // Add Ghost Nodes if ghostPreviewData exists
+    if (ghostPreviewData) {
+      const ghostNodesToAdd = ghostPreviewData.nodes.map(ghostNodeInfo => ({
+        id: `ghost-${ghostNodeInfo.id}`, // Ensure unique ID for ghost version
+        type: 'ghostNode',
+        position: { x: ghostNodeInfo.x, y: ghostNodeInfo.y },
+        data: {
+          id: ghostNodeInfo.id, // Pass original ID for reference
+          width: ghostNodeInfo.width,
+          height: ghostNodeInfo.height,
+          label: currentMapNodesForSuggestions.find(n => n.id === ghostNodeInfo.id)?.text || '', // Optional: pass label
+        },
+        draggable: false,
+        selectable: false, // Ghosts are typically not selectable
+        connectable: false,
+        zIndex: 200, // Ensure ghosts are rendered above dimmed originals if needed
+      }));
+      baseNodes = [...baseNodes, ...ghostNodesToAdd];
+    }
 
     const suggestionNodes = (structuralSuggestions || []).flatMap(suggestion => {
       if (suggestion.type === 'NEW_INTERMEDIATE_NODE') {
@@ -631,7 +670,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       });
     }
     return baseNodes;
-  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewData, draggedRelationLabel, dragPreviewPosition, structuralSuggestions, structuralGroupSuggestions, mapDataFromStore.nodes]);
+  }, [rfNodes, rfStagedNodes, rfPreviewNodes, dragPreviewData, draggedRelationLabel, dragPreviewPosition, structuralSuggestions, structuralGroupSuggestions, mapDataFromStore.nodes, ghostPreviewData]);
 
   const combinedEdges = useMemo(() => {
     let baseEdges = [...rfEdges, ...rfStagedEdges, ...rfPreviewEdges];

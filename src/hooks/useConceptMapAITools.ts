@@ -584,18 +584,41 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     );
 
     if (output && output.layoutUpdates) {
-      applyLayout(output.layoutUpdates.map(lu => ({id: lu.nodeId, x: lu.x, y: lu.y})));
-      if (output.structuralChanges?.newNodes) {
-        output.structuralChanges.newNodes.forEach(nn => addStoreNode({ text: nn.text, type: nn.type, position: { x: nn.x, y: nn.y }, details: nn.details, parentNode: nn.parentNodeId }));
-      }
-      if (output.structuralChanges?.newEdges) {
-        output.structuralChanges.newEdges.forEach(ne => addStoreEdge({ source: ne.sourceId, target: ne.targetId, label: ne.label }));
-      }
-      if (output.structuralChanges?.updatedNodes) {
-        output.structuralChanges.updatedNodes.forEach(un => updateStoreNode(un.nodeId, { parentNode: un.newParentId }));
+      const hasStructuralChanges = output.structuralChanges &&
+                                   (output.structuralChanges.newNodes?.length ||
+                                    output.structuralChanges.newEdges?.length ||
+                                    output.structuralChanges.updatedNodes?.length);
+
+      if (hasStructuralChanges) {
+        // Current behavior: apply layout directly, then structural changes
+        applyLayout(output.layoutUpdates.map(lu => ({id: lu.nodeId, x: lu.x, y: lu.y})));
+        if (output.structuralChanges?.newNodes) {
+          output.structuralChanges.newNodes.forEach(nn => addStoreNode({ text: nn.text, type: nn.type, position: { x: nn.x, y: nn.y }, details: nn.details, parentNode: nn.parentNodeId }));
+        }
+        if (output.structuralChanges?.newEdges) {
+          output.structuralChanges.newEdges.forEach(ne => addStoreEdge({ source: ne.sourceId, target: ne.targetId, label: ne.label }));
+        }
+        if (output.structuralChanges?.updatedNodes) {
+          output.structuralChanges.updatedNodes.forEach(un => updateStoreNode(un.nodeId, { parentNode: un.newParentId }));
+        }
+        toast({ title: "AI Tidy Up Applied", description: "Layout and structural changes have been applied." });
+      } else {
+        // ONLY layout updates, use ghost preview
+        const layoutUpdatesWithDimensions = output.layoutUpdates.map(lu => {
+          const originalNode = nodesToTidy.find(n => n.id === lu.nodeId);
+          return {
+            id: lu.nodeId,
+            x: lu.x,
+            y: lu.y,
+            width: originalNode?.width || DEFAULT_NODE_WIDTH,
+            height: originalNode?.height || DEFAULT_NODE_HEIGHT,
+          };
+        });
+        useConceptMapStore.getState().setGhostPreview(layoutUpdatesWithDimensions);
+        toast({ title: "Layout Preview Ready", description: "AI Tidy Up proposes new layout. Accept or Cancel." });
       }
     }
-  }, [multiSelectedNodeIds, mapData.nodes, callAIWithStandardFeedback, applyLayout, addStoreNode, addStoreEdge, updateStoreNode]);
+  }, [multiSelectedNodeIds, mapData.nodes, callAIWithStandardFeedback, applyLayout, addStoreNode, addStoreEdge, updateStoreNode, toast]); // Added toast
 
   const handleSuggestMapImprovements = useCallback(async () => {
     const currentNodes = mapData.nodes.map(n => ({ id: n.id, text: n.text, details: n.details || "" }));
@@ -662,8 +685,21 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         x: Math.round((p.x + offsetX) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT,
         y: Math.round((p.y + offsetY) / GRID_SIZE_FOR_AI_PLACEMENT) * GRID_SIZE_FOR_AI_PLACEMENT,
       }));
-      applyLayout(finalPositions);
-      toast({ title: "Selection Arranged", description: `${finalPositions.length} nodes arranged.` });
+
+      // Call setGhostPreview instead of applyLayout directly
+      const positionsWithDimensions = finalPositions.map(fp => {
+        const nodeDetail = nodesForDagre.find(nfd => nfd.id === fp.id);
+        return {
+          id: fp.id,
+          x: fp.x,
+          y: fp.y,
+          width: nodeDetail?.width || DEFAULT_NODE_WIDTH,
+          height: nodeDetail?.height || DEFAULT_NODE_HEIGHT,
+        };
+      });
+      useConceptMapStore.getState().setGhostPreview(positionsWithDimensions);
+      // applyLayout(finalPositions); // Old direct application
+      toast({ title: "Layout Preview Ready", description: `Previewing new layout for ${finalPositions.length} nodes. Accept or Cancel via toolbar.` });
     } catch (error) {
       console.error("Dagre layout error:", error);
       toast({ title: "Layout Error", description: `Failed to arrange: ${(error as Error).message}`, variant: "destructive" });
