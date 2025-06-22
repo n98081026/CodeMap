@@ -543,18 +543,11 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
     // Refine for ASP.NET Core if C# project
     if (isCSharpProject) {
         let isAspNetCore = false;
-        // Check .csproj content (if available and parsed) for Web SDK
-        // This requires csprojContent to be available here or pass relevant info from parseCsproj
-        // For simplicity, we'll check dependencies for now. A better check involves SDK attribute.
-
         const nugetDependencies = output.dependencies?.nuget || [];
         if (nugetDependencies.some(dep => dep.toLowerCase().startsWith('microsoft.aspnetcore'))) {
             isAspNetCore = true;
         }
-        // A more direct check if csprojContent was accessible here:
-        // if (csprojContent && /Sdk="Microsoft\.NET\.Sdk\.Web"/i.test(csprojContent)) {
-        //     isAspNetCore = true;
-        // }
+        // TODO: A more direct check if csprojContent was accessible here for Sdk="Microsoft.NET.Sdk.Web"
 
         if (isAspNetCore) {
             if (!output.inferredLanguagesFrameworks?.find(lang => lang.name === "ASP.NET Core")) {
@@ -562,7 +555,7 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
             }
             if (!output.potentialArchitecturalComponents?.find(c => c.name.includes("ASP.NET Core"))) {
                 const relatedCsFiles = [
-                    csprojFiles.length > 0 ? csprojFiles[0].name : undefined, // Add main csproj
+                    csprojFiles.length > 0 ? csprojFiles[0].name : undefined,
                     programCsFile?.name,
                     startupCsFile?.name,
                     appsettingsJsonFile?.name
@@ -572,6 +565,66 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
                     type: "service",
                     relatedFiles: relatedCsFiles,
                 });
+            }
+        }
+
+        // Deeper C# source file analysis
+        const cSharpSourceFiles = filesToAnalyze.filter(f => f.name.endsWith('.cs'));
+        const MAX_CS_FILES_TO_PROCESS = 20;
+        let processedCsFilesCount = 0;
+
+        for (const csFile of cSharpSourceFiles) {
+            if (processedCsFilesCount >= MAX_CS_FILES_TO_PROCESS) break;
+            // Basic skip for common test project patterns or obj/bin folders
+            if (csFile.name.toLowerCase().includes('/obj/') || csFile.name.toLowerCase().includes('/bin/') || csFile.name.toLowerCase().includes(".test")) {
+                continue;
+            }
+
+            const fileContent = await getFileContent(csFile.name);
+            if (fileContent) {
+                const usings = extractCSharpUsings(fileContent);
+                const namespace = extractCSharpNamespace(fileContent);
+                const types = extractCSharpTypeNames(fileContent); // Array of {name, type}
+                const members = extractCSharpPublicMembers(fileContent);
+
+                const symbols = [
+                    ...types.map(t => `${t.type}:${t.name}`),
+                    ...members
+                ];
+
+                let detailsString = "";
+                if (namespace) detailsString += `Namespace: ${namespace}\n`;
+                if (usings.length > 0) detailsString += `Usings: ${usings.join(', ')}\n`;
+                if (symbols.length > 0 && !detailsString.includes("Symbols:")) detailsString += `Symbols: ${symbols.join(', ')}`;
+
+
+                let fileType: KeyFileSchema['type'] = 'utility'; // Default
+                if (types.some(t => t.name.toLowerCase().includes('controller'))) fileType = 'service_definition'; // Likely a controller
+                else if (types.some(t => t.type === 'interface' && t.name.startsWith('I') && t.name.endsWith('Service'))) fileType = 'service_definition';
+                else if (types.some(t => t.type === 'class' && t.name.endsWith('Service'))) fileType = 'service_definition';
+                else if (types.some(t => t.type === 'class' && t.name.endsWith('Model') || t.type === 'record')) fileType = 'model';
+                else if (csFile.name.toLowerCase() === 'program.cs') fileType = 'entry_point';
+                else if (csFile.name.toLowerCase() === 'startup.cs') fileType = 'configuration';
+
+                const existingKf = output.keyFiles?.find(kf => kf.filePath === csFile.name);
+                if (existingKf) {
+                    existingKf.type = existingKf.type === 'unknown' ? fileType : existingKf.type;
+                    existingKf.details = (existingKf.details ? `${existingKf.details}\n` : '') + detailsString.trim();
+                    existingKf.extractedSymbols = [...new Set([...(existingKf.extractedSymbols || []), ...symbols])];
+                    if (!existingKf.briefDescription?.includes("C# source file")) existingKf.briefDescription = (existingKf.briefDescription || "") + " C# source file.";
+
+                } else {
+                    output.keyFiles?.push({
+                        filePath: csFile.name,
+                        type: fileType,
+                        briefDescription: `C# source file. ${symbols.length > 0 ? "Contains types/members." : ""} ${usings.length > 0 ? "Contains usings." : ""}`.trim(),
+                        details: detailsString.trim() || undefined,
+                        extractedSymbols: symbols.length > 0 ? symbols : undefined,
+                    });
+                }
+                processedCsFilesCount++;
+            } else {
+                output.parsingErrors?.push(`Could not read content for C# source file: ${csFile.name}`);
             }
         }
     }
@@ -936,5 +989,96 @@ function extractPyFunctions(content: string): string[] {
     }
   }
   return Array.from(functions);
+}
+
+/**
+ * Extracts `using` directive namespaces from C# code content using regex.
+ * @param content The string content of the C# file.
+ * @returns An array of unique used namespace names.
+ */
+function extractCSharpUsings(content: string): string[] {
+  const usings = new Set<string>();
+  // Matches: using System; or using System.Collections.Generic;
+  // Handles potential whitespace variations.
+  const usingRegex = /^\s*using\s+([A-Za-z_][A-Za-z0-9_.]*)\s*;/gm;
+  let match;
+  while ((match = usingRegex.exec(content)) !== null) {
+    usings.add(match[1]);
+  }
+  return Array.from(usings);
+}
+
+/**
+ * Extracts the primary namespace declaration from C# code content using regex.
+ * @param content The string content of the C# file.
+ * @returns The namespace string or null if not found.
+ */
+function extractCSharpNamespace(content: string): string | null {
+  // Matches: namespace My.App.Namespace or namespace My.App.Namespace { ...
+  // It will capture the namespace part.
+  const namespaceRegex = /^\s*namespace\s+([A-Za-z_][A-Za-z0-9_.]*)/m; // m for multiline, finds first occurrence
+  const match = content.match(namespaceRegex);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return null;
+}
+
+/**
+ * Extracts C# type (class, interface, enum, struct, record) names and their kinds using regex.
+ * @param content The string content of the C# file.
+ * @returns An array of objects, each with `name` and `type` (kind).
+ */
+function extractCSharpTypeNames(content: string): Array<{name: string, type: 'class' | 'interface' | 'enum' | 'struct' | 'record'}> {
+  const types = new Map<string, {name: string, type: 'class' | 'interface' | 'enum' | 'struct' | 'record'}>();
+  // Regex to capture various type definitions (public, internal, etc.)
+  // It captures the keyword (class, interface, etc.) and the name.
+  // Adjusted to better handle generics and constraints, though full parsing is complex.
+  const typeRegex = /^\s*(?:public|internal|private|protected)?\s*(?:static|abstract|sealed|partial)?\s*(class|interface|enum|struct|record)\s+([A-Za-z_][A-Za-z0-9_]*)(?:<[^>]+>)?(?:\s*:\s*[^\{]+)?\s*{?/gm;
+  let match;
+  while ((match = typeRegex.exec(content)) !== null) {
+    const typeKind = match[1] as 'class' | 'interface' | 'enum' | 'struct' | 'record';
+    const typeName = match[2];
+    if (typeName && !types.has(typeName)) { // Ensure unique names, first declaration wins for simplicity
+        types.set(typeName, { name: typeName, type: typeKind });
+    }
+  }
+  return Array.from(types.values());
+}
+
+/**
+ * Extracts basic public method and property signatures from C# code content using regex.
+ * This is a very simplified parser.
+ * @param content The string content of the C# file.
+ * @returns An array of unique simplified member signatures.
+ */
+function extractCSharpPublicMembers(content: string): string[] {
+  const members = new Set<string>();
+
+  // Basic regex for public methods: public (static/async/virtual...) ReturnType MethodName<GenericParams>(params) { or ;
+  // This is simplified and won't perfectly handle all C# syntax, attributes, or complex return types.
+  const methodRegex = /^\s*(?:public|internal)\s+(?:static\s+|async\s+|virtual\s+|override\s+|sealed\s+)*([\w\<\>\?\[\]\.,\s]+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:<[^>]*>)?\s*\((?:[^)(]|\((?:[^)(]+|\([^)(]*\))*\))*\)\s*(?:where\s[^\{]+)?\s*(?:{|=>|;)/gm;
+  let match;
+  while ((match = methodRegex.exec(content)) !== null) {
+    // const returnType = match[1].trim(); // Captured but not used in the simplified signature for now
+    const methodName = match[2].trim();
+    if (methodName && !methodName.startsWith("get_") && !methodName.startsWith("set_")) { // Filter out property accessors
+         // To keep it simple, we'll just add MethodName(...)
+        members.add(`${methodName}(...)`);
+    }
+  }
+
+  // Basic regex for public properties: public Type PropertyName { (get/set/init...); }
+  // Simplified: captures name, assumes simple get/set.
+  const propertyRegex = /^\s*(?:public|internal)\s+(?:static\s+|virtual\s+|override\s+|sealed\s+)*([\w\<\>\?\[\]\.,\s]+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*{\s*(?:(?:public|internal|protected|private)?\s*(?:get|set|init)\s*;\s*)+(?:=>)?/gm;
+  while ((match = propertyRegex.exec(content)) !== null) {
+    // const propertyType = match[1].trim(); // Captured but not used for now
+    const propertyName = match[2].trim();
+    if (propertyName) {
+        members.add(`${propertyName} { get; set; }`); // Simplified representation
+    }
+  }
+
+  return Array.from(members);
 }
 }
