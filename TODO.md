@@ -46,7 +46,8 @@
     - [ ] Message Queue setup (RabbitMQ, Redis, etc.). (Out of Scope).
     - [ ] Develop Project Analysis Microservice:
         - [ ] Task consumer from message queue. (Out of Scope).
-        - [ ] File downloader/unpacker from Supabase storage for AI tool. (Mocked by `projectStructureAnalyzerTool`; real processing is user's responsibility within the tool).
+        - [~] File downloader from Supabase storage for AI tool implemented (supabaseFileFetcherTool). projectStructureAnalyzerTool now uses this to fetch file properties and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types (JSON, MD, Py, Txt). Further deep semantic analysis user-defined/pending. Unpacker out of scope. (generateMapFromProject flow prompt updated).
+            - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
         - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` is mock, now accepts storage path and user goals, and special hints for predefined mock outputs).
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output, creates new ConceptMap record via Supabase service - handled in `ProjectUploadForm` flow after AI tool returns).
         - [x] Map Data Formatter & Persister (saves generated map via Supabase service, updates submission status with real map ID - handled in `ProjectUploadForm` flow).
@@ -184,10 +185,10 @@
 - [x] "AI Tidy-Up" / Smart Alignment (Contextual):
     - [x] On selection of multiple nodes, offer an "AI Tidy selection" option (Implemented in EditorToolbar, AI aligns/distributes).
     - [x] (Enhancement) AI attempts to also semantically group selected nodes (e.g., create temporary parent node). (AI flow can now suggest a parent, and hook logic implements its creation and re-parenting of children).
-- [ ] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
-    - [ ] AI periodically/on-demand scans map for structural improvement opportunities.
-    - [ ] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?".
-    - [ ] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options.
+- [x] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
+    - [x] AI periodically/on-demand scans map for structural improvement opportunities. (On-demand implemented via toolbar button; periodic scanning is a future enhancement).
+    - [x] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?". (Custom React Flow components `SuggestedEdge`, `SuggestedIntermediateNode`, `SuggestedGroupOverlayNode` created to visually represent these suggestions).
+    - [x] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options. (Implemented via Popovers on each suggestion component, allowing accept/dismiss actions that modify the map and remove the suggestion).
 
 ### Streamlined GAI Input & Feedback
 - [x] Slash Commands ("/ai") in Node Text (Evolution of existing TODO item):
@@ -205,7 +206,7 @@
     - [x] AI proposes a node to sit between source/target, splitting original edge and linking through the new node.
 
 ## Data Structure & Layout Refactoring Plan (Graphology/Dagre Integration)
-**Status:** [~] Initial phases (interface definition, mock integration of GraphAdapter and Dagre concepts into store and AI tools, documentation) complete. Full library integration for Graphology/Dagre is a larger pending task.
+**Status:** [x] Core libraries (`graphology`, `dagre`) installed and integrated. `GraphAdapterUtility` (graphology) used in store & AI tools. `DagreLayoutUtility` (dagre) powers selection and full-map layout. AI suggestions (group, edge, intermediate node) enhanced with hybrid Graphology+LLM approaches. Overall pros/cons reviewed.
 
 This plan outlines a potential refactoring to incorporate Graphology for more robust data management and Dagre for automated graph layout. Implementation is contingent on tool stability and/or user provision of core utility libraries.
 
@@ -246,8 +247,11 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
 - [x] **AI Output Processing: Pre-layout with Dagre for Staging/Preview:**
     - For "Quick Cluster", "Generate Snippet", "Expand Concept": After AI returns new elements, use Dagre on a temporary graph to pre-layout them before sending to staging/preview.
 - [ ] **Advanced GAI (Future): Plan New Features using Graphology/Dagre:**
-    - Design "AI Tidy-Up / Smart Alignment" (Dagre on selections).
-    - Design "Dynamic Structure Suggestion Overlays" (Graphology for analysis).
+    - [x] Design "AI Tidy-Up / Smart Alignment" (Dagre on selections). (Implemented using DagreLayoutUtility for selected nodes, triggered from SelectedNodeToolbar).
+    - [x] Design "Dynamic Structure Suggestion Overlays" (Graphology for analysis).
+        - [x] Implemented hybrid Graphology (Louvain community detection) + LLM validation/naming for PROPOSE_GROUP suggestions within `suggestNodeGroupCandidatesFlow`.
+        - [x] Implemented hybrid Graphology (Jaccard Index on shared neighbors) + LLM validation/labeling for PROPOSE_EDGE suggestions via a new `suggestGraphologyEnhancedEdgeFlow`.
+        - [x] Implemented hybrid Graphology (inter-community edge detection) + LLM content generation/validation for PROPOSE_INTERMEDIATE_NODE suggestions via a new `suggestGraphologyIntermediateNodeFlow`.
 
 **Phase 4: Data Migration & Initialization (Conceptual - Low Impact for Hybrid)**
 - [x] **Verify No Data Migration Needed for stored arrays.** (Confirmed)
@@ -256,7 +260,7 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
 **Phase 5: Documentation & Review**
 - [x] Document interfaces for `DagreLayoutUtility` and `GraphAdapter`.
 - [x] Document how store actions and AI tools utilize these.
-- [ ] Review pros/cons post-implementation (if undertaken).
+- [x] Review pros/cons post-implementation (if undertaken). (Completed for store refactor, Dagre selection layout, Dagre full map layout, and Graphology-enhanced suggestions).
 
 ## Performance Optimizations
 - [x] Review and optimize image usage: Ensure all important images use `next/image` with `width` and `height` props. Replace generic `<img>` tags or add placeholders for `next/image` where appropriate.
@@ -299,7 +303,8 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete via `ProjectUploadForm` and `useSupabaseStorageUpload` hook).
 - [x] **Connect frontend student submissions list to live API.**
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
-    - [ ] Modify `projectStructureAnalyzerTool` to fetch project file from Supabase Storage and perform real analysis. (User to implement if desired, currently mock).
+    - [~] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated.
+        - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done in `ProjectUploadForm` flow).
 
 **6. API Route Refactoring (General Review for Supabase)**
@@ -344,5 +349,3 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
-
-[end of TODO.md]

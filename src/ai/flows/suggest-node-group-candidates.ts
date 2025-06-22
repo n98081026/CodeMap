@@ -1,15 +1,15 @@
 import { defineFlow, generate } from '@genkit-ai/flow';
-import { geminiPro } from '@genkit-ai/googleai'; // Or another suitable model
+import { geminiPro } from '@genkit-ai/googleai';
 import * as z from 'zod';
+import { graphologyCommunityDetectionTool } from '../tools'; // Adjusted import path assuming tools/index.ts exports it
 
-// Input Schema: Current map data
+// Input Schema: Current map data (remains the same)
 export const MapDataSchema = z.object({
   nodes: z.array(
     z.object({
       id: z.string(),
       text: z.string().min(1, "Node text cannot be empty."),
       details: z.string().optional(),
-      // Optionally include x, y if position might inform grouping, but keep it simple for now
     })
   ),
   edges: z.array(
@@ -21,12 +21,19 @@ export const MapDataSchema = z.object({
   ),
 });
 
-// Output Schema: A single group suggestion, or null if no suitable group found
+// Output Schema: A single group suggestion, or null (remains the same)
 export const NodeGroupSuggestionSchema = z.object({
-  nodeIdsToGroup: z.array(z.string()).min(2).max(5, "Suggest grouping 2 to 5 nodes."), // AI should suggest IDs of existing nodes
+  nodeIdsToGroup: z.array(z.string()).min(2).max(5, "Suggest grouping 2 to 5 nodes."),
   suggestedParentName: z.string().min(1, "Suggested parent name cannot be empty."),
   reason: z.string().optional(),
-}).nullable(); // Allow AI to return null if no good suggestion
+}).nullable();
+
+// New Zod schema for the LLM's validation and naming response
+const LlmGroupValidationResponseSchema = z.object({
+  isCoherent: z.boolean().describe("Whether the provided list of nodes forms a semantically coherent group."),
+  suggestedParentName: z.string().optional().nullable().describe("A concise parent name if the group is coherent, otherwise null."),
+  reason: z.string().optional().nullable().describe("A brief reason for the grouping if coherent, or why it's not, otherwise null."),
+});
 
 export const suggestNodeGroupCandidatesFlow = defineFlow(
   {
@@ -34,84 +41,105 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
     inputSchema: MapDataSchema,
     outputSchema: NodeGroupSuggestionSchema,
   },
-  async (input) => {
-    const { nodes, edges } = input;
+  async (mapData) => {
+    if (!mapData.nodes || mapData.nodes.length < 2) {
+      return null; // Not enough nodes to form a group or for community detection
+    }
 
-    if (nodes.length < 2) { // Not enough nodes to form a group
+    // Step 1: Graphology Community Detection
+    const communityDetectionResult = await graphologyCommunityDetectionTool.run(mapData);
+
+    if (communityDetectionResult.error || !communityDetectionResult.detectedCommunities || communityDetectionResult.detectedCommunities.length === 0) {
+      console.log('[SuggestNodeGroup] No communities found by graphology tool or error occurred.', communityDetectionResult.error);
       return null;
     }
 
-    // Prepare a summary of the map for the prompt
-    const nodesSummary = nodes.map(n =>
-      `Node(id="${n.id}", text="${n.text}"${n.details ? `, details="${n.details.substring(0, 70)}${n.details.length > 70 ? '...' : ''}"` : ''})`
-    ).join(', ');
+    // Take the first valid community (already filtered by size 2-5 in the tool)
+    const firstCommunity = communityDetectionResult.detectedCommunities[0];
+    if (!firstCommunity || firstCommunity.nodeIds.length < 2) { // Should be redundant due to tool's filtering
+      console.log('[SuggestNodeGroup] First community is invalid or too small.');
+      return null;
+    }
 
-    const edgesSummary = edges.map(e =>
-      `Edge(source="${e.source}", target="${e.target}"${e.label ? `, label="${e.label}"` : ''})`
-    ).join(', ');
+    // Step 2: LLM Refinement & Naming
+    const nodesInCommunity = mapData.nodes.filter(node => firstCommunity.nodeIds.includes(node.id));
 
-    const prompt = `
-      You are an expert knowledge organizer and concept map analyst.
-      Analyze the following concept map data, which consists of nodes and their connections.
-      Your task is to identify one set of 2 to 5 existing nodes that are closely related or represent a coherent sub-theme but are NOT YET EXPLICITLY GROUPED under a common parent node (i.e., their 'parentNode' property is not already set to the same value or they don't share an obvious existing container).
+    if (nodesInCommunity.length !== firstCommunity.nodeIds.length) {
+        console.warn('[SuggestNodeGroup] Mismatch between community node IDs and found nodes. Aborting.');
+        return null;
+    }
 
-      If you find such a group, suggest:
-      1.  A list of the IDs of these nodes (\`nodeIdsToGroup\`). These must be IDs from the provided nodes.
-      2.  A concise and meaningful name for a NEW PARENT NODE that would semantically group these selected nodes (\`suggestedParentName\`).
-      3.  Optionally, a brief reason for your suggested grouping (\`reason\`).
+    const communityNodesSummary = nodesInCommunity.map(n =>
+      `Node(id="${n.id}", text="${n.text}"${n.details ? `, details_preview="${n.details.substring(0, 70)}..."` : ''})`
+    ).join('; ');
 
-      Prioritize suggestions that would significantly improve the map's organization and clarity.
-      If multiple potential groups exist, suggest only the most compelling one.
-      If no suitable group of 2-5 nodes is identified, return null.
+    const validateAndNamePrompt = `
+      You are an expert knowledge organizer. A community detection algorithm has identified the following group of nodes from a concept map:
+      [${communityNodesSummary}]
 
-      Map Data:
-      Nodes: [${nodesSummary}]
-      Edges: [${edgesSummary}]
+      Your tasks are:
+      1.  Assess if these nodes form a semantically coherent group that would benefit from being explicitly grouped under a parent concept.
+      2.  If they DO form a coherent group:
+          a.  Suggest a concise and meaningful name for a NEW PARENT NODE that would group these nodes (max 5 words).
+          b.  Provide a brief reason (1-2 sentences) explaining why they form a good group and why this name is suitable.
+      3.  If they DO NOT form a coherent group, indicate this.
 
-      Return your answer as a JSON object matching the specified output schema, or return null if no good suggestion is found.
-      Example of a valid JSON object:
+      Return your answer as a single, well-formed JSON object with the following exact keys:
+      - "isCoherent": boolean (true if they form a good group, false otherwise)
+      - "suggestedParentName": string (the suggested parent name if coherent, otherwise null or omit)
+      - "reason": string (your reasoning if coherent, or why not, if not coherent; otherwise null or omit)
+
+      Example for a coherent group:
       {
-        "nodeIdsToGroup": ["nodeId1", "nodeId2", "nodeId3"],
-        "suggestedParentName": "Key Authentication Methods",
-        "reason": "These nodes all describe different ways users can authenticate."
+        "isCoherent": true,
+        "suggestedParentName": "User Authentication Methods",
+        "reason": "These nodes all describe different ways users can authenticate, making them a logical group."
       }
-      Another example (if no reason):
+      Example for a non-coherent group:
       {
-        "nodeIdsToGroup": ["nodeA", "nodeB"],
-        "suggestedParentName": "Core Components"
+        "isCoherent": false,
+        "suggestedParentName": null,
+        "reason": "These nodes cover disparate topics (e.g., payment processing and UI themes) and would not form a clear conceptual group."
       }
     `;
 
     const llmResponse = await generate({
       model: geminiPro,
-      prompt: prompt,
-      config: {
-        temperature: 0.4,
-        maxOutputTokens: 250,
-      },
+      prompt: validateAndNamePrompt,
       output: {
         format: 'json',
-        schema: NodeGroupSuggestionSchema,
+        schema: LlmGroupValidationResponseSchema,
       },
+      config: {
+        temperature: 0.5, // Moderate temperature for creative but relevant naming
+      }
     });
 
-    const outputData = llmResponse.output();
+    const validationOutput = llmResponse.output();
 
-    // Validate that suggested nodeIdsToGroup actually exist in the input nodes
-    if (outputData && outputData.nodeIdsToGroup) {
-      const inputNodeIds = new Set(nodes.map(n => n.id));
-      const allSuggestedIdsValid = outputData.nodeIdsToGroup.every(id => inputNodeIds.has(id));
-      if (!allSuggestedIdsValid) {
-        console.warn("AI suggested grouping for non-existent node IDs. Clearing suggestion.");
-        return null;
-      }
-      // Ensure no duplicate IDs in the group
-      if (new Set(outputData.nodeIdsToGroup).size !== outputData.nodeIdsToGroup.length) {
-        console.warn("AI suggested duplicate node IDs for grouping. Clearing suggestion.");
-        return null;
-      }
+    if (!validationOutput) {
+      console.warn('[SuggestNodeGroup] LLM validation/naming returned no output.');
+      return null;
     }
 
-    return outputData; // This can be null if AI or schema validation decides so
+    if (validationOutput.isCoherent && validationOutput.suggestedParentName) {
+      // Ensure the output matches NodeGroupSuggestionSchema
+      const finalSuggestion = {
+        nodeIdsToGroup: firstCommunity.nodeIds.sort(), // Ensure sorted order
+        suggestedParentName: validationOutput.suggestedParentName,
+        reason: validationOutput.reason || undefined, // Convert null to undefined if that's what schema expects for optional
+      };
+      // Validate with the final output schema before returning
+      const parsedResult = NodeGroupSuggestionSchema.safeParse(finalSuggestion);
+      if (parsedResult.success) {
+        return parsedResult.data;
+      } else {
+        console.warn('[SuggestNodeGroup] LLM output for coherent group failed final schema validation:', parsedResult.error);
+        return null;
+      }
+    } else {
+      console.log('[SuggestNodeGroup] LLM deemed the community not coherent or failed to provide a name.');
+      return null;
+    }
   }
 );

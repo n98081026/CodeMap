@@ -1,19 +1,18 @@
 "use client";
-import React, { memo, useEffect, useRef, useState, useCallback } from 'react'; // Imported useCallback
+import React, { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
-import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added import
-// Removed AISuggestionMiniToolbar import
-import SelectedNodeToolbar from './selected-node-toolbar'; // Added import
+import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+import SelectedNodeToolbar from './selected-node-toolbar';
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
   SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser, Box,
-  Move as MoveIcon, Edit2Icon, CheckIcon, XIcon, Wand2 // Added Wand2
-} from 'lucide-react'; // Added Loader2
+  Move as MoveIcon, Edit2Icon, CheckIcon, XIcon, Wand2 // Ensured Wand2 is here, will add LayoutGrid in SelectedNodeToolbar
+} from 'lucide-react';
 
 export interface CustomNodeData {
   label: string;
@@ -24,11 +23,11 @@ export interface CustomNodeData {
   shape?: 'rectangle' | 'ellipse';
   width?: number;
   height?: number;
-  onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void; // For hover buttons
+  onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void;
   isStaged?: boolean;
-  isGhost?: boolean; // Added for ghost node styling
-  onStartConnectionRequest?: (nodeId: string) => void; // New prop for initiating connection mode
-  // onTriggerAIExpand?: (nodeId: string) => void; // Retained for potential future direct AI button on node
+  isGhost?: boolean;
+  onStartConnectionRequest?: (nodeId: string) => void;
+  onRefineGhostNode?: (nodeId: string, currentText: string, currentDetails?: string) => void; // Added from previous HEAD
 }
 
 const NODE_MIN_WIDTH = 150;
@@ -53,7 +52,7 @@ const TYPE_ICONS: { [key: string]: any } = {
   'ai-summary-node': MessageSquareQuote,
   'ai-rewritten-node': MessageSquareQuote,
   'text-derived-concept': Lightbulb,
-  'ai-generated': Lightbulb, // Generic for quick cluster/snippet
+  'ai-generated': Lightbulb,
   'ai-group-parent': Box,
 };
 
@@ -62,27 +61,38 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     isViewOnlyMode: globalIsViewOnlyMode,
     editingNodeId,
     setEditingNodeId,
-    aiProcessingNodeId, // Get AI processing state
-    deleteNode, // Added deleteNode from store
-    updateNode, // Added updateNode from store
-    startConnectionMode, // Added startConnectionMode from store
-  } = useConceptMapStore();
-  const { onRefineGhostNode } = data; // Destructure new prop
+    aiProcessingNodeId,
+    deleteNode,
+    updateNode,
+    // startConnectionMode, // This was from store, but onStartConnectionRequest prop is used
+    multiSelectedNodeIds, // Get multiSelectedNodeIds from the store
+  } = useConceptMapStore(
+    useCallback(s => ({ // Use a selector to prevent unnecessary re-renders
+      isViewOnlyMode: s.isViewOnlyMode,
+      editingNodeId: s.editingNodeId,
+      setEditingNodeId: s.setEditingNodeId,
+      aiProcessingNodeId: s.aiProcessingNodeId,
+      deleteNode: s.deleteNode,
+      updateNode: s.updateNode,
+      // startConnectionMode: s.startConnectionMode, // Not directly used here for the toolbar action
+      multiSelectedNodeIds: s.multiSelectedNodeIds,
+    }), [])
+  );
+
+  const { onRefineGhostNode } = data;
 
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
-  const isBeingProcessedByAI = aiProcessingNodeId === id; // Check if this node is being processed
+  const isBeingProcessedByAI = aiProcessingNodeId === id;
 
-  // Instantiate the AI tools hook
   const aiTools = useConceptMapAITools(nodeIsViewOnly);
 
-  const [isHovered, setIsHovered] = useState(false); // For child node hover buttons
-  const [isGhostHovered, setIsGhostHovered] = useState(false); // New state for ghost node hover
+  const [isHovered, setIsHovered] = useState(false);
+  const [isGhostHovered, setIsGhostHovered] = useState(false);
   const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
-  const [toolbarHorizontalOffset, setToolbarHorizontalOffset] = useState<number>(0); // For viewport horizontal awareness
-  // Removed isHoveredForToolbar state
+  const [toolbarHorizontalOffset, setToolbarHorizontalOffset] = useState<number>(0);
   const cardRef = useRef<HTMLDivElement>(null);
-  const nodeRef = useRef<HTMLDivElement>(null); // Ref for the main node div to get its rect
-  const textareaRef = useRef<HTMLTextAreaElement>(null); // Ref for the inline editing textarea
+  const nodeRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [isInlineEditing, setIsInlineEditing] = useState(false);
   const [editText, setEditText] = useState(data.label);
@@ -107,15 +117,15 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     width: typeof nodeWidth === 'number' ? `${nodeWidth}px` : nodeWidth,
     height: typeof nodeHeight === 'number' ? `${nodeHeight}px` : nodeHeight,
     opacity: selected ? 0.95 : 1,
-    borderRadius: data.shape === 'ellipse' ? '50%' : '0.5rem', // Use theme radius
+    borderRadius: data.shape === 'ellipse' ? '50%' : '0.5rem',
     backgroundColor: data.type === 'ai-group-parent'
-      ? 'rgba(100, 116, 139, 0.05)' // Equivalent to slate-500/5 (light mode theme)
+      ? 'rgba(100, 116, 139, 0.05)'
       : data.backgroundColor || 'hsl(var(--card))',
   };
 
   const handleNodeDoubleClick = () => {
     if (!nodeIsViewOnly && data.label) {
-      setEditingNodeId(id); // Trigger focus in PropertiesInspector
+      setEditingNodeId(id);
     }
   };
 
@@ -127,9 +137,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     { pos: Position.Bottom, style: { bottom: '-10px', left: '50%', transform: 'translateX(-50%)' } },
     { pos: Position.Left, style: { left: '-10px', top: '50%', transform: 'translateY(-50%)' } },
   ] as const;
-
-  // Placeholder handlers for AI mini toolbar actions
-  // Removed handleQuickExpand and handleRewriteConcise as they are now passed directly to the toolbar
 
   const handleToolbarStartConnection = () => {
     if (data.onStartConnectionRequest) {
@@ -146,13 +153,20 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
 
   const handleSaveInlineEdit = () => {
     if (nodeIsViewOnly) return;
-    useConceptMapStore.getState().updateConceptExpansionPreviewNodeText(id, editText);
+    // Assuming updateConceptExpansionPreviewNodeText is the correct action for ghost node text update
+    // If this node is not a ghost, a different update mechanism might be needed.
+    // For now, let's assume this is primarily for ghost node refinement.
+    if (data.isGhost) {
+         useConceptMapStore.getState().updateConceptExpansionPreviewNodeText(id, editText);
+    } else {
+        updateNode(id, { text: editText }); // Update regular node label
+    }
     setIsInlineEditing(false);
   };
 
   const handleCancelInlineEdit = () => {
     setIsInlineEditing(false);
-    setEditText(data.label); // Reset text
+    setEditText(data.label);
   };
 
   const handleEditTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -170,23 +184,19 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       const nodeRect = nodeRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
+      const APPROX_TOOLBAR_HEIGHT = 40;
+      const APPROX_TOOLBAR_WIDTH = 250; // Increased slightly for new button
+      const VIEWPORT_MARGIN = 10;
 
-      const APPROX_TOOLBAR_HEIGHT = 40; // pixels, matches -top-10 (2.5rem = 40px for vertical)
-      const APPROX_TOOLBAR_WIDTH = 220; // pixels, estimated width of the toolbar. Adjust if necessary.
-      const VIEWPORT_MARGIN = 10; // pixels, margin from viewport edges
-
-      // Vertical positioning
       if (nodeRect.top - APPROX_TOOLBAR_HEIGHT - VIEWPORT_MARGIN > 0) {
         setToolbarPosition('above');
       } else {
         setToolbarPosition('below');
       }
 
-      // Horizontal positioning
       const nodeCenter = nodeRect.left + nodeRect.width / 2;
       const toolbarCalculatedLeft = nodeCenter - APPROX_TOOLBAR_WIDTH / 2;
       const toolbarCalculatedRight = nodeCenter + APPROX_TOOLBAR_WIDTH / 2;
-
       let newHorizontalOffset = 0;
       if (toolbarCalculatedLeft < VIEWPORT_MARGIN) {
         newHorizontalOffset = VIEWPORT_MARGIN - toolbarCalculatedLeft;
@@ -195,35 +205,26 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       }
       setToolbarHorizontalOffset(newHorizontalOffset);
     }
-  }, [selected, xPos, yPos, data.width, data.height]); // Re-calculate if node moves, resizes or selection changes
+  }, [selected, xPos, yPos, data.width, data.height]);
 
   return (
     <div
-      ref={nodeRef} // Attach ref here
+      ref={nodeRef}
       style={nodeStyle}
       className={cn(
-        "nodrag relative shadow-md border border-border flex flex-col",
-        selected && !isBeingProcessedByAI && !data.isStaged && !data.isGhost ? "ring-2 ring-primary" : "", // Don't show ring if AI processing, staged, or ghost
+        "nodrag relative shadow-md border border-border flex flex-col group/node", // Added group/node for hover buttons
+        selected && !isBeingProcessedByAI && !data.isStaged && !data.isGhost ? "ring-2 ring-primary" : "",
         nodeIsViewOnly && "cursor-default",
-        // Removed !nodeIsViewOnly && "cursor-grab",
         data.shape === 'ellipse' && 'items-center justify-center text-center p-2',
         data.isStaged && "border-dashed border-blue-500 opacity-80",
-        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10", // Ghost style
+        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10",
         data.type === 'ai-group-parent' && "border-2 border-dashed border-slate-500/30 dark:border-slate-600/50"
       )}
       onMouseEnter={() => {
-        if (data.isGhost) {
-          setIsGhostHovered(true);
-        } else {
-          setIsHovered(true);
-        }
+        if (data.isGhost) setIsGhostHovered(true); else setIsHovered(true);
       }}
       onMouseLeave={() => {
-        if (data.isGhost) {
-          setIsGhostHovered(false);
-        } else {
-          setIsHovered(false);
-        }
+        if (data.isGhost) setIsGhostHovered(false); else setIsHovered(false);
       }}
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
@@ -232,7 +233,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         <button
           className="absolute top-0 left-0 m-1 h-5 w-5 p-0.5 z-10 bg-background/70 hover:bg-accent text-foreground"
           title="Refine this suggestion"
-          onClick={() => onRefineGhostNode?.(id, data.label || data.text, data.details)}
+          onClick={() => onRefineGhostNode?.(id, data.label || '', data.details || '')}
           onMouseDown={(e) => e.stopPropagation()}
         >
           <Edit2Icon className="h-3 w-3" />
@@ -241,23 +242,32 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
         <div
           className={cn(
-            "absolute left-1/2 z-20", // Removed -translate-x-1/2, will be handled by style
+            "absolute left-1/2 z-20",
             toolbarPosition === 'above' ? "-top-10" : "top-full mt-2"
           )}
           style={{ transform: `translateX(calc(-50% + ${toolbarHorizontalOffset}px))` }}
-          // Prevent clicks on the toolbar area from propagating to the node (e.g., deselection)
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
-          // Add other event handlers like onDoubleClick, onPointerDown etc. if necessary
         >
           <SelectedNodeToolbar
             nodeId={id}
+            numMultiSelectedNodes={multiSelectedNodeIds.length} // Pass count
+            multiSelectedNodeIds={multiSelectedNodeIds} // Pass IDs
             onEditLabel={() => setEditingNodeId(id)}
             onChangeColor={(color: string) => updateNode(id, { backgroundColor: color })}
             onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
             onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}
-            onAISuggestRelations={() => aiTools.handleMenuSuggestRelations(id)}
-            onStartConnection={(!nodeIsViewOnly && data.onStartConnectionRequest) ? handleToolbarStartConnection : undefined}
+            onAISuggestRelations={() => {
+                // Assuming handleMenuSuggestRelations is the correct function from aiTools
+                // This was based on a previous version, ensure aiTools exports this or similar.
+                // If not, it might be aiTools.openSuggestRelationsModal(id)
+                if ((aiTools as any).handleMenuSuggestRelations) {
+                    (aiTools as any).handleMenuSuggestRelations(id);
+                } else {
+                    aiTools.openSuggestRelationsModal(id); // Fallback or correct method
+                }
+            }}
+            onStartConnection={data.onStartConnectionRequest ? handleToolbarStartConnection : () => {}}
             onDeleteNode={() => deleteNode(id)}
           />
         </div>
@@ -265,7 +275,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       {!nodeIsViewOnly && !data.isGhost && (
          <MoveIcon
            className="node-move-handle absolute top-1 right-1 w-4 h-4 text-muted-foreground cursor-grab z-10"
-           onMouseDown={(e) => e.stopPropagation()} // Prevent node selection click when grabbing handle
+           onMouseDown={(e) => e.stopPropagation()}
          />
       )}
       <Card
@@ -275,7 +285,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
           data.shape === 'ellipse' ? 'rounded-full items-center justify-center' : 'rounded-lg',
           (typeof nodeWidth === 'number' || data.width) ? '' : `min-w-[${NODE_MIN_WIDTH}px] max-w-[${NODE_MAX_WIDTH}px]`,
           (typeof nodeHeight === 'number' || data.height) ? '' : `min-h-[${NODE_MIN_HEIGHT}px]`,
-          'bg-transparent border-0 shadow-none' // Card itself is transparent
+          'bg-transparent border-0 shadow-none'
         )}
       >
         {data.isGhost && isInlineEditing && !nodeIsViewOnly ? (
@@ -287,7 +297,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
               onKeyDown={handleEditTextareaKeyDown}
               className="w-full text-xs p-1 resize-none flex-grow bg-background/80"
               placeholder="Enter node text..."
-              onClick={(e) => e.stopPropagation()} // Prevent node click/selection
+              onClick={(e) => e.stopPropagation()}
             />
             <div className="flex justify-end space-x-1">
               <button
@@ -337,7 +347,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         )}
       </Card>
 
-      {data.isGhost && isHovered && !isInlineEditing && !nodeIsViewOnly && (
+      {data.isGhost && isGhostHovered && !isInlineEditing && !nodeIsViewOnly && ( // Changed from isHovered
         <button
           onClick={handleStartInlineEdit}
           className="absolute top-1 right-1 z-10 p-0.5 bg-background/80 hover:bg-secondary rounded"
@@ -347,7 +357,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         </button>
       )}
 
-      {/* Handles */}
       <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
       <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
       <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
@@ -357,7 +366,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
       <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
 
-      {/* Hover buttons for adding child nodes (not for ghost nodes) */}
       {!nodeIsViewOnly && isHovered && !data.isGhost && data.onAddChildNodeRequest && hoverButtonPositions.map(btn => (
         <button
           key={btn.pos}
@@ -370,18 +378,13 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         </button>
       ))}
 
-      {/* AI Processing Spinner Overlay */}
       {isBeingProcessedByAI && (
         <div className={cn(
           "absolute inset-0 flex items-center justify-center bg-card/70 backdrop-blur-sm",
-           data.shape === 'ellipse' ? 'rounded-full' : 'rounded-lg' // Match node shape
+           data.shape === 'ellipse' ? 'rounded-full' : 'rounded-lg'
         )}>
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      )}
-
-      {!nodeIsViewOnly && !data.isGhost && ( // Also hide mini toolbar for ghost nodes
-        /* AISuggestionMiniToolbar removed */
       )}
     </div>
   );
