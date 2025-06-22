@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PencilRuler } from 'lucide-react'; // Added PencilRuler
 
 interface RefineSuggestionModalProps {
   isOpen: boolean;
@@ -35,8 +35,8 @@ export const RefineSuggestionModal: React.FC<RefineSuggestionModalProps> = ({
   onOpenChange,
   initialData,
   onConfirm,
-  title = "Refine AI Suggestion",
-  description = "Provide instructions to the AI on how you'd like to change this suggestion."
+  title = "請 AI 修改建議",
+  description = "告訴 AI 你希望它如何調整目前的建議內容。"
 }) => {
   const [refinementInstruction, setRefinementInstruction] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -87,21 +87,24 @@ export const RefineSuggestionModal: React.FC<RefineSuggestionModalProps> = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="flex items-center">
+            <PencilRuler className="mr-2 h-5 w-5 text-primary" />
+            {title}
+          </DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div>
-            <Label htmlFor="current-text" className="text-sm font-medium text-muted-foreground">Current Suggestion Text</Label>
+            <Label htmlFor="current-text" className="text-sm font-medium text-muted-foreground">AI 目前建議的文字：</Label>
             <ScrollArea className="h-20 w-full rounded-md border p-2 mt-1 text-sm bg-muted">
               {initialData?.text || "No text provided."}
             </ScrollArea>
           </div>
 
-          {(initialData?.details || typeof initialData?.details === 'string') && ( // Check if details is present, even if empty string
+          {(initialData?.details || typeof initialData?.details === 'string') && (
             <div>
-              <Label htmlFor="current-details" className="text-sm font-medium text-muted-foreground">Current Details</Label>
+              <Label htmlFor="current-details" className="text-sm font-medium text-muted-foreground">AI 目前建議的詳細說明：</Label>
               <ScrollArea className="h-24 w-full rounded-md border p-2 mt-1 text-sm bg-muted">
                 {initialData.details || <span className="italic">No details provided.</span>}
               </ScrollArea>
@@ -109,10 +112,10 @@ export const RefineSuggestionModal: React.FC<RefineSuggestionModalProps> = ({
           )}
 
           <div>
-            <Label htmlFor="refinement-instruction">Refinement Instructions</Label>
+            <Label htmlFor="refinement-instruction">你想怎麼修改它？請告訴 AI：</Label>
             <Textarea
               id="refinement-instruction"
-              placeholder="e.g., Make it more concise, focus on the security aspect, elaborate on its connection to X..."
+              placeholder="例如：讓它更簡短一些、多解釋一下和『專案A』的關係、強調它的優點..."
               value={refinementInstruction}
               onChange={(e) => setRefinementInstruction(e.target.value)}
               className="mt-1 min-h-[80px]"
@@ -124,15 +127,15 @@ export const RefineSuggestionModal: React.FC<RefineSuggestionModalProps> = ({
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline" onClick={handleClose} disabled={isProcessing}>
-              Cancel
+              取消
             </Button>
           </DialogClose>
           <Button
             onClick={handleConfirm}
             disabled={!refinementInstruction.trim() || isProcessing}
           >
-            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Refine
+            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PencilRuler className="mr-2 h-4 w-4" />}
+            請 AI 修改
           </Button>
         </DialogFooter>
       </DialogContent>

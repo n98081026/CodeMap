@@ -12,9 +12,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import type { IntermediateNodeSuggestionResponse } from '@/ai/flows'; // Adjust path if needed
+import type { SuggestIntermediateNodeOutputSchema as IntermediateNodeSuggestionResponse } from '@/ai/flows/suggest-intermediate-node';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight } from 'lucide-react'; // Removed CornerDownRight as it wasn't used in final JSX
+import { ArrowRight, Info, Lightbulb } from 'lucide-react'; // Added Lightbulb and Info
 
 interface SuggestIntermediateNodeModalProps {
   isOpen: boolean;
@@ -43,40 +43,55 @@ export const SuggestIntermediateNodeModal: React.FC<SuggestIntermediateNodeModal
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle>AI Suggestion: Add Intermediate Node</AlertDialogTitle>
+          <AlertDialogTitle className="flex items-center">
+            <Lightbulb className="mr-2 h-5 w-5 text-primary" />
+            AI 建議：加入一個中間概念
+            </AlertDialogTitle>
           <AlertDialogDescription>
-            The AI suggests adding an intermediate node between{' '}
+            AI 建議在節點{' '}
             <Badge variant="outline" className="mx-1 whitespace-nowrap">{sourceNodeText}</Badge>
-            and
-            <Badge variant="outline" className="ml-1 whitespace-nowrap">{targetNodeText}</Badge>.
-            Original connection: <Badge variant="outline" className="ml-1 whitespace-nowrap">{originalEdgeLabel}</Badge>.
+            和
+            <Badge variant="outline" className="ml-1 whitespace-nowrap">{targetNodeText}</Badge>
+            之間加入一個中間概念。原本的連接是：<Badge variant="outline" className="ml-1 whitespace-nowrap">{originalEdgeLabel}</Badge>。
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="my-4 space-y-3 text-sm">
-          <p className="font-semibold">Suggested New Node:</p>
+          <p className="font-semibold">AI 建議的新想法：</p>
           <div className="p-3 border rounded-md bg-muted/30">
-            <p><strong className="font-medium">Text:</strong> {suggestionData.suggestedNodeText}</p>
-            {suggestionData.suggestedNodeDetails && (
+            <p><strong className="font-medium">內容：</strong> {suggestionData.intermediateNodeText}</p>
+            {suggestionData.intermediateNodeDetails && (
               <p className="mt-1 text-xs text-muted-foreground">
-                <strong>Details:</strong> {suggestionData.suggestedNodeDetails}
+                <strong>詳細說明：</strong> {suggestionData.intermediateNodeDetails}
               </p>
             )}
           </div>
 
-          <p className="font-semibold mt-3">New Connections:</p>
+          {suggestionData.reasoning && (
+            <div className="mt-3 p-3 border rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+              <div className="flex items-start">
+                <Info className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-xs">AI 的理由：</p>
+                  <p className="text-xs">{suggestionData.reasoning}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <p className="font-semibold mt-3">新的連接方式：</p>
           <div className="space-y-2">
             <div className="flex items-center text-xs p-2 border rounded-md">
               <Badge variant="secondary" className="mr-2 whitespace-nowrap">{sourceNodeText}</Badge>
               <ArrowRight className="h-3 w-3 text-muted-foreground mx-1 flex-shrink-0" />
-              <Badge variant="default" className="mr-2 bg-blue-500 hover:bg-blue-600 whitespace-nowrap">{suggestionData.labelToSource || "related to"}</Badge>
+              <Badge variant="default" className="mr-2 bg-blue-500 hover:bg-blue-600 whitespace-nowrap">{suggestionData.labelSourceToIntermediate || "相關"}</Badge>
               <ArrowRight className="h-3 w-3 text-muted-foreground mx-1 flex-shrink-0" />
-              <Badge variant="outline" className="bg-green-100 dark:bg-green-700 dark:text-green-50 border-green-500 whitespace-nowrap">{suggestionData.suggestedNodeText}</Badge>
+              <Badge variant="outline" className="bg-green-100 dark:bg-green-700 dark:text-green-50 border-green-500 whitespace-nowrap">{suggestionData.intermediateNodeText}</Badge>
             </div>
             <div className="flex items-center text-xs p-2 border rounded-md">
-              <Badge variant="outline" className="mr-2 bg-green-100 dark:bg-green-700 dark:text-green-50 border-green-500 whitespace-nowrap">{suggestionData.suggestedNodeText}</Badge>
+              <Badge variant="outline" className="mr-2 bg-green-100 dark:bg-green-700 dark:text-green-50 border-green-500 whitespace-nowrap">{suggestionData.intermediateNodeText}</Badge>
                <ArrowRight className="h-3 w-3 text-muted-foreground mx-1 flex-shrink-0" />
-              <Badge variant="default" className="mr-2 bg-blue-500 hover:bg-blue-600 whitespace-nowrap">{suggestionData.labelToTarget || "related to"}</Badge>
+              <Badge variant="default" className="mr-2 bg-blue-500 hover:bg-blue-600 whitespace-nowrap">{suggestionData.labelIntermediateToTarget || "相關"}</Badge>
                <ArrowRight className="h-3 w-3 text-muted-foreground mx-1 flex-shrink-0" />
               <Badge variant="secondary" className="mr-2 whitespace-nowrap">{targetNodeText}</Badge>
             </div>
@@ -84,9 +99,9 @@ export const SuggestIntermediateNodeModal: React.FC<SuggestIntermediateNodeModal
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={onCancel}>取消</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className="bg-primary hover:bg-primary/90">
-            Add to Map
+            新增到地圖
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
