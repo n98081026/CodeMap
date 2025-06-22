@@ -393,10 +393,16 @@ The main remaining area for full Supabase connection is:
         - [x] **Extract Concepts UI:** Update `AISuggestionPanel` to display `context` and `source` for extracted concepts. (Implemented)
         - [x] **Expand Concept:** Modify `expandConceptFlow` to include `reasoning` for expanded ideas. (Implemented)
         - [x] **Expand Concept UI:** Update `useConceptMapAITools` to prepend `reasoning` to the `details` of new nodes from expansion. (Implemented)
-    - [ ] **Preview for AI Actions:** Where feasible, show a "ghost" preview of AI-suggested changes (new nodes, edges) before the user commits them to the map. (Partially implemented with "Expand Concept" previews)
-    - [ ] **Simplified AI Prompts/Inputs:** Review AI feature modals to ensure prompts and options are clear to non-technical users.
+    - [x] **Preview for AI Actions (Staging Area for Quick Cluster & Snippet):**
+        - [x] Modified `QuickClusterModal` to send its output to `stagedMapData` in `concept-map-store`. (Implemented)
+        - [x] Modified `GenerateSnippetModal` to send its output to `stagedMapData`. (Implemented)
+        - [-] Removed/Adjusted `onClusterGenerated` and `onSnippetGenerated` props/handlers in `useConceptMapAITools` as direct map addition is now handled by Staging Area commit. (Assumed implicitly done by modal changes, verification pending)
+    - [x] **Simplified AI Prompts/Inputs & Enhanced Feedback:**
+        - [x] Reviewed and updated UI text (titles, descriptions, placeholders, buttons) in `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `AskQuestionModal` (within `genai-modals.tsx`). (Implemented)
+        - [x] Reviewed and updated UI text in `QuickClusterModal`, `GenerateSnippetModal`, `RewriteNodeContentModal`, `RefineSuggestionModal`, `SuggestIntermediateNodeModal`. (Implemented)
+        - [x] Standardized loading states (button disabled + loader icon) and Toast notifications (start, success, user-friendly error) for AI operations called from `useConceptMapAITools` and directly within modals. (Implemented via `callAIWithStandardFeedback` and direct modal modifications)
 - [ ] **Content & Help:**
-    - [ ] **"Ordinary User" Example Library:**
+    - [x] **"Ordinary User" Example Library (Framework):**
         - [x] **Content Curation & Data Definition:** Defined `ExampleProject` interface and `exampleProjects` array in `src/lib/example-data.ts` with metadata for 3 examples. (Implemented)
         - [x] **File Structure:** Created placeholder directories `public/examples/`, `public/images/examples/`, `src/lib/example-maps/`. (Implemented)
         - [x] **UI - Examples Page/Section:** Created `src/app/(app)/examples/page.tsx` to display example cards. (Implemented)

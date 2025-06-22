@@ -17,16 +17,20 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles } from "lucide-react";
 import { generateQuickCluster, type GenerateQuickClusterOutput } from "@/ai/flows/generate-quick-cluster";
+import useConceptMapStore from '@/stores/concept-map-store'; // Added store import
 
 interface QuickClusterModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onClusterGenerated: (output: GenerateQuickClusterOutput) => void;
+  // onClusterGenerated: (output: GenerateQuickClusterOutput) => void; // Removed, will use store directly
 }
 
-export function QuickClusterModal({ isOpen, onOpenChange, onClusterGenerated }: QuickClusterModalProps) {
+export function QuickClusterModal({ isOpen, onOpenChange }: QuickClusterModalProps) { // Removed onClusterGenerated from props
   const [promptText, setPromptText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { setStagedMapData } = useConceptMapStore( // Get action from store
+    useCallback(s => ({ setStagedMapData: s.setStagedMapData }), [])
+  );
   const { toast } = useToast();
 
   const handleGenerateCluster = async () => {
@@ -46,8 +50,9 @@ export function QuickClusterModal({ isOpen, onOpenChange, onClusterGenerated }: 
       if (!result || !result.nodes || result.nodes.length === 0) {
         toast({ title: "AI：沒有產生結果", description: "AI 未能根據您的提示產生點子，請試著調整一下提示文字。", variant: "default" });
       } else {
-        toast({ title: "AI：點子產生完畢！", description: `已產生 ${result.nodes.length} 個相關想法和 ${result.edges?.length || 0} 個關聯。` });
-        onClusterGenerated(result);
+        // Instead of calling onClusterGenerated, set data to staging area
+        setStagedMapData({ nodes: result.nodes, edges: result.edges || [] });
+        toast({ title: "AI：點子已放入預覽區！", description: `已產生 ${result.nodes.length} 個相關想法和 ${result.edges?.length || 0} 個關聯。請在預覽區確認後新增至地圖。` });
       }
       onOpenChange(false); 
       setPromptText(""); 

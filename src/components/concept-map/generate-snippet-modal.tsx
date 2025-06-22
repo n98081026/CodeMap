@@ -15,18 +15,23 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, TextSearch, Wand2 } from "lucide-react";
+import { Loader2, Wand2 } from "lucide-react"; // Removed TextSearch as Wand2 is used
 import { generateMapSnippetFromText, type GenerateMapSnippetOutput } from "@/ai/flows/generate-map-snippet-from-text";
+import useConceptMapStore from '@/stores/concept-map-store'; // Added store import
+import { useCallback } from "react"; // Added useCallback
 
 interface GenerateSnippetModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSnippetGenerated: (output: GenerateMapSnippetOutput) => void;
+  // onSnippetGenerated: (output: GenerateMapSnippetOutput) => void; // Removed, will use store directly
 }
 
-export function GenerateSnippetModal({ isOpen, onOpenChange, onSnippetGenerated }: GenerateSnippetModalProps) {
+export function GenerateSnippetModal({ isOpen, onOpenChange }: GenerateSnippetModalProps) { // Removed onSnippetGenerated from props
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { setStagedMapData } = useConceptMapStore( // Get action from store
+    useCallback(s => ({ setStagedMapData: s.setStagedMapData }), [])
+  );
   const { toast } = useToast();
 
   const handleGenerateSnippet = async () => {
@@ -46,8 +51,8 @@ export function GenerateSnippetModal({ isOpen, onOpenChange, onSnippetGenerated 
       if (!result || !result.nodes || result.nodes.length === 0) {
         toast({ title: "AI：未能轉換文字", description: "AI 未能為這段文字產生概念圖片段，請嘗試調整內容或換一段文字試試。", variant: "default" });
       } else {
-        toast({ title: "AI：文字轉換完成！", description: `已產生 ${result.nodes.length} 個想法節點和 ${result.edges?.length || 0} 個關聯。` });
-        onSnippetGenerated(result);
+        setStagedMapData({ nodes: result.nodes, edges: result.edges || [] });
+        toast({ title: "AI：片段已放入預覽區！", description: `已產生 ${result.nodes.length} 個想法節點和 ${result.edges?.length || 0} 個關聯。請在預覽區確認後新增至地圖。` });
       }
       onOpenChange(false); 
       setInputText(""); 
