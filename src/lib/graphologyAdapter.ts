@@ -1,5 +1,7 @@
 import Graph, { MultiGraph, type Attributes } from 'graphology';
 import { bfsFromNode } from 'graphology-traversal';
+import { betweennessCentrality } from 'graphology-metrics/centrality/betweenness';
+import louvain from 'graphology-communities-louvain';
 import type {
   ConceptMapNode,
   ConceptMapEdge,
@@ -219,5 +221,48 @@ export class GraphAdapterUtility implements GraphAdapter {
       }
     });
     return this.toArrays(subGraph);
+  }
+
+  getBetweennessCentrality(graphInstance: GraphologyInstance): Record<string, number> {
+    if (!graphInstance || graphInstance.order === 0) {
+      return {};
+    }
+    try {
+      // Note: graphology's betweennessCentrality directly returns the map or object.
+      // It might assign results to nodes if an attribute name is passed in options,
+      // but here we want the direct result.
+      const centrality = betweennessCentrality(graphInstance);
+      return centrality; // This should be Record<string, number>
+    } catch (e) {
+      console.error("[GraphAdapter] Error calculating betweenness centrality:", (e as Error).message);
+      return {};
+    }
+  }
+
+  detectCommunities(
+    graphInstance: GraphologyInstance,
+    options?: { communityAttribute?: string }
+  ): Record<string, number> {
+    if (!graphInstance || graphInstance.order === 0) {
+      return {};
+    }
+    const communityAttribute = options?.communityAttribute || 'community';
+    try {
+      // Louvain algorithm assigns community IDs as node attributes.
+      // It also returns the number of communities found or a map.
+      // We'll use the assignment and then extract it.
+      louvain.assign(graphInstance, { attribute: communityAttribute });
+
+      const communities: Record<string, number> = {};
+      graphInstance.forEachNode((nodeId, attrs) => {
+        if (attrs[communityAttribute] !== undefined) {
+          communities[nodeId] = attrs[communityAttribute] as number;
+        }
+      });
+      return communities;
+    } catch (e) {
+      console.error("[GraphAdapter] Error detecting communities with Louvain:", (e as Error).message);
+      return {};
+    }
   }
 }
