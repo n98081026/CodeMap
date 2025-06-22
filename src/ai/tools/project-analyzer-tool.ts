@@ -289,7 +289,7 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
                     output.projectSummary = `${output.projectSummary} | README: ${readmeSummary.substring(0,100)}${readmeSummary.length > 100 ? "..." : ""}`;
                 }
             }
-        } else if (readmeFile) { // File was listed but not downloaded
+        } else if (readmeFile) {
              output.parsingErrors?.push(`${readmeFile.name} found in listing but could not be downloaded.`);
         }
     }
@@ -324,10 +324,140 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
         }
     }
 
+    // Java specific file identification
+    const pomXmlFile = filesList.find(f => f.name.toLowerCase() === 'pom.xml');
+    const buildGradleFile = filesList.find(f => f.name.toLowerCase() === 'build.gradle' || f.name.toLowerCase() === 'build.gradle.kts');
+    const javaFiles = filesList.filter(f => f.name.endsWith('.java'));
+    let isJavaProject = javaFiles.length > 0;
+
+    if (pomXmlFile || buildGradleFile) {
+        isJavaProject = true;
+    }
+
+    if (isJavaProject && !output.inferredLanguagesFrameworks?.find(lang => lang.name === "Java")) {
+        output.inferredLanguagesFrameworks?.push({ name: "Java", confidence: "low" });
+    }
+
+    // Process Java build files
+    if (pomXmlFile) {
+        isJavaProject = true; // Reinforce, though javaFiles check might have done it
+        const pomPath = input.projectStoragePath.endsWith('/') ? `${input.projectStoragePath}${pomXmlFile.name}` : `${input.projectStoragePath}/${pomXmlFile.name}`;
+        const pomContent = await downloadProjectFile(pomPath);
+        if (pomContent) {
+            if (!output.keyFiles?.find(kf => kf.filePath === pomXmlFile.name)) {
+                 output.keyFiles?.push({ filePath: pomXmlFile.name, type: "manifest", briefDescription: "Maven project configuration." });
+            }
+            try {
+                const pomData = parsePomXml(pomContent);
+                if (pomData.projectName && (!output.projectName || output.projectName === (input.projectStoragePath.split('/').filter(Boolean).pop()))) {
+                    output.projectName = pomData.projectName;
+                }
+                if (pomData.version) {
+                     const versionString = ` (Version: ${pomData.version})`;
+                     if (output.projectSummary && !output.projectSummary.includes(versionString)) output.projectSummary += versionString;
+                     else if (!output.projectSummary) output.projectSummary = `Version: ${pomData.version}`;
+                }
+                if (pomData.dependencies.length > 0) {
+                    output.dependencies = { ...output.dependencies, maven: pomData.dependencies };
+                }
+                const javaLang = output.inferredLanguagesFrameworks?.find(l => l.name === "Java");
+                if (javaLang) javaLang.confidence = "high"; else output.inferredLanguagesFrameworks?.push({ name: "Java", confidence: "high" });
+
+                const mavenLang = output.inferredLanguagesFrameworks?.find(l => l.name === "Maven");
+                if (mavenLang) mavenLang.confidence = "high"; else output.inferredLanguagesFrameworks?.push({ name: "Maven", confidence: "high" });
+
+            } catch (e: any) {
+                output.parsingErrors?.push(`Error parsing pom.xml: ${e.message}`);
+            }
+        } else {
+            output.parsingErrors?.push(`${pomXmlFile.name} found in listing but could not be downloaded.`);
+        }
+    } else if (buildGradleFile) { // Process Gradle only if pom.xml is not the primary
+        isJavaProject = true; // Reinforce
+        const gradlePath = input.projectStoragePath.endsWith('/') ? `${input.projectStoragePath}${buildGradleFile.name}` : `${input.projectStoragePath}/${buildGradleFile.name}`;
+        const gradleContent = await downloadProjectFile(gradlePath);
+        if (gradleContent) {
+            if (!output.keyFiles?.find(kf => kf.filePath === buildGradleFile.name)) {
+                output.keyFiles?.push({ filePath: buildGradleFile.name, type: "manifest", briefDescription: "Gradle project configuration." });
+            }
+            try {
+                const gradleData = parseBuildGradle(gradleContent);
+                 if (gradleData.projectName && (!output.projectName || output.projectName === (input.projectStoragePath.split('/').filter(Boolean).pop()))) {
+                    output.projectName = gradleData.projectName;
+                }
+                if (gradleData.version) {
+                    const versionString = ` (Version: ${gradleData.version})`;
+                    if (output.projectSummary && !output.projectSummary.includes(versionString)) output.projectSummary += versionString;
+                    else if (!output.projectSummary) output.projectSummary = `Version: ${gradleData.version}`;
+                }
+                if (gradleData.dependencies.length > 0) {
+                    output.dependencies = { ...output.dependencies, gradle: gradleData.dependencies };
+                }
+                const javaLang = output.inferredLanguagesFrameworks?.find(l => l.name === "Java");
+                if (javaLang) javaLang.confidence = "high"; else output.inferredLanguagesFrameworks?.push({ name: "Java", confidence: "high" });
+
+                const gradleLang = output.inferredLanguagesFrameworks?.find(l => l.name === "Gradle");
+                if (gradleLang) gradleLang.confidence = "high"; else output.inferredLanguagesFrameworks?.push({ name: "Gradle", confidence: "high" });
+
+            } catch (e: any) {
+                output.parsingErrors?.push(`Error parsing ${buildGradleFile.name}: ${e.message}`);
+            }
+        } else {
+            output.parsingErrors?.push(`${buildGradleFile.name} found in listing but could not be downloaded.`);
+        }
+    }
+
+    if (isJavaProject && javaFiles.length > 0) { // If it's confirmed Java and we have .java files
+        const javaLang = output.inferredLanguagesFrameworks?.find(l => l.name === "Java");
+        if (javaLang) { // Ensure confidence is high if .java files are present with a build system
+             if (pomXmlFile || buildGradleFile) javaLang.confidence = "high";
+             else if (javaLang.confidence === "low") javaLang.confidence = "medium"; // Upgrade if only .java files
+        } else {
+            // This case should ideally be covered by the initial isJavaProject check, but as a fallback
+            output.inferredLanguagesFrameworks?.push({ name: "Java", confidence: javaFiles.length > 5 ? "medium" : "low" });
+        }
+
+        // Refine for Spring Boot if Java project
+        const allDependencies = [
+            ...(output.dependencies?.maven || []),
+            ...(output.dependencies?.gradle || [])
+        ];
+        if (allDependencies.some(dep => dep.toLowerCase().includes('spring-boot-starter'))) {
+            if (!output.inferredLanguagesFrameworks?.find(lang => lang.name === "Spring Boot")) {
+                output.inferredLanguagesFrameworks?.push({ name: "Spring Boot", confidence: "medium" });
+            }
+            if (!output.potentialArchitecturalComponents?.find(c => c.name.includes("Spring Boot"))) {
+                output.potentialArchitecturalComponents?.push({
+                    name: "Spring Boot Application",
+                    type: "service", // Typically a service
+                    relatedFiles: [pomXmlFile?.name, buildGradleFile?.name].filter(Boolean) as string[],
+                });
+            }
+        }
+
+        // Identify common Java entry points by filename convention
+        const commonJavaEntryFiles = ['Main.java', 'Application.java'];
+        const srcMainJavaPath = 'src/main/java/'; // Common path prefix
+        for (const file of filesList) {
+            const fileNameLower = file.name.toLowerCase();
+            const isEntryFile = commonJavaEntryFiles.some(entryName => fileNameLower.endsWith(entryName.toLowerCase()));
+            // Check if it's in a typical src/main/java path, or just a root-level common name
+            if (isEntryFile && (file.name.startsWith(srcMainJavaPath) || !file.name.includes('/'))) {
+                 if (!output.keyFiles?.find(kf => kf.filePath === file.name)) {
+                    output.keyFiles?.push({
+                        filePath: file.name,
+                        type: 'entry_point',
+                        briefDescription: 'Potential Java application entry point.',
+                    });
+                }
+            }
+        }
+    }
+
+    // Fallback language detection if no specific manifests found yet
     if (output.inferredLanguagesFrameworks?.length === 0) {
         const fileExtensions = new Set(filesList.map(f => f.name.substring(f.name.lastIndexOf('.')).toLowerCase()).filter(Boolean));
         if (fileExtensions.has('.js') || fileExtensions.has('.ts')) output.inferredLanguagesFrameworks?.push({ name: "JavaScript/TypeScript", confidence: "low" });
-        if (fileExtensions.has('.java')) output.inferredLanguagesFrameworks?.push({ name: "Java", confidence: "low" });
         if (fileExtensions.has('.cs')) output.inferredLanguagesFrameworks?.push({ name: "C#", confidence: "low" });
         if (output.inferredLanguagesFrameworks?.length === 0) {
              output.inferredLanguagesFrameworks?.push({ name: "Unknown", confidence: "low" });
@@ -396,6 +526,115 @@ function parseRequirementsTxt(content: string): string[] {
 }
 
 /**
+ * Parses basic information from pom.xml content using regex.
+ * This is a simplified parser and may not cover all pom.xml variations.
+ * @param content The string content of pom.xml
+ * @returns An object with projectName, version, and dependencies.
+ */
+function parsePomXml(content: string): { projectName?: string; version?: string; dependencies: string[] } {
+  const result: { projectName?: string; version?: string; dependencies: string[] } = { dependencies: [] };
+
+  // Extract artifactId (as projectName)
+  // Looks for <artifactId>value</artifactId> not within a <dependency> or <parent> block directly
+  // More specific: look within <project> -> <artifactId>
+  let artifactIdMatch = content.match(/<project(?:[^>]*)>[\s\S]*?<artifactId>\s*([^<]+)\s*<\/artifactId>/);
+  if (artifactIdMatch && artifactIdMatch[1]) {
+    result.projectName = artifactIdMatch[1].trim();
+  }
+
+  // Extract project version
+  // More specific: look within <project> -> <version> or <project> -> <parent> -> <version>
+  let versionMatch = content.match(/<project(?:[^>]*)>[\s\S]*?<version>\s*([^<]+)\s*<\/version>/);
+  if (versionMatch && versionMatch[1]) {
+    result.version = versionMatch[1].trim();
+  } else {
+    const parentVersionMatch = content.match(/<project(?:[^>]*)>[\s\S]*?<parent>\s*<version>\s*([^<]+)\s*<\/version>\s*<\/parent>/);
+    if (parentVersionMatch && parentVersionMatch[1]) {
+      result.version = parentVersionMatch[1].trim();
+    }
+  }
+
+  // Extract dependencies
+  const dependencyRegex = /<dependency>\s*<groupId>([^<]+)<\/groupId>\s*<artifactId>([^<]+)<\/artifactId>(?:\s*<version>([^<]+)<\/version>)?[\s\S]*?<\/dependency>/g;
+  let depMatch;
+  while ((depMatch = dependencyRegex.exec(content)) !== null) {
+    const groupId = depMatch[1].trim();
+    const artifactId = depMatch[2].trim();
+    result.dependencies.push(`${groupId}:${artifactId}`);
+  }
+
+  return result;
+}
+
+/**
+ * Parses basic information from build.gradle or build.gradle.kts content using regex.
+ * This is highly simplified due to the complexity of Groovy/Kotlin DSLs.
+ * @param content The string content of the Gradle build file.
+ * @returns An object with projectName, version, and dependencies.
+ */
+function parseBuildGradle(content: string): { projectName?: string; version?: string; dependencies: string[] } {
+  const result: { projectName?: string; version?: string; dependencies: string[] } = { dependencies: [] };
+
+  // Extract rootProject.name or project.name
+  // Example: rootProject.name = 'my-gradle-app' or project.name = 'my-module'
+  const nameMatch = content.match(/(?:rootProject\.name|project\.name)\s*=\s*['"]([^'"]+)['"]/);
+  if (nameMatch && nameMatch[1]) {
+    result.projectName = nameMatch[1].trim();
+  }
+
+  // Extract version
+  // Example: version = '0.1.0-SNAPSHOT'
+  const versionMatch = content.match(/^version\s*=\s*['"]([^'"]+)['"]/m); // m for multiline
+  if (versionMatch && versionMatch[1]) {
+    result.version = versionMatch[1].trim();
+  }
+
+  // Extract dependencies (very basic patterns for common configurations)
+  // Looks for: implementation 'group:name:version' or compile 'group:name:version'
+  // Also handles variations like "implementation group: 'group', name: 'name', version: 'version'"
+  // And kotlin("jvm") version "1.5.0" -> kotlin-jvm
+  const depRegex = /(?:implementation|compile|api|compileOnly|runtimeOnly|testImplementation)\s*(?:\(([^)]+)\)|['"]([^'"]+)['"])/g;
+  let depMatch;
+  while ((depMatch = depRegex.exec(content)) !== null) {
+    const depString = depMatch[1] || depMatch[2]; // depMatch[1] for parentheses, depMatch[2] for direct string
+    if (depString) {
+      const cleanedDepString = depString.replace(/['"]/g, '').trim();
+
+      // Try to parse "group:name:version" format
+      const parts = cleanedDepString.split(':');
+      if (parts.length >= 2) {
+        result.dependencies.push(`${parts[0].trim()}:${parts[1].trim()}`);
+        continue;
+      }
+
+      // Try to parse map-like notation: group: 'com.example', name: 'my-lib', version: '1.0'
+      const groupMatch = cleanedDepString.match(/group:\s*['"]([^'"]+)['"]/);
+      const nameArtifactMatch = cleanedDepString.match(/name:\s*['"]([^'"]+)['"]/); // 'name' is often used for artifactId in this notation
+      if (groupMatch && groupMatch[1] && nameArtifactMatch && nameArtifactMatch[1]) {
+        result.dependencies.push(`${groupMatch[1].trim()}:${nameArtifactMatch[1].trim()}`);
+        continue;
+      }
+
+      // Handle Kotlin stdlib: kotlin("jvm") or kotlin("stdlib-jdk8")
+      const kotlinMatch = cleanedDepString.match(/^kotlin\s*\(\s*["']([^"']+)["']\s*\)/);
+      if (kotlinMatch && kotlinMatch[1]) {
+        result.dependencies.push(`org.jetbrains.kotlin:kotlin-${kotlinMatch[1].trim()}`);
+        continue;
+      }
+
+      // If it's a simple string and doesn't look like a path, add it (less precise)
+      if (!cleanedDepString.includes('/') && !cleanedDepString.includes('\\') && cleanedDepString.length > 3) {
+         // result.dependencies.push(cleanedDepString); // Could be too noisy, disabled for now
+      }
+    }
+  }
+  // Remove duplicates
+  result.dependencies = [...new Set(result.dependencies)];
+  return result;
+}
+
+
+/**
  * Downloads a file as text from the 'project_archives' bucket.
  * @param fullFilePath The full path to the file in Supabase Storage, e.g., "user-id/project-id/package.json"
  * @returns A promise that resolves to the file content as a string, or null if an error occurs.
@@ -418,3 +657,5 @@ async function downloadProjectFile(fullFilePath: string): Promise<string | null>
   }
   return null;
 }
+
+[end of src/ai/tools/project-analyzer-tool.ts]
