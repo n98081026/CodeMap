@@ -73,7 +73,14 @@ const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canva
   loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
 });
 
+<<<<<<< HEAD
+// mockDagreLayout is no longer needed as we will use the real utility.
+// const mockDagreLayout = (nodes: DagreNodeInput[], _edges: DagreEdgeInput[]): LayoutNodeUpdate[] => {
+//   ...
+// };
+=======
 // Removed mockDagreLayout function
+>>>>>>> master
 
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;
@@ -323,16 +330,35 @@ export default function ConceptMapEditorPage() {
         target: e.target,
         id: e.id, // Pass edge ID
       }));
+<<<<<<< HEAD
+      const dagreEdges: DagreEdgeInput[] = storeMapData.edges.map(edge => ({
+        source: edge.source, target: edge.target,
+      }));
+      addDebugLog(`[EditorPage] Prepared ${dagreNodes.length} nodes and ${dagreEdges.length} edges for layout.`);
+
+      const dagreUtil = new DagreLayoutUtility();
+      const layoutOptions: DagreLayoutOptions = {
+=======
 
       addDebugLog(`[EditorPage] Prepared ${nodesForDagre.length} nodes and ${edgesForDagre.length} edges for Dagre layout.`);
 
       const dagreUtil = new DagreLayoutUtility();
       const dagreOptions: DagreLayoutOptions = {
+>>>>>>> master
         direction: 'TB', // Top-to-Bottom
         ranksep: 70,
         nodesep: 60,
         edgesep: 20,
         defaultNodeWidth: DEFAULT_NODE_WIDTH,
+<<<<<<< HEAD
+        defaultNodeHeight: DEFAULT_NODE_HEIGHT,
+      };
+      const newPositions = await dagreUtil.layout(dagreNodes, dagreEdges, layoutOptions);
+
+      addDebugLog(`[EditorPage] Layout calculated. ${newPositions.length} new positions received.`);
+      applyLayout(newPositions);
+      addDebugLog('[EditorPage] applyLayout action called.');
+=======
         defaultNodeHeight: DEFAULT_NODE_HEIGHT
       };
 
@@ -342,6 +368,7 @@ export default function ConceptMapEditorPage() {
       storeApplyLayout(newPositions);
       addDebugLog('[EditorPage] store.applyLayout action called for Dagre.');
 
+>>>>>>> master
       setTimeout(() => {
         if (reactFlowInstance) {
           reactFlowInstance.fitView({padding: 0.1, duration: 300});

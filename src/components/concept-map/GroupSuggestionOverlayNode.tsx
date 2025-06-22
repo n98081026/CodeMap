@@ -20,16 +20,16 @@ const GroupSuggestionOverlayNode: React.FC<NodeProps<GroupSuggestionOverlayData>
   data,
 }) => {
   const { width, height, label, reason, suggestionId } = data;
-  const { acceptGroupSuggestion, dismissGroupSuggestion } = useConceptMapStore.getState();
+  const { acceptStructuralGroupSuggestion, dismissStructuralGroupSuggestion } = useConceptMapStore.getState();
 
   const handleAccept = (event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent node selection or other underlying interactions
-    acceptGroupSuggestion(suggestionId, { createParentNode: true });
+    acceptStructuralGroupSuggestion(suggestionId, { createParentNode: true });
   };
 
   const handleDismiss = (event: React.MouseEvent) => {
     event.stopPropagation();
-    dismissGroupSuggestion(suggestionId);
+    dismissStructuralGroupSuggestion(suggestionId);
   };
 
   return (

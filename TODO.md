@@ -186,9 +186,15 @@
     - [x] On selection of multiple nodes, offer an "AI Tidy selection" option (Implemented in EditorToolbar, AI aligns/distributes).
     - [x] (Enhancement) AI attempts to also semantically group selected nodes (e.g., create temporary parent node). (AI flow can now suggest a parent, and hook logic implements its creation and re-parenting of children).
 - [x] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
+<<<<<<< HEAD
+    - [x] AI periodically/on-demand scans map for structural improvement opportunities. (On-demand implemented via EditorToolbar button calling `suggestMapImprovementsFlow`)
+    - [x] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?". (Implemented using `SuggestionEdge.tsx` and `GroupSuggestionOverlayNode.tsx`)
+    - [x] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options. (Implemented via component interactions with store actions)
+=======
     - [x] AI periodically/on-demand scans map for structural improvement opportunities. (On-demand implemented via toolbar button; periodic scanning is a future enhancement).
     - [x] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?". (Custom React Flow components `SuggestedEdge`, `SuggestedIntermediateNode`, `SuggestedGroupOverlayNode` created to visually represent these suggestions).
     - [x] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options. (Implemented via Popovers on each suggestion component, allowing accept/dismiss actions that modify the map and remove the suggestion).
+>>>>>>> master
 
 ### Streamlined GAI Input & Feedback
 - [x] Slash Commands ("/ai") in Node Text (Evolution of existing TODO item):
@@ -260,6 +266,7 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
 **Phase 5: Documentation & Review**
 - [x] Document interfaces for `DagreLayoutUtility` and `GraphAdapter`.
 - [x] Document how store actions and AI tools utilize these.
+<<<<<<< HEAD
 - [x] Review pros/cons post-implementation (if undertaken). (Completed for store refactor, Dagre selection layout, Dagre full map layout, and Graphology-enhanced suggestions).
 
 ## Performance Optimizations
@@ -303,8 +310,12 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete via `ProjectUploadForm` and `useSupabaseStorageUpload` hook).
 - [x] **Connect frontend student submissions list to live API.**
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
+<<<<<<< HEAD
+    - [~] Modify `projectStructureAnalyzerTool` to fetch project file from Supabase Storage and perform real analysis. (Basic Node.js `package.json` analysis from Supabase implemented; further languages/depth are future enhancements or user task).
+=======
     - [~] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated.
         - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
+>>>>>>> master
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done in `ProjectUploadForm` flow).
 
 **6. API Route Refactoring (General Review for Supabase)**
