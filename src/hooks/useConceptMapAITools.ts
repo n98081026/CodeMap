@@ -147,22 +147,34 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       console.error(`Error in ${aiFunctionName} (ID: ${currentProcessingId}):`, error);
       let userFriendlyMessage = `The AI operation "${aiFunctionName}" failed. `;
       if (error.message) {
+        const lowerErrorMessage = error.message.toLowerCase();
         // Try to make some common errors more friendly
-        if (error.message.toLowerCase().includes('deadline_exceeded') || error.message.toLowerCase().includes('timeout')) {
+        if (lowerErrorMessage.includes('deadline_exceeded') || lowerErrorMessage.includes('timeout')) {
           userFriendlyMessage += "The request timed out. This might be due to high server load or a complex request. Please try again in a few moments.";
-        } else if (error.message.toLowerCase().includes('resource_exhausted')) {
-          userFriendlyMessage += "The AI resources are temporarily unavailable. Please try again later.";
-        } else if (error.message.toLowerCase().includes('api key not valid')) {
-          userFriendlyMessage = "AI service configuration error. Please contact support."; // More generic for API key issues
+        } else if (lowerErrorMessage.includes('resource_exhausted') || lowerErrorMessage.includes('quota')) {
+          userFriendlyMessage += "The AI resources are temporarily unavailable or quota has been exceeded. Please try again later or check your service plan.";
+        } else if (lowerErrorMessage.includes('api key not valid')) {
+          userFriendlyMessage = "AI service configuration error. Please contact support.";
+        } else if (lowerErrorMessage.includes('context length') || lowerErrorMessage.includes('input too long') || lowerErrorMessage.includes('token limit')) {
+          userFriendlyMessage += "The provided text or map data is too large for the AI to process. Please try with a smaller selection or a less complex map.";
+        } else if (lowerErrorMessage.includes('safety settings') || lowerErrorMessage.includes('policy violation') || lowerErrorMessage.includes('blocked') || lowerErrorMessage.includes('unsafe content')) {
+          userFriendlyMessage = `The AI could not process the request due to content safety policies. Please review your input. Reason: ${error.message}`;
+        } else if (lowerErrorMessage.includes('zoderror') || lowerErrorMessage.includes('schema validation')) {
+            userFriendlyMessage += `There was an issue with the data format sent to the AI. Details: ${error.message}`;
+            addDebugLog(`[AITools] Zod/Schema validation error likely: ${error.message}`);
+        } else if (typeof error.details === 'string' && error.details.toLowerCase().includes("permission_denied")) { // Genkit specific for permission issues
+            userFriendlyMessage = "AI operation failed due to a permission issue with the underlying service. Please check configurations or contact support.";
         }
         else {
           userFriendlyMessage += `Details: ${error.message}`;
         }
       } else {
-        userFriendlyMessage += "No specific error details available.";
+        userFriendlyMessage += "An unknown error occurred.";
       }
-      // Add general advice only if not an API key error (which has its own specific advice)
-      if (!error.message?.toLowerCase().includes('api key not valid')) {
+
+      // Add general advice only if not an API key error or safety policy violation (which have their own specific advice)
+      if (!error.message?.toLowerCase().includes('api key not valid') &&
+          !(error.message?.toLowerCase().includes('safety settings') || error.message?.toLowerCase().includes('policy violation'))) {
         userFriendlyMessage += " Please try again shortly. If the issue persists, check the developer console for more technical information or contact support.";
       }
 
