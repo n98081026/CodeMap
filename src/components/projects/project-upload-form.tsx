@@ -167,18 +167,17 @@ export function ProjectUploadForm() {
         duration: 999999,
       }).id;
 
-      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.PROCESSING); // Initial status update
+      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.PROCESSING);
 
-      toast.update(loadingToastId, { description: "Step 1/3: Analyzing project structure..." });
+      toast.update(loadingToastId, { description: "Step 1/3: Initializing analysis process..." }); // Refined
       const projectStoragePath = submission.fileStoragePath;
       if (!projectStoragePath) {
           throw new Error("File storage path is missing. Cannot proceed with AI analysis.");
       }
 
       const aiInputUserGoals = userGoals || `Analyze the project: ${submission.originalFileName}`;
-      // generateMapFromProject internally calls projectStructureAnalyzerTool then the LLM prompt
-      // We consider this whole step as "generating map data"
-      toast.update(loadingToastId, { description: "Step 2/3: Generating concept map data with AI..." });
+
+      toast.update(loadingToastId, { description: "Step 2/3: AI processing: Generating map structure & insights..." }); // Refined
       const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals: aiInputUserGoals });
 
       let parsedMapData: ConceptMapData;
@@ -191,7 +190,7 @@ export function ProjectUploadForm() {
         throw new Error(`Failed to parse AI map data: ${(parseError as Error).message}`);
       }
 
-      toast.update(loadingToastId, { description: "Step 3/3: Saving generated map..." });
+      toast.update(loadingToastId, { description: "Step 3/3: Finalizing and saving your new concept map..." }); // Refined
       const newMapPayload = {
         name: `AI Map for ${submission.originalFileName.split('.')[0]}`,
         ownerId: user.id, mapData: parsedMapData, isPublic: false,
@@ -282,7 +281,12 @@ export function ProjectUploadForm() {
     try {
       await processAISteps(currentSubmissionForAI, currentUserGoalsForAI);
     } catch (aiError) {
-      toast({ title: "AI Map Generation Failed", description: (aiError as Error).message, variant: "destructive", duration: 7000 });
+      toast({
+        title: "AI Map Generation Failed",
+        description: `${(aiError as Error).message}. Please try submitting the project again. If the issue persists, please check the console for more technical details or contact support.`,
+        variant: "destructive",
+        duration: 8000
+      });
     } finally {
       setIsConfirmAIDialogOpen(false);
       setCurrentSubmissionForAI(null);

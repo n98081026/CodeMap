@@ -140,10 +140,32 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     } catch (error: any) {
       loadingToast.dismiss();
       console.error(`Error in ${aiFunctionName} (ID: ${currentProcessingId}):`, error);
+      let userFriendlyMessage = `The AI operation "${aiFunctionName}" failed. `;
+      if (error.message) {
+        // Try to make some common errors more friendly
+        if (error.message.toLowerCase().includes('deadline_exceeded') || error.message.toLowerCase().includes('timeout')) {
+          userFriendlyMessage += "The request timed out. This might be due to high server load or a complex request. Please try again in a few moments.";
+        } else if (error.message.toLowerCase().includes('resource_exhausted')) {
+          userFriendlyMessage += "The AI resources are temporarily unavailable. Please try again later.";
+        } else if (error.message.toLowerCase().includes('api key not valid')) {
+          userFriendlyMessage = "AI service configuration error. Please contact support."; // More generic for API key issues
+        }
+        else {
+          userFriendlyMessage += `Details: ${error.message}`;
+        }
+      } else {
+        userFriendlyMessage += "No specific error details available.";
+      }
+      // Add general advice only if not an API key error (which has its own specific advice)
+      if (!error.message?.toLowerCase().includes('api key not valid')) {
+        userFriendlyMessage += " Please try again shortly. If the issue persists, check the developer console for more technical information or contact support.";
+      }
+
       toast({
-        title: `${aiFunctionName} Failed`,
-        description: `An error occurred. ${error.message ? `Details: ${error.message}` : 'Please try again or check the console.'}`,
+        title: `Error: Could not complete ${aiFunctionName}`,
+        description: userFriendlyMessage,
         variant: "destructive",
+        duration: 7000,
       });
       addDebugLog(`[AITools] Error in ${aiFunctionName} (ID: ${currentProcessingId}): ${error.message}`);
       return null;
