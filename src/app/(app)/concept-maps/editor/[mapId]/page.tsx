@@ -52,7 +52,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
-import { MapSummaryModal } from '@/components/concept-map/map-summary-modal'; // Import the new modal
+import { MapSummaryModal } from '@/components/concept-map/map-summary-modal';
+import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar'; // Import GhostPreviewToolbar
 import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For CTA
 import { Info, UserPlus, LogIn } from "lucide-react"; // For CTA
@@ -543,6 +544,7 @@ export default function ConceptMapEditorPage() {
         </div>
 
         <AIStagingToolbar isVisible={isStagingActive && !isOverviewModeActive} onCommit={handleCommitStagedData} onClear={handleClearStagedData} stagedItemCount={stagedItemCount} />
+        <GhostPreviewToolbar /> {/* Add the GhostPreviewToolbar here */}
         <AISuggestionFloater isVisible={floaterState.isVisible && !isOverviewModeActive} position={floaterState.position || {x:0,y:0}} suggestions={floaterState.suggestions} onDismiss={Floater_handleDismiss} title={floaterState.title || "Quick Actions"} />
         {contextMenu?.isOpen && contextMenu.nodeId && !isOverviewModeActive && ( <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu} onDeleteNode={handleDeleteNodeFromContextMenu} onExpandConcept={() => { openExpandConceptModal(contextMenu.nodeId!); closeContextMenu(); }} onSuggestRelations={() => { openSuggestRelationsModal(contextMenu.nodeId!); closeContextMenu(); }} onExtractConcepts={() => { openExtractConceptsModal(contextMenu.nodeId!); closeContextMenu(); }} onAskQuestion={() => { openAskQuestionModal(contextMenu.nodeId!); closeContextMenu(); }} onRewriteContent={() => { openRewriteNodeContentModal(contextMenu.nodeId!); closeContextMenu(); }} isViewOnlyMode={storeIsViewOnlyMode} /> )}
         <Sheet open={isPropertiesInspectorOpen && !isOverviewModeActive} onOpenChange={setIsPropertiesInspectorOpen}> <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto"> <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange} selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType} onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector} onSuggestIntermediateNode={handleSuggestIntermediateNodeRequest} isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} /> </SheetContent> </Sheet>
