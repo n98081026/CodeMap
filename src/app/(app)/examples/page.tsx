@@ -12,7 +12,40 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { exampleProjects, type ExampleProject } from '@/lib/example-data';
 import { useToast } from "@/hooks/use-toast";
 import useConceptMapStore from '@/stores/concept-map-store';
-import { Compass, Eye, Zap, BookCopy, Code, LayoutList } from 'lucide-react'; // Added more icons
+import { Compass, Eye, Zap, BookCopy, Code, LayoutList, LogIn, UserPlus, Info } from 'lucide-react'; // Added more icons
+import { useAuth } from '@/contexts/auth-context';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+
+const GuestCtaBanner = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading || isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <Alert className="mb-6 border-primary/50 bg-primary/5 text-primary-foreground">
+      <Info className="h-5 w-5 !text-primary" />
+      <AlertTitle className="font-semibold text-primary">Explore as a Guest</AlertTitle>
+      <AlertDescription className="text-sm text-primary/90">
+        You are currently viewing example projects. To create your own concept maps, save your work, or access personalized features, please sign up or log in.
+        <div className="mt-3 flex gap-3">
+          <Button asChild size="sm" variant="outline_primary">
+            <Link href="/register">
+              <UserPlus className="mr-2 h-4 w-4" /> Sign Up
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline_primary">
+            <Link href="/login">
+              <LogIn className="mr-2 h-4 w-4" /> Log In
+            </Link>
+          </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
+  );
+};
 
 export default function ExamplesPage() {
   const router = useRouter();
@@ -82,6 +115,8 @@ export default function ExamplesPage() {
         description="Explore pre-analyzed projects to see CodeMap in action and understand different code structures."
         icon={BookCopy}
       />
+
+      <GuestCtaBanner />
 
       {exampleProjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center py-12">

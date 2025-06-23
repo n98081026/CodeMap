@@ -53,6 +53,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
 import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For CTA
+import { Info, UserPlus, LogIn } from "lucide-react"; // For CTA
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -63,11 +65,48 @@ const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canva
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;
 
+// CTA Banner for Guest viewing an example
+const EditorGuestCtaBanner: React.FC<{ routeMapId: string }> = ({ routeMapId }) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const storeIsViewOnlyMode = useConceptMapStore(state => state.isViewOnlyMode);
+
+  const isActuallyGuest = !isLoading && !isAuthenticated;
+  const isExampleMap = routeMapId && routeMapId.startsWith('example-');
+
+  if (!isActuallyGuest || !storeIsViewOnlyMode || !isExampleMap) {
+    return null;
+  }
+
+  return (
+    <Alert className="mx-4 my-2 border-primary/50 bg-primary/5 text-primary-foreground text-sm rounded-md">
+      <Info className="h-4 w-4 !text-primary mr-2" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-primary/90">
+          You're viewing an example. To create maps, save your work, or use AI tools, please
+        </span>
+        <div className="mt-2 sm:mt-0 sm:ml-4 flex gap-2 flex-shrink-0">
+          <Button asChild size="xs" variant="outline_primary" className="py-1 px-2 h-auto text-xs">
+            <Link href="/register">
+              <UserPlus className="mr-1 h-3 w-3" /> Sign Up
+            </Link>
+          </Button>
+          <Button asChild size="xs" variant="outline_primary" className="py-1 px-2 h-auto text-xs">
+            <Link href="/login">
+              <LogIn className="mr-1 h-3 w-3" /> Log In
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </Alert>
+  );
+};
+
+
 export default function ConceptMapEditorPage() {
   const paramsHook = useParams();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useAuth(); // user from useAuth is used for some links/text
   const router = useRouter();
 
   const routeMapId = paramsHook.mapId as string;
@@ -446,6 +485,7 @@ export default function ConceptMapEditorPage() {
           onToggleOverviewMode={handleToggleOverviewMode} // Pass handler
           isOverviewModeActive={isOverviewModeActive} // Pass state
         />
+        <EditorGuestCtaBanner routeMapId={routeMapId} />
         <div className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
