@@ -16,7 +16,8 @@ import {
 import {
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff, // Added Eye, EyeOff for overview toggle
-  Edit3 // Added Edit3 for "Copy & Edit" button
+  Edit3, // Added Edit3 for "Copy & Edit" button
+  FileText as FileTextIcon // Renamed to avoid conflict with component
 } from "lucide-react"; // Added Wand2, SearchPlus, TestTube2
 =======
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
@@ -77,6 +78,8 @@ interface EditorToolbarProps {
   onTestEdgeOverlay?: () => void;
   onToggleOverviewMode?: () => void; // New prop for toggling overview mode
   isOverviewModeActive?: boolean; // New prop to indicate if overview mode is active
+  onSummarizeMap?: () => void; // New prop for summarizing map
+  isSummarizingMap?: boolean; // New prop for loading state of map summary
 }
 
 export interface ArrangeAction {
@@ -140,6 +143,8 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onTestEdgeOverlay,
   onToggleOverviewMode, // Destructure new prop
   isOverviewModeActive, // Destructure new prop
+  onSummarizeMap, // Destructure new prop
+  isSummarizingMap, // Destructure new prop
 =======
   onTidySelection,
   onSuggestMapImprovements,
@@ -634,6 +639,27 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           </TooltipContent>
         </Tooltip>
 
+        {/* Summarize Map Button */}
+        {onSummarizeMap && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleGenAIClick(onSummarizeMap, "Summarize Map")}
+                disabled={isViewOnlyMode || showCopyButton || isSummarizingMap}
+              >
+                {isSummarizingMap ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileTextIcon className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {showCopyButton ? "Log in to use AI tools" :
+               isViewOnlyMode ? "Summarize Map (Disabled in View Mode)" :
+               isSummarizingMap ? "Summarizing..." :
+               "Summarize Current Map (AI)"}
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Spacer */}
         <div className="flex-grow" />

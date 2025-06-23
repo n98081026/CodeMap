@@ -52,6 +52,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
+import { MapSummaryModal } from '@/components/concept-map/map-summary-modal'; // Import the new modal
 import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For CTA
 import { Info, UserPlus, LogIn } from "lucide-react"; // For CTA
@@ -213,7 +214,9 @@ export default function ConceptMapEditorPage() {
     conceptExpansionPreview, acceptAllExpansionPreviews, acceptSingleExpansionPreview, clearExpansionPreview,
     isRefineModalOpen, setIsRefineModalOpen, refineModalInitialData, handleRefineSuggestionConfirm, openRefineSuggestionModal,
     intermediateNodeSuggestion, handleSuggestIntermediateNodeRequest, confirmAddIntermediateNode, clearIntermediateNodeSuggestion,
-    handleAiTidyUpSelection, handleDagreLayoutSelection
+    handleAiTidyUpSelection, handleDagreLayoutSelection,
+    // Map Summary related items from aiToolsHook
+    handleSummarizeMap, isSummarizingMap, mapSummaryResult, isMapSummaryModalOpen, setIsMapSummaryModalOpen, clearMapSummaryResult
   } = aiToolsHook;
 
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
@@ -484,6 +487,8 @@ export default function ConceptMapEditorPage() {
           isDagreTidying={aiToolsHook.isDagreTidying}
           onToggleOverviewMode={handleToggleOverviewMode} // Pass handler
           isOverviewModeActive={isOverviewModeActive} // Pass state
+          onSummarizeMap={handleSummarizeMap} // Pass handler for summarizing map
+          isSummarizingMap={isSummarizingMap} // Pass loading state for map summary
         />
         <EditorGuestCtaBanner routeMapId={routeMapId} />
         <div className="flex-grow relative overflow-hidden">
@@ -553,6 +558,13 @@ export default function ConceptMapEditorPage() {
         {aiToolsHook.isRefineModalOpen && aiToolsHook.refineModalInitialData && !storeIsViewOnlyMode && ( <RefineSuggestionModal isOpen={aiToolsHook.isRefineModalOpen} onOpenChange={aiToolsHook.setIsRefineModalOpen} initialData={aiToolsHook.refineModalInitialData} onConfirm={aiToolsHook.handleRefineSuggestionConfirm} /> )}
         {intermediateNodeSuggestion && !storeIsViewOnlyMode && ( <AlertDialog open={!!intermediateNodeSuggestion} onOpenChange={(isOpen) => { if (!isOpen) clearIntermediateNodeSuggestion(); }} > <AlertDialogContent> <AlertDialogHeader> <AlertDialogTitle>AI Suggestion: Intermediate Node</AlertDialogTitle> <AlertDialogDescription> The AI suggests adding an intermediate node. {/* ... */ } </AlertDialogDescription> </AlertDialogHeader> <AlertDialogFooter> <AlertDialogCancel onClick={clearIntermediateNodeSuggestion}>Cancel</AlertDialogCancel> <AlertDialogAction onClick={confirmAddIntermediateNode}>Confirm</AlertDialogAction> </AlertDialogFooter> </AlertDialogContent> </AlertDialog> )}
 
+        {/* Map Summary Modal */}
+        <MapSummaryModal
+          isOpen={isMapSummaryModalOpen}
+          onOpenChange={setIsMapSummaryModalOpen}
+          summaryResult={mapSummaryResult}
+          onClose={clearMapSummaryResult}
+        />
       </ReactFlowProvider>
     </div>
   );

@@ -381,8 +381,8 @@ The main remaining area for full Supabase connection is:
             - [x] `ProjectOverviewDisplay` shows identified top-level modules as cards. (Implemented)
             - [x] Each module card in `ProjectOverviewDisplay` displays its plain-language description and shows key files in a tooltip. (Implemented)
             - [ ] (Deferred) `ProjectOverviewDisplay` shows simplified connections between key modules. (Deferred due to complexity of inferring/displaying meaningful top-level connections without direct AI output for it).
-        - [ ] **Phase 3 (Future): Interactive Drill-Down from Overview Mode:**
-            - [ ] Clicking a module in Overview Mode transitions the main map view to focus on/filter for that module's components.
+        - [x] **Phase 3 (Future): Interactive Drill-Down from Overview Mode:**
+            - [x] Clicking a module in Overview Mode transitions the main map view to focus on/filter for that module's components. (Implemented)
     - [ ] **Visual Feedback & Progress:**
         - [ ] For long-running AI operations (analysis, suggestions), provide more engaging progress indicators or estimated time remaining.
         - [ ] Ensure error messages are user-friendly and suggest potential solutions or next steps.
@@ -422,10 +422,10 @@ The main remaining area for full Supabase connection is:
         - [ ] **Auth Logic Modification:** Adjust `AuthContext` and routing to allow access to certain parts of the app without full authentication.
         - [ ] **UI Adaptation:** Design and implement a guest-specific UI layout, potentially with more prominent calls to action for registration/login.
         - [ ] **Data Handling:** Ensure guest user data (if any is generated temporarily) is handled appropriately (e.g., not persisted or clearly marked as temporary).
-    - [ ] **Overview Mode - Interactive Drill-Down (Phase 3):**
-        - [ ] **Design Interaction:** Define how clicking a module in overview mode affects the main map (e.g., filter nodes, zoom to relevant area, load a sub-map if applicable).
-        - [ ] **Store/State Logic:** Update `concept-map-store.ts` to handle focus/filter states based on overview module selection.
-        - [ ] **Component Updates:** Modify `ProjectOverviewDisplay.tsx` to trigger these actions and `FlowCanvasCore.tsx` to respond to filter/focus states.
+    - [x] **Overview Mode - Interactive Drill-Down (Phase 3):**
+        - [x] **Design Interaction:** Define how clicking a module in overview mode affects the main map (e.g., filter nodes, zoom to relevant area, load a sub-map if applicable). (Implemented)
+        - [x] **Store/State Logic:** Update `concept-map-store.ts` to handle focus/filter states based on overview module selection. (Implemented - existing action was suitable)
+        - [x] **Component Updates:** Modify `ProjectOverviewDisplay.tsx` to trigger these actions and `FlowCanvasCore.tsx` to respond to filter/focus states. (Implemented)
     - [ ] **Interactive Q&A - Contextual Q&A (Phase 2):**
         - [ ] **Edge Q&A:**
             - [ ] Design UI for asking questions about a selected edge (e.g., in `PropertiesInspector` or context menu).
@@ -499,19 +499,19 @@ The main remaining area for full Supabase connection is:
 
 ## 下一步 (建議)
 
-### Guest Mode - Phase 2 (潛在功能)
+### Guest Mode - Phase 2 (潛在功能) - Implemented (Jules, Oct 2023 - Nov 2023)
 
-- [ ] **允許訪客「複製範例到工作區」：**
-    - [ ] 當訪客在唯讀模式下檢視範例時，提供一個按鈕「複製到我的工作區」或「開始編輯此範例」。
-    - [ ] 點擊此按鈕會將他們重定向到登入/註冊頁面。
-    - [ ] 成功登入/註冊後，將範例地圖的副本複製到他們帳戶中，並以編輯模式開啟。
-    - [ ] 這需要後端 API 來處理地圖複製。
-- [ ] **更流暢的範例直接連結處理：**
-    - [ ] 如果訪客直接進入範例地圖 URL (`/concept-maps/editor/example-XYZ?viewOnly=true`) 但該範例資料尚未在 Zustand store 中（例如，透過直接連結或重新整理），考慮自動從 `/public/example-maps/` 的 JSON 檔案中抓取範例資料，而不是僅顯示錯誤並要求他們從範例庫導航。
-    - [ ] 這將使分享範例連結更加順暢。
-- [ ] **UI/UX 細化：**
-    - [ ] 檢閱所有訪客可見頁面上的導覽列/側邊欄，確保對訪客隱藏或禁用不相關的連結（例如「儀表板」、「設定」等）。目前 `AppLayout` 的重定向處理了大部分情況，但明確的 UI 調整可能更好。
-    - [ ] 在唯讀模式下，為已禁用的按鈕提供更一致的工具提示，明確說明為何禁用（例如「登入以使用此功能」）。
+- [x] **允許訪客「複製範例到工作區」：** (Implemented)
+    - [x] 當訪客在唯讀模式下檢視範例時，提供一個按鈕「複製到我的工作區」或「開始編輯此範例」。 (Implemented on Examples page and Editor Toolbar)
+    - [x] 點擊此按鈕會將他們重定向到登入/註冊頁面。 (Implemented with query params)
+    - [x] 成功登入/註冊後，將範例地圖的副本複製到他們帳戶中，並以編輯模式開啟。 (Implemented in AuthContext post-login flow)
+    - [x] 這需要後端 API 來處理地圖複製。 (Implemented - uses existing POST /api/concept-maps)
+- [x] **更流暢的範例直接連結處理：** (Implemented)
+    - [x] 如果訪客直接進入範例地圖 URL (`/concept-maps/editor/example-XYZ?viewOnly=true`) 但該範例資料尚未在 Zustand store 中（例如，透過直接連結或重新整理），考慮自動從 `/public/example-maps/` 的 JSON 檔案中抓取範例資料，而不是僅顯示錯誤並要求他們從範例庫導航。 (Implemented in useConceptMapDataManager)
+    - [x] 這將使分享範例連結更加順暢。 (Achieved)
+- [x] **UI/UX 細化：** (Partially Implemented - Tooltips improved, Sidebar review concluded no changes needed for guests)
+    - [x] 檢閱所有訪客可見頁面上的導覽列/側邊欄，確保對訪客隱藏或禁用不相關的連結（例如「儀表板」、「設定」等）。目前 `AppLayout` 的重定向處理了大部分情況，但明確的 UI 調整可能更好。 (Reviewed: SidebarNav returns null for guests, which is acceptable. Navbar behavior is fine.)
+    - [x] 在唯讀模式下，為已禁用的按鈕提供更一致的工具提示，明確說明為何禁用（例如「登入以使用此功能」）。 (Implemented for EditorToolbar)
 
 ### 其他潛在改進
 

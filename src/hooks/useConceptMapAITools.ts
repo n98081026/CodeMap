@@ -19,9 +19,10 @@ import {
   aiTidyUpSelectionFlow, type AiTidyUpSelectionInput, type AiTidyUpSelectionOutput,
   suggestChildNodesFlow, type SuggestChildNodesRequest, type SuggestChildNodesResponse,
   suggestMapImprovementsFlow, type SuggestedImprovements,
-  rewriteNodeContent as aiRewriteNodeContent, type RewriteNodeContentInput, type RewriteNodeContentOutput
+  rewriteNodeContent as aiRewriteNodeContent, type RewriteNodeContentInput, type RewriteNodeContentOutput,
+  generateMapSummaryFlow, type GenerateMapSummaryInput, type GenerateMapSummaryOutput
 } from '@/ai/flows';
-import type { ConceptMapNode, RFNode, CustomNodeData } from '@/types';
+import type { ConceptMapNode, RFNode, CustomNodeData, ConceptMapData } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import { useReactFlow } from 'reactflow';
@@ -99,6 +100,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [aiChildTextSuggestions, setAiChildTextSuggestions] = useState<string[]>([]);
   const [isLoadingAiChildTexts, setIsLoadingAiChildTexts] = useState(false);
   const [isDagreTidying, setIsDagreTidying] = useState(false);
+  const [isSummarizingMap, setIsSummarizingMap] = useState(false);
+  const [mapSummaryResult, setMapSummaryResult] = useState<GenerateMapSummaryOutput | null>(null);
+  const [isMapSummaryModalOpen, setIsMapSummaryModalOpen] = useState(false);
+
 
   const callAIWithStandardFeedback = useCallback(async <I, O>(
     aiFunctionName: string,
@@ -798,6 +803,38 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     handleDagreLayoutSelection, isDagreTidying,
     askQuestionAboutNode,
     handleSuggestMapImprovements,
+    // Map Summary
+    handleSummarizeMap: async () => {
+      const currentMapData = useConceptMapStore.getState().mapData;
+      if (currentMapData.nodes.length === 0) {
+        toast({ title: "Empty Map", description: "Cannot summarize an empty map.", variant: "default" });
+        return;
+      }
+      setIsSummarizingMap(true); // Set loading state for the button
+      const output = await callAIWithStandardFeedback<GenerateMapSummaryInput, GenerateMapSummaryOutput>(
+        "Summarize Map", generateMapSummaryFlow,
+        { nodes: currentMapData.nodes, edges: currentMapData.edges },
+        {
+          loadingMessage: "AI is analyzing and summarizing your map...",
+          successTitle: "Map Summary Ready!",
+          hideSuccessToast: true, // Summary will be shown in a modal
+          processingId: 'summarize-entire-map'
+        }
+      );
+      setIsSummarizingMap(false);
+      if (output) {
+        setMapSummaryResult(output);
+        setIsMapSummaryModalOpen(true);
+      } else {
+        // Error toast is already handled by callAIWithStandardFeedback
+        setMapSummaryResult(null);
+      }
+    },
+    isSummarizingMap,
+    mapSummaryResult,
+    isMapSummaryModalOpen,
+    setIsMapSummaryModalOpen,
+    clearMapSummaryResult: () => setMapSummaryResult(null),
   };
 }
 
