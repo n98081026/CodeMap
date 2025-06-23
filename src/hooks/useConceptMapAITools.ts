@@ -20,9 +20,10 @@ import {
   suggestChildNodesFlow, type SuggestChildNodesRequest, type SuggestChildNodesResponse,
   suggestMapImprovementsFlow, type SuggestedImprovements,
   rewriteNodeContent as aiRewriteNodeContent, type RewriteNodeContentInput, type RewriteNodeContentOutput,
-  generateMapSummaryFlow, type GenerateMapSummaryInput, type GenerateMapSummaryOutput
+  generateMapSummaryFlow, type GenerateMapSummaryInput, type GenerateMapSummaryOutput,
+  askQuestionAboutEdgeFlow, type AskQuestionAboutEdgeInput, type AskQuestionAboutEdgeOutput // Import new flow and types
 } from '@/ai/flows';
-import type { ConceptMapNode, RFNode, CustomNodeData, ConceptMapData } from '@/types';
+import type { ConceptMapNode, RFNode, CustomNodeData, ConceptMapData, ConceptMapEdge } from '@/types'; // Added ConceptMapEdge
 import { getNodePlacement } from '@/lib/layout-utils';
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import { useReactFlow } from 'reactflow';
@@ -103,6 +104,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [isSummarizingMap, setIsSummarizingMap] = useState(false);
   const [mapSummaryResult, setMapSummaryResult] = useState<GenerateMapSummaryOutput | null>(null);
   const [isMapSummaryModalOpen, setIsMapSummaryModalOpen] = useState(false);
+
+  // State for Edge Q&A
+  const [isEdgeQuestionModalOpen, setIsEdgeQuestionModalOpen] = useState(false);
+  const [edgeQuestionContext, setEdgeQuestionContext] = useState<AskQuestionAboutEdgeInput | null>(null);
+  const [edgeQuestionAnswer, setEdgeQuestionAnswer] = useState<string | null>(null);
+  const [isAskingAboutEdge, setIsAskingAboutEdge] = useState(false);
 
 
   const callAIWithStandardFeedback = useCallback(async <I, O>(
@@ -822,14 +829,14 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         toast({ title: "Empty Map", description: "Cannot summarize an empty map.", variant: "default" });
         return;
       }
-      setIsSummarizingMap(true); // Set loading state for the button
+      setIsSummarizingMap(true);
       const output = await callAIWithStandardFeedback<GenerateMapSummaryInput, GenerateMapSummaryOutput>(
         "Summarize Map", generateMapSummaryFlow,
         { nodes: currentMapData.nodes, edges: currentMapData.edges },
         {
           loadingMessage: "AI is analyzing and summarizing your map...",
           successTitle: "Map Summary Ready!",
-          hideSuccessToast: true, // Summary will be shown in a modal
+          hideSuccessToast: true,
           processingId: 'summarize-entire-map'
         }
       );
@@ -838,7 +845,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         setMapSummaryResult(output);
         setIsMapSummaryModalOpen(true);
       } else {
-        // Error toast is already handled by callAIWithStandardFeedback
         setMapSummaryResult(null);
       }
     },
@@ -847,6 +853,73 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     isMapSummaryModalOpen,
     setIsMapSummaryModalOpen,
     clearMapSummaryResult: () => setMapSummaryResult(null),
+
+    // Edge Q&A
+    openAskQuestionAboutEdgeModal: (edgeId: string) => {
+      if (isViewOnlyMode) { toast({ title: "View Only Mode"}); return; }
+      const edge = mapData.edges.find(e => e.id === edgeId);
+      if (!edge) {
+        toast({ title: "Error", description: "Selected edge not found.", variant: "destructive" });
+        return;
+      }
+      const sourceNode = mapData.nodes.find(n => n.id === edge.source);
+      const targetNode = mapData.nodes.find(n => n.id === edge.target);
+      if (!sourceNode || !targetNode) {
+        toast({ title: "Error", description: "Connected nodes for the edge not found.", variant: "destructive" });
+        return;
+      }
+      setEdgeQuestionContext({
+        sourceNodeId: sourceNode.id,
+        sourceNodeText: sourceNode.text,
+        sourceNodeDetails: sourceNode.details,
+        targetNodeId: targetNode.id,
+        targetNodeText: targetNode.text,
+        targetNodeDetails: targetNode.details,
+        edgeId: edge.id,
+        edgeLabel: edge.label,
+        userQuestion: "", // Will be filled by modal
+      });
+      setEdgeQuestionAnswer(null); // Clear previous answer
+      setIsEdgeQuestionModalOpen(true);
+    },
+    handleAskQuestionAboutEdge: async (question: string) => {
+      if (!edgeQuestionContext) {
+        toast({ title: "Error", description: "Edge context is missing for Q&A.", variant: "destructive" });
+        return;
+      }
+      setIsAskingAboutEdge(true);
+      const input: AskQuestionAboutEdgeInput = {
+        ...edgeQuestionContext,
+        userQuestion: question,
+      };
+      const output = await callAIWithStandardFeedback<AskQuestionAboutEdgeInput, AskQuestionAboutEdgeOutput>(
+        "Ask AI About Edge", askQuestionAboutEdgeFlow, input,
+        {
+          loadingMessage: "AI is considering your question about the edge...",
+          successTitle: "AI Answer Received",
+          hideSuccessToast: true, // Answer shown in modal
+          processingId: `edge-qa-${edgeQuestionContext.edgeId}`
+        }
+      );
+      setIsAskingAboutEdge(false);
+      if (output?.answer) {
+        setEdgeQuestionAnswer(output.answer);
+      } else if (output?.error) {
+        setEdgeQuestionAnswer(`Error: ${output.error}`);
+      } else {
+        setEdgeQuestionAnswer("AI could not provide an answer for this question.");
+      }
+    },
+    isEdgeQuestionModalOpen,
+    setIsEdgeQuestionModalOpen,
+    edgeQuestionContext,
+    edgeQuestionAnswer,
+    isAskingAboutEdge,
+    clearEdgeQuestionState: () => {
+      setEdgeQuestionContext(null);
+      setEdgeQuestionAnswer(null);
+      setIsEdgeQuestionModalOpen(false);
+    },
   };
 }
 

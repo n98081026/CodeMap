@@ -53,7 +53,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
 import { MapSummaryModal } from '@/components/concept-map/map-summary-modal';
-import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar'; // Import GhostPreviewToolbar
+import { AskQuestionAboutEdgeModal } from '@/components/concept-map/AskQuestionAboutEdgeModal'; // Import the new modal
+import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar';
 import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For CTA
 import { Info, UserPlus, LogIn } from "lucide-react"; // For CTA
@@ -217,7 +218,10 @@ export default function ConceptMapEditorPage() {
     intermediateNodeSuggestion, handleSuggestIntermediateNodeRequest, confirmAddIntermediateNode, clearIntermediateNodeSuggestion,
     handleAiTidyUpSelection, handleDagreLayoutSelection,
     // Map Summary related items from aiToolsHook
-    handleSummarizeMap, isSummarizingMap, mapSummaryResult, isMapSummaryModalOpen, setIsMapSummaryModalOpen, clearMapSummaryResult
+    handleSummarizeMap, isSummarizingMap, mapSummaryResult, isMapSummaryModalOpen, setIsMapSummaryModalOpen, clearMapSummaryResult,
+    // Edge Q&A related items from aiToolsHook
+    openAskQuestionAboutEdgeModal, handleAskQuestionAboutEdge, isEdgeQuestionModalOpen, setIsEdgeQuestionModalOpen,
+    edgeQuestionContext, edgeQuestionAnswer, isAskingAboutEdge, clearEdgeQuestionState
   } = aiToolsHook;
 
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
@@ -309,7 +313,14 @@ export default function ConceptMapEditorPage() {
   const handleConfirmAISemanticGroup = useCallback(async () => { /* ... */ }, [aiSemanticGroupSuggestion, multiSelectedNodeIds, storeMapData.nodes, addNodeFromHook, updateStoreNode, toast, addDebugLog, storeApplyLayout]);
   const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => { /* ... */ }, [storeIsViewOnlyMode, deleteStoreNode, closeContextMenu]);
   const handleSelectedElementPropertyUpdateInspector = useCallback((updates: any) => { /* ... */ }, [storeIsViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
-  const inspectorAiTools = React.useMemo(() => ({ /* ... */ }), [aiToolsHook.openExpandConceptModal, aiToolsHook.openRewriteNodeContentModal, aiToolsHook.handleSuggestIntermediateNodeRequest]);
+  const inspectorAiTools = React.useMemo(() => ({
+    openExpandConceptModal: aiToolsHook.openExpandConceptModal,
+    openRewriteNodeContentModal: aiToolsHook.openRewriteNodeContentModal,
+    openAskQuestionAboutNodeModal: aiToolsHook.openAskQuestionModal, // Assuming this is for nodes
+    openAskQuestionAboutEdgeModal: aiToolsHook.openAskQuestionAboutEdgeModal, // Wire up edge Q&A modal opener
+    // handleSuggestIntermediateNodeRequest is not directly an aiTool but a handler, passed separately
+  }), [aiToolsHook.openExpandConceptModal, aiToolsHook.openRewriteNodeContentModal, aiToolsHook.openAskQuestionModal, aiToolsHook.openAskQuestionAboutEdgeModal]);
+
   const showEmptyMapMessage = !isStoreLoading && useConceptMapStore.getState().initialLoadComplete && !storeError && routeMapId !== 'new' && storeMapData.nodes.length === 0 && storeMapId === routeMapId;
   const handleStartConnectionFromNode = useCallback((nodeId: string) => { /* ... */ }, [storeIsViewOnlyMode, toast, addDebugLog]);
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => { /* ... */ }, []);
@@ -566,6 +577,15 @@ export default function ConceptMapEditorPage() {
           onOpenChange={setIsMapSummaryModalOpen}
           summaryResult={mapSummaryResult}
           onClose={clearMapSummaryResult}
+        />
+        <AskQuestionAboutEdgeModal
+          isOpen={isEdgeQuestionModalOpen}
+          onOpenChange={setIsEdgeQuestionModalOpen}
+          edgeContext={edgeQuestionContext}
+          onSubmitQuestion={handleAskQuestionAboutEdge}
+          isLoading={isAskingAboutEdge}
+          answer={edgeQuestionAnswer}
+          onCloseModal={clearEdgeQuestionState}
         />
       </ReactFlowProvider>
     </div>

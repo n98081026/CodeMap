@@ -42,15 +42,16 @@ interface PropertiesInspectorProps {
   selectedElement?: ConceptMapNode | ConceptMapEdge | null; 
   selectedElementType?: 'node' | 'edge' | null;
   onSelectedElementPropertyUpdate?: (updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>) => void;
-  onSuggestIntermediateNode?: (edgeId: string) => void; // New prop
+  onSuggestIntermediateNode?: (edgeId: string) => void;
 
   isNewMapMode?: boolean; 
   isViewOnlyMode?: boolean;
   editingNodeId?: string | null;
-  aiTools?: { // New prop for AI tool functions
+  aiTools?: {
     openExpandConceptModal: (nodeId: string) => void;
     openRewriteNodeContentModal: (nodeId: string) => void;
-    // Define types for other tools if passed
+    openAskQuestionAboutNodeModal?: (nodeId: string) => void; // Already exists for node Q&A
+    openAskQuestionAboutEdgeModal?: (edgeId: string) => void; // For edge Q&A
   };
 }
 
@@ -878,8 +879,30 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           onClick={handleTriggerSuggestIntermediateNode}
           disabled={isLoadingAISuggestion || isViewOnlyMode || !selectedElement}
         >
-          {isLoadingAISuggestion ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
+          {isLoadingAISuggestion ? <LoaderIcon className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
           Suggest Intermediate Node (AI)
+        </Button>
+      </div>
+
+      {/* Edge Q&A Section */}
+      <div className="mt-4 pt-4 border-t">
+        <div className="flex items-center gap-2 mb-1">
+          <MessageCircleQuestion className="h-4 w-4 text-muted-foreground" />
+          <h5 className="font-medium text-sm">Ask AI About This Edge</h5>
+        </div>
+        <Button
+          onClick={() => {
+            if (selectedElement && selectedElementType === 'edge' && aiTools?.openAskQuestionAboutEdgeModal) {
+              aiTools.openAskQuestionAboutEdgeModal(selectedElement.id);
+            }
+          }}
+          disabled={isViewOnlyMode || !selectedElement || selectedElementType !== 'edge' || !aiTools?.openAskQuestionAboutEdgeModal}
+          className="w-full"
+          size="sm"
+          variant="outline"
+        >
+          <HelpCircle className="mr-2 h-4 w-4" />
+          Ask Question...
         </Button>
       </div>
     </>
