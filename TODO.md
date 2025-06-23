@@ -367,7 +367,7 @@ The main remaining area for full Supabase connection is:
     - [x] **Clearer "User Goals" Input:** Provide examples or tooltips for the "User Goals" field during project upload to reduce user confusion. (Implemented in `ProjectUploadForm`)
     - [x] **Role-Agnostic Starting Point:** Offer a clear "Personal Use" or "Quick Analyze" path for users not immediately identifying as "Student" or "Teacher". (Implemented: Default to student/general dashboard, sidebar adjusts roles)
 - [ ] **Map Interaction & Interpretation:**
-    - [ ] **"Human-Readable" Summaries:** For generated maps, provide a high-level, plain-language summary of the project structure and key components alongside the visual map.
+    - [x] **"Human-Readable" Summaries:** For generated maps, provide a high-level, plain-language summary of the project structure and key components alongside the visual map. (Implemented via "Summarize Map (AI)" button and modal)
     - [x] **Contextual Help for Map Elements:** Add tooltips or "?" icons to map nodes and properties inspector fields to explain technical terms in simple language. (Implemented for Node Type and Details in `PropertiesInspector`)
     - [ ] **Smart Map Presentation (Super-Simple Overview Mode):**
         - [ ] **Phase 1: AI-Generated High-Level Summary & Key Modules:**
@@ -518,7 +518,7 @@ The main remaining area for full Supabase connection is:
 - [ ] **測試覆蓋率：**
     - [ ] 為新的訪客模式邏輯和相關元件編寫自動化測試 (Vitest)。
     - [ ] 特別是測試 `AppLayout` 中的路由邏輯和 `useConceptMapDataManager` 中範例地圖的處理。
-- [ ] **錯誤處理與日誌記錄：**
-    - [ ] 增強 `useConceptMapDataManager` 中範例地圖載入失敗時的錯誤處理/日誌記錄。
+- [x] **錯誤處理與日誌記錄：**
+    - [x] 增強 `useConceptMapDataManager` 中範例地圖載入失敗時的錯誤處理/日誌記錄。 (Enhanced toasts and debug logs for direct example loading path)
 - [ ] **安全性檢閱：**
     - [ ] 對訪客模式進行一次快速的安全性檢閱，確保沒有意外的資料洩漏或功能存取。

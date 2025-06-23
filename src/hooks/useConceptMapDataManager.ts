@@ -242,41 +242,65 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
         // Dynamically import exampleProjects to avoid circular dependency if this hook is used by example-data itself.
         // This is a common pattern for such cases.
         import('@/lib/example-data').then(module => {
+          addDebugLog(`[DataManager useEffect V14] Successfully imported '@/lib/example-data'. Found ${module.exampleProjects.length} example projects.`);
           const exampleProject = module.exampleProjects.find(p => p.key === exampleKey);
           if (exampleProject) {
+            addDebugLog(`[DataManager useEffect V14] Found metadata for example key '${exampleKey}'. Path to JSON: ${exampleProject.mapJsonPath}`);
             fetch(exampleProject.mapJsonPath)
               .then(response => {
-                if (!response.ok) throw new Error(`Failed to fetch example: ${response.statusText}`);
-                return response.json();
+                addDebugLog(`[DataManager useEffect V14] Fetch response status for '${exampleKey}' from ${exampleProject.mapJsonPath}: ${response.status}`);
+                if (!response.ok) {
+                  if (response.status === 404) {
+                    throw new Error(`Example map file not found (404) at ${exampleProject.mapJsonPath}`);
+                  }
+                  throw new Error(`Failed to fetch example map data: ${response.status} ${response.statusText}`);
+                }
+                return response.json().catch(parseError => {
+                  // Catch JSON parsing error specifically
+                  throw new Error(`Invalid JSON format in example map file: ${exampleProject.mapJsonPath}. Details: ${parseError.message}`);
+                });
               })
               .then(exampleMapData => {
                 storeLoadExampleMapData(exampleMapData, exampleProject.name); // This sets viewOnly=true internally
-                addDebugLog(`[DataManager useEffect V13] Example map '${exampleKey}' loaded directly.`);
+                addDebugLog(`[DataManager useEffect V14] Example map '${exampleKey}' loaded directly and set in store.`);
               })
               .catch(err => {
-                addDebugLog(`[DataManager useEffect V13] Error loading example map '${exampleKey}' directly: ${err.message}`);
-                setError(`Failed to load example: ${err.message}`);
-                toast({ title: "Error Loading Example", description: `Could not load example '${exampleKey}'.`, variant: "destructive" });
+                let title = "Error Loading Example";
+                let description = `Could not load data for example '${exampleKey}'.`;
+                if (err.message.includes("404") || err.message.toLowerCase().includes("not found")) {
+                  title = "Example File Not Found";
+                  description = `The data file for example '${exampleKey}' could not be found. It might be missing or misconfigured. Path: ${exampleProject.mapJsonPath}`;
+                } else if (err.message.toLowerCase().includes("invalid json format")) {
+                  title = "Data Format Error";
+                  description = `The data file for example '${exampleKey}' appears to be corrupted or in an invalid format. Path: ${exampleProject.mapJsonPath}`;
+                } else if (err.message.toLowerCase().includes("failed to fetch")) {
+                  title = "Network Error";
+                  description = `Failed to load data for example '${exampleKey}'. Please check your internet connection and try again.`;
+                }
+                addDebugLog(`[DataManager useEffect V14] Error loading example map '${exampleKey}' directly from path '${exampleProject.mapJsonPath}': ${err.message}`);
+                setError(`Failed to load example '${exampleKey}': ${err.message}`);
+                toast({ title, description, variant: "destructive" });
               })
               .finally(() => {
                 setIsLoading(false);
                 setInitialLoadComplete(true);
               });
-          } else {
-            addDebugLog(`[DataManager useEffect V13] Example project with key '${exampleKey}' not found.`);
-            setError(`Example '${exampleKey}' not found.`);
-            toast({ title: "Error", description: `Example '${exampleKey}' does not exist.`, variant: "destructive" });
+          } else { // exampleProject not found
+            addDebugLog(`[DataManager useEffect V14] Example project with key '${exampleKey}' not found in example-data.ts.`);
+            setError(`Example metadata for '${exampleKey}' not found.`);
+            toast({ title: "Example Not Defined", description: `The example '${exampleKey}' is not defined in the application.`, variant: "destructive" });
             setIsLoading(false);
             setInitialLoadComplete(true);
           }
-        }).catch(err => {
-            addDebugLog(`[DataManager useEffect V13] Error importing example-data: ${err.message}`);
-            setError(`Failed to load example list: ${err.message}`);
+        }).catch(err => { // Failed to dynamically import example-data.ts
+            addDebugLog(`[DataManager useEffect V14] Critical Error: Failed to import '@/lib/example-data'. Error: ${err.message}`);
+            setError(`Failed to load the list of available examples: ${err.message}`);
+            toast({ title: "Application Initialization Error", description: "Could not load the list of examples. Please try refreshing the page or contact support if the issue persists.", variant: "destructive" });
             setIsLoading(false);
             setInitialLoadComplete(true);
         });
       } else {
-        addDebugLog(`[DataManager useEffect V13] Info: Example map '${exampleKey}' already correctly loaded in store.`);
+        addDebugLog(`[DataManager useEffect V14] Info: Example map '${exampleKey}' already correctly loaded in store.`);
         if (isLoading) setIsLoading(false); // Ensure loading is false
       }
       return; // Handled example map loading
