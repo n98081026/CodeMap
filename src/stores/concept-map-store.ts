@@ -93,6 +93,10 @@ interface ConceptMapState {
   projectOverviewData: GenerateProjectOverviewOutput | null;
   isFetchingOverview: boolean;
 
+  // View Focus State
+  focusViewOnNodeIds: string[] | null;
+  triggerFocusView: boolean;
+
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
   setCurrentMapOwnerId: (ownerId: string | null) => void;
@@ -134,8 +138,7 @@ interface ConceptMapState {
   commitStagedMapData: () => void;
   deleteFromStagedMapData: (elementIds: string[]) => void;
   setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void;
-  // updateConceptExpansionPreviewNodeText: (previewNodeId: string, newText: string) => void; // Covered by updateConceptExpansionPreviewNode
-  // updatePreviewNode: (parentNodeId: string, previewNodeId: string, updates: Partial<ConceptExpansionPreviewNode>) => void; // Covered by updateConceptExpansionPreviewNode
+  updateConceptExpansionPreviewNode: (previewNodeId: string, newText: string, newDetails?: string) => void;
   applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
   startConnectionMode: (nodeId: string) => void;
   completeConnectionMode: (targetNodeId?: string, targetHandleId?: string | null) => void;
@@ -160,6 +163,9 @@ interface ConceptMapState {
   clearStructuralSuggestions: () => void;
   findEdgeByNodes: (sourceId: string, targetId: string) => ConceptMapEdge | undefined;
   applyFormGroupSuggestion: (nodeIds: string[], groupName: string | undefined, overlayGeometry?: { x: number; y: number; width?: number; height?: number }) => string;
+  // New actions for focus
+  setFocusOnNodes: (nodeIds: string[], isOverviewExit?: boolean) => void;
+  clearFocusViewTrigger: () => void;
 }
 
 const initialStateBaseOmitKeys = [
@@ -174,7 +180,7 @@ const initialStateBaseOmitKeys = [
   'addNode', 'updateNode', 'deleteNode', 'addEdge', 'updateEdge', 'deleteEdge',
   'setStagedMapData', 'clearStagedMapData', 'commitStagedMapData', 'deleteFromStagedMapData',
   'setConceptExpansionPreview',
-  'updateConceptExpansionPreviewNode', // This now covers updatePreviewNode and updateConceptExpansionPreviewNodeText
+  'updateConceptExpansionPreviewNode',
   'applyLayout',
   'startConnectionMode', 'completeConnectionMode', 'cancelConnectionMode',
   'startConnection', 'cancelConnection', 'finishConnectionAttempt',
@@ -185,6 +191,7 @@ const initialStateBaseOmitKeys = [
   'applyFormGroupSuggestion',
   'toggleOverviewMode', 'setProjectOverviewData', 'setIsFetchingOverview', 'fetchProjectOverview',
   'loadExampleMapData',
+  'setFocusOnNodes', 'clearFocusViewTrigger',
 ] as const;
 type InitialStateBaseOmitType = typeof initialStateBaseOmitKeys[number];
 
@@ -225,6 +232,8 @@ export const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> =
   isOverviewModeActive: false,
   projectOverviewData: null,
   isFetchingOverview: false,
+  focusViewOnNodeIds: null,
+  triggerFocusView: false,
 };
 
 type TrackedState = Pick<ConceptMapState,
@@ -232,7 +241,8 @@ type TrackedState = Pick<ConceptMapState,
   'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' |
   'editingNodeId' | 'stagedMapData' | 'isStagingActive' |
   'conceptExpansionPreview' | 'ghostPreviewData' |
-  'structuralSuggestions' | 'isOverviewModeActive' | 'projectOverviewData'
+  'structuralSuggestions' | 'isOverviewModeActive' | 'projectOverviewData' |
+  'focusViewOnNodeIds'
 >;
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
@@ -303,6 +313,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
             isOverviewModeActive: false,
             projectOverviewData: null,
             isFetchingOverview: false,
+            focusViewOnNodeIds: null,
+            triggerFocusView: false,
         };
         set(newMapState);
         useConceptMapStore.temporal.getState().clear();
@@ -324,6 +336,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
             initialLoadComplete: true,
             error: null,
             debugLogs: get().debugLogs,
+            focusViewOnNodeIds: null,
+            triggerFocusView: false,
         });
         useConceptMapStore.temporal.getState().clear();
       },
@@ -340,6 +354,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
             initialLoadComplete: true,
             error: null,
             debugLogs: get().debugLogs,
+            focusViewOnNodeIds: null,
+            triggerFocusView: false,
         }));
         useConceptMapStore.temporal.getState().clear();
       },
@@ -425,8 +441,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
           if (stagedData.actionType === 'intermediateNode' && stagedData.originalElementId) {
             finalEdges = finalEdges.filter(edge => edge.id !== stagedData.originalElementId);
             get().addDebugLog(`[STORE commitStagedMapData] Original edge ${stagedData.originalElementId} deleted for intermediateNode action.`);
-            stagedData.nodes.forEach(n => finalNodes.push({...n, id: uniqueNodeId()})); // New node gets unique ID
-            stagedData.edges.forEach(e => finalEdges.push({...e, id: uniqueEdgeId()})); // New edges get unique IDs
+            stagedData.nodes.forEach(n => finalNodes.push({...n, id: uniqueNodeId()}));
+            stagedData.edges.forEach(e => finalEdges.push({...e, id: uniqueEdgeId()}));
           } else if (stagedData.actionType === 'aiTidyUpComplete') {
             get().addDebugLog(`[STORE commitStagedMapData] Processing aiTidyUpComplete.`);
             const stagedParentNodeInfo = stagedData.nodes.find(n => n.id.startsWith('staged-parent-'));
@@ -450,7 +466,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
                 finalNodes.push({...stagedChild, id: uniqueNodeId(), parentNode: newPermanentParentId || stagedChild.parentNode });
               }
             });
-          } else { // Generic case for other actionTypes (summarizeNodes, quickCluster, etc.)
+          } else {
             stagedData.nodes.forEach(n => finalNodes.push({...n, id: uniqueNodeId()}));
             (stagedData.edges || []).forEach(e => finalEdges.push({...e, id: uniqueEdgeId()}));
           }
@@ -475,9 +491,6 @@ export const useConceptMapStore = create<ConceptMapState>()(
           return { ...state, conceptExpansionPreview: { ...state.conceptExpansionPreview, previewNodes: updatedPreviewNodes }};
         });
       },
-      // Kept the more generic updateConceptExpansionPreviewNode from above, as it covers both text and other partial updates.
-      // updateConceptExpansionPreviewNodeText: (previewNodeId, newText) => { ... }
-      // updatePreviewNode: (parentNodeId, previewNodeId, updates) => { ... }
       applyLayout: (updatedNodePositions) => {
           set((state) => {
             const updatedNodesMap = new Map<string, LayoutNodeUpdate>();
@@ -511,6 +524,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
       toggleOverviewMode: () => set((state) => ({
         isOverviewModeActive: !state.isOverviewModeActive,
         selectedElementId: null, selectedElementType: null, multiSelectedNodeIds: [],
+        focusViewOnNodeIds: null, triggerFocusView: false,
       })),
       setProjectOverviewData: (data) => set({ projectOverviewData: data, isFetchingOverview: false }),
       setIsFetchingOverview: (fetching) => set({ isFetchingOverview: fetching }),
@@ -597,11 +611,32 @@ export const useConceptMapStore = create<ConceptMapState>()(
         get().addDebugLog(`[STORE applyFormGroupSuggestion] Group node ${newGroupId} created. Children: ${nodeIds.join(', ')} parented.`);
         return newGroupId;
       },
+      // New action implementations for focus
+      setFocusOnNodes: (nodeIds, isOverviewExit = false) => {
+        const updates: Partial<ConceptMapState> = {
+          focusViewOnNodeIds: nodeIds,
+          triggerFocusView: true,
+          ghostPreviewData: null, // Clear other previews
+          stagedMapData: null,
+          isStagingActive: false,
+        };
+        if (isOverviewExit) {
+          updates.isOverviewModeActive = false;
+        }
+        set(updates);
+        get().addDebugLog(`[STORE setFocusOnNodes] Focus set for nodes: ${nodeIds.join(', ')}. Triggered view update. Overview exit: ${isOverviewExit}`);
+      },
+      clearFocusViewTrigger: () => {
+        set({ triggerFocusView: false });
+        // Optionally clear focusViewOnNodeIds as well, depending on desired behavior
+        // set({ focusViewOnNodeIds: null, triggerFocusView: false });
+        get().addDebugLog(`[STORE clearFocusViewTrigger] Focus view trigger cleared.`);
+      },
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, ghostPreviewData, structuralSuggestions, isOverviewModeActive, projectOverviewData } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, ghostPreviewData, structuralSuggestions, isOverviewModeActive, projectOverviewData };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, ghostPreviewData, structuralSuggestions, isOverviewModeActive, projectOverviewData, focusViewOnNodeIds } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, ghostPreviewData, structuralSuggestions, isOverviewModeActive, projectOverviewData, focusViewOnNodeIds };
       },
       limit: 50,
     }

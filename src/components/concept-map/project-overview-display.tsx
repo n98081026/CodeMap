@@ -6,20 +6,48 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, AlertTriangle, FileText, Package, Info } from "lucide-react";
 import type { GenerateProjectOverviewOutput, KeyModule } from "@/ai/flows/generate-project-overview";
-import { Button } from '@/components/ui/button';
+// Button is not used directly in this version for click, Card is clickable
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import useConceptMapStore from '@/stores/concept-map-store'; // Import store
 
 interface ProjectOverviewDisplayProps {
   overviewData: GenerateProjectOverviewOutput | null;
   isLoading: boolean;
-  onModuleClick?: (moduleName: string) => void; // Optional: To handle clicks on modules for drill-down
+  // onModuleClick prop will be removed
 }
 
 const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
   overviewData,
   isLoading,
-  onModuleClick,
 }) => {
+  const { setFocusOnNodes, mapData } = useConceptMapStore(s => ({
+    setFocusOnNodes: s.setFocusOnNodes,
+    mapData: s.mapData,
+  }));
+
+  const handleModuleCardClick = (module: KeyModule) => {
+    if (!module.filePaths || module.filePaths.length === 0) {
+      console.warn("Module has no filePaths to focus on:", module.name);
+      // Optionally, show a toast to the user
+      return;
+    }
+
+    const allNodes = mapData.nodes;
+    // Assumption: Node IDs are the file paths, or nodes have a data.filePath property
+    // For now, let's assume node.id is the filePath for simplicity of this step.
+    // This might need adjustment based on actual node generation strategy.
+    const matchingNodeIds = allNodes
+      .filter(node => module.filePaths.includes(node.id) || (node.data?.filePath && module.filePaths.includes(node.data.filePath)))
+      .map(node => node.id);
+
+    if (matchingNodeIds.length > 0) {
+      setFocusOnNodes(matchingNodeIds, true); // true for isOverviewExit
+    } else {
+      console.warn("No matching nodes found for module:", module.name, "File paths:", module.filePaths);
+      // Optionally, show a toast: "No specific nodes found for this module in the current map."
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-muted-foreground">
@@ -80,9 +108,9 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
               key={module.name}
               className={cn(
                 "shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out border-border/50",
-                onModuleClick && "cursor-pointer hover:border-primary/50"
+                "cursor-pointer hover:border-primary/50" // Always clickable style
               )}
-              onClick={() => onModuleClick?.(module.name)}
+              onClick={() => handleModuleCardClick(module)} // Use new handler
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg font-semibold flex items-center">

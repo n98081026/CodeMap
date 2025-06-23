@@ -247,9 +247,22 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       stagedMapData: s.stagedMapData,
       isStagingActive: s.isStagingActive,
       conceptExpansionPreview: s.conceptExpansionPreview,
-    ghostPreviewData: s.ghostPreviewData, // Get ghostPreviewData
+      ghostPreviewData: s.ghostPreviewData, // Existing
+      focusViewOnNodeIds: s.focusViewOnNodeIds,
+      triggerFocusView: s.triggerFocusView,
+      clearFocusViewTrigger: s.clearFocusViewTrigger,
     }), [])
   );
+  // Destructure new state and actions
+  const { focusViewOnNodeIds, triggerFocusView: triggerFocusViewFromStore, clearFocusViewTrigger, ghostPreviewData } = useConceptMapStore(
+    useCallback(s => ({
+      focusViewOnNodeIds: s.focusViewOnNodeIds,
+      triggerFocusView: s.triggerFocusView,
+      clearFocusViewTrigger: s.clearFocusViewTrigger,
+      ghostPreviewData: s.ghostPreviewData, // Also ensure ghostPreviewData is correctly destructured if used below
+    }), [])
+  );
+
   const [rfStagedNodes, setRfStagedNodes, onStagedNodesChange] = useNodesState<CustomNodeData>([]);
   const [rfStagedEdges, setRfStagedEdges, onStagedEdgesChange] = useEdgesState<OrthogonalEdgeData>([]);
   const [rfPreviewNodes, setRfPreviewNodes, onPreviewNodesChange] = useNodesState<CustomNodeData>([]);
@@ -377,6 +390,21 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       setTriggerFitView(false);
     }
   }, [triggerFitView, reactFlowInstance, setTriggerFitView]);
+
+  // Effect to handle focusing on specific nodes
+  useEffect(() => {
+    if (triggerFocusViewFromStore && reactFlowInstance) {
+      if (focusViewOnNodeIds && focusViewOnNodeIds.length > 0) {
+        reactFlowInstance.fitView({ nodes: focusViewOnNodeIds.map(id => ({ id })), duration: 600, padding: 0.2 });
+        useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] fitView called for nodes: ${focusViewOnNodeIds.join(', ')}`);
+      } else {
+        // Fallback to general fitView if no specific nodes, though setFocusOnNodes should provide IDs
+        reactFlowInstance.fitView({ duration: 600, padding: 0.2 });
+        useConceptMapStore.getState().addDebugLog(`[FlowCanvasCore] fitView called (general).`);
+      }
+      clearFocusViewTrigger(); // Reset the trigger
+    }
+  }, [triggerFocusViewFromStore, focusViewOnNodeIds, reactFlowInstance, clearFocusViewTrigger]);
 
   useEffect(() => {
     const currentConnectingNodeId = useConceptMapStore.getState().connectingNodeId; // Read directly for effect dependency
