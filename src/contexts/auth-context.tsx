@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const fetchAndSetSupabaseUser = useCallback(async (supabaseAuthUser: SupabaseUser | null, isRegistering: boolean = false, registrationDetails?: {name: string, role: UserRole}) => {
-    if (BYPASS_AUTH_FOR_TESTING) return; // Skip if bypassing
+    if (BYPASS_AUTH_FOR_TESTING) return;
 
     if (!supabaseAuthUser) {
       setUser(null);
@@ -53,35 +53,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (!profile && isRegistering && registrationDetails && supabaseAuthUser.email) {
         console.log(`Profile not found for new user ${supabaseAuthUser.id} after registration, attempting to create it.`);
-        try {
-            profile = await createUserProfile(supabaseAuthUser.id, registrationDetails.name, supabaseAuthUser.email, registrationDetails.role);
-            console.log(`Profile created for user ${supabaseAuthUser.id} during registration flow.`);
-        } catch (profileCreationError) {
-            console.error("Failed to create profile for new user during registration flow:", profileCreationError);
-            await supabase.auth.signOut();
-            setUser(null); 
-            throw new Error(`User registered in Supabase Auth, but profile creation failed: ${(profileCreationError as Error).message}. Please contact support or try registering again.`);
-        }
+        profile = await createUserProfile(supabaseAuthUser.id, registrationDetails.name, supabaseAuthUser.email, registrationDetails.role);
+        console.log(`Profile created for user ${supabaseAuthUser.id} during registration flow.`);
       }
       
       if (profile) {
         setUser(profile);
+        // Check for pending actions like copying an example map
+        const searchParams = new URLSearchParams(window.location.search);
+        const action = searchParams.get('action');
+        const exampleKey = searchParams.get('exampleKey');
+
+        if (action === 'copyExample' && exampleKey && profile.id) {
+          // Clear action params from URL to prevent re-processing
+          const currentPath = window.location.pathname;
+          router.replace(currentPath, undefined); // next/navigation way to clear query params
+
+          // Delegate to a new function to handle the copy logic
+          // This function will be defined outside or imported
+          await handleCopyExampleAction(exampleKey, profile.id, router, toast);
+        }
+
       } else if (!isRegistering) { 
-        console.error(`CRITICAL: Profile for user ${supabaseAuthUser.id} not found in 'profiles' table, and not during a registration flow. Logging out to prevent inconsistent state.`);
+        console.warn(`Profile for user ${supabaseAuthUser.id} not found, and not during registration. Logging out.`);
         await supabase.auth.signOut();
         setUser(null);
       } else {
-        console.error(`CRITICAL: Profile for user ${supabaseAuthUser.id} is null even after attempting creation during registration. Logging out.`);
+         console.warn(`Profile for user ${supabaseAuthUser.id} is null even after attempting creation during registration. Logging out.`);
         await supabase.auth.signOut();
         setUser(null);
       }
-
     } catch (error) {
-      console.error("Error in fetchAndSetSupabaseUser (fetching or creating user profile):", error);
+      console.error("Error in fetchAndSetSupabaseUser:", error);
+      toast({ title: "Error", description: `Failed to set user: ${(error as Error).message}`, variant: "destructive" });
       await supabase.auth.signOut().catch(e => console.warn("Supabase signout failed during error handling:", e));
       setUser(null);
     }
-  }, []);
+  }, [router, toast]); // Added router and toast as dependencies
 
 
   const initialAuthCheckCompleted = useRef(false);
@@ -208,25 +216,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const fetchedProfile = await fetchSupabaseUserProfile(sessionData.user.id);
       if (fetchedProfile) {
         if (fetchedProfile.role !== role) {
-            await supabase.auth.signOut(); 
+            await supabase.auth.signOut();
             throw new Error(`Role mismatch. You selected '${role}', but your account role is '${fetchedProfile.role}'. Please log in with the correct role.`);
         }
-         setUser(fetchedProfile);
-         setUser(fetchedProfile);
-         // Navigate to a general app page first, or student dashboard as a sensible default
-         // Specific role dashboards can be accessed via sidebar/navbar
-         router.replace('/application/student/dashboard'); // Default to student dashboard or a new general one
+        // fetchAndSetSupabaseUser will be called by onAuthStateChange, which handles setting user and post-login actions
+        // No explicit setUser or router.replace here for that reason to avoid race conditions or duplicate logic.
+        // Simply wait for onAuthStateChange to handle the SIGNED_IN event.
       } else {
           await supabase.auth.signOut();
           throw new Error("User profile not found after Supabase login. Please ensure your profile exists or contact support.");
       }
     } catch (error) {
       console.error("Login failed:", error);
-      setUser(null); 
-      setIsLoading(false); 
-      throw error; 
+      setUser(null);
+      setIsLoading(false);
+      throw error;
     }
-  }, [router, fetchSupabaseUserProfile]);
+  }, [fetchSupabaseUserProfile]); // Removed router from dependencies here, as onAuthStateChange handles redirection.
 
   const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
     if (BYPASS_AUTH_FOR_TESTING) {
@@ -257,15 +263,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "Your account has been created. If email confirmation is required by your Supabase project, please check your email to confirm. Then you can log in.",
         duration: 10000, 
       });
-      
-      router.push('/login'); 
+      // After successful Supabase Auth signUp, onAuthStateChange will trigger SIGNED_IN.
+      // fetchAndSetSupabaseUser will then be called, which includes profile creation and post-login action handling.
+      // It will also handle the toast for registration success.
+      router.push('/login'); // Redirect to login, user might need to confirm email depending on Supabase settings.
 
     } catch (error) {
       console.error("Registration process failed:", error);
       setIsLoading(false);
-      throw error; 
+      throw error;
     }
-  }, [router, fetchAndSetSupabaseUser, toast]);
+  }, [router, fetchAndSetSupabaseUser]); // Removed toast from here
 
   const logout = useCallback(async () => {
     if (BYPASS_AUTH_FOR_TESTING) {
@@ -361,3 +369,82 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Helper function (can be moved to a service or utility file if it grows)
+import { exampleProjects } from '@/lib/example-data';
+import useConceptMapStore from '@/stores/concept-map-store';
+import type { ConceptMapData } from '@/types'; // Assuming ConceptMapData is defined
+
+async function handleCopyExampleAction(
+  exampleKey: string,
+  userId: string,
+  router: ReturnType<typeof useRouter>, // Use NextRouterInstance for type
+  toast: ReturnType<typeof useToast>   // Use ToastFunction for type
+) {
+  console.log(`Handling copyExample action for key: ${exampleKey}, user: ${userId}`);
+  const exampleProject = exampleProjects.find(p => p.key === exampleKey);
+  if (!exampleProject) {
+    toast({ title: "Error", description: "Example project not found.", variant: "destructive" });
+    router.replace('/examples'); // Or some other sensible default
+    return;
+  }
+
+  try {
+    const response = await fetch(exampleProject.mapJsonPath);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch example map data: ${response.statusText}`);
+    }
+    const exampleMapData = await response.json() as ConceptMapData;
+
+    // Use a new store action or existing saveMap logic adapted for this
+    // For now, let's assume a conceptual 'createMapFromExample' or adapt saveMap
+    // This part requires careful integration with concept-map-store.ts
+
+    const { initializeNewMap, setLoadedMap, mapName: currentMapName, mapData: currentMapData, isPublic: currentIsPublic, sharedWithClassroomId: currentSharedClassroomId } = useConceptMapStore.getState();
+
+    // 1. Initialize a new map context in the store, primarily to set the ownerId correctly.
+    //    This sets `isNewMapMode = true` and `mapId = 'new'`.
+    initializeNewMap(userId);
+
+    // 2. Update the store's state with the example data.
+    const newMapName = `Copy of ${exampleProject.name}`;
+    useConceptMapStore.setState({
+      mapName: newMapName,
+      mapData: exampleMapData,
+      isPublic: false, // Default new maps to private
+      sharedWithClassroomId: null, // Not shared by default
+      // currentMapOwnerId is set by initializeNewMap
+      // isNewMapMode is true from initializeNewMap
+    });
+
+    // 3. Call the saveMap equivalent which will perform a POST request
+    //    This needs to be extracted or made callable. For now, simulate the API call structure.
+    const payload = {
+      name: newMapName,
+      ownerId: userId,
+      mapData: exampleMapData,
+      isPublic: false,
+      sharedWithClassroomId: null,
+    };
+
+    const saveResponse = await fetch('/api/concept-maps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!saveResponse.ok) {
+      const errorData = await saveResponse.json();
+      throw new Error(errorData.message || "Failed to save copied map");
+    }
+    const savedMap: ConceptMap = await saveResponse.json();
+
+    toast({ title: "Example Copied", description: `"${savedMap.name}" has been copied to your workspace.` });
+    router.replace(`/application/concept-maps/editor/${savedMap.id}`);
+
+  } catch (error) {
+    console.error("Failed to copy example map:", error);
+    toast({ title: "Copy Failed", description: (error as Error).message, variant: "destructive" });
+    router.replace('/examples'); // Fallback
+  }
+}

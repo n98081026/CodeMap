@@ -198,103 +198,155 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
   useEffect(() => {
     const effectiveUserId = BYPASS_AUTH_FOR_TESTING ? (MOCK_STUDENT_USER_V3?.id ?? null) : (user?.id ?? null);
     const currentViewOnlyQueryParam = paramsHook.viewOnly === 'true';
+    const { loadExampleMapData: storeLoadExampleMapData } = useConceptMapStore.getState();
 
-    addDebugLog(`[DataManager useEffect V10] RUNNING: RouteID='${routeMapIdFromProps}', Store(ID='${storeMapId}', isNew=${isNewMapMode}, Owner='${currentMapOwnerId}', isLoading=${isLoading}, initComp=${initialLoadComplete}, viewOnly=${isViewOnlyModeInStore}). EffectiveUser='${effectiveUserId}', URLViewOnly=${currentViewOnlyQueryParam}`);
+
+    addDebugLog(`[DataManager useEffect V13] RUNNING: RouteID='${routeMapIdFromProps}', Store(ID='${storeMapId}', isNew=${isNewMapMode}, Owner='${currentMapOwnerId}', isLoading=${isLoading}, initComp=${initialLoadComplete}, viewOnly=${isViewOnlyModeInStore}). EffectiveUser='${effectiveUserId}', URLViewOnly=${currentViewOnlyQueryParam}`);
 
     if (!routeMapIdFromProps || routeMapIdFromProps.trim() === "") {
-      addDebugLog('[DataManager useEffect V10] Guard: routeMapIdFromProps is falsy or empty. Waiting.');
+      addDebugLog('[DataManager useEffect V13] Guard: routeMapIdFromProps is falsy or empty. Waiting.');
       return;
     }
 
-    if (!effectiveUserId && !BYPASS_AUTH_FOR_TESTING) {
-      addDebugLog('[DataManager useEffect V10] Guard: User not available (and not in bypass). Aborting.');
+    // User check is only critical if NOT loading an example map via direct link (as guests can do that)
+    // and not in bypass mode.
+    if (!routeMapIdFromProps.startsWith('example-') && !effectiveUserId && !BYPASS_AUTH_FOR_TESTING) {
+      addDebugLog('[DataManager useEffect V13] Guard: User not available (not example, not bypass). Aborting.');
       setError("User not authenticated. Cannot perform map operations.");
       if (isLoading) setIsLoading(false);
-      if (!initialLoadComplete) setInitialLoadComplete(true); // Consider this state "complete" in terms of auth failure
+      if (!initialLoadComplete) setInitialLoadComplete(true);
       return;
     }
 
-    // Sync store's viewOnlyMode with URL if they differ
     if (isViewOnlyModeInStore !== currentViewOnlyQueryParam) {
-        addDebugLog(`[DataManager useEffect V10] Syncing viewOnlyMode in store. Param: ${currentViewOnlyQueryParam}, Store: ${isViewOnlyModeInStore}`);
+        addDebugLog(`[DataManager useEffect V13] Syncing viewOnlyMode in store. Param: ${currentViewOnlyQueryParam}, Store: ${isViewOnlyModeInStore}`);
         setIsViewOnlyMode(currentViewOnlyQueryParam);
-        // This state change will cause a re-run of the useEffect. Return to process with synced state.
         return;
     }
 
+    // Handle direct loading of example maps if route indicates an example
+    // and it's not already correctly loaded in the store.
+    if (routeMapIdFromProps.startsWith('example-')) {
+      const exampleKey = routeMapIdFromProps.substring('example-'.length);
+      const isExampleCorrectlyLoaded = storeMapId === routeMapIdFromProps &&
+                                      mapData.nodes.length > 0 && // Ensure it's not an empty map state
+                                      initialLoadComplete &&
+                                      isViewOnlyModeInStore; // Examples should be view-only
+
+      if (!isExampleCorrectlyLoaded) {
+        addDebugLog(`[DataManager useEffect V13] Action: Attempting to load example map '${exampleKey}' directly. Store state: (mapId: ${storeMapId}, nodes: ${mapData.nodes.length}, initComp: ${initialLoadComplete}, viewOnly: ${isViewOnlyModeInStore})`);
+        setIsLoading(true);
+        setError(null);
+        setInitialLoadComplete(false);
+
+        // Dynamically import exampleProjects to avoid circular dependency if this hook is used by example-data itself.
+        // This is a common pattern for such cases.
+        import('@/lib/example-data').then(module => {
+          const exampleProject = module.exampleProjects.find(p => p.key === exampleKey);
+          if (exampleProject) {
+            fetch(exampleProject.mapJsonPath)
+              .then(response => {
+                if (!response.ok) throw new Error(`Failed to fetch example: ${response.statusText}`);
+                return response.json();
+              })
+              .then(exampleMapData => {
+                storeLoadExampleMapData(exampleMapData, exampleProject.name); // This sets viewOnly=true internally
+                addDebugLog(`[DataManager useEffect V13] Example map '${exampleKey}' loaded directly.`);
+              })
+              .catch(err => {
+                addDebugLog(`[DataManager useEffect V13] Error loading example map '${exampleKey}' directly: ${err.message}`);
+                setError(`Failed to load example: ${err.message}`);
+                toast({ title: "Error Loading Example", description: `Could not load example '${exampleKey}'.`, variant: "destructive" });
+              })
+              .finally(() => {
+                setIsLoading(false);
+                setInitialLoadComplete(true);
+              });
+          } else {
+            addDebugLog(`[DataManager useEffect V13] Example project with key '${exampleKey}' not found.`);
+            setError(`Example '${exampleKey}' not found.`);
+            toast({ title: "Error", description: `Example '${exampleKey}' does not exist.`, variant: "destructive" });
+            setIsLoading(false);
+            setInitialLoadComplete(true);
+          }
+        }).catch(err => {
+            addDebugLog(`[DataManager useEffect V13] Error importing example-data: ${err.message}`);
+            setError(`Failed to load example list: ${err.message}`);
+            setIsLoading(false);
+            setInitialLoadComplete(true);
+        });
+      } else {
+        addDebugLog(`[DataManager useEffect V13] Info: Example map '${exampleKey}' already correctly loaded in store.`);
+        if (isLoading) setIsLoading(false); // Ensure loading is false
+      }
+      return; // Handled example map loading
+    }
+
+
     if (routeMapIdFromProps === 'new') {
+      // This requires an authenticated user (or bypass)
+      if (!effectiveUserId) {
+         addDebugLog('[DataManager useEffect V13] Guard: Attempt to create new map without user. Aborting.');
+         setError("User not authenticated. Cannot create new map.");
+         if (isLoading) setIsLoading(false);
+         if (!initialLoadComplete) setInitialLoadComplete(true);
+         return;
+      }
       const storeIsAlreadyCorrectForNewMap = 
-        isNewMapMode && 
-        storeMapId === 'new' && 
-        currentMapOwnerId === effectiveUserId &&
-        initialLoadComplete; // Ensure init has actually finished
+        isNewMapMode && storeMapId === 'new' && currentMapOwnerId === effectiveUserId && initialLoadComplete;
 
       if (!storeIsAlreadyCorrectForNewMap) {
-        addDebugLog(`[DataManager useEffect V10] Action: Initializing NEW map for user '${effectiveUserId}'. Store state: (mapId: ${storeMapId}, isNew: ${isNewMapMode}, owner: ${currentMapOwnerId}, initComp: ${initialLoadComplete})`);
-        addDebugLog(`[DataManager useEffect V11] Route is 'new'. Initializing new map for user '${effectiveUserId}'.`);
-        initializeNewMap(effectiveUserId); // This sets initialLoadComplete = true & isLoading = false
+        addDebugLog(`[DataManager useEffect V13] Action: Initializing NEW map for user '${effectiveUserId}'.`);
+        initializeNewMap(effectiveUserId);
         useConceptMapStore.temporal.getState().clear();
       } else {
-        addDebugLog(`[DataManager useEffect V10] Info: Store already correct for new map by user '${effectiveUserId}'. (initComp: ${initialLoadComplete})`);
-        if (isLoading) {
-           addDebugLog('[DataManager useEffect V10] Cleanup: New map correct, but isLoading=true. Setting isLoading=false.');
-           setIsLoading(false); // Ensure loading is false if state is already correct
-        }
+        addDebugLog(`[DataManager useEffect V13] Info: Store already correct for new map by user '${effectiveUserId}'.`);
+        if (isLoading) setIsLoading(false);
       }
       return;
     }
 
-    if (routeMapIdFromProps && routeMapIdFromProps !== 'new') {
+    // Handle loading existing, non-example maps
+    if (routeMapIdFromProps && !routeMapIdFromProps.startsWith('example-') && routeMapIdFromProps !== 'new') {
+       if (!effectiveUserId) { // Should have been caught earlier, but double check
+         addDebugLog('[DataManager useEffect V13] Guard: Attempt to load existing map without user. Aborting.');
+         setError("User not authenticated. Cannot load map.");
+         if (isLoading) setIsLoading(false);
+         if (!initialLoadComplete) setInitialLoadComplete(true);
+         return;
+      }
       const isCorrectMapIdInStore = storeMapId === routeMapIdFromProps;
-      // Check if the store believes a load for *some* map has finished, and it's not in new map mode, and not currently loading.
       const isStoreInPotentiallyValidLoadedState = !isNewMapMode && initialLoadComplete && !isLoading;
-
       let shouldLoad = false;
 
       if (!isCorrectMapIdInStore || isNewMapMode || isLoading || !initialLoadComplete) {
-        // This covers cases:
-        // 1. Wrong mapId in store.
-        // 2. Store is in new map mode (but route is for existing).
-        // 3. Store is actively loading something else.
-        // 4. No load has ever completed for the store.
         shouldLoad = true;
-        addDebugLog(`[DataManager useEffect V12] Condition Met: Basic criteria for load (wrong ID, new mode, loading, or no initial load). isCorrectMapIdInStore: ${isCorrectMapIdInStore}, isNewMapMode: ${isNewMapMode}, isLoading: ${isLoading}, initialLoadComplete: ${initialLoadComplete}`);
-      } else if (isCorrectMapIdInStore && isStoreInPotentiallyValidLoadedState && mapData.nodes.length === 0) {
-        // Store has the correct map ID, and a load completed, and it's not loading,
-        // BUT there are no nodes. This implies the completed load might have been for an empty map (or data loss).
-        // Force a reload attempt to be sure, especially if user navigates to this map.
+        addDebugLog(`[DataManager useEffect V13] Condition Met for load (existing map): Basic criteria (wrong ID, new mode, loading, or no initial load).`);
+      } else if (isCorrectMapIdInStore && isStoreInPotentiallyValidLoadedState && mapData.nodes.length === 0 && !routeMapIdFromProps.startsWith('example-')) {
+        // Only force reload for non-empty maps if it's not an example (examples might legitimately be empty if file is bad)
         shouldLoad = true;
-        addDebugLog(`[DataManager useEffect V12] Condition Met: Correct mapId (${routeMapIdFromProps}) in store, load completed, but no nodes. Forcing reload.`);
+        addDebugLog(`[DataManager useEffect V13] Condition Met for load (existing map): Correct mapId, load completed, but no nodes. Forcing reload.`);
       }
 
-      addDebugLog(`[DataManager useEffect V12] Existing Map Evaluation: RouteID='${routeMapIdFromProps}'. mapData.nodes.length: ${mapData.nodes?.length ?? 'N/A'}. Calculated shouldLoad: ${shouldLoad}`);
-
+      addDebugLog(`[DataManager useEffect V13] Existing Map Evaluation: RouteID='${routeMapIdFromProps}'. Calculated shouldLoad: ${shouldLoad}`);
       if (shouldLoad) {
-        addDebugLog(`[DataManager useEffect V12] Action: Loading existing map '${routeMapIdFromProps}'. TargetViewOnly: ${isViewOnlyModeInStore}`);
-        // Ensure we set isLoading to true before calling loadMapDataInternal,
-        // as loadMapDataInternal itself will also set it, but this makes the state transition clearer.
-        // However, loadMapDataInternal sets isLoading(true) as its first step, so this might be redundant
-        // and could cause an extra re-render if not needed. Let's rely on loadMapDataInternal to set it.
+        addDebugLog(`[DataManager useEffect V13] Action: Loading existing map '${routeMapIdFromProps}'. TargetViewOnly: ${isViewOnlyModeInStore}`);
         loadMapDataInternalRef.current(routeMapIdFromProps, isViewOnlyModeInStore);
       } else {
-        addDebugLog(`[DataManager useEffect V12] Info: Map ID '${routeMapIdFromProps}' considered loaded and not requiring re-fetch.`);
-        // Ensure isLoading is false if we are not loading and it somehow got stuck true from a previous cycle.
-        if (isLoading) {
-          addDebugLog('[DataManager useEffect V12] Cleanup: Map considered loaded, not re-fetching, but isLoading was true. Setting isLoading=false.');
-          setIsLoading(false);
-        }
+        addDebugLog(`[DataManager useEffect V13] Info: Map ID '${routeMapIdFromProps}' considered loaded and not requiring re-fetch.`);
+        if (isLoading) setIsLoading(false);
       }
       return;
     }
 
     if (!routeMapIdFromProps && isLoading) {
-        addDebugLog('[DataManager useEffect V10] Fallback: routeMapIdFromProps is empty, ensuring isLoading is false.');
+        addDebugLog('[DataManager useEffect V13] Fallback: routeMapIdFromProps is empty, ensuring isLoading is false.');
         setIsLoading(false);
     }
 
   }, [
-    routeMapIdFromProps, user, storeMapId, isNewMapMode, currentMapOwnerId, isLoading, initialLoadComplete, isViewOnlyModeInStore, // Core state dependencies
-    initializeNewMap, setIsLoading, setError, addDebugLog, setInitialLoadComplete, setIsViewOnlyMode, paramsHook.viewOnly // Actions and query param for viewOnly sync
+    routeMapIdFromProps, user, storeMapId, isNewMapMode, currentMapOwnerId, isLoading, initialLoadComplete, isViewOnlyModeInStore, mapData.nodes.length, // Added mapData.nodes.length
+    initializeNewMap, setIsLoading, setError, addDebugLog, setInitialLoadComplete, setIsViewOnlyMode, paramsHook.viewOnly, toast, storeLoadExampleMapData // Added toast and storeLoadExampleMapData
   ]);
 
   const saveMap = useCallback(async (isViewOnlyParam: boolean) => {
