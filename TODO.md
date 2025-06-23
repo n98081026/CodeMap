@@ -470,3 +470,55 @@ The main remaining area for full Supabase connection is:
         - [ ] **Component Tests:** Use React Testing Library to test individual UI components, especially those with complex interactions or state.
         - [ ] **Integration Tests for AI Flows:** (Requires Genkit testing utilities or mocking strategies) Test individual Genkit flows with mock inputs and validate their output structure and key content.
         - [ ] **E2E Tests:** Plan and (manually or with tools like Playwright/Cypress) implement E2E tests for key user journeys (e.g., registration, project upload & analysis, core map interactions, AI tool usage).
+
+# TODO - CodeMap 專案
+
+## 已完成 (Guest Mode - Phase 1)
+
+- [x] **設計 Guest Mode 範疇 (Phase 1)**
+    - [x] 客戶可以唯讀模式檢視範例。
+    - [x] 編輯、儲存和用戶特定功能被禁用。
+    - [x] 顯示登入/註冊的 CTA。
+- [x] **更新身份驗證和路由邏輯**
+    - [x] 修改登陸頁面 (`src/app/page.tsx`) 以服務訪客內容。
+    - [x] 修改 `src/app/(app)/layout.tsx` 以允許訪客存取 `/examples` 和範例地圖編輯器頁面 (`/concept-maps/editor/example-...?viewOnly=true`)。
+    - [x] 保護其他應用程式路由。
+- [x] **修改概念地圖編輯器以支援訪客唯讀模式**
+    - [x] 更新 `useConceptMapDataManager` 以正確處理範例地圖的載入（不透過 API 呼叫使用者地圖）。
+    - [x] 確保 `useConceptMapAITools` 和 `EditorToolbar` 中的 AI 工具和編輯功能在 `isViewOnlyMode` 為 true 時被禁用。
+- [x] **實作訪客進入點和 CTA**
+    - [x] 在 `/examples` 頁面為訪客新增 CTA橫幅。
+    - [x] 在編輯器頁面為檢視範例的訪客新增 CTA橫幅。
+- [x] **測試 (手動演練)**
+    - [x] 驗證訪客可以存取登陸頁面、範例頁面和唯讀範例地圖。
+    - [x] 確認 CTA 對訪客可見。
+    - [x] 確認訪客無法存取受保護的路由（被重定向到登入頁面）。
+    - [x] 確認已驗證的使用者具有正常的應用程式存取權限，並且看不到訪客 CTA。
+- [x] **提交變更**
+    - [x] 將所有 Guest Mode Phase 1 的變更提交到 `feat/guest-mode-phase-1` 分支。
+
+## 下一步 (建議)
+
+### Guest Mode - Phase 2 (潛在功能)
+
+- [ ] **允許訪客「複製範例到工作區」：**
+    - [ ] 當訪客在唯讀模式下檢視範例時，提供一個按鈕「複製到我的工作區」或「開始編輯此範例」。
+    - [ ] 點擊此按鈕會將他們重定向到登入/註冊頁面。
+    - [ ] 成功登入/註冊後，將範例地圖的副本複製到他們帳戶中，並以編輯模式開啟。
+    - [ ] 這需要後端 API 來處理地圖複製。
+- [ ] **更流暢的範例直接連結處理：**
+    - [ ] 如果訪客直接進入範例地圖 URL (`/concept-maps/editor/example-XYZ?viewOnly=true`) 但該範例資料尚未在 Zustand store 中（例如，透過直接連結或重新整理），考慮自動從 `/public/example-maps/` 的 JSON 檔案中抓取範例資料，而不是僅顯示錯誤並要求他們從範例庫導航。
+    - [ ] 這將使分享範例連結更加順暢。
+- [ ] **UI/UX 細化：**
+    - [ ] 檢閱所有訪客可見頁面上的導覽列/側邊欄，確保對訪客隱藏或禁用不相關的連結（例如「儀表板」、「設定」等）。目前 `AppLayout` 的重定向處理了大部分情況，但明確的 UI 調整可能更好。
+    - [ ] 在唯讀模式下，為已禁用的按鈕提供更一致的工具提示，明確說明為何禁用（例如「登入以使用此功能」）。
+
+### 其他潛在改進
+
+- [ ] **測試覆蓋率：**
+    - [ ] 為新的訪客模式邏輯和相關元件編寫自動化測試 (Vitest)。
+    - [ ] 特別是測試 `AppLayout` 中的路由邏輯和 `useConceptMapDataManager` 中範例地圖的處理。
+- [ ] **錯誤處理與日誌記錄：**
+    - [ ] 增強 `useConceptMapDataManager` 中範例地圖載入失敗時的錯誤處理/日誌記錄。
+- [ ] **安全性檢閱：**
+    - [ ] 對訪客模式進行一次快速的安全性檢閱，確保沒有意外的資料洩漏或功能存取。
