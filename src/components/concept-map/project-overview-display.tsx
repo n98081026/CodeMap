@@ -20,31 +20,54 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
   overviewData,
   isLoading,
 }) => {
-  const { setFocusOnNodes, mapData } = useConceptMapStore(s => ({
+  const { setFocusOnNodes, mapData, addDebugLog } = useConceptMapStore(s => ({ // Added addDebugLog
     setFocusOnNodes: s.setFocusOnNodes,
     mapData: s.mapData,
+    addDebugLog: s.addDebugLog, // Get addDebugLog from store
   }));
 
   const handleModuleCardClick = (module: KeyModule) => {
     if (!module.filePaths || module.filePaths.length === 0) {
-      console.warn("Module has no filePaths to focus on:", module.name);
-      // Optionally, show a toast to the user
+      addDebugLog(`[ProjectOverviewDisplay] Module '${module.name}' clicked, but it has no filePaths.`);
+      // No specific nodes to focus on, but still exit overview mode to show the full map.
+      setFocusOnNodes([], true);
       return;
     }
 
     const allNodes = mapData.nodes;
-    // Assumption: Node IDs are the file paths, or nodes have a data.filePath property
-    // For now, let's assume node.id is the filePath for simplicity of this step.
-    // This might need adjustment based on actual node generation strategy.
+    const moduleFilePathsSet = new Set(module.filePaths.map(fp => fp.trim())); // Trim and use Set for efficiency
+
+    addDebugLog(`[ProjectOverviewDisplay] Module '${module.name}' clicked. File paths to match: [${module.filePaths.join(', ')}]`);
+
     const matchingNodeIds = allNodes
-      .filter(node => module.filePaths.includes(node.id) || (node.data?.filePath && module.filePaths.includes(node.data.filePath)))
+      .filter(node => {
+        // Prioritize node.text as it's commonly used for file paths in file-type nodes.
+        // Also check node.data?.filePath as a fallback.
+        // Normalize by trimming. Consider more robust path normalization if needed.
+        const nodePath1 = typeof node.text === 'string' ? node.text.trim() : null;
+        const nodePath2 = typeof node.data?.filePath === 'string' ? node.data.filePath.trim() : null;
+
+        let matched = false;
+        if (nodePath1 && moduleFilePathsSet.has(nodePath1)) {
+          matched = true;
+        } else if (nodePath2 && moduleFilePathsSet.has(nodePath2)) {
+          matched = true;
+        }
+        // For debugging individual node checks:
+        // if (nodePath1 || nodePath2) {
+        //   addDebugLog(`  Checking node ID ${node.id}, text: '${nodePath1}', data.filePath: '${nodePath2}'. Matched: ${matched}`);
+        // }
+        return matched;
+      })
       .map(node => node.id);
 
     if (matchingNodeIds.length > 0) {
+      addDebugLog(`[ProjectOverviewDisplay] Focusing on ${matchingNodeIds.length} nodes for module '${module.name}'. Node IDs: [${matchingNodeIds.join(', ')}]`);
       setFocusOnNodes(matchingNodeIds, true); // true for isOverviewExit
     } else {
-      console.warn("No matching nodes found for module:", module.name, "File paths:", module.filePaths);
-      // Optionally, show a toast: "No specific nodes found for this module in the current map."
+      addDebugLog(`[ProjectOverviewDisplay] No matching nodes found for module '${module.name}'. Looked for paths: [${module.filePaths.join(', ')}]. Exiting overview to full map.`);
+      // Fallback: Exit overview mode to show the full map if no specific nodes found.
+      setFocusOnNodes([], true);
     }
   };
 
