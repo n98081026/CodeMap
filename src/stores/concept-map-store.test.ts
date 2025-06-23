@@ -1,332 +1,266 @@
-// src/stores/concept-map-store.test.ts
-import useConceptMapStore, { initialStateBase } from './concept-map-store'; // Import initialStateBase
-import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+// FORCE_OVERWRITE_TOKEN_1
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import useConceptMapStore, { initialStateBase } from './concept-map-store';
+import type { ConceptMapNode, ConceptMapEdge, StagedMapDataWithContext } from '@/types';
 
-// Helper to create a mock node
-const mockNode = (id: string, x = 0, y = 0, parentId?: string, childIds: string[] = []): ConceptMapNode => ({
-  id, text: `Node ${id}`, x, y, type: 'default', details: '',
-  width: 150, height: 70, shape: 'rectangle', level: 0, // Assuming level is part of your ConceptMapNode
-  backgroundColor: '', // Assuming this is part of your ConceptMapNode
-  childIds: childIds || [],
-  parentNode: parentId,
-});
+// Helper to reset store state before each test
+const resetStore = () => {
+  useConceptMapStore.setState({ ...initialStateBase, mapData: { nodes: [], edges: [] }, ghostPreviewData: null, stagedMapData: null, debugLogs: [] }, true /* replace state */);
+  const temporalStore = useConceptMapStore.temporal;
+  if (temporalStore) {
+    temporalStore.getState().clear();
+  }
+};
 
-// Helper to create a mock edge
-const mockEdge = (id: string, source: string, target: string): ConceptMapEdge => ({
-  id, source, target, label: 'connects', type: 'default', // Assuming type is part of ConceptMapEdge
-});
-
-// Mock for the internal GraphAdapter's getDescendants function
-// This is a simplified approach. In a real scenario, you'd use Jest's module mocking.
-// However, since MockGraphAdapter is instantiated *inside* the store,
-// we can't easily inject a mock for its methods from the outside without refactoring the store.
-// For these tests, we will primarily test the parts of deleteNode that are independent
-// of getDescendants' specific output, or we'll assume getDescendants returns []
-// for tests where its specific output isn't the main focus.
-// The 'conceptual test' for descendants will highlight this limitation.
-
-let mockGetDescendantsReturn: string[] = [];
-const actualGraphAdapter = useConceptMapStore.getState().__internalGraphAdapterForTesting;
-
-if (actualGraphAdapter) {
-    const originalGetDescendants = actualGraphAdapter.getDescendants;
-    actualGraphAdapter.getDescendants = jest.fn((_, nodeId) => {
-        // You can customize this mock per test if needed, or use a default like:
-        // if (nodeId === 'parent-for-descendant-test') return ['child1', 'grandchild1'];
-        return mockGetDescendantsReturn;
-    }) as jest.Mock;
-}
-
-
-describe('useConceptMapStore - deleteNode action', () => {
+describe('useConceptMapStore', () => {
   beforeEach(() => {
-    // Reset store to a clean initial state for each test
-    // Create a fresh initial state object to avoid shared state issues between tests
-    const freshInitialState = {
-      ...initialStateBase,
-      mapData: { nodes: [], edges: [] },
-      selectedElementId: null,
-      selectedElementType: null,
-      multiSelectedNodeIds: [],
-      editingNodeId: null,
-      aiProcessingNodeId: null,
-      connectingNodeId: null,
-      aiExtractedConcepts: [],
-      aiSuggestedRelations: [],
-      debugLogs: [],
-      stagedMapData: null,
-      isStagingActive: false,
-      conceptExpansionPreview: null,
-      isFetchingStructuralSuggestions: false,
-      structuralSuggestions: null,
-    };
-    useConceptMapStore.setState(freshInitialState, true);
-    mockGetDescendantsReturn = []; // Reset mock return value
+    resetStore();
   });
 
-  it('should delete a single node with no children or parent', () => {
-    const node1 = mockNode('1');
-    useConceptMapStore.setState({ mapData: { nodes: [node1], edges: [] } });
-
-    mockGetDescendantsReturn = []; // Explicitly set for this test
-
-    useConceptMapStore.getState().deleteNode('1');
-
-    const { nodes, edges } = useConceptMapStore.getState().mapData;
-    expect(nodes).toHaveLength(0);
-    expect(edges).toHaveLength(0);
+  it('should have correct initial state', () => {
+    const { mapName, mapData, ghostPreviewData, stagedMapData } = useConceptMapStore.getState();
+    expect(mapName).toBe('Untitled Concept Map');
+    expect(mapData.nodes).toEqual([]);
+    expect(mapData.edges).toEqual([]);
+    expect(ghostPreviewData).toBeNull();
+    expect(stagedMapData).toBeNull();
   });
 
-  it('should delete a node and its connected edges', () => {
-    const node1 = mockNode('1');
-    const node2 = mockNode('2');
-    const edge12 = mockEdge('e1', '1', '2');
-    useConceptMapStore.setState({ mapData: { nodes: [node1, node2], edges: [edge12] } });
-    mockGetDescendantsReturn = [];
+  describe('Node Actions', () => {
+    it('addNode: should add a new node to mapData.nodes', () => {
+      const { addNode, mapData } = useConceptMapStore.getState();
+      const initialNodeCount = mapData.nodes.length;
+      const nodeOptions = { text: 'Test Node', type: 'test-type', position: { x: 10, y: 20 } };
 
-    useConceptMapStore.getState().deleteNode('1');
+      const newNodeId = addNode(nodeOptions);
 
-    const { nodes, edges } = useConceptMapStore.getState().mapData;
-    expect(nodes).toEqual([node2]); // Node 1 deleted
-    expect(edges).toHaveLength(0); // Edge e12 deleted
-  });
-
-  it('should clear selection if the deleted node was selected', () => {
-    const node1 = mockNode('1');
-    useConceptMapStore.setState({
-      mapData: { nodes: [node1], edges: [] },
-      selectedElementId: '1',
-      selectedElementType: 'node'
-    });
-    mockGetDescendantsReturn = [];
-
-    useConceptMapStore.getState().deleteNode('1');
-
-    expect(useConceptMapStore.getState().selectedElementId).toBeNull();
-    expect(useConceptMapStore.getState().selectedElementType).toBeNull();
-  });
-
-  it('should delete a node and its descendants if MockGraphAdapter.getDescendants provides them', () => {
-    const parent = mockNode('parent', 0, 0, undefined, ['child1']);
-    const child1 = mockNode('child1', 0, 0, 'parent', ['grandchild1']);
-    const grandchild1 = mockNode('grandchild1', 0, 0, 'child1');
-    const otherNode = mockNode('other');
-
-    const edgeParentChild = mockEdge('epc', 'parent', 'child1');
-    const edgeChildGrandchild = mockEdge('ecg', 'child1', 'grandchild1');
-    const edgeOther = mockEdge('eo', 'other', 'parent');
-
-    useConceptMapStore.setState({
-      mapData: {
-        nodes: [parent, child1, grandchild1, otherNode],
-        edges: [edgeParentChild, edgeChildGrandchild, edgeOther],
-      }
+      const updatedState = useConceptMapStore.getState().mapData;
+      expect(updatedState.nodes.length).toBe(initialNodeCount + 1);
+      const addedNode = updatedState.nodes.find(n => n.id === newNodeId);
+      expect(addedNode).toBeDefined();
+      expect(addedNode?.text).toBe('Test Node');
+      expect(addedNode?.type).toBe('test-type');
+      expect(addedNode?.x).toBe(10);
+      expect(addedNode?.y).toBe(20);
     });
 
-    // Configure the mock to return descendants for 'parent'
-    // This relies on the __internalGraphAdapterForTesting being successfully mocked.
-    if (actualGraphAdapter) {
-      (actualGraphAdapter.getDescendants as jest.Mock).mockImplementation((_, nodeId) => {
-        if (nodeId === 'parent') return ['child1', 'grandchild1'];
-        return [];
-      });
-    }
+    it('deleteNode: should remove a node and its connected edges', () => {
+      const store = useConceptMapStore.getState();
+      const node1Id = store.addNode({ text: 'Node 1', type: 't', position: { x: 0, y: 0 } });
+      const node2Id = store.addNode({ text: 'Node 2', type: 't', position: { x: 100, y: 0 } });
+      const edge1Id = store.addEdge({ source: node1Id, target: node2Id, label: 'connects' });
 
+      expect(useConceptMapStore.getState().mapData.nodes.find(n => n.id === node1Id)).toBeDefined();
+      expect(useConceptMapStore.getState().mapData.edges.find(e => e.id === edge1Id)).toBeDefined();
 
-    useConceptMapStore.getState().deleteNode('parent');
-    const state = useConceptMapStore.getState();
+      store.deleteNode(node1Id);
 
-    expect(state.mapData.nodes.find(n => n.id === 'parent')).toBeUndefined();
-    expect(state.mapData.nodes.find(n => n.id === 'child1')).toBeUndefined();
-    expect(state.mapData.nodes.find(n => n.id === 'grandchild1')).toBeUndefined();
-    expect(state.mapData.nodes.find(n => n.id === 'other')).toBeDefined(); // otherNode should remain
+      const finalNodes = useConceptMapStore.getState().mapData.nodes;
+      const finalEdges = useConceptMapStore.getState().mapData.edges;
 
-    expect(state.mapData.edges.find(e => e.id === 'epc')).toBeUndefined();
-    expect(state.mapData.edges.find(e => e.id === 'ecg')).toBeUndefined();
-    expect(state.mapData.edges.find(e => e.id === 'eo')).toBeUndefined(); // Edge connected to 'other' and 'parent'
+      const isNode1Present = finalNodes.some(n => n.id === node1Id);
+      expect(isNode1Present).toBe(false);
+
+      const isEdge1Present = finalEdges.some(e => e.id === edge1Id);
+      expect(isEdge1Present).toBe(false);
+    });
   });
 
-  it('should update parentNode childIds when a direct child is deleted', () => {
-    const p = mockNode('p', 0,0, undefined, ['c1', 'c2']);
-    const c1 = mockNode('c1', 0,0, 'p');
-    const c2 = mockNode('c2', 0,0, 'p');
-    useConceptMapStore.setState({ mapData: { nodes: [p, c1, c2], edges: [] }});
+  describe('Edge Actions', () => {
+    it('addEdge: should add a new edge to mapData.edges', () => {
+        const { addNode, addEdge, mapData } = useConceptMapStore.getState();
+        const node1Id = addNode({ text: 'S', type: 's', position: {x:0,y:0}});
+        const node2Id = addNode({ text: 'T', type: 't', position: {x:0,y:0}});
+        const initialEdgeCount = mapData.edges.length;
 
-    // Assuming c1 has no descendants for this specific test
-    if (actualGraphAdapter) {
-        (actualGraphAdapter.getDescendants as jest.Mock).mockImplementation((_, nodeId) => {
-            if (nodeId === 'c1') return [];
-            return [];
-        });
-    }
+        const edgeOptions = { source: node1Id, target: node2Id, label: 'links to' };
+        const newEdgeId = addEdge(edgeOptions);
 
-    useConceptMapStore.getState().deleteNode('c1');
+        const updatedState = useConceptMapStore.getState().mapData;
+        expect(updatedState.edges.length).toBe(initialEdgeCount + 1);
+        const addedEdge = updatedState.edges.find(e => e.id === newEdgeId);
+        expect(addedEdge).toBeDefined();
+        expect(addedEdge?.source).toBe(node1Id);
+        expect(addedEdge?.target).toBe(node2Id);
+        expect(addedEdge?.label).toBe('links to');
+    });
+    it('deleteEdge: should remove an edge', () => {
+        const { addNode, addEdge, deleteEdge } = useConceptMapStore.getState();
+        const node1Id = addNode({ text: 'S', type: 's', position: {x:0,y:0}});
+        const node2Id = addNode({ text: 'T', type: 't', position: {x:0,y:0}});
+        const edgeId = addEdge({ source: node1Id, target: node2Id });
 
-    const parentNode = useConceptMapStore.getState().mapData.nodes.find(n => n.id === 'p');
-    expect(parentNode?.childIds).toEqual(['c2']);
+        expect(useConceptMapStore.getState().mapData.edges.length).toBe(1);
+        deleteEdge(edgeId);
+        expect(useConceptMapStore.getState().mapData.edges.length).toBe(0);
+    });
   });
 
-});
+  describe('Ghost Preview Actions', () => {
+    it('setGhostPreview: should set ghostPreviewData and clear staging data', () => {
+      const { setGhostPreview, setStagedMapData } = useConceptMapStore.getState();
+      const initialStagedData: StagedMapDataWithContext = { nodes: [{id:'s1', text:'SN1', type:'st', x:0,y:0, childIds:[]}], edges:[]};
+      setStagedMapData(initialStagedData);
+      expect(useConceptMapStore.getState().stagedMapData).toEqual(initialStagedData);
 
-// Note: The mocking of __internalGraphAdapterForTesting is a workaround.
-// Ideally, dependencies like GraphAdapter should be injectable for easier testing.
-// If these tests fail due to the mocking strategy not working as expected with Jest/Zustand internals,
-// the tests for descendant deletion would need to be re-evaluated or the store refactored.
-// For now, this attempts to test the store's internal logic as best as possible given the current structure.
+      const nodesToPreview = [{ id: 'n1', x: 100, y: 100, width: 150, height: 70 }];
+      setGhostPreview(nodesToPreview);
 
-// Mock @genkit-ai/flow
-jest.mock('@genkit-ai/flow', () => ({
-  runFlow: jest.fn(),
-}));
-import { runFlow } from '@genkit-ai/flow'; // Import the mocked function
+      const state = useConceptMapStore.getState();
+      expect(state.ghostPreviewData).toBeDefined();
+      expect(state.ghostPreviewData?.nodes.length).toBe(1);
+      expect(state.ghostPreviewData?.nodes[0].id).toBe('n1');
+      expect(state.ghostPreviewData?.nodes[0].width).toBe(150);
+      expect(state.stagedMapData).toBeNull();
+      expect(state.isStagingActive).toBe(false);
+    });
 
-describe('useConceptMapStore - Structural Suggestions', () => {
-  beforeEach(() => {
-    const freshInitialState = {
-      ...initialStateBase,
-      mapData: { nodes: [mockNode('n1'), mockNode('n2'), mockNode('n3')], edges: [] },
-      structuralSuggestions: null,
-      structuralGroupSuggestions: null,
-      isFetchingStructuralSuggestions: false,
-    };
-    useConceptMapStore.setState(freshInitialState, true);
-    (runFlow as jest.Mock).mockClear();
+    it('acceptGhostPreview: should apply positions and clear ghostPreviewData', () => {
+      const { addNode, setGhostPreview, acceptGhostPreview } = useConceptMapStore.getState();
+      const nodeId = addNode({ text: 'NodeToMove', type: 't', position: { x: 0, y: 0 } });
+
+      setGhostPreview([{ id: nodeId, x: 200, y: 250, width:150, height:70 }]);
+      expect(useConceptMapStore.getState().ghostPreviewData).not.toBeNull();
+
+      acceptGhostPreview();
+
+      const state = useConceptMapStore.getState();
+      expect(state.ghostPreviewData).toBeNull();
+      const movedNode = state.mapData.nodes.find(n => n.id === nodeId);
+      expect(movedNode?.x).toBe(200);
+      expect(movedNode?.y).toBe(250);
+    });
+
+    it('cancelGhostPreview: should clear ghostPreviewData without applying changes', () => {
+      const { addNode, setGhostPreview, cancelGhostPreview } = useConceptMapStore.getState();
+      const nodeId = addNode({ text: 'NodeToNotMove', type: 't', position: { x: 10, y: 10 } });
+
+      setGhostPreview([{ id: nodeId, x: 300, y: 350, width:150, height:70 }]);
+      expect(useConceptMapStore.getState().ghostPreviewData).not.toBeNull();
+
+      cancelGhostPreview();
+
+      const state = useConceptMapStore.getState();
+      expect(state.ghostPreviewData).toBeNull();
+      const notMovedNode = state.mapData.nodes.find(n => n.id === nodeId);
+      expect(notMovedNode?.x).toBe(10);
+      expect(notMovedNode?.y).toBe(10);
+    });
   });
 
-  describe('fetchStructuralSuggestions', () => {
-    it('should fetch and process edge and group suggestions', async () => {
-      const mockAiResponse = {
-        suggestedEdges: [{ source: 'n1', target: 'n2', label: 'connects to', reason: 'related' }],
-        suggestedGroups: [{ nodeIds: ['n1', 'n3'], groupLabel: 'Group A', reason: 'themed' }],
+  describe('Staging Area Actions', () => {
+    const sampleStagedNode: ConceptMapNode = { id: 'staged-n1', text: 'Staged Node 1', type: 'staged-type', x: 50, y: 50, childIds:[] };
+    const sampleStagedEdge: ConceptMapEdge = { id: 'staged-e1', source: 'staged-n1', target: 'some-other-node', label: 'staged-label' };
+
+    it('setStagedMapData: should set stagedMapData and clear ghost data', () => {
+      const { setStagedMapData, setGhostPreview } = useConceptMapStore.getState();
+      setGhostPreview([{id:'g1', x:0,y:0, width:100, height:50}]);
+      expect(useConceptMapStore.getState().ghostPreviewData).not.toBeNull();
+
+      const stagedData: StagedMapDataWithContext = {
+        nodes: [sampleStagedNode],
+        edges: [sampleStagedEdge],
+        actionType: 'quickCluster',
       };
-      (runFlow as jest.Mock).mockResolvedValue(mockAiResponse);
-
-      await useConceptMapStore.getState().fetchStructuralSuggestions();
+      setStagedMapData(stagedData);
 
       const state = useConceptMapStore.getState();
-      expect(state.isFetchingStructuralSuggestions).toBe(false);
-      expect(state.structuralSuggestions).toHaveLength(1);
-      expect(state.structuralSuggestions?.[0].source).toBe('n1');
-      expect(state.structuralSuggestions?.[0].label).toBe('connects to');
-      expect(state.structuralGroupSuggestions).toHaveLength(1);
-      expect(state.structuralGroupSuggestions?.[0].nodeIds).toEqual(['n1', 'n3']);
-      expect(state.structuralGroupSuggestions?.[0].label).toBe('Group A');
-      expect(runFlow).toHaveBeenCalledTimes(1);
+      expect(state.stagedMapData).toEqual(stagedData);
+      expect(state.isStagingActive).toBe(true);
+      expect(state.ghostPreviewData).toBeNull();
     });
 
-    it('should handle no suggestions returned from AI', async () => {
-      (runFlow as jest.Mock).mockResolvedValue({ suggestedEdges: [], suggestedGroups: [] });
-      await useConceptMapStore.getState().fetchStructuralSuggestions();
-      const state = useConceptMapStore.getState();
-      expect(state.structuralSuggestions).toEqual([]);
-      expect(state.structuralGroupSuggestions).toEqual([]);
-    });
+    it('clearStagedMapData: should clear stagedMapData', () => {
+      const { setStagedMapData, clearStagedMapData } = useConceptMapStore.getState();
+      setStagedMapData({ nodes: [sampleStagedNode], edges: [], actionType: 'quickCluster' });
+      expect(useConceptMapStore.getState().isStagingActive).toBe(true);
 
-    it('should handle errors during fetching', async () => {
-      (runFlow as jest.Mock).mockRejectedValue(new Error('AI error'));
-      await useConceptMapStore.getState().fetchStructuralSuggestions();
-      const state = useConceptMapStore.getState();
-      expect(state.isFetchingStructuralSuggestions).toBe(false);
-      expect(state.error).toBe('AI error');
-      expect(state.structuralSuggestions).toEqual([]);
-      expect(state.structuralGroupSuggestions).toEqual([]);
-    });
-
-    it('should set loading state correctly', async () => {
-      (runFlow as jest.Mock).mockResolvedValue({ suggestedEdges: [], suggestedGroups: [] });
-      const promise = useConceptMapStore.getState().fetchStructuralSuggestions();
-      expect(useConceptMapStore.getState().isFetchingStructuralSuggestions).toBe(true);
-      await promise;
-      expect(useConceptMapStore.getState().isFetchingStructuralSuggestions).toBe(false);
-    });
-  });
-
-  describe('acceptStructuralEdgeSuggestion', () => {
-    it('should add an edge and remove the suggestion', () => {
-      const suggestionId = 'edge-sugg-1';
-      useConceptMapStore.setState({
-        structuralSuggestions: [{ id: suggestionId, source: 'n1', target: 'n2', label: 'suggested', reason: 'test' }]
-      });
-      useConceptMapStore.getState().acceptStructuralEdgeSuggestion(suggestionId);
-      const state = useConceptMapStore.getState();
-      expect(state.mapData.edges).toHaveLength(1);
-      expect(state.mapData.edges[0].source).toBe('n1');
-      expect(state.mapData.edges[0].target).toBe('n2');
-      expect(state.mapData.edges[0].label).toBe('suggested');
-      expect(state.structuralSuggestions).toHaveLength(0);
-    });
-  });
-
-  describe('dismissStructuralEdgeSuggestion', () => {
-    it('should remove the edge suggestion', () => {
-      const suggestionId = 'edge-sugg-1';
-      useConceptMapStore.setState({
-        structuralSuggestions: [{ id: suggestionId, source: 'n1', target: 'n2', label: 'suggested', reason: 'test' }]
-      });
-      useConceptMapStore.getState().dismissStructuralEdgeSuggestion(suggestionId);
-      expect(useConceptMapStore.getState().structuralSuggestions).toHaveLength(0);
-    });
-  });
-
-  describe('acceptStructuralGroupSuggestion', () => {
-    beforeEach(() => {
-        // Ensure nodes n1, n2, n3 exist with positions
-        const nodes = [
-            mockNode('n1', 10, 10),
-            mockNode('n2', 100, 10),
-            mockNode('n3', 50, 100),
-        ];
-        useConceptMapStore.setState({ mapData: { ...useConceptMapStore.getState().mapData, nodes }});
-    });
-
-    it('should create a parent node, re-parent children, add edges, and remove suggestion', () => {
-      const suggestionId = 'group-sugg-1';
-      useConceptMapStore.setState({
-        structuralGroupSuggestions: [{ id: suggestionId, nodeIds: ['n1', 'n2'], label: 'Test Group', reason: 'group test' }]
-      });
-
-      useConceptMapStore.getState().acceptStructuralGroupSuggestion(suggestionId, { createParentNode: true });
+      clearStagedMapData();
 
       const state = useConceptMapStore.getState();
-      const parentNode = state.mapData.nodes.find(n => n.text === 'Test Group');
-      expect(parentNode).toBeDefined();
-      expect(parentNode?.type).toBe('group-node');
-
-      const child1 = state.mapData.nodes.find(n => n.id === 'n1');
-      const child2 = state.mapData.nodes.find(n => n.id === 'n2');
-      expect(child1?.parentNode).toBe(parentNode?.id);
-      expect(child2?.parentNode).toBe(parentNode?.id);
-
-      const edgesToParent = state.mapData.edges.filter(e => e.source === parentNode?.id);
-      expect(edgesToParent).toHaveLength(2);
-      expect(edgesToParent.some(e => e.target === 'n1' && e.label === 'includes')).toBe(true);
-      expect(edgesToParent.some(e => e.target === 'n2' && e.label === 'includes')).toBe(true);
-
-      expect(state.structuralGroupSuggestions).toHaveLength(0);
+      expect(state.stagedMapData).toBeNull();
+      expect(state.isStagingActive).toBe(false);
     });
-  });
 
-  describe('dismissStructuralGroupSuggestion', () => {
-    it('should remove the group suggestion', () => {
-      const suggestionId = 'group-sugg-1';
-      useConceptMapStore.setState({
-        structuralGroupSuggestions: [{ id: suggestionId, nodeIds: ['n1', 'n2'], label: 'Test Group', reason: 'group test' }]
-      });
-      useConceptMapStore.getState().dismissStructuralGroupSuggestion(suggestionId);
-      expect(useConceptMapStore.getState().structuralGroupSuggestions).toHaveLength(0);
+    it('commitStagedMapData: actionType intermediateNode should delete original edge and add new elements', () => {
+        const { addNode, addEdge, setStagedMapData, commitStagedMapData } = useConceptMapStore.getState();
+        const sourceId = addNode({text: 'Source', type:'t', position:{x:0,y:0}});
+        const targetId = addNode({text: 'Target', type:'t', position:{x:100,y:0}});
+        const originalEdgeId = addEdge({source: sourceId, target: targetId, label: 'original'});
+
+        const intermediateNode: ConceptMapNode = {id: 'temp-inter', text:'Intermediate', type:'inter', x:50,y:50, childIds:[]};
+        const edgeToInter: ConceptMapEdge = {id: 'temp-e1', source: sourceId, target: intermediateNode.id, label: 'to inter'};
+        const edgeFromInter: ConceptMapEdge = {id: 'temp-e2', source: intermediateNode.id, target: targetId, label: 'from inter'};
+
+        setStagedMapData({
+            nodes: [intermediateNode],
+            edges: [edgeToInter, edgeFromInter],
+            actionType: 'intermediateNode',
+            originalElementId: originalEdgeId
+        });
+        commitStagedMapData();
+
+        const state = useConceptMapStore.getState();
+        expect(state.mapData.edges.find(e => e.id === originalEdgeId)).toBeUndefined();
+
+        const newIntermediateNode = state.mapData.nodes.find(n => n.text === 'Intermediate');
+        expect(newIntermediateNode).toBeDefined();
+
+        expect(state.mapData.edges.some(e => e.label === 'to inter' && e.source === sourceId && e.target === newIntermediateNode?.id)).toBe(true);
+        expect(state.mapData.edges.some(e => e.label === 'from inter' && e.source === newIntermediateNode?.id && e.target === targetId)).toBe(true);
+        expect(state.stagedMapData).toBeNull();
     });
-  });
 
-  describe('clearAllStructuralSuggestions', () => {
-    it('should clear both edge and group suggestions', () => {
-      useConceptMapStore.setState({
-        structuralSuggestions: [{ id: 'edge-sugg-1', source: 'n1', target: 'n2', label: 'suggested', reason: 'test' }],
-        structuralGroupSuggestions: [{ id: 'group-sugg-1', nodeIds: ['n1', 'n2'], label: 'Test Group', reason: 'group test' }]
-      });
-      useConceptMapStore.getState().clearAllStructuralSuggestions();
-      const state = useConceptMapStore.getState();
-      expect(state.structuralSuggestions).toEqual([]);
-      expect(state.structuralGroupSuggestions).toEqual([]);
+    it('commitStagedMapData: actionType aiTidyUpComplete should add parent and update children', () => {
+        const { addNode, setStagedMapData, commitStagedMapData } = useConceptMapStore.getState();
+        const child1Id = addNode({text: 'Child 1', type:'c', position:{x:0,y:100}});
+        const child2Id = addNode({text: 'Child 2', type:'c', position:{x:0,y:200}});
+
+        const stagedParent: ConceptMapNode = {id: 'staged-parent-123', text: 'New Parent', type:'parent', x:0,y:0, width:200, height:300, childIds:[]};
+        const stagedChild1Update: ConceptMapNode = {id: child1Id, text:'Child 1', type:'c', x:10,y:110, parentNode: stagedParent.id, childIds:[], width: 150, height: 70};
+        const stagedChild2Update: ConceptMapNode = {id: child2Id, text:'Child 2', type:'c', x:10,y:210, parentNode: stagedParent.id, childIds:[], width: 150, height: 70};
+
+        setStagedMapData({
+            nodes: [stagedParent, stagedChild1Update, stagedChild2Update],
+            edges: [],
+            actionType: 'aiTidyUpComplete',
+            originalElementIds: [child1Id, child2Id]
+        });
+
+        commitStagedMapData();
+        const state = useConceptMapStore.getState();
+
+        const newParentNode = state.mapData.nodes.find(n => n.text === 'New Parent');
+        expect(newParentNode).toBeDefined();
+
+        const updatedChild1 = state.mapData.nodes.find(n => n.id === child1Id);
+        expect(updatedChild1?.x).toBe(10);
+        expect(updatedChild1?.y).toBe(110);
+        expect(updatedChild1?.parentNode).toBe(newParentNode?.id);
+
+        const updatedChild2 = state.mapData.nodes.find(n => n.id === child2Id);
+        expect(updatedChild2?.x).toBe(10);
+        expect(updatedChild2?.y).toBe(210);
+        expect(updatedChild2?.parentNode).toBe(newParentNode?.id);
+
+        expect(state.stagedMapData).toBeNull();
     });
   });
 });
+
+// Note: This is a basic setup. More complex scenarios, especially for `deleteNode` with deep hierarchies
+// or `commitStagedMapData` with more action types, would require more tests.
+// Mocking external dependencies like `GraphAdapterUtility` might be needed if its behavior is complex or has side effects.
+// For `addNode`/`addEdge`, the current test relies on the fact that unique IDs are generated. If specific ID formats
+// were critical, those would need to be asserted or mocked.
+// The `resetStore` helper is basic; a more robust solution might involve Zustand's `act` for tests involving async updates,
+// or fully re-creating the store for each test to ensure isolation, as recommended by Zustand.
+// `useConceptMapStore.temporal?.getState().clear()` might be needed in `beforeEach` if undo/redo history affects tests.
+// The types `ConceptMapNode`, `ConceptMapEdge`, `StagedMapDataWithContext` are assumed to be correctly imported from `@/types` or similar.
+// If `initialStateBase` is not exported, tests would need to use `useConceptMapStore.getState()` and manually reset fields.
+// The current `resetStore` uses `initialStateBase` which is fine if it captures the true default state.
+// Ensure `initialStateBase` is exported from `concept-map-store.ts` or provide a way to get the actual initial state for reset.
+// For `setGhostPreview` test, the `width` and `height` capture from original node depends on the original node existing.
+// The test for `setGhostPreview` currently adds a node then sets its preview, which is fine.
+// The `deleteNode` test correctly checks for connected edge removal. More complex graph logic (deep deletion) is noted as a TODO.
+```

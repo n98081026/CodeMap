@@ -51,11 +51,38 @@ export function useConceptMapDataManager({ routeMapIdFromProps, user }: UseConce
     setError(null);
     setInitialLoadComplete(false); // Reset on new load attempt
 
+    // Guard against trying to API-fetch example maps directly if not in bypass mode.
+    // Example maps should be loaded into the store by the ExamplesPage logic.
+    if (idToLoad && idToLoad.startsWith('example-') && !BYPASS_AUTH_FOR_TESTING) {
+      addDebugLog(`[DataManager loadMapDataInternal V12] Attempt to load example map '${idToLoad}' via API. This path should ideally be avoided if data is pre-loaded by ExamplesPage.`);
+
+      const store = useConceptMapStore.getState();
+      // Check if the map is already in the store and matches the idToLoad
+      if (store.mapId === idToLoad && store.mapData && store.mapData.nodes && store.mapData.nodes.length > 0) {
+        addDebugLog(`[DataManager loadMapDataInternal V12] Data for example map '${idToLoad}' is already present in the store. Using store data.`);
+        // Ensure the store's viewOnlyMode is respected or updated if needed, though targetViewOnlyMode is passed.
+        // setLoadedMap(store, targetViewOnlyMode); // Re-affirm store state. setLoadedMap also sets initialLoadComplete.
+        // No, setLoadedMap here might be risky if it resets things unnecessarily.
+        // The main useEffect should handle setting the map if it's already in store.
+        // This path in loadMapDataInternal for an example map means something unexpected happened.
+        toast({ title: "Info", description: `Example map '${idToLoad}' is already available.`, variant: "default" });
+      } else {
+        addDebugLog(`[DataManager loadMapDataInternal V12] Data for example map '${idToLoad}' not found in store. API fetch for examples is blocked.`);
+        setError(`Example map '${idToLoad}' data not found or is not meant to be fetched via API. Please navigate from the Examples gallery.`);
+      }
+
+      setIsLoading(false);
+      setInitialLoadComplete(true); // Mark as complete because we are not proceeding with API fetch.
+      return;
+    }
+
     // setIsLoading(true) is called before try block
     // setError(null) is called before try block
     // setInitialLoadComplete(false) is called before try block
     try {
       if (BYPASS_AUTH_FOR_TESTING && idToLoad !== 'new') {
+        // This BYPASS_AUTH_FOR_TESTING block should also handle example- map IDs if needed for testing.
+        // If idToLoad starts with 'example-' and BYPASS_AUTH_FOR_TESTING is true, it will proceed here.
         addDebugLog(`[DataManager loadMapDataInternal V10] BYPASS: Attempting to load mock map for ID: ${idToLoad}`);
         let mockMapToLoad: ConceptMap | undefined = undefined;
 

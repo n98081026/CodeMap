@@ -65,14 +65,14 @@ export function ExtractConceptsModal({ onConceptsExtracted, initialText = "", on
     }}> 
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Extract Concepts with AI</DialogTitle>
+          <DialogTitle>AI 幫你抓重點 (Extract Concepts)</DialogTitle>
           <DialogDescription>
-            Paste text below, or use text from selected map nodes. The AI will identify key concepts. Suggestions will appear in the AI Panel.
+            把一段文字貼進來，或者直接使用選中節點的內容。AI 會自動幫你找出裡面最重要的詞彙或短語，並顯示在「AI 建議」面板中，方便你加到概念圖裡。
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <Textarea
-            placeholder="Paste your text here (e.g., a project description, requirements document, or a technical article)..."
+            placeholder="在這裡貼上你想分析的文字，比如一段專案介紹、功能需求，或者任何文章段落..."
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={10}
@@ -83,8 +83,8 @@ export function ExtractConceptsModal({ onConceptsExtracted, initialText = "", on
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
           <Button onClick={handleExtract} disabled={isLoading || !text.trim()}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Extract Concepts
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchCode className="mr-2 h-4 w-4" />} {/* Added icon */}
+            開始提取重點
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -135,29 +135,29 @@ export function SuggestRelationsModal({ onRelationsSuggested, initialConcepts = 
     }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Suggest Relations with AI</DialogTitle>
+          <DialogTitle>AI 幫你連連看 (Suggest Relations)</DialogTitle>
           <DialogDescription>
-            The AI will suggest relationships based on provided concepts (e.g., from selected nodes). Suggestions will appear in the AI Panel.
+            輸入一些相關的詞彙或想法（例如從選中的節點來的），AI 會試著找出它們之間可能存在的關聯，並在「AI 建議」面板中給你建議。
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <Label htmlFor="concepts-sr">Concepts for Relation Suggestion</Label>
+          <Label htmlFor="concepts-sr">你的詞彙或想法 (用逗號分隔)</Label>
           <Textarea 
             id="concepts-sr" 
             value={conceptsInput} 
             onChange={(e) => setConceptsInput(e.target.value)}
-            placeholder="e.g., User Authentication, JWT, Database Security." 
+            placeholder="例如：學習 Python, 寫小遊戲, 資料分析"
             rows={3}
             className="resize-none"
             disabled={isLoading}
           />
-           <p className="text-xs text-muted-foreground">Provide a comma-separated list of concepts. At least two are recommended for meaningful suggestions.</p>
+           <p className="text-xs text-muted-foreground">請用逗號隔開每個詞彙。建議至少輸入兩個，AI 才能更好地幫你找出關聯哦！</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
           <Button onClick={handleSuggest} disabled={isLoading || conceptsInput.trim().length === 0}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Suggest Relations
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />} {/* Added icon */}
+            開始建議關聯
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -215,29 +215,29 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
     }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Expand Concept with AI</DialogTitle>
+          <DialogTitle>AI 幫你想更多 (Expand Concept)</DialogTitle>
           <DialogDescription>
-            Enter a concept. Optionally, add a refinement to guide the AI. New ideas will be added directly to the map as child nodes of the expanded concept.
+            輸入一個詞彙或想法，AI 會幫你聯想更多相關的點子，並自動加到概念圖上，成為目前所選節點的子節點。如果不滿意，你隨時可以「復原」(Undo) 操作。
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div>
-            <Label htmlFor="concept-ec">Concept to Expand</Label>
+            <Label htmlFor="concept-ec">要深入思考的詞彙/想法</Label>
             <Input 
               id="concept-ec" 
               value={concept} 
               onChange={(e) => setConcept(e.target.value)} 
-              placeholder="e.g., Microservices, Machine Learning. Often based on a selected map node." 
+              placeholder="例如：人工智慧、專案管理、學習新技能"
               disabled={isLoading}
             />
           </div>
           <div>
-            <Label htmlFor="refinement-prompt-ec">Refinement (Optional)</Label>
+            <Label htmlFor="refinement-prompt-ec">引導 AI 的方向 (選填)</Label>
             <Textarea
               id="refinement-prompt-ec"
               value={refinementPrompt}
               onChange={(e) => setRefinementPrompt(e.target.value)}
-              placeholder="e.g., 'focus on security aspects', 'generate ideas for children', 'consider scalability implications'"
+              placeholder="例如：多想一些優點、有哪些應用場景、跟『學習效率』有什麼關係？"
               rows={3}
               className="resize-none"
               disabled={isLoading}
@@ -252,8 +252,8 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
           <Button onClick={handleExpand} disabled={isLoading || !concept.trim()}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Expand & Add to Map
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />} {/* Added icon */}
+            開始擴展想法
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -295,11 +295,11 @@ export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <HelpCircle className="mr-2 h-5 w-5 text-primary" /> Ask AI About Node
+            <HelpCircle className="mr-2 h-5 w-5 text-primary" /> 對 AI 提問關於這個節點
           </DialogTitle>
           {nodeContext && (
             <DialogDescription>
-              Node: <strong className="text-foreground">{nodeContext.text}</strong>
+              你正在問關於節點： <strong className="text-foreground">{nodeContext.text}</strong>
               {nodeContext.details && <span className="block text-xs text-muted-foreground mt-1">Details: {nodeContext.details}</span>}
               <br />The AI's answer will be shown in a toast notification. The node itself will not be modified by this action.
             </DialogDescription>
@@ -309,7 +309,7 @@ export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange
           <Label htmlFor="ai-question">Your Question:</Label>
           <Textarea
             id="ai-question"
-            placeholder="e.g., What are the implications of this concept? Can you explain this in simpler terms?"
+            placeholder="例如：這個概念主要用途是什麼？能不能用更簡單的方式解釋一下？"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             rows={4}
@@ -320,8 +320,8 @@ export function AskQuestionModal({ nodeContext, onQuestionAnswered, onOpenChange
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
           <Button onClick={handleAskQuestion} disabled={isLoading || !question.trim() || !nodeContext}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Ask Question
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />} {/* Added icon */}
+            傳送問題
           </Button>
         </DialogFooter>
       </DialogContent>

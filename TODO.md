@@ -46,10 +46,9 @@
     - [ ] Message Queue setup (RabbitMQ, Redis, etc.). (Out of Scope).
     - [ ] Develop Project Analysis Microservice:
         - [ ] Task consumer from message queue. (Out of Scope).
-        - [~] File downloader from Supabase storage for AI tool implemented (supabaseFileFetcherTool). projectStructureAnalyzerTool now uses this to fetch file properties and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types (JSON, MD, Py, Txt). Further deep semantic analysis user-defined/pending. Unpacker out of scope. (generateMapFromProject flow prompt updated).
-            - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
-        - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` is mock, now accepts storage path and user goals, and special hints for predefined mock outputs).
-        - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output, creates new ConceptMap record via Supabase service - handled in `ProjectUploadForm` flow after AI tool returns).
+        - [x] File downloader from Supabase storage for AI tool implemented (supabaseFileFetcherTool). projectStructureAnalyzerTool now uses this to fetch file properties and performs: AST-based analysis for JavaScript (Acorn), TypeScript (TS Compiler API), and Python (python-parser) including semantic purpose summarization (via LLM) and detection of intra-file function/method calls; basic content analysis for other common types (JSON, MD, Txt). Further deep semantic analysis user-defined/pending. Unpacker out of scope. (generateMapFromProject flow prompt updated).
+        - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` now performs real AST analysis for JS/TS/Python and accepts storage path and user goals, and special hints for predefined mock outputs for other types).
+        - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output from `projectStructureAnalyzerTool`, creates new ConceptMap record via Supabase service - handled in `ProjectUploadForm` flow after AI tool returns).
         - [x] Map Data Formatter & Persister (saves generated map via Supabase service, updates submission status with real map ID - handled in `ProjectUploadForm` flow).
     - [x] Connect frontend project submission UI to live API (for metadata, client-side upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service - handled in `ProjectUploadForm`).
     - [x] Connect frontend student submissions list to live API. (Modularized with `SubmissionListItem` and `useSubmissionStatusPoller` hook).
@@ -311,7 +310,7 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **Connect frontend student submissions list to live API.**
 - [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
 <<<<<<< HEAD
-    - [~] Modify `projectStructureAnalyzerTool` to fetch project file from Supabase Storage and perform real analysis. (Basic Node.js `package.json` analysis from Supabase implemented; further languages/depth are future enhancements or user task).
+    - [x] Modify `projectStructureAnalyzerTool` to fetch project file from Supabase Storage and perform real AST-based analysis for JS, TS, and Python files, including semantic summarization and local call detection. Basic content analysis for other common types (JSON, MD, Txt).
 =======
     - [~] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated.
         - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
@@ -360,3 +359,114 @@ The main remaining area for full Supabase connection is:
 *   Making the `projectStructureAnalyzerTool` actually process files from Supabase Storage (currently out of scope for me to implement the actual file parsing logic).
 *   Potentially enhancing real-time features with Supabase Realtime (currently out of scope).
 *   Thorough testing and deployment preparations (out of scope).
+
+## User Experience (UX) Enhancements - "Ordinary User" Perspective
+- [ ] **Onboarding & Initial Experience:**
+    - [ ] **"Guest Mode" or "Try Without Login":** Explore options for users to try basic features or view example maps without mandatory registration. (Higher effort)
+    - [ ] **Interactive Tutorial/Walkthrough:** Implement a guided tour for first-time users highlighting key features like project upload, map generation, and basic AI interactions. (Higher effort)
+    - [x] **Clearer "User Goals" Input:** Provide examples or tooltips for the "User Goals" field during project upload to reduce user confusion. (Implemented in `ProjectUploadForm`)
+    - [x] **Role-Agnostic Starting Point:** Offer a clear "Personal Use" or "Quick Analyze" path for users not immediately identifying as "Student" or "Teacher". (Implemented: Default to student/general dashboard, sidebar adjusts roles)
+- [ ] **Map Interaction & Interpretation:**
+    - [ ] **"Human-Readable" Summaries:** For generated maps, provide a high-level, plain-language summary of the project structure and key components alongside the visual map.
+    - [x] **Contextual Help for Map Elements:** Add tooltips or "?" icons to map nodes and properties inspector fields to explain technical terms in simple language. (Implemented for Node Type and Details in `PropertiesInspector`)
+    - [ ] **Smart Map Presentation (Super-Simple Overview Mode):**
+        - [ ] **Phase 1: AI-Generated High-Level Summary & Key Modules:**
+            - [x] Create `generateProjectOverviewFlow` to produce a concise text summary and identify 3-5 top-level modules/components with plain-language descriptions. (Implemented in `generate-project-overview.ts`)
+        - [x] **Phase 2: UI for Overview Mode:**
+            - [x] Add "Overview Mode" toggle button to `EditorToolbar`. (Implemented)
+            - [x] Add state management for overview mode (`isOverviewModeActive`, `projectOverviewData`, `isFetchingOverview`) and actions (`toggleOverviewMode`, `fetchProjectOverview`) in `concept-map-store.ts`. (Implemented)
+            - [x] Create `ProjectOverviewDisplay.tsx` component to render the summary and key modules. (Implemented)
+            - [x] Conditionally render `ProjectOverviewDisplay` or `FlowCanvasCore` in `mapId/page.tsx` based on `isOverviewModeActive`. (Implemented)
+            - [x] When active, `ProjectOverviewDisplay` shows the AI-generated text summary. (Implemented)
+            - [x] `ProjectOverviewDisplay` shows identified top-level modules as cards. (Implemented)
+            - [x] Each module card in `ProjectOverviewDisplay` displays its plain-language description and shows key files in a tooltip. (Implemented)
+            - [ ] (Deferred) `ProjectOverviewDisplay` shows simplified connections between key modules. (Deferred due to complexity of inferring/displaying meaningful top-level connections without direct AI output for it).
+        - [ ] **Phase 3 (Future): Interactive Drill-Down from Overview Mode:**
+            - [ ] Clicking a module in Overview Mode transitions the main map view to focus on/filter for that module's components.
+    - [ ] **Visual Feedback & Progress:**
+        - [ ] For long-running AI operations (analysis, suggestions), provide more engaging progress indicators or estimated time remaining.
+        - [ ] Ensure error messages are user-friendly and suggest potential solutions or next steps.
+- [ ] **AI Interaction Refinements:**
+    - [x] **AI Explanations ("Why?"):**
+        - [x] **Suggest Relations:** Modify `suggestRelationsFlow` to include a `reason` field. (Implemented)
+        - [x] **Suggest Relations UI:** Update `AISuggestionPanel` to display the `reason` for suggested relations. (Implemented)
+        - [x] **Extract Concepts:** Modify `extractConceptsFlow` to include `context` and `source` for extracted concepts. (Implemented)
+        - [x] **Extract Concepts UI:** Update `AISuggestionPanel` to display `context` and `source` for extracted concepts. (Implemented)
+        - [x] **Expand Concept:** Modify `expandConceptFlow` to include `reasoning` for expanded ideas. (Implemented)
+        - [x] **Expand Concept UI:** Update `useConceptMapAITools` to prepend `reasoning` to the `details` of new nodes from expansion. (Implemented)
+    - [x] **Preview for AI Actions (Staging Area for Quick Cluster & Snippet):**
+        - [x] Modified `QuickClusterModal` to send its output to `stagedMapData` in `concept-map-store`. (Implemented)
+        - [x] Modified `GenerateSnippetModal` to send its output to `stagedMapData`. (Implemented)
+        - [-] Removed/Adjusted `onClusterGenerated` and `onSnippetGenerated` props/handlers in `useConceptMapAITools` as direct map addition is now handled by Staging Area commit. (Assumed implicitly done by modal changes, verification pending)
+    - [x] **Simplified AI Prompts/Inputs & Enhanced Feedback:**
+        - [x] Reviewed and updated UI text (titles, descriptions, placeholders, buttons) in `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `AskQuestionModal` (within `genai-modals.tsx`). (Implemented)
+        - [x] Reviewed and updated UI text in `QuickClusterModal`, `GenerateSnippetModal`, `RewriteNodeContentModal`, `RefineSuggestionModal`, `SuggestIntermediateNodeModal`. (Implemented)
+        - [x] Standardized loading states (button disabled + loader icon) and Toast notifications (start, success, user-friendly error) for AI operations called from `useConceptMapAITools` and directly within modals. (Implemented via `callAIWithStandardFeedback` and direct modal modifications)
+- [ ] **Content & Help:**
+    - [x] **"Ordinary User" Example Library (Framework):**
+        - [x] **Content Curation & Data Definition:** Defined `ExampleProject` interface and `exampleProjects` array in `src/lib/example-data.ts` with metadata for 3 examples. (Implemented)
+        - [x] **File Structure:** Created placeholder directories `public/examples/`, `public/images/examples/`, `src/lib/example-maps/`. (Implemented)
+        - [x] **UI - Examples Page/Section:** Created `src/app/(app)/examples/page.tsx` to display example cards. (Implemented)
+        - [x] **UI - Navigation:** Added "Examples" link to `SidebarNav`. (Implemented)
+        - [x] **Functionality - Load Example:** Implemented `loadExampleMapData` action in `concept-map-store.ts` and `handleLoadExample` in `ExamplesPage` to fetch and load (mocked) JSON map data. (Implemented)
+        - [ ] **Actual Example Content:** Populate `public/example-maps/` with actual JSON files and `public/images/examples/` with preview images. (Manual Task for User, Blocked for Agent)
+- [ ] **Advanced UX Features (Future/Higher Effort - Needs Further Breakdown & Prioritization):**
+    - [ ] **Full Interactive Tutorial/Onboarding:**
+        - [ ] **Design Phase:** Define key user flows for tutorial (e.g., first project analysis, using a core AI tool).
+        - [ ] **Tool Selection:** Evaluate and select a suitable frontend library (e.g., Shepherd.js, Intro.js) or decide on custom implementation.
+        - [ ] **Content Creation:** Write tutorial steps, explanations, and highlight target UI elements.
+        - [ ] **Implementation:** Integrate selected library/custom solution into relevant pages/components.
+        - [ ] **State Management:** Implement logic to track tutorial completion for users (e.g., in user profile or local storage).
+    - [ ] **Guest Mode:**
+        - [ ] **Scope Definition:** Determine which features are available to guest users (e.g., view public examples only, limited analysis on predefined small projects).
+        - [ ] **Auth Logic Modification:** Adjust `AuthContext` and routing to allow access to certain parts of the app without full authentication.
+        - [ ] **UI Adaptation:** Design and implement a guest-specific UI layout, potentially with more prominent calls to action for registration/login.
+        - [ ] **Data Handling:** Ensure guest user data (if any is generated temporarily) is handled appropriately (e.g., not persisted or clearly marked as temporary).
+    - [ ] **Overview Mode - Interactive Drill-Down (Phase 3):**
+        - [ ] **Design Interaction:** Define how clicking a module in overview mode affects the main map (e.g., filter nodes, zoom to relevant area, load a sub-map if applicable).
+        - [ ] **Store/State Logic:** Update `concept-map-store.ts` to handle focus/filter states based on overview module selection.
+        - [ ] **Component Updates:** Modify `ProjectOverviewDisplay.tsx` to trigger these actions and `FlowCanvasCore.tsx` to respond to filter/focus states.
+    - [ ] **Interactive Q&A - Contextual Q&A (Phase 2):**
+        - [ ] **Edge Q&A:**
+            - [ ] Design UI for asking questions about a selected edge (e.g., in `PropertiesInspector` or context menu).
+            - [ ] Create `askQuestionAboutEdgeFlow`: Input (source node, target node, edge label, user question), Output (answer).
+            - [ ] Integrate with UI.
+        - [ ] **Multi-Node/Map-Level Q&A:**
+            - [ ] Design UI for broader questions (e.g., a persistent chat icon, or a dedicated Q&A panel).
+            - [ ] Create `askQuestionAboutMapContextFlow`: Input (current map nodes/edges or summary, user question), Output (answer).
+            - [ ] This flow might need to be more sophisticated, potentially using RAG with project documentation or more extensive map data.
+    - [ ] **Comprehensive AI Action Previews (Beyond Expand Concept):**
+        - [ ] **Phase 1: Review & Design (Current Focus)**
+            - [x] **1.1: Review AI Tools & Identify Preview Needs**
+                - [x] Systematically list AI tools modifying the map significantly (AI Tidy-Up/Semantic Grouping, Dynamic Structure Suggestions if they apply changes, Suggest Intermediate Node, AI-Suggested Relation Labels, Summarize Selected Nodes).
+                - [x] For each, assess current preview, user confusion risk, and desirability of explicit preview.
+            - [x] **1.2: Design UI/UX for Previews**
+                - [x] Decided: Leverage AI Staging Area for `Suggest Intermediate Node` and `Summarize Selected Nodes (AI)`.
+                - [x] Decided: Implement "Ghost Element Preview" with localized confirmation for `AI Tidy-Up (Align/Distribute)`.
+                - [x] Decided: Refine `PROPOSE_GROUP` popover to allow inline name editing.
+                - [x] Standardized "Accept", "Cancel" actions (either via Staging Toolbar or local popups).
+                - [x] Evaluated `AIStagingToolbar` vs. localized confirmations based on context.
+            - [x] **1.3: Design Technical Implementation Strategy**
+                - [x] Staging Area Path: Defined `stagedMapData` extension, flow output requirements, store actions (`stageAIGeneratedElements`, `acceptStagedChanges` enhancement), and `useConceptMapAITools.ts` updates.
+                - [x] Ghost Elements Path: Defined `ghostPreviewData` store slice & actions, `GhostNodeComponent`, `FlowCanvasCore.tsx` rendering logic, and `GhostPreviewToolbar`.
+                - [x] Popover Refinement Path: Defined UI change for popover (text input) and store action update.
+        - [ ] **Phase 2: Implementation (Iterative) - NEXT**
+            - [ ] Implement for 1-2 high-priority tools (e.g., "Suggest Intermediate Node", "Summarize Selected Nodes").
+            - [ ] Test thoroughly.
+        - [ ] **Phase 3: Refinement & Rollout**
+            - [ ] Gather feedback.
+            - [ ] Refine based on feedback.
+            - [ ] Roll out to other AI tools.
+- [ ] **Continuous Improvement & Maintenance:**
+    - [ ] **Performance for Large Projects:**
+        - [ ] **Frontend Profiling:** Use React DevTools Profiler and browser performance tools to identify bottlenecks in rendering large maps (many nodes/edges).
+        - [ ] **Optimization Techniques:** Investigate and implement techniques like node/edge virtualization (e.g., `react-flow-renderer`'s `onlyRenderVisibleElements` or custom solutions), debouncing updates, memoization.
+        - [ ] **Backend/AI Flow Profiling:** For `projectStructureAnalyzerTool` and other potentially long-running flows, analyze execution time for large inputs and identify optimization opportunities (e.g., more efficient parsing, batched LLM calls if applicable).
+    - [ ] **Clarity of Value Proposition (Iterative):**
+        - [ ] **User Feedback Loop:** Establish a mechanism for collecting user feedback on UI clarity and perceived value (e.g., in-app feedback form, user surveys - external to agent).
+        - [ ] **Landing Page/Homepage Review:** Periodically review and A/B test (if possible) homepage messaging to ensure it clearly communicates CodeMap's benefits to target users.
+    - [ ] **Comprehensive Automated Testing:**
+        - [ ] **Unit Tests for Core Logic:** Write Jest/Vitest unit tests for utility functions, complex store actions, and critical non-UI logic in services/hooks.
+        - [ ] **Component Tests:** Use React Testing Library to test individual UI components, especially those with complex interactions or state.
+        - [ ] **Integration Tests for AI Flows:** (Requires Genkit testing utilities or mocking strategies) Test individual Genkit flows with mock inputs and validate their output structure and key content.
+        - [ ] **E2E Tests:** Plan and (manually or with tools like Playwright/Cypress) implement E2E tests for key user journeys (e.g., registration, project upload & analysis, core map interactions, AI tool usage).

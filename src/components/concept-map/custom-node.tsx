@@ -26,6 +26,7 @@ export interface CustomNodeData {
   onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void;
   isStaged?: boolean;
   isGhost?: boolean;
+  isDimmed?: boolean; // For original node when ghost is shown
   onStartConnectionRequest?: (nodeId: string) => void;
   onRefineGhostNode?: (nodeId: string, currentText: string, currentDetails?: string) => void; // Added from previous HEAD
 }
@@ -218,6 +219,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         data.shape === 'ellipse' && 'items-center justify-center text-center p-2',
         data.isStaged && "border-dashed border-blue-500 opacity-80",
         data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10",
+        data.isDimmed && "opacity-50 transition-opacity duration-300", // Style for dimmed original node
         data.type === 'ai-group-parent' && "border-2 border-dashed border-slate-500/30 dark:border-slate-600/50"
       )}
       onMouseEnter={() => {

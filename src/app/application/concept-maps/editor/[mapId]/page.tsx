@@ -24,6 +24,7 @@ import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar'; // Import GhostPreviewToolbar
 import { getNodePlacement } from '@/lib/layout-utils';
 
 // Dynamically import components
@@ -452,6 +453,7 @@ function ConceptMapEditorPageContent({ currentUser }: ConceptMapEditorPageConten
         {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <DynamicGenerateSnippetModal isOpen={isGenerateSnippetModalOpen} onOpenChange={setIsGenerateSnippetModalOpen} onSnippetGenerated={handleSnippetGenerated} />}
         {isAskQuestionModalOpen && !storeIsViewOnlyMode && nodeContextForQuestion && <DynamicAskQuestionModal nodeContext={nodeContextForQuestion} onQuestionAnswered={handleQuestionAnswered} onOpenChange={setIsAskQuestionModalOpen} />}
         {isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && nodeContentToRewrite && <DynamicRewriteNodeContentModal nodeContent={nodeContentToRewrite} onRewriteConfirm={handleRewriteNodeContentConfirm} onOpenChange={setIsRewriteNodeContentModalOpen} />}
+        <GhostPreviewToolbar /> {/* Add GhostPreviewToolbar here */}
       </ReactFlowProvider>
     </div>
   );

@@ -28,12 +28,18 @@ const SuggestedGroupOverlayNode: React.FC<NodeProps<SuggestedGroupOverlayNodeDat
   const { removeStructuralSuggestion, applyFormGroupSuggestion } = useConceptMapStore.getState();
   const { toast } = useToast();
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [refinedNameInput, setRefinedNameInput] = useState(suggestionData.suggestedParentName || "New Group");
+
+  // Update refinedNameInput if the suggestionData changes (e.g. if the component is re-used with new props)
+  React.useEffect(() => {
+    setRefinedNameInput(suggestionData.suggestedParentName || "New Group");
+  }, [suggestionData.suggestedParentName]);
 
   const onAccept = () => {
     // applyFormGroupSuggestion is expected to handle node creation, parenting, and positioning
     applyFormGroupSuggestion(
       suggestionData.nodeIdsToGroup,
-      suggestionData.suggestedParentName,
+      refinedNameInput.trim() || suggestionData.suggestedParentName || "New Group", // Use refined name, fallback to original or default
       { x: xPos, y: yPos, width: width, height: height } // Pass current overlay geometry
     );
     removeStructuralSuggestion(suggestionId);
@@ -84,13 +90,27 @@ const SuggestedGroupOverlayNode: React.FC<NodeProps<SuggestedGroupOverlayNodeDat
             </Button>
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-64 text-sm" side="top">
-          <div className="space-y-2">
-            <p className="font-semibold">Suggested Group:</p>
-            <p>"{suggestionData.suggestedParentName}" for {suggestionData.nodeIdsToGroup.length} nodes.</p>
+        <PopoverContent className="w-72 text-sm" side="top"> {/* Increased width for input */}
+          <div className="space-y-3"> {/* Increased spacing */}
+            <div>
+              <label htmlFor={`group-name-input-${id}`} className="text-xs font-medium text-muted-foreground">
+                Group Name (Editable)
+              </label>
+              <input // Using html input for simplicity, can be replaced with ui/input if needed
+                id={`group-name-input-${id}`}
+                type="text"
+                value={refinedNameInput}
+                onChange={(e) => setRefinedNameInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onAccept(); } }}
+                className="mt-1 block w-full px-2 py-1.5 text-sm border border-input rounded-md shadow-sm focus:ring-primary focus:border-primary"
+                placeholder="Enter group name"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground pt-1">Original suggestion: "{suggestionData.suggestedParentName}" for {suggestionData.nodeIdsToGroup.length} nodes.</p>
+
             {reason && (
               <>
-                <p className="font-semibold mt-2">Reason:</p>
+                <p className="font-semibold text-xs mt-2">Reason:</p>
                 <p className="text-xs text-muted-foreground">{reason}</p>
               </>
             )}

@@ -37,10 +37,13 @@ Return up to 3-5 suggestions as a JSON array of strings.
 Source Node Text: ${sourceNode.text}
 ${sourceNode.details ? `Source Node Details: ${sourceNode.details}\n` : ''}
 Target Node Text: ${targetNode.text}
+${sourceNode.details ? `Source Node Details: ${sourceNode.details}\n` : ''}
+Target Node Text: ${targetNode.text}
 ${targetNode.details ? `Target Node Details: ${targetNode.details}\n` : ''}
 ${existingLabel ? `The user has already started typing: "${existingLabel}". Consider this context and provide completions or related suggestions.\n` : ''}
-Focus on common relationship types like "uses", "depends on", "leads to", "is part of", "interacts with", "manages", "contains", "defines", "clarifies", "resolves", "triggers", "supports", "enables", "prevents", "requires".
-The labels should be short, ideally 1-3 words. Ensure the response is ONLY the JSON array.
+Consider the direction of the relationship from the Source Node to the Target Node.
+Focus on common relationship types like "uses", "depends on", "leads to", "is part of", "interacts with", "manages", "contains", "defines", "clarifies", "resolves", "triggers", "supports", "enables", "prevents", "requires", "is example of", "comprises", "requests", "sends to", "receives from".
+The labels should be short, ideally 1-3 words, and clearly describe the relationship from source to target. Ensure the response is ONLY the JSON array of strings.
 
 JSON Array of Suggested Labels:`;
 

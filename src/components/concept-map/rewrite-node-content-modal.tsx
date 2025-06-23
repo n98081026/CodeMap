@@ -71,20 +71,33 @@ export function RewriteNodeContentModal({
     setAiProcessingNodeId(nodeContent.id); 
     setPreviewText(null);
     setPreviewDetails(null);
+    const loadingToast = toast({
+      title: "AI 潤色中...",
+      description: "請稍候，AI 正在依照您選擇的風格改寫內容。",
+      duration: 999999,
+    });
     try {
       const result: RewriteNodeContentOutput = await aiRewriteNodeContent({
         currentText: nodeContent.text,
         currentDetails: nodeContent.details,
         targetTone: selectedTone,
       });
+      loadingToast.dismiss();
       setPreviewText(result.rewrittenText);
       setPreviewDetails(result.rewrittenDetails || null);
-      toast({ title: "Preview Ready", description: "AI rewrite preview generated." });
+      toast({ title: "AI 預覽準備就緒", description: "AI 已產生修改後的內容預覽。" });
     } catch (error) {
-      toast({ title: "Error Generating Preview", description: (error as Error).message, variant: "destructive" });
-      setAiProcessingNodeId(null); 
+      loadingToast.dismiss();
+      toast({
+        title: "產生預覽失敗",
+        description: `AI 改寫內容時發生錯誤。${(error as Error).message ? `錯誤訊息：${(error as Error).message}` : '請稍後再試。'}`,
+        variant: "destructive"
+      });
+      // setAiProcessingNodeId(null); // Keep this in the finally block
     } finally {
       setIsLoading(false);
+      // Do not clear setAiProcessingNodeId here if the main operation (Apply Rewrite) might still use it or if another preview is generated.
+      // It's cleared when modal closes or on successful apply.
     }
   }, [nodeContent, selectedTone, toast, setAiProcessingNodeId]);
 
@@ -123,15 +136,15 @@ export function RewriteNodeContentModal({
     <Dialog open={isOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5 text-primary" />Rewrite Node Content (AI)</DialogTitle>
+          <DialogTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5 text-primary" />AI 幫你潤色文字</DialogTitle>
           <DialogDescription>
-            Refine the text and details of the node "{nodeContent.text}" using AI. Choose a tone, generate a preview, and then apply the changes to update the node.
+            讓 AI 幫你改進節點「{nodeContent.text}」的文字和詳細說明。選擇想要的風格，看看 AI 修改後的樣子，滿意的話再套用。
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-h-[60vh] overflow-y-auto">
           <div className="space-y-3">
-            <h3 className="font-semibold text-md">Original Content</h3>
+            <h3 className="font-semibold text-md">原本的內容</h3>
             <div>
               <Label htmlFor="original-text">Text:</Label>
               <Textarea id="original-text" value={nodeContent.text} readOnly rows={3} className="bg-muted/50"/>
@@ -146,10 +159,10 @@ export function RewriteNodeContentModal({
 
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-md">AI Rewritten Preview</h3>
+                <h3 className="font-semibold text-md">AI 修改後預覽</h3>
                 <Select value={selectedTone} onValueChange={(value) => setSelectedTone(value as ToneOption)} disabled={isLoading}>
                     <SelectTrigger className="w-[180px] h-9">
-                        <SelectValue placeholder="Select tone" />
+                        <SelectValue placeholder="選擇一種風格" />
                     </SelectTrigger>
                     <SelectContent>
                         {toneOptions.map(opt => (
@@ -159,12 +172,12 @@ export function RewriteNodeContentModal({
                 </Select>
             </div>
             <div>
-              <Label htmlFor="preview-text">Rewritten Text:</Label>
-              <Textarea id="preview-text" value={previewText ?? ""} readOnly={!previewText} placeholder="Generate preview to see rewritten text..." rows={3} className={previewText === null ? "italic bg-muted/30" : "bg-background"}/>
+              <Label htmlFor="preview-text">修改後的文字：</Label>
+              <Textarea id="preview-text" value={previewText ?? ""} readOnly={!previewText} placeholder="點擊「產生預覽」看看 AI 修改的結果..." rows={3} className={previewText === null ? "italic bg-muted/30" : "bg-background"}/>
             </div>
             <div>
-              <Label htmlFor="preview-details">Rewritten Details:</Label>
-              <Textarea id="preview-details" value={previewDetails ?? ""} readOnly={!previewDetails} placeholder="Generate preview to see rewritten details..." rows={5} className={previewDetails === null ? "italic bg-muted/30" : "bg-background"}/>
+              <Label htmlFor="preview-details">修改後的詳細說明：</Label>
+              <Textarea id="preview-details" value={previewDetails ?? ""} readOnly={!previewDetails} placeholder="點擊「產生預覽」看看 AI 修改的結果..." rows={5} className={previewDetails === null ? "italic bg-muted/30" : "bg-background"}/>
             </div>
           </div>
         </div>
@@ -175,11 +188,11 @@ export function RewriteNodeContentModal({
           </Button>
           <Button onClick={handleGeneratePreview} disabled={isLoading} variant="secondary">
             {isLoading && previewText === null ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-            {isLoading && previewText === null ? 'Generating...' : 'Generate Preview'}
+            {isLoading && previewText === null ? 'AI 處理中...' : '產生預覽'}
           </Button>
           <Button onClick={handleApplyRewrite} disabled={isLoading || previewText === null}>
             <ArrowRightLeft className="mr-2 h-4 w-4" />
-            Apply Rewrite
+            套用修改
           </Button>
         </DialogFooter>
       </DialogContent>

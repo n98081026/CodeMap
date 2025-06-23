@@ -13,10 +13,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription, // Added for tooltip hint
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Added
+import { Info } from "lucide-react"; // Added
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types";
@@ -155,16 +158,26 @@ export function ProjectUploadForm() {
   const processAISteps = useCallback(async (submission: ProjectSubmission, userGoals?: string) => {
     if (!user) throw new Error("User not authenticated for AI processing.");
     setIsProcessingAIInDialog(true);
-    toast({ title: "AI Processing Started", description: `Analysis of "${submission.originalFileName}" is starting...` });
+    let loadingToastId: string | number | undefined = undefined;
 
     try {
+      loadingToastId = toast({
+        title: "AI Analysis Initiated",
+        description: `Preparing to analyze "${submission.originalFileName}"...`,
+        duration: 999999,
+      }).id;
+
       await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.PROCESSING);
+
+      toast.update(loadingToastId, { description: "Step 1/3: Initializing analysis process..." }); // Refined
       const projectStoragePath = submission.fileStoragePath;
       if (!projectStoragePath) {
           throw new Error("File storage path is missing. Cannot proceed with AI analysis.");
       }
 
       const aiInputUserGoals = userGoals || `Analyze the project: ${submission.originalFileName}`;
+
+      toast.update(loadingToastId, { description: "Step 2/3: AI processing: Generating map structure & insights..." }); // Refined
       const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals: aiInputUserGoals });
 
       let parsedMapData: ConceptMapData;
@@ -177,6 +190,7 @@ export function ProjectUploadForm() {
         throw new Error(`Failed to parse AI map data: ${(parseError as Error).message}`);
       }
 
+      toast.update(loadingToastId, { description: "Step 3/3: Finalizing and saving your new concept map..." }); // Refined
       const newMapPayload = {
         name: `AI Map for ${submission.originalFileName.split('.')[0]}`,
         ownerId: user.id, mapData: parsedMapData, isPublic: false,
@@ -191,12 +205,18 @@ export function ProjectUploadForm() {
       }
       const createdMap: ConceptMap = await mapCreateResponse.json();
       await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.COMPLETED, createdMap.id);
-      toast({ title: "AI Map Generated!", description: `Map "${createdMap.name}" created and linked.`, duration: 7000 });
+
+      if(loadingToastId) toast.dismiss(loadingToastId);
+      toast({ title: "AI Map Generated Successfully!", description: `Map "${createdMap.name}" created and linked.`, duration: 7000 });
       return createdMap;
+
     } catch (aiError) {
+      if(loadingToastId) toast.dismiss(loadingToastId);
       console.error("AI Map Generation/Saving Error:", aiError);
-      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.FAILED, null, (aiError as Error).message || "AI processing failed");
-      throw aiError;
+      const errorMessage = (aiError as Error).message || "AI processing failed";
+      await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.FAILED, null, errorMessage);
+      // The toast for failure is now part of the main onSubmit's catch block or handleConfirmAIGeneration's catch
+      throw new Error(errorMessage); // Re-throw to be caught by the caller
     } finally {
       setIsProcessingAIInDialog(false);
     }
@@ -261,7 +281,12 @@ export function ProjectUploadForm() {
     try {
       await processAISteps(currentSubmissionForAI, currentUserGoalsForAI);
     } catch (aiError) {
-      toast({ title: "AI Map Generation Failed", description: (aiError as Error).message, variant: "destructive", duration: 7000 });
+      toast({
+        title: "AI Map Generation Failed",
+        description: `${(aiError as Error).message}. Please try submitting the project again. If the issue persists, please check the console for more technical details or contact support.`,
+        variant: "destructive",
+        duration: 8000
+      });
     } finally {
       setIsConfirmAIDialogOpen(false);
       setCurrentSubmissionForAI(null);
@@ -310,7 +335,27 @@ export function ProjectUploadForm() {
             name="userGoals"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Analysis Goals/Hints (Optional)</FormLabel>
+                <div className="flex items-center space-x-2">
+                  <FormLabel>Analysis Goals/Hints (Optional)</FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p className="text-sm">
+                          Help the AI understand what you're interested in. For example:
+                        </p>
+                        <ul className="list-disc list-inside mt-1 text-xs">
+                          <li>"Understand the main functional modules"</li>
+                          <li>"Identify key classes and their relationships"</li>
+                          <li>"Get a quick overview of the project architecture"</li>
+                          <li>"Focus on user authentication and API routes"</li>
+                        </ul>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <FormControl>
                   <Textarea
                     placeholder="e.g., Focus on API routes, user authentication flow, or key data models."
@@ -320,8 +365,10 @@ export function ProjectUploadForm() {
                     disabled={isBusyOverall}
                   />
                 </FormControl>
+                <FormDescription className="text-xs">
+                  Max 500 characters. Providing clear goals can improve the generated map's relevance.
+                </FormDescription>
                 <FormMessage />
-                <p className="text-sm text-muted-foreground">Provide hints for the AI. Max 500 characters.</p>
               </FormItem>
             )}
           />

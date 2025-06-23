@@ -1,7 +1,7 @@
 "use client";
 
 <<<<<<< HEAD
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 =======
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 >>>>>>> master
@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 <<<<<<< HEAD
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Sparkles, MessageSquareQuote, Brain, HelpCircle, Lightbulb } from "lucide-react";
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles, GitMerge, Info, HelpCircle, MessageSquareQuote, Lightbulb, MessageCircleQuestion, Loader2 as LoaderIcon, AlertTriangle as AlertTriangleIcon, Send } from "lucide-react"; // Added MessageCircleQuestion, LoaderIcon, AlertTriangleIcon, Send
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
-import { AICommandPalette, type AICommand } from './ai-command-palette';
+import AICommandPalette, { type AICommand } from './ai-command-palette';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import useConceptMapStore from '@/stores/concept-map-store';
 =======
@@ -80,6 +81,12 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const [isSuggestIntermediateDialogOpen, setIsSuggestIntermediateDialogOpen] = useState(false);
   const [isLoadingAISuggestion, setIsLoadingAISuggestion] = useState(false);
   const { toast } = useToast();
+
+  // State for Node Q&A
+  const [nodeQuestion, setNodeQuestion] = useState("");
+  const [aiNodeAnswer, setAiNodeAnswer] = useState<string | null>(null);
+  const [isAskingNodeQuestion, setIsAskingNodeQuestion] = useState(false);
+  const [askNodeQuestionError, setAskNodeQuestionError] = useState<string | null>(null);
 =======
   const nodeLabelInputRef = useRef<HTMLInputElement>(null);
   const nodeDetailsTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -546,7 +553,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         <Label htmlFor="nodeLabel" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Label (Text)</Label>
         <Input 
             id="nodeLabel"
-            ref={nodeLabelInputRef} // Assign ref here
+            ref={nodeLabelInputRef}
             value={elementLabelValue} 
             onChange={handleElementLabelChange} 
             disabled={isViewOnlyMode} 
@@ -554,7 +561,21 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         />
       </div>
       <div className="mt-2">
-        <Label htmlFor="nodeDetails" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Details (type "/ai" for commands)</Label>
+        <div className="flex items-center space-x-2 mb-1">
+            <Label htmlFor="nodeDetails" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Details</Label>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-sm">
+                        Provide more context or a description for this node. You can also type <code className="bg-muted px-1 py-0.5 rounded-sm">/ai</code> to access AI commands for content generation or refinement.
+                        </p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </div>
         <Textarea 
             id="nodeDetails"
 <<<<<<< HEAD
@@ -577,9 +598,23 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           onClose={handleClosePalette}
         />
       </div>
-      {/* Node Type input - removed handleElementNodeTypeChange as it was identical to handleElementLabelChange's old logic and not palette related */}
+      {/* Node Type input */}
       <div className="mt-2">
-        <Label htmlFor="nodeType" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Type</Label>
+        <div className="flex items-center space-x-2 mb-1">
+            <Label htmlFor="nodeType" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Type</Label>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-sm">
+                        Categorize your node. Examples: <code className="bg-muted px-1 py-0.5 rounded-sm">component</code>, <code className="bg-muted px-1 py-0.5 rounded-sm">service</code>, <code className="bg-muted px-1 py-0.5 rounded-sm">database</code>, <code className="bg-muted px-1 py-0.5 rounded-sm">feature</code>, or specific types like <code className="bg-muted px-1 py-0.5 rounded-sm">js_function</code>, <code className="bg-muted px-1 py-0.5 rounded-sm">ai-summary-node</code>.
+                        </p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </div>
         <Input 
           id="nodeType" 
           value={elementNodeTypeValue} 
@@ -588,7 +623,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             onSelectedElementPropertyUpdate({ type: e.target.value });
           }}
           disabled={isViewOnlyMode} 
-          placeholder="e.g., service, component"
+          placeholder="e.g., service, component, ai-summary"
           className={cn(isViewOnlyMode && "bg-muted/50 cursor-not-allowed border-muted/50")}
         /> 
       </div>
@@ -668,8 +703,82 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             Reset to Auto-Size
         </Button>
       </div>
+
+      {/* Node Q&A Section */}
+      <div className="mt-4 pt-4 border-t">
+        <div className="flex items-center gap-2 mb-2">
+          <MessageCircleQuestion className="h-5 w-5 text-muted-foreground" />
+          <h4 className="font-semibold text-md">Ask AI About This Node</h4>
+        </div>
+        <Textarea
+          id="nodeQuestion"
+          value={nodeQuestion}
+          onChange={(e) => setNodeQuestion(e.target.value)}
+          placeholder="e.g., What is the main purpose of this node? How does it relate to X?"
+          rows={2}
+          className="resize-none mb-2"
+          disabled={isViewOnlyMode || isAskingNodeQuestion}
+        />
+        <Button
+          onClick={handleAskAIAboutNode}
+          disabled={isViewOnlyMode || isAskingNodeQuestion || !nodeQuestion.trim() || !selectedElement}
+          className="w-full"
+          size="sm"
+        >
+          {isAskingNodeQuestion ? <LoaderIcon className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+          Ask AI
+        </Button>
+        {isAskingNodeQuestion && <p className="text-xs text-muted-foreground mt-1 text-center">AI is thinking...</p>}
+        {askNodeQuestionError && (
+          <div className="mt-2 text-xs text-destructive bg-destructive/10 p-2 rounded-md flex items-start">
+            <AlertTriangleIcon className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+            <p>{askNodeQuestionError}</p>
+          </div>
+        )}
+        {aiNodeAnswer && !isAskingNodeQuestion && !askNodeQuestionError && (
+          <div className="mt-2 text-xs text-foreground bg-muted/50 p-3 rounded-md whitespace-pre-wrap">
+             <strong className="font-medium">AI Answer:</strong> {aiNodeAnswer}
+          </div>
+        )}
+      </div>
     </>
   );
+
+  const handleAskAIAboutNode = useCallback(async () => {
+    if (isViewOnlyMode || !selectedElement || selectedElementType !== 'node' || !nodeQuestion.trim()) {
+      return;
+    }
+    setIsAskingNodeQuestion(true);
+    setAiNodeAnswer(null);
+    setAskNodeQuestionError(null);
+
+    try {
+      const node = selectedElement as ConceptMapNode;
+      // Assuming aiToolsHook.askQuestionAboutNode is implemented in useConceptMapAITools
+      const result = await aiToolsHook.askQuestionAboutNode(
+        node.id,
+        node.text,
+        node.details,
+        node.type,
+        nodeQuestion
+      );
+      if (result.error) {
+        setAskNodeQuestionError(result.error);
+        setAiNodeAnswer(result.answer || "AI could not provide a specific answer due to an error.");
+      } else {
+        setAiNodeAnswer(result.answer);
+      }
+    } catch (error) {
+      const errorMsg = (error instanceof Error) ? error.message : "An unknown error occurred.";
+      setAskNodeQuestionError(errorMsg);
+      setAiNodeAnswer("Failed to get an answer from AI.");
+      toast({ title: "AI Question Error", description: errorMsg, variant: "destructive" });
+    } finally {
+      setIsAskingNodeQuestion(false);
+      // Do not clear nodeQuestion here, user might want to refine it.
+    }
+  }, [isViewOnlyMode, selectedElement, selectedElementType, nodeQuestion, aiToolsHook, toast]);
+
 
   const renderEdgeProperties = () => (
      <>
