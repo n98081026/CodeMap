@@ -426,11 +426,11 @@ The main remaining area for full Supabase connection is:
         - [x] **Design Interaction:** Define how clicking a module in overview mode affects the main map (e.g., filter nodes, zoom to relevant area, load a sub-map if applicable). (Implemented)
         - [x] **Store/State Logic:** Update `concept-map-store.ts` to handle focus/filter states based on overview module selection. (Implemented - existing action was suitable)
         - [x] **Component Updates:** Modify `ProjectOverviewDisplay.tsx` to trigger these actions and `FlowCanvasCore.tsx` to respond to filter/focus states. (Implemented)
-    - [ ] **Interactive Q&A - Contextual Q&A (Phase 2):**
-        - [ ] **Edge Q&A:**
-            - [ ] Design UI for asking questions about a selected edge (e.g., in `PropertiesInspector` or context menu).
-            - [ ] Create `askQuestionAboutEdgeFlow`: Input (source node, target node, edge label, user question), Output (answer).
-            - [ ] Integrate with UI.
+    - [x] **Interactive Q&A - Contextual Q&A (Phase 2):**
+        - [x] **Edge Q&A:** (Implemented)
+            - [x] Design UI for asking questions about a selected edge (e.g., in `PropertiesInspector` or context menu). (Implemented in Properties Inspector)
+            - [x] Create `askQuestionAboutEdgeFlow`: Input (source node, target node, edge label, user question), Output (answer). (Implemented)
+            - [x] Integrate with UI. (Implemented via modal and hook)
         - [ ] **Multi-Node/Map-Level Q&A:**
             - [ ] Design UI for broader questions (e.g., a persistent chat icon, or a dedicated Q&A panel).
             - [ ] Create `askQuestionAboutMapContextFlow`: Input (current map nodes/edges or summary, user question), Output (answer).
@@ -450,8 +450,8 @@ The main remaining area for full Supabase connection is:
                 - [x] Staging Area Path: Defined `stagedMapData` extension, flow output requirements, store actions (`stageAIGeneratedElements`, `acceptStagedChanges` enhancement), and `useConceptMapAITools.ts` updates.
                 - [x] Ghost Elements Path: Defined `ghostPreviewData` store slice & actions, `GhostNodeComponent`, `FlowCanvasCore.tsx` rendering logic, and `GhostPreviewToolbar`.
                 - [x] Popover Refinement Path: Defined UI change for popover (text input) and store action update.
-        - [ ] **Phase 2: Implementation (Iterative) - NEXT**
-            - [ ] Implement for 1-2 high-priority tools (e.g., "Suggest Intermediate Node", "Summarize Selected Nodes").
+        - [ ] **Phase 2: Implementation (Iterative) - NEXT** (Staging/Ghost previews for Suggest Intermediate Node, Summarize Selected Nodes, and AI Tidy-Up layout-only changes reviewed and refined)
+            - [x] Implement for 1-2 high-priority tools (e.g., "Suggest Intermediate Node", "Summarize Selected Nodes"). (Verified these tools correctly use AI Staging Area; AI Tidy-Up uses Ghost Previews. Minor UX refinement for AIStagingToolbar tooltips added.)
             - [ ] Test thoroughly.
         - [ ] **Phase 3: Refinement & Rollout**
             - [ ] Gather feedback.
