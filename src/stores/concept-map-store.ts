@@ -659,8 +659,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
       },
       updateEdge: (edgeId, updates) => set((state) => ({ mapData: { ...state.mapData, edges: state.mapData.edges.map((edge) => edge.id === edgeId ? { ...edge, ...updates } : edge) } })),
       deleteEdge: (edgeId) => set((state) => ({ mapData: { ...state.mapData, edges: state.mapData.edges.filter((edge) => edge.id !== edgeId) }, selectedElementId: state.selectedElementId === edgeId ? null : state.selectedElementId, selectedElementType: state.selectedElementId === edgeId ? null : state.selectedElementType })),
-      setStagedMapData: (data: StagedMapDataWithContext | null) => set({ stagedMapData: data, isStagingActive: !!data }),
-      clearStagedMapData: () => set({ stagedMapData: null, isStagingActive: false }),
+      setStagedMapData: (data: StagedMapDataWithContext | null) => set({ stagedMapData: data, isStagingActive: !!data, ghostPreviewData: null }), // Clear ghost preview
+      clearStagedMapData: () => set({ stagedMapData: null, isStagingActive: false }), // This already clears staged, ghost is independent unless setStagedMapData is called with null
       commitStagedMapData: () => {
         const stagedData = get().stagedMapData; // this is now StagedMapDataWithContext | null
         if (!stagedData) return;
@@ -673,10 +673,62 @@ export const useConceptMapStore = create<ConceptMapState>()(
           if (stagedData.actionType === 'intermediateNode' && stagedData.originalElementId) {
             finalEdges = finalEdges.filter(edge => edge.id !== stagedData.originalElementId);
             get().addDebugLog(`[STORE commitStagedMapData] Original edge ${stagedData.originalElementId} deleted for intermediateNode action.`);
+          } else if (stagedData.actionType === 'aiTidyUpComplete') {
+            get().addDebugLog(`[STORE commitStagedMapData] Processing aiTidyUpComplete.`);
+            const stagedParentNodeInfo = stagedData.nodes.find(n => n.id.startsWith('staged-parent-'));
+            let newPermanentParentId = '';
+
+            if (stagedParentNodeInfo) {
+              newPermanentParentId = uniqueNodeId();
+              const parentNodeToAdd: ConceptMapNode = {
+                ...stagedParentNodeInfo,
+                id: newPermanentParentId, // Assign permanent ID
+                // childIds are implicitly managed by children's parentNode prop, but can be set here if needed
+                // For now, let's assume parentNode on children is sufficient.
+                childIds: [], // Will be populated by children setting this as parent
+              };
+              finalNodes.push(parentNodeToAdd);
+              get().addDebugLog(`[STORE commitStagedMapData] Added new parent ${newPermanentParentId} from staged parent ${stagedParentNodeInfo.id}.`);
+            }
+
+            const childNodeUpdates = stagedData.nodes.filter(n => !n.id.startsWith('staged-parent-'));
+            childNodeUpdates.forEach(stagedChild => {
+              const existingNodeIndex = finalNodes.findIndex(n => n.id === stagedChild.id);
+              if (existingNodeIndex !== -1) {
+                finalNodes[existingNodeIndex] = {
+                  ...finalNodes[existingNodeIndex],
+                  x: stagedChild.x,
+                  y: stagedChild.y,
+                  parentNode: newPermanentParentId || finalNodes[existingNodeIndex].parentNode, // Assign new parent if created
+                  // Ensure width/height from original are preserved if not in stagedChild explicitly for update
+                  width: stagedChild.width || finalNodes[existingNodeIndex].width,
+                  height: stagedChild.height || finalNodes[existingNodeIndex].height,
+                };
+                get().addDebugLog(`[STORE commitStagedMapData] Updated existing node ${stagedChild.id} with new position and parent ${newPermanentParentId || 'existing'}.`);
+              } else {
+                // This case (child node from tidyUp staging not in mapData) should be rare.
+                // If it happens, add it as a new node, potentially parented.
+                finalNodes.push({
+                   ...stagedChild,
+                   id: uniqueNodeId(), // Give it a new ID if it was somehow missing
+                   parentNode: newPermanentParentId || stagedChild.parentNode,
+                });
+                 get().addDebugLog(`[STORE commitStagedMapData] Added new node ${stagedChild.id} (unexpected for tidyUp) with parent ${newPermanentParentId || 'existing'}.`);
+              }
+            });
+            // For aiTidyUpComplete, new edges are not typically part of stagedData directly from this flow
+            // They are implicit parent-child links. If explicit edges were staged, they'd be handled below.
+            // So, we skip the generic new node/edge addition for this actionType after specific handling.
+            return { // Return early as we've manually constructed finalNodes/finalEdges
+              mapData: { nodes: finalNodes, edges: finalEdges },
+              stagedMapData: null,
+              isStagingActive: false,
+            };
           }
           // TODO: Add other actionType handlers here if they involve removing/modifying existing elements, e.g. summarizeNodes if it were to replace.
 
-          // Add new staged elements. Ensure unique IDs if they are potentially conflicting (e.g. if IDs were like 'preview-node-1')
+          // Generic addition for other actionTypes (like summarizeNodes, quickCluster, etc.)
+          // Ensure unique IDs if they are potentially conflicting (e.g. if IDs were like 'preview-node-1')
           // The current uniqueId mapping for all new nodes/edges in commitStagedMapData (the old one) might be too aggressive if some staged items should retain IDs.
           // For now, let's assume staged items from AI flows are meant to be new and get new IDs.
           // If AI flows generate fixed IDs that need to be preserved, this logic would need adjustment.
@@ -810,8 +862,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
             height: originalNode?.height || previewNode.height || 70, // Use original, then preview, then default
           };
         });
-        set({ ghostPreviewData: { nodes: previewNodesWithOriginalData } });
-        get().addDebugLog(`[STORE setGhostPreview] Ghost preview set for ${nodesToPreview.length} nodes.`);
+        set({ ghostPreviewData: { nodes: previewNodesWithOriginalData }, stagedMapData: null, isStagingActive: false }); // Clear staging
+        get().addDebugLog(`[STORE setGhostPreview] Ghost preview set for ${nodesToPreview.length} nodes. Staging cleared.`);
       },
       acceptGhostPreview: () => {
         const previewData = get().ghostPreviewData;

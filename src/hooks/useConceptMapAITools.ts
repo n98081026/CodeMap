@@ -583,31 +583,68 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         { loadingMessage: "AI is tidying up your selection...", successTitle: "Selection Tidied by AI!" }
     );
 
-    if (output && output.layoutUpdates) {
-      const hasStructuralChanges = output.structuralChanges &&
-                                   (output.structuralChanges.newNodes?.length ||
-                                    output.structuralChanges.newEdges?.length ||
-                                    output.structuralChanges.updatedNodes?.length);
+    // Output from aiTidyUpSelectionFlow is { newPositions: NodeNewPositionSchema[], suggestedParentNode?: { text: string, type: string } }
+    if (output && output.newPositions) {
+      if (output.suggestedParentNode) {
+        // Structural change: new parent node suggested. Send to staging.
+        const newParentNodeId = `staged-parent-${Date.now()}`;
 
-      if (hasStructuralChanges) {
-        // Current behavior: apply layout directly, then structural changes
-        applyLayout(output.layoutUpdates.map(lu => ({id: lu.nodeId, x: lu.x, y: lu.y})));
-        if (output.structuralChanges?.newNodes) {
-          output.structuralChanges.newNodes.forEach(nn => addStoreNode({ text: nn.text, type: nn.type, position: { x: nn.x, y: nn.y }, details: nn.details, parentNode: nn.parentNodeId }));
-        }
-        if (output.structuralChanges?.newEdges) {
-          output.structuralChanges.newEdges.forEach(ne => addStoreEdge({ source: ne.sourceId, target: ne.targetId, label: ne.label }));
-        }
-        if (output.structuralChanges?.updatedNodes) {
-          output.structuralChanges.updatedNodes.forEach(un => updateStoreNode(un.nodeId, { parentNode: un.newParentId }));
-        }
-        toast({ title: "AI Tidy Up Applied", description: "Layout and structural changes have been applied." });
-      } else {
-        // ONLY layout updates, use ghost preview
-        const layoutUpdatesWithDimensions = output.layoutUpdates.map(lu => {
-          const originalNode = nodesToTidy.find(n => n.id === lu.nodeId);
+        // Calculate parent position and dimensions to encompass children
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        output.newPositions.forEach(p => {
+          const originalNode = nodesToTidy.find(n => n.id === p.id);
+          const w = originalNode?.width || DEFAULT_NODE_WIDTH;
+          const h = originalNode?.height || DEFAULT_NODE_HEIGHT;
+          minX = Math.min(minX, p.x);
+          minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x + w);
+          maxY = Math.max(maxY, p.y + h);
+        });
+        const PADDING = 30; // Padding around children for parent
+        const parentWidth = (maxX - minX) + 2 * PADDING;
+        const parentHeight = (maxY - minY) + 2 * PADDING;
+        const parentX = minX - PADDING;
+        const parentY = minY - PADDING;
+
+        const stagedParentNode: ConceptMapNode = {
+          id: newParentNodeId,
+          text: output.suggestedParentNode.text,
+          type: output.suggestedParentNode.type || 'ai-group-parent',
+          position: { x: parentX, y: parentY },
+          width: parentWidth,
+          height: parentHeight,
+          details: `AI suggested parent for ${nodesToTidy.length} nodes.`,
+          childIds: output.newPositions.map(p => p.id), // Tentatively, store will finalize parenting
+        };
+
+        const stagedChildNodes: ConceptMapNode[] = output.newPositions.map(p => {
+          const originalNode = nodesToTidy.find(n => n.id === p.id);
           return {
-            id: lu.nodeId,
+            ...(originalNode as ConceptMapNode), // Spread original properties
+            id: p.id, // Keep original ID
+            x: p.x,
+            y: p.y,
+            parentNode: newParentNodeId, // Assign new staged parent
+            // Ensure width and height are carried over
+            width: originalNode?.width || DEFAULT_NODE_WIDTH,
+            height: originalNode?.height || DEFAULT_NODE_HEIGHT,
+          };
+        });
+
+        useConceptMapStore.getState().setStagedMapData({
+          nodes: [stagedParentNode, ...stagedChildNodes],
+          edges: [], // No new edges suggested by this specific flow, parent-child links are via node.parentNode
+          actionType: 'aiTidyUpComplete', // Use a general type or 'aiTidyUpWithNewParent'
+          originalElementIds: nodesToTidy.map(n => n.id), // IDs of nodes being modified
+        });
+        toast({ title: "AI Tidy Up Suggestion Ready", description: "Review the proposed grouping and layout in the staging area." });
+
+      } else {
+        // ONLY layout updates (newPositions), use ghost preview
+        const layoutUpdatesWithDimensions = output.newPositions.map(lu => {
+          const originalNode = nodesToTidy.find(n => n.id === lu.id);
+          return {
+            id: lu.id,
             x: lu.x,
             y: lu.y,
             width: originalNode?.width || DEFAULT_NODE_WIDTH,
@@ -618,7 +655,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         toast({ title: "Layout Preview Ready", description: "AI Tidy Up proposes new layout. Accept or Cancel." });
       }
     }
-  }, [multiSelectedNodeIds, mapData.nodes, callAIWithStandardFeedback, applyLayout, addStoreNode, addStoreEdge, updateStoreNode, toast]); // Added toast
+  }, [multiSelectedNodeIds, mapData.nodes, callAIWithStandardFeedback, toast]); // Removed direct store manipulation functions
 
   const handleSuggestMapImprovements = useCallback(async () => {
     const currentNodes = mapData.nodes.map(n => ({ id: n.id, text: n.text, details: n.details || "" }));
