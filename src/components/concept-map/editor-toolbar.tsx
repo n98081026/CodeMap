@@ -15,10 +15,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff, // Added Eye, EyeOff for overview toggle
-  Edit3, // Added Edit3 for "Copy & Edit" button
-  FileText as FileTextIcon // Renamed to avoid conflict with component
-} from "lucide-react"; // Added Wand2, SearchPlus, TestTube2
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff,
+  Edit3,
+  FileText as FileTextIcon,
+  MessagesSquare // For "Ask AI About Map"
+} from "lucide-react";
 =======
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText,
@@ -77,9 +78,11 @@ interface EditorToolbarProps {
   isAISuggestingImprovement?: boolean;
   onTestEdgeOverlay?: () => void;
   onToggleOverviewMode?: () => void; // New prop for toggling overview mode
-  isOverviewModeActive?: boolean; // New prop to indicate if overview mode is active
-  onSummarizeMap?: () => void; // New prop for summarizing map
-  isSummarizingMap?: boolean; // New prop for loading state of map summary
+  isOverviewModeActive?: boolean;
+  onSummarizeMap?: () => void;
+  isSummarizingMap?: boolean;
+  onAskQuestionAboutMapContext?: () => void; // New prop for map context Q&A
+  isAskingAboutMapContext?: boolean; // New prop for map context Q&A loading state
 }
 
 export interface ArrangeAction {
@@ -142,9 +145,11 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   isAISuggestingImprovement,
   onTestEdgeOverlay,
   onToggleOverviewMode, // Destructure new prop
-  isOverviewModeActive, // Destructure new prop
-  onSummarizeMap, // Destructure new prop
-  isSummarizingMap, // Destructure new prop
+  isOverviewModeActive,
+  onSummarizeMap,
+  isSummarizingMap,
+  onAskQuestionAboutMapContext, // Destructure new prop
+  isAskingAboutMapContext, // Destructure new prop
 =======
   onTidySelection,
   onSuggestMapImprovements,
@@ -657,6 +662,28 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                isViewOnlyMode ? "Summarize Map (Disabled in View Mode)" :
                isSummarizingMap ? "Summarizing..." :
                "Summarize Current Map (AI)"}
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Ask AI About Map Button */}
+        {onAskQuestionAboutMapContext && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleGenAIClick(onAskQuestionAboutMapContext, "Ask AI About Map")}
+                disabled={isViewOnlyMode || showCopyButton || isAskingAboutMapContext}
+              >
+                {isAskingAboutMapContext ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessagesSquare className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {showCopyButton ? "Log in to use AI tools" :
+               isViewOnlyMode ? "Ask AI About Map (Disabled in View Mode)" :
+               isAskingAboutMapContext ? "AI is thinking..." :
+               "Ask AI About This Map"}
             </TooltipContent>
           </Tooltip>
         )}

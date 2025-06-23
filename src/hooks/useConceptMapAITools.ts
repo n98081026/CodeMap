@@ -21,9 +21,10 @@ import {
   suggestMapImprovementsFlow, type SuggestedImprovements,
   rewriteNodeContent as aiRewriteNodeContent, type RewriteNodeContentInput, type RewriteNodeContentOutput,
   generateMapSummaryFlow, type GenerateMapSummaryInput, type GenerateMapSummaryOutput,
-  askQuestionAboutEdgeFlow, type AskQuestionAboutEdgeInput, type AskQuestionAboutEdgeOutput // Import new flow and types
+  askQuestionAboutEdgeFlow, type AskQuestionAboutEdgeInput, type AskQuestionAboutEdgeOutput,
+  askQuestionAboutMapContextFlow, type AskQuestionAboutMapContextInput, type AskQuestionAboutMapContextOutput // Import new map Q&A flow
 } from '@/ai/flows';
-import type { ConceptMapNode, RFNode, CustomNodeData, ConceptMapData, ConceptMapEdge } from '@/types'; // Added ConceptMapEdge
+import type { ConceptMapNode, RFNode, CustomNodeData, ConceptMapData, ConceptMapEdge } from '@/types';
 import { getNodePlacement } from '@/lib/layout-utils';
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import { useReactFlow } from 'reactflow';
@@ -110,6 +111,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
   const [edgeQuestionContext, setEdgeQuestionContext] = useState<AskQuestionAboutEdgeInput | null>(null);
   const [edgeQuestionAnswer, setEdgeQuestionAnswer] = useState<string | null>(null);
   const [isAskingAboutEdge, setIsAskingAboutEdge] = useState(false);
+
+  // State for Map-Level Q&A
+  const [isMapContextQuestionModalOpen, setIsMapContextQuestionModalOpen] = useState(false);
+  const [mapContextQuestionAnswer, setMapContextQuestionAnswer] = useState<string | null>(null);
+  const [isAskingAboutMapContext, setIsAskingAboutMapContext] = useState(false);
 
 
   const callAIWithStandardFeedback = useCallback(async <I, O>(
@@ -919,6 +925,69 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       setEdgeQuestionContext(null);
       setEdgeQuestionAnswer(null);
       setIsEdgeQuestionModalOpen(false);
+    },
+
+    // Map-Level Q&A handlers
+    openAskQuestionAboutMapContextModal: () => {
+      if (isViewOnlyMode) { toast({ title: "View Only Mode"}); return; }
+      setMapContextQuestionAnswer(null); // Clear previous answer
+      setIsMapContextQuestionModalOpen(true);
+    },
+    handleAskQuestionAboutMapContext: async (question: string) => {
+      const currentMapData = useConceptMapStore.getState().mapData;
+      const currentMapName = useConceptMapStore.getState().mapName;
+
+      if (currentMapData.nodes.length === 0) {
+        toast({ title: "Empty Map", description: "Cannot ask questions about an empty map.", variant: "default" });
+        return;
+      }
+      setIsAskingAboutMapContext(true);
+
+      // Prepare simplified nodes and edges for the AI context
+      const simplifiedNodes = currentMapData.nodes.map(n => ({
+        id: n.id,
+        text: n.text,
+        type: n.type,
+        details: n.details?.substring(0, 200) // Truncate details to save tokens
+      }));
+      const simplifiedEdges = currentMapData.edges.map(e => ({
+        source: e.source,
+        target: e.target,
+        label: e.label
+      }));
+
+      const input: AskQuestionAboutMapContextInput = {
+        nodes: simplifiedNodes,
+        edges: simplifiedEdges,
+        userQuestion: question,
+        mapName: currentMapName,
+      };
+
+      const output = await callAIWithStandardFeedback<AskQuestionAboutMapContextInput, AskQuestionAboutMapContextOutput>(
+        "Ask AI About Map", askQuestionAboutMapContextFlow, input,
+        {
+          loadingMessage: "AI is analyzing the entire map to answer your question...",
+          successTitle: "AI Answer Received",
+          hideSuccessToast: true, // Answer shown in modal
+          processingId: `map-qa-${useConceptMapStore.getState().mapId || 'current'}`
+        }
+      );
+      setIsAskingAboutMapContext(false);
+      if (output?.answer) {
+        setMapContextQuestionAnswer(output.answer);
+      } else if (output?.error) {
+        setMapContextQuestionAnswer(`Error: ${output.error}`);
+      } else {
+        setMapContextQuestionAnswer("AI could not provide an answer for this question about the map.");
+      }
+    },
+    isMapContextQuestionModalOpen,
+    setIsMapContextQuestionModalOpen,
+    mapContextQuestionAnswer,
+    isAskingAboutMapContext,
+    clearMapContextQuestionState: () => {
+      setMapContextQuestionAnswer(null);
+      setIsMapContextQuestionModalOpen(false);
     },
   };
 }

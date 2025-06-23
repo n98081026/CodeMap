@@ -53,7 +53,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
 import { MapSummaryModal } from '@/components/concept-map/map-summary-modal';
-import { AskQuestionAboutEdgeModal } from '@/components/concept-map/AskQuestionAboutEdgeModal'; // Import the new modal
+import { AskQuestionAboutEdgeModal } from '@/components/concept-map/AskQuestionAboutEdgeModal';
+import { AskQuestionAboutMapModal } from '@/components/concept-map/AskQuestionAboutMapModal'; // Import the new map Q&A modal
 import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar';
 import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For CTA
@@ -221,7 +222,10 @@ export default function ConceptMapEditorPage() {
     handleSummarizeMap, isSummarizingMap, mapSummaryResult, isMapSummaryModalOpen, setIsMapSummaryModalOpen, clearMapSummaryResult,
     // Edge Q&A related items from aiToolsHook
     openAskQuestionAboutEdgeModal, handleAskQuestionAboutEdge, isEdgeQuestionModalOpen, setIsEdgeQuestionModalOpen,
-    edgeQuestionContext, edgeQuestionAnswer, isAskingAboutEdge, clearEdgeQuestionState
+    edgeQuestionContext, edgeQuestionAnswer, isAskingAboutEdge, clearEdgeQuestionState,
+    // Map Context Q&A related items from aiToolsHook
+    openAskQuestionAboutMapContextModal, handleAskQuestionAboutMapContext, isMapContextQuestionModalOpen, setIsMapContextQuestionModalOpen,
+    mapContextQuestionAnswer, isAskingAboutMapContext, clearMapContextQuestionState
   } = aiToolsHook;
 
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
@@ -498,9 +502,11 @@ export default function ConceptMapEditorPage() {
           onDagreTidySelection={handleDagreLayoutSelection}
           isDagreTidying={aiToolsHook.isDagreTidying}
           onToggleOverviewMode={handleToggleOverviewMode} // Pass handler
-          isOverviewModeActive={isOverviewModeActive} // Pass state
-          onSummarizeMap={handleSummarizeMap} // Pass handler for summarizing map
-          isSummarizingMap={isSummarizingMap} // Pass loading state for map summary
+          isOverviewModeActive={isOverviewModeActive}
+          onSummarizeMap={handleSummarizeMap}
+          isSummarizingMap={isSummarizingMap}
+          onAskQuestionAboutMapContext={openAskQuestionAboutMapContextModal} // Pass handler for map context Q&A
+          isAskingAboutMapContext={isAskingAboutMapContext} // Pass loading state for map context Q&A
         />
         <EditorGuestCtaBanner routeMapId={routeMapId} />
         <div className="flex-grow relative overflow-hidden">
@@ -586,6 +592,15 @@ export default function ConceptMapEditorPage() {
           isLoading={isAskingAboutEdge}
           answer={edgeQuestionAnswer}
           onCloseModal={clearEdgeQuestionState}
+        />
+        <AskQuestionAboutMapModal
+          isOpen={isMapContextQuestionModalOpen}
+          onOpenChange={setIsMapContextQuestionModalOpen}
+          mapName={mapName}
+          onSubmitQuestion={handleAskQuestionAboutMapContext}
+          isLoading={isAskingAboutMapContext}
+          answer={mapContextQuestionAnswer}
+          onCloseModal={clearMapContextQuestionState}
         />
       </ReactFlowProvider>
     </div>
