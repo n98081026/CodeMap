@@ -385,7 +385,7 @@ The main remaining area for full Supabase connection is:
             - [x] Clicking a module in Overview Mode transitions the main map view to focus on/filter for that module's components. (Implemented)
     - [ ] **Visual Feedback & Progress:**
         - [ ] For long-running AI operations (analysis, suggestions), provide more engaging progress indicators or estimated time remaining.
-        - [ ] Ensure error messages are user-friendly and suggest potential solutions or next steps.
+        - [x] Ensure error messages are user-friendly and suggest potential solutions or next steps. (Enhanced in `callAIWithStandardFeedback`)
 - [ ] **AI Interaction Refinements:**
     - [x] **AI Explanations ("Why?"):**
         - [x] **Suggest Relations:** Modify `suggestRelationsFlow` to include a `reason` field. (Implemented)
@@ -397,7 +397,7 @@ The main remaining area for full Supabase connection is:
     - [x] **Preview for AI Actions (Staging Area for Quick Cluster & Snippet):**
         - [x] Modified `QuickClusterModal` to send its output to `stagedMapData` in `concept-map-store`. (Implemented)
         - [x] Modified `GenerateSnippetModal` to send its output to `stagedMapData`. (Implemented)
-        - [-] Removed/Adjusted `onClusterGenerated` and `onSnippetGenerated` props/handlers in `useConceptMapAITools` as direct map addition is now handled by Staging Area commit. (Assumed implicitly done by modal changes, verification pending)
+        - [x] Removed/Adjusted `onClusterGenerated` and `onSnippetGenerated` props/handlers in `useConceptMapAITools` as direct map addition is now handled by Staging Area commit. (Props removed from modal calls and definitions; hook confirmed clean)
     - [x] **Simplified AI Prompts/Inputs & Enhanced Feedback:**
         - [x] Reviewed and updated UI text (titles, descriptions, placeholders, buttons) in `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `AskQuestionModal` (within `genai-modals.tsx`). (Implemented)
         - [x] Reviewed and updated UI text in `QuickClusterModal`, `GenerateSnippetModal`, `RewriteNodeContentModal`, `RefineSuggestionModal`, `SuggestIntermediateNodeModal`. (Implemented)

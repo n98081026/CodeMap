@@ -203,8 +203,8 @@ export default function ConceptMapEditorPage() {
     openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
     openExpandConceptModal, handleConceptExpanded,
-    openQuickClusterModal, handleClusterGenerated,
-    openGenerateSnippetModal, handleSnippetGenerated,
+    openQuickClusterModal, // handleClusterGenerated removed
+    openGenerateSnippetModal, // handleSnippetGenerated removed
     openAskQuestionModal, handleQuestionAnswered,
     openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
     handleSummarizeSelectedNodes, handleMiniToolbarQuickExpand, handleMiniToolbarRewriteConcise,
@@ -553,8 +553,8 @@ export default function ConceptMapEditorPage() {
         {aiToolsHook.isExtractConceptsModalOpen && !storeIsViewOnlyMode && <ExtractConceptsModal initialText={aiToolsHook.textForExtraction} onConceptsExtracted={aiToolsHook.handleConceptsExtracted} onOpenChange={aiToolsHook.setIsExtractConceptsModalOpen} />}
         {aiToolsHook.isSuggestRelationsModalOpen && !storeIsViewOnlyMode && <SuggestRelationsModal initialConcepts={aiToolsHook.conceptsForRelationSuggestion} onRelationsSuggested={aiToolsHook.handleRelationsSuggested} onOpenChange={aiToolsHook.setIsSuggestRelationsModalOpen} />}
         {aiToolsHook.isExpandConceptModalOpen && !storeIsViewOnlyMode && aiToolsHook.conceptToExpandDetails && (<ExpandConceptModal initialConceptText={aiToolsHook.conceptToExpandDetails.text} existingMapContext={aiToolsHook.mapContextForExpansion} onConceptExpanded={aiToolsHook.handleConceptExpanded} onOpenChange={aiToolsHook.setIsExpandConceptModalOpen} /> )}
-        {aiToolsHook.isQuickClusterModalOpen && !storeIsViewOnlyMode && <QuickClusterModal isOpen={aiToolsHook.isQuickClusterModalOpen} onOpenChange={aiToolsHook.setIsQuickClusterModalOpen} onClusterGenerated={aiToolsHook.handleClusterGenerated} />}
-        {aiToolsHook.isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={aiToolsHook.isGenerateSnippetModalOpen} onOpenChange={aiToolsHook.setIsGenerateSnippetModalOpen} onSnippetGenerated={aiToolsHook.handleSnippetGenerated} />}
+        {aiToolsHook.isQuickClusterModalOpen && !storeIsViewOnlyMode && <QuickClusterModal isOpen={aiToolsHook.isQuickClusterModalOpen} onOpenChange={aiToolsHook.setIsQuickClusterModalOpen} />}
+        {aiToolsHook.isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={aiToolsHook.isGenerateSnippetModalOpen} onOpenChange={aiToolsHook.setIsGenerateSnippetModalOpen} />}
         {aiToolsHook.isAskQuestionModalOpen && !storeIsViewOnlyMode && aiToolsHook.nodeContextForQuestion && <AskQuestionModal nodeContext={aiToolsHook.nodeContextForQuestion} onQuestionAnswered={aiToolsHook.handleQuestionAnswered} onOpenChange={aiToolsHook.setIsAskQuestionModalOpen} />}
         {aiToolsHook.isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && aiToolsHook.nodeContentToRewrite && <RewriteNodeContentModal nodeContent={aiToolsHook.nodeContentToRewrite} onRewriteConfirm={aiToolsHook.handleRewriteNodeContentConfirm} onOpenChange={aiToolsHook.setIsRewriteNodeContentModalOpen} />}
         {aiToolsHook.isRefineModalOpen && aiToolsHook.refineModalInitialData && !storeIsViewOnlyMode && ( <RefineSuggestionModal isOpen={aiToolsHook.isRefineModalOpen} onOpenChange={aiToolsHook.setIsRefineModalOpen} initialData={aiToolsHook.refineModalInitialData} onConfirm={aiToolsHook.handleRefineSuggestionConfirm} /> )}
