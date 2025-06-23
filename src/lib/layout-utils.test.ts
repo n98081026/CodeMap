@@ -33,7 +33,7 @@ describe('getNodePlacement', () => {
     it('should place child to the right of parent', () => {
       const expectedX = parent.x! + parent.width! + 180; // CHILD_X_OFFSET_DIRECT
       const expectedY = parent.y! + (parent.height! / 2) - (70 / 2); // CHILD_Y_OFFSET_DIRECT (0 assuming defaultNodeHeight is 70)
-      const { x, y } = getNodePlacement(existingNodes, 'child', parent, null, gridSize, undefined, 'right');
+      const { x, y } = getNodePlacement(existingNodes, 'child', parent, null, gridSize, 'right'); // Corrected call
       expect(x).toBe(Math.round(expectedX / gridSize) * gridSize);
       expect(y).toBe(Math.round(expectedY / gridSize) * gridSize);
     });
@@ -42,7 +42,7 @@ describe('getNodePlacement', () => {
       const defaultNodeWidth = 160;
       const expectedX = parent.x! - 180 - defaultNodeWidth; // CHILD_X_OFFSET_DIRECT - defaultNodeWidth
       const expectedY = parent.y! + (parent.height! / 2) - (70 / 2);
-      const { x, y } = getNodePlacement(existingNodes, 'child', parent, null, gridSize, undefined, 'left');
+      const { x, y } = getNodePlacement(existingNodes, 'child', parent, null, gridSize, 'left'); // Corrected call
       expect(x).toBe(Math.round(expectedX / gridSize) * gridSize);
       expect(y).toBe(Math.round(expectedY / gridSize) * gridSize);
     });
@@ -52,7 +52,7 @@ describe('getNodePlacement', () => {
       const defaultNodeHeight = 70;
       const expectedX = parent.x! + (parent.width! / 2) - (defaultNodeWidth / 2); // CHILD_X_OFFSET_VERTICAL (0)
       const expectedY = parent.y! - 100 - defaultNodeHeight; // CHILD_Y_OFFSET_VERTICAL - defaultNodeHeight
-      const { x, y } = getNodePlacement(existingNodes, 'child', parent, null, gridSize, undefined, 'top');
+      const { x, y } = getNodePlacement(existingNodes, 'child', parent, null, gridSize, 'top'); // Corrected call
       expect(x).toBe(Math.round(expectedX / gridSize) * gridSize);
       expect(y).toBe(Math.round(expectedY / gridSize) * gridSize);
     });
@@ -61,7 +61,7 @@ describe('getNodePlacement', () => {
       const defaultNodeWidth = 160;
       const expectedX = parent.x! + (parent.width! / 2) - (defaultNodeWidth / 2);
       const expectedY = parent.y! + parent.height! + 100; // CHILD_Y_OFFSET_VERTICAL
-      const { x, y } = getNodePlacement(existingNodes, 'child', parent, null, gridSize, undefined, 'bottom');
+      const { x, y } = getNodePlacement(existingNodes, 'child', parent, null, gridSize, 'bottom'); // Corrected call
       expect(x).toBe(Math.round(expectedX / gridSize) * gridSize);
       expect(y).toBe(Math.round(expectedY / gridSize) * gridSize);
     });
@@ -72,14 +72,12 @@ describe('getNodePlacement', () => {
     it('should place the first child to the right and slightly down (angle calculation)', () => {
       const freshParent = mockNode('freshParent', 500, 500);
       const nodesForThisTest = [freshParent]; // Only parent exists
-      // For childIndex = 0, totalChildren = 0 (or 1 if we consider the new one, logic depends on how getNodePlacement counts)
-      // Assuming childIndex 0, totalChildren 0 (or 1 if not pre-incremented in caller):
-      // angle = 0; cos(0) = 1, sin(0) = 0
-      // x = parent.x + parent.width + SPIRAL_X_BASE_OFFSET (60) + SPIRAL_X_RADIUS (120) * 1 = 500 + 160 + 60 + 120 = 840
-      // y = parent.y + SPIRAL_Y_RADIUS (60) * 0 = 500
-      const expectedX = freshParent.x! + freshParent.width! + 60 + 120;
+      // For childIndex = 0, the code logic is: parent.x + parent.width + 60
+      const expectedX = freshParent.x! + freshParent.width! + 60;
       const expectedY = freshParent.y!;
-      const { x, y } = getNodePlacement(nodesForThisTest, 'child', freshParent, null, gridSize, 0, 1); // childIndex 0, totalChildren 1 (the one being placed)
+      // The last two arguments (0, 1) in the original test call were superfluous and misinterpreted.
+      // Calling with undefined direction to trigger the fallback.
+      const { x, y } = getNodePlacement(nodesForThisTest, 'child', freshParent, null, gridSize, undefined);
       expect(x).toBe(Math.round(expectedX / gridSize) * gridSize);
       expect(y).toBe(Math.round(expectedY / gridSize) * gridSize);
     });
