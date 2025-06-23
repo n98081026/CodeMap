@@ -14,6 +14,7 @@ export interface QuickActionItem {
   variant?: ButtonProps["variant"];
   size?: ButtonProps["size"];
   className?: string;
+  id?: string; // Add optional id for tutorial targeting
 }
 
 interface QuickActionsCardProps {
@@ -45,6 +46,7 @@ export const QuickActionsCard: React.FC<QuickActionsCardProps> = React.memo(func
             variant={action.variant || "default"}
             size={action.size || "lg"}
             className={action.className || "w-full"}
+            id={action.id} // Use the id prop here
           >
             <Link href={action.href}>
               <action.icon className="mr-2 h-5 w-5" /> {action.label}

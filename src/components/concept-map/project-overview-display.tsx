@@ -161,6 +161,40 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
                 <p className="text-sm text-muted-foreground leading-normal">
                   {module.description}
                 </p>
+                {overviewData.moduleConnections && overviewData.moduleConnections.length > 0 && (
+                  <>
+                    {(overviewData.moduleConnections.filter(conn => conn.sourceModule === module.name).length > 0) && (
+                      <div className="mt-3 pt-2 border-t border-border/30">
+                        <h4 className="text-xs font-semibold text-muted-foreground mb-1">Connects to:</h4>
+                        <ul className="list-none space-y-0.5 pl-1">
+                          {overviewData.moduleConnections
+                            .filter(conn => conn.sourceModule === module.name)
+                            .map(conn => (
+                              <li key={`${conn.sourceModule}-to-${conn.targetModule}`} className="text-xs text-muted-foreground/80">
+                                &rarr; {conn.targetModule}
+                                {conn.relationshipDescription && <span className="italic text-muted-foreground/70"> ({conn.relationshipDescription})</span>}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                    {(overviewData.moduleConnections.filter(conn => conn.targetModule === module.name).length > 0) && (
+                      <div className="mt-2 pt-2 border-t border-border/30">
+                        <h4 className="text-xs font-semibold text-muted-foreground mb-1">Connected from:</h4>
+                        <ul className="list-none space-y-0.5 pl-1">
+                          {overviewData.moduleConnections
+                            .filter(conn => conn.targetModule === module.name)
+                            .map(conn => (
+                              <li key={`${conn.sourceModule}-from-${conn.targetModule}`} className="text-xs text-muted-foreground/80">
+                                &larr; {conn.sourceModule}
+                                {conn.relationshipDescription && <span className="italic text-muted-foreground/70"> ({conn.relationshipDescription})</span>}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           ))}

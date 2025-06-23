@@ -509,7 +509,7 @@ export default function ConceptMapEditorPage() {
           isAskingAboutMapContext={isAskingAboutMapContext} // Pass loading state for map context Q&A
         />
         <EditorGuestCtaBanner routeMapId={routeMapId} />
-        <div className="flex-grow relative overflow-hidden">
+        <div id="tutorial-target-map-canvas-wrapper" className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
               <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />

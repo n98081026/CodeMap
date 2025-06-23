@@ -166,6 +166,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const { isAuthenticated, isLoading: authIsLoading } = useAuth(); // Get auth state
   const router = useRouter(); // For redirection
   const currentMapId = useConceptMapStore((s) => s.mapId);
+  const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview); // Access isFetchingOverview
 
 
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
@@ -759,13 +760,24 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 variant="ghost"
                 size="icon"
                 onClick={onToggleOverviewMode}
-                className={cn(isOverviewModeActive && "bg-accent text-accent-foreground")}
-                disabled={isViewOnlyMode || showCopyButton}
+                className={cn(isOverviewModeActive && !isFetchingOverview && "bg-accent text-accent-foreground")}
+                disabled={isViewOnlyMode || showCopyButton || isFetchingOverview}
               >
-                {isOverviewModeActive ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {isFetchingOverview ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : isOverviewModeActive ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{showCopyButton ? "Log in to use Project Overview" : isOverviewModeActive ? "Exit Overview Mode" : "Show Project Overview (AI)"}</TooltipContent>
+            <TooltipContent>
+              {isFetchingOverview ? "AI is generating project overview..." :
+               showCopyButton ? "Log in to use Project Overview" :
+               isOverviewModeActive ? "Exit Overview Mode" :
+               "Show Project Overview (AI)"}
+            </TooltipContent>
           </Tooltip>
         )}
       </div>

@@ -339,6 +339,7 @@ export function ProjectUploadForm() {
                     accept={ACCEPTED_FILE_EXTENSIONS_STRING}
                     onChange={(e) => onChange(e.target.files)}
                     disabled={isBusyOverall}
+                    id="tutorial-target-project-file-input" // Added ID
                     {...fieldProps}
                   />
                 </FormControl>
@@ -381,6 +382,7 @@ export function ProjectUploadForm() {
                     rows={3}
                     className="resize-none"
                     disabled={isBusyOverall}
+                    id="tutorial-target-user-goals-input" // Added ID
                   />
                 </FormControl>
                 <FormDescription className="text-xs">
@@ -434,7 +436,7 @@ export function ProjectUploadForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isBusyOverall || (!form.formState.isValid && !BYPASS_AUTH_FOR_TESTING) || (!form.getValues("projectFile") && !BYPASS_AUTH_FOR_TESTING)}>
+          <Button id="tutorial-target-start-analysis-button" type="submit" className="w-full" disabled={isBusyOverall || (!form.formState.isValid && !BYPASS_AUTH_FOR_TESTING) || (!form.getValues("projectFile") && !BYPASS_AUTH_FOR_TESTING)}>
             {isUploadingFileWithHook ? <FileUp className="mr-2 h-4 w-4 animate-pulse" /> : isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             {isUploadingFileWithHook ? "Uploading..." : isSubmittingMetadata ? "Submitting..." : isProcessingAIInDialog ? "AI Processing..." : "Submit Project"}
           </Button>

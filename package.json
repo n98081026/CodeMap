@@ -86,6 +86,8 @@
     "genkit-cli": "^1.8.0",
     "jsdom": "^26.1.0",
     "postcss": "^8",
+    "react-floater": "^0.9.4",
+    "react-joyride": "^2.9.3",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",

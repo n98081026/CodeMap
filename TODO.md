@@ -431,10 +431,10 @@ The main remaining area for full Supabase connection is:
             - [x] Design UI for asking questions about a selected edge (e.g., in `PropertiesInspector` or context menu). (Implemented in Properties Inspector)
             - [x] Create `askQuestionAboutEdgeFlow`: Input (source node, target node, edge label, user question), Output (answer). (Implemented)
             - [x] Integrate with UI. (Implemented via modal and hook)
-        - [ ] **Multi-Node/Map-Level Q&A:**
-            - [ ] Design UI for broader questions (e.g., a persistent chat icon, or a dedicated Q&A panel).
-            - [ ] Create `askQuestionAboutMapContextFlow`: Input (current map nodes/edges or summary, user question), Output (answer).
-            - [ ] This flow might need to be more sophisticated, potentially using RAG with project documentation or more extensive map data.
+        - [x] **Multi-Node/Map-Level Q&A:** (Implemented)
+            - [x] Design UI for broader questions (e.g., a persistent chat icon, or a dedicated Q&A panel). (Implemented via Toolbar button and Modal)
+            - [x] Create `askQuestionAboutMapContextFlow`: Input (current map nodes/edges or summary, user question), Output (answer). (Implemented)
+            - [x] Integrate with UI. (Implemented via modal and hook)
     - [ ] **Comprehensive AI Action Previews (Beyond Expand Concept):**
         - [ ] **Phase 1: Review & Design (Current Focus)**
             - [x] **1.1: Review AI Tools & Identify Preview Needs**
