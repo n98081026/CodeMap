@@ -75,7 +75,7 @@ const expandConceptFlowSteps: TutorialStep[] = [
     title: 'AI Tool: Expand Concept',
     disableBeacon: true,
     pagePath: '/application/concept-maps/editor',
-    isNavigationTrigger: false, // Explicitly false or remove: user right-clicks, Joyride doesn't trigger this.
+    isNavigationTrigger: false,
   },
   {
     target: '#tutorial-target-expand-concept-modal',
@@ -93,10 +93,58 @@ const expandConceptFlowSteps: TutorialStep[] = [
     isNavigationTrigger: true,
   },
   {
-    target: '.react-flow__node.is-ghost-node:first-of-type', // Updated selector
+    target: '.react-flow__node.is-ghost-node:first-of-type',
     content: "See those new 'ghost' nodes? The AI has suggested related concepts. Click on a ghost node to accept it, or use the controls that appear when you hover over the original node to accept all or cancel.",
     placement: 'bottom',
     title: 'Review AI Suggestions',
+    pagePath: '/application/concept-maps/editor',
+  },
+];
+
+const mapNavigationFlowSteps: TutorialStep[] = [
+  {
+    target: '#tutorial-target-map-canvas-wrapper',
+    content: "You can pan the map by clicking and dragging on an empty area of the canvas. Use your scroll wheel to zoom in and out.",
+    placement: 'center',
+    title: 'Navigating the Map',
+    disableBeacon: true,
+    pagePath: '/application/concept-maps/editor',
+  },
+  {
+    target: '.react-flow__node:first-of-type',
+    content: "Click on any node (like this one) to select it. This will also show available actions for the node.",
+    placement: 'right',
+    title: 'Selecting Elements',
+    pagePath: '/application/concept-maps/editor',
+    // isNavigationTrigger: true, // User clicks node, then "Next" on tooltip.
+  },
+  {
+    target: '#tutorial-target-toggle-properties-button', // Placeholder - NEEDS ID IN EditorToolbar.tsx
+    content: "When a node or edge is selected, its details appear in the 'Properties Inspector'. Click this button to open it if it's not already visible.",
+    placement: 'bottom',
+    title: 'Open Properties Inspector',
+    pagePath: '/application/concept-maps/editor',
+    // isNavigationTrigger: true, // User clicks button, then "Next"
+  },
+  {
+    target: '#nodeLabel', // Assumes PropertiesInspector is open and a node is selected
+    content: "Here in the Properties Inspector, you can see and change the node's label (its main text).",
+    placement: 'left',
+    title: 'Node Label',
+    pagePath: '/application/concept-maps/editor',
+  },
+  {
+    target: '#nodeDetails', // Assumes PropertiesInspector is open and a node is selected
+    content: "And here you can view or edit more detailed information or descriptions about the selected node.",
+    placement: 'left',
+    title: 'Node Details',
+    pagePath: '/application/concept-maps/editor',
+  },
+  {
+    target: 'body',
+    content: "Great! You've learned the basics of navigating the map and inspecting elements. Feel free to explore other properties and AI tools. This concludes our basic tour.",
+    placement: 'center',
+    title: 'Tour Complete!',
     pagePath: '/application/concept-maps/editor',
   },
 ];
@@ -105,48 +153,51 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
-  // TEMPORARILY SET TO EXPAND_CONCEPT_FLOW_STEPS FOR DEVELOPMENT
-  // In a real app, this would be managed by a global state or prop
-  const activeSteps = expandConceptFlowSteps;
+  // TEMPORARILY SET TO MAP_NAVIGATION_FLOW_STEPS FOR DEVELOPMENT
+  const activeSteps = mapNavigationFlowSteps;
+  // const activeSteps = expandConceptFlowSteps;
   // const activeSteps = projectUploadFlowSteps;
 
   const { resolvedTheme } = useTheme();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (activeSteps.length > 0 && pathname.startsWith(activeSteps[0].pagePath!)) {
-      console.log(`Tutorial: Auto-starting active tour '${activeSteps[0].title}' on initial page: ${pathname}`);
-      setStepIndex(0);
-      setRun(true);
-    } else if (activeSteps.length > 0) {
-      const matchingStepIndex = activeSteps.findIndex(step => step.pagePath && pathname.startsWith(step.pagePath));
-      if (matchingStepIndex !== -1) {
-        const stepTarget = activeSteps[matchingStepIndex].target;
-        if (typeof stepTarget === 'string' && document.querySelector(stepTarget)) {
-          console.log(`Tutorial: Attempting to resume active tour at step ${matchingStepIndex} on path ${pathname}`);
-          setStepIndex(matchingStepIndex);
-          setRun(true);
-        } else if (typeof stepTarget !== 'string') {
-           console.log(`Tutorial: Attempting to resume active tour at general step ${matchingStepIndex} on path ${pathname}`);
-           setStepIndex(matchingStepIndex);
-           setRun(true);
+    // This effect tries to start or resume the tour when the pathname or activeSteps change.
+    // It specifically checks if the current page matches the expected page for the *current stepIndex*.
+    if (activeSteps.length > 0 && stepIndex < activeSteps.length && stepIndex >= 0) {
+        const currentStepConfig = activeSteps[stepIndex];
+        const onCorrectPageForCurrentStep = currentStepConfig.pagePath && pathname.startsWith(currentStepConfig.pagePath);
+
+        if (onCorrectPageForCurrentStep) {
+            if (!run) { // Only attempt to start/resume if not already running
+                const targetElement = typeof currentStepConfig.target === 'string' ? document.querySelector(currentStepConfig.target) : true;
+                if (targetElement) {
+                    console.log(`Tutorial: Attempting to start/resume active tour at step ${stepIndex} ('${currentStepConfig.target}') on path ${pathname}.`);
+                    setTimeout(() => setRun(true), 150);
+                } else {
+                    console.log(`Tutorial: On correct page for step ${stepIndex}, but target '${currentStepConfig.target}' not found yet.`);
+                }
+            }
+        } else if (run) { // If running but on wrong page for current step, pause.
+             console.log(`Tutorial: Pausing tour. Not on correct page for step ${stepIndex}. Expected: ${currentStepConfig.pagePath}, Current: ${pathname}`);
+             setRun(false);
         }
-      }
+    } else if (run) { // If stepIndex is out of bounds but tour is running, stop it.
+        console.log("Tutorial: stepIndex out of bounds or no activeSteps, stopping tour.");
+        setRun(false);
+        setStepIndex(0);
     }
-  }, [pathname, activeSteps]);
+  }, [pathname, activeSteps, stepIndex, run]);
+
 
   const handleJoyrideCallback = useCallback((data: CallBackProps) => {
     const { action, index, status, type, step } = data;
-    if (!activeSteps || index < 0 || index >= activeSteps.length) {
-        console.warn(`Tutorial: Invalid step index ${index} or activeSteps not ready.`);
-        if (status === STATUS.ERROR || status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-            setRun(false); setStepIndex(0);
-        }
-        return;
-    }
-    const currentStepConfig = activeSteps[index] as TutorialStep;
+    if (!activeSteps || activeSteps.length === 0) return; // Guard against no steps
 
-    console.log(`Tutorial Callback: Type: ${type}, Action: ${action}, Status: ${status}, Index: ${index}, Step Target: ${step.target}`);
+    // Use a local variable for the current step config if valid
+    const currentStepConfig = (index >= 0 && index < activeSteps.length) ? activeSteps[index] as TutorialStep : null;
+
+    console.log(`Tutorial Callback: Type: ${type}, Action: ${action}, Status: ${status}, Index: ${index}, Step Target: ${step?.target}`);
 
     if (type === EVENTS.STEP_AFTER) {
       const nextStepUserWouldTake = index + (action === ACTIONS.PREV ? -1 : 1);
@@ -164,13 +215,16 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
         } else if (action === ACTIONS.PREV) {
              if (nextStepUserWouldTake >= 0) {
                 setStepIndex(nextStepUserWouldTake);
+            } else {
+                // Optionally handle trying to go "back" from the first step
+                console.log("Tutorial: At the first step, cannot go back further.");
             }
         } else if (action === ACTIONS.CLOSE || action === ACTIONS.RESET) {
              console.log('Tutorial: Tour closed or reset by user.');
              setRun(false); setStepIndex(0);
         }
     } else if (type === EVENTS.TARGET_NOT_FOUND) {
-      console.warn(`Tutorial: Target not found for step ${index} ('${step.target}'). Current path: ${pathname}. Expected path: ${currentStepConfig?.pagePath}. Pausing tour.`);
+      console.warn(`Tutorial: Target not found for step ${index} ('${step?.target}'). Current path: ${pathname}. Expected path: ${currentStepConfig?.pagePath}. Pausing tour.`);
       setRun(false);
     } else if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       console.log('Tutorial: Tour finished or skipped.');
@@ -182,26 +236,20 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
       console.error('Tutorial: Joyride error: ', data);
       setRun(false); setStepIndex(0);
     }
-  }, [activeSteps, pathname]);
+  }, [activeSteps, pathname]); // Removed stepIndex from deps of callback as it's managed by setStepIndex
 
+  // This useEffect handles the initial start of the tour when the component mounts
+  // and the user is on the page of the first step of the active tutorial.
   useEffect(() => {
-    if (!run && activeSteps.length > 0 && stepIndex < activeSteps.length && stepIndex >= 0) {
-      const currentStepConfig = activeSteps[stepIndex] as TutorialStep;
-      const onCorrectPage = currentStepConfig.pagePath && pathname.startsWith(currentStepConfig.pagePath);
-
-      if (onCorrectPage) {
-        const targetElement = typeof currentStepConfig.target === 'string' ? document.querySelector(currentStepConfig.target) : true;
-        if (targetElement) {
-          console.log(`Tutorial: Resuming/Starting active tour at step ${stepIndex} ('${currentStepConfig.target}') on path ${pathname}.`);
-          setTimeout(() => setRun(true), 150); // Increased timeout slightly for dynamic targets
-        } else {
-          console.log(`Tutorial: On correct page for step ${stepIndex} of active tour, but target '${currentStepConfig.target}' not found yet.`);
+    if (activeSteps.length > 0 && pathname.startsWith(activeSteps[0].pagePath!) && stepIndex === 0 && !run ) {
+        const firstStepTarget = activeSteps[0].target;
+        if (typeof firstStepTarget === 'string' && document.querySelector(firstStepTarget) || typeof firstStepTarget !== 'string') {
+            console.log(`Tutorial: Initializing and starting active tour '${activeSteps[0].title}' on page: ${pathname}.`);
+            setTimeout(() => setRun(true), 200); // Delay to ensure page is settled
         }
-      } else {
-        console.log(`Tutorial: Not on correct page for step ${stepIndex} of active tour. Expected: ${currentStepConfig.pagePath}, Current: ${pathname}`);
-      }
     }
-  }, [run, stepIndex, activeSteps, pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, activeSteps]); // Only run when pathname or activeSteps definition changes for initial load
 
   const getJoyrideStyles = (theme: string | undefined) => {
     const isDark = theme === 'dark';

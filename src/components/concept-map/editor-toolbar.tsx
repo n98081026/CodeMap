@@ -728,6 +728,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
+              id="tutorial-target-toggle-properties-button" // Added ID for tutorial
               variant="ghost"
               size="icon"
               onClick={onToggleProperties}
