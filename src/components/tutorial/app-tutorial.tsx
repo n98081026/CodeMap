@@ -1,17 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react'; // Removed useState as it's now from store
 import Joyride, { Step as JoyrideStep, CallBackProps, EVENTS, ACTIONS, STATUS } from 'react-joyride';
 import { useTheme } from 'next-themes';
 import { usePathname } from 'next/navigation';
+import useTutorialStore, { type TutorialStep } from '@/stores/tutorial-store'; // Import the store and TutorialStep type
 
-interface TutorialStep extends JoyrideStep {
-  pagePath?: string;
-  isNavigationTrigger?: boolean;
-}
-
-interface AppTutorialProps {}
-
+// Define tutorial flows (could also be imported from a separate definitions file)
 const projectUploadFlowSteps: TutorialStep[] = [
   {
     target: '#tutorial-target-new-project-button',
@@ -50,6 +45,7 @@ const projectUploadFlowSteps: TutorialStep[] = [
     placement: 'center',
     title: 'Processing Your Project',
     pagePath: '/application/concept-maps/editor',
+    isModalTrigger: true, // Special handling: this step waits for navigation AND content loading
   },
   {
     target: '#tutorial-target-map-canvas-wrapper',
@@ -75,7 +71,7 @@ const expandConceptFlowSteps: TutorialStep[] = [
     title: 'AI Tool: Expand Concept',
     disableBeacon: true,
     pagePath: '/application/concept-maps/editor',
-    isNavigationTrigger: false,
+    isModalTrigger: true, // User needs to open context menu, then modal
   },
   {
     target: '#tutorial-target-expand-concept-modal',
@@ -90,7 +86,7 @@ const expandConceptFlowSteps: TutorialStep[] = [
     placement: 'bottom',
     title: 'Generate Ideas',
     pagePath: '/application/concept-maps/editor',
-    isNavigationTrigger: true,
+    isNavigationTrigger: true, // This closes modal & triggers AI, results appear on canvas
   },
   {
     target: '.react-flow__node.is-ghost-node:first-of-type',
@@ -116,25 +112,25 @@ const mapNavigationFlowSteps: TutorialStep[] = [
     placement: 'right',
     title: 'Selecting Elements',
     pagePath: '/application/concept-maps/editor',
-    // isNavigationTrigger: true, // User clicks node, then "Next" on tooltip.
+    isModalTrigger: true, // User needs to select a node, then properties inspector might show up
   },
   {
-    target: '#tutorial-target-toggle-properties-button', // Placeholder - NEEDS ID IN EditorToolbar.tsx
+    target: '#tutorial-target-toggle-properties-button',
     content: "When a node or edge is selected, its details appear in the 'Properties Inspector'. Click this button to open it if it's not already visible.",
     placement: 'bottom',
     title: 'Open Properties Inspector',
     pagePath: '/application/concept-maps/editor',
-    // isNavigationTrigger: true, // User clicks button, then "Next"
+    isModalTrigger: true, // User might need to click this to open the panel
   },
   {
-    target: '#nodeLabel', // Assumes PropertiesInspector is open and a node is selected
+    target: '#nodeLabel',
     content: "Here in the Properties Inspector, you can see and change the node's label (its main text).",
     placement: 'left',
     title: 'Node Label',
     pagePath: '/application/concept-maps/editor',
   },
   {
-    target: '#nodeDetails', // Assumes PropertiesInspector is open and a node is selected
+    target: '#nodeDetails',
     content: "And here you can view or edit more detailed information or descriptions about the selected node.",
     placement: 'left',
     title: 'Node Details',
@@ -149,107 +145,123 @@ const mapNavigationFlowSteps: TutorialStep[] = [
   },
 ];
 
-const AppTutorial: React.FC<AppTutorialProps> = () => {
-  const [run, setRun] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
+interface AppTutorialProps {}
 
-  // TEMPORARILY SET TO MAP_NAVIGATION_FLOW_STEPS FOR DEVELOPMENT
-  const activeSteps = mapNavigationFlowSteps;
-  // const activeSteps = expandConceptFlowSteps;
-  // const activeSteps = projectUploadFlowSteps;
+const AppTutorial: React.FC<AppTutorialProps> = () => {
+  const {
+    activeTutorialKey,
+    currentStepIndex,
+    isTutorialRunning,
+    allTutorialFlows,
+    isWaitingForNextStepTarget,
+    initializeTutorials,
+    startOrResumeTutorial,
+    stopTutorial,
+    nextStep,
+    prevStep,
+    setTutorialStep,
+    setIsWaitingForNextStepTarget
+  } = useTutorialStore();
+
+  const activeSteps = activeTutorialKey ? allTutorialFlows[activeTutorialKey] : [];
 
   const { resolvedTheme } = useTheme();
   const pathname = usePathname();
 
+  // Initialize tutorial definitions in the store once
   useEffect(() => {
-    // This effect tries to start or resume the tour when the pathname or activeSteps change.
-    // It specifically checks if the current page matches the expected page for the *current stepIndex*.
-    if (activeSteps.length > 0 && stepIndex < activeSteps.length && stepIndex >= 0) {
-        const currentStepConfig = activeSteps[stepIndex];
-        const onCorrectPageForCurrentStep = currentStepConfig.pagePath && pathname.startsWith(currentStepConfig.pagePath);
+    initializeTutorials({
+      projectUpload: projectUploadFlowSteps,
+      expandConcept: expandConceptFlowSteps,
+      mapNavigation: mapNavigationFlowSteps,
+      // Add other flows here
+    });
+    // Attempt to auto-start the main onboarding tutorial if not completed
+    // This will be refined in the "Tutorial Triggering Logic" step
+    // For now, let's try to start 'projectUpload' if no other tutorial is active and it's not completed.
+    // This effect now depends on isHydrated from the store.
+  }, [initializeTutorials]);
 
-        if (onCorrectPageForCurrentStep) {
-            if (!run) { // Only attempt to start/resume if not already running
-                const targetElement = typeof currentStepConfig.target === 'string' ? document.querySelector(currentStepConfig.target) : true;
-                if (targetElement) {
-                    console.log(`Tutorial: Attempting to start/resume active tour at step ${stepIndex} ('${currentStepConfig.target}') on path ${pathname}.`);
-                    setTimeout(() => setRun(true), 150);
-                } else {
-                    console.log(`Tutorial: On correct page for step ${stepIndex}, but target '${currentStepConfig.target}' not found yet.`);
-                }
-            }
-        } else if (run) { // If running but on wrong page for current step, pause.
-             console.log(`Tutorial: Pausing tour. Not on correct page for step ${stepIndex}. Expected: ${currentStepConfig.pagePath}, Current: ${pathname}`);
-             setRun(false);
-        }
-    } else if (run) { // If stepIndex is out of bounds but tour is running, stop it.
-        console.log("Tutorial: stepIndex out of bounds or no activeSteps, stopping tour.");
-        setRun(false);
-        setStepIndex(0);
+  // Auto-start logic, runs after hydration and if no tutorial is already active
+  useEffect(() => {
+    if (isHydrated && !activeTutorialKey && !completedTutorials.includes('projectUpload')) {
+      if (projectUploadFlowSteps.length > 0 && projectUploadFlowSteps[0].pagePath && pathname.startsWith(projectUploadFlowSteps[0].pagePath)) {
+        console.log("Tutorial: Auto-triggering 'projectUpload' flow.");
+        startOrResumeTutorial('projectUpload');
+      }
     }
-  }, [pathname, activeSteps, stepIndex, run]);
+  }, [isHydrated, activeTutorialKey, completedTutorials, pathname, startOrResumeTutorial]);
 
 
   const handleJoyrideCallback = useCallback((data: CallBackProps) => {
     const { action, index, status, type, step } = data;
-    if (!activeSteps || activeSteps.length === 0) return; // Guard against no steps
 
-    // Use a local variable for the current step config if valid
-    const currentStepConfig = (index >= 0 && index < activeSteps.length) ? activeSteps[index] as TutorialStep : null;
+    if (!activeSteps || activeSteps.length === 0 || !activeTutorialKey) {
+        if (status === STATUS.ERROR || status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+             stopTutorial();
+        }
+        return;
+    }
+    const currentStepConfig = activeSteps[currentStepIndex] as TutorialStep; // Use store's index
 
-    console.log(`Tutorial Callback: Type: ${type}, Action: ${action}, Status: ${status}, Index: ${index}, Step Target: ${step?.target}`);
+    console.log(`Tutorial Callback: Type: ${type}, Action: ${action}, Status: ${status}, Index: ${index} (Joyride), StoreIndex: ${currentStepIndex}, Step Target: ${step?.target}`);
 
     if (type === EVENTS.STEP_AFTER) {
-      const nextStepUserWouldTake = index + (action === ACTIONS.PREV ? -1 : 1);
         if (action === ACTIONS.NEXT) {
-            if (currentStepConfig?.isNavigationTrigger) {
-                console.log(`Tutorial: User clicked Next on a navigation/action trigger step (${index}). Expecting action to resolve. Pausing tour.`);
-                setRun(false);
-            }
-            if (nextStepUserWouldTake >= 0 && nextStepUserWouldTake < activeSteps.length) {
-                setStepIndex(nextStepUserWouldTake);
-            } else if (nextStepUserWouldTake >= activeSteps.length) {
-                console.log('Tutorial: Reached end of current flow via NEXT.');
-                setRun(false); setStepIndex(0);
-            }
+            nextStep(); // Let the store handle logic for advancing
         } else if (action === ACTIONS.PREV) {
-             if (nextStepUserWouldTake >= 0) {
-                setStepIndex(nextStepUserWouldTake);
-            } else {
-                // Optionally handle trying to go "back" from the first step
-                console.log("Tutorial: At the first step, cannot go back further.");
-            }
+            prevStep(); // Let the store handle logic for going back
         } else if (action === ACTIONS.CLOSE || action === ACTIONS.RESET) {
              console.log('Tutorial: Tour closed or reset by user.');
-             setRun(false); setStepIndex(0);
+             stopTutorial();
         }
     } else if (type === EVENTS.TARGET_NOT_FOUND) {
-      console.warn(`Tutorial: Target not found for step ${index} ('${step?.target}'). Current path: ${pathname}. Expected path: ${currentStepConfig?.pagePath}. Pausing tour.`);
-      setRun(false);
+      console.warn(`Tutorial: Target not found for step ${currentStepIndex} ('${step?.target}'). Current path: ${pathname}. Expected path: ${currentStepConfig?.pagePath}. Pausing tour.`);
+      setIsWaitingForNextStepTarget(true); // Inform store we are waiting
+      useTutorialStore.setState({ isTutorialRunning: false }); // Directly pause Joyride via its 'run' prop
     } else if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-      console.log('Tutorial: Tour finished or skipped.');
-      setRun(false); setStepIndex(0);
-      // localStorage.setItem('someTutorialFlowCompleted', 'true');
+      console.log(`Tutorial: Tour '${activeTutorialKey}' finished or skipped.`);
+      stopTutorial(status === STATUS.FINISHED); // Mark as complete if finished
     } else if (type === EVENTS.TOUR_START) {
       console.log('Tutorial: Tour started.');
+      setIsWaitingForNextStepTarget(false);
     } else if (type === EVENTS.ERROR || status === STATUS.ERROR) {
       console.error('Tutorial: Joyride error: ', data);
-      setRun(false); setStepIndex(0);
+      stopTutorial();
     }
-  }, [activeSteps, pathname]); // Removed stepIndex from deps of callback as it's managed by setStepIndex
+  }, [activeSteps, activeTutorialKey, currentStepIndex, pathname, nextStep, prevStep, stopTutorial, setIsWaitingForNextStepTarget]);
 
-  // This useEffect handles the initial start of the tour when the component mounts
-  // and the user is on the page of the first step of the active tutorial.
+  // Effect to resume tour when target becomes available or page changes
   useEffect(() => {
-    if (activeSteps.length > 0 && pathname.startsWith(activeSteps[0].pagePath!) && stepIndex === 0 && !run ) {
-        const firstStepTarget = activeSteps[0].target;
-        if (typeof firstStepTarget === 'string' && document.querySelector(firstStepTarget) || typeof firstStepTarget !== 'string') {
-            console.log(`Tutorial: Initializing and starting active tour '${activeSteps[0].title}' on page: ${pathname}.`);
-            setTimeout(() => setRun(true), 200); // Delay to ensure page is settled
+    if (isWaitingForNextStepTarget && activeSteps.length > 0 && currentStepIndex < activeSteps.length) {
+      const currentStepConfig = activeSteps[currentStepIndex] as TutorialStep;
+      const onCorrectPage = currentStepConfig.pagePath && pathname.startsWith(currentStepConfig.pagePath);
+
+      if (onCorrectPage) {
+        const targetElement = typeof currentStepConfig.target === 'string' ? document.querySelector(currentStepConfig.target) : true;
+        if (targetElement) {
+          console.log(`Tutorial: Target for step ${currentStepIndex} ('${currentStepConfig.target}') found on path ${pathname}. Resuming.`);
+          setIsWaitingForNextStepTarget(false);
+          useTutorialStore.setState({ isTutorialRunning: true }); // Resume Joyride
+        } else {
+          console.log(`Tutorial: Waiting. On correct page for step ${currentStepIndex}, but target '${currentStepConfig.target}' not found yet.`);
+        }
+      } else {
+         console.log(`Tutorial: Waiting. Not on correct page for step ${currentStepIndex}. Expected: ${currentStepConfig.pagePath}, Current: ${pathname}`);
+      }
+    } else if (!isTutorialRunning && activeTutorialKey && activeSteps.length > 0 && currentStepIndex < activeSteps.length) {
+        // This handles initial start on a specific page if conditions were met by startOrResumeTutorial
+        const currentStepConfig = activeSteps[currentStepIndex] as TutorialStep;
+        const onCorrectPage = currentStepConfig.pagePath && pathname.startsWith(currentStepConfig.pagePath);
+        if (onCorrectPage) {
+             const targetElement = typeof currentStepConfig.target === 'string' ? document.querySelector(currentStepConfig.target) : true;
+             if (targetElement) {
+                 console.log(`Tutorial: Initializing run for step ${currentStepIndex} on ${pathname}`);
+                 useTutorialStore.setState({ isTutorialRunning: true });
+             }
         }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, activeSteps]); // Only run when pathname or activeSteps definition changes for initial load
+  }, [pathname, currentStepIndex, activeSteps, isWaitingForNextStepTarget, isTutorialRunning, activeTutorialKey, setIsWaitingForNextStepTarget]);
 
   const getJoyrideStyles = (theme: string | undefined) => {
     const isDark = theme === 'dark';
@@ -276,15 +288,15 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
 
   const joyrideStyles = getJoyrideStyles(resolvedTheme);
 
-  if (!activeSteps || activeSteps.length === 0) {
+  if (!activeSteps || activeSteps.length === 0 || !isTutorialRunning) {
     return null;
   }
 
   return (
     <Joyride
       steps={activeSteps}
-      run={run}
-      stepIndex={stepIndex}
+      run={isTutorialRunning}
+      stepIndex={currentStepIndex}
       continuous={true}
       showProgress={true}
       showSkipButton={true}
