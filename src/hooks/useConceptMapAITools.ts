@@ -358,19 +358,66 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             processingId: parentNodeId
         }
     );
+
     if (output && output.expandedIdeas && output.expandedIdeas.length > 0) {
-        const mappedPreviewNodes = output.expandedIdeas.map((idea, index:number) => ({
-            id: `preview-exp-${parentNodeId}-${Date.now()}-${index}`,
-            text: idea.text,
-            relationLabel: idea.relationLabel || 'related to',
-            details: idea.reasoning ? `AI Rationale: ${idea.reasoning}` : '',
-        }));
-        setConceptExpansionPreview({ parentNodeId, previewNodes: mappedPreviewNodes });
-    } else if(output) {
+        const parentNode = mapData.nodes.find(n => n.id === parentNodeId);
+        if (!parentNode) {
+            toast({ title: "Error", description: "Parent node for expansion not found.", variant: "destructive" });
+            return null;
+        }
+
+        const stagedNodes: ConceptMapNode[] = [];
+        const stagedEdges: ConceptMapEdge[] = [];
+        const existingNodesForPlacement = [...mapData.nodes]; // Use a snapshot for placement calculation
+
+        output.expandedIdeas.forEach((idea, index) => {
+            const newNodeId = `staged-exp-${parentNodeId}-${Date.now()}-${index}`;
+            const position = getNodePlacement(
+                existingNodesForPlacement, // Pass current map nodes + already generated staged nodes in this batch
+                'child', // type
+                parentNode,    // parentNode
+                null,          // No specific target sibling for generic child placement
+                GRID_SIZE_FOR_AI_PLACEMENT, // gridSize
+                index,         // index for distribution
+                output.expandedIdeas.length // total siblings for distribution
+            );
+
+            const newNode: ConceptMapNode = {
+                id: newNodeId,
+                text: idea.text,
+                details: idea.reasoning ? `AI Rationale: ${idea.reasoning}` : (idea.details || ''),
+                type: 'ai-expanded',
+                position,
+                width: DEFAULT_NODE_WIDTH,
+                height: DEFAULT_NODE_HEIGHT,
+                childIds: [],
+            };
+            stagedNodes.push(newNode);
+            existingNodesForPlacement.push(newNode); // Add to temp list for subsequent placements
+
+            stagedEdges.push({
+                id: `staged-exp-edge-${parentNodeId}-${newNodeId}-${Date.now()}`,
+                source: parentNodeId,
+                target: newNodeId,
+                label: idea.relationLabel || 'related to',
+            });
+        });
+
+        setStagedMapData({
+            nodes: stagedNodes,
+            edges: stagedEdges,
+            actionType: 'expandConcept',
+            originalElementId: parentNodeId,
+        });
+        // Clear the old custom preview system state if it was set
         setConceptExpansionPreview(null);
+        toast({ title: "AI Suggestions Ready", description: `${stagedNodes.length} new ideas sent to the Staging Area for review.` });
+    } else if (output) { // AI ran but no ideas
+        setConceptExpansionPreview(null);
+        toast({ title: "Expand Concept", description: "AI did not find any specific concepts to expand with.", variant: "default" });
     }
     return !!output;
-  }, [isViewOnlyMode, toast, conceptToExpandDetails, setConceptExpansionPreview, callAIWithStandardFeedback]);
+  }, [isViewOnlyMode, toast, conceptToExpandDetails, mapData.nodes, callAIWithStandardFeedback, setStagedMapData, setConceptExpansionPreview]);
 
   const openAskQuestionModal = useCallback((nodeId: string) => {
     if (isViewOnlyMode) { toast({ title: "View Only Mode" }); return; }
@@ -495,18 +542,55 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             processingId: nodeId
         }
     );
+
     if (output && output.expandedIdeas && output.expandedIdeas.length > 0) {
-        const idea = output.expandedIdeas[0];
-        const mappedPreviewNode = {
-          id: `preview-qexp-${nodeId}-${Date.now()}`, text: idea.text,
-          relationLabel: idea.relationLabel || 'related to',
-          details: idea.reasoning ? `AI Rationale: ${idea.reasoning}` : (idea.details || ''),
-        };
-        setConceptExpansionPreview({ parentNodeId: nodeId, previewNodes: [mappedPreviewNode] });
-    } else if (output) {
+        const parentNode = sourceNode; // Already fetched
+        const stagedNodes: ConceptMapNode[] = [];
+        const stagedEdges: ConceptMapEdge[] = [];
+        const existingNodesForPlacement = [...mapData.nodes];
+
+        output.expandedIdeas.forEach((idea, index) => { // Should typically be one idea for quick expand
+            const newNodeId = `staged-qexp-${parentNode.id}-${Date.now()}-${index}`;
+            const position = getNodePlacement(
+                existingNodesForPlacement, 'child', parentNode, null,
+                GRID_SIZE_FOR_AI_PLACEMENT, index, output.expandedIdeas.length
+            );
+
+            const newNode: ConceptMapNode = {
+                id: newNodeId,
+                text: idea.text,
+                details: idea.reasoning ? `AI Rationale: ${idea.reasoning}` : (idea.details || ''),
+                type: 'ai-expanded', // Consistent type
+                position,
+                width: DEFAULT_NODE_WIDTH,
+                height: DEFAULT_NODE_HEIGHT,
+                childIds: [],
+            };
+            stagedNodes.push(newNode);
+            existingNodesForPlacement.push(newNode);
+
+            stagedEdges.push({
+                id: `staged-qexp-edge-${parentNode.id}-${newNodeId}-${Date.now()}`,
+                source: parentNode.id,
+                target: newNodeId,
+                label: idea.relationLabel || 'related to',
+            });
+        });
+
+        setStagedMapData({
+            nodes: stagedNodes,
+            edges: stagedEdges,
+            actionType: 'expandConcept', // Can use the same actionType
+            originalElementId: parentNode.id,
+        });
+        setConceptExpansionPreview(null); // Clear any old preview style
+        toast({ title: "AI Suggestion Ready", description: `${stagedNodes.length} new idea(s) sent to Staging Area.` });
+
+    } else if (output) { // AI ran but no ideas
         setConceptExpansionPreview(null);
+        toast({ title: "Quick Expand", description: "AI did not find any specific idea for quick expansion.", variant: "default" });
     }
-  }, [isViewOnlyMode, toast, mapData, setConceptExpansionPreview, callAIWithStandardFeedback]);
+  }, [isViewOnlyMode, toast, mapData, callAIWithStandardFeedback, setStagedMapData, setConceptExpansionPreview]);
 
   const handleMiniToolbarRewriteConcise = useCallback(async (nodeId: string) => {
     const node = mapData.nodes.find(n => n.id === nodeId);
