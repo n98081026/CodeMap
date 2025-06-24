@@ -95,6 +95,26 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   const nodeRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Callbacks for SelectedNodeToolbar, memoized with useCallback
+  const handleEditLabelForToolbar = useCallback(() => setEditingNodeId(id), [setEditingNodeId, id]);
+  const handleChangeColorForToolbar = useCallback((color: string) => updateNode(id, { backgroundColor: color }), [updateNode, id]);
+  const handleAIExpandForToolbar = useCallback(() => aiTools.handleMiniToolbarQuickExpand(id), [aiTools, id]);
+  const handleAIRewriteForToolbar = useCallback(() => aiTools.handleMiniToolbarRewriteConcise(id), [aiTools, id]);
+  const handleAISuggestRelationsForToolbar = useCallback(() => {
+    if ((aiTools as any).handleMenuSuggestRelations) {
+        (aiTools as any).handleMenuSuggestRelations(id);
+    } else {
+        aiTools.openSuggestRelationsModal(id); // Fallback or correct method
+    }
+  }, [aiTools, id]);
+  const handleStartConnectionForToolbar = useCallback(() => {
+    if (data.onStartConnectionRequest) {
+      data.onStartConnectionRequest(id);
+    }
+  }, [data.onStartConnectionRequest, id]);
+  const handleDeleteNodeForToolbar = useCallback(() => deleteNode(id), [deleteNode, id]);
+
+
   const [isInlineEditing, setIsInlineEditing] = useState(false);
   const [editText, setEditText] = useState(data.label);
 
@@ -255,22 +275,13 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
             nodeId={id}
             numMultiSelectedNodes={multiSelectedNodeIds.length} // Pass count
             multiSelectedNodeIds={multiSelectedNodeIds} // Pass IDs
-            onEditLabel={() => setEditingNodeId(id)}
-            onChangeColor={(color: string) => updateNode(id, { backgroundColor: color })}
-            onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
-            onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}
-            onAISuggestRelations={() => {
-                // Assuming handleMenuSuggestRelations is the correct function from aiTools
-                // This was based on a previous version, ensure aiTools exports this or similar.
-                // If not, it might be aiTools.openSuggestRelationsModal(id)
-                if ((aiTools as any).handleMenuSuggestRelations) {
-                    (aiTools as any).handleMenuSuggestRelations(id);
-                } else {
-                    aiTools.openSuggestRelationsModal(id); // Fallback or correct method
-                }
-            }}
-            onStartConnection={data.onStartConnectionRequest ? handleToolbarStartConnection : () => {}}
-            onDeleteNode={() => deleteNode(id)}
+            onEditLabel={handleEditLabelForToolbar}
+            onChangeColor={handleChangeColorForToolbar}
+            onAIExpand={handleAIExpandForToolbar}
+            onAIRewrite={handleAIRewriteForToolbar}
+            onAISuggestRelations={handleAISuggestRelationsForToolbar}
+            onStartConnection={handleStartConnectionForToolbar}
+            onDeleteNode={handleDeleteNodeForToolbar}
           />
         </div>
       )}
