@@ -78,9 +78,10 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const [paletteTargetRect, setPaletteTargetRect] = useState<DOMRect | null>(null);
   const [commandFilterText, setCommandFilterText] = useState("");
 
-  const [aiIntermediateSuggestion, setAiIntermediateSuggestion] = useState<z.infer<typeof SuggestIntermediateNodeOutputSchema> | null>(null);
-  const [isSuggestIntermediateDialogOpen, setIsSuggestIntermediateDialogOpen] = useState(false);
-  const [isLoadingAISuggestion, setIsLoadingAISuggestion] = useState(false);
+  // Removed AlertDialog related state for intermediate node, will use staging area
+  // const [aiIntermediateSuggestion, setAiIntermediateSuggestion] = useState<z.infer<typeof SuggestIntermediateNodeOutputSchema> | null>(null);
+  // const [isSuggestIntermediateDialogOpen, setIsSuggestIntermediateDialogOpen] = useState(false);
+  const [isLoadingAISuggestIntermediateNode, setIsLoadingAISuggestIntermediateNode] = useState(false); // New loading state for the button
   const { toast } = useToast();
 
   // State for Node Q&A
@@ -413,7 +414,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     }
 
     const edge = selectedElement as ConceptMapEdge;
-    const { nodes } = useConceptMapStore.getState().mapData;
+    const { nodes, setStagedMapData } = useConceptMapStore.getState(); // Get setStagedMapData
     const sourceNode = nodes.find(n => n.id === edge.source);
     const targetNode = nodes.find(n => n.id === edge.target);
 
@@ -422,82 +423,76 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       return;
     }
 
-    setIsLoadingAISuggestion(true);
-    const loadingToast = toast({ title: "AI Suggestion", description: "Generating intermediate node suggestion..." });
+    setIsLoadingAISuggestIntermediateNode(true); // Use new loading state
+    const loadingToastId = toast({
+      title: "AI Suggestion",
+      description: "Generating intermediate node suggestion...",
+      duration: 999999 // Keep toast until dismissed
+    }).id;
 
     try {
-      const input = {
+      const flowInput = {
         sourceNodeText: sourceNode.text,
         sourceNodeDetails: sourceNode.details,
         targetNodeText: targetNode.text,
         targetNodeDetails: targetNode.details,
         currentEdgeLabel: edge.label,
       };
-      const result = await suggestIntermediateNodeFlow(input);
-      setAiIntermediateSuggestion(result);
-      setIsSuggestIntermediateDialogOpen(true);
-      loadingToast.dismiss();
+      const result = await suggestIntermediateNodeFlow(flowInput);
+
+      if (result && result.intermediateNodeText) {
+        // Calculate positions for staging
+        const midX = (sourceNode.x || 0) + ((targetNode.x || 0) - (sourceNode.x || 0)) / 2;
+        const midY = (sourceNode.y || 0) + ((targetNode.y || 0) - (sourceNode.y || 0)) / 2;
+
+        const DEFAULT_NODE_WIDTH = 150; // Define or import
+        const DEFAULT_NODE_HEIGHT = 70; // Define or import
+
+        const intermediateNode: ConceptMapNode = {
+          id: `staged-intermediate-${Date.now()}`,
+          text: result.intermediateNodeText,
+          details: result.intermediateNodeDetails || (result.reasoning ? `AI Rationale: ${result.reasoning}` : ''),
+          type: 'ai-intermediate',
+          position: { x: midX - (DEFAULT_NODE_WIDTH / 2), y: midY - (DEFAULT_NODE_HEIGHT / 2) + 50 }, // Offset slightly
+          width: DEFAULT_NODE_WIDTH,
+          height: DEFAULT_NODE_HEIGHT,
+          childIds: [],
+        };
+        const edgeToIntermediate: ConceptMapEdge = {
+          id: `staged-edge1-${intermediateNode.id}-${Date.now()}`,
+          source: sourceNode.id,
+          target: intermediateNode.id,
+          label: result.labelSourceToIntermediate,
+        };
+        const edgeFromIntermediate: ConceptMapEdge = {
+          id: `staged-edge2-${intermediateNode.id}-${Date.now()}`,
+          source: intermediateNode.id,
+          target: targetNode.id,
+          label: result.labelIntermediateToTarget,
+        };
+
+        setStagedMapData({
+          nodes: [intermediateNode],
+          edges: [edgeToIntermediate, edgeFromIntermediate],
+          actionType: 'intermediateNode', // To inform the commit logic what to do (e.g., delete original edge)
+          originalElementId: edge.id, // Pass original edge ID for deletion on commit
+        });
+        toast.dismiss(loadingToastId);
+        toast({ title: "AI Suggestion Ready", description: "Review the new intermediate node in the staging area." });
+      } else {
+        toast.dismiss(loadingToastId);
+        toast({ title: "AI Suggestion", description: "AI could not suggest an intermediate node.", variant: "default" });
+      }
     } catch (error) {
       console.error("Error suggesting intermediate node:", error);
-      loadingToast.dismiss();
+      if (loadingToastId) toast.dismiss(loadingToastId);
       toast({ title: "AI Error", description: "Failed to suggest intermediate node. " + (error instanceof Error ? error.message : ""), variant: "destructive" });
-      setAiIntermediateSuggestion(null);
     } finally {
-      setIsLoadingAISuggestion(false);
+      setIsLoadingAISuggestIntermediateNode(false); // Use new loading state
     }
   }, [isViewOnlyMode, selectedElement, selectedElementType, toast]);
 
-  const handleConfirmAISuggestion = useCallback(() => {
-    if (!aiIntermediateSuggestion || !selectedElement || selectedElementType !== 'edge') return;
-
-    const { addNode, addEdge, deleteEdge, mapData } = useConceptMapStore.getState();
-    const selectedEdge = selectedElement as ConceptMapEdge;
-
-    const sourceNode = mapData.nodes.find(n => n.id === selectedEdge.source);
-    const targetNode = mapData.nodes.find(n => n.id === selectedEdge.target);
-
-    if (!sourceNode || !targetNode) {
-        toast({ title: "Error", description: "Source or target node not found for edge modification.", variant: "destructive"});
-        setIsSuggestIntermediateDialogOpen(false);
-        setAiIntermediateSuggestion(null);
-        return;
-    }
-
-    // Calculate midpoint for the new node
-    const midX = (sourceNode.x + targetNode.x) / 2;
-    const midY = (sourceNode.y + targetNode.y) / 2;
-
-    try {
-      const newNodeId = addNode({
-        text: aiIntermediateSuggestion.intermediateNodeText,
-        position: { x: midX, y: midY + 30 }, // Offset slightly to avoid overlap
-        type: 'ai-intermediate', // A new type for styling?
-      });
-
-      addEdge({
-        source: selectedEdge.source,
-        target: newNodeId,
-        label: aiIntermediateSuggestion.edgeToIntermediateLabel,
-      });
-
-      addEdge({
-        source: newNodeId,
-        target: selectedEdge.target,
-        label: aiIntermediateSuggestion.edgeFromIntermediateLabel,
-      });
-
-      deleteEdge(selectedEdge.id);
-
-      toast({ title: "Success", description: "Intermediate node and new edges added." });
-    } catch (error) {
-        console.error("Error applying intermediate node suggestion:", error);
-        toast({ title: "Error", description: "Failed to apply suggestion. " + (error instanceof Error ? error.message : ""), variant: "destructive"});
-    }
-
-
-    setIsSuggestIntermediateDialogOpen(false);
-    setAiIntermediateSuggestion(null);
-  }, [aiIntermediateSuggestion, selectedElement, selectedElementType, toast]);
+  // handleConfirmAISuggestion is removed as staging area handles confirmation.
 
 
   const renderMapProperties = () => (
@@ -877,9 +872,9 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           size="sm"
           className="w-full"
           onClick={handleTriggerSuggestIntermediateNode}
-          disabled={isLoadingAISuggestion || isViewOnlyMode || !selectedElement}
+          disabled={isLoadingAISuggestIntermediateNode || isViewOnlyMode || !selectedElement}
         >
-          {isLoadingAISuggestion ? <LoaderIcon className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
+          {isLoadingAISuggestIntermediateNode ? <LoaderIcon className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
           Suggest Intermediate Node (AI)
         </Button>
       </div>
@@ -958,31 +953,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         />
       </CardContent>
 
-      {aiIntermediateSuggestion && (
-        <AlertDialog open={isSuggestIntermediateDialogOpen} onOpenChange={setIsSuggestIntermediateDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>AI Suggestion: Intermediate Node</AlertDialogTitle>
-              <AlertDialogDescription>
-                The AI suggests adding the following intermediate node and new edge labels.
-                Would you like to apply this change?
-                <div className="mt-4 space-y-2 text-sm text-foreground bg-muted/50 p-3 rounded-md">
-                  <p><strong>Source Node:</strong> {(selectedElement as ConceptMapEdge)?.source ? useConceptMapStore.getState().mapData.nodes.find(n=>n.id === (selectedElement as ConceptMapEdge).source)?.text : 'N/A'}</p>
-                  <p><strong>Suggested New Node:</strong> "{aiIntermediateSuggestion.intermediateNodeText}"</p>
-                  <p><strong>Edge 1 (Source &rarr; New):</strong> "{aiIntermediateSuggestion.edgeToIntermediateLabel}"</p>
-                  <p><strong>Edge 2 (New &rarr; Target):</strong> "{aiIntermediateSuggestion.edgeFromIntermediateLabel}"</p>
-                  <p><strong>Target Node:</strong> {(selectedElement as ConceptMapEdge)?.target ? useConceptMapStore.getState().mapData.nodes.find(n=>n.id === (selectedElement as ConceptMapEdge).target)?.text : 'N/A'}</p>
-                </div>
-                 <p className="mt-2 text-xs text-muted-foreground">The original edge will be deleted if you confirm.</p>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setAiIntermediateSuggestion(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmAISuggestion}>Confirm & Apply</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      {/* AlertDialog for intermediate node suggestion removed, will use Staging Area */}
     </Card>
   );
 });
