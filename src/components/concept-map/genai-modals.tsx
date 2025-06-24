@@ -213,7 +213,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
       }
       onOpenChange(isOpen);
     }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" id="tutorial-target-expand-concept-modal">
         <DialogHeader>
           <DialogTitle>AI 幫你想更多 (Expand Concept)</DialogTitle>
           <DialogDescription>
@@ -234,7 +234,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
           <div>
             <Label htmlFor="refinement-prompt-ec">引導 AI 的方向 (選填)</Label>
             <Textarea
-              id="refinement-prompt-ec"
+              id="tutorial-target-expand-concept-input" // Added ID for tutorial step
               value={refinementPrompt}
               onChange={(e) => setRefinementPrompt(e.target.value)}
               placeholder="例如：多想一些優點、有哪些應用場景、跟『學習效率』有什麼關係？"
@@ -251,7 +251,7 @@ export function ExpandConceptModal({ onConceptExpanded, initialConceptText = "",
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
-          <Button onClick={handleExpand} disabled={isLoading || !concept.trim()}>
+          <Button id="tutorial-target-expand-concept-confirm-button" onClick={handleExpand} disabled={isLoading || !concept.trim()}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />} {/* Added icon */}
             開始擴展想法
           </Button>
