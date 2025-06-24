@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { CodeXml, UserCircle, LogIn, LogOut, Sun, Moon, Settings, LayoutDashboard, PanelLeft } from 'lucide-react';
+import { CodeXml, UserCircle, LogIn, LogOut, Sun, Moon, Settings, LayoutDashboard, PanelLeft, HelpCircle } from 'lucide-react'; // Added HelpCircle
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,19 +10,27 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup, // Added for grouping
+  DropdownMenuLabel // Added for grouping
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from 'next-themes'; 
-import React, { useEffect, useState, useCallback } from 'react'; // Added React import
+import React, { useEffect, useState, useCallback } from 'react';
 import { UserRole } from '@/types';
 import { usePathname } from 'next/navigation'; 
-import { SidebarTrigger } from '@/components/ui/sidebar'; // Import SidebarTrigger
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
+import { useToast } from '@/hooks/use-toast'; // Import useToast
 
 export const Navbar = React.memo(function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname(); 
+  const { startOrResumeTutorial, resetTutorialProgress } = useTutorialStore(
+    useCallback(s => ({ startOrResumeTutorial: s.startOrResumeTutorial, resetTutorialProgress: s.resetTutorialProgress }), [])
+  );
+  const { toast } = useToast();
 
   useEffect(() => {
     setMounted(true);
@@ -95,6 +103,35 @@ export const Navbar = React.memo(function Navbar() {
           >
             {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </Button>
+
+          {isAuthenticated && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Help and tutorials">
+                  <HelpCircle className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64" align="end">
+                <DropdownMenuLabel>Tutorials</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => startOrResumeTutorial('projectUpload', 0, true)}>
+                  Getting Started (Project Upload)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => startOrResumeTutorial('expandConcept', 0, true)}>
+                  Using AI: Expand Concept
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => startOrResumeTutorial('mapNavigation', 0, true)}>
+                  Editor Basics (Navigation & Inspector)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => {
+                  resetTutorialProgress();
+                  toast({ title: "Tutorial Progress Reset", description: "You can now retake all tutorials automatically." });
+                }}>
+                  Reset All Tutorial Progress
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {isAuthenticated && user ? (
             <DropdownMenu>

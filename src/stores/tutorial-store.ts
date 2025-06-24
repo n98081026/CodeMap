@@ -21,7 +21,7 @@ interface TutorialState {
 
 interface TutorialActions {
   initializeTutorials: (flows: Record<string, TutorialStep[]>) => void;
-  startOrResumeTutorial: (key: string, specificStepIndex?: number) => void;
+  startOrResumeTutorial: (key: string, specificStepIndex?: number, forceStart?: boolean) => void;
   stopTutorial: (markAsComplete?: boolean) => void;
   setTutorialStep: (index: number) => void;
   nextStep: () => void;
@@ -59,9 +59,9 @@ const useTutorialStore = create<TutorialState & TutorialActions>()(
         return get().allTutorialFlows[key] || null;
       },
 
-      startOrResumeTutorial: (key, specificStepIndex?: number) => {
-        if (get().completedTutorials.includes(key) && specificStepIndex === undefined) {
-          console.log(`TutorialStore: Tutorial '${key}' already completed. Not starting.`);
+      startOrResumeTutorial: (key, specificStepIndex?: number, forceStart?: boolean) => {
+        if (!forceStart && get().completedTutorials.includes(key) && specificStepIndex === undefined) {
+          console.log(`TutorialStore: Tutorial '${key}' already completed and not forced. Not starting.`);
           return;
         }
         const flowSteps = get().allTutorialFlows[key];
