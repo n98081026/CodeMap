@@ -594,16 +594,23 @@ export const useConceptMapStore = create<ConceptMapState>()(
         const { addNode: addNodeAction, updateNode: updateNodeAction } = get();
         let groupNodeX = 100, groupNodeY = 100;
         if (overlayGeometry && overlayGeometry.x !== undefined && overlayGeometry.y !== undefined) {
-            groupNodeX = overlayGeometry.x + (overlayGeometry.width || 300) / 2 - 75;
-            groupNodeY = overlayGeometry.y + 20;
+            groupNodeX = overlayGeometry.x + (overlayGeometry.width || 300) / 2 - 75; // Center the new group node textually
+            groupNodeY = overlayGeometry.y + 20; // Position it near the top of the overlay
         } else {
+            // Fallback if no geometry: average position of nodes, then offset upwards.
             const groupNodes = get().mapData.nodes.filter(n => nodeIds.includes(n.id) && n.x !== undefined && n.y !== undefined);
             if (groupNodes.length > 0) {
                 groupNodeX = groupNodes.reduce((acc, n) => acc + n.x!, 0) / groupNodes.length;
-                groupNodeY = groupNodes.reduce((acc, n) => acc + n.y!, 0) / groupNodes.length - 50;
+                groupNodeY = groupNodes.reduce((acc, n) => acc + n.y!, 0) / groupNodes.length - 50; // Offset upwards
             }
         }
-        const newGroupId = addNodeAction({ text: groupName || 'New Group', type: 'customConceptNode', position: { x: groupNodeX, y: groupNodeY }, width: overlayGeometry?.width ? Math.max(overlayGeometry.width * 0.8, 200) : 200 });
+        const newGroupId = addNodeAction({
+            text: groupName || 'New Group',
+            type: 'ai-group-parent', // Changed to 'ai-group-parent'
+            position: { x: groupNodeX, y: groupNodeY },
+            width: overlayGeometry?.width ? Math.max(overlayGeometry.width * 0.8, 200) : 200,
+            height: overlayGeometry?.height ? Math.max(overlayGeometry.height * 0.8, 100) : 100 // Added height
+        });
         nodeIds.forEach(nodeId => {
           const nodeToUpdate = get().mapData.nodes.find(n => n.id === nodeId);
           if (nodeToUpdate) { updateNodeAction(nodeId, { parentNode: newGroupId }); }
@@ -644,4 +651,3 @@ export const useConceptMapStore = create<ConceptMapState>()(
 );
 
 export default useConceptMapStore;
-```
