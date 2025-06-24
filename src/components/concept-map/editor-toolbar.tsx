@@ -18,7 +18,8 @@ import {
   SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff,
   Edit3,
   FileText as FileTextIcon,
-  MessagesSquare // For "Ask AI About Map"
+  MessagesSquare, // For "Ask AI About Map"
+  GraduationCap // For Tutorials
 } from "lucide-react";
 =======
   FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
@@ -33,9 +34,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import useConceptMapStore from '@/stores/concept-map-store';
-import { fetchAllStructuralSuggestionsFlow } from '@/ai/flows'; // Import the new flow
-import { useAuth } from '@/contexts/auth-context'; // For checking guest status
-import { useRouter } from 'next/navigation'; // For redirecting to login
+import { fetchAllStructuralSuggestionsFlow } from '@/ai/flows';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
+import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
 
 interface EditorToolbarProps {
   onNewMap: () => void;
@@ -163,10 +165,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 }: EditorToolbarProps) {
   const { toast } = useToast();
   const store = useConceptMapStore(); // Get store instance for actions
-  const { isAuthenticated, isLoading: authIsLoading } = useAuth(); // Get auth state
-  const router = useRouter(); // For redirection
+  const { isAuthenticated, isLoading: authIsLoading } = useAuth();
+  const router = useRouter();
   const currentMapId = useConceptMapStore((s) => s.mapId);
-  const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview); // Access isFetchingOverview
+  const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview);
+  const { startOrResumeTutorial } = useTutorialStore(
+    useCallback(s => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
+  );
 
 
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
@@ -752,6 +757,31 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           </TooltipTrigger>
           <TooltipContent>{isAiPanelOpen ? "Hide AI Suggestions" : "Show AI Suggestions"}</TooltipContent>
         </Tooltip>
+
+        {/* Tutorials Dropdown */}
+        {!isViewOnlyMode && !showCopyButton && (
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Tutorials">
+                    <GraduationCap className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Editor Tutorials</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onSelect={() => startOrResumeTutorial('mapNavigation', 0, true)}>
+                Editor Basics Tour
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => startOrResumeTutorial('expandConcept', 0, true)}>
+                Using AI: Expand Concept
+              </DropdownMenuItem>
+              {/* Add more editor-specific tutorials here */}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         {/* Toggle Overview Mode Button */}
         {onToggleOverviewMode && (

@@ -94,7 +94,14 @@ export default function StudentDashboardPage() {
       <QuickActionsCard
         actions={[
           { href: "/application/concept-maps/editor/new", label: "Create New Concept Map", icon: Compass },
-          { href: "/application/student/projects/submit", label: "Analyze New Project", icon: FileText, id: "tutorial-target-new-project-button" }
+          {
+            href: "/application/student/projects/submit",
+            label: "Analyze New Project",
+            icon: FileText,
+            id: "tutorial-target-new-project-button",
+            tutorialKey: "projectUpload", // Key for the tutorial store
+            tutorialButtonTooltip: "Show 'Project Upload' Tutorial"
+          }
         ]}
         title="Get Started"
         description="Quickly access common tasks."
