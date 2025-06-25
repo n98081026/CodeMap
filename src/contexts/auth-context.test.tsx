@@ -4,27 +4,26 @@ import { act, renderHook } from '@testing-library/react';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock Supabase client
-const mockSupabase = {
-  auth: {
-    onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
-    signOut: vi.fn().mockResolvedValue({ error: null }),
-    signInWithPassword: vi.fn(),
-    signUp: vi.fn(),
-    getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
-    getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-  },
-  from: vi.fn(() => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn(),
-  })),
-} as unknown as SupabaseClient;
-
-vi.mock('@/lib/supabaseClient', () => ({
-  supabase: mockSupabase,
-}));
+vi.mock('@/lib/supabaseClient', () => {
+  const mockSupabase = {
+    auth: {
+      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+      signInWithPassword: vi.fn(),
+      signUp: vi.fn(),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    },
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn(),
+    })),
+  } as unknown as SupabaseClient;
+  return { supabase: mockSupabase };
+});
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
