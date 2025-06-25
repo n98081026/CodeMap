@@ -176,9 +176,8 @@
     - [x] Staging Area Interaction: Allow deletion of individual suggestions, quick label edits, slight repositioning. (Deletion of selected staged items done)
     - [x] Add "Commit to Map" button to finalize, and "X"/Esc to discard from staging area. (Toolbar with buttons done)
 - [x] Refinable "Expand Concept" Previews:
-    - [x] When "Expand Concept" is used, first show new child nodes as temporary "ghost" nodes.
-    - [x] Interaction: Allow clicking individual ghost nodes to accept. Add "Accept All" / "Cancel" controls. (Core acceptance logic done via click and floater)
-    - [x] Interaction (Enhancement): Display "Refine" icon on hover over a ghost node to alter its suggestion before acceptance.
+        - [x] When "Expand Concept" is used, new child nodes are added directly to the map or via AISuggestionFloater for quick interaction.
+        - [x] The older "ghost node preview" system (`conceptExpansionPreview`) with explicit "Refine" icons on ghost nodes for pre-acceptance editing has been removed in favor of more direct interaction flows. Current "ghost" nodes (`ghostPreviewData`) are primarily for layout previews (e.g., AI Tidy Up).
 
 ### AI-Powered Layout and Structuring Assistance
 - [x] "AI Tidy-Up" / Smart Alignment (Contextual):
@@ -305,7 +304,7 @@ This section outlines tasks to fully migrate to Supabase.
     - [x] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated. (Python AST analysis remains pending as a sub-task if desired).
         - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done in `ProjectUploadForm` flow).
-    - [ ] **MANUAL INTERVENTION REQUIRED**: Resolve merge conflicts in `src/ai/tools/project-analyzer-tool.ts`. The agent is unable to resolve these automatically. Prioritize the `master` branch's version for conflicting logic related to analysis functions and output schemas.
+    - [x] **MANUAL INTERVENTION RESOLVED**: Merge conflicts in `src/ai/tools/project-analyzer-tool.ts` resolved. The logic after the main try-catch block in `analyzeProjectStructure` function, which seemed to be a duplicate or misplaced call to `supabaseFileFetcherTool`, has been removed. The function now correctly returns the `output` variable from the primary analysis logic.
 
 **6. API Route Refactoring (General Review for Supabase)**
 - [x] Review all existing API routes in `src/app/api/`. (Done for users, classrooms, conceptmaps, submissions, admin settings, user password change).
@@ -505,10 +504,10 @@ The main remaining area for full Supabase connection is:
 
 ### 其他潛在改進
 
-- [ ] **測試覆蓋率：**
+- [ ] **測試覆蓋率：** (Verified as PENDING)
     - [ ] 為新的訪客模式邏輯和相關元件編寫自動化測試 (Vitest)。
     - [ ] 特別是測試 `AppLayout` 中的路由邏輯和 `useConceptMapDataManager` 中範例地圖的處理。
-- [x] **錯誤處理與日誌記錄：**
+- [x] **錯誤處理與日誌記錄：** (Verified as IMPLEMENTED)
     - [x] 增強 `useConceptMapDataManager` 中範例地圖載入失敗時的錯誤處理/日誌記錄。 (Enhanced toasts and debug logs for direct example loading path)
-- [ ] **安全性檢閱：**
+- [ ] **安全性檢閱：** (Verified as PENDING - Requires Manual Review)
     - [ ] 對訪客模式進行一次快速的安全性檢閱，確保沒有意外的資料洩漏或功能存取。
