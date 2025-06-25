@@ -325,10 +325,19 @@ This section outlines tasks to fully migrate to Supabase.
 ## Testing & Deployment (Future - Out of Scope for AI Agent Implementation)
 - [ ] **Testing:**
     - [x] Unit tests for `projectStructureAnalyzerTool`'s Python AST analysis (covering enhanced features).
-    - [ ] Unit tests for `projectStructureAnalyzerTool`'s JavaScript AST analysis.
-    - [ ] Unit tests for `projectStructureAnalyzerTool`'s TypeScript AST analysis.
-    - [ ] Unit tests for `projectStructureAnalyzerTool`'s `determineEffectiveFileType` helper.
-    - [ ] Write unit tests for other critical components and utility functions.
+    - [x] Unit tests for `projectStructureAnalyzerTool`'s JavaScript AST analysis (covering core features).
+    - [x] Unit tests for `projectStructureAnalyzerTool`'s TypeScript AST analysis (covering core features and TS-specifics).
+    - [x] Unit tests for `projectStructureAnalyzerTool`'s `determineEffectiveFileType` helper.
+    - [x] Comprehensive unit tests for `concept-map-store.ts` (Zustand store) covering:
+        - Initialization and Loading (new, load, import, reset).
+        - Node CRUD operations (add, update, delete with descendants).
+        - Edge CRUD operations.
+        - Staging Area logic (set, clear, commit for various actionTypes, delete from stage).
+        - Ghost Preview logic (set, accept, cancel).
+        - Layout and View actions (applyLayout, overview mode, focus).
+        - Structural Suggestions management and application (form group).
+        - Basic Undo/Redo integration via Zundo.
+    - [ ] Write unit tests for other critical components and utility functions (e.g., `useConceptMapAITools`, specific UI components with complex logic).
     - [ ] Implement integration tests for user flows with Supabase.
     - [ ] Consider end-to-end testing.
 - [ ] **Deployment:**
