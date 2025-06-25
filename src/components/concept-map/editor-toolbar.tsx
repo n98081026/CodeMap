@@ -12,10 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect,
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse,
-  ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff, Edit3, FileText as FileTextIcon,
-  MessagesSquare, GraduationCap, LayoutGrid, ScanSearch, Network, AlignHorizontalDistributeCenter, Grid, BrainCircuit
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, LayoutGrid, ScanSearch, Wand2, // 合併所有 icon
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff,
+  Edit3, FileText as FileTextIcon, MessagesSquare, GraduationCap, Grid, Network, AlignHorizontalDistributeCenter, BrainCircuit
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -61,7 +60,7 @@ interface EditorToolbarProps {
   canRedo: boolean;
   selectedNodeId: string | null;
   numMultiSelectedNodes: number;
-  onAutoLayout?: () => void;
+  onAutoLayout?: () => void; // Made optional
   arrangeActions?: ArrangeAction[];
   onSuggestAISemanticGroup?: () => void;
   onSuggestAIArrangement?: () => void;
@@ -70,21 +69,20 @@ interface EditorToolbarProps {
   isAIDiscoveringGroup?: boolean;
   mapNodeCount?: number;
   onAISuggestImprovement?: () => void; // Kept from HEAD, seems similar to onSuggestMapImprovements
-  isAISuggestingImprovement?: boolean; // Kept from HEAD
   onTestEdgeOverlay?: () => void;
   onToggleOverviewMode?: () => void;
   isOverviewModeActive?: boolean;
   onSummarizeMap?: () => void;
   isSummarizingMap?: boolean;
-  onAskQuestionAboutMapContext?: () => void;
-  isAskingAboutMapContext?: boolean;
-  onTidySelection?: () => void; // From master (generic tidy)
-  onSuggestMapImprovements?: () => void; // From master (specific flow trigger)
-  isSuggestingMapImprovements?: boolean; // From master
-  onApplySemanticTidyUp?: () => void;
+  onAskQuestionAboutMapContext?: () => void; 
+  isAskingAboutMapContext?: boolean; 
+  onTidySelection?: () => void; 
+  onSuggestMapImprovements?: () => void; 
+  isSuggestingMapImprovements?: boolean;
+  onApplySemanticTidyUp?: () => void; 
   isApplyingSemanticTidyUp?: boolean;
-  onAiTidySelection?: () => void;
-  onDagreTidySelection?: () => void;
+  onAiTidySelection?: () => void; 
+  onDagreTidySelection?: () => void; 
   isDagreTidying?: boolean;
 }
 
@@ -131,14 +129,25 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   isOverviewModeActive,
   onSummarizeMap,
   isSummarizingMap,
+
   onAskQuestionAboutMapContext,
   isAskingAboutMapContext,
-  onTidySelection, // from master
-  onSuggestMapImprovements, // from master
-  isSuggestingMapImprovements, // from master
+  onTidySelection,
+  onSuggestMapImprovements,
+  isSuggestingMapImprovements,
   onApplySemanticTidyUp,
   isApplyingSemanticTidyUp,
   onAiTidySelection,
+
+  onAskQuestionAboutMapContext, // Destructure new prop
+  isAskingAboutMapContext, // Destructure new prop
+  onTidySelection,
+  onSuggestMapImprovements,
+  isSuggestingMapImprovements,
+  onApplySemanticTidyUp, // Destructure new prop
+  isApplyingSemanticTidyUp, // Destructure new prop
+  onAiTidySelection, // Destructure new prop
+
   onDagreTidySelection,
   isDagreTidying,
 }: EditorToolbarProps) {
@@ -289,6 +298,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
         <Separator orientation="vertical" className="mx-1 h-full" />
 
+
         {/* AI Tools Dropdown */}
         <DropdownMenu>
           <Tooltip>
@@ -296,6 +306,160 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" disabled={isViewOnlyMode || showCopyButton} aria-label="AI Tools">
                   <Sparkles className="h-5 w-5" />
+
+        {/* Auto-layout Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={() => onAutoLayout?.()} disabled={isViewOnlyMode || !onAutoLayout || showCopyButton}>
+              <Shuffle className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{showCopyButton ? "Log in to use layout tools" : isViewOnlyMode ? "Shuffle Layout (Disabled)" : !onAutoLayout ? "Shuffle Layout (Not Configured)" : "Shuffle Layout (Experimental)"}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onTidySelection?.()}
+              disabled={isViewOnlyMode || !onTidySelection || numMultiSelectedNodes < 2 || showCopyButton}
+            >
+              <LayoutGrid className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {showCopyButton ? "Log in to use layout tools" :
+             isViewOnlyMode
+              ? "Tidy Selection (Disabled in View Mode)"
+              : !onTidySelection
+              ? "Tidy Selection (Not Configured)"
+              : numMultiSelectedNodes < 2
+              ? "Tidy Selection (Select 2+ nodes)"
+              : "Tidy Selected Nodes"}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleGenAIClick(onApplySemanticTidyUp!, "AI Semantic Tidy")}
+              disabled={isViewOnlyMode || !onApplySemanticTidyUp || isApplyingSemanticTidyUp || numMultiSelectedNodes < 2 || showCopyButton}
+            >
+              {isApplyingSemanticTidyUp ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {showCopyButton ? "Log in to use AI tools" :
+             isViewOnlyMode
+              ? "AI Semantic Tidy (Disabled in View Mode)"
+              : !onApplySemanticTidyUp
+              ? "AI Semantic Tidy (Not Configured)"
+              : isApplyingSemanticTidyUp
+              ? "Processing..."
+              : numMultiSelectedNodes < 2
+              ? "AI Semantic Tidy (Select 2+ nodes)"
+              : "Arrange Selected Nodes with AI (Semantic Tidy)"}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* New Auto-layout (Dagre) Button - Full Map */}
+        {/* New "Suggest Structural Improvements" Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={async () => {
+                if (isViewOnlyMode) {
+                  toast({ title: "View Only Mode", description: "Cannot suggest improvements in view-only mode.", variant: "default" });
+                  return;
+                }
+                setIsLoadingSuggestions(true);
+                try {
+                  const currentMapData = store.getState().mapData;
+                  // Prepare mapData in the format expected by the flow (nodes and edges only with required fields)
+                  const flowInput = {
+                    nodes: currentMapData.nodes.map(n => ({ id: n.id, text: n.text, details: n.details || "" })),
+                    edges: currentMapData.edges.map(e => ({ source: e.source, target: e.target, label: e.label || "" })),
+                  };
+                  const results = await fetchAllStructuralSuggestionsFlow.run(flowInput as any); // Cast as any if schema mismatch, ensure correct schema
+                  store.getState().setStructuralSuggestions(results);
+                  toast({ title: "AI Suggestions", description: `Received ${results.length} structural suggestions.` });
+                } catch (error) {
+                  console.error("Failed to fetch structural suggestions", error);
+                  toast({ title: "Error", description: "Failed to fetch AI structural suggestions.", variant: "destructive" });
+                  store.getState().clearStructuralSuggestions(); // Clear any stale suggestions
+                } finally {
+                  setIsLoadingSuggestions(false);
+                }
+              }}
+              disabled={isViewOnlyMode || isLoadingSuggestions}
+            >
+              {isLoadingSuggestions ? <Loader2 className="h-5 w-5 animate-spin" /> : <BrainCircuit className="h-5 w-5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isViewOnlyMode ? "Suggest Improvements (Disabled)" : isLoadingSuggestions ? "Loading..." : "Suggest Structural Improvements (AI)"}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* New Auto-layout (Dagre) Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={isViewOnlyMode || !onAutoLayout || showCopyButton}
+              onClick={() => onAutoLayout?.()}
+              aria-label="Auto-layout Full Map (Dagre)"
+            >
+              <Network className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{showCopyButton ? "Log in to use layout tools" : isViewOnlyMode ? "Auto-layout Full Map (Disabled)" : !onAutoLayout ? "Auto-layout Full Map (Not Configured)" : "Auto-layout Full Map (Dagre)"}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Dagre Tidy Selection Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleGenAIClick(onDagreTidySelection!, "Dagre Tidy Selection")}
+              disabled={isViewOnlyMode || !onDagreTidySelection || isDagreTidying || numMultiSelectedNodes < 2 || showCopyButton}
+              aria-label="Tidy Selected Subgraph (Dagre)"
+            >
+              {isDagreTidying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Grid className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {showCopyButton ? "Log in to use layout tools" :
+             isViewOnlyMode ? "Tidy Selection (Dagre - Disabled)"
+              : !onDagreTidySelection ? "Tidy Selection (Dagre - Not Configured)"
+              : numMultiSelectedNodes < 2 ? "Tidy Selection (Dagre - Select 2+ nodes)"
+              : isDagreTidying ? "Processing..."
+              : "Tidy Selected Subgraph (Dagre)"}
+          </TooltipContent>
+        </Tooltip>
+
+
+        <Separator orientation="vertical" className="mx-1 h-full" />
+
+        {/* Suggest AI Group Button (conditionally rendered) */}
+        {!isViewOnlyMode && !showCopyButton && numMultiSelectedNodes >= 2 && onSuggestAISemanticGroup && (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onSuggestAISemanticGroup}
+                >
+                  <BoxSelect className="h-5 w-5" />
+
                 </Button>
               </DropdownMenuTrigger>
             </TooltipTrigger>

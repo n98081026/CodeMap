@@ -69,7 +69,6 @@ interface InteractiveCanvasProps {
   activeSnapLines?: Array<{ type: 'vertical' | 'horizontal'; x1: number; y1: number; x2: number; y2: number; }>;
   gridSize?: number;
   panActivationKeyCode?: string | null;
-<<<<<<< HEAD
   // Drag preview related props
   draggedItemPreview?: { type: string; text: string; x: number; y: number; } | null;
   onCanvasDragLeave?: (event: React.DragEvent) => void;
@@ -78,10 +77,9 @@ interface InteractiveCanvasProps {
   activeVisualEdgeSuggestion?: VisualEdgeSuggestion | null;
   onAcceptVisualEdge?: (suggestionId: string) => void;
   onRejectVisualEdge?: (suggestionId: string) => void;
-=======
+  // Edge types and node drop
   edgeTypes?: EdgeTypes; // Prop to pass custom edge types
   onNodeDrop?: (event: React.DragEvent, node: RFNode) => void; // New prop for node drop
->>>>>>> master
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -128,17 +126,14 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   dragPreviewSnapLines = [], // Destructure with default
   gridSize = 20,
   panActivationKeyCode,
-<<<<<<< HEAD
   draggedItemPreview, // Destructure new prop
   onCanvasDragLeave,  // Destructure new prop
   // Destructure Visual Edge Suggestion Overlay Props
   activeVisualEdgeSuggestion,
   onAcceptVisualEdge,
   onRejectVisualEdge,
-=======
   edgeTypes: propEdgeTypes,
   onNodeDrop, // Destructure onNodeDrop
->>>>>>> master
 }) => {
   console.log(`[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length-1]) : 'N/A'}`);
   // Also send to store's debug log for easier collection if console is not always available during testing
@@ -146,41 +141,13 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   const { project, getNodes: rfGetNodes, getViewport, screenToFlowPosition } = useReactFlow();
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<[[number, number], [number, number]] | undefined>([[-Infinity, -Infinity], [Infinity, Infinity]]);
 
-<<<<<<< HEAD
   const allSnapLinesToRender = React.useMemo(() => [
     ...(activeSnapLines || []),
     ...(dragPreviewSnapLines || [])
   ], [activeSnapLines, dragPreviewSnapLines]);
 
-  const handleDragOverOnCanvas = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-    if (onDragOver) { // Use destructured prop
-        onDragOver(event);
-    }
-  }, [onDragOver]);
-
-  const handleDropOnCanvas = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    const jsonData = event.dataTransfer.getData('application/json');
-    if (jsonData && reactFlowInstance) {
-        try {
-            const droppedData = JSON.parse(jsonData);
-            if (droppedData.type === 'concept-suggestion' && typeof droppedData.text === 'string') {
-                const positionInFlow = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-                onCanvasDrop?.(droppedData, positionInFlow); // Call the new prop from FlowCanvasCore
-            }
-        } catch (e) {
-            console.error("Failed to parse dropped data:", e);
-            useConceptMapStore.getState().addDebugLog("[InteractiveCanvasComponent] Failed to parse dropped data on drop.");
-        }
-    }
-    event.dataTransfer.clearData();
-  }, [reactFlowInstance, onCanvasDrop]);
-
-=======
   // useEffect for translateExtent calculation (remains unchanged)
->>>>>>> master
+
   useEffect(() => {
     const currentViewport = getViewport(); 
 
@@ -287,16 +254,11 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onNodeContextMenu,
     onPaneContextMenu,
     onNodeClick,
-<<<<<<< HEAD
-    onDragOver: handleDragOverOnCanvas,
-    onDrop: handleDropOnCanvas,
-    onDragLeave: onCanvasDragLeave, // Pass the new handler
-=======
+    // Merge drag/drop handlers: prefer custom handlers if provided, else fallback
     onDragOver: onDragOver,
     onDrop: onDrop,
-    onDragLeave: onDragLeave,
+    onDragLeave: onCanvasDragLeave || onDragLeave,
     onNodeDrop: onNodeDrop, // Pass onNodeDrop to ReactFlow
->>>>>>> master
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode ? undefined : panActivationKeyCode ?? undefined,

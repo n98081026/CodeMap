@@ -1,28 +1,17 @@
 "use client";
 
-<<<<<<< HEAD
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-=======
-import React, { useEffect, useRef, useState, useCallback } from 'react';
->>>>>>> master
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-<<<<<<< HEAD
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles, GitMerge, Info, HelpCircle, MessageSquareQuote, Lightbulb, MessageCircleQuestion, Loader2 as LoaderIcon, AlertTriangle as AlertTriangleIcon, Send } from "lucide-react"; // Added MessageCircleQuestion, LoaderIcon, AlertTriangleIcon, Send
+import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles, GitMerge, Info, HelpCircle, MessageSquareQuote, Lightbulb, MessageCircleQuestion, Loader2 as LoaderIcon, AlertTriangle as AlertTriangleIcon, Send } from "lucide-react";
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
 import { Switch } from "@/components/ui/switch";
 import AICommandPalette, { type AICommand } from './ai-command-palette';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import useConceptMapStore from '@/stores/concept-map-store';
-=======
-import { Settings2, Box, Waypoints, Palette, CircleDot, Eraser, Minus, ArrowBigLeft, ArrowBigRight, Ruler, Brain, Sparkles, GitMerge } from "lucide-react";
-import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from "@/types";
-import { Switch } from "@/components/ui/switch";
-import AICommandPalette, { type AICommand } from './ai-command-palette'; // Import AICommandPalette
->>>>>>> master
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
 import { Button } from "@/components/ui/button"; 
 import { cn } from "@/lib/utils";
@@ -68,41 +57,36 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   aiTools, // Destructure aiTools
 }: PropertiesInspectorProps) {
   
-<<<<<<< HEAD
   const nodeLabelInputRef = useRef<HTMLInputElement>(null); // Ref for node label input
   const textareaDetailsRef = useRef<HTMLTextAreaElement>(null);
+  const nodeDetailsTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const aiToolsHook = useConceptMapAITools(!!isViewOnlyMode);
+  const { toast } = useToast();
 
+  // AI Command Palette states (merge both approaches)
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [paletteTargetRect, setPaletteTargetRect] = useState<DOMRect | null>(null);
   const [commandFilterText, setCommandFilterText] = useState("");
-
-  // Removed AlertDialog related state for intermediate node, will use staging area
-  // const [aiIntermediateSuggestion, setAiIntermediateSuggestion] = useState<z.infer<typeof SuggestIntermediateNodeOutputSchema> | null>(null);
-  // const [isSuggestIntermediateDialogOpen, setIsSuggestIntermediateDialogOpen] = useState(false);
-  const [isLoadingAISuggestIntermediateNode, setIsLoadingAISuggestIntermediateNode] = useState(false); // New loading state for the button
-  const { toast } = useToast();
-
-  // State for Node Q&A
-  const [nodeQuestion, setNodeQuestion] = useState("");
-  const [aiNodeAnswer, setAiNodeAnswer] = useState<string | null>(null);
-  const [isAskingNodeQuestion, setIsAskingNodeQuestion] = useState(false);
-  const [askNodeQuestionError, setAskNodeQuestionError] = useState<string | null>(null);
-=======
-  const nodeLabelInputRef = useRef<HTMLInputElement>(null);
-  const nodeDetailsTextareaRef = useRef<HTMLTextAreaElement>(null);
-
   const [showPalette, setShowPalette] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [paletteTargetRef, setPaletteTargetRef] = useState<React.RefObject<HTMLInputElement | HTMLTextAreaElement> | null>(null);
   const [activeCommandField, setActiveCommandField] = useState<'label' | 'details' | null>(null);
 
-  // Define AI Commands
+  // Node Q&A states
+  const [nodeQuestion, setNodeQuestion] = useState("");
+  const [aiNodeAnswer, setAiNodeAnswer] = useState<string | null>(null);
+  const [isAskingNodeQuestion, setIsAskingNodeQuestion] = useState(false);
+  const [askNodeQuestionError, setAskNodeQuestionError] = useState<string | null>(null);
+
+  // Loading state for AI suggest intermediate node
+  const [isLoadingAISuggestIntermediateNode, setIsLoadingAISuggestIntermediateNode] = useState(false); // New loading state for the button
+
+  // Define AI Commands (merge both approaches)
   const availableAiCommands: AICommand[] = React.useMemo(() => {
     const commands: AICommand[] = [];
     if (selectedElementType === 'node' && selectedElement?.id && aiTools) {
-      const nodeId = selectedElement.id; // Capture for closure
+      const nodeId = selectedElement.id;
       if (aiTools.openExpandConceptModal) {
         commands.push({
           id: 'expand-node',
@@ -119,14 +103,12 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           description: `Refine this node's ${activeCommandField || 'content'}.`,
           icon: Sparkles,
           action: () => aiTools.openRewriteNodeContentModal(nodeId)
-          // Note: We might want to pass activeCommandField to the modal if it needs to know
         });
       }
     }
-    // Add other commands, potentially for edges or general map context later
+    // Add more commands as needed
     return commands;
   }, [selectedElement?.id, selectedElementType, aiTools, activeCommandField]);
->>>>>>> master
 
   useEffect(() => {
     if (
@@ -574,11 +556,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </div>
         <Textarea 
             id="nodeDetails"
-<<<<<<< HEAD
             ref={textareaDetailsRef}
-=======
-            ref={nodeDetailsTextareaRef}
->>>>>>> master
             value={elementDetailsValue} 
             onChange={handleElementDetailsChangeWithPalette}
             disabled={isViewOnlyMode} 

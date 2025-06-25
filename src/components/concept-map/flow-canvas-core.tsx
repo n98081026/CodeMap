@@ -761,5 +761,3 @@ const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => (
 );
 
 export default React.memo(FlowCanvasCoreWrapper);
-
-[end of src/components/concept-map/flow-canvas-core.tsx]

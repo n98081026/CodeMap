@@ -25,35 +25,24 @@ These issues make it unreliable to proceed with new coding, refactoring, or even
 2.  **Create a Brand New Workspace (Crucial Step):**
     *   Navigate to a directory *outside* the current project folder (e.g., if the project is in `~/projects/old-project-name`, navigate to `~/projects/`).
     *   Clone the repository into a **new folder** with a fresh name:
-        ```bash
-        git clone <repository_url> <new_project_directory_name>
-        ```
+
         *(Replace `<repository_url>` with the project's actual Git repository URL, and `<new_project_directory_name>` with a new name like `project-fresh-start` or `concept-map-clean-env`)*.
     *   **Important:** Do not perform these operations inside the old, potentially problematic project directory.
 
 3.  **Navigate into the New Project Directory and Set Up Branch:**
-    ```bash
-    cd <new_project_directory_name>
-    git checkout <main_development_branch>
-    ```
+
     *(Replace `<main_development_branch>` with the primary branch used for development, e.g., `main`, `develop`, or the specific branch from which recent successful work was based. This should be the branch containing all previously submitted GAI features and planning work.)*
 
 4.  **Install Dependencies:**
     *   Based on the project's package manager:
         *   If using `npm`:
-            ```bash
-            npm install
-            ```
+
         *   If using `yarn`:
-            ```bash
-            yarn install
-            ```
+
 
 5.  **Initial Verification:**
     *   Attempt to start the development server:
-        ```bash
-        npm run dev
-        ```
+
         *(or the project's specific command, e.g., `yarn dev`)*.
     *   Confirm that the project starts successfully without immediate critical errors. A basic launch confirmation is sufficient at this stage.
 

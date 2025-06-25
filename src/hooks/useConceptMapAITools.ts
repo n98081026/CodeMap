@@ -1075,5 +1075,3 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     },
   };
 }
-
-[end of src/hooks/useConceptMapAITools.ts]
