@@ -508,10 +508,11 @@ async function analyzePythonAST(
   fileSpecificPrefix: string
 ): Promise<{ analysisSummary: string; detailedNodes: DetailedNode[]; error?: string }> {
   const extractedFunctions: ExtractedCodeElement[] = [];
-  const extractedClasses: Array<ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[] }> = []; // Added properties
-  const extractedImports: Array<{ type: string; source?: string; names: Array<{ name: string; asName?: string }>; level?: number; lineNumbers?: string }> = [];
+  const extractedClasses: Array<ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[], astNode?: PythonNode }> = [];
+  const extractedImports: Array<{ type: string; source?: string; names: Array<{ name: string; asName?: string }>; level?: number; lineNumbers?: string, startLine?: number, endLine?: number }> = [];
   const detailedNodes: DetailedNode[] = [];
-  const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: PythonNode }> = [];
+  const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: PythonNode, signature?: string }> = [];
+  const moduleLevelAssignments: Array<ExtractedCodeElement> = [];
 
 
   let ast: PythonNode;
@@ -543,10 +544,11 @@ async function analyzePythonAST(
 
     if (nodeType === 'FunctionDef' || nodeType === 'AsyncFunctionDef') {
       const funcName = node.name;
-      const params = node.args?.args?.map((arg: any) => ({ // python-parser uses 'any' for arg here
+      const params = node.args?.args?.map((arg: any) => ({
         name: arg.arg,
-        annotation: arg.annotation ? getPyNodeText(arg.annotation, fileContent) : undefined,
+        type: arg.annotation ? getPyNodeText(arg.annotation, fileContent) : undefined,
       })) || [];
+      const returnType = node.returns ? getPyNodeText(node.returns, fileContent) : undefined;
       const decorators = node.decorator_list?.map((d: any) => getPyNodeText(d, fileContent)) || [];
       let docstring: string | undefined = undefined;
       if (node.body && node.body.length > 0 && node.body[0].type === 'Expr' && node.body[0].value?.type === 'Constant' && typeof node.body[0].value.value === 'string') {
@@ -557,38 +559,38 @@ async function analyzePythonAST(
         name: funcName,
         kind: currentClassName ? 'method' : 'function',
         params,
+        returnType,
         decorators,
-        comments: docstring, // Using 'comments' field for docstring
+        comments: docstring,
         startLine: node.lineno,
         endLine: node.end_lineno || node.lineno,
         parentName: currentClassName,
         isAsync: nodeType === 'AsyncFunctionDef',
-        astNode: node, // Store python-parser node
+        astNode: node as any, // Cast to any to satisfy ts.Node, though it's PythonNode
       };
-      localDefinitions.push({ name: funcName, kind: funcData.kind as 'function' | 'method', parentName: currentClassName, node });
-
+      const signature = `(${(params.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ') || '')})` + (returnType ? ` -> ${returnType}` : '');
+      localDefinitions.push({ name: funcName, kind: funcData.kind as 'function' | 'method', parentName: currentClassName, node, signature });
 
       if (currentClassName) {
         const classObj = extractedClasses.find(c => c.name === currentClassName);
         classObj?.methods.push(funcData);
       } else {
-        extractedFunctions.push(funcData); // Top-level functions
+        extractedFunctions.push(funcData);
       }
 
       summarizationTasks.push({
         uniqueId: generateNodeId(fileSpecificPrefix, funcData.kind, funcName, summarizationTasks.length),
         inputForFlow: {
-          elementType: 'function', // Treat methods as functions for summarizer
+          elementType: 'function',
           elementName: funcName,
           filePath: fileName,
-          signature: `(${(params.map(p => `${p.name}${p.annotation ? `: ${p.annotation}` : ''}`).join(', ') || '')})`,
+          signature,
           comments: docstring,
-          isExported: undefined, // Python export concept is module-level
+          isExported: !currentClassName, // Top-level functions are considered "exported"
         },
         originalNodeInfo: funcData,
         nodeType: 'function',
       });
-
 
     } else if (nodeType === 'ClassDef') {
       const className = node.name;
@@ -599,7 +601,26 @@ async function analyzePythonAST(
         docstring = node.body[0].value.value;
       }
 
-      const classData: ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[] } = {
+      const classProperties: string[] = [];
+      node.body?.forEach((child: PythonNode) => {
+        if (child.type === 'Assign' || child.type === 'AnnAssign') {
+          const targets = child.type === 'Assign' ? child.targets : [child.target];
+          targets?.forEach((target: PythonNode) => {
+            if (target.type === 'Name') {
+              let propString = target.id;
+              if (child.type === 'AnnAssign' && child.annotation) {
+                propString += `: ${getPyNodeText(child.annotation, fileContent)}`;
+              }
+              if (child.value) { // Add value if present
+                propString += ` = ${getPyNodeText(child.value, fileContent).substring(0,30)}${getPyNodeText(child.value, fileContent).length > 30 ? '...' : ''}`;
+              }
+              classProperties.push(propString);
+            }
+          });
+        }
+      });
+
+      const classData: ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[], astNode?: PythonNode } = {
         name: className,
         kind: 'class',
         superClass: bases.join(', '),
@@ -608,22 +629,10 @@ async function analyzePythonAST(
         startLine: node.lineno,
         endLine: node.end_lineno || node.lineno,
         methods: [],
-        properties: [], // Initialize properties
-        astNode: node, // Store python-parser node
+        properties: classProperties,
+        astNode: node,
       };
       extractedClasses.push(classData);
-
-      // Extract simple assignments at class level as properties (e.g. MY_CONSTANT = 1)
-      node.body?.forEach((child: PythonNode) => {
-        if (child.type === 'Assign') {
-          child.targets?.forEach((target: PythonNode) => {
-            if (target.type === 'Name') {
-              classData.properties.push(target.id);
-            }
-          });
-        }
-      });
-
 
       summarizationTasks.push({
         uniqueId: generateNodeId(fileSpecificPrefix, 'class', className, summarizationTasks.length),
@@ -633,33 +642,58 @@ async function analyzePythonAST(
           filePath: fileName,
           signature: bases.length > 0 ? `(${bases.join(', ')})` : undefined,
           comments: docstring,
-          isExported: undefined,
-          classMethods: classData.methods.map(m => m.name), // Will be filled later
-          classProperties: classData.properties,
+          isExported: true, // Top-level classes are considered "exported"
+          classMethods: [], // Will be updated after methods are processed
+          classProperties: classProperties,
         },
         originalNodeInfo: classData,
         nodeType: 'class',
       });
       visitPyNode(node.body, className); // Visit children to find methods
+      // Update classMethods in summarizerInput after methods are processed
+      const taskToUpdate = summarizationTasks.find(t => t.uniqueId === generateNodeId(fileSpecificPrefix, 'class', className, summarizationTasks.findIndex(st => st.originalNodeInfo.name === className && st.nodeType === 'class')));
+      if (taskToUpdate) {
+        taskToUpdate.inputForFlow.classMethods = classData.methods.map(m => m.name);
+      }
+
 
     } else if (nodeType === 'Import') {
       const names = node.names?.map((alias: any) => ({ name: alias.name, asName: alias.asname })) || [];
-      extractedImports.push({ type: 'Import', names, lineNumbers: getLineInfo(node) });
+      extractedImports.push({ type: 'Import', names, lineNumbers: getLineInfo(node), startLine: node.lineno, endLine: node.end_lineno || node.lineno });
     } else if (nodeType === 'ImportFrom') {
       const moduleName = node.module || '';
       const names = node.names?.map((alias: any) => ({ name: alias.name, asName: alias.asname })) || [];
-      extractedImports.push({ type: 'ImportFrom', source: moduleName, names, level: node.level, lineNumbers: getLineInfo(node) });
+      extractedImports.push({ type: 'ImportFrom', source: moduleName, names, level: node.level, lineNumbers: getLineInfo(node), startLine: node.lineno, endLine: node.end_lineno || node.lineno });
+    } else if ((nodeType === 'Assign' || nodeType === 'AnnAssign') && !currentClassName) { // Module-level assignments
+        const targets = nodeType === 'Assign' ? node.targets : [node.target];
+        targets?.forEach((target: PythonNode) => {
+            if (target.type === 'Name') {
+                const varName = target.id;
+                const varType = nodeType === 'AnnAssign' && node.annotation ? getPyNodeText(node.annotation, fileContent) : undefined;
+                const varValue = node.value ? getPyNodeText(node.value, fileContent).substring(0, 50) + (getPyNodeText(node.value, fileContent).length > 50 ? '...' : '') : undefined;
+                moduleLevelAssignments.push({
+                    name: varName,
+                    kind: 'variable',
+                    dataType: varType,
+                    value: varValue,
+                    startLine: node.lineno,
+                    endLine: node.end_lineno || node.lineno,
+                    comments: getPyNodeText(node.comment_before, fileContent) || getPyNodeText(node.comment_after, fileContent), // Simplified comment association
+                    isExported: !varName.startsWith('_'), // Convention for public
+                });
+            }
+        });
     } else if ('body' in node && Array.isArray(node.body)) {
       visitPyNode(node.body, currentClassName);
-    } else if ('orelse' in node && Array.isArray(node.orelse)) { // For if/for/while orelse blocks
+    } else if ('orelse' in node && Array.isArray(node.orelse)) {
       visitPyNode(node.orelse, currentClassName);
     }
-    // Consider handlers for Try nodes, etc. if deeper analysis is needed
   }
 
   if (ast && ast.type === 'Module' && Array.isArray(ast.body)) {
     visitPyNode(ast.body);
-  } else if (ast) {
+  } else if (ast) { // Should not happen for valid Python files
+    console.warn(`[Py AST Analyzer] Root AST node is not a Module: ${ast?.type}`);
     visitPyNode(ast);
   }
 
@@ -698,51 +732,69 @@ async function analyzePythonAST(
                 const calleeNode = callNode.func;
                 const callLine = calleeNode.lineno;
 
-                if (calleeNode.type === 'Name') { // Simple function call: func()
+                if (calleeNode.type === 'Name') {
                     const calleeName = calleeNode.id;
                     const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'function' && !def.parentName);
                     if (targetDef) {
                         task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', line: callLine });
-                    }
-                } else if (calleeNode.type === 'Attribute' && calleeNode.value?.type === 'Name' && calleeNode.value.id === 'self') { // Method call: self.method()
-                    const calleeName = calleeNode.attr;
-                    const currentElementParentName = task.originalNodeInfo.parentName; // class name of the current method
-                    if (currentElementParentName) {
-                        const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'method' && def.parentName === currentElementParentName);
-                        if (targetDef) {
-                            task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: currentElementParentName, line: callLine });
+                    } else {
+                        // Check if it's a call to an imported function/class constructor
+                        const imp = extractedImports.find(i => i.names.some(n => n.asName === calleeName || n.name === calleeName));
+                        if (imp) {
+                             task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', targetParentName: imp.source || imp.names.find(n => n.asName === calleeName || n.name === calleeName)?.name, line: callLine });
                         }
                     }
+                } else if (calleeNode.type === 'Attribute') {
+                    const calleeName = calleeNode.attr;
+                    if (calleeNode.value?.type === 'Name') {
+                        const objectName = calleeNode.value.id;
+                        if (objectName === 'self') {
+                            const currentElementParentName = task.originalNodeInfo.parentName;
+                            if (currentElementParentName) {
+                                const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'method' && def.parentName === currentElementParentName);
+                                if (targetDef) {
+                                    task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: currentElementParentName, line: callLine });
+                                }
+                            }
+                        } else {
+                             // Call to a method of an imported module/class instance
+                            const imp = extractedImports.find(i => i.names.some(n => n.asName === objectName || n.name === objectName));
+                            if (imp) {
+                                task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: objectName, line: callLine });
+                            }
+                        }
+                    } else if (calleeNode.value?.type === 'Call' && calleeNode.value.func.type === 'Name' && calleeNode.value.func.id === 'super') {
+                         task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: 'super()', line: callLine });
+                    }
                 }
-                // Could extend to other.method() if 'other' is a known local instance.
             }
-
-            // Recursively visit children
-            if ('body' in currentNode && Array.isArray(currentNode.body)) visitCallNodes(currentNode.body);
-            if ('orelse' in currentNode && Array.isArray(currentNode.orelse)) visitCallNodes(currentNode.orelse);
-            if ('handlers' in currentNode && Array.isArray(currentNode.handlers)) { // For Try nodes
-                 currentNode.handlers.forEach(handler => {
-                    if ('body' in handler && Array.isArray(handler.body)) visitCallNodes(handler.body);
-                 });
-            }
-            // Add more fields like 'values' for list comprehensions, 'generators' etc. if needed
+            // Recursively visit children (simplified for brevity, real implementation would be more thorough)
+            Object.values(currentNode).forEach(value => {
+                if (typeof value === 'object' && value !== null) {
+                    visitCallNodes(value as any);
+                }
+            });
         };
-        // @ts-ignore python-parser specific node structure
-        if (task.originalNodeInfo.astNode.body) visitCallNodes(task.originalNodeInfo.astNode.body);
+        if (task.originalNodeInfo.astNode && (task.originalNodeInfo.astNode as PythonNode).body) {
+             visitCallNodes((task.originalNodeInfo.astNode as PythonNode).body);
+        }
     }
-
 
     let details = `${semanticPurpose}\n`;
     if (task.originalNodeInfo.decorators && task.originalNodeInfo.decorators.length > 0) {
       details += `Decorators: ${task.originalNodeInfo.decorators.join(', ')}\n`;
     }
     if (task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'method') {
-      details += `Params: ${task.originalNodeInfo.params?.map(p => `${p.name}${p.annotation ? `: ${p.annotation}` : ''}`).join(', ') || '()'}\n`;
+      details += `Params: ${task.originalNodeInfo.params?.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ') || '()'}\n`;
+      if (task.originalNodeInfo.returnType) details += `Returns: ${task.originalNodeInfo.returnType}\n`;
     } else if (task.originalNodeInfo.kind === 'class') {
       details += `Bases: ${task.originalNodeInfo.superClass || 'object'}\n`;
-      const classNodeInfo = task.originalNodeInfo as ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[] };
-      if (classNodeInfo.methods.length > 0) details += `Methods: ${classNodeInfo.methods.map(m => m.name).join(', ')}\n`;
-      if (classNodeInfo.properties.length > 0) details += `Properties: ${classNodeInfo.properties.join(', ')}\n`;
+      if (task.originalNodeInfo.classProperties && task.originalNodeInfo.classProperties.length > 0) {
+        details += `Properties: ${task.originalNodeInfo.classProperties.join(', ')}\n`;
+      }
+      if (task.originalNodeInfo.classMethods && task.originalNodeInfo.classMethods.length > 0) {
+        details += `Methods: ${task.originalNodeInfo.classMethods.join(', ')}\n`;
+      }
     }
     if (task.originalNodeInfo.comments) details += `Docstring: Present (see structuredInfo)\n`;
 
@@ -756,12 +808,23 @@ async function analyzePythonAST(
       type: `py_${task.originalNodeInfo.kind}`,
       details: details.trim(),
       lineNumbers: `${task.originalNodeInfo.startLine}-${task.originalNodeInfo.endLine}`,
-      structuredInfo: task.originalNodeInfo,
+      structuredInfo: { ...task.originalNodeInfo, astNode: undefined }, // Remove heavy astNode before storing
     });
   });
 
+  // Add module-level assignments
+  moduleLevelAssignments.forEach((assignment, i) => {
+    detailedNodes.push({
+        id: generateNodeId(fileSpecificPrefix, 'variable', assignment.name, detailedNodes.length + i),
+        label: `${assignment.name} (variable)`,
+        type: 'py_variable',
+        details: `Type: ${assignment.dataType || 'Unknown'}. Value: ${assignment.value || 'N/A'}. Exported: ${assignment.isExported}.`,
+        lineNumbers: `${assignment.startLine}-${assignment.endLine}`,
+        structuredInfo: { ...assignment, astNode: undefined },
+    });
+  });
 
-  // Add imports (not summarized)
+  // Add imports
   extractedImports.forEach((imp, i) => {
     const importLabel = imp.type === 'ImportFrom'
       ? `From ${imp.source || (imp.level ? '.'.repeat(imp.level) : '')} import ${imp.names.map(n => n.name + (n.asName ? ` as ${n.asName}` : '')).join(', ')}`
@@ -776,8 +839,10 @@ async function analyzePythonAST(
     });
   });
 
-  const totalLocalCalls = detailedNodes.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0);
-  const analysisSummary = `Python file '${fileName}' (AST analysis): Found ${extractedFunctions.length} top-level functions, ${extractedClasses.length} classes, and ${extractedImports.length} import statements. Detected ${totalLocalCalls} local calls. Semantic summaries attempted.`;
+  const totalLocalCalls = detailedNodes.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0) +
+                        extractedClasses.reduce((acc, cls) => acc + (cls.localCalls?.length || 0), 0); // Include calls from class context if stored there
+
+  const analysisSummary = `Python file '${fileName}' (AST analysis): Found ${extractedFunctions.length} top-level functions, ${extractedClasses.length} classes, ${moduleLevelAssignments.length} module-level variables, and ${extractedImports.length} import statements. Detected ${totalLocalCalls} local calls. Semantic summaries attempted.`;
   return { analysisSummary, detailedNodes };
 }
 

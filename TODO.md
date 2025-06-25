@@ -301,8 +301,14 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete via `ProjectUploadForm` and `useSupabaseStorageUpload` hook).
 - [x] **Connect frontend student submissions list to live API.**
 - [x] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
-    - [x] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated. (Python AST analysis remains pending as a sub-task if desired).
-        - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
+    - [x] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated.
+        - [x] **Deeply Enhanced AST-based analysis for Python files in `projectStructureAnalyzerTool` using `python-parser`:**
+            - Improved extraction of function/method return type annotations and parameter type annotations.
+            - Added handling for `AnnAssign` to capture typed class attributes and their types.
+            - Enhanced local call detection to include `super()` calls and calls to members of imported modules (basic identification).
+            - Ensured more consistent population of `ExtractedCodeElement` fields (e.g., `parentName`, `isAsync`, `decorators`, `classProperties`, `returnType`, `params[].type`).
+            - Added extraction of module-level variables (including typed assignments).
+            - Updated `details` string for Python nodes to comprehensively include this richer information.
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done in `ProjectUploadForm` flow).
     - [x] **MANUAL INTERVENTION RESOLVED**: Merge conflicts in `src/ai/tools/project-analyzer-tool.ts` resolved. The logic after the main try-catch block in `analyzeProjectStructure` function, which seemed to be a duplicate or misplaced call to `supabaseFileFetcherTool`, has been removed. The function now correctly returns the `output` variable from the primary analysis logic.
 
@@ -318,7 +324,11 @@ This section outlines tasks to fully migrate to Supabase.
 
 ## Testing & Deployment (Future - Out of Scope for AI Agent Implementation)
 - [ ] **Testing:**
-    - [ ] Write unit tests for critical components and utility functions.
+    - [x] Unit tests for `projectStructureAnalyzerTool`'s Python AST analysis (covering enhanced features).
+    - [ ] Unit tests for `projectStructureAnalyzerTool`'s JavaScript AST analysis.
+    - [ ] Unit tests for `projectStructureAnalyzerTool`'s TypeScript AST analysis.
+    - [ ] Unit tests for `projectStructureAnalyzerTool`'s `determineEffectiveFileType` helper.
+    - [ ] Write unit tests for other critical components and utility functions.
     - [ ] Implement integration tests for user flows with Supabase.
     - [ ] Consider end-to-end testing.
 - [ ] **Deployment:**
