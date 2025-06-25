@@ -36,7 +36,6 @@ export const DetailedNodeOutputSchema = z.object({
 });
 export type DetailedNode = z.infer<typeof DetailedNodeOutputSchema>;
 
-<<<<<<< HEAD
 const DependencyMapSchema = z.record(z.array(z.string())).describe('Key-value map of dependency types (e.g., npm, pip, maven, nuget) to arrays of dependency names.');
 
 const FileCountsSchema = z.record(z.number()).describe('Key-value map of file extensions to their counts (e.g., { ".ts": 10, ".js": 2 }).');
@@ -82,9 +81,7 @@ export const PotentialArchitecturalComponentSchema = z.object({
 });
 export type PotentialArchitecturalComponent = z.infer<typeof PotentialArchitecturalComponentSchema>;
 
-=======
 // Output schema updated for more structured analysis results
->>>>>>> master
 export const ProjectAnalysisOutputSchema = z.object({
   analyzedFileName: z.string(),
   effectiveFileType: z.string(),
@@ -97,26 +94,51 @@ export const ProjectAnalysisOutputSchema = z.object({
 });
 export type ProjectAnalysisOutput = z.infer<typeof ProjectAnalysisOutputSchema>;
 
-<<<<<<< HEAD
 // Define a detailed, fixed mock project analysis output (remains for testing/hints)
 const FIXED_MOCK_PROJECT_A_ANALYSIS: ProjectAnalysisOutput = {
-  projectName: "Fixed Mock E-Commerce API",
-  inferredLanguagesFrameworks: [
-    { name: "TypeScript", confidence: "high" },
-    { name: "Node.js", confidence: "high" },
-    { name: "Express.js", confidence: "medium" },
+  analyzedFileName: "mock-ecommerce-api.zip",
+  effectiveFileType: "zip",
+  contentType: "application/zip",
+  fileSize: 123456,
+  isBinary: false,
+  analysisSummary: "This is a fixed mock analysis for a standard E-Commerce API project. It includes typical components like User Service, Product Service, Order Service, and a Payment Gateway integration.",
+  detailedNodes: [
+    {
+      id: "mock_service_user",
+      label: "User Service (class)",
+      type: "js_class",
+      details: "Handles user authentication and profile management.",
+      lineNumbers: "20-80",
+      structuredInfo: { name: "UserService", kind: "class", methods: ["login", "register", "getProfile"] },
+    },
+    {
+      id: "mock_service_product",
+      label: "Product Service (class)",
+      type: "js_class",
+      details: "Manages product catalog and inventory.",
+      lineNumbers: "81-150",
+      structuredInfo: { name: "ProductService", kind: "class", methods: ["listProducts", "addProduct", "removeProduct"] },
+    },
+    {
+      id: "mock_service_order",
+      label: "Order Service (class)",
+      type: "js_class",
+      details: "Handles order creation, status, and history.",
+      lineNumbers: "151-210",
+      structuredInfo: { name: "OrderService", kind: "class", methods: ["createOrder", "getOrderStatus"] },
+    },
+    {
+      id: "mock_service_payment",
+      label: "Payment Gateway (integration)",
+      type: "js_integration",
+      details: "Integrates with Stripe for payment processing.",
+      lineNumbers: "211-250",
+      structuredInfo: { name: "StripeIntegration", kind: "integration" },
+    },
   ],
-  projectSummary: "This is a fixed mock analysis for a standard E-Commerce API project. It includes typical components like User Service, Product Service, Order Service, and a Payment Gateway integration.",
-  dependencies: {
-    npm: ["express", "typescript", "pg", "jsonwebtoken", "bcryptjs", "stripe"],
-  },
-  directoryStructureSummary: [ /* ... as before ... */ ],
-  keyFiles: [ /* ... as before ... */ ],
-  potentialArchitecturalComponents: [ /* ... as before ... */ ],
-  parsingErrors: [],
+  error: undefined,
 };
 
-=======
 const generateNodeId = (fileSpecificPrefix: string, nodeType: string, nodeName: string, index?: number): string => {
   const saneName = nodeName.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 25);
   return `${fileSpecificPrefix}_${nodeType}_${saneName}${index !== undefined ? `_${index}` : ''}`.toLowerCase();
@@ -1076,9 +1098,6 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
 // Ensure generateNodeId usage is consistent
 function analyzePackageJson(fileName: string, fileContent: string, generateNodeId: Function, fileSpecificPrefix: string): { analysisSummary: string, detailedNodes: DetailedNode[] } {
   const nodes: DetailedNode[] = [];
-// These are kept from the previous version, ensure generateNodeId usage is consistent
-function analyzePackageJson(fileName: string, fileContent: string, generateNodeId: Function, fileSpecificPrefix: string): { analysisSummary: string, detailedNodes: DetailedNode[] } {
-  const nodes: DetailedNode[] = [];
   let summary = `File '${fileName}' (package.json). `;
   try {
     const parsed = JSON.parse(fileContent);
@@ -1097,6 +1116,7 @@ function analyzePackageJson(fileName: string, fileContent: string, generateNodeI
   }
   return { analysisSummary: summary, detailedNodes: nodes };
 }
+
 
 function analyzeGenericJson(fileName: string, fileContent: string, generateNodeId: Function, fileSpecificPrefix: string): { analysisSummary: string, detailedNodes: DetailedNode[] } {
   let summary = `File '${fileName}' (JSON). `;
@@ -1172,14 +1192,12 @@ function analyzeFallback(fileName: string, contentType: string | undefined, file
     detailedNodes: nodes,
   };
 }
->>>>>>> master
 
 async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<ProjectAnalysisOutput> {
   console.log(`[AnalyzerToolV2] Path: ${input.projectStoragePath}, Hint: ${input.userHint}`);
   const BUCKET_NAME = "project_archives";
   const fileSpecificPrefix = (input.projectStoragePath.split('/').pop() || 'file').replace(/[^a-zA-Z0-9_]/g, '_');
 
-<<<<<<< HEAD
   if (input.userHint === "_USE_FIXED_MOCK_PROJECT_A_") {
     console.log("Returning FIXED_MOCK_PROJECT_A_ANALYSIS based on hint.");
     return FIXED_MOCK_PROJECT_A_ANALYSIS;
@@ -1753,7 +1771,6 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
   }
 
   return output;
-=======
   const fileDetails = await supabaseFileFetcherTool.run({
     bucketName: BUCKET_NAME,
     filePath: input.projectStoragePath,
@@ -1848,7 +1865,6 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
     detailedNodes: analysisResult.detailedNodes,
     error: analysisResult.error,
   };
->>>>>>> master
 }
 
 export const projectStructureAnalyzerTool = ai.defineTool(

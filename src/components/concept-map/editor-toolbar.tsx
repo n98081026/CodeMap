@@ -6,7 +6,6 @@ import { Separator } from "@/components/ui/separator";
 // React was imported twice, removed one instance
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-<<<<<<< HEAD
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -14,23 +13,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, // Added BoxSelect
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, Wand2, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff,
-  Edit3,
-  FileText as FileTextIcon,
-  MessagesSquare, // For "Ask AI About Map"
-  GraduationCap // For Tutorials
+  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, LayoutGrid, ScanSearch, Wand2, // Added BoxSelect, Wand2
+  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff,
+  Edit3, FileText as FileTextIcon, MessagesSquare, GraduationCap, Grid, Network, AlignHorizontalDistributeCenter, BrainCircuit
 } from "lucide-react";
-=======
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutGrid, ScanSearch, Wand2, // Added Wand2
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText,
-<<<<<<< HEAD
-  Network, AlignHorizontalDistributeCenter, Grid // Added Grid icon
-=======
-  Network, AlignHorizontalDistributeCenter, BrainCircuit // Added BrainCircuit for new button
->>>>>>> master
-} from "lucide-react";
->>>>>>> master
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -67,7 +53,6 @@ interface EditorToolbarProps {
   canRedo: boolean;
   selectedNodeId: string | null;
   numMultiSelectedNodes: number;
-<<<<<<< HEAD
   onAutoLayout?: () => void; // Made optional
   arrangeActions?: ArrangeAction[];
   onSuggestAISemanticGroup?: () => void; // New prop
@@ -93,7 +78,6 @@ export interface ArrangeAction {
   icon?: LucideIcon;
   action: () => void;
   isSeparator?: boolean;
-=======
   onAutoLayout?: () => void;
   onTidySelection?: () => void;
   onSuggestMapImprovements?: () => void;
@@ -103,7 +87,6 @@ export interface ArrangeAction {
   onAiTidySelection?: () => void; // New prop
   onDagreTidySelection?: () => void; // For Dagre-based selection tidy
   isDagreTidying?: boolean;         // Loading state for Dagre tidy
->>>>>>> master
 }
 
 export const EditorToolbar = React.memo(function EditorToolbar({
@@ -135,7 +118,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   selectedNodeId,
   numMultiSelectedNodes,
   onAutoLayout,
-<<<<<<< HEAD
   arrangeActions,
   onSuggestAISemanticGroup,
   onSuggestAIArrangement,
@@ -152,7 +134,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   isSummarizingMap,
   onAskQuestionAboutMapContext, // Destructure new prop
   isAskingAboutMapContext, // Destructure new prop
-=======
   onTidySelection,
   onSuggestMapImprovements,
   isSuggestingMapImprovements,
@@ -161,7 +142,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onAiTidySelection, // Destructure new prop
   onDagreTidySelection,
   isDagreTidying,
->>>>>>> master
 }: EditorToolbarProps) {
   const { toast } = useToast();
   const store = useConceptMapStore(); // Get store instance for actions
@@ -368,9 +348,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           </TooltipContent>
         </Tooltip>
 
-<<<<<<< HEAD
         {/* New Auto-layout (Dagre) Button - Full Map */}
-=======
         {/* New "Suggest Structural Improvements" Button */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -412,7 +390,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
 
         {/* New Auto-layout (Dagre) Button */}
->>>>>>> master
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -437,7 +414,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               variant="outline"
               size="icon"
               onClick={() => handleGenAIClick(onDagreTidySelection!, "Dagre Tidy Selection")}
-              disabled={isViewOnlyMode || !onDagreTidySelection || isDagreTidying || numMultiSelectedNodeIds < 2 || showCopyButton}
+              disabled={isViewOnlyMode || !onDagreTidySelection || isDagreTidying || numMultiSelectedNodes < 2 || showCopyButton}
               aria-label="Tidy Selected Subgraph (Dagre)"
             >
               {isDagreTidying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Grid className="h-4 w-4" />}
@@ -447,7 +424,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             {showCopyButton ? "Log in to use layout tools" :
              isViewOnlyMode ? "Tidy Selection (Dagre - Disabled)"
               : !onDagreTidySelection ? "Tidy Selection (Dagre - Not Configured)"
-              : numMultiSelectedNodeIds < 2 ? "Tidy Selection (Dagre - Select 2+ nodes)"
+              : numMultiSelectedNodes < 2 ? "Tidy Selection (Dagre - Select 2+ nodes)"
               : isDagreTidying ? "Processing..."
               : "Tidy Selected Subgraph (Dagre)"}
           </TooltipContent>

@@ -181,5 +181,3 @@ export default function ExamplesPage() {
     </div>
   );
 }
-
-[end of src/app/(app)/examples/page.tsx]

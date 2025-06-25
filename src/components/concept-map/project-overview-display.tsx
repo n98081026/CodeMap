@@ -119,10 +119,22 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
   };
 
   if (isLoading) {
-    return ( /* ... existing loading state ... */ );
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-20">
+        <Loader2 className="h-10 w-10 animate-spin text-muted-foreground mb-4" />
+        <span className="text-lg text-muted-foreground">Loading project overview...</span>
+      </div>
+    );
   }
   if (overviewData?.error || !overviewData || overviewData.keyModules.length === 0) {
-    return ( /* ... existing error state ... */ );
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-20">
+        <AlertTriangle className="h-10 w-10 text-destructive mb-4" />
+        <span className="text-lg text-destructive">
+          {overviewData?.error ? overviewData.error : "No overview data available for this project."}
+        </span>
+      </div>
+    );
   }
 
   return (

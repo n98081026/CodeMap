@@ -108,7 +108,8 @@ export default function StudentDashboardPage() {
       />
 
       {/* Original Quick Actions Card - can be removed or merged into QuickActionsCard logic */}
-      {/* <Card className="shadow-lg">
+      {/*
+      <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
           <CardDescription>Get started with common tasks quickly.</CardDescription>
@@ -126,6 +127,7 @@ export default function StudentDashboardPage() {
           </Button>
         </CardContent>
       </Card>
+      */}
     </div>
   );
 }

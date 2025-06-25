@@ -263,4 +263,3 @@ describe('useConceptMapStore', () => {
 // For `setGhostPreview` test, the `width` and `height` capture from original node depends on the original node existing.
 // The test for `setGhostPreview` currently adds a node then sets its preview, which is fine.
 // The `deleteNode` test correctly checks for connected edge removal. More complex graph logic (deep deletion) is noted as a TODO.
-```

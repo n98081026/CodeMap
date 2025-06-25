@@ -537,10 +537,10 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     const noRelations = !editableRelations || editableRelations.length === 0;
 
     if (!currentMapNodes && noExtracted && noRelations) { // Check currentMapNodes instead of mapData
-      return ( /* ... Empty state ... */ );
+      return (<div className="text-muted-foreground py-8">No suggestions available yet.</div>);
     }
     if (currentMapNodes && currentMapNodes.length > 0 && noExtracted && noRelations) {
-      return ( /* ... Empty state ... */ );
+      return (<div className="text-muted-foreground py-8">No suggestions available for the current map.</div>);
     }
     
     return (
