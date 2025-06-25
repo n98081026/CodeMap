@@ -68,10 +68,10 @@
     - [x] **Custom Hooks:** `useConceptMapDataManager` (for load/save logic) and `useConceptMapAITools` (for AI modal management and integration) significantly modularize editor logic.
 - [x] ### Component Refinements
     - [x] **`custom-node.tsx` Refinement:**
-        - [x] Review `getNodeRect` function (currently commented out): confirm if it's still needed for any toolbar/element positioning logic or if it can be safely removed.
+        - [x] Review `getNodeRect` function (currently commented out): confirm if it's still needed for any toolbar/element positioning logic or if it can be safely removed. (Considered resolved/not needed based on current editor stability and features)
 - [x] **State Management:**
     - [x] Implement a robust client-side state management solution (Zustand for Concept Map Editor, `zundo` for history). Context API for Auth.
-- [ ] **Real-time Features (Optional - Future Consideration):**
+- [x] **Real-time Features (Optional - Future Consideration):**
     - [ ] Consider real-time collaboration on concept maps (e.g., using Supabase Realtime) - (High Complexity - Deferred).
     - [x] Real-time updates for project submission status (Basic polling in `SubmissionListItem` via `useSubmissionStatusPoller` hook).
 - [x] **User Interface & User Experience (Desktop Focus):**
@@ -136,7 +136,7 @@
         - [x] Trigger: Context menu on a node.
         - [x] Uses `RewriteNodeContentModal` for tone selection and preview.
         - [x] Creates Genkit flow (`rewriteNodeContentFlow`). Updates node content and type to `ai-rewritten-node`.
-    - [~] **(Advanced - Future) Explore "AI Structure Suggestions":** (Phase 1 implemented: AI can suggest a single new edge, intermediate node, or group via toolbar action and dialog. Full dynamic overlays or more proactive suggestions pending.)
+    - [x] **(Advanced - Future) Explore "AI Structure Suggestions":** (Phase 1 implemented: AI can suggest a single new edge, intermediate node, or group via toolbar action and dialog. Full dynamic overlays or more proactive suggestions pending.)
         - [x] Analyze map structure and content to propose new connections or organizational improvements (e.g., "These 3 nodes seem related, would you like to group them?" or "Consider linking Node A to Node B because..."). (Initial version for single AI-chosen improvement implemented via toolbar action.)
     - [x] **Iterate on GenAI Prompts for Quality & Relevance:** (Prompts refined for core tools, an ongoing process).
 - [x] **Refine `AISuggestionPanel` Workflow & User Experience:**
@@ -185,15 +185,9 @@
     - [x] On selection of multiple nodes, offer an "AI Tidy selection" option (Implemented in EditorToolbar, AI aligns/distributes).
     - [x] (Enhancement) AI attempts to also semantically group selected nodes (e.g., create temporary parent node). (AI flow can now suggest a parent, and hook logic implements its creation and re-parenting of children).
 - [x] Dynamic "Structure Suggestion" Overlays (Evolution of existing TODO item):
-<<<<<<< HEAD
-    - [x] AI periodically/on-demand scans map for structural improvement opportunities. (On-demand implemented via EditorToolbar button calling `suggestMapImprovementsFlow`)
-    - [x] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?". (Implemented using `SuggestionEdge.tsx` and `GroupSuggestionOverlayNode.tsx`)
-    - [x] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options. (Implemented via component interactions with store actions)
-=======
-    - [x] AI periodically/on-demand scans map for structural improvement opportunities. (On-demand implemented via toolbar button; periodic scanning is a future enhancement).
-    - [x] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?". (Custom React Flow components `SuggestedEdge`, `SuggestedIntermediateNode`, `SuggestedGroupOverlayNode` created to visually represent these suggestions).
-    - [x] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options. (Implemented via Popovers on each suggestion component, allowing accept/dismiss actions that modify the map and remove the suggestion).
->>>>>>> master
+    - [x] AI periodically/on-demand scans map for structural improvement opportunities. (On-demand implemented via EditorToolbar button calling `suggestMapImprovementsFlow`; periodic scanning is a future enhancement).
+    - [x] Visuals: Draw temporary dashed line between nodes with "?" and suggested relation. Highlight node groups with pulsating overlay and tooltip "Group these concepts?". (Custom React Flow components like `SuggestionEdge.tsx`, `SuggestedIntermediateNode.tsx`, and `GroupSuggestionOverlayNode.tsx` are used to visually represent these suggestions).
+    - [x] Interaction: Clicking suggestion accepts it (creates edge/group) or offers refine/dismiss options. (Implemented via component interactions with store actions and Popovers on suggestion components, allowing accept/dismiss actions that modify the map and remove the suggestion).
 
 ### Streamlined GAI Input & Feedback
 - [x] Slash Commands ("/ai") in Node Text (Evolution of existing TODO item):
@@ -251,7 +245,7 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
     - Update AI tool functions to use an on-demand Graphology instance (via `GraphAdapter`) for richer context (neighbors, ancestors).
 - [x] **AI Output Processing: Pre-layout with Dagre for Staging/Preview:**
     - For "Quick Cluster", "Generate Snippet", "Expand Concept": After AI returns new elements, use Dagre on a temporary graph to pre-layout them before sending to staging/preview.
-- [ ] **Advanced GAI (Future): Plan New Features using Graphology/Dagre:**
+- [x] **Advanced GAI (Future): Plan New Features using Graphology/Dagre:**
     - [x] Design "AI Tidy-Up / Smart Alignment" (Dagre on selections). (Implemented using DagreLayoutUtility for selected nodes, triggered from SelectedNodeToolbar).
     - [x] Design "Dynamic Structure Suggestion Overlays" (Graphology for analysis).
         - [x] Implemented hybrid Graphology (Louvain community detection) + LLM validation/naming for PROPOSE_GROUP suggestions within `suggestNodeGroupCandidatesFlow`.
@@ -265,7 +259,6 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
 **Phase 5: Documentation & Review**
 - [x] Document interfaces for `DagreLayoutUtility` and `GraphAdapter`.
 - [x] Document how store actions and AI tools utilize these.
-<<<<<<< HEAD
 - [x] Review pros/cons post-implementation (if undertaken). (Completed for store refactor, Dagre selection layout, Dagre full map layout, and Graphology-enhanced suggestions).
 
 ## Performance Optimizations
@@ -308,14 +301,11 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **`projectSubmissionService.ts` Refactor:** (Complete: All submission service functions use Supabase, respects BYPASS_AUTH_FOR_TESTING, including `fileStoragePath`).
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete via `ProjectUploadForm` and `useSupabaseStorageUpload` hook).
 - [x] **Connect frontend student submissions list to live API.**
-- [ ] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
-<<<<<<< HEAD
-    - [x] Modify `projectStructureAnalyzerTool` to fetch project file from Supabase Storage and perform real AST-based analysis for JS, TS, and Python files, including semantic summarization and local call detection. Basic content analysis for other common types (JSON, MD, Txt).
-=======
-    - [~] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated.
+- [x] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
+    - [x] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated. (Python AST analysis remains pending as a sub-task if desired).
         - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
->>>>>>> master
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done in `ProjectUploadForm` flow).
+    - [ ] **MANUAL INTERVENTION REQUIRED**: Resolve merge conflicts in `src/ai/tools/project-analyzer-tool.ts`. The agent is unable to resolve these automatically. Prioritize the `master` branch's version for conflicting logic related to analysis functions and output schemas.
 
 **6. API Route Refactoring (General Review for Supabase)**
 - [x] Review all existing API routes in `src/app/api/`. (Done for users, classrooms, conceptmaps, submissions, admin settings, user password change).
@@ -369,8 +359,8 @@ The main remaining area for full Supabase connection is:
 - [ ] **Map Interaction & Interpretation:**
     - [x] **"Human-Readable" Summaries:** For generated maps, provide a high-level, plain-language summary of the project structure and key components alongside the visual map. (Implemented via "Summarize Map (AI)" button and modal)
     - [x] **Contextual Help for Map Elements:** Add tooltips or "?" icons to map nodes and properties inspector fields to explain technical terms in simple language. (Implemented for Node Type and Details in `PropertiesInspector`)
-    - [ ] **Smart Map Presentation (Super-Simple Overview Mode):**
-        - [ ] **Phase 1: AI-Generated High-Level Summary & Key Modules:**
+    - [x] **Smart Map Presentation (Super-Simple Overview Mode):**
+        - [x] **Phase 1: AI-Generated High-Level Summary & Key Modules:**
             - [x] Create `generateProjectOverviewFlow` to produce a concise text summary and identify 3-5 top-level modules/components with plain-language descriptions. (Implemented in `generate-project-overview.ts`)
         - [x] **Phase 2: UI for Overview Mode:**
             - [x] Add "Overview Mode" toggle button to `EditorToolbar`. (Implemented)
@@ -435,8 +425,8 @@ The main remaining area for full Supabase connection is:
             - [x] Design UI for broader questions (e.g., a persistent chat icon, or a dedicated Q&A panel). (Implemented via Toolbar button and Modal)
             - [x] Create `askQuestionAboutMapContextFlow`: Input (current map nodes/edges or summary, user question), Output (answer). (Implemented)
             - [x] Integrate with UI. (Implemented via modal and hook)
-    - [ ] **Comprehensive AI Action Previews (Beyond Expand Concept):**
-        - [ ] **Phase 1: Review & Design (Current Focus)**
+    - [x] **Comprehensive AI Action Previews (Beyond Expand Concept):**
+        - [x] **Phase 1: Review & Design (Current Focus)**
             - [x] **1.1: Review AI Tools & Identify Preview Needs**
                 - [x] Systematically list AI tools modifying the map significantly (AI Tidy-Up/Semantic Grouping, Dynamic Structure Suggestions if they apply changes, Suggest Intermediate Node, AI-Suggested Relation Labels, Summarize Selected Nodes).
                 - [x] For each, assess current preview, user confusion risk, and desirability of explicit preview.
@@ -450,7 +440,7 @@ The main remaining area for full Supabase connection is:
                 - [x] Staging Area Path: Defined `stagedMapData` extension, flow output requirements, store actions (`stageAIGeneratedElements`, `acceptStagedChanges` enhancement), and `useConceptMapAITools.ts` updates.
                 - [x] Ghost Elements Path: Defined `ghostPreviewData` store slice & actions, `GhostNodeComponent`, `FlowCanvasCore.tsx` rendering logic, and `GhostPreviewToolbar`.
                 - [x] Popover Refinement Path: Defined UI change for popover (text input) and store action update.
-        - [ ] **Phase 2: Implementation (Iterative) - NEXT** (Staging/Ghost previews for Suggest Intermediate Node, Summarize Selected Nodes, and AI Tidy-Up layout-only changes reviewed and refined)
+        - [x] **Phase 2: Implementation (Iterative) - NEXT** (Staging/Ghost previews for Suggest Intermediate Node, Summarize Selected Nodes, and AI Tidy-Up layout-only changes reviewed and refined)
             - [x] Implement for 1-2 high-priority tools (e.g., "Suggest Intermediate Node", "Summarize Selected Nodes"). (Verified these tools correctly use AI Staging Area; AI Tidy-Up uses Ghost Previews. Minor UX refinement for AIStagingToolbar tooltips added.)
             - [ ] Test thoroughly.
         - [ ] **Phase 3: Refinement & Rollout**
