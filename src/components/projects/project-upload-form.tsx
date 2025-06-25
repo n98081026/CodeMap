@@ -24,8 +24,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { Classroom, ProjectSubmission, ConceptMapData, ConceptMap } from "@/types";
 import { ProjectSubmissionStatus } from "@/types";
-import { UploadCloud, Loader2, AlertTriangle, FileUp, Brain } from "lucide-react";
-import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project";
+import { UploadCloud, Loader2, AlertTriangle, FileUp, Brain, Workflow } from "lucide-react"; // Added Workflow
+// import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project"; // Will be replaced
+import { projectStructureAnalyzerTool } from '@/ai/tools/project-analyzer-tool'; // Import the tool directly
+import { generateMapFromAnalysisOutputFlow } from '@/ai/flows/generate-map-from-analysis-output'; // Import the new flow
 import { useAuth } from "@/contexts/auth-context";
 import { useSupabaseStorageUpload } from "@/hooks/useSupabaseStorageUpload";
 import {
@@ -169,30 +171,46 @@ export function ProjectUploadForm() {
 
       await updateSubmissionStatusOnServer(submission.id, ProjectSubmissionStatus.PROCESSING);
 
-      toast.update(loadingToastId, { description: "Step 1/3: Initializing analysis process..." }); // Refined
+      toast.update(loadingToastId, { description: "Step 1/3: Analyzing project structure...", icon: <Workflow className="h-4 w-4 animate-spin" /> });
       const projectStoragePath = submission.fileStoragePath;
       if (!projectStoragePath) {
           throw new Error("File storage path is missing. Cannot proceed with AI analysis.");
       }
-
       const aiInputUserGoals = userGoals || `Analyze the project: ${submission.originalFileName}`;
 
-      toast.update(loadingToastId, { description: "Step 2/3: AI processing: Generating map structure & insights..." }); // Refined
-      const mapResult = await aiGenerateMapFromProject({ projectStoragePath, userGoals: aiInputUserGoals });
+      // Stage 1: Analyze project structure
+      const analysisOutput = await projectStructureAnalyzerTool.run({
+        projectStoragePath,
+        userHint: aiInputUserGoals,
+      });
 
-      let parsedMapData: ConceptMapData;
-      try {
-        parsedMapData = JSON.parse(mapResult.conceptMapData);
-        if (!parsedMapData.nodes || !parsedMapData.edges) {
-            throw new Error("AI output format error (missing nodes/edges).");
-        }
-      } catch (parseError) {
-        throw new Error(`Failed to parse AI map data: ${(parseError as Error).message}`);
+      if (analysisOutput.error) {
+        throw new Error(`Project structure analysis failed: ${analysisOutput.error} - ${analysisOutput.analysisSummary}`);
+      }
+      if (!analysisOutput.analyzedFileName) { // Should not happen if no error
+        throw new Error("Project structure analysis completed but returned no filename.");
       }
 
-      toast.update(loadingToastId, { description: "Step 3/3: Finalizing and saving your new concept map..." }); // Refined
+      toast.update(loadingToastId, { description: "Step 2/3: Generating concept map from structure...", icon: <Brain className="h-4 w-4 animate-pulse" /> });
+      // Stage 2: Generate map from analysis output
+      const mapGenerationResult = await generateMapFromAnalysisOutputFlow({
+        analysisOutput,
+        userGoals: aiInputUserGoals,
+      });
+
+      if (mapGenerationResult.error || !mapGenerationResult.conceptMapData) {
+        throw new Error(`Concept map generation failed: ${mapGenerationResult.error || 'No map data produced.'}`);
+      }
+
+      // No need to parse mapGenerationResult.conceptMapData, it's already an object
+      const parsedMapData: ConceptMapData = mapGenerationResult.conceptMapData;
+      if (!parsedMapData.nodes || !parsedMapData.edges) { // Basic validation
+          throw new Error("AI output format error (missing nodes/edges after map generation step).");
+      }
+
+      toast.update(loadingToastId, { description: "Step 3/3: Finalizing and saving your new concept map...", icon: <Loader2 className="h-4 w-4 animate-spin" /> });
       const newMapPayload = {
-        name: `AI Map for ${submission.originalFileName.split('.')[0]}`,
+        name: `AI Map for ${submission.originalFileName.split('.')[0]}`, // Consider using analysisOutput.analyzedFileName
         ownerId: user.id, mapData: parsedMapData, isPublic: false,
         sharedWithClassroomId: submission.classroomId,
       };
@@ -321,6 +339,7 @@ export function ProjectUploadForm() {
                     accept={ACCEPTED_FILE_EXTENSIONS_STRING}
                     onChange={(e) => onChange(e.target.files)}
                     disabled={isBusyOverall}
+                    id="tutorial-target-project-file-input" // Added ID
                     {...fieldProps}
                   />
                 </FormControl>
@@ -363,6 +382,7 @@ export function ProjectUploadForm() {
                     rows={3}
                     className="resize-none"
                     disabled={isBusyOverall}
+                    id="tutorial-target-user-goals-input" // Added ID
                   />
                 </FormControl>
                 <FormDescription className="text-xs">
@@ -416,7 +436,7 @@ export function ProjectUploadForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isBusyOverall || (!form.formState.isValid && !BYPASS_AUTH_FOR_TESTING) || (!form.getValues("projectFile") && !BYPASS_AUTH_FOR_TESTING)}>
+          <Button id="tutorial-target-start-analysis-button" type="submit" className="w-full" disabled={isBusyOverall || (!form.formState.isValid && !BYPASS_AUTH_FOR_TESTING) || (!form.getValues("projectFile") && !BYPASS_AUTH_FOR_TESTING)}>
             {isUploadingFileWithHook ? <FileUp className="mr-2 h-4 w-4 animate-pulse" /> : isSubmittingMetadata ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             {isUploadingFileWithHook ? "Uploading..." : isSubmittingMetadata ? "Submitting..." : isProcessingAIInDialog ? "AI Processing..." : "Submit Project"}
           </Button>

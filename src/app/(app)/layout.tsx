@@ -6,6 +6,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Loader2 } from 'lucide-react';
+import AppTutorial from '@/components/tutorial/app-tutorial'; // Import AppTutorial
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -78,6 +79,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
       <MainLayout>
         {children}
+        {/* Render the AppTutorial component here */}
+        <AppTutorial />
       </MainLayout>
     </NextThemesProvider>
   );

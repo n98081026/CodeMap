@@ -24,9 +24,25 @@ const KeyModuleSchema = z.object({
 });
 export type KeyModule = z.infer<typeof KeyModuleSchema>;
 
+// --- Output Schema ---
+const KeyModuleSchema = z.object({
+  name: z.string().describe('Name of the identified key module or component.'),
+  description: z.string().describe('A concise, plain-language description of this module\'s purpose or functionality.'),
+  filePaths: z.array(z.string()).optional().describe('Optional: List of 1-3 key file paths primarily constituting this module.'),
+});
+export type KeyModule = z.infer<typeof KeyModuleSchema>;
+
+const ModuleConnectionSchema = z.object({
+  sourceModule: z.string().describe('The name of the source key module (must match a name in keyModules).'),
+  targetModule: z.string().describe('The name of the target key module (must match a name in keyModules).'),
+  relationshipDescription: z.string().optional().describe('A brief (1-5 word) description of the relationship (e.g., "sends data to", "depends on", "invokes services from").'),
+});
+export type ModuleConnection = z.infer<typeof ModuleConnectionSchema>;
+
 export const GenerateProjectOverviewOutputSchema = z.object({
   overallSummary: z.string().describe('A concise (2-4 sentences) high-level summary of the project, its main purpose, and potentially its primary technology stack, in plain language.'),
   keyModules: z.array(KeyModuleSchema).min(2).max(7).describe('An array of 2-7 identified key modules/components of the project.'),
+  moduleConnections: z.array(ModuleConnectionSchema).optional().describe('An optional array describing simplified connections or dependencies between the identified key modules.'),
   error: z.string().optional().describe('Error message if the overview generation failed.'),
 });
 export type GenerateProjectOverviewOutput = z.infer<typeof GenerateProjectOverviewOutputSchema>;
@@ -53,21 +69,35 @@ User Goals/Hints (if any): {{userGoals}}
 Your tasks are:
 1.  **Overall Summary**: Write a concise (2-4 sentences) high-level summary of the project. Describe its main purpose and, if truly evident and widely recognizable (e.g., "built with Python and React"), its primary technology stack. **Use plain, everyday language. Avoid technical jargon unless absolutely necessary and briefly explained.** Imagine you're explaining this to a project manager or a new team member from a non-technical department.
 2.  **Identify Key Modules/Components**: Identify 3-5 (but no less than 2 and no more than 7) of the most important **conceptual, high-level functional areas or main parts** of this project, based on the analysis. These should be understandable to someone trying to get a general idea of what the project *does* and how it's broadly organized, rather than just code-level directories. For each key module:
-    *   "name": A short, descriptive, and intuitive name for the module (e.g., "User Sign-up & Login", "Product Catalog Display", "Payment Processing Gateway", "Main Data Analysis Engine").
+    *   "name": A short, descriptive, and intuitive name for the module (e.g., "User Sign-up & Login", "Product Catalog Display", "Payment Processing Gateway", "Main Data Analysis Engine"). Ensure this name is unique within the list of keyModules.
     *   "description": A 1-2 sentence **plain-language description of what this module's primary responsibility or purpose is from a user's or business perspective.** What does it achieve?
     *   "filePaths" (optional): If specific files clearly define this module, list 1-3 of the most relevant file paths. This is optional and should only be included if it adds significant clarity for a slightly more technical user.
+3.  **Identify Key Module Connections (Optional but Encouraged)**:
+    *   Based on your understanding of the project and the identified key modules, list up to 3-4 simple, high-level connections or dependencies *between these key modules*.
+    *   For each connection, specify the 'sourceModule' (name of the source key module) and 'targetModule' (name of the target key module). Both names MUST exactly match one of the "name" fields from the 'keyModules' you identified in step 2.
+    *   Optionally, provide a brief (1-5 word) 'relationshipDescription' (e.g., "sends data to", "depends on", "invokes services from").
+    *   Focus on the most significant interactions that help understand the overall flow or architecture.
+    *   If no clear, high-level connections are apparent between the identified conceptual modules, you can omit the 'moduleConnections' field or return an empty array for it.
 
 Focus on providing a simplified, bird's-eye view that a non-expert could grasp. If user goals are provided, try to tailor the summary and module identification to those goals.
 
 Output strictly as a JSON object matching the specified output schema.
-Ensure 'keyModules' array has between 2 and 7 items.
+Ensure 'keyModules' array has between 2 and 7 items. The 'moduleConnections' array is optional.
 If the provided analysis seems insufficient to generate a meaningful overview (e.g., very few files, parsing errors in analysisSummary), set the 'error' field in the output. In such cases, 'overallSummary' should state that a detailed overview couldn't be generated and why, and 'keyModules' can be an empty array or contain a single entry like {"name": "Project Files", "description": "General collection of project files, detailed structure not clear from analysis."}.
 
-Example for 'keyModules':
-[
-  { "name": "User Account Management", "description": "Handles everything related to user registration, login, and profile updates.", "filePaths": ["src/services/user.ts", "src/controllers/authController.ts"] },
-  { "name": "Order Processing System", "description": "Manages how customer orders are taken, processed, and tracked through to fulfillment." }
-]
+Example for 'keyModules' and 'moduleConnections':
+{
+  "overallSummary": "This project is a web application for managing online courses...",
+  "keyModules": [
+    { "name": "User Account Management", "description": "Handles everything related to user registration, login, and profile updates.", "filePaths": ["src/services/user.ts", "src/controllers/authController.ts"] },
+    { "name": "Course Catalog System", "description": "Manages course creation, display, and search functionalities." },
+    { "name": "Enrollment Service", "description": "Handles student enrollment into courses and payment processing." }
+  ],
+  "moduleConnections": [
+    { "sourceModule": "Enrollment Service", "targetModule": "User Account Management", "relationshipDescription": "verifies user" },
+    { "sourceModule": "Enrollment Service", "targetModule": "Course Catalog System", "relationshipDescription": "updates enrollment status" }
+  ]
+}
 `,
 });
 

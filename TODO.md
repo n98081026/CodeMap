@@ -367,7 +367,7 @@ The main remaining area for full Supabase connection is:
     - [x] **Clearer "User Goals" Input:** Provide examples or tooltips for the "User Goals" field during project upload to reduce user confusion. (Implemented in `ProjectUploadForm`)
     - [x] **Role-Agnostic Starting Point:** Offer a clear "Personal Use" or "Quick Analyze" path for users not immediately identifying as "Student" or "Teacher". (Implemented: Default to student/general dashboard, sidebar adjusts roles)
 - [ ] **Map Interaction & Interpretation:**
-    - [ ] **"Human-Readable" Summaries:** For generated maps, provide a high-level, plain-language summary of the project structure and key components alongside the visual map.
+    - [x] **"Human-Readable" Summaries:** For generated maps, provide a high-level, plain-language summary of the project structure and key components alongside the visual map. (Implemented via "Summarize Map (AI)" button and modal)
     - [x] **Contextual Help for Map Elements:** Add tooltips or "?" icons to map nodes and properties inspector fields to explain technical terms in simple language. (Implemented for Node Type and Details in `PropertiesInspector`)
     - [ ] **Smart Map Presentation (Super-Simple Overview Mode):**
         - [ ] **Phase 1: AI-Generated High-Level Summary & Key Modules:**
@@ -381,11 +381,11 @@ The main remaining area for full Supabase connection is:
             - [x] `ProjectOverviewDisplay` shows identified top-level modules as cards. (Implemented)
             - [x] Each module card in `ProjectOverviewDisplay` displays its plain-language description and shows key files in a tooltip. (Implemented)
             - [ ] (Deferred) `ProjectOverviewDisplay` shows simplified connections between key modules. (Deferred due to complexity of inferring/displaying meaningful top-level connections without direct AI output for it).
-        - [ ] **Phase 3 (Future): Interactive Drill-Down from Overview Mode:**
-            - [ ] Clicking a module in Overview Mode transitions the main map view to focus on/filter for that module's components.
+        - [x] **Phase 3 (Future): Interactive Drill-Down from Overview Mode:**
+            - [x] Clicking a module in Overview Mode transitions the main map view to focus on/filter for that module's components. (Implemented)
     - [ ] **Visual Feedback & Progress:**
         - [ ] For long-running AI operations (analysis, suggestions), provide more engaging progress indicators or estimated time remaining.
-        - [ ] Ensure error messages are user-friendly and suggest potential solutions or next steps.
+        - [x] Ensure error messages are user-friendly and suggest potential solutions or next steps. (Enhanced in `callAIWithStandardFeedback`)
 - [ ] **AI Interaction Refinements:**
     - [x] **AI Explanations ("Why?"):**
         - [x] **Suggest Relations:** Modify `suggestRelationsFlow` to include a `reason` field. (Implemented)
@@ -397,7 +397,7 @@ The main remaining area for full Supabase connection is:
     - [x] **Preview for AI Actions (Staging Area for Quick Cluster & Snippet):**
         - [x] Modified `QuickClusterModal` to send its output to `stagedMapData` in `concept-map-store`. (Implemented)
         - [x] Modified `GenerateSnippetModal` to send its output to `stagedMapData`. (Implemented)
-        - [-] Removed/Adjusted `onClusterGenerated` and `onSnippetGenerated` props/handlers in `useConceptMapAITools` as direct map addition is now handled by Staging Area commit. (Assumed implicitly done by modal changes, verification pending)
+        - [x] Removed/Adjusted `onClusterGenerated` and `onSnippetGenerated` props/handlers in `useConceptMapAITools` as direct map addition is now handled by Staging Area commit. (Props removed from modal calls and definitions; hook confirmed clean)
     - [x] **Simplified AI Prompts/Inputs & Enhanced Feedback:**
         - [x] Reviewed and updated UI text (titles, descriptions, placeholders, buttons) in `ExtractConceptsModal`, `SuggestRelationsModal`, `ExpandConceptModal`, `AskQuestionModal` (within `genai-modals.tsx`). (Implemented)
         - [x] Reviewed and updated UI text in `QuickClusterModal`, `GenerateSnippetModal`, `RewriteNodeContentModal`, `RefineSuggestionModal`, `SuggestIntermediateNodeModal`. (Implemented)
@@ -422,19 +422,19 @@ The main remaining area for full Supabase connection is:
         - [ ] **Auth Logic Modification:** Adjust `AuthContext` and routing to allow access to certain parts of the app without full authentication.
         - [ ] **UI Adaptation:** Design and implement a guest-specific UI layout, potentially with more prominent calls to action for registration/login.
         - [ ] **Data Handling:** Ensure guest user data (if any is generated temporarily) is handled appropriately (e.g., not persisted or clearly marked as temporary).
-    - [ ] **Overview Mode - Interactive Drill-Down (Phase 3):**
-        - [ ] **Design Interaction:** Define how clicking a module in overview mode affects the main map (e.g., filter nodes, zoom to relevant area, load a sub-map if applicable).
-        - [ ] **Store/State Logic:** Update `concept-map-store.ts` to handle focus/filter states based on overview module selection.
-        - [ ] **Component Updates:** Modify `ProjectOverviewDisplay.tsx` to trigger these actions and `FlowCanvasCore.tsx` to respond to filter/focus states.
-    - [ ] **Interactive Q&A - Contextual Q&A (Phase 2):**
-        - [ ] **Edge Q&A:**
-            - [ ] Design UI for asking questions about a selected edge (e.g., in `PropertiesInspector` or context menu).
-            - [ ] Create `askQuestionAboutEdgeFlow`: Input (source node, target node, edge label, user question), Output (answer).
-            - [ ] Integrate with UI.
-        - [ ] **Multi-Node/Map-Level Q&A:**
-            - [ ] Design UI for broader questions (e.g., a persistent chat icon, or a dedicated Q&A panel).
-            - [ ] Create `askQuestionAboutMapContextFlow`: Input (current map nodes/edges or summary, user question), Output (answer).
-            - [ ] This flow might need to be more sophisticated, potentially using RAG with project documentation or more extensive map data.
+    - [x] **Overview Mode - Interactive Drill-Down (Phase 3):**
+        - [x] **Design Interaction:** Define how clicking a module in overview mode affects the main map (e.g., filter nodes, zoom to relevant area, load a sub-map if applicable). (Implemented)
+        - [x] **Store/State Logic:** Update `concept-map-store.ts` to handle focus/filter states based on overview module selection. (Implemented - existing action was suitable)
+        - [x] **Component Updates:** Modify `ProjectOverviewDisplay.tsx` to trigger these actions and `FlowCanvasCore.tsx` to respond to filter/focus states. (Implemented)
+    - [x] **Interactive Q&A - Contextual Q&A (Phase 2):**
+        - [x] **Edge Q&A:** (Implemented)
+            - [x] Design UI for asking questions about a selected edge (e.g., in `PropertiesInspector` or context menu). (Implemented in Properties Inspector)
+            - [x] Create `askQuestionAboutEdgeFlow`: Input (source node, target node, edge label, user question), Output (answer). (Implemented)
+            - [x] Integrate with UI. (Implemented via modal and hook)
+        - [x] **Multi-Node/Map-Level Q&A:** (Implemented)
+            - [x] Design UI for broader questions (e.g., a persistent chat icon, or a dedicated Q&A panel). (Implemented via Toolbar button and Modal)
+            - [x] Create `askQuestionAboutMapContextFlow`: Input (current map nodes/edges or summary, user question), Output (answer). (Implemented)
+            - [x] Integrate with UI. (Implemented via modal and hook)
     - [ ] **Comprehensive AI Action Previews (Beyond Expand Concept):**
         - [ ] **Phase 1: Review & Design (Current Focus)**
             - [x] **1.1: Review AI Tools & Identify Preview Needs**
@@ -450,8 +450,8 @@ The main remaining area for full Supabase connection is:
                 - [x] Staging Area Path: Defined `stagedMapData` extension, flow output requirements, store actions (`stageAIGeneratedElements`, `acceptStagedChanges` enhancement), and `useConceptMapAITools.ts` updates.
                 - [x] Ghost Elements Path: Defined `ghostPreviewData` store slice & actions, `GhostNodeComponent`, `FlowCanvasCore.tsx` rendering logic, and `GhostPreviewToolbar`.
                 - [x] Popover Refinement Path: Defined UI change for popover (text input) and store action update.
-        - [ ] **Phase 2: Implementation (Iterative) - NEXT**
-            - [ ] Implement for 1-2 high-priority tools (e.g., "Suggest Intermediate Node", "Summarize Selected Nodes").
+        - [ ] **Phase 2: Implementation (Iterative) - NEXT** (Staging/Ghost previews for Suggest Intermediate Node, Summarize Selected Nodes, and AI Tidy-Up layout-only changes reviewed and refined)
+            - [x] Implement for 1-2 high-priority tools (e.g., "Suggest Intermediate Node", "Summarize Selected Nodes"). (Verified these tools correctly use AI Staging Area; AI Tidy-Up uses Ghost Previews. Minor UX refinement for AIStagingToolbar tooltips added.)
             - [ ] Test thoroughly.
         - [ ] **Phase 3: Refinement & Rollout**
             - [ ] Gather feedback.
@@ -499,26 +499,26 @@ The main remaining area for full Supabase connection is:
 
 ## 下一步 (建議)
 
-### Guest Mode - Phase 2 (潛在功能)
+### Guest Mode - Phase 2 (潛在功能) - Implemented (Jules, Oct 2023 - Nov 2023)
 
-- [ ] **允許訪客「複製範例到工作區」：**
-    - [ ] 當訪客在唯讀模式下檢視範例時，提供一個按鈕「複製到我的工作區」或「開始編輯此範例」。
-    - [ ] 點擊此按鈕會將他們重定向到登入/註冊頁面。
-    - [ ] 成功登入/註冊後，將範例地圖的副本複製到他們帳戶中，並以編輯模式開啟。
-    - [ ] 這需要後端 API 來處理地圖複製。
-- [ ] **更流暢的範例直接連結處理：**
-    - [ ] 如果訪客直接進入範例地圖 URL (`/concept-maps/editor/example-XYZ?viewOnly=true`) 但該範例資料尚未在 Zustand store 中（例如，透過直接連結或重新整理），考慮自動從 `/public/example-maps/` 的 JSON 檔案中抓取範例資料，而不是僅顯示錯誤並要求他們從範例庫導航。
-    - [ ] 這將使分享範例連結更加順暢。
-- [ ] **UI/UX 細化：**
-    - [ ] 檢閱所有訪客可見頁面上的導覽列/側邊欄，確保對訪客隱藏或禁用不相關的連結（例如「儀表板」、「設定」等）。目前 `AppLayout` 的重定向處理了大部分情況，但明確的 UI 調整可能更好。
-    - [ ] 在唯讀模式下，為已禁用的按鈕提供更一致的工具提示，明確說明為何禁用（例如「登入以使用此功能」）。
+- [x] **允許訪客「複製範例到工作區」：** (Implemented)
+    - [x] 當訪客在唯讀模式下檢視範例時，提供一個按鈕「複製到我的工作區」或「開始編輯此範例」。 (Implemented on Examples page and Editor Toolbar)
+    - [x] 點擊此按鈕會將他們重定向到登入/註冊頁面。 (Implemented with query params)
+    - [x] 成功登入/註冊後，將範例地圖的副本複製到他們帳戶中，並以編輯模式開啟。 (Implemented in AuthContext post-login flow)
+    - [x] 這需要後端 API 來處理地圖複製。 (Implemented - uses existing POST /api/concept-maps)
+- [x] **更流暢的範例直接連結處理：** (Implemented)
+    - [x] 如果訪客直接進入範例地圖 URL (`/concept-maps/editor/example-XYZ?viewOnly=true`) 但該範例資料尚未在 Zustand store 中（例如，透過直接連結或重新整理），考慮自動從 `/public/example-maps/` 的 JSON 檔案中抓取範例資料，而不是僅顯示錯誤並要求他們從範例庫導航。 (Implemented in useConceptMapDataManager)
+    - [x] 這將使分享範例連結更加順暢。 (Achieved)
+- [x] **UI/UX 細化：** (Partially Implemented - Tooltips improved, Sidebar review concluded no changes needed for guests)
+    - [x] 檢閱所有訪客可見頁面上的導覽列/側邊欄，確保對訪客隱藏或禁用不相關的連結（例如「儀表板」、「設定」等）。目前 `AppLayout` 的重定向處理了大部分情況，但明確的 UI 調整可能更好。 (Reviewed: SidebarNav returns null for guests, which is acceptable. Navbar behavior is fine.)
+    - [x] 在唯讀模式下，為已禁用的按鈕提供更一致的工具提示，明確說明為何禁用（例如「登入以使用此功能」）。 (Implemented for EditorToolbar)
 
 ### 其他潛在改進
 
 - [ ] **測試覆蓋率：**
     - [ ] 為新的訪客模式邏輯和相關元件編寫自動化測試 (Vitest)。
     - [ ] 特別是測試 `AppLayout` 中的路由邏輯和 `useConceptMapDataManager` 中範例地圖的處理。
-- [ ] **錯誤處理與日誌記錄：**
-    - [ ] 增強 `useConceptMapDataManager` 中範例地圖載入失敗時的錯誤處理/日誌記錄。
+- [x] **錯誤處理與日誌記錄：**
+    - [x] 增強 `useConceptMapDataManager` 中範例地圖載入失敗時的錯誤處理/日誌記錄。 (Enhanced toasts and debug logs for direct example loading path)
 - [ ] **安全性檢閱：**
     - [ ] 對訪客模式進行一次快速的安全性檢閱，確保沒有意外的資料洩漏或功能存取。

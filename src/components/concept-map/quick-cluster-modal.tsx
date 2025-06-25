@@ -22,10 +22,9 @@ import useConceptMapStore from '@/stores/concept-map-store'; // Added store impo
 interface QuickClusterModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  // onClusterGenerated: (output: GenerateQuickClusterOutput) => void; // Removed, will use store directly
 }
 
-export function QuickClusterModal({ isOpen, onOpenChange }: QuickClusterModalProps) { // Removed onClusterGenerated from props
+export function QuickClusterModal({ isOpen, onOpenChange }: QuickClusterModalProps) {
   const [promptText, setPromptText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { setStagedMapData } = useConceptMapStore( // Get action from store

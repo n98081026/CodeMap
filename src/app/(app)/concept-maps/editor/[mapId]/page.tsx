@@ -52,6 +52,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
+import { MapSummaryModal } from '@/components/concept-map/map-summary-modal';
+import { AskQuestionAboutEdgeModal } from '@/components/concept-map/AskQuestionAboutEdgeModal';
+import { AskQuestionAboutMapModal } from '@/components/concept-map/AskQuestionAboutMapModal'; // Import the new map Q&A modal
+import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar';
 import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For CTA
 import { Info, UserPlus, LogIn } from "lucide-react"; // For CTA
@@ -201,8 +205,8 @@ export default function ConceptMapEditorPage() {
     openExtractConceptsModal, handleConceptsExtracted, addExtractedConceptsToMap,
     openSuggestRelationsModal, handleRelationsSuggested, addSuggestedRelationsToMap,
     openExpandConceptModal, handleConceptExpanded,
-    openQuickClusterModal, handleClusterGenerated,
-    openGenerateSnippetModal, handleSnippetGenerated,
+    openQuickClusterModal, // handleClusterGenerated removed
+    openGenerateSnippetModal, // handleSnippetGenerated removed
     openAskQuestionModal, handleQuestionAnswered,
     openRewriteNodeContentModal, handleRewriteNodeContentConfirm,
     handleSummarizeSelectedNodes, handleMiniToolbarQuickExpand, handleMiniToolbarRewriteConcise,
@@ -213,7 +217,15 @@ export default function ConceptMapEditorPage() {
     conceptExpansionPreview, acceptAllExpansionPreviews, acceptSingleExpansionPreview, clearExpansionPreview,
     isRefineModalOpen, setIsRefineModalOpen, refineModalInitialData, handleRefineSuggestionConfirm, openRefineSuggestionModal,
     intermediateNodeSuggestion, handleSuggestIntermediateNodeRequest, confirmAddIntermediateNode, clearIntermediateNodeSuggestion,
-    handleAiTidyUpSelection, handleDagreLayoutSelection
+    handleAiTidyUpSelection, handleDagreLayoutSelection,
+    // Map Summary related items from aiToolsHook
+    handleSummarizeMap, isSummarizingMap, mapSummaryResult, isMapSummaryModalOpen, setIsMapSummaryModalOpen, clearMapSummaryResult,
+    // Edge Q&A related items from aiToolsHook
+    openAskQuestionAboutEdgeModal, handleAskQuestionAboutEdge, isEdgeQuestionModalOpen, setIsEdgeQuestionModalOpen,
+    edgeQuestionContext, edgeQuestionAnswer, isAskingAboutEdge, clearEdgeQuestionState,
+    // Map Context Q&A related items from aiToolsHook
+    openAskQuestionAboutMapContextModal, handleAskQuestionAboutMapContext, isMapContextQuestionModalOpen, setIsMapContextQuestionModalOpen,
+    mapContextQuestionAnswer, isAskingAboutMapContext, clearMapContextQuestionState
   } = aiToolsHook;
 
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
@@ -305,7 +317,14 @@ export default function ConceptMapEditorPage() {
   const handleConfirmAISemanticGroup = useCallback(async () => { /* ... */ }, [aiSemanticGroupSuggestion, multiSelectedNodeIds, storeMapData.nodes, addNodeFromHook, updateStoreNode, toast, addDebugLog, storeApplyLayout]);
   const handleDeleteNodeFromContextMenu = useCallback((nodeId: string) => { /* ... */ }, [storeIsViewOnlyMode, deleteStoreNode, closeContextMenu]);
   const handleSelectedElementPropertyUpdateInspector = useCallback((updates: any) => { /* ... */ }, [storeIsViewOnlyMode, selectedElementId, selectedElementType, updateStoreNode, updateStoreEdge]);
-  const inspectorAiTools = React.useMemo(() => ({ /* ... */ }), [aiToolsHook.openExpandConceptModal, aiToolsHook.openRewriteNodeContentModal, aiToolsHook.handleSuggestIntermediateNodeRequest]);
+  const inspectorAiTools = React.useMemo(() => ({
+    openExpandConceptModal: aiToolsHook.openExpandConceptModal,
+    openRewriteNodeContentModal: aiToolsHook.openRewriteNodeContentModal,
+    openAskQuestionAboutNodeModal: aiToolsHook.openAskQuestionModal, // Assuming this is for nodes
+    openAskQuestionAboutEdgeModal: aiToolsHook.openAskQuestionAboutEdgeModal, // Wire up edge Q&A modal opener
+    // handleSuggestIntermediateNodeRequest is not directly an aiTool but a handler, passed separately
+  }), [aiToolsHook.openExpandConceptModal, aiToolsHook.openRewriteNodeContentModal, aiToolsHook.openAskQuestionModal, aiToolsHook.openAskQuestionAboutEdgeModal]);
+
   const showEmptyMapMessage = !isStoreLoading && useConceptMapStore.getState().initialLoadComplete && !storeError && routeMapId !== 'new' && storeMapData.nodes.length === 0 && storeMapId === routeMapId;
   const handleStartConnectionFromNode = useCallback((nodeId: string) => { /* ... */ }, [storeIsViewOnlyMode, toast, addDebugLog]);
   const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: RFNode<CustomNodeData>) => { /* ... */ }, []);
@@ -483,10 +502,14 @@ export default function ConceptMapEditorPage() {
           onDagreTidySelection={handleDagreLayoutSelection}
           isDagreTidying={aiToolsHook.isDagreTidying}
           onToggleOverviewMode={handleToggleOverviewMode} // Pass handler
-          isOverviewModeActive={isOverviewModeActive} // Pass state
+          isOverviewModeActive={isOverviewModeActive}
+          onSummarizeMap={handleSummarizeMap}
+          isSummarizingMap={isSummarizingMap}
+          onAskQuestionAboutMapContext={openAskQuestionAboutMapContextModal} // Pass handler for map context Q&A
+          isAskingAboutMapContext={isAskingAboutMapContext} // Pass loading state for map context Q&A
         />
         <EditorGuestCtaBanner routeMapId={routeMapId} />
-        <div className="flex-grow relative overflow-hidden">
+        <div id="tutorial-target-map-canvas-wrapper" className="flex-grow relative overflow-hidden">
           {showEmptyMapMessage ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
               <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -538,6 +561,7 @@ export default function ConceptMapEditorPage() {
         </div>
 
         <AIStagingToolbar isVisible={isStagingActive && !isOverviewModeActive} onCommit={handleCommitStagedData} onClear={handleClearStagedData} stagedItemCount={stagedItemCount} />
+        <GhostPreviewToolbar /> {/* Add the GhostPreviewToolbar here */}
         <AISuggestionFloater isVisible={floaterState.isVisible && !isOverviewModeActive} position={floaterState.position || {x:0,y:0}} suggestions={floaterState.suggestions} onDismiss={Floater_handleDismiss} title={floaterState.title || "Quick Actions"} />
         {contextMenu?.isOpen && contextMenu.nodeId && !isOverviewModeActive && ( <NodeContextMenu x={contextMenu.x} y={contextMenu.y} nodeId={contextMenu.nodeId} onClose={closeContextMenu} onDeleteNode={handleDeleteNodeFromContextMenu} onExpandConcept={() => { openExpandConceptModal(contextMenu.nodeId!); closeContextMenu(); }} onSuggestRelations={() => { openSuggestRelationsModal(contextMenu.nodeId!); closeContextMenu(); }} onExtractConcepts={() => { openExtractConceptsModal(contextMenu.nodeId!); closeContextMenu(); }} onAskQuestion={() => { openAskQuestionModal(contextMenu.nodeId!); closeContextMenu(); }} onRewriteContent={() => { openRewriteNodeContentModal(contextMenu.nodeId!); closeContextMenu(); }} isViewOnlyMode={storeIsViewOnlyMode} /> )}
         <Sheet open={isPropertiesInspectorOpen && !isOverviewModeActive} onOpenChange={setIsPropertiesInspectorOpen}> <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto"> <PropertiesInspector currentMap={mapForInspector} onMapPropertiesChange={handleMapPropertiesChange} selectedElement={actualSelectedElementForInspector} selectedElementType={selectedElementType} onSelectedElementPropertyUpdate={handleSelectedElementPropertyUpdateInspector} onSuggestIntermediateNode={handleSuggestIntermediateNodeRequest} isNewMapMode={isNewMapMode} isViewOnlyMode={storeIsViewOnlyMode} /> </SheetContent> </Sheet>
@@ -546,13 +570,38 @@ export default function ConceptMapEditorPage() {
         {aiToolsHook.isExtractConceptsModalOpen && !storeIsViewOnlyMode && <ExtractConceptsModal initialText={aiToolsHook.textForExtraction} onConceptsExtracted={aiToolsHook.handleConceptsExtracted} onOpenChange={aiToolsHook.setIsExtractConceptsModalOpen} />}
         {aiToolsHook.isSuggestRelationsModalOpen && !storeIsViewOnlyMode && <SuggestRelationsModal initialConcepts={aiToolsHook.conceptsForRelationSuggestion} onRelationsSuggested={aiToolsHook.handleRelationsSuggested} onOpenChange={aiToolsHook.setIsSuggestRelationsModalOpen} />}
         {aiToolsHook.isExpandConceptModalOpen && !storeIsViewOnlyMode && aiToolsHook.conceptToExpandDetails && (<ExpandConceptModal initialConceptText={aiToolsHook.conceptToExpandDetails.text} existingMapContext={aiToolsHook.mapContextForExpansion} onConceptExpanded={aiToolsHook.handleConceptExpanded} onOpenChange={aiToolsHook.setIsExpandConceptModalOpen} /> )}
-        {aiToolsHook.isQuickClusterModalOpen && !storeIsViewOnlyMode && <QuickClusterModal isOpen={aiToolsHook.isQuickClusterModalOpen} onOpenChange={aiToolsHook.setIsQuickClusterModalOpen} onClusterGenerated={aiToolsHook.handleClusterGenerated} />}
-        {aiToolsHook.isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={aiToolsHook.isGenerateSnippetModalOpen} onOpenChange={aiToolsHook.setIsGenerateSnippetModalOpen} onSnippetGenerated={aiToolsHook.handleSnippetGenerated} />}
+        {aiToolsHook.isQuickClusterModalOpen && !storeIsViewOnlyMode && <QuickClusterModal isOpen={aiToolsHook.isQuickClusterModalOpen} onOpenChange={aiToolsHook.setIsQuickClusterModalOpen} />}
+        {aiToolsHook.isGenerateSnippetModalOpen && !storeIsViewOnlyMode && <GenerateSnippetModal isOpen={aiToolsHook.isGenerateSnippetModalOpen} onOpenChange={aiToolsHook.setIsGenerateSnippetModalOpen} />}
         {aiToolsHook.isAskQuestionModalOpen && !storeIsViewOnlyMode && aiToolsHook.nodeContextForQuestion && <AskQuestionModal nodeContext={aiToolsHook.nodeContextForQuestion} onQuestionAnswered={aiToolsHook.handleQuestionAnswered} onOpenChange={aiToolsHook.setIsAskQuestionModalOpen} />}
         {aiToolsHook.isRewriteNodeContentModalOpen && !storeIsViewOnlyMode && aiToolsHook.nodeContentToRewrite && <RewriteNodeContentModal nodeContent={aiToolsHook.nodeContentToRewrite} onRewriteConfirm={aiToolsHook.handleRewriteNodeContentConfirm} onOpenChange={aiToolsHook.setIsRewriteNodeContentModalOpen} />}
         {aiToolsHook.isRefineModalOpen && aiToolsHook.refineModalInitialData && !storeIsViewOnlyMode && ( <RefineSuggestionModal isOpen={aiToolsHook.isRefineModalOpen} onOpenChange={aiToolsHook.setIsRefineModalOpen} initialData={aiToolsHook.refineModalInitialData} onConfirm={aiToolsHook.handleRefineSuggestionConfirm} /> )}
         {intermediateNodeSuggestion && !storeIsViewOnlyMode && ( <AlertDialog open={!!intermediateNodeSuggestion} onOpenChange={(isOpen) => { if (!isOpen) clearIntermediateNodeSuggestion(); }} > <AlertDialogContent> <AlertDialogHeader> <AlertDialogTitle>AI Suggestion: Intermediate Node</AlertDialogTitle> <AlertDialogDescription> The AI suggests adding an intermediate node. {/* ... */ } </AlertDialogDescription> </AlertDialogHeader> <AlertDialogFooter> <AlertDialogCancel onClick={clearIntermediateNodeSuggestion}>Cancel</AlertDialogCancel> <AlertDialogAction onClick={confirmAddIntermediateNode}>Confirm</AlertDialogAction> </AlertDialogFooter> </AlertDialogContent> </AlertDialog> )}
 
+        {/* Map Summary Modal */}
+        <MapSummaryModal
+          isOpen={isMapSummaryModalOpen}
+          onOpenChange={setIsMapSummaryModalOpen}
+          summaryResult={mapSummaryResult}
+          onClose={clearMapSummaryResult}
+        />
+        <AskQuestionAboutEdgeModal
+          isOpen={isEdgeQuestionModalOpen}
+          onOpenChange={setIsEdgeQuestionModalOpen}
+          edgeContext={edgeQuestionContext}
+          onSubmitQuestion={handleAskQuestionAboutEdge}
+          isLoading={isAskingAboutEdge}
+          answer={edgeQuestionAnswer}
+          onCloseModal={clearEdgeQuestionState}
+        />
+        <AskQuestionAboutMapModal
+          isOpen={isMapContextQuestionModalOpen}
+          onOpenChange={setIsMapContextQuestionModalOpen}
+          mapName={mapName}
+          onSubmitQuestion={handleAskQuestionAboutMapContext}
+          isLoading={isAskingAboutMapContext}
+          answer={mapContextQuestionAnswer}
+          onCloseModal={clearMapContextQuestionState}
+        />
       </ReactFlowProvider>
     </div>
   );

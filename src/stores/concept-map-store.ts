@@ -67,8 +67,8 @@ interface ConceptMapState {
   debugLogs: string[];
   stagedMapData: StagedMapDataWithContext | null;
   isStagingActive: boolean;
-  conceptExpansionPreview: ConceptExpansionPreviewState | null;
-  updateConceptExpansionPreviewNode: (previewNodeId: string, newText: string, newDetails?: string) => void; // Merged: Specific to general
+  // conceptExpansionPreview: ConceptExpansionPreviewState | null; // Removed
+  // updateConceptExpansionPreviewNode: (previewNodeId: string, newText: string, newDetails?: string) => void; // Removed
   isConnectingMode: boolean;
   connectionSourceNodeId: string | null;
   dragPreviewItem: { text: string; type: string; } | null;
@@ -137,8 +137,8 @@ interface ConceptMapState {
   clearStagedMapData: () => void;
   commitStagedMapData: () => void;
   deleteFromStagedMapData: (elementIds: string[]) => void;
-  setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void;
-  updateConceptExpansionPreviewNode: (previewNodeId: string, newText: string, newDetails?: string) => void;
+  // setConceptExpansionPreview: (preview: ConceptExpansionPreviewState | null) => void; // Removed
+  // updateConceptExpansionPreviewNode: (previewNodeId: string, newText: string, newDetails?: string) => void; // Removed
   applyLayout: (updatedNodePositions: LayoutNodeUpdate[]) => void;
   startConnectionMode: (nodeId: string) => void;
   completeConnectionMode: (targetNodeId?: string, targetHandleId?: string | null) => void;
@@ -179,8 +179,8 @@ const initialStateBaseOmitKeys = [
   'initializeNewMap', 'setLoadedMap', 'importMapData', 'resetStore',
   'addNode', 'updateNode', 'deleteNode', 'addEdge', 'updateEdge', 'deleteEdge',
   'setStagedMapData', 'clearStagedMapData', 'commitStagedMapData', 'deleteFromStagedMapData',
-  'setConceptExpansionPreview',
-  'updateConceptExpansionPreviewNode',
+  // 'setConceptExpansionPreview', // Removed
+  // 'updateConceptExpansionPreviewNode', // Removed
   'applyLayout',
   'startConnectionMode', 'completeConnectionMode', 'cancelConnectionMode',
   'startConnection', 'cancelConnection', 'finishConnectionAttempt',
@@ -195,7 +195,7 @@ const initialStateBaseOmitKeys = [
 ] as const;
 type InitialStateBaseOmitType = typeof initialStateBaseOmitKeys[number];
 
-export const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> = {
+export const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType | 'conceptExpansionPreview' | 'updateConceptExpansionPreviewNode'> = { // Added removed types here
   mapId: null,
   mapName: 'Untitled Concept Map',
   currentMapOwnerId: null,
@@ -220,7 +220,7 @@ export const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> =
   debugLogs: [],
   stagedMapData: null,
   isStagingActive: false,
-  conceptExpansionPreview: null,
+  // conceptExpansionPreview: null, // Removed
   isConnectingMode: false,
   connectionSourceNodeId: null,
   dragPreviewItem: null,
@@ -240,7 +240,7 @@ type TrackedState = Pick<ConceptMapState,
   'mapData' | 'mapName' | 'isPublic' | 'sharedWithClassroomId' |
   'selectedElementId' | 'selectedElementType' | 'multiSelectedNodeIds' |
   'editingNodeId' | 'stagedMapData' | 'isStagingActive' |
-  'conceptExpansionPreview' | 'ghostPreviewData' |
+  /* 'conceptExpansionPreview' REMOVED */ 'ghostPreviewData' |
   'structuralSuggestions' | 'isOverviewModeActive' | 'projectOverviewData' |
   'focusViewOnNodeIds'
 >;
@@ -250,6 +250,12 @@ export const useConceptMapStore = create<ConceptMapState>()(
   temporal(
     (set, get) => ({
       ...initialStateBase,
+      // Ensure all functions from ConceptMapState (that are actions) are implemented
+      // For properties that were removed from ConceptMapState, ensure their setters are also removed or handled
+      updateConceptExpansionPreviewNode: (previewNodeId, newText, newDetails) => { /* Removed, no-op or error */ console.warn("updateConceptExpansionPreviewNode called but feature is removed"); },
+      setConceptExpansionPreview: (preview) => { /* Removed, no-op or error */ console.warn("setConceptExpansionPreview called but feature is removed"); },
+
+
       setMapId: (id) => set({ mapId: id }),
       setMapName: (name) => set({ mapName: name }),
       setCurrentMapOwnerId: (ownerId) => set({ currentMapOwnerId: ownerId }),
@@ -307,7 +313,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
             aiSuggestedRelations: [],
             stagedMapData: null,
             isStagingActive: false,
-            conceptExpansionPreview: null,
+            // conceptExpansionPreview: null, // Removed
             ghostPreviewData: null,
             structuralSuggestions: [],
             isOverviewModeActive: false,
@@ -441,34 +447,80 @@ export const useConceptMapStore = create<ConceptMapState>()(
           if (stagedData.actionType === 'intermediateNode' && stagedData.originalElementId) {
             finalEdges = finalEdges.filter(edge => edge.id !== stagedData.originalElementId);
             get().addDebugLog(`[STORE commitStagedMapData] Original edge ${stagedData.originalElementId} deleted for intermediateNode action.`);
-            stagedData.nodes.forEach(n => finalNodes.push({...n, id: uniqueNodeId()}));
-            stagedData.edges.forEach(e => finalEdges.push({...e, id: uniqueEdgeId()}));
+            stagedData.nodes.forEach(n => finalNodes.push({...n, id: uniqueNodeId()})); // Ensure new nodes get truly unique IDs
+            // Ensure edges connect to the *new* unique IDs of staged nodes if they were part of the staged data.
+            // This requires mapping old staged IDs to new permanent IDs if edges reference other staged nodes.
+            // For intermediateNode, this is simple as it's one new node.
+            const stagedNodeToPermanentIdMap = new Map<string, string>();
+            stagedData.nodes.forEach((node, index) => {
+                const permanentId = finalNodes[finalNodes.length - (stagedData.nodes.length - index)].id; // Get ID of just pushed node
+                stagedNodeToPermanentIdMap.set(node.id, permanentId);
+            });
+
+            stagedData.edges.forEach(e => {
+                const sourceId = stagedNodeToPermanentIdMap.get(e.source) || e.source; // Use permanent ID if source was staged
+                const targetId = stagedNodeToPermanentIdMap.get(e.target) || e.target; // Use permanent ID if target was staged
+                finalEdges.push({...e, id: uniqueEdgeId(), source: sourceId, target: targetId });
+            });
+
           } else if (stagedData.actionType === 'aiTidyUpComplete') {
             get().addDebugLog(`[STORE commitStagedMapData] Processing aiTidyUpComplete.`);
             const stagedParentNodeInfo = stagedData.nodes.find(n => n.id.startsWith('staged-parent-'));
             let newPermanentParentId = '';
+            const stagedNodeToPermanentIdMap = new Map<string, string>();
+
             if (stagedParentNodeInfo) {
               newPermanentParentId = uniqueNodeId();
-              finalNodes.push({...stagedParentNodeInfo, id: newPermanentParentId, childIds: []});
+              finalNodes.push({...stagedParentNodeInfo, id: newPermanentParentId, childIds: [] }); // childIds will be populated below
+              stagedNodeToPermanentIdMap.set(stagedParentNodeInfo.id, newPermanentParentId);
             }
+
             const childNodeUpdates = stagedData.nodes.filter(n => !n.id.startsWith('staged-parent-'));
+            const finalChildIdsForParent: string[] = [];
+
             childNodeUpdates.forEach(stagedChild => {
               const existingNodeIndex = finalNodes.findIndex(n => n.id === stagedChild.id);
-              if (existingNodeIndex !== -1) {
+              if (existingNodeIndex !== -1) { // Modifying existing node
                 finalNodes[existingNodeIndex] = {
                   ...finalNodes[existingNodeIndex],
                   x: stagedChild.x, y: stagedChild.y,
-                  parentNode: newPermanentParentId || finalNodes[existingNodeIndex].parentNode,
+                  parentNode: newPermanentParentId || finalNodes[existingNodeIndex].parentNode, // Assign new parent if created
                   width: stagedChild.width || finalNodes[existingNodeIndex].width,
                   height: stagedChild.height || finalNodes[existingNodeIndex].height,
                 };
-              } else {
-                finalNodes.push({...stagedChild, id: uniqueNodeId(), parentNode: newPermanentParentId || stagedChild.parentNode });
+                if(newPermanentParentId) finalChildIdsForParent.push(finalNodes[existingNodeIndex].id);
+              } else { // Adding new node (should not happen for aiTidyUpComplete if only existing nodes are tidied)
+                const newChildId = uniqueNodeId();
+                finalNodes.push({...stagedChild, id: newChildId, parentNode: newPermanentParentId || stagedChild.parentNode });
+                stagedNodeToPermanentIdMap.set(stagedChild.id, newChildId);
+                if(newPermanentParentId) finalChildIdsForParent.push(newChildId);
               }
             });
-          } else {
-            stagedData.nodes.forEach(n => finalNodes.push({...n, id: uniqueNodeId()}));
-            (stagedData.edges || []).forEach(e => finalEdges.push({...e, id: uniqueEdgeId()}));
+             if (newPermanentParentId) {
+                const parentIndex = finalNodes.findIndex(n => n.id === newPermanentParentId);
+                if (parentIndex !== -1) {
+                    finalNodes[parentIndex].childIds = finalChildIdsForParent;
+                }
+            }
+            // Edges are usually not modified by tidy up, but if they were part of stagedData, handle them
+            (stagedData.edges || []).forEach(e => {
+                const sourceId = stagedNodeToPermanentIdMap.get(e.source) || e.source;
+                const targetId = stagedNodeToPermanentIdMap.get(e.target) || e.target;
+                finalEdges.push({...e, id: uniqueEdgeId(), source: sourceId, target: targetId });
+            });
+
+          } else { // Default: add all staged nodes and edges with new IDs
+            const stagedNodeToPermanentIdMap = new Map<string, string>();
+            stagedData.nodes.forEach(n => {
+                const permanentId = uniqueNodeId();
+                finalNodes.push({...n, id: permanentId});
+                stagedNodeToPermanentIdMap.set(n.id, permanentId);
+            });
+            (stagedData.edges || []).forEach(e => {
+                const sourceId = stagedNodeToPermanentIdMap.get(e.source) || e.source;
+                const targetId = stagedNodeToPermanentIdMap.get(e.target) || e.target;
+                finalEdges.push({...e, id: uniqueEdgeId(), source: sourceId, target: targetId });
+            });
           }
           return { mapData: { nodes: finalNodes, edges: finalEdges }, stagedMapData: null, isStagingActive: false };
         });
@@ -479,18 +531,18 @@ export const useConceptMapStore = create<ConceptMapState>()(
         const newStagedNodes = currentStagedData.nodes.filter(node => !elementIdsToRemove.includes(node.id));
         const remainingNodeIds = new Set(newStagedNodes.map(node => node.id));
         const newStagedEdges = (currentStagedData.edges || []).filter(edge => !elementIdsToRemove.includes(edge.id) && remainingNodeIds.has(edge.source) && remainingNodeIds.has(edge.target));
-        if (newStagedNodes.length === 0 && newStagedEdges.length === 0) { set({ stagedMapData: null, isStagingActive: false }); } else { set({ stagedMapData: { nodes: newStagedNodes, edges: newStagedEdges }, isStagingActive: true }); }
+        if (newStagedNodes.length === 0 && newStagedEdges.length === 0) { set({ stagedMapData: null, isStagingActive: false }); } else { set({ stagedMapData: { ...currentStagedData, nodes: newStagedNodes, edges: newStagedEdges }, isStagingActive: true }); } // Persist actionType and other context
       },
-      setConceptExpansionPreview: (preview) => set({ conceptExpansionPreview: preview }),
-      updateConceptExpansionPreviewNode: (previewNodeId, newText, newDetails) => {
-        set((state) => {
-          if (!state.conceptExpansionPreview || !state.conceptExpansionPreview.previewNodes) return state;
-          const updatedPreviewNodes = state.conceptExpansionPreview.previewNodes.map(node =>
-            node.id === previewNodeId ? { ...node, text: newText, details: newDetails ?? node.details } : node
-          );
-          return { ...state, conceptExpansionPreview: { ...state.conceptExpansionPreview, previewNodes: updatedPreviewNodes }};
-        });
-      },
+      // setConceptExpansionPreview: (preview) => set({ conceptExpansionPreview: preview }), // Removed
+      // updateConceptExpansionPreviewNode: (previewNodeId, newText, newDetails) => { // Removed
+        // set((state) => {
+          // if (!state.conceptExpansionPreview || !state.conceptExpansionPreview.previewNodes) return state;
+          // const updatedPreviewNodes = state.conceptExpansionPreview.previewNodes.map(node =>
+            // node.id === previewNodeId ? { ...node, text: newText, details: newDetails ?? node.details } : node
+          // );
+          // return { ...state, conceptExpansionPreview: { ...state.conceptExpansionPreview, previewNodes: updatedPreviewNodes }};
+        // });
+      // },
       applyLayout: (updatedNodePositions) => {
           set((state) => {
             const updatedNodesMap = new Map<string, LayoutNodeUpdate>();
@@ -594,16 +646,23 @@ export const useConceptMapStore = create<ConceptMapState>()(
         const { addNode: addNodeAction, updateNode: updateNodeAction } = get();
         let groupNodeX = 100, groupNodeY = 100;
         if (overlayGeometry && overlayGeometry.x !== undefined && overlayGeometry.y !== undefined) {
-            groupNodeX = overlayGeometry.x + (overlayGeometry.width || 300) / 2 - 75;
-            groupNodeY = overlayGeometry.y + 20;
+            groupNodeX = overlayGeometry.x + (overlayGeometry.width || 300) / 2 - 75; // Center the new group node textually
+            groupNodeY = overlayGeometry.y + 20; // Position it near the top of the overlay
         } else {
+            // Fallback if no geometry: average position of nodes, then offset upwards.
             const groupNodes = get().mapData.nodes.filter(n => nodeIds.includes(n.id) && n.x !== undefined && n.y !== undefined);
             if (groupNodes.length > 0) {
                 groupNodeX = groupNodes.reduce((acc, n) => acc + n.x!, 0) / groupNodes.length;
-                groupNodeY = groupNodes.reduce((acc, n) => acc + n.y!, 0) / groupNodes.length - 50;
+                groupNodeY = groupNodes.reduce((acc, n) => acc + n.y!, 0) / groupNodes.length - 50; // Offset upwards
             }
         }
-        const newGroupId = addNodeAction({ text: groupName || 'New Group', type: 'customConceptNode', position: { x: groupNodeX, y: groupNodeY }, width: overlayGeometry?.width ? Math.max(overlayGeometry.width * 0.8, 200) : 200 });
+        const newGroupId = addNodeAction({
+            text: groupName || 'New Group',
+            type: 'ai-group-parent', // MODIFIED HERE
+            position: { x: groupNodeX, y: groupNodeY },
+            width: overlayGeometry?.width ? Math.max(overlayGeometry.width * 0.8, 200) : 200,
+            height: overlayGeometry?.height ? Math.max(overlayGeometry.height * 0.8, 100) : 100 // MODIFIED HERE
+        });
         nodeIds.forEach(nodeId => {
           const nodeToUpdate = get().mapData.nodes.find(n => n.id === nodeId);
           if (nodeToUpdate) { updateNodeAction(nodeId, { parentNode: newGroupId }); }
@@ -635,8 +694,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
     }),
     {
       partialize: (state): TrackedState => {
-        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, ghostPreviewData, structuralSuggestions, isOverviewModeActive, projectOverviewData, focusViewOnNodeIds } = state;
-        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, conceptExpansionPreview, ghostPreviewData, structuralSuggestions, isOverviewModeActive, projectOverviewData, focusViewOnNodeIds };
+        const { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, /* conceptExpansionPreview REMOVED */ ghostPreviewData, structuralSuggestions, isOverviewModeActive, projectOverviewData, focusViewOnNodeIds } = state;
+        return { mapData, mapName, isPublic, sharedWithClassroomId, selectedElementId, selectedElementType, multiSelectedNodeIds, editingNodeId, stagedMapData, isStagingActive, /* conceptExpansionPreview REMOVED */ ghostPreviewData, structuralSuggestions, isOverviewModeActive, projectOverviewData, focusViewOnNodeIds };
       },
       limit: 50,
     }
@@ -644,4 +703,3 @@ export const useConceptMapStore = create<ConceptMapState>()(
 );
 
 export default useConceptMapStore;
-```

@@ -51,11 +51,12 @@ Based on all the provided information:
 1.  Infer the primary purpose or responsibility of this {{{elementType}}} named '{{{elementName}}}'.
 2.  Describe this purpose in 1-2 concise sentences.
 3.  Focus on what it *does* or *manages*.
-4.  Avoid simply re-stating the signature or comments if possible; synthesize their meaning.
-5.  If the purpose is genuinely unclear from the provided information (e.g., only a name is available with no comments or indicative signature), respond with the phrase "Purpose unclear from available data."
+4.  If the name, comments, or signature strongly suggest a common architectural role (e.g., 'Controller', 'Service', 'Repository', 'Utility', 'Configuration'), briefly mention it as part of the purpose. For example, "This service class manages user profile data..." or "Utility function to format date strings."
+5.  Avoid simply re-stating the signature or comments if possible; synthesize their meaning.
+6.  If the purpose is genuinely unclear from the provided information (e.g., only a name is available with no comments or indicative signature), respond with the phrase "Purpose unclear from available data."
 
 Output your 1-2 sentence summary directly as a plain string for the 'semanticSummary' field of the JSON output. If unclear, use "Purpose unclear from available data." for 'semanticSummary'.
-Ensure the output is a valid JSON object matching the defined output schema. Example: {"semanticSummary": "This function calculates the total price by multiplying price and quantity."}
+Ensure the output is a valid JSON object matching the defined output schema. Example: {"semanticSummary": "This service class is responsible for handling user authentication requests."}
 `,
 });
 

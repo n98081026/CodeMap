@@ -12,7 +12,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { exampleProjects, type ExampleProject } from '@/lib/example-data';
 import { useToast } from "@/hooks/use-toast";
 import useConceptMapStore from '@/stores/concept-map-store';
-import { Compass, Eye, Zap, BookCopy, Code, LayoutList, LogIn, UserPlus, Info } from 'lucide-react'; // Added more icons
+import { Compass, Eye, Zap, BookCopy, Code, LayoutList, LogIn, UserPlus, Info, Edit3 } from 'lucide-react'; // Added Edit3
 import { useAuth } from '@/contexts/auth-context';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -50,6 +50,7 @@ const GuestCtaBanner = () => {
 export default function ExamplesPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const { setLoadedMap, setIsLoading, setError } = useConceptMapStore(
     React.useCallback(s => ({
         setLoadedMap: s.setLoadedMap,
@@ -108,6 +109,17 @@ export default function ExamplesPage() {
     }
   };
 
+  const handleCopyToWorkspace = (exampleKey: string) => {
+    // Redirect to login, passing the example key and action
+    const params = new URLSearchParams();
+    params.set('action', 'copyExample');
+    params.set('exampleKey', exampleKey);
+    // It might be useful to also pass where the user should return after login,
+    // though the post-login handler will ultimately redirect to the new map editor.
+    // params.set('returnTo', `/application/concept-maps/editor/`);
+    router.push(`/login?${params.toString()}`);
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
       <DashboardHeader
@@ -131,11 +143,9 @@ export default function ExamplesPage() {
               <CardHeader>
                 {example.imageUrl && (
                   <div className="relative h-40 w-full mb-4 rounded-t-lg overflow-hidden">
-                    {/* Placeholder for image - In a real app, use next/image */}
                     <div className="bg-muted w-full h-full flex items-center justify-center">
                        <Code className="h-16 w-16 text-muted-foreground" />
                     </div>
-                    {/* <Image src={example.imageUrl} alt={example.name} layout="fill" objectFit="cover" /> */}
                   </div>
                 )}
                 <CardTitle className="text-xl font-semibold">{example.name}</CardTitle>
@@ -150,10 +160,19 @@ export default function ExamplesPage() {
               <CardContent className="flex-grow">
                 <CardDescription>{example.description}</CardDescription>
               </CardContent>
-              <CardFooter>
-                <Button className="w-full" onClick={() => handleLoadExample(example)}>
-                  <Eye className="mr-2 h-4 w-4" /> Load & View Example
+              <CardFooter className="flex flex-col sm:flex-row gap-2">
+                <Button className="w-full sm:flex-1" onClick={() => handleLoadExample(example)}>
+                  <Eye className="mr-2 h-4 w-4" /> View Example
                 </Button>
+                {!authIsLoading && !isAuthenticated && (
+                  <Button
+                    variant="outline_primary"
+                    className="w-full sm:flex-1"
+                    onClick={() => handleCopyToWorkspace(example.key)}
+                  >
+                    <Edit3 className="mr-2 h-4 w-4" /> Copy & Edit
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           ))}

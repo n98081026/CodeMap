@@ -11,7 +11,7 @@ import SelectedNodeToolbar from './selected-node-toolbar';
 import {
   Brain, HelpCircle, Settings2, MessageSquareQuote, Workflow, FileText, Lightbulb, Star, Plus, Loader2,
   SearchCode, Database, ExternalLink, Users, Share2, KeyRound, Type, Palette, CircleDot, Ruler, Eraser, Box,
-  Move as MoveIcon, Edit2Icon, CheckIcon, XIcon, Wand2 // Ensured Wand2 is here, will add LayoutGrid in SelectedNodeToolbar
+  Move as MoveIcon, Edit2Icon, CheckIcon, XIcon, Wand2
 } from 'lucide-react';
 
 export interface CustomNodeData {
@@ -25,10 +25,10 @@ export interface CustomNodeData {
   height?: number;
   onAddChildNodeRequest?: (nodeId: string, direction: 'top' | 'right' | 'bottom' | 'left') => void;
   isStaged?: boolean;
-  isGhost?: boolean;
-  isDimmed?: boolean; // For original node when ghost is shown
+  isGhost?: boolean; // This will now primarily be for nodes in ghostPreviewData (layout previews)
+  isDimmed?: boolean;
   onStartConnectionRequest?: (nodeId: string) => void;
-  onRefineGhostNode?: (nodeId: string, currentText: string, currentDetails?: string) => void; // Added from previous HEAD
+  // onRefineGhostNode prop removed
 }
 
 const NODE_MIN_WIDTH = 150;
@@ -49,7 +49,7 @@ const TYPE_ICONS: { [key: string]: any } = {
   'core_process': Share2,
   'security_concept': KeyRound,
   'ai-concept': Lightbulb,
-  'ai-expanded': Brain,
+  'ai-expanded': Brain, // This type will be set for nodes created by expand and sent to staging
   'ai-summary-node': MessageSquareQuote,
   'ai-rewritten-node': MessageSquareQuote,
   'text-derived-concept': Lightbulb,
@@ -65,35 +65,50 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     aiProcessingNodeId,
     deleteNode,
     updateNode,
-    // startConnectionMode, // This was from store, but onStartConnectionRequest prop is used
-    multiSelectedNodeIds, // Get multiSelectedNodeIds from the store
+    multiSelectedNodeIds,
   } = useConceptMapStore(
-    useCallback(s => ({ // Use a selector to prevent unnecessary re-renders
+    useCallback(s => ({
       isViewOnlyMode: s.isViewOnlyMode,
       editingNodeId: s.editingNodeId,
       setEditingNodeId: s.setEditingNodeId,
       aiProcessingNodeId: s.aiProcessingNodeId,
       deleteNode: s.deleteNode,
       updateNode: s.updateNode,
-      // startConnectionMode: s.startConnectionMode, // Not directly used here for the toolbar action
       multiSelectedNodeIds: s.multiSelectedNodeIds,
     }), [])
   );
 
-  const { onRefineGhostNode } = data;
-
+  // onRefineGhostNode removed from data destructuring
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
   const isBeingProcessedByAI = aiProcessingNodeId === id;
 
   const aiTools = useConceptMapAITools(nodeIsViewOnly);
 
   const [isHovered, setIsHovered] = useState(false);
-  const [isGhostHovered, setIsGhostHovered] = useState(false);
+  // isGhostHovered state removed as it was for the removed refine button
   const [toolbarPosition, setToolbarPosition] = useState<'above' | 'below'>('above');
   const [toolbarHorizontalOffset, setToolbarHorizontalOffset] = useState<number>(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleEditLabelForToolbar = useCallback(() => setEditingNodeId(id), [setEditingNodeId, id]);
+  const handleChangeColorForToolbar = useCallback((color: string) => updateNode(id, { backgroundColor: color }), [updateNode, id]);
+  const handleAIExpandForToolbar = useCallback(() => aiTools.handleMiniToolbarQuickExpand(id), [aiTools, id]);
+  const handleAIRewriteForToolbar = useCallback(() => aiTools.handleMiniToolbarRewriteConcise(id), [aiTools, id]);
+  const handleAISuggestRelationsForToolbar = useCallback(() => {
+    if ((aiTools as any).handleMenuSuggestRelations) {
+        (aiTools as any).handleMenuSuggestRelations(id);
+    } else {
+        aiTools.openSuggestRelationsModal(id);
+    }
+  }, [aiTools, id]);
+  const handleStartConnectionForToolbar = useCallback(() => {
+    if (data.onStartConnectionRequest) {
+      data.onStartConnectionRequest(id);
+    }
+  }, [data.onStartConnectionRequest, id]);
+  const handleDeleteNodeForToolbar = useCallback(() => deleteNode(id), [deleteNode, id]);
 
   const [isInlineEditing, setIsInlineEditing] = useState(false);
   const [editText, setEditText] = useState(data.label);
@@ -125,7 +140,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
   };
 
   const handleNodeDoubleClick = () => {
-    if (!nodeIsViewOnly && data.label) {
+    if (!nodeIsViewOnly && !data.isGhost && !data.isStaged && data.label) { // Prevent editing staged/ghost nodes via double click
       setEditingNodeId(id);
     }
   };
@@ -139,29 +154,18 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     { pos: Position.Left, style: { left: '-10px', top: '50%', transform: 'translateY(-50%)' } },
   ] as const;
 
-  const handleToolbarStartConnection = () => {
-    if (data.onStartConnectionRequest) {
-      data.onStartConnectionRequest(id);
-    }
-  };
+  // handleToolbarStartConnection already defined above with useCallback
 
   const handleStartInlineEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (nodeIsViewOnly) return;
+    if (nodeIsViewOnly || data.isGhost || data.isStaged) return; // Prevent editing ghost/staged nodes
     setEditText(data.label);
     setIsInlineEditing(true);
   };
 
   const handleSaveInlineEdit = () => {
-    if (nodeIsViewOnly) return;
-    // Assuming updateConceptExpansionPreviewNodeText is the correct action for ghost node text update
-    // If this node is not a ghost, a different update mechanism might be needed.
-    // For now, let's assume this is primarily for ghost node refinement.
-    if (data.isGhost) {
-         useConceptMapStore.getState().updateConceptExpansionPreviewNodeText(id, editText);
-    } else {
-        updateNode(id, { text: editText }); // Update regular node label
-    }
+    if (nodeIsViewOnly || data.isGhost || data.isStaged) return;
+    updateNode(id, { text: editText });
     setIsInlineEditing(false);
   };
 
@@ -186,7 +190,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
       const APPROX_TOOLBAR_HEIGHT = 40;
-      const APPROX_TOOLBAR_WIDTH = 250; // Increased slightly for new button
+      const APPROX_TOOLBAR_WIDTH = 250;
       const VIEWPORT_MARGIN = 10;
 
       if (nodeRect.top - APPROX_TOOLBAR_HEIGHT - VIEWPORT_MARGIN > 0) {
@@ -213,35 +217,22 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
       ref={nodeRef}
       style={nodeStyle}
       className={cn(
-        "nodrag relative shadow-md border border-border flex flex-col group/node", // Added group/node for hover buttons
+        "nodrag relative shadow-md border border-border flex flex-col group/node",
         selected && !isBeingProcessedByAI && !data.isStaged && !data.isGhost ? "ring-2 ring-primary" : "",
         nodeIsViewOnly && "cursor-default",
         data.shape === 'ellipse' && 'items-center justify-center text-center p-2',
         data.isStaged && "border-dashed border-blue-500 opacity-80",
-        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10",
-        data.isDimmed && "opacity-50 transition-opacity duration-300", // Style for dimmed original node
+        data.isGhost && "border-dotted border-purple-500 opacity-60 bg-purple-500/10 is-ghost-node",
+        data.isDimmed && "opacity-50 transition-opacity duration-300",
         data.type === 'ai-group-parent' && "border-2 border-dashed border-slate-500/30 dark:border-slate-600/50"
       )}
-      onMouseEnter={() => {
-        if (data.isGhost) setIsGhostHovered(true); else setIsHovered(true);
-      }}
-      onMouseLeave={() => {
-        if (data.isGhost) setIsGhostHovered(false); else setIsHovered(false);
-      }}
+      onMouseEnter={() => setIsHovered(true)} // Simplified, as isGhostHovered is removed
+      onMouseLeave={() => setIsHovered(false)} // Simplified
       onDoubleClick={handleNodeDoubleClick}
       data-node-id={id}
     >
-      {data.isGhost && onRefineGhostNode && !globalIsViewOnlyMode && (
-        <button
-          className="absolute top-0 left-0 m-1 h-5 w-5 p-0.5 z-10 bg-background/70 hover:bg-accent text-foreground"
-          title="Refine this suggestion"
-          onClick={() => onRefineGhostNode?.(id, data.label || '', data.details || '')}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <Edit2Icon className="h-3 w-3" />
-        </button>
-      )}
-      {selected && !nodeIsViewOnly && !data.isGhost && !isBeingProcessedByAI && (
+      {/* Removed button that used onRefineGhostNode */}
+      {selected && !nodeIsViewOnly && !data.isGhost && !data.isStaged && !isBeingProcessedByAI && (
         <div
           className={cn(
             "absolute left-1/2 z-20",
@@ -253,28 +244,19 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         >
           <SelectedNodeToolbar
             nodeId={id}
-            numMultiSelectedNodes={multiSelectedNodeIds.length} // Pass count
-            multiSelectedNodeIds={multiSelectedNodeIds} // Pass IDs
-            onEditLabel={() => setEditingNodeId(id)}
-            onChangeColor={(color: string) => updateNode(id, { backgroundColor: color })}
-            onAIExpand={() => aiTools.handleMiniToolbarQuickExpand(id)}
-            onAIRewrite={() => aiTools.handleMiniToolbarRewriteConcise(id)}
-            onAISuggestRelations={() => {
-                // Assuming handleMenuSuggestRelations is the correct function from aiTools
-                // This was based on a previous version, ensure aiTools exports this or similar.
-                // If not, it might be aiTools.openSuggestRelationsModal(id)
-                if ((aiTools as any).handleMenuSuggestRelations) {
-                    (aiTools as any).handleMenuSuggestRelations(id);
-                } else {
-                    aiTools.openSuggestRelationsModal(id); // Fallback or correct method
-                }
-            }}
-            onStartConnection={data.onStartConnectionRequest ? handleToolbarStartConnection : () => {}}
-            onDeleteNode={() => deleteNode(id)}
+            numMultiSelectedNodes={multiSelectedNodeIds.length}
+            multiSelectedNodeIds={multiSelectedNodeIds}
+            onEditLabel={handleEditLabelForToolbar}
+            onChangeColor={handleChangeColorForToolbar}
+            onAIExpand={handleAIExpandForToolbar}
+            onAIRewrite={handleAIRewriteForToolbar}
+            onAISuggestRelations={handleAISuggestRelationsForToolbar}
+            onStartConnection={handleStartConnectionForToolbar}
+            onDeleteNode={handleDeleteNodeForToolbar}
           />
         </div>
       )}
-      {!nodeIsViewOnly && !data.isGhost && (
+      {!nodeIsViewOnly && !data.isGhost && !data.isStaged && ( // Ensure move handle doesn't appear on ghost/staged
          <MoveIcon
            className="node-move-handle absolute top-1 right-1 w-4 h-4 text-muted-foreground cursor-grab z-10"
            onMouseDown={(e) => e.stopPropagation()}
@@ -290,7 +272,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
           'bg-transparent border-0 shadow-none'
         )}
       >
-        {data.isGhost && isInlineEditing && !nodeIsViewOnly ? (
+        {isInlineEditing && !nodeIsViewOnly && !data.isGhost && !data.isStaged ? ( // Check isGhost and isStaged here too
           <div className="p-2 space-y-1 h-full flex flex-col">
             <Textarea
               ref={textareaRef}
@@ -349,26 +331,18 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
         )}
       </Card>
 
-      {data.isGhost && isGhostHovered && !isInlineEditing && !nodeIsViewOnly && ( // Changed from isHovered
-        <button
-          onClick={handleStartInlineEdit}
-          className="absolute top-1 right-1 z-10 p-0.5 bg-background/80 hover:bg-secondary rounded"
-          title="Refine text"
-        >
-          <Edit2Icon className="w-3 h-3 text-muted-foreground" />
-        </button>
-      )}
+      {/* Removed the inline edit button for ghost nodes */}
 
-      <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
-      <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
-      <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
-      <Handle type="target" position={Position.Right} id={`${id}-right-target`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
-      <Handle type="source" position={Position.Bottom} id={`${id}-bottom-source`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
-      <Handle type="target" position={Position.Bottom} id={`${id}-bottom-target`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
-      <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
-      <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost} />
+      <Handle type="source" position={Position.Top} id={`${id}-top-source`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost && !data.isStaged} />
+      <Handle type="target" position={Position.Top} id={`${id}-top-target`} className="react-flow__handle-custom !-top-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost && !data.isStaged} />
+      <Handle type="source" position={Position.Right} id={`${id}-right-source`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost && !data.isStaged} />
+      <Handle type="target" position={Position.Right} id={`${id}-right-target`} className="react-flow__handle-custom !-right-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost && !data.isStaged} />
+      <Handle type="source" position={Position.Bottom} id={`${id}-bottom-source`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost && !data.isStaged} />
+      <Handle type="target" position={Position.Bottom} id={`${id}-bottom-target`} className="react-flow__handle-custom !-bottom-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost && !data.isStaged} />
+      <Handle type="source" position={Position.Left} id={`${id}-left-source`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost && !data.isStaged} />
+      <Handle type="target" position={Position.Left} id={`${id}-left-target`} className="react-flow__handle-custom !-left-1.5 w-3 h-3 bg-background border border-primary rounded-full" isConnectable={!nodeIsViewOnly && !data.isGhost && !data.isStaged} />
 
-      {!nodeIsViewOnly && isHovered && !data.isGhost && data.onAddChildNodeRequest && hoverButtonPositions.map(btn => (
+      {!nodeIsViewOnly && isHovered && !data.isGhost && !data.isStaged && data.onAddChildNodeRequest && hoverButtonPositions.map(btn => (
         <button
           key={btn.pos}
           onClick={(e) => { e.stopPropagation(); data.onAddChildNodeRequest?.(id, btn.pos); }}

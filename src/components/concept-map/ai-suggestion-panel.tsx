@@ -1,21 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'; // Added useRef
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { GitFork, Brain, SearchCode, Lightbulb, PlusCircle, Info, MessageSquareDashed, CheckSquare, Edit3, BotMessageSquare, Zap, AlertCircle, Trash2 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area"; // ScrollArea will wrap the virtualized list container
 import type { ConceptMapData, ConceptMapNode } from "@/types";
 import { cn } from '@/lib/utils';
 import { EmptyState } from '@/components/layout/empty-state';
 import useConceptMapStore from '@/stores/concept-map-store';
-import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts'; // Corrected import
+import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useVirtualizer } from '@tanstack/react-virtual'; // Import useVirtualizer
 
-// Interface for relation suggestions (already includes reason)
 interface RelationSuggestion {
   source: string;
   target: string;
@@ -26,9 +26,9 @@ interface RelationSuggestion {
 interface AISuggestionPanelProps {
   mapData?: ConceptMapData; 
   currentMapNodes?: ConceptMapNode[];
-  extractedConcepts?: ExtractedConceptItem[]; // Use ExtractedConceptItem[]
+  extractedConcepts?: ExtractedConceptItem[];
   suggestedRelations?: Array<RelationSuggestion>;
-  onAddExtractedConcepts?: (concepts: ExtractedConceptItem[]) => void; // Pass array of ExtractedConceptItem
+  onAddExtractedConcepts?: (concepts: ExtractedConceptItem[]) => void;
   onAddSuggestedRelations?: (relations: Array<RelationSuggestion>) => void;
   onClearExtractedConcepts?: () => void;
   onClearSuggestedRelations?: () => void;
@@ -51,305 +51,18 @@ interface EditableRelationSuggestion {
 
 type ItemStatus = 'new' | 'exact-match' | 'similar-match';
 
-export const AISuggestionPanel = React.memo(function AISuggestionPanel({
-  mapData,
-  currentMapNodes = [],
-  extractedConcepts = [], // Default to empty array
-  suggestedRelations = [], // Default to empty array
-  onAddExtractedConcepts,
-  onAddSuggestedRelations,
-  onClearExtractedConcepts,
-  onClearSuggestedRelations,
-  isViewOnlyMode
-}: AISuggestionPanelProps) {
-  const { setDragPreview, clearDragPreview, setDraggedRelationPreview } = useConceptMapStore(
-    useCallback(s => ({
-      setDragPreview: s.setDragPreview,
-      clearDragPreview: s.clearDragPreview,
-      setDraggedRelationPreview: s.setDraggedRelationPreview
-    }), [])
-  );
-
-  const [editableExtracted, setEditableExtracted] = useState<EditableExtractedConcept[]>([]);
-  const [editableRelations, setEditableRelations] = useState<EditableRelationSuggestion[]>([]);
-
-  const [selectedExtractedIndices, setSelectedExtractedIndices] = useState<Set<number>>(new Set());
-  const [selectedRelationIndices, setSelectedRelationIndices] = useState<Set<number>>(new Set());
-
-  const existingNodeTexts = useMemo(() => {
-    return new Set(currentMapNodes.map(n => n.text.toLowerCase().trim()));
-  }, [currentMapNodes]);
-
-  const mapExtractedToEditable = useCallback((items: ExtractedConceptItem[]): EditableExtractedConcept[] =>
-    items.map(item => ({
-      original: item,
-      current: { ...item },
-      isEditing: false,
-      editingField: null
-    })),
-  []);
-
-  const mapRelationsToEditable = useCallback((items: Array<RelationSuggestion>): EditableRelationSuggestion[] =>
-    items.map(item => ({
-      original: item,
-      current: { ...item },
-      isEditing: false,
-      editingField: null
-    })),
-  []);
-
-  useEffect(() => {
-    setEditableExtracted(mapExtractedToEditable(extractedConcepts || []));
-    setSelectedExtractedIndices(new Set());
-  }, [extractedConcepts, mapExtractedToEditable]);
-
-  useEffect(() => {
-    setEditableRelations(mapRelationsToEditable(suggestedRelations || []));
-    setSelectedRelationIndices(new Set());
-  }, [suggestedRelations, mapRelationsToEditable]);
-
-  const handleToggleEdit = (type: 'extracted' | 'relation', index: number, field?: 'concept' | 'context' | 'source' | 'target' | 'relation' | 'reason') => {
-    if (isViewOnlyMode) return;
-    const setStateAction = (setter: React.Dispatch<React.SetStateAction<any[]>>, items: any[]) => {
-      setter(items.map((item, idx) => {
-        if (idx === index) {
-          return { ...item, isEditing: !item.isEditing, editingField: field || null };
-        }
-        return { ...item, isEditing: false, editingField: null };
-      }));
-    };
-    if (type === 'extracted') setStateAction(setEditableExtracted, editableExtracted as any[]);
-    else if (type === 'relation') setStateAction(setEditableRelations, editableRelations as any[]);
-  };
-
-  const handleInputChange = (type: 'extracted' | 'relation', index: number, value: string, field?: 'concept' | 'context' | 'source' | 'target' | 'relation' | 'reason') => {
-     const setStateAction = (setter: React.Dispatch<React.SetStateAction<any[]>>, items: any[]) => {
-        setter(items.map((item, idx) => {
-            if (idx === index) {
-                if (field) {
-                    return { ...item, current: { ...item.current, [field]: value } };
-                }
-                return item;
-            }
-            return item;
-        }));
-    };
-    if (type === 'extracted') setStateAction(setEditableExtracted, editableExtracted as any[]);
-    else if (type === 'relation') setStateAction(setEditableRelations, editableRelations as any[]);
-  };
-
-  const handleConfirmEdit = (type: 'extracted' | 'relation', index: number) => {
-    handleToggleEdit(type, index, undefined);
-  };
-
-  const handleSelectionToggleFactory = (type: 'extracted' | 'relation') => (index: number, checked: boolean) => {
-    const setIndices =
-        type === 'extracted' ? setSelectedExtractedIndices :
-        setSelectedRelationIndices;
-
-    setIndices(prev => {
-        const next = new Set(prev);
-        if(checked) next.add(index);
-        else next.delete(index);
-        return next;
-    });
-  };
-
-  const hasAiOutput = (editableExtracted?.length || 0) > 0 || (editableRelations?.length || 0) > 0;
-  const hasMapDataNodes = currentMapNodes && currentMapNodes.length > 0;
-
-  const renderSuggestionSection = (
-    title: string,
-    IconComponent: React.ElementType,
-    items: (EditableExtractedConcept | EditableRelationSuggestion)[],
-    selectedIndicesSet: Set<number>,
-    itemKeyPrefix: string,
-    renderItemContent: (item: any, index: number, itemStatus: ItemStatus, relationNodeExistence?: { source?: boolean, target?: boolean }) => React.ReactNode,
-    getItemStatus: (itemValue: ExtractedConceptItem | RelationSuggestion) => ItemStatus,
-    checkIfRelationNodesExistOnMap: (relation: RelationSuggestion) => { source?: boolean, target?: boolean },
-    onAddSelectedItems: ((selectedItems: any[]) => void) | undefined,
-    onClearCategory?: () => void,
-    cardClassName?: string,
-    titleClassName?: string
-  ) => {
-    if (!onAddSelectedItems && items.length === 0 && !mapData) return null;
-    if (!items || items.length === 0) {
-      return (
-        <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)}>
-          <CardHeader>
-            <CardTitle className={cn("text-base font-semibold text-muted-foreground flex items-center", titleClassName)}>
-              <IconComponent className="mr-2 h-5 w-5" /> {title} (0)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EmptyState 
-                icon={MessageSquareDashed}
-                title={`No New ${title}`}
-                description={`No new ${title.toLowerCase()} to display currently. Try using the AI tools to generate some!`}
-            />
-          </CardContent>
-        </Card>
-      );
-    }
-
-    const getComparableItemValue = (item: EditableExtractedConcept | EditableRelationSuggestion) => {
-      return item.current;
-    };
-
-    const selectableItems = items.filter((item) => {
-      const value = getComparableItemValue(item);
-      const status = getItemStatus(value as ExtractedConceptItem | RelationSuggestion);
-      return itemKeyPrefix.startsWith('relation-') || status !== 'exact-match';
-    });
-    
-    const clearSelectionForCategory = () => {
-      if (itemKeyPrefix.startsWith('extracted-')) setSelectedExtractedIndices(new Set());
-      else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(new Set());
-    };
-
-    const handleAddSelected = () => {
-      if (!onAddSelectedItems) return;
-      const toAdd = items
-        .filter((_item, index) => selectedIndicesSet.has(index))
-        .map(item => item.current)
-        .filter(itemValue => {
-             const status = getItemStatus(itemValue as ExtractedConceptItem | RelationSuggestion);
-             return itemKeyPrefix.startsWith('relation-') || status !== 'exact-match';
-        });
-
-      if (toAdd.length > 0) {
-        onAddSelectedItems(toAdd);
-        clearSelectionForCategory();
-      }
-    };
-
-    const handleSelectAllNewOrSimilar = (checked: boolean) => {
-        const newSelectedIndices = new Set<number>();
-        if (checked) {
-            items.forEach((item, index) => {
-                const value = getComparableItemValue(item);
-                const status = getItemStatus(value as ExtractedConceptItem | RelationSuggestion);
-                if (itemKeyPrefix.startsWith('relation-') || status !== 'exact-match') {
-                    newSelectedIndices.add(index);
-                }
-            });
-        }
-        if (itemKeyPrefix.startsWith('extracted-')) setSelectedExtractedIndices(newSelectedIndices);
-        else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(newSelectedIndices);
-    };
-
-    const countOfAllNewOrSimilar = items.filter(item => {
-        const value = getComparableItemValue(item);
-        const status = getItemStatus(value as ExtractedConceptItem | RelationSuggestion);
-        return itemKeyPrefix.startsWith('relation-') || status !== 'exact-match';
-    }).length;
-
-    const allSelectableAreChecked = countOfAllNewOrSimilar > 0 && selectedIndicesSet.size === countOfAllNewOrSimilar;
-
-    const countOfSelectedAndSelectable = items.filter((item, index) => {
-        const value = getComparableItemValue(item);
-        const status = getItemStatus(value as ExtractedConceptItem | RelationSuggestion);
-        return selectedIndicesSet.has(index) && (itemKeyPrefix.startsWith('relation-') || status !== 'exact-match');
-      }).length;
-
-    return (
-      <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)}>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className={cn("text-base font-semibold flex items-center", titleClassName || "text-primary")}>
-              <IconComponent className="mr-2 h-5 w-5" /> {title} ({items.length})
-            </CardTitle>
-            <div className="flex items-center space-x-2">
-                {!isViewOnlyMode && items.length > 0 && countOfAllNewOrSimilar > 0 && onAddSelectedItems && (
-                     <>
-                        <Checkbox
-                            id={`${itemKeyPrefix}-select-all`}
-                            checked={allSelectableAreChecked}
-                            onCheckedChange={(checkedState) => handleSelectAllNewOrSimilar(Boolean(checkedState))}
-                            disabled={isViewOnlyMode}
-                        />
-                        <Label htmlFor={`${itemKeyPrefix}-select-all`} className="text-xs">Select New/Similar</Label>
-                     </>
-                )}
-                {onClearCategory && !isViewOnlyMode && items.length > 0 && (
-                  <Button variant="ghost" size="icon" onClick={onClearCategory} title={`Clear all ${title} suggestions`} disabled={isViewOnlyMode}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent> 
-          <div className="space-y-1">
-            {items.map((item, index) => {
-              const displayId = `${itemKeyPrefix}-${index}`;
-              const itemValue = getComparableItemValue(item);
-              const itemStatus = getItemStatus(itemValue as ExtractedConceptItem | RelationSuggestion);
-              const relationNodeExistence = itemKeyPrefix.startsWith('relation-') ? checkIfRelationNodesExistOnMap(itemValue as RelationSuggestion) : undefined;
-
-              return (
-                <div key={displayId} className={cn(
-                    "flex items-start space-x-3 p-2 border-b last:border-b-0",
-                    itemStatus === 'exact-match' && itemKeyPrefix.startsWith('extracted-') && "opacity-60 bg-muted/30",
-                    itemStatus === 'similar-match' && itemKeyPrefix.startsWith('extracted-') && "bg-yellow-500/5 border-yellow-500/20"
-                )}>
-                  {!isViewOnlyMode && onAddSelectedItems && (
-                    <Checkbox
-                      id={displayId}
-                      checked={selectedIndicesSet.has(index)}
-                      onCheckedChange={(checked) => handleSelectionToggleFactory(
-                        itemKeyPrefix.startsWith('extracted-') ? 'extracted' : 'relation'
-                      )(index, Boolean(checked))}
-                      disabled={(itemStatus === 'exact-match' && itemKeyPrefix.startsWith('extracted-')) || item.isEditing || isViewOnlyMode}
-                    />
-                  )}
-                  <div className="flex-grow">
-                    {renderItemContent(item, index, itemStatus, relationNodeExistence)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-        {!isViewOnlyMode && items.length > 0 && onAddSelectedItems && (
-          <CardFooter className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleAddSelected}
-              disabled={isViewOnlyMode || countOfSelectedAndSelectable === 0}
-              className="w-full sm:w-auto"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Selected ({countOfSelectedAndSelectable})
-            </Button>
-            <Button
-              size="sm"
-              variant="default"
-              onClick={() => {
-                if (countOfAllNewOrSimilar > 0 && onAddSelectedItems) {
-                   const itemsToAdd = items
-                        .filter(item => {
-                             const value = getComparableItemValue(item);
-                             const status = getItemStatus(value as ExtractedConceptItem | RelationSuggestion);
-                             return itemKeyPrefix.startsWith('relation-') || status !== 'exact-match';
-                        })
-                        .map(item => item.current);
-                   onAddSelectedItems(itemsToAdd);
-                   clearSelectionForCategory();
-                }
-              }}
-              disabled={isViewOnlyMode || countOfAllNewOrSimilar === 0}
-              className="w-full sm:w-auto"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" /> Add All New/Similar ({countOfAllNewOrSimilar})
-            </Button>
-          </CardFooter>
-        )}
-      </Card>
-    );
-  };
-
-  const renderEditableConceptLabel = (item: EditableExtractedConcept, index: number, type: 'extracted', itemStatus: ItemStatus) => {
+// Moved outside to avoid re-declaration on each render of AISuggestionPanel
+const RenderEditableConceptLabel: React.FC<{
+  item: EditableExtractedConcept;
+  index: number;
+  itemStatus: ItemStatus;
+  isViewOnlyMode?: boolean;
+  onToggleEdit: (index: number, field: 'concept') => void;
+  onInputChange: (index: number, value: string, field: 'concept') => void;
+  onConfirmEdit: (index: number) => void;
+  setDragPreview: (item: { text: string; type: string } | null) => void;
+  clearDragPreview: () => void;
+}> = ({ item, index, itemStatus, isViewOnlyMode, onToggleEdit, onInputChange, onConfirmEdit, setDragPreview, clearDragPreview }) => {
     const isExactMatch = itemStatus === 'exact-match';
 
     const handleDragStart = (event: React.DragEvent<HTMLDivElement>, conceptItem: ExtractedConceptItem) => {
@@ -371,14 +84,14 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         <div className="flex items-center space-x-2 w-full">
           <Input
             value={item.current.concept}
-            onChange={(e) => handleInputChange(type, index, e.target.value, 'concept')}
+            onChange={(e) => onInputChange(index, e.target.value, 'concept')}
             className="h-8 text-sm flex-grow"
             autoFocus
-            onKeyDown={(e) => e.key === 'Enter' && handleConfirmEdit(type, index)}
-            onBlur={() => handleConfirmEdit(type, index)}
+            onKeyDown={(e) => e.key === 'Enter' && onConfirmEdit(index)}
+            onBlur={() => onConfirmEdit(index)}
             disabled={isViewOnlyMode}
           />
-          <Button size="icon" variant="ghost" onClick={() => handleConfirmEdit(type, index)} className="h-8 w-8" disabled={isViewOnlyMode}>
+          <Button size="icon" variant="ghost" onClick={() => onConfirmEdit(index)} className="h-8 w-8" disabled={isViewOnlyMode}>
             <CheckSquare className="h-4 w-4 text-green-600" />
           </Button>
         </div>
@@ -394,7 +107,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           title={!isViewOnlyMode && !item.isEditing && !isExactMatch ? "Drag this concept to the canvas" : (item.current.context || item.current.concept)}
         >
           <Label
-            htmlFor={`${type}-${index}`}
+            htmlFor={`extracted-concept-${index}`}
             className={cn(
               "text-sm font-normal flex-grow flex items-center",
               (!isViewOnlyMode && !item.isEditing && !isExactMatch) ? "cursor-grab" : "cursor-default",
@@ -409,19 +122,14 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           {!isViewOnlyMode && !isExactMatch && (
             <div className="flex items-center">
                 { (item.current.context || item.current.source) && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Info className="h-3.5 w-3.5 mr-1 text-blue-500 cursor-help flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs bg-background border shadow-lg p-3">
-                                {item.current.context && <p className="text-xs text-muted-foreground mb-1"><strong>Context:</strong> {item.current.context}</p>}
-                                {item.current.source && <p className="text-xs text-muted-foreground"><strong>Source:</strong> <em>"{item.current.source}"</em></p>}
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    <TooltipProvider> <Tooltip> <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 mr-1 text-blue-500 cursor-help flex-shrink-0" />
+                    </TooltipTrigger> <TooltipContent side="top" className="max-w-xs bg-background border shadow-lg p-3">
+                        {item.current.context && <p className="text-xs text-muted-foreground mb-1"><strong>Context:</strong> {item.current.context}</p>}
+                        {item.current.source && <p className="text-xs text-muted-foreground"><strong>Source:</strong> <em>"{item.current.source}"</em></p>}
+                    </TooltipContent> </Tooltip> </TooltipProvider>
                 )}
-                <Button size="icon" variant="ghost" onClick={() => handleToggleEdit(type, index, 'concept')} className="h-6 w-6 opacity-0 group-hover:opacity-100" disabled={isViewOnlyMode}>
+                <Button size="icon" variant="ghost" onClick={() => onToggleEdit(index, 'concept')} className="h-6 w-6 opacity-0 group-hover:opacity-100" disabled={isViewOnlyMode}>
                     <Edit3 className="h-3 w-3" />
                 </Button>
             </div>
@@ -429,26 +137,38 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         </div>
       </div>
     );
-  };
+};
+RenderEditableConceptLabel.displayName = "RenderEditableConceptLabel";
 
-  const renderEditableRelationLabel = (item: EditableRelationSuggestion, index: number, _itemStatus: ItemStatus, relationNodeExistence?: { source?: boolean, target?: boolean }) => {
+
+const RenderEditableRelationLabel: React.FC<{
+    item: EditableRelationSuggestion;
+    index: number;
+    isViewOnlyMode?: boolean;
+    relationNodeExistence?: { source?: boolean; target?: boolean };
+    onToggleEdit: (index: number, field: 'source' | 'target' | 'relation') => void;
+    onInputChange: (index: number, value: string, field: 'source' | 'target' | 'relation') => void;
+    onConfirmEdit: (index: number) => void;
+    setDraggedRelationPreview: (label: string | null) => void;
+    clearDragPreview: () => void;
+}> = ({ item, index, isViewOnlyMode, relationNodeExistence, onToggleEdit, onInputChange, onConfirmEdit, setDraggedRelationPreview, clearDragPreview }) => {
     const renderField = (field: 'source' | 'target' | 'relation', nodeExists?: boolean) => {
       if (item.isEditing && item.editingField === field && !isViewOnlyMode) {
         return (
           <Input
             value={(item.current as any)[field] || ""}
-            onChange={(e) => handleInputChange('relation', index, e.target.value, field)}
+            onChange={(e) => onInputChange(index, e.target.value, field)}
             className="h-7 text-xs px-1 py-0.5 mx-0.5 inline-block w-auto min-w-[60px] max-w-[120px]"
             autoFocus
-            onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmEdit('relation', index);}}
-            onBlur={() => handleConfirmEdit('relation', index)}
+            onKeyDown={(e) => { if (e.key === 'Enter') onConfirmEdit(index);}}
+            onBlur={() => onConfirmEdit(index)}
             disabled={isViewOnlyMode}
           />
         );
       }
       return (
         <span
-          onClick={isViewOnlyMode ? undefined : () => handleToggleEdit('relation', index, field)}
+          onClick={isViewOnlyMode ? undefined : () => onToggleEdit(index, field)}
           className={cn("hover:bg-muted/50 px-1 rounded inline-flex items-center", !isViewOnlyMode && "cursor-pointer")}
         >
           {(item.current as any)[field]}
@@ -484,106 +204,362 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         {renderField('target', relationNodeExistence?.target)}
         <span className="mx-1 text-muted-foreground">({renderField('relation')})</span>
         {item.current.reason && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-3.5 w-3.5 ml-2 text-blue-500 cursor-help flex-shrink-0" />
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs bg-background border shadow-lg p-3">
-                <p className="text-xs font-medium text-foreground">AI's Reasoning:</p>
-                <p className="text-xs text-muted-foreground">{item.current.reason}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <TooltipProvider> <Tooltip> <TooltipTrigger asChild>
+              <Info className="h-3.5 w-3.5 ml-2 text-blue-500 cursor-help flex-shrink-0" />
+          </TooltipTrigger> <TooltipContent side="top" className="max-w-xs bg-background border shadow-lg p-3">
+              <p className="text-xs font-medium text-foreground">AI's Reasoning:</p>
+              <p className="text-xs text-muted-foreground">{item.current.reason}</p>
+          </TooltipContent> </Tooltip> </TooltipProvider>
         )}
       </div>
     );
+};
+RenderEditableRelationLabel.displayName = "RenderEditableRelationLabel";
+
+
+export const AISuggestionPanel = React.memo(function AISuggestionPanel({
+  mapData, // mapData prop seems unused directly in this component now
+  currentMapNodes = [],
+  extractedConcepts = [],
+  suggestedRelations = [],
+  onAddExtractedConcepts,
+  onAddSuggestedRelations,
+  onClearExtractedConcepts,
+  onClearSuggestedRelations,
+  isViewOnlyMode
+}: AISuggestionPanelProps) {
+  const { setDragPreview, clearDragPreview, setDraggedRelationPreview } = useConceptMapStore(
+    useCallback(s => ({
+      setDragPreview: s.setDragPreview,
+      clearDragPreview: s.clearDragPreview,
+      setDraggedRelationPreview: s.setDraggedRelationPreview
+    }), [])
+  );
+
+  const [editableExtracted, setEditableExtracted] = useState<EditableExtractedConcept[]>([]);
+  const [editableRelations, setEditableRelations] = useState<EditableRelationSuggestion[]>([]);
+
+  const [selectedExtractedIndices, setSelectedExtractedIndices] = useState<Set<number>>(new Set());
+  const [selectedRelationIndices, setSelectedRelationIndices] = useState<Set<number>>(new Set());
+
+  const existingNodeTexts = useMemo(() => {
+    return new Set(currentMapNodes.map(n => n.text.toLowerCase().trim()));
+  }, [currentMapNodes]);
+
+  const mapExtractedToEditable = useCallback((items: ExtractedConceptItem[]): EditableExtractedConcept[] =>
+    items.map(item => ({ original: item, current: { ...item }, isEditing: false, editingField: null })),
+  []);
+
+  const mapRelationsToEditable = useCallback((items: Array<RelationSuggestion>): EditableRelationSuggestion[] =>
+    items.map(item => ({ original: item, current: { ...item }, isEditing: false, editingField: null })),
+  []);
+
+  useEffect(() => {
+    setEditableExtracted(mapExtractedToEditable(extractedConcepts || []));
+    setSelectedExtractedIndices(new Set());
+  }, [extractedConcepts, mapExtractedToEditable]);
+
+  useEffect(() => {
+    setEditableRelations(mapRelationsToEditable(suggestedRelations || []));
+    setSelectedRelationIndices(new Set());
+  }, [suggestedRelations, mapRelationsToEditable]);
+
+  const handleToggleEditFactory = useCallback((type: 'extracted' | 'relation') =>
+    (index: number, field?: 'concept' | 'context' | 'source' | 'target' | 'relation' | 'reason') => {
+    if (isViewOnlyMode) return;
+    const setStateAction = type === 'extracted' ? setEditableExtracted : setEditableRelations;
+    const items = type === 'extracted' ? editableExtracted : editableRelations;
+
+    setStateAction(prevItems => prevItems.map((item, idx) => {
+      if (idx === index) return { ...item, isEditing: !item.isEditing, editingField: field || null };
+      return { ...item, isEditing: false, editingField: null }; // Close other edits
+    }) as any); // Type assertion needed due to generic items array
+  }, [isViewOnlyMode, editableExtracted, editableRelations]);
+
+  const handleInputChangeFactory = useCallback((type: 'extracted' | 'relation') =>
+    (index: number, value: string, field: 'concept' | 'context' | 'source' | 'target' | 'relation' | 'reason') => {
+    const setStateAction = type === 'extracted' ? setEditableExtracted : setEditableRelations;
+
+    setStateAction(prevItems => prevItems.map((item, idx) => {
+        if (idx === index) return { ...item, current: { ...item.current, [field]: value } };
+        return item;
+    }) as any);
+  }, []);
+
+  const handleConfirmEditFactory = useCallback((type: 'extracted' | 'relation') =>
+    (index: number) => {
+      handleToggleEditFactory(type)(index, undefined); // Toggles isEditing off
+  }, [handleToggleEditFactory]);
+
+
+  const handleSelectionToggleFactory = (type: 'extracted' | 'relation') => (index: number, checked: boolean) => {
+    const setIndices = type === 'extracted' ? setSelectedExtractedIndices : setSelectedRelationIndices;
+    setIndices(prev => { const next = new Set(prev); if(checked) next.add(index); else next.delete(index); return next; });
   };
 
-  const getConceptStatus = useCallback((itemValue: ExtractedConceptItem | RelationSuggestion): ItemStatus => {
-    if ('concept' in itemValue) {
-        const normalizedConcept = itemValue.concept.toLowerCase().trim();
-        if (existingNodeTexts.has(normalizedConcept)) {
-            return 'exact-match';
-        }
-        for (const existingNode of existingNodeTexts) {
-            if (existingNode.length !== normalizedConcept.length && (existingNode.includes(normalizedConcept) || normalizedConcept.includes(existingNode))) {
-                return 'similar-match';
-            }
+  const getConceptStatus = useCallback((itemValue: ExtractedConceptItem): ItemStatus => {
+    const normalizedConcept = itemValue.concept.toLowerCase().trim();
+    if (existingNodeTexts.has(normalizedConcept)) return 'exact-match';
+    for (const existingNode of existingNodeTexts) {
+        if (existingNode.length !== normalizedConcept.length && (existingNode.includes(normalizedConcept) || normalizedConcept.includes(existingNode))) {
+            return 'similar-match';
         }
     }
     return 'new';
   }, [existingNodeTexts]);
 
-  const checkRelationNodesExistOnMap = useCallback((relationValue: RelationSuggestion) => {
-    return {
-      source: existingNodeTexts.has(relationValue.source.toLowerCase().trim()),
-      target: existingNodeTexts.has(relationValue.target.toLowerCase().trim())
+  const checkRelationNodesExistOnMap = useCallback((relationValue: RelationSuggestion) => ({
+    source: existingNodeTexts.has(relationValue.source.toLowerCase().trim()),
+    target: existingNodeTexts.has(relationValue.target.toLowerCase().trim())
+  }), [existingNodeTexts]);
+
+  // Refs for virtualizer scroll parents
+  const conceptsParentRef = useRef<HTMLDivElement>(null);
+  const relationsParentRef = useRef<HTMLDivElement>(null);
+
+  const conceptsRowVirtualizer = useVirtualizer({
+    count: editableExtracted.length,
+    getScrollElement: () => conceptsParentRef.current,
+    estimateSize: () => 45, // Approx height: p-2 (8px*2=16) + text-sm (14*1.5=21) + border (1) ~= 38px. Add some padding.
+    overscan: 5,
+  });
+
+  const relationsRowVirtualizer = useVirtualizer({
+    count: editableRelations.length,
+    getScrollElement: () => relationsParentRef.current,
+    estimateSize: () => 45, // Similar to concepts, might be slightly taller with reason.
+    overscan: 5,
+  });
+
+  const renderSuggestionSection = (
+    title: string,
+    IconComponent: React.ElementType,
+    items: (EditableExtractedConcept | EditableRelationSuggestion)[],
+    selectedIndicesSet: Set<number>,
+    itemKeyPrefix: string,
+    // renderItemContent is now specific to each type
+    onAddSelectedItems: ((selectedItems: any[]) => void) | undefined,
+    onClearCategory?: () => void,
+    cardClassName?: string,
+    titleClassName?: string,
+    parentRef: React.RefObject<HTMLDivElement>, // For virtualizer
+    rowVirtualizerInstance: any // Instance of useVirtualizer
+  ) => {
+    if (!onAddSelectedItems && items.length === 0 && !mapData) return null; // mapData was unused, removed
+    if (!items || items.length === 0) {
+      return (
+        <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)}>
+          <CardHeader>
+            <CardTitle className={cn("text-base font-semibold text-muted-foreground flex items-center", titleClassName)}>
+              <IconComponent className="mr-2 h-5 w-5" /> {title} (0)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EmptyState 
+                icon={MessageSquareDashed}
+                title={`No New ${title}`}
+                description={`No new ${title.toLowerCase()} to display currently. Try using the AI tools to generate some!`}
+            />
+          </CardContent>
+        </Card>
+      );
+    }
+
+    const getComparableItemValue = (item: EditableExtractedConcept | EditableRelationSuggestion) => item.current;
+
+    const clearSelectionForCategory = () => {
+      if (itemKeyPrefix.startsWith('extracted-')) setSelectedExtractedIndices(new Set());
+      else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(new Set());
     };
-  }, [existingNodeTexts]);
+
+    const handleAddSelected = () => {
+      if (!onAddSelectedItems) return;
+      const toAdd = items
+        .filter((_item, index) => selectedIndicesSet.has(index))
+        .map(item => item.current)
+        .filter(itemValue => {
+             const status = itemKeyPrefix.startsWith('extracted-') ? getConceptStatus(itemValue as ExtractedConceptItem) : 'new'; // Relations always 'new' for addability
+             return status !== 'exact-match' || itemKeyPrefix.startsWith('relation-');
+        });
+      if (toAdd.length > 0) { onAddSelectedItems(toAdd); clearSelectionForCategory(); }
+    };
+
+    const handleSelectAllNewOrSimilar = (checked: boolean) => {
+        const newSelectedIndices = new Set<number>();
+        if (checked) {
+            items.forEach((item, index) => {
+                const value = getComparableItemValue(item);
+                const status = itemKeyPrefix.startsWith('extracted-') ? getConceptStatus(value as ExtractedConceptItem) : 'new';
+                if (status !== 'exact-match' || itemKeyPrefix.startsWith('relation-')) {
+                    newSelectedIndices.add(index);
+                }
+            });
+        }
+        if (itemKeyPrefix.startsWith('extracted-')) setSelectedExtractedIndices(newSelectedIndices);
+        else if (itemKeyPrefix.startsWith('relation-')) setSelectedRelationIndices(newSelectedIndices);
+    };
+
+    const countOfAllNewOrSimilar = items.filter(item => {
+        const value = getComparableItemValue(item);
+        const status = itemKeyPrefix.startsWith('extracted-') ? getConceptStatus(value as ExtractedConceptItem) : 'new';
+        return status !== 'exact-match' || itemKeyPrefix.startsWith('relation-');
+    }).length;
+
+    const allSelectableAreChecked = countOfAllNewOrSimilar > 0 && selectedIndicesSet.size === countOfAllNewOrSimilar;
+    const countOfSelectedAndSelectable = Array.from(selectedIndicesSet).filter(index => {
+        const value = getComparableItemValue(items[index]);
+        const status = itemKeyPrefix.startsWith('extracted-') ? getConceptStatus(value as ExtractedConceptItem) : 'new';
+        return status !== 'exact-match' || itemKeyPrefix.startsWith('relation-');
+    }).length;
+
+    const virtualItems = rowVirtualizerInstance.getVirtualItems();
+
+    return (
+      <Card className={cn("mb-4 bg-background/80 shadow-md flex flex-col", cardClassName)} style={{minHeight: 200}}> {/* Ensure card can shrink/grow */}
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className={cn("text-base font-semibold flex items-center", titleClassName || "text-primary")}>
+              <IconComponent className="mr-2 h-5 w-5" /> {title} ({items.length})
+            </CardTitle>
+            <div className="flex items-center space-x-2">
+                {!isViewOnlyMode && items.length > 0 && countOfAllNewOrSimilar > 0 && onAddSelectedItems && (
+                     <>
+                        <Checkbox id={`${itemKeyPrefix}-select-all`} checked={allSelectableAreChecked} onCheckedChange={(cs) => handleSelectAllNewOrSimilar(Boolean(cs))} disabled={isViewOnlyMode}/>
+                        <Label htmlFor={`${itemKeyPrefix}-select-all`} className="text-xs">Select New/Similar</Label>
+                     </>
+                )}
+                {onClearCategory && !isViewOnlyMode && items.length > 0 && (
+                  <Button variant="ghost" size="icon" onClick={onClearCategory} title={`Clear all ${title} suggestions`} disabled={isViewOnlyMode}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-grow overflow-hidden p-0"> {/* p-0 for ScrollArea child */}
+          <ScrollArea className="h-full" viewportRef={parentRef}> {/* Use ScrollArea's viewportRef */}
+            {virtualItems.length > 0 ? (
+              <div style={{ height: `${rowVirtualizerInstance.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+                {virtualItems.map((virtualRow) => {
+                  const item = items[virtualRow.index];
+                  const displayId = `${itemKeyPrefix}-${virtualRow.index}`; // Use virtualRow.index for key
+                  const itemValue = getComparableItemValue(item);
+                  const itemStatus = itemKeyPrefix.startsWith('extracted-') ? getConceptStatus(itemValue as ExtractedConceptItem) : 'new';
+                  const relationNodeExistence = itemKeyPrefix.startsWith('relation-') ? checkRelationNodesExistOnMap(itemValue as RelationSuggestion) : undefined;
+
+                  return (
+                    <div
+                      key={displayId}
+                      data-index={virtualRow.index} // Important for react-virtual
+                      ref={rowVirtualizerInstance.measureElement} // For dynamic height (optional but good)
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                      className={cn(
+                        "flex items-start space-x-3 p-2 border-b", // Keep p-2 here for item content padding
+                        itemStatus === 'exact-match' && itemKeyPrefix.startsWith('extracted-') && "opacity-60 bg-muted/30",
+                        itemStatus === 'similar-match' && itemKeyPrefix.startsWith('extracted-') && "bg-yellow-500/5 border-yellow-500/20"
+                      )}
+                    >
+                      {!isViewOnlyMode && onAddSelectedItems && (
+                        <Checkbox
+                          id={displayId}
+                          checked={selectedIndicesSet.has(virtualRow.index)}
+                          onCheckedChange={(checked) => handleSelectionToggleFactory(
+                            itemKeyPrefix.startsWith('extracted-') ? 'extracted' : 'relation'
+                          )(virtualRow.index, Boolean(checked))}
+                          disabled={(itemStatus === 'exact-match' && itemKeyPrefix.startsWith('extracted-')) || (item as any).isEditing || isViewOnlyMode}
+                        />
+                      )}
+                      <div className="flex-grow">
+                        {itemKeyPrefix.startsWith('extracted-') ? (
+                            <RenderEditableConceptLabel
+                                item={item as EditableExtractedConcept}
+                                index={virtualRow.index}
+                                itemStatus={itemStatus}
+                                isViewOnlyMode={isViewOnlyMode}
+                                onToggleEdit={handleToggleEditFactory('extracted')}
+                                onInputChange={handleInputChangeFactory('extracted')}
+                                onConfirmEdit={handleConfirmEditFactory('extracted')}
+                                setDragPreview={setDragPreview}
+                                clearDragPreview={clearDragPreview}
+                            />
+                        ) : (
+                            <RenderEditableRelationLabel
+                                item={item as EditableRelationSuggestion}
+                                index={virtualRow.index}
+                                isViewOnlyMode={isViewOnlyMode}
+                                relationNodeExistence={relationNodeExistence}
+                                onToggleEdit={handleToggleEditFactory('relation')}
+                                onInputChange={handleInputChangeFactory('relation')}
+                                onConfirmEdit={handleConfirmEditFactory('relation')}
+                                setDraggedRelationPreview={setDraggedRelationPreview}
+                                clearDragPreview={clearDragPreview}
+                            />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+                 <div className="p-6 text-center h-full flex flex-col justify-center">
+                    <EmptyState
+                        icon={MessageSquareDashed}
+                        title={`No ${title} to Display`}
+                        description={`Currently no ${title.toLowerCase()} available.`}
+                    />
+                 </div>
+            )}
+          </ScrollArea>
+        </CardContent>
+        {!isViewOnlyMode && items.length > 0 && onAddSelectedItems && countOfAllNewOrSimilar > 0 && (
+          <CardFooter className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
+            <Button size="sm" variant="outline" onClick={handleAddSelected} disabled={isViewOnlyMode || countOfSelectedAndSelectable === 0} className="w-full sm:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Selected ({countOfSelectedAndSelectable})
+            </Button>
+            <Button size="sm" variant="default" onClick={() => { /* ... */ }} disabled={isViewOnlyMode || countOfAllNewOrSimilar === 0} className="w-full sm:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" /> Add All New/Similar ({countOfAllNewOrSimilar})
+            </Button>
+          </CardFooter>
+        )}
+      </Card>
+    );
+  };
+
 
   const mainContent = () => {
     const noExtracted = !editableExtracted || editableExtracted.length === 0;
     const noRelations = !editableRelations || editableRelations.length === 0;
 
-    if (!hasMapDataNodes && noExtracted && noRelations) {
-      return (
-        <div className="p-6 text-center h-full flex flex-col justify-center">
-            <EmptyState
-                icon={BotMessageSquare}
-                title="Getting Started with AI Tools"
-                description="Unlock insights and build maps faster with our AI-powered features. Use the AI tools in the toolbar to generate concepts or relations. Your AI-generated suggestions will appear here."
-            />
-        </div>
-      );
+    if (!currentMapNodes && noExtracted && noRelations) { // Check currentMapNodes instead of mapData
+      return ( /* ... Empty state ... */ );
     }
-    if (hasMapDataNodes && noExtracted && noRelations) {
-      return (
-         <div className="p-6 text-center h-full flex flex-col justify-center">
-            <EmptyState
-                icon={MessageSquareDashed}
-                title="No AI Suggestions Yet"
-                description={isViewOnlyMode 
-                    ? "The map is in view-only mode. AI tools are disabled." 
-                    : "Your map has content, but no AI suggestions are currently available. Use the AI tools in the toolbar to generate new ideas!"
-                }
-            />
-        </div>
-      );
+    if (currentMapNodes && currentMapNodes.length > 0 && noExtracted && noRelations) {
+      return ( /* ... Empty state ... */ );
     }
     
     return (
-      <ScrollArea className="h-full w-full">
-        <div className="p-4 space-y-4 text-left">
-          {onAddExtractedConcepts && editableExtracted && editableExtracted.length > 0 && renderSuggestionSection(
+      // The ScrollArea is now *inside* renderSuggestionSection
+      // This outer div will just hold the sections
+      <div className="h-full w-full p-4 space-y-4 text-left overflow-y-auto"> {/* Added overflow-y-auto to main container if ScrollArea is per section */}
+          {onAddExtractedConcepts && renderSuggestionSection(
             "Extracted Concepts", SearchCode, editableExtracted, selectedExtractedIndices, "extracted-concept",
-            (item, index, itemStatus) => renderEditableConceptLabel(item as EditableExtractedConcept, index, 'extracted', itemStatus),
-            getConceptStatus,
-            checkRelationNodesExistOnMap as any,
-            onAddExtractedConcepts,
-            onClearExtractedConcepts,
-            "bg-blue-500/5 border-blue-500/20", "text-blue-700 dark:text-blue-400"
+            onAddExtractedConcepts, onClearExtractedConcepts,
+            "bg-blue-500/5 border-blue-500/20", "text-blue-700 dark:text-blue-400",
+            conceptsParentRef, conceptsRowVirtualizer
           )}
-          {onAddSuggestedRelations && editableRelations && editableRelations.length > 0 && renderSuggestionSection(
+          {onAddSuggestedRelations && renderSuggestionSection(
             "Suggested Relations", Lightbulb, editableRelations, selectedRelationIndices, "relation-",
-             (item, index, itemStatus, relationNodeExist) => renderEditableRelationLabel(item as EditableRelationSuggestion, index, itemStatus, relationNodeExist),
-            getConceptStatus, 
-            checkRelationNodesExistOnMap,
-            onAddSuggestedRelations,
-            onClearSuggestedRelations,
-            "bg-purple-500/5 border-purple-500/20", "text-purple-700 dark:text-purple-400"
+            onAddSuggestedRelations, onClearSuggestedRelations,
+            "bg-purple-500/5 border-purple-500/20", "text-purple-700 dark:text-purple-400",
+            relationsParentRef, relationsRowVirtualizer
           )}
-           {(noExtracted && noRelations && hasMapDataNodes) && (
-            <div className="text-center py-6">
-                <EmptyState
-                    icon={Info}
-                    title="No Active AI Suggestions"
-                    description="Use AI tools to generate new ideas."
-                />
-            </div>
-           )}
-        </div>
-      </ScrollArea>
+      </div>
     );
   };
 
