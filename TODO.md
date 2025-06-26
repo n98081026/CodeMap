@@ -46,8 +46,8 @@
     - [ ] Message Queue setup (RabbitMQ, Redis, etc.). (Out of Scope).
     - [ ] Develop Project Analysis Microservice:
         - [ ] Task consumer from message queue. (Out of Scope).
-        - [x] File downloader from Supabase storage for AI tool implemented (supabaseFileFetcherTool). projectStructureAnalyzerTool now uses this to fetch file properties and performs: AST-based analysis for JavaScript (Acorn), TypeScript (TS Compiler API), and Python (python-parser) including semantic purpose summarization (via LLM) and detection of intra-file function/method calls; basic content analysis for other common types (JSON, MD, Txt). Further deep semantic analysis user-defined/pending. Unpacker out of scope. (generateMapFromProject flow prompt updated).
-        - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` now performs real AST analysis for JS/TS/Python and accepts storage path and user goals, and special hints for predefined mock outputs for other types).
+        - [x] File downloader from Supabase storage for AI tool implemented (supabaseFileFetcherTool). projectStructureAnalyzerTool now uses this to fetch file properties and performs: AST-based analysis for JavaScript (Acorn), TypeScript (TS Compiler API), and Python (python-parser) including semantic purpose summarization (via LLM) and detection of intra-file function/method calls (refactored for maintainability using shared utilities); basic content analysis for other common types. Further deep semantic analysis user-defined/pending. Unpacker out of scope. (generateMapFromProject flow prompt updated).
+        - [x] Code/Structure Parser Engine (AI-based: Genkit flow `generateMapFromProject` serves as the core engine. `projectStructureAnalyzerTool` now performs real, refactored AST analysis for JS/TS/Python, accepts storage path and user goals, and special hints for predefined mock outputs for other types).
         - [x] LLM-Powered Structure-to-Map Converter (integrates with Genkit/Gemini, parses output from `projectStructureAnalyzerTool`, creates new ConceptMap record via Supabase service - handled in `ProjectUploadForm` flow after AI tool returns).
         - [x] Map Data Formatter & Persister (saves generated map via Supabase service, updates submission status with real map ID - handled in `ProjectUploadForm` flow).
     - [x] Connect frontend project submission UI to live API (for metadata, client-side upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service - handled in `ProjectUploadForm`).
@@ -176,9 +176,8 @@
     - [x] Staging Area Interaction: Allow deletion of individual suggestions, quick label edits, slight repositioning. (Deletion of selected staged items done)
     - [x] Add "Commit to Map" button to finalize, and "X"/Esc to discard from staging area. (Toolbar with buttons done)
 - [x] Refinable "Expand Concept" Previews:
-    - [x] When "Expand Concept" is used, first show new child nodes as temporary "ghost" nodes.
-    - [x] Interaction: Allow clicking individual ghost nodes to accept. Add "Accept All" / "Cancel" controls. (Core acceptance logic done via click and floater)
-    - [x] Interaction (Enhancement): Display "Refine" icon on hover over a ghost node to alter its suggestion before acceptance.
+        - [x] When "Expand Concept" is used, new child nodes are added directly to the map or via AISuggestionFloater for quick interaction.
+        - [x] The older "ghost node preview" system (`conceptExpansionPreview`) with explicit "Refine" icons on ghost nodes for pre-acceptance editing has been removed in favor of more direct interaction flows. Current "ghost" nodes (`ghostPreviewData`) are primarily for layout previews (e.g., AI Tidy Up).
 
 ### AI-Powered Layout and Structuring Assistance
 - [x] "AI Tidy-Up" / Smart Alignment (Contextual):
@@ -269,6 +268,7 @@ This plan outlines a potential refactoring to incorporate Graphology for more ro
         - [x] Defined specific node types (`ai-summary-node`, `ai-rewritten-node`, `ai-expanded` for generated children, `ai-concept` from panel, `text-derived-concept`, `ai-generated`) and mapped them to styles/icons.
 - [x] Conduct further React component memoization: Systematically review components, especially children of frequently re-rendering parents that receive stable props, and apply `React.memo`, `useCallback`, and `useMemo` where beneficial. (`SelectedNodeToolbar` and its props from `CustomNodeComponent` now memoized).
     - [x] Ensure callbacks passed as props *to* `EditorToolbar` from its parent page (e.g., `mapId/page.tsx`) are memoized using `useCallback`.
+- [x] Refactor `projectStructureAnalyzerTool.ts` to use shared utility functions (`ast-utils.ts`) for AST element summarization and `DetailedNode` creation, improving code maintainability and reducing redundancy across JavaScript, TypeScript, and Python analyzers.
 
 ## Supabase Backend Integration (All core services and auth are migrated)
 This section outlines tasks to fully migrate to Supabase.
@@ -302,10 +302,16 @@ This section outlines tasks to fully migrate to Supabase.
 - [x] **Connect frontend project submission UI to live API (for metadata, actual file upload to Supabase Storage, AI trigger with real storage path and user goals, linking map using Supabase service).** (Complete via `ProjectUploadForm` and `useSupabaseStorageUpload` hook).
 - [x] **Connect frontend student submissions list to live API.**
 - [x] **Genkit Flow for Project Analysis (`generateMapFromProject`):**
-    - [x] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn) & TypeScript (TS Compiler API) including semantic purpose summarization for functions/classes via LLM and detection of intra-file function/method calls; basic content analysis for other common types. Further deep semantic analysis user-defined/pending. `generateMapFromProject` prompt updated. (Python AST analysis remains pending as a sub-task if desired).
-        - [ ] Implement AST-based analysis for Python files in `projectStructureAnalyzerTool` (similar to current JS/TS AST capabilities, to replace basic regex analysis for Py).
+        - [x] projectStructureAnalyzerTool now fetches project files and performs: AST-based analysis for JavaScript (Acorn), TypeScript (TS Compiler API), and Python (python-parser). This includes semantic purpose summarization (via LLM) for functions/classes and detection of intra-file function/method calls. The AST analysis logic has been refactored for better maintainability using shared utilities. It also performs basic content analysis for other common file types. Further deep semantic analysis is user-defined/pending. `generateMapFromProject` prompt updated.
+        - [x] **Deeply Enhanced AST-based analysis for Python files in `projectStructureAnalyzerTool` using `python-parser`:**
+            - Improved extraction of function/method return type annotations and parameter type annotations.
+            - Added handling for `AnnAssign` to capture typed class attributes and their types.
+            - Enhanced local call detection to include `super()` calls and calls to members of imported modules (basic identification).
+            - Ensured more consistent population of `ExtractedCodeElement` fields (e.g., `parentName`, `isAsync`, `decorators`, `classProperties`, `returnType`, `params[].type`).
+            - Added extraction of module-level variables (including typed assignments).
+            - Updated `details` string for Python nodes to comprehensively include this richer information.
     - [x] On successful map generation: Save map and link submission via Supabase services. (Done in `ProjectUploadForm` flow).
-    - [ ] **MANUAL INTERVENTION REQUIRED**: Resolve merge conflicts in `src/ai/tools/project-analyzer-tool.ts`. The agent is unable to resolve these automatically. Prioritize the `master` branch's version for conflicting logic related to analysis functions and output schemas.
+    - [x] **MANUAL INTERVENTION RESOLVED**: Merge conflicts in `src/ai/tools/project-analyzer-tool.ts` resolved. The logic after the main try-catch block in `analyzeProjectStructure` function, which seemed to be a duplicate or misplaced call to `supabaseFileFetcherTool`, has been removed. The function now correctly returns the `output` variable from the primary analysis logic.
 
 **6. API Route Refactoring (General Review for Supabase)**
 - [x] Review all existing API routes in `src/app/api/`. (Done for users, classrooms, conceptmaps, submissions, admin settings, user password change).
@@ -319,7 +325,20 @@ This section outlines tasks to fully migrate to Supabase.
 
 ## Testing & Deployment (Future - Out of Scope for AI Agent Implementation)
 - [ ] **Testing:**
-    - [ ] Write unit tests for critical components and utility functions.
+    - [x] Unit tests for `projectStructureAnalyzerTool`'s Python AST analysis (covering enhanced features).
+    - [x] Unit tests for `projectStructureAnalyzerTool`'s JavaScript AST analysis (covering core features).
+    - [x] Unit tests for `projectStructureAnalyzerTool`'s TypeScript AST analysis (covering core features and TS-specifics).
+    - [x] Unit tests for `projectStructureAnalyzerTool`'s `determineEffectiveFileType` helper.
+    - [x] Comprehensive unit tests for `concept-map-store.ts` (Zustand store) covering:
+        - Initialization and Loading (new, load, import, reset).
+        - Node CRUD operations (add, update, delete with descendants).
+        - Edge CRUD operations.
+        - Staging Area logic (set, clear, commit for various actionTypes, delete from stage).
+        - Ghost Preview logic (set, accept, cancel).
+        - Layout and View actions (applyLayout, overview mode, focus).
+        - Structural Suggestions management and application (form group).
+        - Basic Undo/Redo integration via Zundo.
+    - [ ] Write unit tests for other critical components and utility functions (e.g., `useConceptMapAITools`, specific UI components with complex logic).
     - [ ] Implement integration tests for user flows with Supabase.
     - [ ] Consider end-to-end testing.
 - [ ] **Deployment:**
@@ -505,10 +524,10 @@ The main remaining area for full Supabase connection is:
 
 ### 其他潛在改進
 
-- [ ] **測試覆蓋率：**
+- [ ] **測試覆蓋率：** (Verified as PENDING)
     - [ ] 為新的訪客模式邏輯和相關元件編寫自動化測試 (Vitest)。
     - [ ] 特別是測試 `AppLayout` 中的路由邏輯和 `useConceptMapDataManager` 中範例地圖的處理。
-- [x] **錯誤處理與日誌記錄：**
+- [x] **錯誤處理與日誌記錄：** (Verified as IMPLEMENTED)
     - [x] 增強 `useConceptMapDataManager` 中範例地圖載入失敗時的錯誤處理/日誌記錄。 (Enhanced toasts and debug logs for direct example loading path)
-- [ ] **安全性檢閱：**
+- [ ] **安全性檢閱：** (Verified as PENDING - Requires Manual Review)
     - [ ] 對訪客模式進行一次快速的安全性檢閱，確保沒有意外的資料洩漏或功能存取。

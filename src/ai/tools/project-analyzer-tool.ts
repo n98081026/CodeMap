@@ -17,6 +17,11 @@ import * as acorn from 'acorn';
 import * as acornWalk from 'acorn-walk';
 import * as ts from 'typescript';
 import { parse as pythonParse, Node as PythonNode } from 'python-parser';
+import {
+  batchSummarizeElements,
+  createDetailedNodeFromExtractedElement,
+  SummarizationTaskInfo // This is an interface, so type-only import is fine
+} from './ast-utils';
 
 // Input schema remains the same
 export const ProjectAnalysisInputSchema = z.object({
@@ -35,6 +40,9 @@ export const DetailedNodeOutputSchema = z.object({
     structuredInfo: z.any().optional(), // For raw extracted AST info
 });
 export type DetailedNode = z.infer<typeof DetailedNodeOutputSchema>;
+
+// Exporting for use in ast-utils
+export { DetailedNodeOutputSchema as DetailedNodeSchema }; // Keep original export too for compatibility if needed
 
 const DependencyMapSchema = z.record(z.array(z.string())).describe('Key-value map of dependency types (e.g., npm, pip, maven, nuget) to arrays of dependency names.');
 
@@ -165,7 +173,8 @@ function determineEffectiveFileType(fileName: string, contentType?: string, isBi
 }
 
 // --- Common AST Element Interfaces ---
-interface ExtractedCodeElement {
+// Exporting for use in ast-utils
+export interface ExtractedCodeElement {
   name: string;
   kind: string; // e.g., 'function', 'class', 'interface', 'method', 'property'
   params?: { name: string; type?: string }[];
@@ -185,19 +194,19 @@ interface ExtractedCodeElement {
   semanticPurpose?: string; // Added for AI summary
   classMethods?: string[]; // For classes
   classProperties?: string[]; // For classes
-  astNode?: ts.Node; // Store the AST node for functions/methods for later analysis (e.g. call graph)
+  astNode?: any; // Changed from ts.Node to any to accommodate different parsers
   localCalls?: Array<{ targetName: string; targetType: 'function' | 'method'; targetParentName?: string; line: number }>; // For local call detection
   parentName?: string; // For methods, the name of their class
 }
 
-interface ExtractedImport {
+export interface ExtractedImport {
   source: string;
   specifiers: { importedName?: string; localName: string; isDefault?: boolean; isNamespace?: boolean }[];
   startLine: number;
   endLine: number;
 }
 
-interface ExtractedExport {
+export interface ExtractedExport {
   type: 'named' | 'default' | 'all';
   names?: string[];
   source?: string;
@@ -216,13 +225,7 @@ async function analyzeJavaScriptAST(fileName: string, fileContent: string, gener
   const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: any }> = [];
   let ast: acorn.Node | undefined;
 
-  interface SummarizationTask {
-    uniqueId: string;
-    inputForFlow: SummarizeCodeElementInput;
-    originalNodeInfo: ExtractedCodeElement; // Will include astNode
-    nodeType: 'function' | 'class'; // To distinguish for summarizer
-  }
-  const summarizationTasks: SummarizationTask[] = [];
+  const summarizationTasks: SummarizationTaskInfo[] = []; // Use imported type
 
   try {
     ast = acorn.parse(fileContent, { ecmaVersion: 'latest', sourceType: 'module', locations: true, comments: true });
@@ -364,73 +367,42 @@ async function analyzeJavaScriptAST(fileName: string, fileContent: string, gener
     }
   }, (ast as any));
 
-  // Phase 2: Parallel Summarization
-  const summarizationPromises = summarizationTasks.map(task =>
-    summarizeCodeElementPurposeFlow.run(task.inputForFlow)
-      .then(summaryResult => ({
-        uniqueId: task.uniqueId,
-        semanticSummary: summaryResult.semanticSummary || "Purpose unclear from available data.",
-      }))
-      .catch(error => {
-        console.warn(`[Acorn Analyzer] Error summarizing ${task.nodeType} ${task.originalNodeInfo.name} in ${fileName}: ${error.message}`);
-        return {
-          uniqueId: task.uniqueId,
-          semanticSummary: "Error during semantic summarization.",
-        };
-      })
-  );
-  const allSummaryResults = await Promise.all(summarizationPromises);
-  const summaryMap = new Map(allSummaryResults.map(r => [r.uniqueId, r.semanticSummary]));
+  // Phase 2: Parallel Summarization using utility
+  const summarizedElements = await batchSummarizeElements(summarizationTasks, fileName, 'Acorn Analyzer');
 
   // Phase 3: Integration
-  summarizationTasks.forEach(task => {
-    const semanticPurpose = summaryMap.get(task.uniqueId) || "Semantic purpose not determined.";
-    task.originalNodeInfo.semanticPurpose = semanticPurpose;
+  summarizedElements.forEach(task => {
+    // Local call detection logic remains, as it's specific to Acorn's AST structure
     task.originalNodeInfo.localCalls = []; // Initialize
-
-    // Second pass for local call detection, only for functions/methods
-    if ((task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'class') && task.originalNodeInfo.astNode) { // Class itself doesn't have calls, its methods do.
+    if ((task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'class') && task.originalNodeInfo.astNode) {
         if (task.originalNodeInfo.kind === 'function' && task.originalNodeInfo.astNode.body) {
             acornWalk.simple(task.originalNodeInfo.astNode.body, {
                 CallExpression(callExprNode: any) {
                     if (callExprNode.callee.type === 'Identifier') {
                         const calleeName = callExprNode.callee.name;
-                        const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'function' && !def.parentName); // Top-level function
+                        const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'function' && !def.parentName);
                         if (targetDef) {
                             task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', line: callExprNode.loc.start.line });
                         }
                     }
-                    // No direct 'this.method()' equivalent for top-level functions in the same way as classes.
-                    // Could extend to IIFEs or other patterns if needed, but keeping it simple.
                 }
             });
         } else if (task.originalNodeInfo.kind === 'class') {
-            // Iterate through methods of this class (which are in localDefinitions)
-            // and for each method, traverse its body to find calls.
             const className = task.originalNodeInfo.name;
             const methodsOfThisClass = localDefinitions.filter(def => def.kind === 'method' && def.parentName === className);
-
             methodsOfThisClass.forEach(methodDef => {
-                // Find the corresponding summarization task for this method to attach calls, if it exists
-                // This part is a bit tricky because summarization tasks are for top-level elements (classes, functions)
-                // We need to attach calls to the methods within the class's structuredInfo or create separate nodes for methods.
-                // For now, let's assume classMethods in originalNodeInfo can be enriched, or we adjust the model.
-                // Let's simplify: add calls to the class's localCalls for now, indicating method calls.
-                // A more granular approach would be to have method-level entries in detailedNodesOutput.
-                if (methodDef.node && methodDef.node.body) { // methodDef.node is the FunctionExpression
+                if (methodDef.node && methodDef.node.body) {
                     acornWalk.simple(methodDef.node.body, {
                         CallExpression(callExprNode: any) {
                             const callLine = callExprNode.loc.start.line;
                             if (callExprNode.callee.type === 'Identifier') {
                                 const calleeName = callExprNode.callee.name;
-                                // Call to another global/module function
                                 const targetGlobalFunc = localDefinitions.find(def => def.name === calleeName && def.kind === 'function' && !def.parentName);
                                 if (targetGlobalFunc) {
                                     task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', line: callLine });
                                 }
                             } else if (callExprNode.callee.type === 'MemberExpression' && callExprNode.callee.object.type === 'ThisExpression') {
                                 const calleeName = callExprNode.callee.property.name;
-                                // Call to another method of the same class
                                 const targetMethod = localDefinitions.find(def => def.name === calleeName && def.kind === 'method' && def.parentName === className);
                                 if (targetMethod) {
                                     task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: className, line: callLine });
@@ -442,23 +414,14 @@ async function analyzeJavaScriptAST(fileName: string, fileContent: string, gener
             });
         }
     }
-
-    let details = `${semanticPurpose}\nExported: ${task.originalNodeInfo.isExported}. ${task.originalNodeInfo.params ? `Params: ${task.originalNodeInfo.params.map(p=>p.name).join(', ')}. ` : ''}${task.originalNodeInfo.superClass ? `Extends: ${task.originalNodeInfo.superClass}. ` : ''}${task.originalNodeInfo.classMethods ? `Methods: ${task.originalNodeInfo.classMethods.join(', ')}` : ''}`;
-    if (task.originalNodeInfo.localCalls && task.originalNodeInfo.localCalls.length > 0) {
-      details += `\nLocal Calls: ${task.originalNodeInfo.localCalls.map(call => `${call.targetParentName ? `${call.targetParentName}.` : ''}${call.targetName}() (line ${call.line})`).join(', ')}.`;
-    }
-
-    detailedNodesOutput.push({
-      id: task.uniqueId, // Use the same uniqueId for the final node ID
-      label: `${task.originalNodeInfo.name} (${task.originalNodeInfo.kind})`,
-      type: `js_${task.originalNodeInfo.kind}`,
-      details,
-      lineNumbers: task.originalNodeInfo.startLine ? `${task.originalNodeInfo.startLine}-${task.originalNodeInfo.endLine}` : undefined,
-      structuredInfo: task.originalNodeInfo,
-    });
+    // Create DetailedNode using utility
+    // Ensure task.originalNodeInfo is passed correctly, and task.uniqueId is available.
+    const detailedNode = createDetailedNodeFromExtractedElement(task.originalNodeInfo, task.uniqueId, `js_`);
+    detailedNodesOutput.push(detailedNode);
   });
 
   // Add imports and exports to detailedNodesOutput (they were not summarized)
+  // These are not ExtractedCodeElement, so they are handled separately.
   imports.forEach((imp, i) => detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'import', imp.source, detailedNodesOutput.length + i), label: `Import from '${imp.source}'`, type: 'js_import', details: imp.specifiers.map(s => s.localName + (s.importedName && s.importedName !== s.localName ? ` as ${s.importedName}` : '')).join(', '), lineNumbers: imp.startLine ? `${imp.startLine}-${imp.endLine}`: undefined, structuredInfo: imp }));
   exports.forEach((exp, i) => detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'export', exp.type, detailedNodesOutput.length + i), label: `Export ${exp.type}`, type: `js_export_${exp.type}`, details: exp.names?.join(', ') || (exp.source ? `* from ${exp.source}`: exp.declarationType), lineNumbers: exp.startLine ? `${exp.startLine}-${exp.endLine}`: undefined, structuredInfo: exp }));
 
@@ -508,10 +471,11 @@ async function analyzePythonAST(
   fileSpecificPrefix: string
 ): Promise<{ analysisSummary: string; detailedNodes: DetailedNode[]; error?: string }> {
   const extractedFunctions: ExtractedCodeElement[] = [];
-  const extractedClasses: Array<ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[] }> = []; // Added properties
-  const extractedImports: Array<{ type: string; source?: string; names: Array<{ name: string; asName?: string }>; level?: number; lineNumbers?: string }> = [];
+  const extractedClasses: Array<ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[], astNode?: PythonNode }> = [];
+  const extractedImports: Array<{ type: string; source?: string; names: Array<{ name: string; asName?: string }>; level?: number; lineNumbers?: string, startLine?: number, endLine?: number }> = [];
   const detailedNodes: DetailedNode[] = [];
-  const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: PythonNode }> = [];
+  const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: PythonNode, signature?: string }> = [];
+  const moduleLevelAssignments: Array<ExtractedCodeElement> = [];
 
 
   let ast: PythonNode;
@@ -523,13 +487,8 @@ async function analyzePythonAST(
 
   const getLineInfo = (node: PythonNode) => ('lineno' in node && node.lineno ? `${node.lineno}${('end_lineno' in node && node.end_lineno) ? `-${node.end_lineno}` : ''}` : undefined);
 
-  interface PySummarizationTask {
-    uniqueId: string;
-    inputForFlow: SummarizeCodeElementInput;
-    originalNodeInfo: ExtractedCodeElement;
-    nodeType: 'function' | 'class';
-  }
-  const summarizationTasks: PySummarizationTask[] = [];
+  // Use imported SummarizationTaskInfo
+  const summarizationTasks: SummarizationTaskInfo[] = [];
 
 
   function visitPyNode(node: PythonNode | PythonNode[] | undefined, currentClassName?: string) {
@@ -543,10 +502,11 @@ async function analyzePythonAST(
 
     if (nodeType === 'FunctionDef' || nodeType === 'AsyncFunctionDef') {
       const funcName = node.name;
-      const params = node.args?.args?.map((arg: any) => ({ // python-parser uses 'any' for arg here
+      const params = node.args?.args?.map((arg: any) => ({
         name: arg.arg,
-        annotation: arg.annotation ? getPyNodeText(arg.annotation, fileContent) : undefined,
+        type: arg.annotation ? getPyNodeText(arg.annotation, fileContent) : undefined,
       })) || [];
+      const returnType = node.returns ? getPyNodeText(node.returns, fileContent) : undefined;
       const decorators = node.decorator_list?.map((d: any) => getPyNodeText(d, fileContent)) || [];
       let docstring: string | undefined = undefined;
       if (node.body && node.body.length > 0 && node.body[0].type === 'Expr' && node.body[0].value?.type === 'Constant' && typeof node.body[0].value.value === 'string') {
@@ -557,38 +517,38 @@ async function analyzePythonAST(
         name: funcName,
         kind: currentClassName ? 'method' : 'function',
         params,
+        returnType,
         decorators,
-        comments: docstring, // Using 'comments' field for docstring
+        comments: docstring,
         startLine: node.lineno,
         endLine: node.end_lineno || node.lineno,
         parentName: currentClassName,
         isAsync: nodeType === 'AsyncFunctionDef',
-        astNode: node, // Store python-parser node
+        astNode: node as any, // Cast to any to satisfy ts.Node, though it's PythonNode
       };
-      localDefinitions.push({ name: funcName, kind: funcData.kind as 'function' | 'method', parentName: currentClassName, node });
-
+      const signature = `(${(params.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ') || '')})` + (returnType ? ` -> ${returnType}` : '');
+      localDefinitions.push({ name: funcName, kind: funcData.kind as 'function' | 'method', parentName: currentClassName, node, signature });
 
       if (currentClassName) {
         const classObj = extractedClasses.find(c => c.name === currentClassName);
         classObj?.methods.push(funcData);
       } else {
-        extractedFunctions.push(funcData); // Top-level functions
+        extractedFunctions.push(funcData);
       }
 
       summarizationTasks.push({
         uniqueId: generateNodeId(fileSpecificPrefix, funcData.kind, funcName, summarizationTasks.length),
         inputForFlow: {
-          elementType: 'function', // Treat methods as functions for summarizer
+          elementType: 'function',
           elementName: funcName,
           filePath: fileName,
-          signature: `(${(params.map(p => `${p.name}${p.annotation ? `: ${p.annotation}` : ''}`).join(', ') || '')})`,
+          signature,
           comments: docstring,
-          isExported: undefined, // Python export concept is module-level
+          isExported: !currentClassName, // Top-level functions are considered "exported"
         },
         originalNodeInfo: funcData,
         nodeType: 'function',
       });
-
 
     } else if (nodeType === 'ClassDef') {
       const className = node.name;
@@ -599,7 +559,26 @@ async function analyzePythonAST(
         docstring = node.body[0].value.value;
       }
 
-      const classData: ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[] } = {
+      const classProperties: string[] = [];
+      node.body?.forEach((child: PythonNode) => {
+        if (child.type === 'Assign' || child.type === 'AnnAssign') {
+          const targets = child.type === 'Assign' ? child.targets : [child.target];
+          targets?.forEach((target: PythonNode) => {
+            if (target.type === 'Name') {
+              let propString = target.id;
+              if (child.type === 'AnnAssign' && child.annotation) {
+                propString += `: ${getPyNodeText(child.annotation, fileContent)}`;
+              }
+              if (child.value) { // Add value if present
+                propString += ` = ${getPyNodeText(child.value, fileContent).substring(0,30)}${getPyNodeText(child.value, fileContent).length > 30 ? '...' : ''}`;
+              }
+              classProperties.push(propString);
+            }
+          });
+        }
+      });
+
+      const classData: ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[], astNode?: PythonNode } = {
         name: className,
         kind: 'class',
         superClass: bases.join(', '),
@@ -608,22 +587,10 @@ async function analyzePythonAST(
         startLine: node.lineno,
         endLine: node.end_lineno || node.lineno,
         methods: [],
-        properties: [], // Initialize properties
-        astNode: node, // Store python-parser node
+        properties: classProperties,
+        astNode: node,
       };
       extractedClasses.push(classData);
-
-      // Extract simple assignments at class level as properties (e.g. MY_CONSTANT = 1)
-      node.body?.forEach((child: PythonNode) => {
-        if (child.type === 'Assign') {
-          child.targets?.forEach((target: PythonNode) => {
-            if (target.type === 'Name') {
-              classData.properties.push(target.id);
-            }
-          });
-        }
-      });
-
 
       summarizationTasks.push({
         uniqueId: generateNodeId(fileSpecificPrefix, 'class', className, summarizationTasks.length),
@@ -633,59 +600,69 @@ async function analyzePythonAST(
           filePath: fileName,
           signature: bases.length > 0 ? `(${bases.join(', ')})` : undefined,
           comments: docstring,
-          isExported: undefined,
-          classMethods: classData.methods.map(m => m.name), // Will be filled later
-          classProperties: classData.properties,
+          isExported: true, // Top-level classes are considered "exported"
+          classMethods: [], // Will be updated after methods are processed
+          classProperties: classProperties,
         },
         originalNodeInfo: classData,
         nodeType: 'class',
       });
       visitPyNode(node.body, className); // Visit children to find methods
+      // Update classMethods in summarizerInput after methods are processed
+      const taskToUpdate = summarizationTasks.find(t => t.uniqueId === generateNodeId(fileSpecificPrefix, 'class', className, summarizationTasks.findIndex(st => st.originalNodeInfo.name === className && st.nodeType === 'class')));
+      if (taskToUpdate) {
+        taskToUpdate.inputForFlow.classMethods = classData.methods.map(m => m.name);
+      }
+
 
     } else if (nodeType === 'Import') {
       const names = node.names?.map((alias: any) => ({ name: alias.name, asName: alias.asname })) || [];
-      extractedImports.push({ type: 'Import', names, lineNumbers: getLineInfo(node) });
+      extractedImports.push({ type: 'Import', names, lineNumbers: getLineInfo(node), startLine: node.lineno, endLine: node.end_lineno || node.lineno });
     } else if (nodeType === 'ImportFrom') {
       const moduleName = node.module || '';
       const names = node.names?.map((alias: any) => ({ name: alias.name, asName: alias.asname })) || [];
-      extractedImports.push({ type: 'ImportFrom', source: moduleName, names, level: node.level, lineNumbers: getLineInfo(node) });
+      extractedImports.push({ type: 'ImportFrom', source: moduleName, names, level: node.level, lineNumbers: getLineInfo(node), startLine: node.lineno, endLine: node.end_lineno || node.lineno });
+    } else if ((nodeType === 'Assign' || nodeType === 'AnnAssign') && !currentClassName) { // Module-level assignments
+        const targets = nodeType === 'Assign' ? node.targets : [node.target];
+        targets?.forEach((target: PythonNode) => {
+            if (target.type === 'Name') {
+                const varName = target.id;
+                const varType = nodeType === 'AnnAssign' && node.annotation ? getPyNodeText(node.annotation, fileContent) : undefined;
+                const varValue = node.value ? getPyNodeText(node.value, fileContent).substring(0, 50) + (getPyNodeText(node.value, fileContent).length > 50 ? '...' : '') : undefined;
+                moduleLevelAssignments.push({
+                    name: varName,
+                    kind: 'variable',
+                    dataType: varType,
+                    value: varValue,
+                    startLine: node.lineno,
+                    endLine: node.end_lineno || node.lineno,
+                    comments: getPyNodeText(node.comment_before, fileContent) || getPyNodeText(node.comment_after, fileContent), // Simplified comment association
+                    isExported: !varName.startsWith('_'), // Convention for public
+                });
+            }
+        });
     } else if ('body' in node && Array.isArray(node.body)) {
       visitPyNode(node.body, currentClassName);
-    } else if ('orelse' in node && Array.isArray(node.orelse)) { // For if/for/while orelse blocks
+    } else if ('orelse' in node && Array.isArray(node.orelse)) {
       visitPyNode(node.orelse, currentClassName);
     }
-    // Consider handlers for Try nodes, etc. if deeper analysis is needed
   }
 
   if (ast && ast.type === 'Module' && Array.isArray(ast.body)) {
     visitPyNode(ast.body);
-  } else if (ast) {
+  } else if (ast) { // Should not happen for valid Python files
+    console.warn(`[Py AST Analyzer] Root AST node is not a Module: ${ast?.type}`);
     visitPyNode(ast);
   }
 
-  // Parallel Summarization for Python elements
-  const pySummarizationPromises = summarizationTasks.map(task =>
-    summarizeCodeElementPurposeFlow.run(task.inputForFlow)
-      .then(summaryResult => ({
-        uniqueId: task.uniqueId,
-        semanticSummary: summaryResult.semanticSummary || "Purpose unclear.",
-      }))
-      .catch(error => {
-        console.warn(`[Py AST Analyzer] Error summarizing ${task.nodeType} ${task.originalNodeInfo.name} in ${fileName}: ${error.message}`);
-        return { uniqueId: task.uniqueId, semanticSummary: "Error during summarization." };
-      })
-  );
-  const allPySummaryResults = await Promise.all(pySummarizationPromises);
-  const pySummaryMap = new Map(allPySummaryResults.map(r => [r.uniqueId, r.semanticSummary]));
-
+  // Parallel Summarization for Python elements using utility
+  const summarizedElements = await batchSummarizeElements(summarizationTasks, fileName, 'Py AST Analyzer');
 
   // Format detailedNodes including summaries and local calls
-  summarizationTasks.forEach(task => {
-    const semanticPurpose = pySummaryMap.get(task.uniqueId) || "Semantic purpose not determined.";
-    task.originalNodeInfo.semanticPurpose = semanticPurpose;
+  summarizedElements.forEach(task => {
     task.originalNodeInfo.localCalls = []; // Initialize
 
-    // Python Local Call Detection (simplified)
+    // Python Local Call Detection (simplified) - This logic is specific to Python AST
     if ((task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'method') && task.originalNodeInfo.astNode) {
         const visitCallNodes = (currentNode: PythonNode | PythonNode[] | undefined) => {
             if (!currentNode) return;
@@ -698,70 +675,73 @@ async function analyzePythonAST(
                 const calleeNode = callNode.func;
                 const callLine = calleeNode.lineno;
 
-                if (calleeNode.type === 'Name') { // Simple function call: func()
+                if (calleeNode.type === 'Name') {
                     const calleeName = calleeNode.id;
                     const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'function' && !def.parentName);
                     if (targetDef) {
                         task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', line: callLine });
-                    }
-                } else if (calleeNode.type === 'Attribute' && calleeNode.value?.type === 'Name' && calleeNode.value.id === 'self') { // Method call: self.method()
-                    const calleeName = calleeNode.attr;
-                    const currentElementParentName = task.originalNodeInfo.parentName; // class name of the current method
-                    if (currentElementParentName) {
-                        const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'method' && def.parentName === currentElementParentName);
-                        if (targetDef) {
-                            task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: currentElementParentName, line: callLine });
+                    } else {
+                        const imp = extractedImports.find(i => i.names.some(n => n.asName === calleeName || n.name === calleeName));
+                        if (imp) {
+                             task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', targetParentName: imp.source || imp.names.find(n => n.asName === calleeName || n.name === calleeName)?.name, line: callLine });
                         }
                     }
+                } else if (calleeNode.type === 'Attribute') {
+                    const calleeName = calleeNode.attr;
+                    if (calleeNode.value?.type === 'Name') {
+                        const objectName = calleeNode.value.id;
+                        if (objectName === 'self') {
+                            const currentElementParentName = task.originalNodeInfo.parentName;
+                            if (currentElementParentName) {
+                                const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'method' && def.parentName === currentElementParentName);
+                                if (targetDef) {
+                                    task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: currentElementParentName, line: callLine });
+                                }
+                            }
+                        } else {
+                            const imp = extractedImports.find(i => i.names.some(n => n.asName === objectName || n.name === objectName));
+                            if (imp) {
+                                task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: objectName, line: callLine });
+                            }
+                        }
+                    } else if (calleeNode.value?.type === 'Call' && calleeNode.value.func.type === 'Name' && calleeNode.value.func.id === 'super') {
+                         task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'method', targetParentName: 'super()', line: callLine });
+                    }
                 }
-                // Could extend to other.method() if 'other' is a known local instance.
             }
-
-            // Recursively visit children
-            if ('body' in currentNode && Array.isArray(currentNode.body)) visitCallNodes(currentNode.body);
-            if ('orelse' in currentNode && Array.isArray(currentNode.orelse)) visitCallNodes(currentNode.orelse);
-            if ('handlers' in currentNode && Array.isArray(currentNode.handlers)) { // For Try nodes
-                 currentNode.handlers.forEach(handler => {
-                    if ('body' in handler && Array.isArray(handler.body)) visitCallNodes(handler.body);
-                 });
-            }
-            // Add more fields like 'values' for list comprehensions, 'generators' etc. if needed
+            Object.values(currentNode).forEach(value => {
+                if (typeof value === 'object' && value !== null) {
+                    visitCallNodes(value as any);
+                }
+            });
         };
-        // @ts-ignore python-parser specific node structure
-        if (task.originalNodeInfo.astNode.body) visitCallNodes(task.originalNodeInfo.astNode.body);
+        if (task.originalNodeInfo.astNode && (task.originalNodeInfo.astNode as PythonNode).body) {
+             visitCallNodes((task.originalNodeInfo.astNode as PythonNode).body);
+        }
     }
 
+    // Create DetailedNode using utility
+    const detailedNode = createDetailedNodeFromExtractedElement(
+        { ...task.originalNodeInfo, astNode: undefined }, // Remove heavy astNode before storing
+        task.uniqueId,
+        `py_`
+    );
+    detailedNodes.push(detailedNode);
+  });
 
-    let details = `${semanticPurpose}\n`;
-    if (task.originalNodeInfo.decorators && task.originalNodeInfo.decorators.length > 0) {
-      details += `Decorators: ${task.originalNodeInfo.decorators.join(', ')}\n`;
-    }
-    if (task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'method') {
-      details += `Params: ${task.originalNodeInfo.params?.map(p => `${p.name}${p.annotation ? `: ${p.annotation}` : ''}`).join(', ') || '()'}\n`;
-    } else if (task.originalNodeInfo.kind === 'class') {
-      details += `Bases: ${task.originalNodeInfo.superClass || 'object'}\n`;
-      const classNodeInfo = task.originalNodeInfo as ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[] };
-      if (classNodeInfo.methods.length > 0) details += `Methods: ${classNodeInfo.methods.map(m => m.name).join(', ')}\n`;
-      if (classNodeInfo.properties.length > 0) details += `Properties: ${classNodeInfo.properties.join(', ')}\n`;
-    }
-    if (task.originalNodeInfo.comments) details += `Docstring: Present (see structuredInfo)\n`;
-
-    if (task.originalNodeInfo.localCalls && task.originalNodeInfo.localCalls.length > 0) {
-      details += `Local Calls: ${task.originalNodeInfo.localCalls.map(call => `${call.targetParentName ? `${call.targetParentName}.` : ''}${call.targetName}() (line ${call.line})`).join(', ')}.`;
-    }
-
+  // Add module-level assignments
+  moduleLevelAssignments.forEach((assignment, i) => {
     detailedNodes.push({
-      id: task.uniqueId,
-      label: `${task.originalNodeInfo.name} (${task.originalNodeInfo.kind})`,
-      type: `py_${task.originalNodeInfo.kind}`,
-      details: details.trim(),
-      lineNumbers: `${task.originalNodeInfo.startLine}-${task.originalNodeInfo.endLine}`,
-      structuredInfo: task.originalNodeInfo,
+        id: generateNodeId(fileSpecificPrefix, 'variable', assignment.name, detailedNodes.length + i),
+        label: `${assignment.name} (variable)`,
+        type: 'py_variable',
+        details: `Type: ${assignment.dataType || 'Unknown'}. Value: ${assignment.value || 'N/A'}. Exported: ${assignment.isExported}.`,
+        lineNumbers: `${assignment.startLine}-${assignment.endLine}`,
+        structuredInfo: { ...assignment, astNode: undefined },
     });
   });
 
-
-  // Add imports (not summarized)
+  // Add imports
   extractedImports.forEach((imp, i) => {
     const importLabel = imp.type === 'ImportFrom'
       ? `From ${imp.source || (imp.level ? '.'.repeat(imp.level) : '')} import ${imp.names.map(n => n.name + (n.asName ? ` as ${n.asName}` : '')).join(', ')}`
@@ -776,8 +756,10 @@ async function analyzePythonAST(
     });
   });
 
-  const totalLocalCalls = detailedNodes.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0);
-  const analysisSummary = `Python file '${fileName}' (AST analysis): Found ${extractedFunctions.length} top-level functions, ${extractedClasses.length} classes, and ${extractedImports.length} import statements. Detected ${totalLocalCalls} local calls. Semantic summaries attempted.`;
+  const totalLocalCalls = detailedNodes.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0) +
+                        extractedClasses.reduce((acc, cls) => acc + (cls.localCalls?.length || 0), 0); // Include calls from class context if stored there
+
+  const analysisSummary = `Python file '${fileName}' (AST analysis): Found ${extractedFunctions.length} top-level functions, ${extractedClasses.length} classes, ${moduleLevelAssignments.length} module-level variables, and ${extractedImports.length} import statements. Detected ${totalLocalCalls} local calls. Semantic summaries attempted.`;
   return { analysisSummary, detailedNodes };
 }
 
@@ -801,13 +783,8 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
     return { error: errorMsg, analysisSummary: `Failed to fully parse TS: ${errorMsg}`, detailedNodes: [] };
   }
 
-  interface SummarizationTask {
-    uniqueId: string;
-    inputForFlow: SummarizeCodeElementInput;
-    originalNodeInfo: ExtractedCodeElement; // Will include astNode
-    nodeType: 'function' | 'class';
-  }
-  const summarizationTasks: SummarizationTask[] = [];
+  // Use imported SummarizationTaskInfo
+  const summarizationTasks: SummarizationTaskInfo[] = [];
 
   // Helper to get JSDoc comments
   function getJSDocComments(node: ts.Node, sourceFile: ts.SourceFile): string | undefined {
@@ -999,31 +976,14 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
   // Phase 1: Data Collection (Recursive)
   visitNodeRecursive(sourceFile);
 
-  // Phase 2: Parallel Summarization
-  const summarizationPromises = summarizationTasks.map(task =>
-    summarizeCodeElementPurposeFlow.run(task.inputForFlow)
-      .then(summaryResult => ({
-        uniqueId: task.uniqueId,
-        semanticSummary: summaryResult.semanticSummary || "Purpose unclear from available data.",
-      }))
-      .catch(error => {
-        console.warn(`[TS AST Analyzer] Error summarizing ${task.nodeType} ${task.originalNodeInfo.name} in ${fileName}: ${error.message}`);
-        return {
-          uniqueId: task.uniqueId,
-          semanticSummary: "Error during semantic summarization.",
-        };
-      })
-  );
-  const allSummaryResults = await Promise.all(summarizationPromises);
-  const summaryMap = new Map(allSummaryResults.map(r => [r.uniqueId, r.semanticSummary]));
+  // Phase 2: Parallel Summarization using utility
+  const summarizedElements = await batchSummarizeElements(summarizationTasks, fileName, 'TS AST Analyzer');
 
   // Phase 3: Integration (including local call detection)
-  summarizationTasks.forEach(task => {
-    const semanticPurpose = summaryMap.get(task.uniqueId) || "Semantic purpose not determined.";
-    task.originalNodeInfo.semanticPurpose = semanticPurpose;
+  summarizedElements.forEach(task => {
     task.originalNodeInfo.localCalls = []; // Initialize
 
-    // Second pass for local call detection, only for functions/methods
+    // Second pass for local call detection, only for functions/methods - This logic is TS AST specific
     if ((task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'method') && task.originalNodeInfo.astNode) {
       const findCallsVisitor = (currentNode: ts.Node) => {
         if (ts.isCallExpression(currentNode)) {
@@ -1032,7 +992,6 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
 
           if (ts.isIdentifier(callExpr.expression)) {
             const calleeName = callExpr.expression.getText(sourceFile);
-            // Check for top-level functions or functions defined in the same scope (not handling closures deeply here)
             const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'function' && !def.parentName);
             if (targetDef) {
               task.originalNodeInfo.localCalls?.push({ targetName: calleeName, targetType: 'function', line: callLine });
@@ -1041,7 +1000,7 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
             const propAccess = callExpr.expression;
             if (propAccess.expression.kind === ts.SyntaxKind.ThisKeyword) {
               const calleeName = propAccess.name.getText(sourceFile);
-              const currentElementParentName = task.originalNodeInfo.parentName; // class name of the current method
+              const currentElementParentName = task.originalNodeInfo.parentName;
               if (currentElementParentName) {
                 const targetDef = localDefinitions.find(def => def.name === calleeName && def.kind === 'method' && def.parentName === currentElementParentName);
                 if (targetDef) {
@@ -1049,14 +1008,11 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
                 }
               }
             }
-            // Could also handle calls like `this.props.someFunc()` or `object.method()` if `object` is a known local class instance.
-            // For simplicity, focusing on direct `this.method()` and global `func()` calls.
           }
         }
         ts.forEachChild(currentNode, findCallsVisitor);
       };
 
-      // Traverse the body of the function/method AST node
       // @ts-ignore - body property exists on function/method like nodes
       if (task.originalNodeInfo.astNode.body) {
          // @ts-ignore
@@ -1064,29 +1020,9 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
       }
     }
 
-    let details = `${semanticPurpose}\n`;
-    details += `${task.originalNodeInfo.isExported ? (task.originalNodeInfo.isDefaultExport ? 'Default Export. ' : 'Exported. ') : 'Not Exported. '}`;
-    if (task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'method') {
-      details += `${task.originalNodeInfo.params ? `Params: ${task.originalNodeInfo.params.map(p=>`${p.name}${p.type ? `: ${p.type}`:''}`).join(', ')}. ` : ''}`;
-      details += `${task.originalNodeInfo.returnType ? `Returns: ${task.originalNodeInfo.returnType}. ` : ''}`;
-    } else if (task.originalNodeInfo.kind === 'class') {
-      details += `${task.originalNodeInfo.superClass ? `Extends: ${task.originalNodeInfo.superClass}. ` : ''}`;
-      details += `${task.originalNodeInfo.implementedInterfaces ? `Implements: ${task.originalNodeInfo.implementedInterfaces.join(', ')}. ` : ''}`;
-    }
-    details += `Comments: ${task.originalNodeInfo.comments ? 'Available (see structuredInfo)' : 'None'}.`;
-
-    if (task.originalNodeInfo.localCalls && task.originalNodeInfo.localCalls.length > 0) {
-      details += `\nLocal Calls: ${task.originalNodeInfo.localCalls.map(call => `${call.targetParentName ? `${call.targetParentName}.` : ''}${call.targetName}() (line ${call.line})`).join(', ')}.`;
-    }
-
-    detailedNodesOutput.push({
-      id: task.uniqueId, // Use the same uniqueId
-      label: `${task.originalNodeInfo.name} (${task.originalNodeInfo.kind})`,
-      type: `ts_${task.originalNodeInfo.kind}`,
-      details: details.trim(),
-      lineNumbers: `${task.originalNodeInfo.startLine}-${task.originalNodeInfo.endLine}`,
-      structuredInfo: task.originalNodeInfo,
-    });
+    // Create DetailedNode using utility
+    const detailedNode = createDetailedNodeFromExtractedElement(task.originalNodeInfo, task.uniqueId, `ts_`);
+    detailedNodesOutput.push(detailedNode);
   });
 
   const totalLocalCalls = detailedNodesOutput.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0);
@@ -1771,100 +1707,6 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
   }
 
   return output;
-  const fileDetails = await supabaseFileFetcherTool.run({
-    bucketName: BUCKET_NAME,
-    filePath: input.projectStoragePath,
-  });
-
-  if (fileDetails.error || !fileDetails.fileName) {
-    return {
-      analyzedFileName: input.projectStoragePath.split('/').pop() || 'unknown_file',
-      effectiveFileType: 'error',
-      isBinary: false,
-      analysisSummary: `Error fetching file: ${fileDetails.error || 'Unknown error from file fetcher.'}`,
-      detailedNodes: [{ id: generateNodeId(fileSpecificPrefix, 'error', 'fetch'), label: 'File Fetch Error', type: 'error', details: fileDetails.error || 'Unknown error.' }],
-      error: `File fetch failed: ${fileDetails.error}`,
-    };
-  }
-
-  const { fileName, fileContent, fileBuffer, contentType, isBinary: fetchedIsBinary } = fileDetails; // Renamed to fetchedIsBinary
-  const fileSize = fileBuffer?.length || fileContent?.length || 0;
-
-  const effectiveFileType = determineEffectiveFileType(fileName, contentType, fetchedIsBinary);
-
-  let analysisResult: { analysisSummary: string, detailedNodes: DetailedNode[], error?: string } =
-    { analysisSummary: 'Analysis not performed.', detailedNodes: [], error: 'Initialization error' }; // Default init
-
-  if (fetchedIsBinary && effectiveFileType !== 'binary') {
-      console.warn(`[AnalyzerToolV2] File ${fileName} detected as binary by fetcher, but effective type is ${effectiveFileType}. Prioritizing binary status from fetcher.`);
-      analysisResult = analyzeFallback(fileName, contentType, fileSize, input.userHint, generateNodeId, fileSpecificPrefix, fetchedIsBinary);
-      analysisResult.analysisSummary = `Binary file '${fileName}' (${contentType}). Size: ${fileSize} bytes. ${input.userHint ? `Hint: ${input.userHint}` : ''}`;
-  } else if (!fileContent && !fetchedIsBinary) { // No content for a non-binary file
-      analysisResult = analyzeFallback(fileName, contentType, fileSize, input.userHint, generateNodeId, fileSpecificPrefix, fetchedIsBinary);
-      analysisResult.analysisSummary = `Text file '${fileName}' (${contentType}) appears empty or content could not be read. Size: ${fileSize} bytes. ${input.userHint ? `Hint: ${input.userHint}` : ''}`;
-  } else if (fileContent) { // Ensure fileContent is not null/undefined before passing to analyzers
-    switch (effectiveFileType) {
-      case 'package.json':
-        analysisResult = analyzePackageJson(fileName, fileContent, generateNodeId, fileSpecificPrefix);
-        break;
-      case 'generic.json':
-        analysisResult = analyzeGenericJson(fileName, fileContent, generateNodeId, fileSpecificPrefix);
-        break;
-      case 'markdown':
-        analysisResult = analyzeMarkdown(fileName, fileContent, generateNodeId, fileSpecificPrefix);
-        break;
-      case 'javascript':
-        // analyzeJavaScriptAST is now async due to LLM calls
-        analysisResult = await analyzeJavaScriptAST(fileName, fileContent, generateNodeId, fileSpecificPrefix);
-        break;
-      case 'typescript':
-        // analyzeTypeScriptAST is now async
-        analysisResult = await analyzeTypeScriptAST(fileName, fileContent, generateNodeId, fileSpecificPrefix);
-        if (analysisResult.error && fileContent) { // Ensure fileContent is valid for fallback
-          console.warn(`[AnalyzerToolV2] AST parsing failed for TypeScript file ${fileName}: ${analysisResult.error}. Falling back to regex.`);
-          const fallbackResult = analyzeSourceCodeRegexFallback(fileName, fileContent, 'typescript', generateNodeId, fileSpecificPrefix); // Keep 'typescript' for fallback type
-          analysisResult.analysisSummary = `TypeScript AST parsing failed: ${analysisResult.error}. --- Using Regex Fallback: ${fallbackResult.analysisSummary}`;
-          analysisResult.detailedNodes = fallbackResult.detailedNodes; // Use fallback nodes
-          analysisResult.error = `${analysisResult.error} (used regex fallback)`; // Append to error
-        }
-        break;
-      case 'python':
-        // analyzePythonAST is now async
-        analysisResult = await analyzePythonAST(fileName, fileContent, generateNodeId, fileSpecificPrefix);
-        if (analysisResult.error && fileContent) {
-            console.warn(`[AnalyzerToolV2] AST parsing failed for Python file ${fileName}: ${analysisResult.error}. Falling back to regex.`);
-            const fallbackResult = analyzeSourceCodeRegexFallback(fileName, fileContent, 'python', generateNodeId, fileSpecificPrefix);
-            analysisResult.analysisSummary = `Python AST parsing failed: ${analysisResult.error}. --- Using Regex Fallback: ${fallbackResult.analysisSummary}`;
-            analysisResult.detailedNodes = fallbackResult.detailedNodes; // Use fallback nodes
-            analysisResult.error = `${analysisResult.error} (used regex fallback)`; // Append to error
-        }
-        break;
-      case 'text':
-        analysisResult = analyzePlainText(fileName, fileContent, generateNodeId, fileSpecificPrefix);
-        break;
-      case 'binary': // This case is reached if fetchedIsBinary is true AND effectiveType is also 'binary'
-        analysisResult = analyzeFallback(fileName, contentType, fileSize, input.userHint, generateNodeId, fileSpecificPrefix, true); // Pass true for isFileBinary
-        analysisResult.analysisSummary = `Binary file '${fileName}' (${contentType}). Size: ${fileSize} bytes. ${input.userHint ? `Hint: ${input.userHint}` : ''}`;
-        break;
-      default: // unknown
-        analysisResult = analyzeFallback(fileName, contentType, fileSize, input.userHint, generateNodeId, fileSpecificPrefix, fetchedIsBinary);
-    }
-  } else if (fetchedIsBinary) { // Handles case where fileContent is null but it's a binary file
-      analysisResult = analyzeFallback(fileName, contentType, fileSize, input.userHint, generateNodeId, fileSpecificPrefix, true);
-      analysisResult.analysisSummary = `Binary file '${fileName}' (${contentType}). Size: ${fileSize} bytes. ${input.userHint ? `Hint: ${input.userHint}` : ''}`;
-  }
-
-
-  return {
-    analyzedFileName: fileName,
-    effectiveFileType,
-    contentType,
-    fileSize,
-    isBinary: fetchedIsBinary,
-    analysisSummary: analysisResult.analysisSummary,
-    detailedNodes: analysisResult.detailedNodes,
-    error: analysisResult.error,
-  };
 }
 
 export const projectStructureAnalyzerTool = ai.defineTool(

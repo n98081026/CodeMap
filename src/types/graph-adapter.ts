@@ -1,4 +1,5 @@
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+import type { Node as RFNode } from 'reactflow'; // Import RFNode for LayoutNodeInfo
 
 // --- Dagre Related Types ---
 
@@ -78,20 +79,12 @@ export interface DagreLayoutOutput {
  * @param layoutInput - The input data for the layout, including nodes, edges, and options.
  * @returns An object containing the array of nodes with their new x and y coordinates.
  */
-export type DagreLayoutUtility = (layoutInput: DagreLayoutInput) => DagreLayoutOutput;
+export type DagreLayoutUtilityType = (layoutInput: DagreLayoutInput) => DagreLayoutOutput; // Renamed to avoid conflict
 
 // --- Graphology Related Types ---
 
 /**
  * Placeholder for a Graphology instance type.
- * Graphology is a library for graph theory and manipulation.
- * For actual use, you would typically import `Graph` from 'graphology' and use that type.
- * Using `any` here serves as a placeholder to keep this type definition file
- * independent of a direct Graphology dependency, especially if the utility
- * implementing `GraphAdapterUtility` handles the Graphology import internally.
- * The actual instance would provide methods for graph traversal, manipulation, etc.
- *
- * For the mock implementation, this will be a simplified structure.
  */
 export type GraphologyInstance = {
   nodesMap: Map<string, ConceptMapNode>;
@@ -99,100 +92,93 @@ export type GraphologyInstance = {
 };
 
 export interface GraphAdapterOptions {
-  // isDirected?: boolean; // Example: can be extended later
+  // isDirected?: boolean;
 }
 
 export interface NeighborhoodOptions {
-  depth?: number;        // Default: 1
-  direction?: 'in' | 'out' | 'both'; // Default: 'both'
+  depth?: number;
+  direction?: 'in' | 'out' | 'both';
 }
 
 /**
- * Defines a contract for a utility or adapter that performs graph operations,
- * often abstracting a specific graph library like Graphology.
- * This interface provides a standardized way to interact with graph data structures.
+ * Defines a contract for a utility or adapter that performs graph operations.
  */
-export interface GraphAdapter { // Renamed from GraphAdapterUtility
-  /**
-   * Creates a graph instance from arrays of nodes and edges.
-   *
-   * @param nodes - An array of `ConceptMapNode` objects representing the graph's nodes.
-   * @param edges - An array of `ConceptMapEdge` objects representing the graph's edges.
-   * @returns A `GraphologyInstance` (or a compatible graph representation) populated with the provided nodes and edges.
-   */
+export interface GraphAdapter {
   fromArrays(
     nodes: ConceptMapNode[],
     edges: ConceptMapEdge[],
-    options?: GraphAdapterOptions // Added options here
+    options?: GraphAdapterOptions
   ): GraphologyInstance;
 
-  /**
-   * Converts a graph instance back to arrays of nodes and edges.
-   * This is useful for serialization or when needing to work with plain arrays again.
-   *
-   * @param graphInstance - The graph instance (e.g., `GraphologyInstance`) to convert.
-   * @returns An object containing `nodes` (array of `ConceptMapNode`) and `edges` (array of `ConceptMapEdge`).
-   */
   toArrays(
     graphInstance: GraphologyInstance
   ): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
 
-  /**
-   * Retrieves all descendant node IDs for a given node ID.
-   * Descendants are children, grandchildren, and so on.
-   *
-   * @param graphInstance - The graph instance to query.
-   * @param nodeId - The ID of the node for which to find descendants.
-   * @returns An array of strings, where each string is the ID of a descendant node.
-   */
   getDescendants(
     graphInstance: GraphologyInstance,
     nodeId: string
   ): string[];
 
-  /**
-   * Retrieves all ancestor node IDs for a given node ID.
-   * Ancestors are parents, grandparents, and so on, up to the root(s) of the graph component.
-   *
-   * @param graphInstance - The graph instance to query.
-   * @param nodeId - The ID of the node for which to find ancestors.
-   * @returns An array of strings, where each string is the ID of an ancestor node.
-   */
   getAncestors(
     graphInstance: GraphologyInstance,
     nodeId: string
   ): string[];
 
-  /**
-   * Retrieves node IDs in the neighborhood of a given node.
-   * The neighborhood can be defined by depth and direction (incoming, outgoing, or both).
-   *
-   * @param graphInstance - The graph instance to query.
-   * @param nodeId - The ID of the central node of the neighborhood.
-   * @param options - Optional parameters to define the neighborhood:
-   *   `depth`: How many levels of connections to explore (e.g., 1 for direct neighbors).
-   *   `direction`: 'in' for predecessors, 'out' for successors, 'both' for all neighbors.
-   * @returns An array of strings, where each string is the ID of a node in the specified neighborhood.
-   */
   getNeighborhood(
     graphInstance: GraphologyInstance,
     nodeId: string,
-    options?: NeighborhoodOptions // Use defined type
+    options?: NeighborhoodOptions
   ): string[];
 
-  /**
-   * Extracts a subgraph containing only the specified node IDs and the edges between them.
-   *
-   * @param graphInstance - The main graph instance from which to extract the subgraph.
-   * @param nodeIds - An array of node IDs to include in the subgraph.
-   * @returns An object containing `nodes` and `edges` arrays that form the requested subgraph.
-   */
   getSubgraphData(
     graphInstance: GraphologyInstance,
     nodeIds: string[]
   ): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+}
 
-  // Future methods could be added here, e.g.:
-  // hasCycle: (graphInstance: GraphologyInstance) => boolean;
-  // getShortestPath: (graphInstance: GraphologyInstance, sourceNodeId: string, targetNodeId: string) => string[] | null;
+// --- Types for Snapping Logic (Moved from flow-canvas-core.tsx) ---
+export interface SnapLine {
+  type: 'vertical' | 'horizontal';
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+export interface SnapResult {
+  snappedPosition: { x: number; y: number };
+  activeSnapLines: SnapLine[];
+}
+
+/**
+ * Minimal node information required for layout and snapping utilities.
+ */
+export interface LayoutNodeInfo {
+  id: string;
+  positionAbsolute?: { x: number; y: number };
+  x?: number;
+  y?: number;
+  width?: number | null;
+  height?: number | null;
+  // This is a bit of a compromise. Ideally, LayoutNodeInfo wouldn't know about CustomNodeData.
+  // However, calculateSnappedPositionAndLines was typed with RFNode<CustomNodeData>.
+  // To avoid a deep refactor of that function's internals or CustomNodeData itself right now,
+  // we allow 'data' to be 'any'. A stricter approach would be to define exactly what
+  // sub-properties of 'data' are needed by the snapping function if any.
+  // For now, assuming the snapping function primarily uses position and dimensions.
+  data?: any;
+}
+
+// Type for React Flow nodes that use LayoutNodeInfo for their data property.
+export type RFLayoutNode = RFNode<LayoutNodeInfo>;
+
+/**
+ * Represents an update to a node's position, typically from a layout algorithm.
+ */
+export interface LayoutNodeUpdate {
+    id: string;
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
 }
