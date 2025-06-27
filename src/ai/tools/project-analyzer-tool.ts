@@ -1821,6 +1821,20 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
   }
   console.log(`[Analyzer] Inferred ${output.potentialArchitecturalComponents.length} potential architectural components.`);
 
+  // Step: Build File Dependency Graph (Conceptual - No output change in this step, but sets up for future enhancements)
+  // This step would involve:
+  // 1. Defining FileDependencyNode interface (filePath, imports: string[], exports: string[], importedBy: string[])
+  // 2. Modifying AST analyzers to return structured import/export details if not already sufficient.
+  //    - analyzePythonAST would need to identify exported symbols (e.g., non-private top-level defs/classes).
+  // 3. Implementing resolveImportPath(importingFile: string, rawImport: string, projectFiles: string[]): string | null
+  //    - Handle JS/TS relative paths, extension guessing (.js, .ts, /index.js), node_modules (mark as external).
+  //    - Handle Python absolute and relative imports (using level).
+  // 4. Implementing buildDependencyGraph(analyzedFilesData): Map<string, FileDependencyNode>
+  //    - Iterate through analyzed files, use resolveImportPath, populate graph.
+  // For now, this is a placeholder for future work to enhance architectural component detection.
+  // The actual dependency graph isn't being added to the ProjectAnalysisOutputSchema yet.
+  console.log("[Analyzer] Placeholder for File Dependency Graph construction. This data can be used to refine architectural components later.");
+
 
     // Python analysis
     const requirementsTxtFile = filesList.find(f => f.name.toLowerCase() === 'requirements.txt');
