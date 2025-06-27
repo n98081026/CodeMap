@@ -59,6 +59,56 @@ import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar';
 import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For CTA
 import { Info, UserPlus, LogIn } from "lucide-react"; // For CTA
+import AppTutorial from "@/components/tutorial/app-tutorial"; // Import AppTutorial
+
+
+const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
+  ssr: false,
+  loading: () => <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>,
+});
+
+const DEFAULT_NODE_WIDTH = 150;
+const DEFAULT_NODE_HEIGHT = 70;
+
+// CTA Banner for Guest viewing an example
+const EditorGuestCtaBanner: React.FC<{ routeMapId: string }> = ({ routeMapId }) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const storeIsViewOnlyMode = useConceptMapStore(state => state.isViewOnlyMode);
+
+  const isActuallyGuest = !isLoading && !isAuthenticated;
+  const isExampleMap = routeMapId && routeMapId.startsWith('example-');
+
+  if (!isActuallyGuest || !storeIsViewOnlyMode || !isExampleMap) {
+    return null;
+  }
+
+  return (
+    <Alert className="mx-4 my-2 border-primary/50 bg-primary/5 text-primary-foreground text-sm rounded-md">
+      <Info className="h-4 w-4 !text-primary mr-2" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-primary/90">
+          You're viewing an example. To create maps, save your work, or use AI tools, please
+        </span>
+        <div className="mt-2 sm:mt-0 sm:ml-4 flex gap-2 flex-shrink-0">
+          <Button asChild size="xs" variant="outline_primary" className="py-1 px-2 h-auto text-xs">
+            <Link href="/register">
+              <UserPlus className="mr-1 h-3 w-3" /> Sign Up
+            </Link>
+          </Button>
+          <Button asChild size="xs" variant="outline_primary" className="py-1 px-2 h-auto text-xs">
+            <Link href="/login">
+              <LogIn className="mr-1 h-3 w-3" /> Log In
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </Alert>
+  );
+};
+
+
+import AppTutorial from "@/components/tutorial/app-tutorial"; // Import AppTutorial
+import useTutorialStore from "@/stores/tutorial-store"; // Import tutorial store
 
 
 const FlowCanvasCore = dynamic(() => import('@/components/concept-map/flow-canvas-core'), {
@@ -110,8 +160,12 @@ export default function ConceptMapEditorPage() {
   const paramsHook = useParams();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user } = useAuth(); // user from useAuth is used for some links/text
+  const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
+  const { startOrResumeTutorial } = useTutorialStore(
+    useCallback(s => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
+  );
+  // const [runEditorTutorial, setRunEditorTutorial] = useState(false); // Removed local state
 
   const routeMapId = paramsHook.mapId as string;
   const isViewOnlyModeQueryParam = searchParams.get('viewOnly') === 'true';
@@ -188,6 +242,17 @@ export default function ConceptMapEditorPage() {
   useEffect(() => {
     setStoreIsViewOnlyMode(isViewOnlyModeQueryParam);
   }, [isViewOnlyModeQueryParam, setStoreIsViewOnlyMode]);
+
+  // Editor tutorial trigger logic
+  useEffect(() => {
+    if (!isAuthLoading && user && useConceptMapStore.getState().initialLoadComplete && !isStoreLoading) {
+      const tutorialCompleted = localStorage.getItem('editorTutorial_completed') === 'true';
+      if (!tutorialCompleted) {
+        setTimeout(() => startOrResumeTutorial('editorTutorial'), 500);
+      }
+    }
+  }, [user, isAuthLoading, isStoreLoading, routeMapId, startOrResumeTutorial, useConceptMapStore.getState().initialLoadComplete]);
+
 
   const temporalStoreAPI = useConceptMapStore.temporal;
   const [temporalState, setTemporalState] = useState(temporalStoreAPI.getState());
@@ -458,7 +523,7 @@ export default function ConceptMapEditorPage() {
 
 
   return (
-    <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col">
+    <div className="flex h-[calc(100vh-var(--navbar-height,4rem))] flex-col concept-map-editor-container"> {/* Added class for tutorial targeting */}
       <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileSelectedForImport} style={{ display: 'none' }} disabled={storeIsViewOnlyMode} />
       <DashboardHeader
         title={mapName}
@@ -603,6 +668,12 @@ export default function ConceptMapEditorPage() {
           onCloseModal={clearMapContextQuestionState}
         />
       </ReactFlowProvider>
+      {/* AppTutorial is now globally managed via AppLayout and tutorial-store */}
+      {/* <AppTutorial
+        run={runEditorTutorial}
+        setRun={setRunEditorTutorial}
+        tutorialKey="editorTutorial"
+      /> */}
     </div>
   );
 }

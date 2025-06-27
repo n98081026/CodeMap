@@ -3,37 +3,46 @@
 import { MainLayout } from '@/components/layout/main-layout';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react'; // Import useState
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Loader2 } from 'lucide-react';
-import AppTutorial from '@/components/tutorial/app-tutorial'; // Import AppTutorial
+import AppTutorial from '@/components/tutorial/app-tutorial';
+
+
+import { MainLayout } from '@/components/layout/main-layout';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react'; // Import useCallback
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { Loader2 } from 'lucide-react';
+import AppTutorial from '@/components/tutorial/app-tutorial';
+import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, user } = useAuth(); // Added user for robust example check
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // const [runDashboardTutorial, setRunDashboardTutorial] = useState(false); // Remove local state for this
+  const { startOrResumeTutorial, activeTutorialKey, runTutorial, setRunTutorialState } = useTutorialStore(
+    useCallback(s => ({
+      startOrResumeTutorial: s.startOrResumeTutorial,
+      activeTutorialKey: s.activeTutorialKey,
+      runTutorial: s.runTutorial,
+      setRunTutorialState: s.setRunTutorialState, // If AppTutorial is always rendered here
+    }), [])
+  );
+
 
   useEffect(() => {
     if (isLoading) {
-      return; // Wait until authentication status is resolved
+      return;
     }
 
-    // Define public routes within the (app) group
-    // Guests can access /examples and view specific example maps.
-    // An example map is identified by mapId starting with 'example-' AND viewOnly=true query param.
-    const isExamplesPage = pathname === '/examples'; // Note: path is relative to (app) group, so it would be /examples
-                                                 // However, usePathname() returns the full path from root.
-                                                 // Let's assume /app/examples is the actual URL structure for the examples list page
-                                                 // and /app/concept-maps/editor/example-XYZ for viewing.
-                                                 // The ls output showed src/app/(app)/examples/page.tsx
-                                                 // So, the route is /examples if inside the (app) group.
-                                                 // And /concept-maps/editor/example-foo for specific examples.
-
     let isPublicRoute = false;
-    if (pathname) { // Ensure pathname is available
-        if (pathname.startsWith('/examples')) { // Entry point for listing examples
+    if (pathname) {
+        if (pathname.startsWith('/examples')) {
             isPublicRoute = true;
         } else if (pathname.startsWith('/concept-maps/editor/')) {
             const mapId = pathname.split('/').pop();
@@ -44,13 +53,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }
     }
 
-    // console.log(`AppLayout: Pathname: ${pathname}, isLoading: ${isLoading}, isAuthenticated: ${isAuthenticated}, isPublicRoute: ${isPublicRoute}`);
-
     if (!isAuthenticated && !isPublicRoute) {
-      // console.log(`AppLayout: Redirecting to /login from ${pathname}`);
       router.replace('/login');
+    } else if (isAuthenticated && !isLoading) {
+      const isDashboardPage = pathname.endsWith('/dashboard') || pathname === '/application/student/dashboard' || pathname === '/application/teacher/dashboard' || pathname === '/application/admin/dashboard' || pathname === '/';
+      if (isDashboardPage) {
+        const dashboardTutorialCompleted = localStorage.getItem('dashboardTutorial_completed') === 'true';
+        if (!dashboardTutorialCompleted) {
+            startOrResumeTutorial('dashboardTutorial');
+        }
+      }
+      // Note: Other page-specific tutorials (like editorTutorial, projectUploadTutorial)
+      // will be triggered from within their respective page components, not from AppLayout.
     }
-  }, [isAuthenticated, isLoading, router, pathname, searchParams]);
+  }, [isAuthenticated, isLoading, router, pathname, searchParams, user, startOrResumeTutorial]);
 
   if (isLoading) {
     // Show a global loading spinner while AuthContext is determining auth state.
@@ -79,8 +95,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
       <MainLayout>
         {children}
-        {/* Render the AppTutorial component here */}
-        <AppTutorial />
+        {/* AppTutorial is now rendered based on store state */}
+        {activeTutorialKey && <AppTutorial />}
       </MainLayout>
     </NextThemesProvider>
   );
