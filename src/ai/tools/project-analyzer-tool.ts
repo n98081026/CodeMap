@@ -22,6 +22,7 @@ import {
   createDetailedNodeFromExtractedElement,
   SummarizationTaskInfo // This is an interface, so type-only import is fine
 } from './ast-utils';
+import { summarizeGenericFileFlow } from '../flows/summarize-generic-file-flow'; // Import the new flow
 
 // Input schema remains the same
 export const ProjectAnalysisInputSchema = z.object({
@@ -57,20 +58,40 @@ const DirectorySummarySchema = z.object({
 export const KeyFileSchema = z.object({
   filePath: z.string().describe('Path to the key file.'),
   type: z.enum([
-    'entry_point', 
-    'configuration', 
-    'service_definition', 
-    'ui_component', 
-    'model', 
-    'utility', 
-    'readme',
-    'manifest', // For package.json, requirements.txt, pom.xml, .csproj etc.
-    'docker',
-    'cicd',
-    'unknown'
+    'entry_point',      // e.g., main.js, Program.cs, app.py
+    'configuration',    // Generic config files not covered by more specific types
+    'service_definition',// e.g., files defining services, controllers, or API endpoints
+    'ui_component',     // e.g., React components, Vue components
+    'model',            // e.g., data models, entities, DTOs
+    'utility',          // Helper scripts, utility functions
+    'readme',           // README.md files
+    'manifest',         // General manifest (e.g. package.json, requirements.txt, pom.xml, .csproj)
+    'dockerfile',       // Dockerfile
+    'docker_compose_config', // docker-compose.yml
+    'cicd_script_yaml', // Generic CI/CD YAML files
+    'github_workflow_yaml', // GitHub Actions workflows
+    'gitlab_ci_yaml',   // GitLab CI configurations
+    'shell_script',     // .sh, .bash files
+    'env_config',       // .env files
+    'xml_config',       // Generic XML configuration files
+    'pom_xml',          // pom.xml (Maven)
+    'csproj_file',      // .csproj (C# project)
+    'gradle_script',    // build.gradle, build.gradle.kts
+    'text_config',      // .properties, .ini, .toml
+    'html',             // HTML files
+    'css',              // CSS, SCSS, LESS files
+    'source_code_js',   // JavaScript source files (if not fitting a more specific role)
+    'source_code_ts',   // TypeScript source files (if not fitting a more specific role)
+    'source_code_py',   // Python source files (if not fitting a more specific role)
+    'source_code_java', // Java source files
+    'source_code_cs',   // C# source files
+    'generic_json',     // Other JSON files not package.json
+    'generic_text',     // Other generic text files
+    'binary_data',      // Identified binary files
+    'unknown'           // Default for unrecognized files
   ]).describe('Type of the key file.'),
-  extractedSymbols: z.array(z.string()).optional().describe('Names of primary declarations (classes, functions, components).'),
-  briefDescription: z.string().optional().nullable().describe('Brief description of the file or its role (e.g., Handles user authentication endpoints).'),
+  extractedSymbols: z.array(z.string()).optional().describe('Names of primary declarations (classes, functions, components) for source code files.'),
+  briefDescription: z.string().optional().nullable().describe('Brief description of the file or its role (e.g., Handles user authentication endpoints, Main application entry point).'),
 });
 export type KeyFile = z.infer<typeof KeyFileSchema>;
 
@@ -152,22 +173,69 @@ const generateNodeId = (fileSpecificPrefix: string, nodeType: string, nodeName: 
   return `${fileSpecificPrefix}_${nodeType}_${saneName}${index !== undefined ? `_${index}` : ''}`.toLowerCase();
 };
 
-type EffectiveFileType = 'package.json' | 'generic.json' | 'markdown' | 'javascript' | 'typescript' | 'python' | 'text' | 'binary' | 'unknown';
+type EffectiveFileType =
+  'package.json' | 'generic.json' | 'markdown' |
+  'javascript' | 'typescript' | 'python' |
+  'dockerfile' | 'docker_compose_config' |
+  'cicd_script_yaml' | 'github_workflow_yaml' | 'gitlab_ci_yaml' |
+  'shell_script' | 'env_config' |
+  'xml_config' | 'pom_xml' | 'csproj_file' | 'gradle_script' |
+  'text_config' | // For .properties, .ini, .toml
+  'html' | 'css' | 'text' |
+  'binary' | 'unknown';
 
-function determineEffectiveFileType(fileName: string, contentType?: string, isBinary?: boolean): EffectiveFileType {
+function determineEffectiveFileType(fileName: string, contentType?: string, isBinary?: boolean, filePath?: string): EffectiveFileType {
   const lowerFileName = fileName.toLowerCase();
-  if (lowerFileName.endsWith('package.json')) return 'package.json';
+  const lowerFilePath = filePath?.toLowerCase() || lowerFileName;
+
+  // Order matters: more specific checks first
+  if (lowerFileName === 'package.json') return 'package.json';
+  if (lowerFileName === 'pom.xml') return 'pom_xml';
+  if (lowerFileName.endsWith('.csproj')) return 'csproj_file';
+  if (lowerFileName === 'build.gradle' || lowerFileName === 'build.gradle.kts') return 'gradle_script';
+  if (lowerFileName === 'dockerfile' || lowerFileName.startsWith('dockerfile.')) return 'dockerfile';
+  if (lowerFileName === 'docker-compose.yml' || lowerFileName === 'docker-compose.yaml') return 'docker_compose_config';
+
+  if (lowerFilePath.includes('.github/workflows/') && (lowerFileName.endsWith('.yml') || lowerFileName.endsWith('.yaml'))) return 'github_workflow_yaml';
+  if (lowerFileName === '.gitlab-ci.yml' || lowerFileName === '.gitlab-ci.yaml') return 'gitlab_ci_yaml';
+  if ((lowerFileName.endsWith('.yml') || lowerFileName.endsWith('.yaml')) && (lowerFileName.includes('ci') || lowerFileName.includes('cd') || lowerFileName.includes('pipeline'))) return 'cicd_script_yaml';
+
   if (lowerFileName.endsWith('.json')) return 'generic.json';
   if (lowerFileName.endsWith('.md') || lowerFileName.endsWith('.markdown')) return 'markdown';
   if (lowerFileName.endsWith('.js') || lowerFileName.endsWith('.mjs') || lowerFileName.endsWith('.cjs')) return 'javascript';
   if (lowerFileName.endsWith('.ts') || lowerFileName.endsWith('.tsx') || lowerFileName.endsWith('.mts') || lowerFileName.endsWith('.cts')) return 'typescript';
   if (lowerFileName.endsWith('.py')) return 'python';
+  if (lowerFileName.endsWith('.sh') || lowerFileName.endsWith('.bash') || lowerFileName.endsWith('.zsh')) return 'shell_script';
+  if (lowerFileName.startsWith('.env') || lowerFileName.endsWith('.env')) return 'env_config';
+  if (lowerFileName.endsWith('.xml')) return 'xml_config'; // Generic XML, specific ones like pom.xml caught earlier
+  if (lowerFileName.endsWith('.properties') || lowerFileName.endsWith('.ini') || lowerFileName.endsWith('.toml')) return 'text_config';
+  if (lowerFileName.endsWith('.html') || lowerFileName.endsWith('.htm')) return 'html';
+  if (lowerFileName.endsWith('.css') || lowerFileName.endsWith('.scss') || lowerFileName.endsWith('.less')) return 'css';
 
-  if (isBinary) return 'binary';
-  if (contentType?.startsWith('text/')) return 'text';
-  if (contentType === 'application/json') return 'generic.json';
-  if (contentType === 'application/javascript' || contentType === 'text/javascript') return 'javascript';
-  if (contentType === 'application/typescript' || contentType === 'text/typescript') return 'typescript';
+
+  if (isBinary) return 'binary'; // Explicit binary flag takes precedence if available
+
+  // Content type based checks (can be less reliable than extensions for source code)
+  if (contentType) {
+    if (contentType.startsWith('text/')) {
+      if (contentType === 'text/javascript') return 'javascript';
+      if (contentType === 'text/typescript') return 'typescript'; // Though rare for TS
+      if (contentType === 'text/x-python') return 'python';
+      if (contentType === 'text/markdown') return 'markdown';
+      if (contentType === 'text/html') return 'html';
+      if (contentType === 'text/css') return 'css';
+      if (contentType === 'application/json') return 'generic.json'; // application/json is text
+      if (contentType === 'application/xml' || contentType === 'text/xml') return 'xml_config';
+      return 'text'; // Default for other text/* types
+    }
+    if (contentType === 'application/octet-stream' || contentType.startsWith('application/zip') || contentType.startsWith('image/') || contentType.startsWith('audio/') || contentType.startsWith('video/')) {
+      return 'binary';
+    }
+  }
+
+  // If no strong indicators and not explicitly binary, check common text extensions again.
+  if (/\.(txt|log|sql|csv|rst|tex|conf|cfg|config|yaml|yml|json5)$/i.test(lowerFileName)) return 'text';
+
 
   return 'unknown';
 }
@@ -1269,52 +1337,369 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
 
           if (deps.some(d => d.startsWith('react'))) output.inferredLanguagesFrameworks?.push({ name: "React", confidence: "medium" });
 
-          // Deeper Node.js analysis: list source files and extract imports
-          const sourceFileExtensions = ['.js', '.jsx', '.ts', '.tsx'];
-          const sourceFiles = filesToAnalyze.filter(f => sourceFileExtensions.some(ext => f.name.endsWith(ext)));
+      } catch (e: any) {
+        output.parsingErrors?.push(`Error parsing package.json: ${e.message}`);
+      }
+    } else if (packageJsonFileObject) {
+      output.parsingErrors?.push(`package.json found in listing but could not be downloaded/read.`);
+    }
+  }
 
-          // Limit processing for performance
-          const MAX_SOURCE_FILES_TO_PROCESS = 20;
-          let processedSourceFilesCount = 0;
+  // Iterate through all files for deeper analysis if they are source code
+  const MAX_SOURCE_FILES_TO_PROCESS = 50; // Increased limit slightly
+  let processedSourceFilesCount = 0;
 
-          for (const sourceFile of sourceFiles) {
-            if (processedSourceFilesCount >= MAX_SOURCE_FILES_TO_PROCESS) break;
+  console.log(`[Analyzer] Starting deep analysis loop for ${filesList.length} files.`);
+  for (const file of filesList) {
+    if (processedSourceFilesCount >= MAX_SOURCE_FILES_TO_PROCESS && isArchive) {
+        const msg = `[Analyzer] Reached processing limit of ${MAX_SOURCE_FILES_TO_PROCESS} source files from archive. Some files were not analyzed deeply.`;
+        console.log(msg);
+        output.parsingErrors?.push(msg);
+        break;
+    }
 
-            const fileContent = await getFileContent(sourceFile.name);
-            if (fileContent) {
-              const imports = extractJsImports(fileContent);
-              let fileType: KeyFileSchema['type'] = 'utility'; // Default
-              if (sourceFile.name.includes('/services/')) fileType = 'service_definition';
-              else if (sourceFile.name.includes('/components/') || sourceFile.name.includes('/pages/') || sourceFile.name.includes('/app/')) fileType = 'ui_component';
-              else if (sourceFile.name.match(/index\.(js|ts)x?$/) || sourceFile.name.match(/app\.(js|ts)x?$/) || sourceFile.name.match(/server\.(js|ts)$/)) fileType = 'entry_point';
+    // Pass the full file path (file.name here is relative to archive root or project path)
+    // to determineEffectiveFileType for path-based CI/CD detection.
+    // The actual 'name' for Supabase download might be different if projectStoragePath is a directory.
+    // Assuming file.name is the "full path" relative to the project root for now.
+    const effectiveType = determineEffectiveFileType(path.basename(file.name), undefined, undefined, file.name);
 
-              const existingKf = output.keyFiles?.find(kf => kf.filePath === sourceFile.name);
-              if (existingKf) {
-                existingKf.type = existingKf.type === 'unknown' ? fileType : existingKf.type; // Update type if more specific
-                existingKf.details = existingKf.details ? `${existingKf.details}\nImports: ${imports.join(', ')}` : `Imports: ${imports.join(', ')}`;
-                if (imports.length > 0) existingKf.briefDescription = (existingKf.briefDescription || "") + " Contains module imports.";
-              } else {
-                 output.keyFiles?.push({
-                    filePath: sourceFile.name,
-                    type: fileType,
-                    briefDescription: `Source file. ${imports.length > 0 ? "Contains module imports." : ""}`,
-                    details: imports.length > 0 ? `Imports: ${imports.join(', ')}` : undefined,
-                 });
+    let fileContentString: string | null = null;
+
+    // Define which types absolutely need content for this stage of analysis
+    const typesRequiringContent = [
+        'javascript', 'typescript', 'python',
+        'package.json', 'generic.json', 'markdown', 'text',
+        'pom_xml', 'gradle_script', 'csproj_file',
+        'dockerfile', 'docker_compose_config',
+        'cicd_script_yaml', 'github_workflow_yaml', 'gitlab_ci_yaml',
+        'shell_script', 'env_config', 'xml_config', 'text_config',
+        'html', 'css'
+    ];
+
+    if (typesRequiringContent.includes(effectiveType)) {
+        console.log(`[Analyzer] Attempting to get content for: ${file.name} (Effective type: ${effectiveType})`);
+        fileContentString = await getFileContent(file.name); // file.name is path relative to archive root or project dir
+    }
+
+    if (fileContentString) {
+        console.log(`[Analyzer] Successfully fetched content for ${file.name}. Length: ${fileContentString.length}.`);
+        const localFileSpecificPrefix = (path.basename(file.name) || 'file').replace(/[^a-zA-Z0-9_]/g, '_');
+        let analysisResult;
+        let keyFileType: KeyFile['type'] = 'unknown'; // Default, to be overridden
+
+        switch (effectiveType) {
+            case 'javascript':
+                keyFileType = 'source_code_js';
+                console.log(`[POC] Analyzing JS: ${file.name}`);
+                analysisResult = await analyzeJavaScriptAST(file.name, fileContentString, generateNodeId, localFileSpecificPrefix);
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: analysisResult.analysisSummary, extractedSymbols: analysisResult.detailedNodes.map(n => n.label), details: `JS AST Nodes: ${analysisResult.detailedNodes.length}` });
+                if(analysisResult.error) output.parsingErrors?.push(`${file.name}: JS AST Error - ${analysisResult.error}`);
+                console.log(`[Analyzer] JS AST analysis for ${file.name} summary: ${analysisResult.analysisSummary.substring(0,100)}...`);
+                processedSourceFilesCount++;
+                break;
+            case 'typescript':
+                keyFileType = 'source_code_ts';
+                console.log(`[Analyzer] Analyzing TS: ${file.name}`);
+                analysisResult = await analyzeTypeScriptAST(file.name, fileContentString, generateNodeId, localFileSpecificPrefix);
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: analysisResult.analysisSummary, extractedSymbols: analysisResult.detailedNodes.map(n => n.label), details: `TS AST Nodes: ${analysisResult.detailedNodes.length}` });
+                if(analysisResult.error) output.parsingErrors?.push(`${file.name}: TS AST Error - ${analysisResult.error}`);
+                console.log(`[Analyzer] TS AST analysis for ${file.name} summary: ${analysisResult.analysisSummary.substring(0,100)}...`);
+                processedSourceFilesCount++;
+                break;
+            case 'python':
+                keyFileType = 'source_code_py';
+                console.log(`[Analyzer] Analyzing Python: ${file.name}`);
+                analysisResult = await analyzePythonAST(file.name, fileContentString, generateNodeId, localFileSpecificPrefix);
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: analysisResult.analysisSummary, extractedSymbols: analysisResult.detailedNodes.map(n => n.label), details: `Python AST Nodes: ${analysisResult.detailedNodes.length}` });
+                if(analysisResult.error) output.parsingErrors?.push(`${file.name}: Python AST Error - ${analysisResult.error}`);
+                console.log(`[Analyzer] Python AST analysis for ${file.name} summary: ${analysisResult.analysisSummary.substring(0,100)}...`);
+                processedSourceFilesCount++;
+                break;
+            case 'package.json':
+              keyFileType = 'manifest';
+              console.log(`[Analyzer] Analyzing package.json: ${file.name}`);
+              // Initial parsing for project name, deps already done. This ensures it's in keyFiles.
+              if (!output.keyFiles?.find(kf => kf.filePath === file.name)) {
+                analysisResult = analyzePackageJson(file.name, fileContentString, generateNodeId, localFileSpecificPrefix);
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: analysisResult.analysisSummary });
               }
-              processedSourceFilesCount++;
-            } else {
-              output.parsingErrors?.push(`Could not read content for source file: ${sourceFile.name}`);
-            }
+              console.log(`[Analyzer] package.json ${file.name} added to keyFiles if not present.`);
+              break;
+            case 'generic.json':
+              keyFileType = 'generic_json';
+              console.log(`[Analyzer] Analyzing generic JSON: ${file.name}`);
+              analysisResult = analyzeGenericJson(file.name, fileContentString, generateNodeId, localFileSpecificPrefix);
+              output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: analysisResult.analysisSummary });
+              console.log(`[Analyzer] Generic JSON analysis for ${file.name} summary: ${analysisResult.analysisSummary.substring(0,100)}...`);
+              break;
+            case 'markdown':
+              keyFileType = 'readme'; // Assume most .md files are READMEs or docs
+              console.log(`[Analyzer] Analyzing Markdown: ${file.name}`);
+              analysisResult = analyzeMarkdown(file.name, fileContentString, generateNodeId, localFileSpecificPrefix);
+              output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: analysisResult.analysisSummary });
+              // README content might also update projectSummary, handled later or by specific README logic
+              console.log(`[Analyzer] Markdown analysis for ${file.name} summary: ${analysisResult.analysisSummary.substring(0,100)}...`);
+              break;
+            case 'text':
+              keyFileType = 'generic_text';
+              console.log(`[Analyzer] Analyzing plain text: ${file.name}`);
+              analysisResult = analyzePlainText(file.name, fileContentString, generateNodeId, localFileSpecificPrefix);
+              output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: analysisResult.analysisSummary });
+               console.log(`[Analyzer] Plain text analysis for ${file.name} summary: ${analysisResult.analysisSummary.substring(0,100)}...`);
+              break;
+            case 'pom_xml':
+            case 'csproj_file':
+            case 'gradle_script':
+                keyFileType = effectiveType; // Use the specific manifest type
+                console.log(`[Analyzer] Analyzing Manifest (${effectiveType}): ${file.name}`);
+                // These are typically handled by specific logic outside the loop if found by name first.
+                // This ensures they are captured if iterated over.
+                if (!output.keyFiles?.find(kf => kf.filePath === file.name)) {
+                    let desc = `${effectiveType} file.`;
+                    if (effectiveType === 'pom_xml') desc = parsePomXml(fileContentString).projectName || desc;
+                    if (effectiveType === 'csproj_file') desc = parseCsproj(fileContentString, file.name).projectName || desc;
+                    if (effectiveType === 'gradle_script') desc = parseBuildGradle(fileContentString).projectName || desc;
+                    output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: desc });
+                }
+                console.log(`[Analyzer] ${effectiveType} analysis for ${file.name} done.`);
+                break;
+            case 'dockerfile':
+            case 'docker_compose_config':
+            case 'cicd_script_yaml':
+            case 'github_workflow_yaml':
+            case 'gitlab_ci_yaml':
+            case 'shell_script':
+            case 'env_config':
+            case 'xml_config': // Generic XML not pom
+            case 'text_config': // .properties, .ini, .toml
+            case 'html':
+            case 'css':
+                keyFileType = effectiveType;
+                console.log(`[Analyzer] Analyzing ${effectiveType}: ${file.name}`);
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "Stylesheet defining visual styles." });
+                console.log(`[Analyzer] ${effectiveType} ${file.name} added to keyFiles.`);
+                break;
+            case 'dockerfile':
+                keyFileType = effectiveType;
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "Instructions for building a Docker container image." });
+                break;
+            case 'docker_compose_config':
+                keyFileType = effectiveType;
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "Configuration for defining and running multi-container Docker applications." });
+                break;
+            case 'github_workflow_yaml':
+                keyFileType = effectiveType;
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "GitHub Actions workflow definition for CI/CD or other automation." });
+                break;
+            case 'gitlab_ci_yaml':
+                keyFileType = effectiveType;
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "GitLab CI/CD pipeline configuration." });
+                break;
+            case 'cicd_script_yaml': // Generic CI/CD YAML
+                keyFileType = effectiveType;
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "Generic CI/CD or automation script (YAML)." });
+                break;
+            case 'shell_script':
+                keyFileType = effectiveType;
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "Shell script for automation or system tasks." });
+                break;
+            case 'env_config':
+                keyFileType = effectiveType;
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "Environment variable configuration file." });
+                break;
+            case 'xml_config':
+                 keyFileType = effectiveType;
+                 output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "XML-based configuration file." });
+                 break;
+            case 'text_config': // .properties, .ini, .toml
+                keyFileType = effectiveType;
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "Text-based configuration file (e.g., .properties, .ini, .toml)." });
+                break;
+            case 'html':
+                keyFileType = effectiveType;
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: "HTML document structure." });
+                break;
+            // LLM Summarization for certain text-based files
+            case 'dockerfile':
+            case 'docker_compose_config':
+            case 'cicd_script_yaml':
+            case 'github_workflow_yaml':
+            case 'gitlab_ci_yaml':
+            case 'shell_script':
+            case 'env_config':
+            case 'xml_config':
+            case 'text_config':
+                keyFileType = effectiveType;
+                let defaultDesc = `${effectiveType} file.`;
+                if (fileContentString) {
+                    const MAX_SNIPPET_LENGTH = 4000; // Max characters to send to LLM
+                    const snippet = fileContentString.substring(0, MAX_SNIPPET_LENGTH);
+                    try {
+                        console.log(`[Analyzer] Requesting LLM summary for ${file.name} (type: ${keyFileType})`);
+                        const summaryResult = await summarizeGenericFileFlow.run({
+                            fileName: file.name,
+                            fileContentSnippet: snippet,
+                            fileType: keyFileType,
+                        });
+                        if (summaryResult.summary && !summaryResult.error) {
+                            defaultDesc = summaryResult.summary;
+                            console.log(`[Analyzer] LLM summary for ${file.name}: ${defaultDesc.substring(0,100)}...`);
+                        } else {
+                            console.warn(`[Analyzer] LLM summarization failed for ${file.name}: ${summaryResult.error || 'No summary returned.'}`);
+                            if(summaryResult.error) output.parsingErrors?.push(`LLM summary error for ${file.name}: ${summaryResult.error}`);
+                        }
+                    } catch (llmError: any) {
+                        console.error(`[Analyzer] Critical error calling summarizeGenericFileFlow for ${file.name}:`, llmError);
+                        output.parsingErrors?.push(`Critical LLM flow error for ${file.name}: ${llmError.message}`);
+                    }
+                }
+                output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: defaultDesc });
+                break;
+
+            default:
+                // This case handles types like 'binary_data', 'unknown', or any other unhandled text-based effectiveType
+                // For which content might not have been fetched or no specific parser exists.
+                if (!output.keyFiles?.find(kf => kf.filePath === file.name)) {
+                    let desc = `${effectiveType} file.`;
+                    let kfType: KeyFile['type'] = 'unknown';
+
+                    if (effectiveType === 'binary_data' || effectiveType === 'binary') { // Added 'binary' for robustness
+                        desc = "Binary data file.";
+                        kfType = 'binary_data';
+                    } else if (effectiveType === 'unknown') {
+                        desc = "File of unrecognized type.";
+                        kfType = 'unknown';
+                    } else {
+                        // If it's some other text-based effectiveType that fell through but wasn't in typesRequiringContent
+                        // or content fetch failed for it.
+                        desc = `Text-based file of type: ${effectiveType}.`;
+                        // Try to cast, if it's a valid KeyFile type, use it, otherwise 'unknown'
+                        const potentialKeyFileType = effectiveType as KeyFile['type'];
+                        const validKeyFileTypes = KeyFileSchema.shape.type._def.values;
+                        if (validKeyFileTypes.includes(potentialKeyFileType)) {
+                            kfType = potentialKeyFileType;
+                        }
+                    }
+                    output.keyFiles?.push({ filePath: file.name, type: kfType, briefDescription: desc });
+                }
+                console.log(`[Analyzer] File ${file.name} (type: ${effectiveType}) passed through default case in content analysis switch.`);
+                break;
           }
-
-
-        } catch (e: any) {
-          output.parsingErrors?.push(`Error parsing package.json: ${e.message}`);
+    } else if (typesRequiringContent.includes(effectiveType)) {
+        // If we expected content for these types but didn't get it
+        const errMsg = `Could not read content for expected text-based file: ${file.name} (Type: ${effectiveType})`;
+        output.parsingErrors?.push(errMsg);
+        console.warn(`[Analyzer] ${errMsg}`);
+        // Still add a KeyFile entry with minimal info
+        if (!output.keyFiles?.find(kf => kf.filePath === file.name)) {
+            const potentialKeyFileType = effectiveType as KeyFile['type'];
+            const validKeyFileTypes = KeyFileSchema.shape.type._def.values;
+            const kfType = validKeyFileTypes.includes(potentialKeyFileType) ? potentialKeyFileType : 'unknown';
+            output.keyFiles?.push({ filePath: file.name, type: kfType, briefDescription: `Unable to read content for this ${effectiveType} file.` });
         }
-      } else if (packageJsonFileObject) { // Check if file object existed, meaning download failed
-        output.parsingErrors?.push(`package.json found in listing but could not be downloaded/read.`);
+
+    } else if (effectiveType === 'binary_data' || effectiveType === 'binary' || effectiveType === 'unknown') {
+        // Add binary/unknown files to keyFiles if not already added (e.g. if not in typesRequiringContent)
+        if (!output.keyFiles?.find(kf => kf.filePath === file.name)) {
+            let desc = `${effectiveType} file.`;
+            let kfType: KeyFile['type'] = 'unknown';
+            if (effectiveType === 'binary_data' || effectiveType === 'binary') {
+                desc = "Binary data file.";
+                kfType = 'binary_data';
+            } else { // unknown
+                desc = "File of unrecognized type.";
+                kfType = 'unknown';
+            }
+            output.keyFiles?.push({ filePath: file.name, type: kfType, briefDescription: desc});
+        }
       }
     }
+  console.log("[Analyzer] Finished deep analysis loop.");
+
+  // Step: Deepen directoryStructureSummary
+  const directoryDataMap = new Map<string, { files: string[], subDirectoryNames: Set<string>, fileCounts: Record<string, number>, depth: number }>();
+  directoryDataMap.set('.', { files: [], subDirectoryNames: new Set(), fileCounts: {}, depth: 0 }); // Project root
+
+  for (const file of filesList) {
+    const filePathParts = file.name.split('/').filter(p => p); // Filter out empty parts from leading/trailing slashes
+    let currentPath = '.';
+
+    for (let i = 0; i < filePathParts.length; i++) {
+      const part = filePathParts[i];
+      if (i === filePathParts.length - 1) { // It's a file
+        if (!directoryDataMap.has(currentPath)) {
+          // This case should ideally not happen if root is always present and paths are built up correctly
+          // but as a safeguard:
+          const pathDepth = currentPath === '.' ? 0 : currentPath.split('/').length;
+          directoryDataMap.set(currentPath, { files: [], subDirectoryNames: new Set(), fileCounts: {}, depth: pathDepth });
+        }
+        directoryDataMap.get(currentPath)!.files.push(part);
+        const ext = path.extname(part) || (part.startsWith('.') ? part : '<no_ext>');
+        directoryDataMap.get(currentPath)!.fileCounts[ext] = (directoryDataMap.get(currentPath)!.fileCounts[ext] || 0) + 1;
+      } else { // It's a directory part
+        const parentPath = currentPath;
+        currentPath = (currentPath === '.' ? part : `${currentPath}/${part}`);
+
+        if (!directoryDataMap.has(parentPath)) { // Ensure parent exists
+            const parentDepth = parentPath === '.' ? 0 : parentPath.split('/').length;
+            directoryDataMap.set(parentPath, { files: [], subDirectoryNames: new Set(), fileCounts: {}, depth: parentDepth });
+        }
+        directoryDataMap.get(parentPath)!.subDirectoryNames.add(part);
+
+        if (!directoryDataMap.has(currentPath)) {
+          const pathDepth = currentPath.split('/').length;
+          directoryDataMap.set(currentPath, { files: [], subDirectoryNames: new Set(), fileCounts: {}, depth: pathDepth });
+        }
+      }
+    }
+  }
+
+  output.directoryStructureSummary = [];
+  const MAX_DIR_DEPTH_FOR_SUMMARY = 3; // Configure max depth for summary to avoid excessive detail
+
+  for (const [dirPath, data] of directoryDataMap.entries()) {
+    if (data.depth > MAX_DIR_DEPTH_FOR_SUMMARY && dirPath !== '.') continue; // Skip very deep directories unless it's root
+
+    let inferredPurpose = "General";
+    const lowerDirPath = dirPath.toLowerCase();
+    const dirName = dirPath.split('/').pop()?.toLowerCase() || "";
+
+    if (dirName === 'src' || dirName === 'source' || dirName === 'app') inferredPurpose = "Source Code";
+    else if (dirName === 'tests' || dirName === '__tests__') inferredPurpose = "Tests";
+    else if (dirName === 'services') inferredPurpose = "Service Layer";
+    else if (dirName === 'components' || dirName === 'ui' || dirName === 'views' || dirName === 'pages') inferredPurpose = "UI Components/Views";
+    else if (dirName === 'utils' || dirName === 'helpers' || dirName === 'lib') inferredPurpose = "Utilities/Libraries";
+    else if (dirName === 'config' || dirName === 'configuration') inferredPurpose = "Configuration";
+    else if (dirName === 'docs' || dirName === 'documentation') inferredPurpose = "Documentation";
+    else if (dirName === 'assets' || dirName === 'static' || dirName === 'public') inferredPurpose = "Static Assets";
+    else if (dirName === 'models' || dirName === 'domain' || dirName === 'entities') inferredPurpose = "Data Models/Entities";
+    else if (dirName === 'routes' || dirName === 'controllers' || dirName === 'api') inferredPurpose = "API Routes/Controllers";
+    else if (dirName === 'hooks') inferredPurpose = "React Hooks";
+    else if (dirName === 'styles' || dirName === 'css' || dirName === 'scss') inferredPurpose = "Stylesheets";
+    else if (dirName === 'scripts') inferredPurpose = "Build/Utility Scripts";
+    else if (dirName === 'data' || dirName === 'database' || dirName === 'db') inferredPurpose = "Data/Database related";
+     // Add more heuristics based on common directory names
+
+    // Heuristic based on dominant file types within the directory
+    if (data.fileCounts['.js'] > (data.files.length / 2) || data.fileCounts['.ts'] > (data.files.length / 2)) inferredPurpose = inferredPurpose === "General" ? "JavaScript/TypeScript Modules" : `${inferredPurpose} (JS/TS)`;
+    if (data.fileCounts['.py'] > (data.files.length / 2)) inferredPurpose = inferredPurpose === "General" ? "Python Modules" : `${inferredPurpose} (Python)`;
+    if (data.fileCounts['.java'] > (data.files.length / 2)) inferredPurpose = inferredPurpose === "General" ? "Java Code" : `${inferredPurpose} (Java)`;
+    if (data.fileCounts['.cs'] > (data.files.length / 2)) inferredPurpose = inferredPurpose === "General" ? "C# Code" : `${inferredPurpose} (C#)`;
+    if (data.fileCounts['.md'] > (data.files.length / 2) && dirName !== 'docs') inferredPurpose = inferredPurpose === "General" ? "Markdown Documentation" : `${inferredPurpose} (Markdown)`;
+
+    // Only add if it has files or subdirectories, or it's the root.
+    if (dirPath === '.' || data.files.length > 0 || data.subDirectoryNames.size > 0) {
+        output.directoryStructureSummary.push({
+            path: dirPath,
+            fileCounts: data.fileCounts,
+            inferredPurpose: inferredPurpose,
+        });
+    }
+  }
+  // Sort by path to make it more readable
+  output.directoryStructureSummary.sort((a, b) => a.path.localeCompare(b.path));
+
 
     // Python analysis
     const requirementsTxtFile = filesList.find(f => f.name.toLowerCase() === 'requirements.txt');
@@ -1852,11 +2237,20 @@ async function downloadProjectFile(fullFilePath: string): Promise<string | null>
   const { data, error } = await supabase.storage
     .from('project_archives')
     .download(fullFilePath);
+
   if (error) {
     console.error(`Error downloading file ${fullFilePath} from Supabase Storage:`, error);
     return null;
   }
   if (data) {
+    // Check size before converting to text
+    const MAX_DOWNLOAD_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB limit for single file download for text
+    if (data.size > MAX_DOWNLOAD_FILE_SIZE_BYTES) {
+      console.warn(`File ${fullFilePath} (size: ${data.size} bytes) exceeds download size limit of ${MAX_DOWNLOAD_FILE_SIZE_BYTES} bytes. Skipping text conversion.`);
+      // Returning null for text, but the caller might try as buffer if needed.
+      // Or, we could throw an error here to be more explicit. For now, returning null.
+      return null;
+    }
     try {
       return await data.text();
     } catch (textError) {
@@ -1882,6 +2276,11 @@ async function downloadProjectFileAsBuffer(fullFilePath: string): Promise<Buffer
     return null;
   }
   if (data) {
+    const MAX_DOWNLOAD_FILE_SIZE_BYTES_BUFFER = 20 * 1024 * 1024; // 20 MB limit for buffer (e.g. for binaries, allow slightly larger)
+    if (data.size > MAX_DOWNLOAD_FILE_SIZE_BYTES_BUFFER) {
+      console.warn(`File ${fullFilePath} (size: ${data.size} bytes) exceeds download size limit of ${MAX_DOWNLOAD_FILE_SIZE_BYTES_BUFFER} bytes for buffer. Skipping.`);
+      return null;
+    }
     try {
       const arrayBuffer = await data.arrayBuffer();
       return Buffer.from(arrayBuffer);
@@ -1905,33 +2304,66 @@ interface UnpackResult {
 async function unpackZipBuffer(buffer: Buffer): Promise<UnpackResult | null> {
   const files: Array<{ name: string; content: string | Buffer }> = [];
   const entryErrors: string[] = [];
+
+  // Define limits
+  const MAX_TOTAL_UNCOMPRESSED_SIZE = 100 * 1024 * 1024; // 100 MB total uncompressed size limit
+  const MAX_INDIVIDUAL_FILE_SIZE = 10 * 1024 * 1024; // 10 MB individual file size limit
+  const MAX_FILE_COUNT = 1000; // Max 1000 files
+
+  let currentTotalUncompressedSize = 0;
+  let currentFileCount = 0;
+
   try {
     const zip = new AdmZip(buffer);
     const zipEntries = zip.getEntries();
 
     for (const zipEntry of zipEntries) {
-      if (!zipEntry.isDirectory) {
-        const isLikelyText = /\.(txt|json|md|xml|html|css|js|ts|py|java|cs|c|cpp|h|hpp|sh|yaml|yml|toml)$/i.test(zipEntry.entryName);
-        try {
-            const contentBuffer = zipEntry.getData();
-            if (isLikelyText) {
-                files.push({ name: zipEntry.entryName, content: contentBuffer.toString('utf8') });
-            } else {
-                files.push({ name: zipEntry.entryName, content: contentBuffer });
-            }
-        } catch (e: any) {
-            const errorMsg = `Error reading data for zip entry ${zipEntry.entryName}: ${e.message || e}`;
-            console.error(errorMsg);
-            entryErrors.push(errorMsg);
-        }
+      if (zipEntry.isDirectory) {
+        continue;
+      }
+
+      currentFileCount++;
+      if (currentFileCount > MAX_FILE_COUNT) {
+        const errMsg = `Exceeded maximum file count limit of ${MAX_FILE_COUNT}. Aborting unpack.`;
+        console.warn(errMsg);
+        entryErrors.push(errMsg);
+        break;
+      }
+
+      const uncompressedSize = zipEntry.header.size; // Uncompressed size from header
+      if (uncompressedSize > MAX_INDIVIDUAL_FILE_SIZE) {
+        const errMsg = `File '${zipEntry.entryName}' (size: ${uncompressedSize} bytes) exceeds individual file size limit of ${MAX_INDIVIDUAL_FILE_SIZE} bytes. Skipping.`;
+        console.warn(errMsg);
+        entryErrors.push(errMsg);
+        continue;
+      }
+
+      currentTotalUncompressedSize += uncompressedSize;
+      if (currentTotalUncompressedSize > MAX_TOTAL_UNCOMPRESSED_SIZE) {
+        const errMsg = `Exceeded total uncompressed size limit of ${MAX_TOTAL_UNCOMPRESSED_SIZE} bytes. Aborting unpack.`;
+        console.warn(errMsg);
+        entryErrors.push(errMsg);
+        break;
+      }
+
+      const isLikelyText = /\.(txt|json|md|xml|html|css|js|ts|py|java|cs|c|cpp|h|hpp|sh|yaml|yml|toml)$/i.test(zipEntry.entryName);
+      try {
+          const contentBuffer = zipEntry.getData(); // This actually performs decompression for this entry
+          if (isLikelyText) {
+              files.push({ name: zipEntry.entryName, content: contentBuffer.toString('utf8') });
+          } else {
+              files.push({ name: zipEntry.entryName, content: contentBuffer });
+          }
+      } catch (e: any) {
+          const errorMsg = `Error reading data for zip entry ${zipEntry.entryName}: ${e.message || e}`;
+          console.error(errorMsg);
+          entryErrors.push(errorMsg);
       }
     }
     return { files, entryErrors };
   } catch (error: any) {
     console.error("Critical error unpacking ZIP buffer:", error);
     entryErrors.push(`Critical ZIP unpacking error: ${error.message || error}`);
-    // Return any files successfully processed before critical error, plus the errors.
-    // If the error is in `new AdmZip(buffer)` itself, files will be empty.
     return { files, entryErrors };
   }
 

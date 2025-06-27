@@ -696,12 +696,16 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <TooltipContent>Editor Tutorials</TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onSelect={() => startOrResumeTutorial('mapNavigation', 0, true)}>
+              <DropdownMenuItem onSelect={() => startOrResumeTutorial('editorTutorial', 0, true)}>
                 Editor Basics Tour
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => startOrResumeTutorial('expandConcept', 0, true)}>
-                Using AI: Expand Concept
+              <DropdownMenuItem onSelect={() => startOrResumeTutorial('extractConceptsToolTutorial', 0, true)}>
+                Using AI: Extract Concepts
               </DropdownMenuItem>
+              {/* Example for another AI tool tutorial if it existed */}
+              {/* <DropdownMenuItem onSelect={() => startOrResumeTutorial('expandConceptToolTutorial', 0, true)}>
+                Using AI: Expand Concept
+              </DropdownMenuItem> */}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

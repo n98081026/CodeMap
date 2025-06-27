@@ -26,6 +26,7 @@ export * from './ai-tidy-up-selection'; // Added new flow for tidying selection
 export * from './semanticTidyUpFlow';
 export * from './suggestChildNodesFlow';
 export * from './summarize-code-element-purpose';
+export * from './summarize-generic-file-flow'; // Added new flow
 
 // IMPORTANT: rewrite-node-content-logic.ts (formerly rewrite-node-content-flow.ts) and its exports
 // are NOT exported from this barrel file due to persistent module resolution issues.

@@ -1,309 +1,360 @@
-"use client";
+import React, { useEffect, useState } from 'react';
+import Joyride, { CallBackProps, STATUS, Step, EVENTS } from 'react-joyride';
+import { useAuth } from '@/contexts/auth-context';
 
-import React, { useEffect, useCallback } from 'react'; // Removed useState as it's now from store
-import Joyride, { Step as JoyrideStep, CallBackProps, EVENTS, ACTIONS, STATUS } from 'react-joyride';
-import { useTheme } from 'next-themes';
-import { usePathname } from 'next/navigation';
-import useTutorialStore, { type TutorialStep } from '@/stores/tutorial-store'; // Import the store and TutorialStep type
+import useTutorialStore from '@/stores/tutorial-store'; // Import the tutorial store
 
-// Define tutorial flows (could also be imported from a separate definitions file)
-const projectUploadFlowSteps: TutorialStep[] = [
-  {
-    target: '#tutorial-target-new-project-button',
-    content: "Welcome to CodeMap! Let's visualize your code. Click here to start a new project analysis.",
-    placement: 'bottom',
-    title: 'Start a New Project',
-    disableBeacon: true,
-    pagePath: '/application/student/dashboard',
-    isNavigationTrigger: true,
-  },
-  {
-    target: '#tutorial-target-project-file-input',
-    content: 'Select your project files (e.g., a .zip archive or a single source file).',
-    placement: 'right',
-    title: 'Upload Your Project',
-    pagePath: '/application/student/projects/submit',
-  },
-  {
-    target: '#tutorial-target-user-goals-input',
-    content: 'Optionally, tell us your main goals for analyzing this project. This helps the AI create a more relevant map.',
-    placement: 'right',
-    title: 'Define Your Goals (Optional)',
-    pagePath: '/application/student/projects/submit',
-  },
-  {
-    target: '#tutorial-target-start-analysis-button',
-    content: 'Once you\'ve selected your file and (optionally) set your goals, click here to begin the analysis.',
-    placement: 'bottom',
-    title: 'Start Analysis',
-    pagePath: '/application/student/projects/submit',
-    isNavigationTrigger: true,
-  },
-  {
-    target: 'body',
-    content: "Great! CodeMap is now analyzing your project. This might take a moment. The map will appear here once ready.",
-    placement: 'center',
-    title: 'Processing Your Project',
-    pagePath: '/application/concept-maps/editor',
-    isModalTrigger: true, // Special handling: this step waits for navigation AND content loading
-  },
-  {
-    target: '#tutorial-target-map-canvas-wrapper',
-    content: "Here's your initial concept map! Nodes (boxes) represent parts of your code or concepts, and edges (lines) show their relationships.",
-    placement: 'top',
-    title: 'Your Concept Map',
-    pagePath: '/application/concept-maps/editor',
-  },
-  {
-    target: '.react-flow__node:first-of-type',
-    content: 'This is a node. It could be a file, a function, or a class. Click on it to see more details in the Properties Inspector.',
-    placement: 'right',
-    title: 'Understanding Nodes',
-    pagePath: '/application/concept-maps/editor',
-  },
-];
-
-const expandConceptFlowSteps: TutorialStep[] = [
-  {
-    target: '.react-flow__node:first-of-type',
-    content: "Let's explore your map further with AI. Right-click this node to open the context menu, then find and select 'Expand Concept'.",
-    placement: 'right',
-    title: 'AI Tool: Expand Concept',
-    disableBeacon: true,
-    pagePath: '/application/concept-maps/editor',
-    isModalTrigger: true, // User needs to open context menu, then modal
-  },
-  {
-    target: '#tutorial-target-expand-concept-modal',
-    content: "You can add details or guiding questions here to help the AI generate more relevant ideas. Or, just click 'Expand' for general suggestions.",
-    placement: 'bottom',
-    title: 'Refine Expansion (Optional)',
-    pagePath: '/application/concept-maps/editor',
-  },
-  {
-    target: '#tutorial-target-expand-concept-confirm-button',
-    content: "Click here to let the AI generate new ideas related to your selected node.",
-    placement: 'bottom',
-    title: 'Generate Ideas',
-    pagePath: '/application/concept-maps/editor',
-    isNavigationTrigger: true, // This closes modal & triggers AI, results appear on canvas
-  },
-  {
-    target: '.react-flow__node.is-ghost-node:first-of-type',
-    content: "See those new 'ghost' nodes? The AI has suggested related concepts. Click on a ghost node to accept it, or use the controls that appear when you hover over the original node to accept all or cancel.",
-    placement: 'bottom',
-    title: 'Review AI Suggestions',
-    pagePath: '/application/concept-maps/editor',
-  },
-];
-
-const mapNavigationFlowSteps: TutorialStep[] = [
-  {
-    target: '#tutorial-target-map-canvas-wrapper',
-    content: "You can pan the map by clicking and dragging on an empty area of the canvas. Use your scroll wheel to zoom in and out.",
-    placement: 'center',
-    title: 'Navigating the Map',
-    disableBeacon: true,
-    pagePath: '/application/concept-maps/editor',
-  },
-  {
-    target: '.react-flow__node:first-of-type',
-    content: "Click on any node (like this one) to select it. This will also show available actions for the node.",
-    placement: 'right',
-    title: 'Selecting Elements',
-    pagePath: '/application/concept-maps/editor',
-    isModalTrigger: true, // User needs to select a node, then properties inspector might show up
-  },
-  {
-    target: '#tutorial-target-toggle-properties-button',
-    content: "When a node or edge is selected, its details appear in the 'Properties Inspector'. Click this button to open it if it's not already visible.",
-    placement: 'bottom',
-    title: 'Open Properties Inspector',
-    pagePath: '/application/concept-maps/editor',
-    isModalTrigger: true, // User might need to click this to open the panel
-  },
-  {
-    target: '#nodeLabel',
-    content: "Here in the Properties Inspector, you can see and change the node's label (its main text).",
-    placement: 'left',
-    title: 'Node Label',
-    pagePath: '/application/concept-maps/editor',
-  },
-  {
-    target: '#nodeDetails',
-    content: "And here you can view or edit more detailed information or descriptions about the selected node.",
-    placement: 'left',
-    title: 'Node Details',
-    pagePath: '/application/concept-maps/editor',
-  },
-  {
-    target: 'body',
-    content: "Great! You've learned the basics of navigating the map and inspecting elements. Feel free to explore other properties and AI tools. This concludes our basic tour.",
-    placement: 'center',
-    title: 'Tour Complete!',
-    pagePath: '/application/concept-maps/editor',
-  },
-];
-
-interface AppTutorialProps {}
+interface AppTutorialProps {
+  // run, setRun and tutorialKey will now be primarily managed by/obtained from the store
+}
 
 const AppTutorial: React.FC<AppTutorialProps> = () => {
+  const { user, loading } = useAuth();
+  const [steps, setSteps] = useState<Step[]>([]);
+
   const {
     activeTutorialKey,
+    runTutorial,
     currentStepIndex,
-    isTutorialRunning,
-    allTutorialFlows,
-    isWaitingForNextStepTarget,
-    initializeTutorials,
-    startOrResumeTutorial,
-    stopTutorial,
-    nextStep,
-    prevStep,
-    setTutorialStep,
-    setIsWaitingForNextStepTarget
-  } = useTutorialStore();
+    setRunTutorialState,
+    setStepIndex
+  } = useTutorialStore(
+    useCallback(s => ({
+      activeTutorialKey: s.activeTutorialKey,
+      runTutorial: s.runTutorial,
+      currentStepIndex: s.currentStepIndex,
+      setRunTutorialState: s.setRunTutorialState,
+      setStepIndex: s.setStepIndex,
+    }), [])
+  );
 
-  const activeSteps = activeTutorialKey ? allTutorialFlows[activeTutorialKey] : [];
-
-  const { resolvedTheme } = useTheme();
-  const pathname = usePathname();
-
-  // Initialize tutorial definitions in the store once
-  useEffect(() => {
-    initializeTutorials({
-      projectUpload: projectUploadFlowSteps,
-      expandConcept: expandConceptFlowSteps,
-      mapNavigation: mapNavigationFlowSteps,
-      // Add other flows here
-    });
-    // Attempt to auto-start the main onboarding tutorial if not completed
-    // This will be refined in the "Tutorial Triggering Logic" step
-    // For now, let's try to start 'projectUpload' if no other tutorial is active and it's not completed.
-    // This effect now depends on isHydrated from the store.
-  }, [initializeTutorials]);
-
-  // Auto-start logic, runs after hydration and if no tutorial is already active
-  useEffect(() => {
-    if (isHydrated && !activeTutorialKey && !completedTutorials.includes('projectUpload')) {
-      if (projectUploadFlowSteps.length > 0 && projectUploadFlowSteps[0].pagePath && pathname.startsWith(projectUploadFlowSteps[0].pagePath)) {
-        console.log("Tutorial: Auto-triggering 'projectUpload' flow.");
-        startOrResumeTutorial('projectUpload');
-      }
-    }
-  }, [isHydrated, activeTutorialKey, completedTutorials, pathname, startOrResumeTutorial]);
-
-
-  const handleJoyrideCallback = useCallback((data: CallBackProps) => {
-    const { action, index, status, type, step } = data;
-
-    if (!activeSteps || activeSteps.length === 0 || !activeTutorialKey) {
-        if (status === STATUS.ERROR || status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-             stopTutorial();
-        }
-        return;
-    }
-    const currentStepConfig = activeSteps[currentStepIndex] as TutorialStep; // Use store's index
-
-    console.log(`Tutorial Callback: Type: ${type}, Action: ${action}, Status: ${status}, Index: ${index} (Joyride), StoreIndex: ${currentStepIndex}, Step Target: ${step?.target}`);
-
-    if (type === EVENTS.STEP_AFTER) {
-        if (action === ACTIONS.NEXT) {
-            nextStep(); // Let the store handle logic for advancing
-        } else if (action === ACTIONS.PREV) {
-            prevStep(); // Let the store handle logic for going back
-        } else if (action === ACTIONS.CLOSE || action === ACTIONS.RESET) {
-             console.log('Tutorial: Tour closed or reset by user.');
-             stopTutorial();
-        }
-    } else if (type === EVENTS.TARGET_NOT_FOUND) {
-      console.warn(`Tutorial: Target not found for step ${currentStepIndex} ('${step?.target}'). Current path: ${pathname}. Expected path: ${currentStepConfig?.pagePath}. Pausing tour.`);
-      setIsWaitingForNextStepTarget(true); // Inform store we are waiting
-      useTutorialStore.setState({ isTutorialRunning: false }); // Directly pause Joyride via its 'run' prop
-    } else if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-      console.log(`Tutorial: Tour '${activeTutorialKey}' finished or skipped.`);
-      stopTutorial(status === STATUS.FINISHED); // Mark as complete if finished
-    } else if (type === EVENTS.TOUR_START) {
-      console.log('Tutorial: Tour started.');
-      setIsWaitingForNextStepTarget(false);
-    } else if (type === EVENTS.ERROR || status === STATUS.ERROR) {
-      console.error('Tutorial: Joyride error: ', data);
-      stopTutorial();
-    }
-  }, [activeSteps, activeTutorialKey, currentStepIndex, pathname, nextStep, prevStep, stopTutorial, setIsWaitingForNextStepTarget]);
-
-  // Effect to resume tour when target becomes available or page changes
-  useEffect(() => {
-    if (isWaitingForNextStepTarget && activeSteps.length > 0 && currentStepIndex < activeSteps.length) {
-      const currentStepConfig = activeSteps[currentStepIndex] as TutorialStep;
-      const onCorrectPage = currentStepConfig.pagePath && pathname.startsWith(currentStepConfig.pagePath);
-
-      if (onCorrectPage) {
-        const targetElement = typeof currentStepConfig.target === 'string' ? document.querySelector(currentStepConfig.target) : true;
-        if (targetElement) {
-          console.log(`Tutorial: Target for step ${currentStepIndex} ('${currentStepConfig.target}') found on path ${pathname}. Resuming.`);
-          setIsWaitingForNextStepTarget(false);
-          useTutorialStore.setState({ isTutorialRunning: true }); // Resume Joyride
-        } else {
-          console.log(`Tutorial: Waiting. On correct page for step ${currentStepIndex}, but target '${currentStepConfig.target}' not found yet.`);
-        }
-      } else {
-         console.log(`Tutorial: Waiting. Not on correct page for step ${currentStepIndex}. Expected: ${currentStepConfig.pagePath}, Current: ${pathname}`);
-      }
-    } else if (!isTutorialRunning && activeTutorialKey && activeSteps.length > 0 && currentStepIndex < activeSteps.length) {
-        // This handles initial start on a specific page if conditions were met by startOrResumeTutorial
-        const currentStepConfig = activeSteps[currentStepIndex] as TutorialStep;
-        const onCorrectPage = currentStepConfig.pagePath && pathname.startsWith(currentStepConfig.pagePath);
-        if (onCorrectPage) {
-             const targetElement = typeof currentStepConfig.target === 'string' ? document.querySelector(currentStepConfig.target) : true;
-             if (targetElement) {
-                 console.log(`Tutorial: Initializing run for step ${currentStepIndex} on ${pathname}`);
-                 useTutorialStore.setState({ isTutorialRunning: true });
-             }
-        }
-    }
-  }, [pathname, currentStepIndex, activeSteps, isWaitingForNextStepTarget, isTutorialRunning, activeTutorialKey, setIsWaitingForNextStepTarget]);
-
-  const getJoyrideStyles = (theme: string | undefined) => {
-    const isDark = theme === 'dark';
-    const cardBg = isDark ? 'hsl(224, 71%, 4%)' : 'hsl(0, 0%, 100%)';
-    const cardFg = isDark ? 'hsl(210, 40%, 98%)' : 'hsl(222, 84%, 4.9%)';
-    const primary = 'hsl(262.1, 83.3%, 57.8%)';
-    const primaryFg = 'hsl(210, 40%, 98%)';
-
-    return {
-      options: {
-        arrowColor: cardBg, backgroundColor: cardBg, overlayColor: 'rgba(0, 0, 0, 0.75)',
-        primaryColor: primary, textColor: cardFg, zIndex: 10000,
-      },
-      tooltip: { borderRadius: '0.5rem', padding: '1rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)' },
-      tooltipContent: { padding: '0.25rem 0' },
-      tooltipTitle: { fontWeight: 600, fontSize: '1.125rem', margin: '0 0 0.5rem 0' },
-      buttonClose: { color: isDark ? 'hsl(215, 20.2%, 65.1%)' : 'hsl(215, 20.2%, 65.1%)', height: '2rem', width: '2rem', fontSize: '1.25rem', top: '0.5rem', right: '0.5rem' },
-      buttonNext: { backgroundColor: primary, borderRadius: '0.375rem', color: primaryFg, padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 500 },
-      buttonBack: { color: primary, borderRadius: '0.375rem', padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 500, border: `1px solid ${primary}`, marginRight: '0.5rem' },
-      buttonSkip: { color: isDark ? 'hsl(215, 20.2%, 65.1%)' : 'hsl(215, 20.2%, 65.1%)', fontSize: '0.875rem' },
-      floater: { tooltip: { filter: 'none' } }
+  // Define specific steps for different tutorials
+  const getStepsForTutorial = (key: string): Step[] => {
+    const commonWelcomeStep: Step = {
+      target: 'body',
+      content: '歡迎使用 CodeMap！這是一個幫助您理解和可視化代碼結構的工具。',
+      placement: 'center',
+      title: '歡迎！',
+      disableBeacon: true,
     };
+
+    const commonNavSteps: Step[] = [
+      {
+        target: '.sidebar-nav-container', // Updated placeholder
+        content: '這裡是主導航欄，您可以根據您的角色訪問不同功能區。',
+        placement: 'right',
+        title: '導航欄',
+      },
+      {
+        target: '.main-layout-content-area', // Updated placeholder
+        content: '這個區域將顯示您選擇的功能頁面和主要內容。',
+        placement: 'auto',
+        title: '主內容區',
+      },
+      {
+        target: '.navbar-user-button', // Updated placeholder
+        content: '點擊這裡可以管理您的個人資料或登出。',
+        placement: 'bottom-end',
+        title: '用戶菜單',
+      },
+    ];
+
+    if (key === 'dashboardTutorial') {
+      let roleSpecificSteps: Step[] = [];
+      if (user?.role === 'STUDENT') {
+        roleSpecificSteps = [
+          {
+            target: "a[href='/student/concept-maps']", // More specific selector
+            content: '在這裡您可以查看和管理您的概念圖。',
+            title: '我的概念圖',
+          },
+          {
+            target: "a[href='/student/projects/submit']", // More specific selector
+            content: '點擊此處上傳您的專案並通過AI自動生成概念圖。',
+            title: '提交專案',
+          },
+        ];
+      } else if (user?.role === 'TEACHER') {
+        roleSpecificSteps = [
+          {
+            target: "a[href='/teacher/classrooms']", // More specific selector
+            content: '在這裡您可以管理您的教室和學生。',
+            title: '管理教室',
+          },
+        ];
+      } else if (user?.role === 'ADMIN') {
+        roleSpecificSteps = [
+          {
+            target: "a[href='/admin/users']", // More specific selector
+            content: '管理平台的所有用戶。',
+            title: '用戶管理',
+          },
+          {
+            target: "a[href='/admin/settings']", // More specific selector
+            content: '配置系統級別的設定。',
+            title: '系統設定',
+          },
+        ];
+      }
+      return [commonWelcomeStep, ...commonNavSteps, ...roleSpecificSteps];
+    } else if (key === 'projectUploadTutorial') {
+      return [
+        {
+          target: '.project-upload-form-container', // Placeholder for the main form container
+          content: '歡迎來到專案提交頁面！在這裡，您可以上傳您的代碼專案，CodeMap將通過AI分析幫助您生成概念圖。',
+          placement: 'center',
+          title: '專案上傳與分析',
+          disableBeacon: true,
+        },
+        {
+          target: '.file-upload-dropzone', // Placeholder for the file dropzone area
+          content: '點擊或拖拽您的專案壓縮文件（如 .zip, .rar）到這裡。請確保壓縮包內包含您的源代碼。',
+          title: '選擇專案文件',
+        },
+        {
+          target: "textarea[name='userGoals']", // Assuming 'userGoals' is the name attribute
+          content: '請在這裡簡要描述您希望通過AI分析達成的目標，例如：‘理解專案主要模塊’或‘梳理核心業務邏輯’。這將幫助AI更好地為您生成概念圖。',
+          title: '您的分析目標',
+        },
+        {
+          target: "button[type='submit'].submit-project-button", // Placeholder, make more specific if possible
+          content: '填寫完成後，點擊這裡開始上傳和分析您的專案。',
+          title: '開始分析',
+        },
+        // Optional: Step for AI Analysis Confirmation Dialog (if applicable and feasible to target)
+        // {
+        //   target: '.ai-confirmation-dialog', // Placeholder
+        //   content: '提交後，系統會請求您確認啟動AI分析。請確認以繼續生成概念圖。',
+        //   title: '確認AI分析',
+        // },
+      ];
+    } else if (key === 'editorTutorial') {
+      return [
+        {
+          target: '.concept-map-editor-container',
+          content: '歡迎來到概念地圖編輯器！在這裡，您可以創建、編輯和組織您的概念圖。',
+          placement: 'center',
+          title: '概念地圖編輯器',
+          disableBeacon: true,
+        },
+        {
+          target: "button[data-tutorial-id='editor-save-map']",
+          content: '完成編輯後，記得點擊這裡保存您的地圖。',
+          title: '保存地圖',
+        },
+        {
+          target: "button[data-tutorial-id='editor-add-node']",
+          content: '點擊此按鈕在畫布上添加一個新的概念節點。',
+          title: '添加節點',
+        },
+        {
+          target: "button[data-tutorial-id='editor-add-edge']",
+          content: '使用此按鈕或拖拽節點連接樁來連接兩個節點。',
+          title: '添加邊',
+        },
+        {
+          target: "button[aria-label='AI Tools']",
+          content: '這裡集成了多種AI工具，可以幫助您提取概念、建議關係、擴展想法等。',
+          title: 'AI 助手',
+        },
+        {
+          target: '.react-flow__pane',
+          content: '這是您的畫布區域。您可以在這裡自由拖動、排列節點和邊，創建您的概念圖結構。',
+          title: '畫布區域',
+        },
+        {
+          target: "#tutorial-target-toggle-properties-button",
+          content: '點擊此按鈕打開屬性面板。當您選中一個節點或邊時，可以在屬性面板中編輯其標籤、詳細信息、樣式等。',
+          title: '屬性檢查器',
+        },
+      ];
+    } else if (key === 'extractConceptsToolTutorial') {
+      return [
+        {
+          target: '.react-flow__pane', // Target a general area in the editor
+          content: '現在來學習如何使用 AI 從節點文本中提取關鍵概念。',
+          placement: 'center',
+          title: 'AI工具：提取概念',
+          disableBeacon: true,
+        },
+        {
+          target: '.custom-node.selected', // Placeholder: ReactFlow adds 'selected' class to selected nodes
+          content: '首先，請確保您已選中一個包含一些文本內容的節點。AI將從這個節點的標籤或詳細信息中提取概念。如果當前沒有選中的節點，請先選擇一個。',
+          title: '1. 選擇節點',
+        },
+        {
+          target: "button[aria-label='AI Tools']",
+          content: '點擊AI工具按鈕，打開AI功能菜單。',
+          title: '2. 打開AI菜單',
+        },
+        {
+          // Assuming 'Extract Concepts' is a DropdownMenuItem. We'll need a specific selector for it.
+          // PREFERRED: Add data-tutorial-id="ai-tool-extract-concepts" to the DropdownMenuItem
+          target: "button[data-tutorial-id='ai-tool-extract-concepts']",
+          content: '然後，從菜單中選擇「提取概念」。',
+          title: '3. 選擇提取概念',
+        },
+        {
+          target: "[role='dialog'][aria-labelledby='extract-concepts-title']", // Example: Target modal by role and aria-label
+          content: '這是提取概念的對話框。AI會分析選中節點的文本。您可以直接點擊「提取」按鈕。',
+          title: '4. 確認提取',
+          placement: 'auto',
+        },
+        {
+          target: "button[type='submit'][data-tutorial-id='extract-concepts-submit']", // Placeholder for modal submit
+          content: '點擊此按鈕開始提取。',
+          title: '開始提取',
+        },
+        {
+          target: "button[data-tutorial-id='editor-toggle-ai-panel']",
+          content: '提取完成後，AI生成的概念會顯示在AI建議面板中。點擊此按鈕（如果面板未打開）或查看已打開的面板。',
+          title: '5. 查看結果',
+        },
+        {
+          target: ".ai-suggestion-panel", // Placeholder for the main AI suggestion panel wrapper
+          content: '在這裡，您可以看到提取出的概念列表。您可以選擇將它們添加到您的概念圖中。',
+          title: 'AI建議面板',
+          placement: 'top',
+        },
+        {
+          target: 'body',
+          content: '太棒了！您已經學會了如何使用AI提取概念。嘗試對其他節點使用此功能，或探索更多AI工具！',
+          placement: 'center',
+          title: '教程完成',
+        },
+      ];
+    }
+
+    return []; // Default to no steps
   };
 
-  const joyrideStyles = getJoyrideStyles(resolvedTheme);
+  useEffect(() => {
+    if (user && !loading && activeTutorialKey) { // Depend on activeTutorialKey from store
+      const tutorialHasBeenSeen = localStorage.getItem(activeTutorialKey) === 'true';
+      if (runTutorial && !tutorialHasBeenSeen) {
+        setSteps(getStepsForTutorial(activeTutorialKey));
+      } else if (tutorialHasBeenSeen && runTutorial) { // If seen but run is true (e.g. forced restart)
+         setSteps(getStepsForTutorial(activeTutorialKey));
+      } else if (tutorialHasBeenSeen && !runTutorial) { // If seen and run is false
+        // This case is handled by the store now mostly
+      }
+    } else if ((!user && !loading) || !activeTutorialKey) {
+        if(runTutorial) setRunTutorialState(false); // Ensure it's off if no user or key
+        setSteps([]);
+    }
+  }, [user, loading, runTutorial, activeTutorialKey, setRunTutorialState]); // Updated dependencies
 
-  if (!activeSteps || activeSteps.length === 0 || !isTutorialRunning) {
+
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { status, type, lifecycle, index, action } = data;
+    const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+
+    if (([EVENTS.STEP_AFTER, EVENTS.TARGET_NOT_FOUND] as string[]).includes(type)) {
+        // Update step index in store
+        setStepIndex(index + (action === 'prev' ? -1 : 1));
+    }
+
+
+    if (finishedStatuses.includes(status)) {
+      setRunTutorialState(false); // This will also update localStorage via the store's logic
+      // console.log(`${activeTutorialKey} completed or skipped.`);
+    } else if (type === EVENTS.TOOLTIP_CLOSE && lifecycle === 'complete') {
+      // This might indicate user closed a non-continuous step, or a step in a flow
+      // The store's setStepIndex and setRunTutorialState should handle most completion/skip logic.
+    }
+     // console.log(`Joyride (${activeTutorialKey}) callback data:`, data);
+  };
+
+  if (loading || !user || steps.length === 0 || !runTutorial || !activeTutorialKey) {
     return null;
   }
 
   return (
     <Joyride
-      steps={activeSteps}
-      run={isTutorialRunning}
-      stepIndex={currentStepIndex}
-      continuous={true}
-      showProgress={true}
-      showSkipButton={true}
-      scrollToFirstStep={true}
-      disableScrollParentFix={true}
-      styles={joyrideStyles}
+      steps={steps}
+      run={runTutorial} // Use runTutorial from store
+      stepIndex={currentStepIndex} // Control step index from store
+      continuous
+      showProgress
+      showSkipButton
       callback={handleJoyrideCallback}
+      locale={{
+        back: '上一步',
+        close: '關閉',
+        last: '完成',
+        next: '下一步',
+        skip: '跳過',
+      }}
+      styles={{
+        options: {
+          zIndex: 10000, // Keep high z-index
+          arrowColor: 'hsl(var(--card))', // Arrow color matches card background for seamless look
+          backgroundColor: 'hsl(var(--card))', // Use card background color
+          primaryColor: 'hsl(var(--primary))', // Use primary color from CSS variables
+          textColor: 'hsl(var(--card-foreground))', // Use card foreground color
+          overlayColor: 'hsla(var(--background-hsl), 0.7)', // Use background color with opacity for overlay
+        },
+        tooltip: { // Styles for the main tooltip box
+          borderRadius: 'var(--radius)', // Use CSS variable for radius, e.g., 0.5rem
+          padding: '1rem', // Standard padding
+          boxShadow: 'var(--shadow-lg)', // Use a standard shadow
+          border: '1px solid hsl(var(--border))',
+        },
+        tooltipContainer: { // Styles for the container of the tooltip (rarely needed)
+          textAlign: 'left',
+        },
+        tooltipTitle: { // Styles for the title
+          margin: 0,
+          fontSize: '1.125rem', // Tailwind text-lg
+          fontWeight: '600', // Tailwind semibold
+          paddingBottom: '0.5rem',
+          borderBottom: '1px solid hsl(var(--border))', // Separator
+          marginBottom: '0.75rem',
+        },
+        tooltipContent: { // Styles for the content text
+          fontSize: '0.875rem', // Tailwind text-sm
+          lineHeight: '1.4',
+        },
+        buttonNext: { // Styles for the Next button
+          backgroundColor: 'hsl(var(--primary))',
+          color: 'hsl(var(--primary-foreground))',
+          borderRadius: 'var(--radius-sm)', // Slightly smaller radius for buttons inside
+          padding: '0.5rem 1rem',
+          fontSize: '0.875rem',
+          textTransform: 'none',
+        },
+        buttonBack: { // Styles for the Back button
+          backgroundColor: 'hsl(var(--secondary))',
+          color: 'hsl(var(--secondary-foreground))',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.5rem 1rem',
+          fontSize: '0.875rem',
+          marginRight: '0.5rem',
+          textTransform: 'none',
+        },
+        buttonSkip: { // Styles for the Skip button
+          color: 'hsl(var(--muted-foreground))',
+          fontSize: '0.8rem',
+          textTransform: 'none',
+        },
+        buttonClose: { // Styles for the X close button on the tooltip
+            top: '10px', // Adjust position as needed
+            right: '10px',
+            height: '1rem', // lucide icon size
+            width: '1rem', // lucide icon size
+            color: 'hsl(var(--muted-foreground))',
+        },
+        beacon: { // Styles for the pulsing beacon before a step
+            outlineColor: 'hsl(var(--primary))',
+            backgroundColor: 'hsl(var(--primary))',
+        },
+        overlay: { // Styles for the dark overlay
+            // already handled by overlayColor in options
+        },
+        spotlight: { // Styles for the highlighted area
+            borderRadius: 'var(--radius-sm)', // make spotlight have slight rounded corners
+        }
+      }}
       // debug
     />
   );
