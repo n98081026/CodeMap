@@ -242,6 +242,27 @@ function determineEffectiveFileType(fileName: string, contentType?: string, isBi
 
 // --- Common AST Element Interfaces ---
 // Exporting for use in ast-utils
+
+// Represents raw import data extracted directly by an AST analyzer
+export interface RawASTImport {
+  originalPath: string; // The path string as it appears in the import statement
+  importedSymbols?: string[]; // Specific symbols imported, if applicable (e.g., { foo, bar } from './utils')
+  isDefaultImport?: boolean; // For JS/TS default imports
+  isNamespaceImport?: boolean; // For JS/TS import * as namespace
+  pythonImportLevel?: number; // For Python relative imports (number of leading dots)
+  sourceFile: string; // The file that contains this import statement
+}
+
+// Represents raw export data extracted directly by an AST analyzer
+export interface RawASTExport {
+  name: string; // Name of the exported symbol (e.g., function name, class name, variable name)
+  type: 'function' | 'class' | 'variable' | 'interface' | 'type_alias' | 'unknown' | 're-export'; // Type of the exported symbol
+  isDefaultExport?: boolean;
+  reExportedFrom?: string; // If this is a re-export (e.g., export * from './other'; or export { name } from './other';)
+  sourceFile: string; // The file that contains this export statement
+}
+
+
 export interface ExtractedCodeElement {
   name: string;
   kind: string; // e.g., 'function', 'class', 'interface', 'method', 'property'
@@ -267,57 +288,98 @@ export interface ExtractedCodeElement {
   parentName?: string; // For methods, the name of their class
 }
 
-export interface ExtractedImport {
-  source: string;
-  specifiers: { importedName?: string; localName: string; isDefault?: boolean; isNamespace?: boolean }[];
-  startLine: number;
-  endLine: number;
-}
+// This ExtractedImport is from the old structure, will be replaced by RawASTImport for dependency graph
+// export interface ExtractedImport {
+//   source: string;
+//   specifiers: { importedName?: string; localName: string; isDefault?: boolean; isNamespace?: boolean }[];
+//   startLine: number;
+//   endLine: number;
+// }
 
-export interface ExtractedExport {
-  type: 'named' | 'default' | 'all';
-  names?: string[];
-  source?: string;
-  declarationType?: string; // e.g., 'Function', 'Class' for default export
-  startLine: number;
-  endLine: number;
+// This ExtractedExport is from the old structure, will be replaced by RawASTExport for dependency graph
+// export interface ExtractedExport {
+//   type: 'named' | 'default' | 'all';
+//   names?: string[];
+//   source?: string;
+//   declarationType?: string; // e.g., 'Function', 'Class' for default export
+//   startLine: number;
+//   endLine: number;
+// }
+
+// Data structure for the file dependency graph
+export interface FileDependencyNode {
+  filePath: string; // Unique path relative to project root
+  imports: Array<{
+    targetPath: string; // Resolved path (internal) or identifier (external, e.g., 'npm:lodash')
+    type: 'internal' | 'external' | 'unresolved';
+    originalPath: string; // The raw import string from the source code
+    specificSymbols?: string[]; // Optional: specific symbols imported, if known
+  }>;
+  exports: Array<{
+    name: string; // Name of the exported symbol
+    type: 'function' | 'class' | 'variable' | 'interface' | 'type_alias' | 'unknown' | 're-export';
+    isDefaultExport?: boolean;
+  }>;
+  importedBy: string[]; // List of internal filePaths that import this file
 }
 
 
 // --- JavaScript AST Analysis (Acorn) ---
-async function analyzeJavaScriptAST(fileName: string, fileContent: string, generateNodeId: Function, fileSpecificPrefix: string): Promise<{ analysisSummary: string, detailedNodes: DetailedNode[], error?: string }> {
-  const elements: ExtractedCodeElement[] = []; // Still useful for overall counts in summary
-  const imports: ExtractedImport[] = [];
-  const exports: ExtractedExport[] = [];
-  const detailedNodesOutput: DetailedNode[] = []; // Final list of nodes for output
+async function analyzeJavaScriptAST(
+  fileName: string,
+  fileContent: string,
+  generateNodeId: Function,
+  fileSpecificPrefix: string
+): Promise<{
+  analysisSummary: string,
+  detailedNodes: DetailedNode[],
+  rawImports: RawASTImport[], // New return for dependency graph
+  rawExports: RawASTExport[], // New return for dependency graph
+  error?: string
+}> {
+  const elements: ExtractedCodeElement[] = [];
+  // const imports: ExtractedImport[] = []; // Old, replaced by rawImports
+  // const exports: ExtractedExport[] = []; // Old, replaced by rawExports
+  const rawImportsOutput: RawASTImport[] = [];
+  const rawExportsOutput: RawASTExport[] = [];
+  const detailedNodesOutput: DetailedNode[] = [];
   const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: any }> = [];
   let ast: acorn.Node | undefined;
 
-  const summarizationTasks: SummarizationTaskInfo[] = []; // Use imported type
+  const summarizationTasks: SummarizationTaskInfo[] = [];
 
   try {
     ast = acorn.parse(fileContent, { ecmaVersion: 'latest', sourceType: 'module', locations: true, comments: true });
   } catch (e: any) {
-    return { error: `JS AST parsing failed: ${e.message}`, analysisSummary: `Failed to parse JS content: ${e.message}`, detailedNodes: [] };
+    return {
+      error: `JS AST parsing failed: ${e.message}`,
+      analysisSummary: `Failed to parse JS content: ${e.message}`,
+      detailedNodes: [],
+      rawImports: [], // Ensure all return paths have new fields
+      rawExports: []  // Ensure all return paths have new fields
+    };
   }
 
   // Phase 1: Data Collection
   acornWalk.simple(ast, {
     FunctionDeclaration(node: any) {
-      const isExported = node.parentNode?.type === 'ExportNamedDeclaration' || node.parentNode?.type === 'ExportDefaultDeclaration';
+      const isParentExport = node.parentNode?.type === 'ExportNamedDeclaration' || node.parentNode?.type === 'ExportDefaultDeclaration';
       const name = node.id?.name || '[anonymous_func]';
       const originalNodeInfo: ExtractedCodeElement = {
         name,
         kind: 'function',
-        isExported,
+        isExported: isParentExport, // Use isParentExport here
         startLine: node.loc?.start.line,
         endLine: node.loc?.end.line,
         params: node.params?.map((p: any) => ({ name: p.type === 'Identifier' ? p.name : (p.left?.name || '[pattern]') })),
         isAsync: node.async,
-        astNode: node, // Store Acorn node
+        astNode: node,
       };
       elements.push(originalNodeInfo);
       localDefinitions.push({ name, kind: 'function', node });
+      if (isParentExport) { // Add to rawExports if exported
+          rawExportsOutput.push({ name, type: 'function', isDefaultExport: node.parentNode?.type === 'ExportDefaultDeclaration', sourceFile: fileName });
+      }
       summarizationTasks.push({
         uniqueId: generateNodeId(fileSpecificPrefix, 'function', name, summarizationTasks.length),
         inputForFlow: {
@@ -325,30 +387,33 @@ async function analyzeJavaScriptAST(fileName: string, fileContent: string, gener
           elementName: name,
           filePath: fileName,
           signature: `(${(originalNodeInfo.params?.map(p => p.name).join(', ') || '')})`,
-          comments: undefined, // Acorn comment association is non-trivial
-          isExported: isExported,
+          comments: undefined,
+          isExported: isParentExport, // Use isParentExport here
         },
         originalNodeInfo,
         nodeType: 'function',
       });
     },
     VariableDeclaration(node: any) {
+      const isParentExport = node.parentNode?.type === 'ExportNamedDeclaration';
       node.declarations.forEach((declaration: any) => {
         if (declaration.id?.name && (declaration.init?.type === 'ArrowFunctionExpression' || declaration.init?.type === 'FunctionExpression')) {
-          const isExported = node.parentNode?.type === 'ExportNamedDeclaration';
           const name = declaration.id.name;
           const originalNodeInfo: ExtractedCodeElement = {
             name,
-            kind: 'function', // Treat as function
-            isExported,
+            kind: 'function',
+            isExported: isParentExport, // Use isParentExport from VariableDeclaration
             startLine: node.loc?.start.line,
             endLine: node.loc?.end.line,
             params: declaration.init.params?.map((p: any) => ({ name: p.type === 'Identifier' ? p.name : (p.left?.name || '[pattern]') })),
             isAsync: declaration.init.async,
-        astNode: declaration.init, // Store Acorn FunctionExpression/ArrowFunctionExpression node
+            astNode: declaration.init,
           };
           elements.push(originalNodeInfo);
-      localDefinitions.push({ name, kind: 'function', node: declaration.init });
+          localDefinitions.push({ name, kind: 'function', node: declaration.init });
+          if (isParentExport) { // Add to rawExports if exported
+              rawExportsOutput.push({ name, type: 'function', sourceFile: fileName });
+          }
           summarizationTasks.push({
             uniqueId: generateNodeId(fileSpecificPrefix, 'function', name, summarizationTasks.length),
             inputForFlow: {
@@ -357,16 +422,20 @@ async function analyzeJavaScriptAST(fileName: string, fileContent: string, gener
               filePath: fileName,
               signature: `(${(originalNodeInfo.params?.map(p => p.name).join(', ') || '')})`,
               comments: undefined,
-              isExported: isExported,
+              isExported: isParentExport, // Use isParentExport
             },
             originalNodeInfo,
             nodeType: 'function',
           });
-        } else if (declaration.id?.name && node.kind && (node.parentNode?.type === 'Program' || node.parentNode?.type === 'ExportNamedDeclaration')) {
-           const simpleVarElement: ExtractedCodeElement = { name: declaration.id.name, kind: 'variable', isExported: node.parentNode?.type === 'ExportNamedDeclaration', startLine: node.loc?.start.line, endLine: node.loc?.end.line };
-           elements.push(simpleVarElement); // Add to general elements for count
-           detailedNodesOutput.push({ // Add directly as it's not summarized
-              id: generateNodeId(fileSpecificPrefix, 'variable', simpleVarElement.name, detailedNodesOutput.length),
+        } else if (declaration.id?.name && node.kind && (node.parentNode?.type === 'Program' || isParentExport)) {
+           const varName = declaration.id.name;
+           const simpleVarElement: ExtractedCodeElement = { name: varName, kind: 'variable', isExported: isParentExport, startLine: node.loc?.start.line, endLine: node.loc?.end.line };
+           elements.push(simpleVarElement);
+           if (isParentExport) { // Add to rawExports if exported
+                rawExportsOutput.push({ name: varName, type: 'variable', sourceFile: fileName });
+           }
+           detailedNodesOutput.push({
+              id: generateNodeId(fileSpecificPrefix, 'variable', varName, detailedNodesOutput.length),
               label: `${simpleVarElement.name} (variable)`,
               type: 'js_variable',
               details: `Exported: ${simpleVarElement.isExported}`,
@@ -388,16 +457,18 @@ async function analyzeJavaScriptAST(fileName: string, fileContent: string, gener
         startLine: node.loc?.start.line,
         endLine: node.loc?.end.line,
         classMethods: methods?.map((m:any) => m.key.name || '[unknown_method]'),
-        astNode: node, // Store Acorn ClassDeclaration node
+        astNode: node,
       };
       elements.push(originalNodeInfo);
-      // Add methods to localDefinitions
       methods.forEach((methodNode: any) => {
-        if (methodNode.key) { // Ensure method has a name
-            const methodName = methodNode.key.name || methodNode.key.value; // Handle computed names if necessary, though less common for 'this' calls
-            localDefinitions.push({ name: methodName, kind: 'method', parentName: name, node: methodNode.value }); // methodNode.value is FunctionExpression
+        if (methodNode.key) {
+            const methodName = methodNode.key.name || methodNode.key.value;
+            localDefinitions.push({ name: methodName, kind: 'method', parentName: name, node: methodNode.value });
         }
       });
+      if (isParentExport) { // Add to rawExports if exported
+          rawExportsOutput.push({ name, type: 'class', isDefaultExport: node.parentNode?.type === 'ExportDefaultDeclaration', sourceFile: fileName });
+      }
       summarizationTasks.push({
         uniqueId: generateNodeId(fileSpecificPrefix, 'class', name, summarizationTasks.length),
         inputForFlow: {
@@ -408,40 +479,59 @@ async function analyzeJavaScriptAST(fileName: string, fileContent: string, gener
           comments: undefined,
           isExported: isExported,
           classMethods: originalNodeInfo.classMethods,
-          classProperties: undefined, // Acorn property extraction more involved
+          classProperties: undefined,
         },
         originalNodeInfo,
         nodeType: 'class',
       });
     },
     ImportDeclaration(node: any) {
-      imports.push({ source: node.source.value, specifiers: node.specifiers.map((s: any) => ({ importedName: s.imported?.name, localName: s.local.name, isDefault: s.type === 'ImportDefaultSpecifier', isNamespace: s.type === 'ImportNamespaceSpecifier'})), startLine: node.loc?.start.line, endLine: node.loc?.end.line });
+      const importedSymbols = node.specifiers.map((s: any) => {
+        if (s.type === 'ImportDefaultSpecifier') return s.local.name + " (default)";
+        if (s.type === 'ImportNamespaceSpecifier') return "* as " + s.local.name;
+        return s.imported.name === s.local.name ? s.local.name : `${s.imported.name} as ${s.local.name}`;
+      });
+      rawImportsOutput.push({
+        originalPath: node.source.value,
+        importedSymbols,
+        isDefaultImport: node.specifiers.some((s:any) => s.type === 'ImportDefaultSpecifier'),
+        isNamespaceImport: node.specifiers.some((s:any) => s.type === 'ImportNamespaceSpecifier'),
+        sourceFile: fileName
+      });
     },
     ExportNamedDeclaration(node: any) {
-      let names: string[] = [];
-      if (node.declaration) {
-        if (node.declaration.id) names.push(node.declaration.id.name);
-        else if (node.declaration.declarations) names = node.declaration.declarations.map((d:any) => d.id.name);
-      } else if (node.specifiers) {
-        names = node.specifiers.map((s:any) => s.exported.name);
+      if (node.declaration) { // export function foo() {} / export const bar = ... / export class Baz {}
+        const name = node.declaration.id?.name || (node.declaration.declarations && node.declaration.declarations[0]?.id?.name);
+        if (name) {
+          let type: RawASTExport['type'] = 'unknown';
+          if (node.declaration.type === 'FunctionDeclaration') type = 'function';
+          else if (node.declaration.type === 'ClassDeclaration') type = 'class';
+          else if (node.declaration.type === 'VariableDeclaration') type = 'variable';
+          rawExportsOutput.push({ name, type, sourceFile: fileName });
+        }
+      } else if (node.specifiers) { // export { foo, bar as baz };
+        node.specifiers.forEach((spec: any) => {
+          rawExportsOutput.push({ name: spec.exported.name, type: 'variable', reExportedFrom: node.source?.value, sourceFile: fileName }); // Type 'variable' is a guess here
+        });
       }
-      exports.push({ type: 'named', names, source: node.source?.value, startLine: node.loc?.start.line, endLine: node.loc?.end.line });
     },
     ExportDefaultDeclaration(node: any) {
-      exports.push({ type: 'default', declarationType: node.declaration.type, names: [node.declaration.id?.name || (node.declaration.type === 'Identifier' ? node.declaration.name : '[anonymous_default]')], startLine: node.loc?.start.line, endLine: node.loc?.end.line });
+      const name = node.declaration.id?.name || (node.declaration.type === 'Identifier' ? node.declaration.name : '[default]');
+      let type: RawASTExport['type'] = 'unknown';
+      if (node.declaration.type === 'FunctionDeclaration') type = 'function';
+      else if (node.declaration.type === 'ClassDeclaration') type = 'class';
+      else if (node.declaration.type === 'Identifier' || node.declaration.type === 'Literal') type = 'variable';
+      rawExportsOutput.push({ name, type, isDefaultExport: true, sourceFile: fileName });
     },
-    ExportAllDeclaration(node: any) {
-      exports.push({ type: 'all', source: node.source.value, startLine: node.loc?.start.line, endLine: node.loc?.end.line });
+    ExportAllDeclaration(node: any) { // export * from './other';
+      rawExportsOutput.push({ name: '*', type: 're-export', reExportedFrom: node.source.value, sourceFile: fileName });
     }
   }, (ast as any));
 
-  // Phase 2: Parallel Summarization using utility
   const summarizedElements = await batchSummarizeElements(summarizationTasks, fileName, 'Acorn Analyzer');
 
-  // Phase 3: Integration
   summarizedElements.forEach(task => {
-    // Local call detection logic remains, as it's specific to Acorn's AST structure
-    task.originalNodeInfo.localCalls = []; // Initialize
+    task.originalNodeInfo.localCalls = [];
     if ((task.originalNodeInfo.kind === 'function' || task.originalNodeInfo.kind === 'class') && task.originalNodeInfo.astNode) {
         if (task.originalNodeInfo.kind === 'function' && task.originalNodeInfo.astNode.body) {
             acornWalk.simple(task.originalNodeInfo.astNode.body, {
@@ -482,20 +572,17 @@ async function analyzeJavaScriptAST(fileName: string, fileContent: string, gener
             });
         }
     }
-    // Create DetailedNode using utility
-    // Ensure task.originalNodeInfo is passed correctly, and task.uniqueId is available.
     const detailedNode = createDetailedNodeFromExtractedElement(task.originalNodeInfo, task.uniqueId, `js_`);
     detailedNodesOutput.push(detailedNode);
   });
 
-  // Add imports and exports to detailedNodesOutput (they were not summarized)
-  // These are not ExtractedCodeElement, so they are handled separately.
-  imports.forEach((imp, i) => detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'import', imp.source, detailedNodesOutput.length + i), label: `Import from '${imp.source}'`, type: 'js_import', details: imp.specifiers.map(s => s.localName + (s.importedName && s.importedName !== s.localName ? ` as ${s.importedName}` : '')).join(', '), lineNumbers: imp.startLine ? `${imp.startLine}-${imp.endLine}`: undefined, structuredInfo: imp }));
-  exports.forEach((exp, i) => detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'export', exp.type, detailedNodesOutput.length + i), label: `Export ${exp.type}`, type: `js_export_${exp.type}`, details: exp.names?.join(', ') || (exp.source ? `* from ${exp.source}`: exp.declarationType), lineNumbers: exp.startLine ? `${exp.startLine}-${exp.endLine}`: undefined, structuredInfo: exp }));
+  // Add imports and exports (that are not declarations) to detailedNodesOutput for completeness if desired.
+  // For now, they are primarily collected in rawImportsOutput and rawExportsOutput.
+  // The old `imports` and `exports` arrays are removed.
 
   const totalLocalCalls = detailedNodesOutput.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0);
-  const summary = `JavaScript file '${fileName}' (AST analysis): Found ${elements.filter(e=>e.kind==='function').length} functions, ${elements.filter(e=>e.kind==='class').length} classes, ${imports.length} imports, ${exports.length} exports, ${elements.filter(e=>e.kind==='variable').length} top-level variables, and ${totalLocalCalls} detected local calls. Semantic summaries attempted for functions/classes.`;
-  return { analysisSummary: summary, detailedNodes: detailedNodesOutput };
+  const summary = `JavaScript file '${fileName}' (AST analysis): Found ${elements.filter(e=>e.kind==='function').length} functions, ${elements.filter(e=>e.kind==='class').length} classes, ${rawImportsOutput.length} imports, ${rawExportsOutput.length} exports, ${elements.filter(e=>e.kind==='variable').length} top-level variables, and ${totalLocalCalls} detected local calls. Semantic summaries attempted for functions/classes.`;
+  return { analysisSummary: summary, detailedNodes: detailedNodesOutput, rawImports: rawImportsOutput, rawExports: rawExportsOutput };
 }
 
 // --- Python AST Analysis (python-parser) ---
@@ -537,10 +624,18 @@ async function analyzePythonAST(
   fileContent: string,
   generateNodeId: Function,
   fileSpecificPrefix: string
-): Promise<{ analysisSummary: string; detailedNodes: DetailedNode[]; error?: string }> {
+): Promise<{
+  analysisSummary: string;
+  detailedNodes: DetailedNode[];
+  rawImports: RawASTImport[];
+  rawExports: RawASTExport[];
+  error?: string
+}> {
   const extractedFunctions: ExtractedCodeElement[] = [];
   const extractedClasses: Array<ExtractedCodeElement & { methods: ExtractedCodeElement[], properties: string[], astNode?: PythonNode }> = [];
-  const extractedImports: Array<{ type: string; source?: string; names: Array<{ name: string; asName?: string }>; level?: number; lineNumbers?: string, startLine?: number, endLine?: number }> = [];
+  // const extractedImports: Array<{ type: string; source?: string; names: Array<{ name: string; asName?: string }>; level?: number; lineNumbers?: string, startLine?: number, endLine?: number }> = []; // Old
+  const rawImportsOutput: RawASTImport[] = [];
+  const rawExportsOutput: RawASTExport[] = []; // For Python, this will be populated by heuristic
   const detailedNodes: DetailedNode[] = [];
   const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: PythonNode, signature?: string }> = [];
   const moduleLevelAssignments: Array<ExtractedCodeElement> = [];
@@ -550,12 +645,17 @@ async function analyzePythonAST(
   try {
     ast = pythonParse(fileContent);
   } catch (e: any) {
-    return { error: 'Python AST parsing failed: ' + e.message, analysisSummary: 'Failed to parse Python content.', detailedNodes: [] };
+    return {
+      error: 'Python AST parsing failed: ' + e.message,
+      analysisSummary: 'Failed to parse Python content.',
+      detailedNodes: [],
+      rawImports: [],
+      rawExports: []
+    };
   }
 
   const getLineInfo = (node: PythonNode) => ('lineno' in node && node.lineno ? `${node.lineno}${('end_lineno' in node && node.end_lineno) ? `-${node.end_lineno}` : ''}` : undefined);
 
-  // Use imported SummarizationTaskInfo
   const summarizationTasks: SummarizationTaskInfo[] = [];
 
 
@@ -592,7 +692,7 @@ async function analyzePythonAST(
         endLine: node.end_lineno || node.lineno,
         parentName: currentClassName,
         isAsync: nodeType === 'AsyncFunctionDef',
-        astNode: node as any, // Cast to any to satisfy ts.Node, though it's PythonNode
+        astNode: node as any,
       };
       const signature = `(${(params.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ') || '')})` + (returnType ? ` -> ${returnType}` : '');
       localDefinitions.push({ name: funcName, kind: funcData.kind as 'function' | 'method', parentName: currentClassName, node, signature });
@@ -600,8 +700,12 @@ async function analyzePythonAST(
       if (currentClassName) {
         const classObj = extractedClasses.find(c => c.name === currentClassName);
         classObj?.methods.push(funcData);
+        // Methods are not typically "exported" at module level unless class is part of __all__
       } else {
         extractedFunctions.push(funcData);
+        if (!funcName.startsWith('_')) { // Heuristic for module-level export
+            rawExportsOutput.push({ name: funcName, type: 'function', sourceFile: fileName });
+        }
       }
 
       summarizationTasks.push({
@@ -659,6 +763,9 @@ async function analyzePythonAST(
         astNode: node,
       };
       extractedClasses.push(classData);
+      if (!className.startsWith('_')) {
+        rawExportsOutput.push({ name: className, type: 'class', sourceFile: fileName });
+      }
 
       summarizationTasks.push({
         uniqueId: generateNodeId(fileSpecificPrefix, 'class', className, summarizationTasks.length),
@@ -668,35 +775,43 @@ async function analyzePythonAST(
           filePath: fileName,
           signature: bases.length > 0 ? `(${bases.join(', ')})` : undefined,
           comments: docstring,
-          isExported: true, // Top-level classes are considered "exported"
-          classMethods: [], // Will be updated after methods are processed
+          isExported: !className.startsWith('_'), // Apply heuristic for export status
+          classMethods: [],
           classProperties: classProperties,
         },
         originalNodeInfo: classData,
         nodeType: 'class',
       });
-      visitPyNode(node.body, className); // Visit children to find methods
-      // Update classMethods in summarizerInput after methods are processed
+      visitPyNode(node.body, className);
       const taskToUpdate = summarizationTasks.find(t => t.uniqueId === generateNodeId(fileSpecificPrefix, 'class', className, summarizationTasks.findIndex(st => st.originalNodeInfo.name === className && st.nodeType === 'class')));
       if (taskToUpdate) {
         taskToUpdate.inputForFlow.classMethods = classData.methods.map(m => m.name);
       }
 
-
     } else if (nodeType === 'Import') {
-      const names = node.names?.map((alias: any) => ({ name: alias.name, asName: alias.asname })) || [];
-      extractedImports.push({ type: 'Import', names, lineNumbers: getLineInfo(node), startLine: node.lineno, endLine: node.end_lineno || node.lineno });
+      const names = node.names?.map((alias: any) => alias.name + (alias.asname ? ` as ${alias.asname}` : "")) || [];
+      rawImportsOutput.push({
+        originalPath: names.join(', '), // For 'import a, b', path is 'a, b'
+        importedSymbols: names,
+        sourceFile: fileName
+      });
     } else if (nodeType === 'ImportFrom') {
-      const moduleName = node.module || '';
-      const names = node.names?.map((alias: any) => ({ name: alias.name, asName: alias.asname })) || [];
-      extractedImports.push({ type: 'ImportFrom', source: moduleName, names, level: node.level, lineNumbers: getLineInfo(node), startLine: node.lineno, endLine: node.end_lineno || node.lineno });
-    } else if ((nodeType === 'Assign' || nodeType === 'AnnAssign') && !currentClassName) { // Module-level assignments
+      const moduleName = node.module || (node.level ? '.'.repeat(node.level) : '');
+      const importedSymbols = node.names?.map((alias: any) => alias.name + (alias.asname ? ` as ${alias.asname}` : "")) || [];
+      rawImportsOutput.push({
+        originalPath: moduleName,
+        importedSymbols,
+        pythonImportLevel: node.level || 0,
+        sourceFile: fileName
+      });
+    } else if ((nodeType === 'Assign' || nodeType === 'AnnAssign') && !currentClassName) {
         const targets = nodeType === 'Assign' ? node.targets : [node.target];
         targets?.forEach((target: PythonNode) => {
             if (target.type === 'Name') {
                 const varName = target.id;
                 const varType = nodeType === 'AnnAssign' && node.annotation ? getPyNodeText(node.annotation, fileContent) : undefined;
                 const varValue = node.value ? getPyNodeText(node.value, fileContent).substring(0, 50) + (getPyNodeText(node.value, fileContent).length > 50 ? '...' : '') : undefined;
+                const isExportedHeuristic = !varName.startsWith('_');
                 moduleLevelAssignments.push({
                     name: varName,
                     kind: 'variable',
@@ -704,9 +819,12 @@ async function analyzePythonAST(
                     value: varValue,
                     startLine: node.lineno,
                     endLine: node.end_lineno || node.lineno,
-                    comments: getPyNodeText(node.comment_before, fileContent) || getPyNodeText(node.comment_after, fileContent), // Simplified comment association
-                    isExported: !varName.startsWith('_'), // Convention for public
+                    comments: getPyNodeText(node.comment_before, fileContent) || getPyNodeText(node.comment_after, fileContent),
+                    isExported: isExportedHeuristic,
                 });
+                if (isExportedHeuristic) {
+                    rawExportsOutput.push({ name: varName, type: 'variable', sourceFile: fileName });
+                }
             }
         });
     } else if ('body' in node && Array.isArray(node.body)) {
@@ -799,44 +917,55 @@ async function analyzePythonAST(
 
   // Add module-level assignments
   moduleLevelAssignments.forEach((assignment, i) => {
-    detailedNodes.push({
-        id: generateNodeId(fileSpecificPrefix, 'variable', assignment.name, detailedNodes.length + i),
-        label: `${assignment.name} (variable)`,
-        type: 'py_variable',
-        details: `Type: ${assignment.dataType || 'Unknown'}. Value: ${assignment.value || 'N/A'}. Exported: ${assignment.isExported}.`,
-        lineNumbers: `${assignment.startLine}-${assignment.endLine}`,
-        structuredInfo: { ...assignment, astNode: undefined },
-    });
+    // Ensure these are also added to detailedNodes if they weren't summarized
+    if (!summarizationTasks.some(task => task.originalNodeInfo.name === assignment.name && task.nodeType === 'variable')) { // Assuming 'variable' would be a type for summarization
+        detailedNodes.push({
+            id: generateNodeId(fileSpecificPrefix, 'variable', assignment.name, detailedNodes.length + i),
+            label: `${assignment.name} (variable)`,
+            type: 'py_variable',
+            details: `Type: ${assignment.dataType || 'Unknown'}. Value: ${assignment.value || 'N/A'}. Exported: ${assignment.isExported}. Comments: ${assignment.comments || 'None'}`,
+            lineNumbers: `${assignment.startLine}-${assignment.endLine}`,
+            structuredInfo: { ...assignment, astNode: undefined }, // Remove astNode before storing
+        });
+    }
   });
 
-  // Add imports
-  extractedImports.forEach((imp, i) => {
-    const importLabel = imp.type === 'ImportFrom'
-      ? `From ${imp.source || (imp.level ? '.'.repeat(imp.level) : '')} import ${imp.names.map(n => n.name + (n.asName ? ` as ${n.asName}` : '')).join(', ')}`
-      : `Import ${imp.names.map(n => n.name + (n.asName ? ` as ${n.asName}` : '')).join(', ')}`;
+  // Add imports to detailedNodes for now, they are not summarized by LLM
+  rawImportsOutput.forEach((imp, i) => {
     detailedNodes.push({
-      id: generateNodeId(fileSpecificPrefix, 'import', (imp.source || imp.names[0]?.name || 'module'), detailedNodes.length + i), // Use existing length for unique index
-      label: importLabel.substring(0, 100) + (importLabel.length > 100 ? '...' : ''),
+      id: generateNodeId(fileSpecificPrefix, 'import', imp.originalPath.split('.')[0], detailedNodes.length + i),
+      label: `Import: ${imp.originalPath}`,
       type: 'py_import',
-      details: importLabel,
-      lineNumbers: imp.lineNumbers,
+      details: `Symbols: ${imp.importedSymbols?.join(', ') || 'N/A'}${imp.pythonImportLevel ? `, Level: ${imp.pythonImportLevel}` : ''}`,
+      // lineNumbers: imp.startLine ? `${imp.startLine}-${imp.endLine}`: undefined, // RawASTImport doesn't have line numbers yet
       structuredInfo: imp,
     });
   });
 
-  const totalLocalCalls = detailedNodes.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0) +
-                        extractedClasses.reduce((acc, cls) => acc + (cls.localCalls?.length || 0), 0); // Include calls from class context if stored there
+  const totalLocalCalls = detailedNodes.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0);
 
-  const analysisSummary = `Python file '${fileName}' (AST analysis): Found ${extractedFunctions.length} top-level functions, ${extractedClasses.length} classes, ${moduleLevelAssignments.length} module-level variables, and ${extractedImports.length} import statements. Detected ${totalLocalCalls} local calls. Semantic summaries attempted.`;
-  return { analysisSummary, detailedNodes };
+  const analysisSummary = `Python file '${fileName}' (AST analysis): Found ${extractedFunctions.length} top-level functions, ${extractedClasses.length} classes, ${moduleLevelAssignments.length} module-level variables, and ${rawImportsOutput.length} import statements. Detected ${totalLocalCalls} local calls. Semantic summaries attempted.`;
+  return { analysisSummary, detailedNodes, rawImports: rawImportsOutput, rawExports: rawExportsOutput };
 }
 
 // --- TypeScript AST Analysis ---
-// Make the function async to use await for summarizeCodeElementPurposeFlow
-async function analyzeTypeScriptAST(fileName: string, fileContent: string, generateNodeId: Function, fileSpecificPrefix: string): Promise<{ analysisSummary: string, detailedNodes: DetailedNode[], error?: string }> {
+async function analyzeTypeScriptAST(
+  fileName: string,
+  fileContent: string,
+  generateNodeId: Function,
+  fileSpecificPrefix: string
+): Promise<{
+  analysisSummary: string,
+  detailedNodes: DetailedNode[],
+  rawImports: RawASTImport[],
+  rawExports: RawASTExport[],
+  error?: string
+}> {
   const elements: ExtractedCodeElement[] = [];
-  const imports: ExtractedImport[] = [];
-  const exports: ExtractedExport[] = [];
+  // const imports: ExtractedImport[] = []; // Old
+  // const exports: ExtractedExport[] = []; // Old
+  const rawImportsOutput: RawASTImport[] = [];
+  const rawExportsOutput: RawASTExport[] = [];
   const detailedNodesOutput: DetailedNode[] = [];
   const localDefinitions: Array<{ name: string, kind: 'function' | 'method', parentName?: string, node: ts.Node }> = [];
 
@@ -848,13 +977,17 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
   if (diagnostics.length > 0) {
     const errorMsg = "TypeScript AST parsing/binding produced diagnostics: " + diagnostics.map(d => ts.flattenDiagnosticMessageText(d.messageText, "\n")).join("; ");
     console.warn(`[TS AST Analyzer] Diagnostics for ${fileName}: ${errorMsg}`);
-    return { error: errorMsg, analysisSummary: `Failed to fully parse TS: ${errorMsg}`, detailedNodes: [] };
+    return {
+      error: errorMsg,
+      analysisSummary: `Failed to fully parse TS: ${errorMsg}`,
+      detailedNodes: [],
+      rawImports: [],
+      rawExports: []
+    };
   }
 
-  // Use imported SummarizationTaskInfo
   const summarizationTasks: SummarizationTaskInfo[] = [];
 
-  // Helper to get JSDoc comments
   function getJSDocComments(node: ts.Node, sourceFile: ts.SourceFile): string | undefined {
     const comments: string[] = [];
     // @ts-ignore internal TS API, but commonly used
@@ -914,8 +1047,11 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
         signature: `(${params.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ')})` + (returnType ? `: ${returnType}` : ''),
         filePath: fileName,
         comments,
-        isExported,
+        isExported: isExported, // From modifiers
       };
+      if (isExported) { // Add to rawExports if exported
+          rawExportsOutput.push({ name, type: (ts.isMethodDeclaration(node) ? 'function' : 'function'), isDefaultExport, sourceFile: fileName });
+      }
 
     } else if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
       nodeTypeForSummarizer = 'class';
@@ -927,24 +1063,29 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
       const classMethods = node.members.filter(ts.isMethodDeclaration).map(m => `${m.name?.getText(sourceFile)}(${m.parameters.map(p => p.name.getText(sourceFile) + (p.type ? ": "+p.type.getText(sourceFile):"")).join(', ')})` + (m.type ? ": "+m.type.getText(sourceFile): ""));
       const classProperties = node.members.filter(ts.isPropertyDeclaration).map(p => `${p.name?.getText(sourceFile)}${p.type ? ": "+p.type.getText(sourceFile): ""}`);
       elementInfo = { name, kind: 'class', superClass, implementedInterfaces, isExported, isDefaultExport, startLine, endLine, comments, classMethods, classProperties, astNode: node };
-      // Note: Classes themselves are not added to localDefinitions for call *targets*, but their methods are.
 
+      if (isExported) { // Add to rawExports if exported
+        rawExportsOutput.push({ name, type: 'class', isDefaultExport, sourceFile: fileName });
+      }
       summarizerInput = {
         elementType: nodeTypeForSummarizer,
         elementName: name,
         signature: `${superClass ? `extends ${superClass} ` : ''}${implementedInterfaces ? `implements ${implementedInterfaces.join(', ')}` : ''}`.trim() || undefined,
         filePath: fileName,
         comments,
-        isExported,
+        isExported, // From modifiers
         classMethods,
         classProperties,
       };
     } else if (ts.isInterfaceDeclaration(node) || ts.isEnumDeclaration(node) || ts.isTypeAliasDeclaration(node)) {
-      // Potentially summarize these too, but for now, just basic info
       const kind = ts.isInterfaceDeclaration(node) ? 'interface' : ts.isEnumDeclaration(node) ? 'enum' : 'type_alias';
-      elementInfo = { name: node.name.getText(sourceFile), kind, isExported, isDefaultExport, startLine, endLine, comments, semanticPurpose: "Not summarized by type." };
+      const name = node.name.getText(sourceFile);
+      elementInfo = { name, kind, isExported, isDefaultExport, startLine, endLine, comments, semanticPurpose: "Not summarized by type." };
+      if (isExported) {
+        rawExportsOutput.push({ name, type: kind as RawASTExport['type'], isDefaultExport, sourceFile: fileName });
+      }
     } else if (ts.isVariableStatement(node)) {
-        const isVarExported = node.modifiers?.some(mod => mod.kind === ts.SyntaxKind.ExportKeyword);
+        const isParentExport = node.modifiers?.some(mod => mod.kind === ts.SyntaxKind.ExportKeyword); // VariableStatement itself can be exported
         for (const decl of node.declarationList.declarations) {
             if(ts.isIdentifier(decl.name)) {
               const varName = decl.name.text;
@@ -956,21 +1097,23 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
 
               if (varInitializer && (ts.isArrowFunction(varInitializer) || ts.isFunctionExpression(varInitializer))) {
                 varKind = 'function';
-                nodeTypeForSummarizer = 'function';
+                nodeTypeForSummarizer = 'function'; // Mark for summarization as function
                 varParams = varInitializer.parameters.map(p => ({ name: p.name.getText(sourceFile), type: p.type?.getText(sourceFile) }));
                 varReturnType = varInitializer.type?.getText(sourceFile);
               }
-              // Check if it's a top-level const arrow function or a class property arrow function
               let parentNameForVarFunc: string | undefined = undefined;
               if (node.parent && (ts.isClassDeclaration(node.parent) || ts.isClassExpression(node.parent)) && node.parent.name) {
-                 // This is a property in a class, potentially an arrow function method
                  parentNameForVarFunc = node.parent.name.getText(sourceFile);
               }
 
-              elementInfo = { name: varName, kind: varKind, dataType: varType, value: varInitializer?.getText(sourceFile).substring(0,50), isExported: isVarExported, startLine, endLine, comments, params: varParams, returnType: varReturnType, astNode: decl, parentName: parentNameForVarFunc };
+              elementInfo = { name: varName, kind: varKind, dataType: varType, value: varInitializer?.getText(sourceFile).substring(0,50), isExported: isParentExport, startLine, endLine, comments, params: varParams, returnType: varReturnType, astNode: decl, parentName: parentNameForVarFunc };
+
+              if (isParentExport) { // Add to rawExports if exported
+                rawExportsOutput.push({ name: varName, type: varKind, sourceFile: fileName });
+              }
 
               if (nodeTypeForSummarizer === 'function' && elementInfo) {
-                if (varKind === 'function') { // Add to localDefinitions if it's a function
+                if (varKind === 'function') {
                     localDefinitions.push({ name: varName, kind: 'function', parentName: parentNameForVarFunc, node: decl });
                 }
                 summarizerInput = {
@@ -979,65 +1122,87 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
                   signature: `(${varParams?.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ') || ''})` + (varReturnType ? `: ${varReturnType}` : ''),
                   filePath: fileName,
                   comments,
-                  isExported: isVarExported,
+                  isExported: isParentExport, // From VariableStatement
                 };
-              } else {
-                summarizerInput = null;
+              } else if (varKind === 'variable') { // Non-function variable
+                summarizerInput = null; // Not summarized by this flow
                 if(elementInfo) elementInfo.semanticPurpose = "Not summarized by type.";
               }
             }
-            if (elementInfo) break; // Process first declaration for now if it's a multi-declaration
+            if (elementInfo) break;
         }
     }
-
 
     if (elementInfo) {
       if (summarizerInput && (nodeTypeForSummarizer === 'function' || nodeTypeForSummarizer === 'class')) {
         summarizationTasks.push({
           uniqueId: generateNodeId(fileSpecificPrefix, elementInfo.kind, elementInfo.name, summarizationTasks.length),
           inputForFlow: summarizerInput,
-          originalNodeInfo: { ...elementInfo }, // Clone to avoid mutation issues if any
+          originalNodeInfo: { ...elementInfo },
           nodeType: nodeTypeForSummarizer,
         });
       }
-      elements.push(elementInfo); // Still collect all elements for summary counts
+      elements.push(elementInfo);
 
-      // If not summarizable, add directly to detailedNodesOutput here (e.g. interfaces, enums)
-      if (!nodeTypeForSummarizer && elementInfo.kind !== 'variable') { // Variables already handled if not function-like
+      if (!nodeTypeForSummarizer && elementInfo.kind !== 'variable') {
          detailedNodesOutput.push({
             id: generateNodeId(fileSpecificPrefix, elementInfo.kind, elementInfo.name, detailedNodesOutput.length),
             label: `${elementInfo.name} (${elementInfo.kind})`,
             type: `ts_${elementInfo.kind}`,
             details: `Exported: ${elementInfo.isExported}. Comments: ${elementInfo.comments ? 'Available' : 'None'}. ${elementInfo.semanticPurpose || ''}`,
             lineNumbers: `${elementInfo.startLine}-${elementInfo.endLine}`,
-            structuredInfo: elementInfo,
+            structuredInfo: {...elementInfo, astNode: undefined }, // Remove astNode before storing
+        });
+      } else if (elementInfo.kind === 'variable' && !nodeTypeForSummarizer) { // Non-function variable, not summarized by LLM here
+         detailedNodesOutput.push({
+            id: generateNodeId(fileSpecificPrefix, elementInfo.kind, elementInfo.name, detailedNodesOutput.length),
+            label: `${elementInfo.name} (variable)`,
+            type: `ts_variable`,
+            details: `Type: ${elementInfo.dataType || 'any'}. Exported: ${elementInfo.isExported}. Comments: ${elementInfo.comments ? 'Available' : 'None'}.`,
+            lineNumbers: `${elementInfo.startLine}-${elementInfo.endLine}`,
+            structuredInfo: {...elementInfo, astNode: undefined },
         });
       }
     } else if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-      const specifiers: any[] = [];
+      const importedSymbols: string[] = [];
+      let isDefault = false;
+      let isNamespace = false;
       if(node.importClause) {
-        if(node.importClause.name) specifiers.push({ localName: node.importClause.name.text, isDefault: true });
+        if(node.importClause.name) { // Default import: import defaultName from 'module'
+          importedSymbols.push(node.importClause.name.text + " (default)");
+          isDefault = true;
+        }
         if(node.importClause.namedBindings) {
-          if(ts.isNamespaceImport(node.importClause.namedBindings)) {
-            specifiers.push({ localName: node.importClause.namedBindings.name.text, isNamespace: true });
-          } else if (ts.isNamedImports(node.importClause.namedBindings)) {
-            node.importClause.namedBindings.elements.forEach(el => specifiers.push({ importedName: el.propertyName?.text, localName: el.name.text }));
+          if(ts.isNamespaceImport(node.importClause.namedBindings)) { // Namespace import: import * as ns from 'module'
+            importedSymbols.push("* as " + node.importClause.namedBindings.name.text);
+            isNamespace = true;
+          } else if (ts.isNamedImports(node.importClause.namedBindings)) { // Named imports: import { a, b as c } from 'module'
+            node.importClause.namedBindings.elements.forEach(el => {
+              importedSymbols.push(el.propertyName ? `${el.propertyName.text} as ${el.name.text}` : el.name.text);
+            });
           }
         }
       }
-      imports.push({ source: node.moduleSpecifier.text, specifiers, startLine, endLine });
-      detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'import', node.moduleSpecifier.text, detailedNodesOutput.length), label: `Import from '${node.moduleSpecifier.text}'`, type: 'ts_import', details: specifiers.map(s => s.localName + (s.importedName && s.importedName !== s.localName ? ` as ${s.importedName}` : '')).join(', '), lineNumbers, structuredInfo: { source: node.moduleSpecifier.text, specifiers, startLine, endLine } });
-    } else if (ts.isExportDeclaration(node)) {
-      const names = node.exportClause && ts.isNamedExports(node.exportClause) ? node.exportClause.elements.map(el => el.name.text) : undefined;
-      exports.push({ type: 'named', names, source: node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : undefined, startLine, endLine });
-      detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'export', 'named', detailedNodesOutput.length), label: `Export ${names?.join(', ') || '*'}`, type: 'ts_export_named', details: `Source: ${node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : 'local'}`, lineNumbers, structuredInfo: { type: 'named', names, source: node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : undefined, startLine, endLine } });
-    } else if (ts.isExportAssignment(node)) { // export default ...
-      exports.push({ type: 'default', names: [node.expression.getText(sourceFile).substring(0,50)], startLine, endLine });
-      detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'export', 'default', detailedNodesOutput.length), label: `Export Default`, type: 'ts_export_default', details: node.expression.getText(sourceFile).substring(0,100), lineNumbers, structuredInfo: { type: 'default', expression: node.expression.getText(sourceFile), startLine, endLine } });
+      rawImportsOutput.push({ originalPath: node.moduleSpecifier.text, importedSymbols, isDefaultImport: isDefault, isNamespaceImport: isNamespace, sourceFile: fileName });
+      // detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'import', node.moduleSpecifier.text, detailedNodesOutput.length), label: `Import from '${node.moduleSpecifier.text}'`, type: 'ts_import', details: specifiers.map(s => s.localName + (s.importedName && s.importedName !== s.localName ? ` as ${s.importedName}` : '')).join(', '), lineNumbers, structuredInfo: { source: node.moduleSpecifier.text, specifiers, startLine, endLine } });
+    } else if (ts.isExportDeclaration(node)) { // export { foo }; export { foo as bar }; export * from './other';
+      const source = node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : undefined;
+      if (node.exportClause && ts.isNamedExports(node.exportClause)) {
+        node.exportClause.elements.forEach(el => {
+          rawExportsOutput.push({ name: el.name.text, type: 're-export', reExportedFrom: source, sourceFile: fileName });
+        });
+      } else if (!node.exportClause && source) { // export * from './other';
+         rawExportsOutput.push({ name: '*', type: 're-export', reExportedFrom: source, sourceFile: fileName });
+      }
+      // detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'export', 'named', detailedNodesOutput.length), label: `Export ${names?.join(', ') || '*'}`, type: 'ts_export_named', details: `Source: ${node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : 'local'}`, lineNumbers, structuredInfo: { type: 'named', names, source: node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : undefined, startLine, endLine } });
+    } else if (ts.isExportAssignment(node)) { // export default ...;
+      const exprText = node.expression.getText(sourceFile);
+      rawExportsOutput.push({ name: exprText.length > 50 ? exprText.substring(0,50) + '...' : exprText, type: 'unknown', isDefaultExport: true, sourceFile: fileName }); // Type here is hard to determine without more context
+      // detailedNodesOutput.push({ id: generateNodeId(fileSpecificPrefix, 'export', 'default', detailedNodesOutput.length), label: `Export Default`, type: 'ts_export_default', details: node.expression.getText(sourceFile).substring(0,100), lineNumbers, structuredInfo: { type: 'default', expression: node.expression.getText(sourceFile), startLine, endLine } });
     }
 
     for (const child of node.getChildren(sourceFile)) {
-        visitNodeRecursive(child); // Recursive call
+        visitNodeRecursive(child);
     }
   }
 
@@ -1088,14 +1253,24 @@ async function analyzeTypeScriptAST(fileName: string, fileContent: string, gener
       }
     }
 
-    // Create DetailedNode using utility
-    const detailedNode = createDetailedNodeFromExtractedElement(task.originalNodeInfo, task.uniqueId, `ts_`);
+    // Create DetailedNode using utility, ensuring astNode is not passed directly if it's complex
+    const detailedNode = createDetailedNodeFromExtractedElement(
+        { ...task.originalNodeInfo, astNode: undefined }, // Remove or simplify astNode before storing
+        task.uniqueId,
+        `ts_`
+    );
     detailedNodesOutput.push(detailedNode);
   });
 
+  // Add raw imports and exports to detailedNodes for now if they weren't part of a summarizable element
+  // This part might be redundant if all exports are declarations and captured above.
+  // rawImportsOutput.forEach... (similar to Python, if needed for detailedNodes)
+  // rawExportsOutput.forEach... (similar to Python, if needed for detailedNodes)
+
+
   const totalLocalCalls = detailedNodesOutput.reduce((acc, node) => acc + (node.structuredInfo?.localCalls?.length || 0), 0);
-  const summary = `TypeScript file '${fileName}' (AST analysis): Found ${elements.filter(e=>e.kind==='function'||e.kind==='method').length} functions/methods, ${elements.filter(e=>e.kind==='class').length} classes, ${elements.filter(e=>e.kind==='interface').length} interfaces, ${imports.length} imports, ${exports.length} exports, and ${totalLocalCalls} detected local calls. Semantic summaries attempted.`;
-  return { analysisSummary: summary, detailedNodes: detailedNodesOutput };
+  const summary = `TypeScript file '${fileName}' (AST analysis): Found ${elements.filter(e=>e.kind==='function'||e.kind==='method').length} functions/methods, ${elements.filter(e=>e.kind==='class').length} classes, ${elements.filter(e=>e.kind==='interface').length} interfaces, ${rawImportsOutput.length} imports, ${rawExportsOutput.length} exports, and ${totalLocalCalls} detected local calls. Semantic summaries attempted.`;
+  return { analysisSummary: summary, detailedNodes: detailedNodesOutput, rawImports: rawImportsOutput, rawExports: rawExportsOutput };
 }
 
 // --- Fallback and other analyzers (package.json, generic.json, markdown, plain_text, fallback, python regex) ---
@@ -1366,9 +1541,8 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
 
     let fileContentString: string | null = null;
 
-    // Define which types absolutely need content for this stage of analysis
-    const typesRequiringContent = [
-        'javascript', 'typescript', 'python',
+    const typesRequiringContentForAST = ['javascript', 'typescript', 'python'];
+    const typesRequiringContentForOtherParsing = [
         'package.json', 'generic.json', 'markdown', 'text',
         'pom_xml', 'gradle_script', 'csproj_file',
         'dockerfile', 'docker_compose_config',
@@ -1376,22 +1550,23 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
         'shell_script', 'env_config', 'xml_config', 'text_config',
         'html', 'css'
     ];
+    const typesRequiringContent = [...typesRequiringContentForAST, ...typesRequiringContentForOtherParsing];
 
     if (typesRequiringContent.includes(effectiveType)) {
         console.log(`[Analyzer] Attempting to get content for: ${file.name} (Effective type: ${effectiveType})`);
-        fileContentString = await getFileContent(file.name); // file.name is path relative to archive root or project dir
+        fileContentString = await getFileContent(file.name);
     }
 
     if (fileContentString) {
         console.log(`[Analyzer] Successfully fetched content for ${file.name}. Length: ${fileContentString.length}.`);
         const localFileSpecificPrefix = (path.basename(file.name) || 'file').replace(/[^a-zA-Z0-9_]/g, '_');
-        let analysisResult;
-        let keyFileType: KeyFile['type'] = 'unknown'; // Default, to be overridden
+        let analysisResult; // This will be typed based on the specific analyzer function
+        let keyFileType: KeyFile['type'] = 'unknown';
 
         switch (effectiveType) {
             case 'javascript':
                 keyFileType = 'source_code_js';
-                console.log(`[POC] Analyzing JS: ${file.name}`);
+                console.log(`[Analyzer] Analyzing JS: ${file.name}`); // Corrected log from POC to Analyzer
                 analysisResult = await analyzeJavaScriptAST(file.name, fileContentString, generateNodeId, localFileSpecificPrefix);
                 output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: analysisResult.analysisSummary, extractedSymbols: analysisResult.detailedNodes.map(n => n.label), details: `JS AST Nodes: ${analysisResult.detailedNodes.length}` });
                 if(analysisResult.error) output.parsingErrors?.push(`${file.name}: JS AST Error - ${analysisResult.error}`);
@@ -1822,18 +1997,251 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
   console.log(`[Analyzer] Inferred ${output.potentialArchitecturalComponents.length} potential architectural components.`);
 
   // Step: Build File Dependency Graph (Conceptual - No output change in this step, but sets up for future enhancements)
-  // This step would involve:
-  // 1. Defining FileDependencyNode interface (filePath, imports: string[], exports: string[], importedBy: string[])
-  // 2. Modifying AST analyzers to return structured import/export details if not already sufficient.
-  //    - analyzePythonAST would need to identify exported symbols (e.g., non-private top-level defs/classes).
-  // 3. Implementing resolveImportPath(importingFile: string, rawImport: string, projectFiles: string[]): string | null
-  //    - Handle JS/TS relative paths, extension guessing (.js, .ts, /index.js), node_modules (mark as external).
-  //    - Handle Python absolute and relative imports (using level).
-  // 4. Implementing buildDependencyGraph(analyzedFilesData): Map<string, FileDependencyNode>
-  //    - Iterate through analyzed files, use resolveImportPath, populate graph.
-  // For now, this is a placeholder for future work to enhance architectural component detection.
-  // The actual dependency graph isn't being added to the ProjectAnalysisOutputSchema yet.
-  console.log("[Analyzer] Placeholder for File Dependency Graph construction. This data can be used to refine architectural components later.");
+    const astAnalysisResultsForDepGraph = new Map<string, { rawImports: RawASTImport[], rawExports: RawASTExport[] }>();
+
+    // Re-iterate filesList to populate astAnalysisResultsForDepGraph (or integrate into the main loop if performance is a concern)
+    // For this iteration, we'll assume the main loop populates it.
+    // The main loop's calls to analyzeJavaScriptAST, analyzeTypeScriptAST, analyzePythonAST
+    // should now be structured to return rawImports and rawExports, which are then stored.
+    // This was done in the previous conceptual step of modifying AST analyzers.
+
+    // Example of how it would be populated in the main loop (actual population happens there):
+    // if (jsAnalysisResult) {
+    //   astAnalysisResultsForDepGraph.set(file.name, {
+    //     rawImports: jsAnalysisResult.rawImports,
+    //     rawExports: jsAnalysisResult.rawExports
+    //   });
+    // }
+
+    // Placeholder for actual call to buildDependencyGraph
+    // const dependencyGraph = await buildDependencyGraph(astAnalysisResultsForDepGraph, filesList.map(f => f.name));
+    // if (dependencyGraph) {
+    //   console.log(`[Analyzer] Dependency graph constructed with ${dependencyGraph.size} nodes.`);
+      // Further processing or adding to output would happen here in a future step.
+      // For example, attach simplified dependency info to KeyFile.details or a new field.
+    // }
+
+    console.log("[Analyzer] AST analysis results collected for potential dependency graph. Actual graph construction deferred.");
+
+    // Placeholder for buildDependencyGraph and resolveImportPath function implementations
+    // These will be substantial and are best developed iteratively.
+
+    /*
+    interface ResolvedImport {
+        targetPath: string; // Resolved path (internal) or identifier (external, e.g., 'npm:lodash')
+        type: 'internal' | 'external' | 'unresolved';
+        originalPath: string;
+        specificSymbols?: string[];
+    }
+
+    function resolveImportPath(
+        importingFilePath: string,
+        rawImportPath: string,
+        language: 'javascript' | 'typescript' | 'python',
+        projectFiles: string[], // List of all file paths in the project relative to root
+        pythonImportLevel?: number
+    ): ResolvedImport | null {
+        const projectRoot = '.'; // Assuming all paths in projectFiles are relative to this root
+        const importingFileDir = path.posix.dirname(importingFilePath);
+
+        // Normalize to use forward slashes for internal consistency
+        const normalizePath = (p: string) => p.replace(/\\/g, '/');
+        const normalizedImportingFilePath = normalizePath(importingFilePath);
+        const normalizedRawImportPath = normalizePath(rawImportPath);
+
+        const jsTsExtensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '/index.js', '/index.jsx', '/index.ts', '/index.tsx', '/index.mjs', '/index.cjs'];
+        const pyExtensions = ['.py', '/__init__.py'];
+
+        if (language === 'javascript' || language === 'typescript') {
+            if (normalizedRawImportPath.startsWith('./') || normalizedRawImportPath.startsWith('../')) {
+                let resolved = path.posix.resolve(importingFileDir, normalizedRawImportPath);
+                resolved = path.posix.relative(projectRoot, resolved); // Make relative to project root
+
+                // Try with extensions
+                const candidates = [resolved, ...jsTsExtensions.map(ext => `${resolved}${ext}`)];
+                if (resolved.endsWith('/')) { // import from a directory, implies index file
+                    candidates.push(...jsTsExtensions.map(ext => `${resolved}index${ext.startsWith('/') ? ext.substring(1) : ext}`));
+                }
+
+                for (const candidate of candidates) {
+                    if (projectFiles.includes(candidate)) {
+                        return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
+                    }
+                }
+                // Check if it's a directory import (e.g. import './components/') which implies index file.
+                const indexResolved = path.posix.join(resolved, 'index');
+                for (const ext of jsTsExtensions) {
+                    const candidateWithIndex = `${indexResolved}${ext.startsWith('/') ? ext.substring(1) : ext}`;
+                     if (projectFiles.includes(candidateWithIndex)) {
+                        return { targetPath: candidateWithIndex, type: 'internal', originalPath: rawImportPath };
+                    }
+                }
+
+                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath }; // Could not resolve
+            } else {
+                // External package or built-in module
+                // Basic check, a more robust solution would check against known built-ins or actual package list
+                if (['fs', 'path', 'http', 'https', 'os', 'events', 'stream', 'util', 'crypto', 'zlib', 'url', 'querystring', 'assert', 'buffer', 'child_process', 'cluster', 'dgram', 'dns', 'domain', 'net', 'readline', 'repl', 'tls', 'tty', 'vm', 'string_decoder'].includes(normalizedRawImportPath) ||
+                    !normalizedRawImportPath.includes('/') // Simplified check for top-level package
+                ) {
+                    return { targetPath: `npm:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath };
+                }
+                // Could be a path alias from tsconfig, or just an unresolvable path
+                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath };
+            }
+        } else if (language === 'python') {
+            if (pythonImportLevel && pythonImportLevel > 0) { // Relative import: from .foo import X or from ..bar import Y
+                let currentDirParts = importingFileDir === '.' ? [] : importingFileDir.split('/');
+                if (pythonImportLevel > currentDirParts.length) {
+                    return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, specificSymbols: [`Relative import level ${pythonImportLevel} exceeds depth from root.`] };
+                }
+                const baseLookupPathParts = currentDirParts.slice(0, currentDirParts.length - (pythonImportLevel -1));
+                const modulePathParts = normalizedRawImportPath ? normalizedRawImportPath.split('.') : [];
+                const finalPathParts = [...baseLookupPathParts, ...modulePathParts];
+                let resolvedRelative = finalPathParts.join('/');
+
+                const candidates = [`${resolvedRelative}.py`, `${resolvedRelative}/__init__.py`];
+                for (const candidate of candidates) {
+                    if (projectFiles.includes(candidate)) {
+                        return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
+                    }
+                }
+                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, specificSymbols: [`Could not resolve relative path: ${resolvedRelative}`] };
+
+            } else { // Absolute import: import foo.bar or from foo.bar import X
+                const modulePath = normalizedRawImportPath.replace(/\./g, '/');
+                const candidates = [`${modulePath}.py`, `${modulePath}/__init__.py`];
+                 for (const candidate of candidates) {
+                    if (projectFiles.includes(candidate)) {
+                        return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
+                    }
+                }
+                // If not found as internal, assume external/unresolved (Python stdlib or installed package)
+                return { targetPath: `pypi:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath };
+            }
+        }
+        return null; // Should not happen if language is correctly specified
+    }
+    */
+
+    // --- File Dependency Graph Construction (Conceptual Implementation) ---
+
+    // Helper to determine language from filePath for resolveImportPath
+    const getLanguageFromPath = (filePath: string): 'javascript' | 'typescript' | 'python' | 'unknown' => {
+        if (filePath.endsWith('.js') || filePath.endsWith('.jsx') || filePath.endsWith('.mjs') || filePath.endsWith('.cjs')) return 'javascript';
+        if (filePath.endsWith('.ts') || filePath.endsWith('.tsx') || filePath.endsWith('.mts') || filePath.endsWith('.cts')) return 'typescript';
+        if (filePath.endsWith('.py')) return 'python';
+        return 'unknown';
+    }
+
+    async function buildDependencyGraph(
+        analyzedFilesData: Map<string, { rawImports: RawASTImport[], rawExports: RawASTExport[] }>,
+        projectFilesList: string[]
+    ): Promise<Map<string, FileDependencyNode>> {
+        const graph = new Map<string, FileDependencyNode>();
+
+        // Initialize graph nodes
+        for (const filePath of projectFilesList) {
+            // Only create nodes for files that might have AST analysis results or are source files
+            const lang = getLanguageFromPath(filePath);
+            if (lang !== 'unknown' || analyzedFilesData.has(filePath)) { // Ensure we only process relevant files
+                 graph.set(filePath, {
+                    filePath,
+                    imports: [],
+                    // Populate exports from analyzedFilesData if available, otherwise empty
+                    exports: analyzedFilesData.get(filePath)?.rawExports.map(ex => ({
+                        name: ex.name,
+                        type: ex.type, // RawASTExport type should be compatible or mapped
+                        isDefaultExport: ex.isDefaultExport,
+                    })) || [],
+                    importedBy: [],
+                });
+            }
+        }
+
+        console.log(`[DepGraph] Initialized ${graph.size} nodes for dependency graph.`);
+
+        // Process imports for each file
+        for (const [filePath, data] of analyzedFilesData.entries()) {
+            const sourceNode = graph.get(filePath);
+            if (!sourceNode) continue; // Should not happen if initialized correctly
+
+            const language = getLanguageFromPath(filePath);
+            if (language === 'unknown') continue; // Cannot resolve imports for unknown language
+
+            for (const rawImp of data.rawImports) {
+                // ** IMPORTANT: Actual resolveImportPath is commented out and replaced by placeholder logic **
+                // const resolved = resolveImportPath(filePath, rawImp.originalPath, language, projectFilesList, rawImp.pythonImportLevel);
+
+                let resolvedImportSimulated: ResolvedImport | null = null;
+                // Simplified placeholder logic for resolveImportPath:
+                if (rawImp.originalPath.startsWith('./') || rawImp.originalPath.startsWith('../')) {
+                    // Simulate trying to resolve a relative path (very naively)
+                    const tempResolved = path.posix.resolve(path.posix.dirname(filePath), rawImp.originalPath);
+                    const relativeToRoot = path.posix.relative('.', tempResolved);
+                    // Try common extensions for JS/TS, or .py for Python
+                    let foundPath: string | undefined = undefined;
+                    if (language === 'javascript' || language === 'typescript') {
+                        const exts = ['.js', '.ts', '.jsx', '.tsx', '/index.js', '/index.ts'];
+                        foundPath = [relativeToRoot, ...exts.map(e => relativeToRoot + e)].find(p => projectFilesList.includes(p));
+                    } else if (language === 'python') {
+                         foundPath = [`${relativeToRoot}.py`, `${relativeToRoot}/__init__.py`].find(p => projectFilesList.includes(p));
+                    }
+                    if (foundPath && projectFilesList.includes(foundPath)) {
+                       resolvedImportSimulated = { targetPath: foundPath, type: 'internal', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
+                    } else {
+                       resolvedImportSimulated = { targetPath: rawImp.originalPath, type: 'unresolved', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
+                    }
+                } else if (language === 'python' && rawImp.pythonImportLevel && rawImp.pythonImportLevel > 0) {
+                    // Simplified Python relative import (very naive)
+                    resolvedImportSimulated = { targetPath: rawImp.originalPath, type: 'unresolved', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols, details: "Simulated Python relative import, likely incorrect." };
+                } else if (!rawImp.originalPath.includes('/') && (language === 'javascript' || language === 'typescript')) {
+                     resolvedImportSimulated = { targetPath: `npm:${rawImp.originalPath}`, type: 'external', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
+                } else if (language === 'python' && !rawImp.originalPath.startsWith('.')) {
+                     resolvedImportSimulated = { targetPath: `pypi:${rawImp.originalPath}`, type: 'external', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
+                } else {
+                     resolvedImportSimulated = { targetPath: rawImp.originalPath, type: 'unresolved', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
+                }
+                // --- End of placeholder logic for resolveImportPath ---
+
+                if (resolvedImportSimulated) {
+                    sourceNode.imports.push({
+                        targetPath: resolvedImportSimulated.targetPath,
+                        type: resolvedImportSimulated.type,
+                        originalPath: resolvedImportSimulated.originalPath,
+                        specificSymbols: resolvedImportSimulated.specificSymbols,
+                    });
+
+                    if (resolvedImportSimulated.type === 'internal') {
+                        const targetNode = graph.get(resolvedImportSimulated.targetPath);
+                        if (targetNode && !targetNode.importedBy.includes(filePath)) {
+                            targetNode.importedBy.push(filePath);
+                        }
+                    }
+                }
+            }
+        }
+        console.log("[DepGraph] Finished processing imports with placeholder resolution.");
+        return graph;
+    }
+
+    // Call buildDependencyGraph (even with placeholder resolveImportPath)
+    // The actual result won't be fully accurate but tests the structure.
+    const dependencyGraph = await buildDependencyGraph(astAnalysisResultsForDepGraph, filesList.map(f => f.name));
+    if (dependencyGraph) {
+      console.log(`[Analyzer] Conceptual dependency graph constructed with ${dependencyGraph.size} nodes.`);
+      // For debugging, print some of the graph.
+      // let i = 0;
+      // for (const [filePath, node] of dependencyGraph.entries()) {
+      //   if (i++ < 2) { // Print details for first 2 nodes
+      //     console.log(`[DepGraph Node]: ${filePath}`, {
+      //       imports: node.imports.slice(0,2), // show first 2 imports
+      //       exports: node.exports.slice(0,5), // show first 5 exports
+      //       importedBy: node.importedBy.slice(0,2) // show first 2 importers
+      //     });
+      //   }
+      // }
+    }
 
 
     // Python analysis
