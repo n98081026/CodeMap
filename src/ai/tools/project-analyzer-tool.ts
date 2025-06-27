@@ -1700,6 +1700,127 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
   // Sort by path to make it more readable
   output.directoryStructureSummary.sort((a, b) => a.path.localeCompare(b.path));
 
+  // Step: Infer PotentialArchitecturalComponents (after all files and directories are processed)
+  console.log("[Analyzer] Inferring potential architectural components...");
+  output.potentialArchitecturalComponents = [];
+
+  // Rule 1-4: Based on directoryStructureSummary
+  for (const dirSummary of output.directoryStructureSummary) {
+    const dirPath = dirSummary.path;
+    const dirName = dirPath.split('/').pop()?.toLowerCase() || "";
+    let componentName = dirName.charAt(0).toUpperCase() + dirName.slice(1); // Capitalize
+    let componentType: PotentialArchitecturalComponent['type'] | null = null;
+    const relatedFilesFromDir: string[] = [];
+
+    // Collect all files in this directory and its subdirectories (up to a certain depth for performance)
+    // This requires iterating through filesList again or using directoryDataMap more effectively
+    // For simplicity in this step, we'll use files directly under this dirSummary.path for now
+    // A more robust solution would be to use the directoryDataMap to get all nested files.
+
+    // Simplified: get files directly under this path from filesList
+    filesList.forEach(file => {
+        if (file.name.startsWith(dirPath === '.' ? '' : `${dirPath}/`) && !file.name.substring(dirPath === '.' ? 0 : dirPath.length + 1).includes('/')) {
+            relatedFilesFromDir.push(file.name);
+        } else if (dirPath === '.' && !file.name.includes('/')) { // Root files
+            relatedFilesFromDir.push(file.name);
+        }
+    });
+
+
+    const sourceCodeFilesCount = Object.entries(dirSummary.fileCounts)
+      .filter(([ext]) => ['.js', '.ts', '.py', '.java', '.cs'].includes(ext.toLowerCase()))
+      .reduce((sum, [, count]) => sum + count, 0);
+
+    const uiFrameworkFileCount = Object.entries(dirSummary.fileCounts)
+      .filter(([ext]) => ['.tsx', '.vue', '.svelte', '.jsx'].includes(ext.toLowerCase())) // .jsx added
+      .reduce((sum, [, count]) => sum + count, 0);
+
+    const configFilesCount = Object.entries(dirSummary.fileCounts)
+      .filter(([ext]) => ['.json', '.yaml', '.yml', '.xml', '.properties', '.ini', '.toml', '.env'].includes(ext.toLowerCase()))
+      .reduce((sum, [, count]) => sum + count, 0);
+
+    if (['services', 'controllers', 'api', 'handlers', 'routes', 'features', 'modules'].includes(dirName) && sourceCodeFilesCount > 1) {
+      componentType = 'service'; // Or 'module'
+      componentName = `${componentName} ${componentType.charAt(0).toUpperCase() + componentType.slice(1)}`;
+    } else if ((['components', 'ui', 'views', 'pages', 'client', 'frontend'].includes(dirName) || uiFrameworkFileCount > (relatedFilesFromDir.length / 3)) && uiFrameworkFileCount > 0 ) {
+      componentType = 'ui_area';
+      componentName = `${componentName} ${componentType.charAt(0).toUpperCase() + componentType.slice(1)}`;
+    } else if (['models', 'entities', 'db', 'data', 'schemas', 'repositories', 'dao'].includes(dirName) && sourceCodeFilesCount > 0) {
+      componentType = 'data_store_interface';
+      componentName = `${componentName} ${componentType.charAt(0).toUpperCase() + componentType.slice(1)}`;
+    } else if ((['config', 'configuration', 'settings'].includes(dirName) || dirName.endsWith('_config')) && configFilesCount > 1) {
+      componentType = 'module'; // Configuration module
+      componentName = `${componentName} Configuration`;
+    }
+
+    if (componentType && componentName) {
+        // Filter relatedFiles to include only files directly in this path for this simple rule
+        const directFilesInDir = filesList.filter(f => {
+            const fParent = path.dirname(f.name);
+            return (dirPath === '.' && (fParent === '.' || !fParent)) || fParent === dirPath;
+        }).map(f => f.name);
+
+      if (directFilesInDir.length > 0) { // Only add if component has direct files
+        output.potentialArchitecturalComponents.push({
+            name: componentName,
+            type: componentType,
+            relatedFiles: directFilesInDir,
+        });
+      }
+    }
+  }
+
+  // Rule 5: Based on entry_point (simplified)
+  const entryPointFile = output.keyFiles?.find(kf => kf.type === 'entry_point');
+  if (entryPointFile && output.projectName) {
+    // Check if a general component for the project name already exists (e.g. from 'src' dir)
+    const projectRootComponentName = `${output.projectName} Main Application`;
+    if (!output.potentialArchitecturalComponents.find(c => c.name.toLowerCase().includes(output.projectName!.toLowerCase()))) {
+        // Collect all source files not already part of other specific components for 'relatedFiles'
+        // This is a simplification; a more robust way would involve dependency analysis or better grouping.
+        const existingRelatedFiles = new Set(output.potentialArchitecturalComponents.flatMap(c => c.relatedFiles || []));
+        const mainAppFiles = filesList
+            .filter(f =>
+                (f.name.endsWith('.js') || f.name.endsWith('.ts') || f.name.endsWith('.py') || f.name.endsWith('.java') || f.name.endsWith('.cs')) &&
+                !f.name.toLowerCase().includes('test') &&
+                !existingRelatedFiles.has(f.name) &&
+                (f.name.startsWith('src/') || f.name.startsWith('app/') || !f.name.includes('/')) // Heuristic for main app files
+            )
+            .map(f => f.name);
+
+        if (mainAppFiles.length > 0) {
+             output.potentialArchitecturalComponents.push({
+                name: projectRootComponentName,
+                type: 'service', // Or 'module'
+                relatedFiles: mainAppFiles,
+            });
+        } else if (!output.potentialArchitecturalComponents.find(c => c.type === 'service' || c.type === 'module')) {
+            // If no other significant components found, add the entry point itself as a component.
+            output.potentialArchitecturalComponents.push({
+                name: projectRootComponentName,
+                type: 'service',
+                relatedFiles: [entryPointFile.filePath],
+            });
+        }
+    }
+  }
+
+  // Deduplicate components by name (simple deduplication)
+  if (output.potentialArchitecturalComponents.length > 0) {
+    const uniqueComponents = new Map<string, PotentialArchitecturalComponent>();
+    output.potentialArchitecturalComponents.forEach(comp => {
+        if (!uniqueComponents.has(comp.name)) {
+            uniqueComponents.set(comp.name, comp);
+        } else {
+            // Optional: Merge relatedFiles if component names are duplicated
+            const existing = uniqueComponents.get(comp.name)!;
+            existing.relatedFiles = [...new Set([...(existing.relatedFiles || []), ...(comp.relatedFiles || [])])];
+        }
+    });
+    output.potentialArchitecturalComponents = Array.from(uniqueComponents.values());
+  }
+  console.log(`[Analyzer] Inferred ${output.potentialArchitecturalComponents.length} potential architectural components.`);
+
 
     // Python analysis
     const requirementsTxtFile = filesList.find(f => f.name.toLowerCase() === 'requirements.txt');
