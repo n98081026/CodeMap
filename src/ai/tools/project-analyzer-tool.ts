@@ -1543,6 +1543,10 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
 
     const typesRequiringContentForAST = ['javascript', 'typescript', 'python'];
     const typesRequiringContentForOtherParsing = [
+
+    // Define which types absolutely need content for this stage of analysis
+    const typesRequiringContent = [
+        'javascript', 'typescript', 'python',
         'package.json', 'generic.json', 'markdown', 'text',
         'pom_xml', 'gradle_script', 'csproj_file',
         'dockerfile', 'docker_compose_config',
@@ -1555,6 +1559,11 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
     if (typesRequiringContent.includes(effectiveType)) {
         console.log(`[Analyzer] Attempting to get content for: ${file.name} (Effective type: ${effectiveType})`);
         fileContentString = await getFileContent(file.name);
+
+
+    if (typesRequiringContent.includes(effectiveType)) {
+        console.log(`[Analyzer] Attempting to get content for: ${file.name} (Effective type: ${effectiveType})`);
+        fileContentString = await getFileContent(file.name); // file.name is path relative to archive root or project dir
     }
 
     if (fileContentString) {
@@ -1563,10 +1572,15 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
         let analysisResult; // This will be typed based on the specific analyzer function
         let keyFileType: KeyFile['type'] = 'unknown';
 
+        let analysisResult;
+        let keyFileType: KeyFile['type'] = 'unknown'; // Default, to be overridden
+
         switch (effectiveType) {
             case 'javascript':
                 keyFileType = 'source_code_js';
                 console.log(`[Analyzer] Analyzing JS: ${file.name}`); // Corrected log from POC to Analyzer
+
+                console.log(`[POC] Analyzing JS: ${file.name}`);
                 analysisResult = await analyzeJavaScriptAST(file.name, fileContentString, generateNodeId, localFileSpecificPrefix);
                 output.keyFiles?.push({ filePath: file.name, type: keyFileType, briefDescription: analysisResult.analysisSummary, extractedSymbols: analysisResult.detailedNodes.map(n => n.label), details: `JS AST Nodes: ${analysisResult.detailedNodes.length}` });
                 if(analysisResult.error) output.parsingErrors?.push(`${file.name}: JS AST Error - ${analysisResult.error}`);
@@ -1757,6 +1771,14 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
                         }
                     }
                     output.keyFiles?.push({ filePath: file.name, type: kfType, briefDescription: desc });
+
+                // Ensure a keyFile entry is still made if it wasn't handled by earlier specific manifest logic.
+                if (!output.keyFiles?.find(kf => kf.filePath === file.name)) {
+                    let desc = `${effectiveType} file.`;
+                    if (effectiveType === 'binary_data') desc = "Binary data file.";
+                    else if (effectiveType === 'unknown') desc = "File of unrecognized type.";
+                    // For other text-based types that fell through, use the generic description
+                    output.keyFiles?.push({ filePath: file.name, type: effectiveType as KeyFile['type'], briefDescription: desc });
                 }
                 console.log(`[Analyzer] File ${file.name} (type: ${effectiveType}) passed through default case in content analysis switch.`);
                 break;
@@ -1788,6 +1810,12 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
             }
             output.keyFiles?.push({ filePath: file.name, type: kfType, briefDescription: desc});
         }
+
+        output.parsingErrors?.push(`Could not read content for expected text-based file: ${file.name}`);
+        console.warn(`[Analyzer] Failed to get content for: ${file.name} (Type: ${effectiveType})`);
+    } else if (effectiveType === 'binary' || effectiveType === 'unknown') {
+        // Add binary/unknown files to keyFiles as well, just with less detail
+        output.keyFiles?.push({ filePath: file.name, type: effectiveType === 'binary' ? 'binary_data' : 'unknown', briefDescription: `${effectiveType} file.`});
       }
     }
   console.log("[Analyzer] Finished deep analysis loop.");
@@ -2272,9 +2300,61 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
             importedByCount: node.importedBy.length
           });
           i++;
+
+
+        if (!directoryDataMap.has(currentPath)) {
+          const pathDepth = currentPath.split('/').length;
+          directoryDataMap.set(currentPath, { files: [], subDirectoryNames: new Set(), fileCounts: {}, depth: pathDepth });
         }
       }
     }
+  }
+
+  output.directoryStructureSummary = [];
+  const MAX_DIR_DEPTH_FOR_SUMMARY = 3; // Configure max depth for summary to avoid excessive detail
+
+  for (const [dirPath, data] of directoryDataMap.entries()) {
+    if (data.depth > MAX_DIR_DEPTH_FOR_SUMMARY && dirPath !== '.') continue; // Skip very deep directories unless it's root
+
+    let inferredPurpose = "General";
+    const lowerDirPath = dirPath.toLowerCase();
+    const dirName = dirPath.split('/').pop()?.toLowerCase() || "";
+
+    if (dirName === 'src' || dirName === 'source' || dirName === 'app') inferredPurpose = "Source Code";
+    else if (dirName === 'tests' || dirName === '__tests__') inferredPurpose = "Tests";
+    else if (dirName === 'services') inferredPurpose = "Service Layer";
+    else if (dirName === 'components' || dirName === 'ui' || dirName === 'views' || dirName === 'pages') inferredPurpose = "UI Components/Views";
+    else if (dirName === 'utils' || dirName === 'helpers' || dirName === 'lib') inferredPurpose = "Utilities/Libraries";
+    else if (dirName === 'config' || dirName === 'configuration') inferredPurpose = "Configuration";
+    else if (dirName === 'docs' || dirName === 'documentation') inferredPurpose = "Documentation";
+    else if (dirName === 'assets' || dirName === 'static' || dirName === 'public') inferredPurpose = "Static Assets";
+    else if (dirName === 'models' || dirName === 'domain' || dirName === 'entities') inferredPurpose = "Data Models/Entities";
+    else if (dirName === 'routes' || dirName === 'controllers' || dirName === 'api') inferredPurpose = "API Routes/Controllers";
+    else if (dirName === 'hooks') inferredPurpose = "React Hooks";
+    else if (dirName === 'styles' || dirName === 'css' || dirName === 'scss') inferredPurpose = "Stylesheets";
+    else if (dirName === 'scripts') inferredPurpose = "Build/Utility Scripts";
+    else if (dirName === 'data' || dirName === 'database' || dirName === 'db') inferredPurpose = "Data/Database related";
+     // Add more heuristics based on common directory names
+
+    // Heuristic based on dominant file types within the directory
+    if (data.fileCounts['.js'] > (data.files.length / 2) || data.fileCounts['.ts'] > (data.files.length / 2)) inferredPurpose = inferredPurpose === "General" ? "JavaScript/TypeScript Modules" : `${inferredPurpose} (JS/TS)`;
+    if (data.fileCounts['.py'] > (data.files.length / 2)) inferredPurpose = inferredPurpose === "General" ? "Python Modules" : `${inferredPurpose} (Python)`;
+    if (data.fileCounts['.java'] > (data.files.length / 2)) inferredPurpose = inferredPurpose === "General" ? "Java Code" : `${inferredPurpose} (Java)`;
+    if (data.fileCounts['.cs'] > (data.files.length / 2)) inferredPurpose = inferredPurpose === "General" ? "C# Code" : `${inferredPurpose} (C#)`;
+    if (data.fileCounts['.md'] > (data.files.length / 2) && dirName !== 'docs') inferredPurpose = inferredPurpose === "General" ? "Markdown Documentation" : `${inferredPurpose} (Markdown)`;
+
+    // Only add if it has files or subdirectories, or it's the root.
+    if (dirPath === '.' || data.files.length > 0 || data.subDirectoryNames.size > 0) {
+        output.directoryStructureSummary.push({
+            path: dirPath,
+            fileCounts: data.fileCounts,
+            inferredPurpose: inferredPurpose,
+        });
+    }
+  }
+  // Sort by path to make it more readable
+  output.directoryStructureSummary.sort((a, b) => a.path.localeCompare(b.path));
+
 
 
     // Python analysis
