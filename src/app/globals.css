@@ -6,6 +6,7 @@
 @layer base {
   :root {
     --background: 210 20% 95%;
+    --background-values: 210, 20%, 95%; /* Added for Joyride hsla */
     --foreground: 210 25% 10%;
 
     --card: 210 20% 100%;
@@ -53,6 +54,7 @@
 
   .dark {
     --background: 210 25% 10%;
+    --background-values: 210, 25%, 10%; /* Added for Joyride hsla */
     --foreground: 210 20% 95%;
 
     --card: 210 25% 12%;

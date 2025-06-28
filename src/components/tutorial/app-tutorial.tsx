@@ -292,6 +292,88 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
           backgroundColor: 'hsl(var(--card))', // Use card background color
           primaryColor: 'hsl(var(--primary))', // Use primary color from CSS variables
           textColor: 'hsl(var(--card-foreground))', // Use card foreground color
+          // Updated overlayColor to use comma-separated HSL values from CSS variables
+          overlayColor: `hsla(var(--background-values), 0.7)`,
+        },
+        tooltip: { // Styles for the main tooltip box
+          borderRadius: 'var(--radius)', // Use CSS variable for radius, e.g., 0.5rem
+          padding: '1rem', // Standard padding
+          boxShadow: 'var(--shadow-lg)', // Use a standard shadow
+          border: '1px solid hsl(var(--border))',
+        },
+        tooltipContainer: { // Styles for the container of the tooltip (rarely needed)
+          textAlign: 'left',
+        },
+        tooltipTitle: { // Styles for the title
+          margin: 0,
+          fontSize: '1.125rem', // Tailwind text-lg
+          fontWeight: '600', // Tailwind semibold
+          paddingBottom: '0.5rem',
+          borderBottom: '1px solid hsl(var(--border))', // Separator
+          marginBottom: '0.75rem',
+        },
+        tooltipContent: { // Styles for the content text
+          fontSize: '0.875rem', // Tailwind text-sm
+          lineHeight: '1.4',
+        },
+        buttonNext: { // Styles for the Next button
+          backgroundColor: 'hsl(var(--primary))',
+          color: 'hsl(var(--primary-foreground))',
+          borderRadius: 'var(--radius-sm)', // Slightly smaller radius for buttons inside
+          padding: '0.5rem 1rem',
+          fontSize: '0.875rem',
+          textTransform: 'none',
+        },
+        buttonBack: { // Styles for the Back button
+          backgroundColor: 'hsl(var(--secondary))',
+          color: 'hsl(var(--secondary-foreground))',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.5rem 1rem',
+          fontSize: '0.875rem',
+          marginRight: '0.5rem',
+          textTransform: 'none',
+        },
+        buttonSkip: { // Styles for the Skip button
+          color: 'hsl(var(--muted-foreground))',
+          fontSize: '0.8rem',
+          textTransform: 'none',
+        },
+        buttonClose: { // Styles for the X close button on the tooltip
+            top: '10px', // Adjust position as needed
+            right: '10px',
+            height: '1rem', // lucide icon size
+            width: '1rem', // lucide icon size
+            color: 'hsl(var(--muted-foreground))',
+        },
+        beacon: { // Styles for the pulsing beacon before a step
+            outlineColor: 'hsl(var(--primary))',
+            backgroundColor: 'hsl(var(--primary))',
+        },
+        overlay: { // Styles for the dark overlay
+            // already handled by overlayColor in options
+        },
+        spotlight: { // Styles for the highlighted area
+            borderRadius: 'var(--radius-sm)', // make spotlight have slight rounded corners
+        }
+      }}
+      // debug
+    />
+  );
+};
+
+export default AppTutorial;
+        close: '關閉',
+        last: '完成',
+        next: '下一步',
+        skip: '跳過',
+      }}
+      styles={{
+        options: {
+          zIndex: 10000, // Keep high z-index
+          arrowColor: 'hsl(var(--card))', // Arrow color matches card background for seamless look
+          backgroundColor: 'hsl(var(--card))', // Use card background color
+          primaryColor: 'hsl(var(--primary))', // Use primary color from CSS variables
+          textColor: 'hsl(var(--card-foreground))', // Use card foreground color
           overlayColor: 'hsla(var(--background-hsl), 0.7)', // Use background color with opacity for overlay
         },
         tooltip: { // Styles for the main tooltip box

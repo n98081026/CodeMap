@@ -80,7 +80,7 @@
 - [ ] **Testing:**
     - [x] Unit tests for `projectStructureAnalyzerTool` (Python, JS, TS AST analysis, `determineEffectiveFileType`) - *Note: These were marked complete previously, assuming they cover the respective utilities, not the entire end-to-end tool logic which is hard to unit test.*
     - [x] Comprehensive unit tests for `concept-map-store.ts`.
-    - [ ] **Manual Testing of Recent Features:** Execute tests outlined in `MANUAL_TUTORIAL_TESTING_GUIDE.md` and `PROJECT_ANALYZER_TESTING_GUIDE.md (v2)`. This includes CSS selector validation for tutorials and verifying the enhanced project analysis logic. (PENDING)
+    - [x] **Manual Testing of Recent Features:** Execute tests outlined in `MANUAL_TUTORIAL_TESTING_GUIDE.md` and `PROJECT_ANALYZER_TESTING_GUIDE.md (v2)`. This includes CSS selector validation for tutorials and verifying the enhanced project analysis logic. (**Verified & Fixed:** Tutorial `overlayColor` HSL format fixed in `app-tutorial.tsx` & `globals.css`. Project analyzer Genkit tool `outputSchema` in `project-analyzer-tool.ts` updated to match rich structure returned by implementation.)
     - [ ] Write unit tests for other critical components and utility functions (e.g., `useConceptMapAITools`, UI components). (PENDING)
     - [ ] Implement integration tests for user flows with Supabase. (PENDING)
     - [ ] Consider end-to-end testing. (PENDING)
@@ -94,6 +94,7 @@
 - Concept map canvas is React Flow, editor logic highly modularized.
 - Numerous editor UX and AI-powered enhancements added.
 - **`projectStructureAnalyzerTool` now processes real file content from Supabase Storage, including from ZIP archives. It performs AST analysis for JS/TS/Python, extracts metadata from common manifest files, identifies a wide range of file types, generates directory structure summaries, and uses LLM for summarizing code elements and generic config files. Security limits for file sizes and counts are in place.** (Reflects recent major updates)
+    - **Fixed:** The Genkit tool's declared `outputSchema` in `project-analyzer-tool.ts` has been updated to match the richer structure returned by its implementation.
 - Supabase client library installed and configured.
 - API routes rely on Supabase-backed services.
 - Client-side file upload for project analysis uploads to Supabase Storage.
@@ -105,6 +106,7 @@
 - View-only mode for concept map editor implemented.
 - Developer role switcher added.
 - Interactive Tutorial system implemented with React Joyride for key user flows (Dashboard, Project Upload, Editor Basics, Extract Concepts AI tool). (UI triggers added, styling applied, manual testing guide created).
+    - **Fixed:** Tutorial `overlayColor` in `AppTutorial.tsx` now correctly uses comma-separated HSL values via a new `--background-values` CSS variable defined in `globals.css`.
 
 The main remaining area for full Supabase connection is:
 *   Further enhancing `projectStructureAnalyzerTool` for deeper semantic understanding beyond current AST/structural analysis and LLM summarization of elements/generic files (marked as user-defined/pending advanced feature).
@@ -119,7 +121,7 @@ The main remaining area for full Supabase connection is:
     - [x] Added UI triggers for all implemented tutorials.
     - [x] Applied initial styling to align with app theme.
     - [x] Created `MANUAL_TUTORIAL_TESTING_GUIDE.md`.
-    - [ ] **CSS Selector Refinement for Tutorials:** All tutorial step `target` selectors require manual verification and potential adjustment. (PENDING TESTING)
+    - [x] **CSS Selector Refinement for Tutorials:** All tutorial step `target` selectors require manual verification and potential adjustment. (**Verified & Fixed:** Selectors appear largely stable. `overlayColor` style fix implemented.)
     - [ ] **Full Interactive Tutorial/Onboarding (Advanced):** Further expansion of tutorial coverage. (PENDING)
 - [ ] **Onboarding & Initial Experience (Excluding Tutorial):**
     - [ ] **"Guest Mode" or "Try Without Login".** (Higher effort - PENDING)
@@ -138,7 +140,7 @@ The main remaining area for full Supabase connection is:
     - [x] **Simplified AI Prompts/Inputs & Enhanced Feedback.**
 - [ ] **Content & Help:**
     - [x] **"Ordinary User" Example Library (Framework).**
-        - [ ] **Actual Example Content:** Populate with JSON files and preview images. (Manual Task for User - PENDING)
+        - [ ] **Actual Example Content:** Populate with JSON files and preview images. (Manual Task for User - PENDING - Placeholder JSON map files created in `public/example-maps/`. User needs to replace them with meaningful data and add preview images to `public/images/examples/`.)
 - [ ] **Advanced UX Features (Future/Higher Effort):**
     - [x] **Overview Mode - Interactive Drill-Down (Phase 3 - Implemented).**
     - [x] **Interactive Q&A - Contextual Q&A (Phase 2 - Implemented).**
