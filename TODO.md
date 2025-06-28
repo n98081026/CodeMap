@@ -81,7 +81,7 @@
     - [x] Unit tests for `projectStructureAnalyzerTool` (Python, JS, TS AST analysis, `determineEffectiveFileType`) - *Note: These were marked complete previously, assuming they cover the respective utilities, not the entire end-to-end tool logic which is hard to unit test.*
     - [x] Comprehensive unit tests for `concept-map-store.ts`.
     - [x] **Manual Testing of Recent Features:** Execute tests outlined in `MANUAL_TUTORIAL_TESTING_GUIDE.md` and `PROJECT_ANALYZER_TESTING_GUIDE.md (v2)`. This includes CSS selector validation for tutorials and verifying the enhanced project analysis logic. (**Verified & Fixed:** Tutorial `overlayColor` HSL format fixed in `app-tutorial.tsx` & `globals.css`. Project analyzer Genkit tool `outputSchema` in `project-analyzer-tool.ts` updated to match rich structure returned by implementation.)
-    - [ ] Write unit tests for other critical components and utility functions (e.g., `useConceptMapAITools`, UI components). (**In Progress:** `useConceptMapAITools` significantly advanced. Initial tests for `DagreLayoutUtility` added.)
+    - [ ] Write unit tests for other critical components and utility functions (e.g., `useConceptMapAITools`, UI components). (**In Progress:** `useConceptMapAITools` significantly advanced. Initial tests for `DagreLayoutUtility` and `AISuggestionPanel` added.)
     - [ ] Implement integration tests for user flows with Supabase. (PENDING)
     - [ ] Consider end-to-end testing. (PENDING)
 - [ ] **Deployment:**
