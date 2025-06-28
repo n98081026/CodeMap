@@ -1,6 +1,7 @@
 import { defineFlow, runFlow } from '@genkit-ai/flow';
 import { modelos } from 'generative-ai'; // Assuming 'modelos' is your configured Genkit model provider
 import { z } from 'zod';
+// import { projectAnalysisToolSchema } from './project-analysis-flow'; // Removed unused import
 import { projectAnalysisToolSchema } from './project-analysis-flow'; // Assuming this is where common schemas might live, or create a new one
 
 export const SummarizeGenericFileInputSchema = z.object({
