@@ -2040,20 +2040,25 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
         language: 'javascript' | 'typescript' | 'python',
         projectFiles: string[], // List of all file paths in the project relative to root
         pythonImportLevel?: number
-    ): ResolvedImport { // Changed return type to always return a ResolvedImport
+    ): ResolvedImport {
+        // NOTE: This resolver currently does NOT support TypeScript path aliases
+        // (compilerOptions.paths in tsconfig.json) or custom baseUrl resolution beyond standard
+        // Node.js relative/package resolution. Imports using such aliases will likely be treated
+        // as 'external' or 'unresolved'. Future enhancements could include parsing tsconfig.json.
         const projectRoot = '.';
         const importingFileDir = path.posix.dirname(importingFilePath);
 
         const normalizePath = (p: string) => p.replace(/\\/g, '/');
-        // const normalizedImportingFilePath = normalizePath(importingFilePath); // Already normalized if using path.posix
         const normalizedRawImportPath = normalizePath(rawImportPath);
 
-        const jsTsPossibleExtensions = ['', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
-        // Order for index files: check direct match first, then with /index.<ext>
-        const jsTsIndexFiles = ['index.js', 'index.jsx', 'index.ts', 'index.tsx', 'index.mjs', 'index.cjs'];
+        // More specific ordered extension list for JS/TS
+        const jsTsOrderedExtensions = [
+            '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json' // Added .json as it's a common import
+        ];
+        // Ordered index file names (without extension, to be combined with jsTsOrderedExtensions)
+        const jsTsOrderedIndexNames = ['index'];
 
         if (language === 'javascript' || language === 'typescript') {
-            // Handle Node.js built-in modules
             const builtInNodeModules = ['fs', 'path', 'http', 'https', 'os', 'events', 'stream', 'util', 'crypto', 'zlib', 'url', 'querystring', 'assert', 'buffer', 'child_process', 'cluster', 'dgram', 'dns', 'domain', 'net', 'readline', 'repl', 'tls', 'tty', 'vm', 'string_decoder'];
             if (builtInNodeModules.includes(normalizedRawImportPath)) {
                 return { targetPath: `node:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath, resolutionDetails: "Node.js built-in module." };
@@ -2061,43 +2066,46 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
 
             if (normalizedRawImportPath.startsWith('./') || normalizedRawImportPath.startsWith('../')) { // Relative path
                 const resolvedAbsolute = path.posix.resolve(importingFileDir, normalizedRawImportPath);
-                let resolvedRelative = path.posix.relative(projectRoot, resolvedAbsolute);
-                if (resolvedRelative.startsWith('../')) { // Still outside project root after resolve, likely an error or complex setup
+                let resolvedBase = path.posix.relative(projectRoot, resolvedAbsolute);
+                if (resolvedBase.startsWith('../')) {
                     return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, resolutionDetails: "Resolved path is outside project root." };
                 }
-                // Ensure it doesn't become absolute if projectRoot is '.' and resolved is also '.'
-                if (resolvedRelative === '') resolvedRelative = '.';
+                if (resolvedBase === '') resolvedBase = '.'; // Handles case where importingFileDir is projectRoot
 
-
-                // 1. Try direct match (e.g. import './foo.js')
-                if (projectFiles.includes(resolvedRelative) && (resolvedRelative.endsWith('.js') || resolvedRelative.endsWith('.jsx') || resolvedRelative.endsWith('.ts') || resolvedRelative.endsWith('.tsx') || resolvedRelative.endsWith('.mjs') || resolvedRelative.endsWith('.cjs'))) {
-                     return { targetPath: resolvedRelative, type: 'internal', originalPath: rawImportPath };
+                // Attempt 1: Direct match with original path (if it includes an extension)
+                if (projectFiles.includes(resolvedBase) && jsTsOrderedExtensions.some(ext => resolvedBase.endsWith(ext))) {
+                    return { targetPath: resolvedBase, type: 'internal', originalPath: rawImportPath };
                 }
 
-                // 2. Try with extensions
-                for (const ext of jsTsPossibleExtensions) {
-                    if (ext === '') continue; // Skip empty, already tried by direct match if extension was present
-                    const candidate = `${resolvedRelative}${ext}`;
+                // Attempt 2: Try adding extensions to the resolvedBase path
+                for (const ext of jsTsOrderedExtensions) {
+                    const candidate = `${resolvedBase}${ext}`;
                     if (projectFiles.includes(candidate)) {
                         return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
                     }
                 }
 
-                // 3. Try as a directory (implies importing an index file from that directory)
-                // Check if 'resolvedRelative' itself is a directory path present by checking for index files within it.
-                for (const indexFile of jsTsIndexFiles) {
-                    const candidate = path.posix.join(resolvedRelative, indexFile);
-                    if (projectFiles.includes(candidate)) {
-                        return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
+                // Attempt 3: Try as a directory (implies importing an index file)
+                for (const indexName of jsTsOrderedIndexNames) {
+                    for (const ext of jsTsOrderedExtensions) {
+                        // Check projectFiles for path.posix.join(resolvedBase, `${indexName}${ext}`)
+                        // Example: if rawImportPath is './components', resolvedBase is 'components'
+                        // We check 'components/index.ts', 'components/index.js', etc.
+                        const candidate = normalizePath(path.posix.join(resolvedBase, `${indexName}${ext}`));
+                        if (projectFiles.includes(candidate)) {
+                            return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
+                        }
                     }
                 }
 
-                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, resolutionDetails: `Could not resolve relative path: ${resolvedRelative} with any standard JS/TS extension or index file.` };
-            } else { // NPM package or path alias (path aliases not supported in this simplified version)
-                return { targetPath: `npm:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath, resolutionDetails: "Assumed NPM package." };
+                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, resolutionDetails: `Could not resolve relative path: '${resolvedBase}' with JS/TS extensions or as directory index.` };
+            } else {
+                // For non-relative paths, assume external (NPM package).
+                // Path alias (tsconfig paths) are not handled in this iteration.
+                return { targetPath: `npm:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath, resolutionDetails: "Assumed NPM package (or unhandled path alias)." };
             }
         } else if (language === 'python') {
-            const pyPossibleExtensions = ['.py', '/__init__.py'];
+            const pyPossibleExtensions = ['.py', '/__init__.py']; // Order: .py file, then package via __init__.py
 
             if (pythonImportLevel && pythonImportLevel > 0) { // Relative import: from .foo import X or from ..bar import Y
                 let currentDirParts = importingFileDir === '.' ? [] : importingFileDir.split('/');
