@@ -288,6 +288,87 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
       styles={{
         options: {
           zIndex: 10000, // Keep high z-index
+          arrowColor: 'hsl(var(--card-values))',
+          backgroundColor: 'hsl(var(--card-values))',
+          primaryColor: 'hsl(var(--primary-values))',
+          textColor: 'hsl(var(--card-foreground-values))',
+          overlayColor: `hsla(var(--background-values), 0.7)`,
+        },
+        tooltip: {
+          borderRadius: 'var(--radius)',
+          padding: '1rem',
+          boxShadow: 'var(--shadow-lg)',
+          border: '1px solid hsl(var(--border-values))',
+        },
+        tooltipContainer: {
+          textAlign: 'left',
+        },
+        tooltipTitle: {
+          margin: 0,
+          fontSize: '1.125rem',
+          fontWeight: '600',
+          paddingBottom: '0.5rem',
+          borderBottom: '1px solid hsl(var(--border-values))',
+          marginBottom: '0.75rem',
+        },
+        tooltipContent: {
+          fontSize: '0.875rem',
+          lineHeight: '1.4',
+        },
+        buttonNext: {
+          backgroundColor: 'hsl(var(--primary-values))',
+          color: 'hsl(var(--primary-foreground-values))',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.5rem 1rem',
+          fontSize: '0.875rem',
+          textTransform: 'none',
+        },
+        buttonBack: {
+          backgroundColor: 'hsl(var(--secondary-values))',
+          color: 'hsl(var(--secondary-foreground-values))',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.5rem 1rem',
+          fontSize: '0.875rem',
+          marginRight: '0.5rem',
+          textTransform: 'none',
+        },
+        buttonSkip: {
+          color: 'hsl(var(--muted-foreground-values))',
+          fontSize: '0.8rem',
+          textTransform: 'none',
+        },
+        buttonClose: {
+            top: '10px',
+            right: '10px',
+            height: '1rem',
+            width: '1rem',
+            color: 'hsl(var(--muted-foreground-values))',
+        },
+        beacon: {
+            outlineColor: 'hsl(var(--primary-values))',
+            backgroundColor: 'hsl(var(--primary-values))',
+        },
+        overlay: {
+            // already handled by overlayColor in options
+        },
+        spotlight: { // Styles for the highlighted area
+            borderRadius: 'var(--radius-sm)', // make spotlight have slight rounded corners
+        }
+      }}
+      // debug
+    />
+  );
+};
+
+export default AppTutorial;
+        close: '關閉',
+        last: '完成',
+        next: '下一步',
+        skip: '跳過',
+      }}
+      styles={{
+        options: {
+          zIndex: 10000, // Keep high z-index
           arrowColor: 'hsl(var(--card))', // Arrow color matches card background for seamless look
           backgroundColor: 'hsl(var(--card))', // Use card background color
           primaryColor: 'hsl(var(--primary))', // Use primary color from CSS variables

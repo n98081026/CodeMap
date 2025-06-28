@@ -112,60 +112,78 @@ export type PotentialArchitecturalComponent = z.infer<typeof PotentialArchitectu
 
 // Output schema updated for more structured analysis results
 export const ProjectAnalysisOutputSchema = z.object({
-  analyzedFileName: z.string(),
-  effectiveFileType: z.string(),
-  contentType: z.string().optional(),
-  fileSize: z.number().optional(),
-  isBinary: z.boolean(),
-  analysisSummary: z.string(),
-  detailedNodes: z.array(DetailedNodeOutputSchema).optional(),
-  error: z.string().optional(),
+  projectName: z.string().optional().describe("Name of the project, potentially derived from manifest files or user input."),
+  inferredLanguagesFrameworks: z.array(z.object({ name: z.string(), confidence: z.string() })).optional().describe("List of inferred programming languages and frameworks used."),
+  projectSummary: z.string().optional().describe("A brief summary of the project, potentially from README or user hints."),
+  dependencies: DependencyMapSchema.optional().describe("Map of dependency types to their names."),
+  directoryStructureSummary: z.array(DirectorySummarySchema).optional().describe("Summary of the project's directory structure."),
+  keyFiles: z.array(KeyFileSchema).optional().describe("Information about key files identified in the project."),
+  potentialArchitecturalComponents: z.array(PotentialArchitecturalComponentSchema).optional().describe("Inferred architectural components."),
+
+  // Fields from the original simpler schema, kept for compatibility or direct use where applicable
+  analyzedFileName: z.string().describe("The name of the file or archive that was analyzed."),
+  effectiveFileType: z.string().optional().describe("The determined effective type of the analyzed file (e.g., 'zip', 'javascript', 'python')."), // Made optional as it might be part of keyFiles for single file analysis
+  contentType: z.string().optional().describe("Original content type of the file, if available."),
+  fileSize: z.number().optional().describe("Size of the file in bytes, if available."),
+  isBinary: z.boolean().optional().describe("Flag indicating if the primary analyzed input was binary."), // Made optional
+  analysisSummary: z.string().optional().describe("Overall summary of the analysis process or findings for the root file/archive. Specific summaries are in keyFiles."), // Made optional as projectSummary might be primary
+  detailedNodes: z.array(DetailedNodeOutputSchema).optional().describe("Detailed nodes extracted from AST analysis of specific files (can be extensive)."), // This might be better associated with individual keyFiles in the future
+
+  parsingErrors: z.array(z.string()).optional().describe("List of errors encountered during parsing or analysis."),
+  // error field from original schema is effectively replaced by parsingErrors array
 });
 export type ProjectAnalysisOutput = z.infer<typeof ProjectAnalysisOutputSchema>;
 
 // Define a detailed, fixed mock project analysis output (remains for testing/hints)
+// This mock needs to be updated to fit the new comprehensive schema.
 const FIXED_MOCK_PROJECT_A_ANALYSIS: ProjectAnalysisOutput = {
+  projectName: "Mock E-Commerce API",
+  inferredLanguagesFrameworks: [{ name: "Node.js", confidence: "high" }, { name: "JavaScript", confidence: "high" }],
+  projectSummary: "This is a fixed mock analysis for a standard E-Commerce API project. It includes typical components like User Service, Product Service, Order Service, and a Payment Gateway integration.",
+  dependencies: { npm: ["express", "lodash", "jsonwebtoken"] },
+  directoryStructureSummary: [
+    { path: "src", fileCounts: { ".js": 20 }, inferredPurpose: "Source Code" },
+    { path: "src/services", fileCounts: { ".js": 4 }, inferredPurpose: "Service Layer" },
+    { path: "tests", fileCounts: { ".js": 10 }, inferredPurpose: "Tests" },
+  ],
+  keyFiles: [
+    { filePath: "src/services/UserService.js", type: "service_definition", briefDescription: "Handles user authentication and profile management.", extractedSymbols: ["UserService", "login", "register"] },
+    { filePath: "src/services/ProductService.js", type: "service_definition", briefDescription: "Manages product catalog and inventory.", extractedSymbols: ["ProductService", "listProducts"] },
+    { filePath: "package.json", type: "manifest", briefDescription: "Node.js project manifest."}
+  ],
+  potentialArchitecturalComponents: [
+    { name: "User Service Component", type: "service", relatedFiles: ["src/services/UserService.js"] },
+    { name: "Product Service Component", type: "service", relatedFiles: ["src/services/ProductService.js"] },
+  ],
   analyzedFileName: "mock-ecommerce-api.zip",
   effectiveFileType: "zip",
   contentType: "application/zip",
   fileSize: 123456,
-  isBinary: false,
-  analysisSummary: "This is a fixed mock analysis for a standard E-Commerce API project. It includes typical components like User Service, Product Service, Order Service, and a Payment Gateway integration.",
-  detailedNodes: [
+  isBinary: true, // ZIP is binary
+  analysisSummary: "Mock analysis completed for mock-ecommerce-api.zip.", // More generic summary here
+  detailedNodes: [ // This detailedNodes might be redundant if keyFiles contain AST summaries, or could be for the entry point.
+    // For simplicity, let's keep it similar to before, but it should ideally map to a specific file's AST.
+    // These are now more illustrative of what might come from a specific file's AST analysis if included at top level.
+    // In the new structure, these would typically be part of a KeyFile's details or a dedicated AST output field within a KeyFile.
+    // For the mock, we'll assume they are general illustrative nodes.
     {
-      id: "mock_service_user",
-      label: "User Service (class)",
+      id: "mock_service_user_class", // Changed ID to reflect it's about the class itself
+      label: "UserService (class from UserService.js)", // Made label more specific
       type: "js_class",
-      details: "Handles user authentication and profile management.",
+      details: "Handles user authentication and profile management. (Mock Detail)",
       lineNumbers: "20-80",
       structuredInfo: { name: "UserService", kind: "class", methods: ["login", "register", "getProfile"] },
     },
     {
-      id: "mock_service_product",
-      label: "Product Service (class)",
+      id: "mock_service_product_class",
+      label: "ProductService (class from ProductService.js)",
       type: "js_class",
-      details: "Manages product catalog and inventory.",
+      details: "Manages product catalog and inventory. (Mock Detail)",
       lineNumbers: "81-150",
       structuredInfo: { name: "ProductService", kind: "class", methods: ["listProducts", "addProduct", "removeProduct"] },
-    },
-    {
-      id: "mock_service_order",
-      label: "Order Service (class)",
-      type: "js_class",
-      details: "Handles order creation, status, and history.",
-      lineNumbers: "151-210",
-      structuredInfo: { name: "OrderService", kind: "class", methods: ["createOrder", "getOrderStatus"] },
-    },
-    {
-      id: "mock_service_payment",
-      label: "Payment Gateway (integration)",
-      type: "js_integration",
-      details: "Integrates with Stripe for payment processing.",
-      lineNumbers: "211-250",
-      structuredInfo: { name: "StripeIntegration", kind: "integration" },
-    },
+    }
   ],
-  error: undefined,
+  parsingErrors: [],
 };
 
 const generateNodeId = (fileSpecificPrefix: string, nodeType: string, nodeName: string, index?: number): string => {

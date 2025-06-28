@@ -6,22 +6,32 @@
 @layer base {
   :root {
     --background: 210 20% 95%;
+    --background-values: 210, 20%, 95%; /* Added for Joyride hsla */
     --foreground: 210 25% 10%;
+    --foreground-values: 210, 25%, 10%;
 
     --card: 210 20% 100%;
+    --card-values: 210, 20%, 100%;
     --card-foreground: 210 25% 10%;
+    --card-foreground-values: 210, 25%, 10%;
 
     --popover: 210 20% 100%;
     --popover-foreground: 210 25% 10%;
 
     --primary: 210 70% 50%;
+    --primary-values: 210, 70%, 50%;
     --primary-foreground: 210 70% 95%;
+    --primary-foreground-values: 210, 70%, 95%;
 
     --secondary: 210 20% 90%;
+    --secondary-values: 210, 20%, 90%;
     --secondary-foreground: 210 25% 10%;
+    --secondary-foreground-values: 210, 25%, 10%;
 
     --muted: 210 20% 85%;
+    --muted-values: 210, 20%, 85%;
     --muted-foreground: 210 20% 45%;
+    --muted-foreground-values: 210, 20%, 45%;
 
     --accent: 180 60% 40%;
     --accent-foreground: 180 60% 95%;
@@ -30,16 +40,22 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 210 20% 88%;
+    --border-values: 210, 20%, 88%;
     --input: 210 20% 92%;
     --ring: 210 70% 50%;
 
     --radius: 0.5rem;
 
     --chart-1: 12 76% 61%;
+    --chart-1-values: 12, 76%, 61%;
     --chart-2: 173 58% 39%;
+    --chart-2-values: 173, 58%, 39%;
     --chart-3: 197 37% 24%;
+    --chart-3-values: 197, 37%, 24%;
     --chart-4: 43 74% 66%;
+    --chart-4-values: 43, 74%, 66%;
     --chart-5: 27 87% 67%;
+    --chart-5-values: 27, 87%, 67%;
 
     --sidebar-background: 210 30% 90%;
     --sidebar-foreground: 210 30% 20%;
@@ -53,22 +69,32 @@
 
   .dark {
     --background: 210 25% 10%;
+    --background-values: 210, 25%, 10%; /* Added for Joyride hsla */
     --foreground: 210 20% 95%;
+    --foreground-values: 210, 20%, 95%;
 
     --card: 210 25% 12%;
+    --card-values: 210, 25%, 12%;
     --card-foreground: 210 20% 95%;
+    --card-foreground-values: 210, 20%, 95%;
 
     --popover: 210 25% 12%;
     --popover-foreground: 210 20% 95%;
 
     --primary: 210 70% 50%;
+    --primary-values: 210, 70%, 50%;
     --primary-foreground: 210 70% 95%;
+    --primary-foreground-values: 210, 70%, 95%;
 
     --secondary: 210 25% 20%;
+    --secondary-values: 210, 25%, 20%;
     --secondary-foreground: 210 20% 95%;
+    --secondary-foreground-values: 210, 20%, 95%;
 
     --muted: 210 25% 25%;
+    --muted-values: 210, 25%, 25%;
     --muted-foreground: 210 20% 65%;
+    --muted-foreground-values: 210, 20%, 65%;
 
     --accent: 180 60% 40%;
     --accent-foreground: 180 60% 95%;
@@ -77,14 +103,20 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 210 25% 22%;
+    --border-values: 210, 25%, 22%;
     --input: 210 25% 22%;
     --ring: 210 70% 50%;
     
     --chart-1: 220 70% 50%;
+    --chart-1-values: 220, 70%, 50%;
     --chart-2: 160 60% 45%;
+    --chart-2-values: 160, 60%, 45%;
     --chart-3: 30 80% 55%;
+    --chart-3-values: 30, 80%, 55%;
     --chart-4: 280 65% 60%;
+    --chart-4-values: 280, 65%, 60%;
     --chart-5: 340 75% 55%;
+    --chart-5-values: 340, 75%, 55%;
 
     --sidebar-background: 210 30% 15%;
     --sidebar-foreground: 210 30% 85%;

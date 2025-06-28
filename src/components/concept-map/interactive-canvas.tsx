@@ -93,11 +93,11 @@ const nodeColor = (node: Node<CustomNodeData>) => {
   }
   const type = node.data?.type || 'default';
   const nodeTypeColors: { [key: string]: string } = {
-    key_feature: 'hsl(var(--chart-1))',
-    service_component: 'hsl(var(--chart-2))',
-    ui_view: 'hsl(var(--chart-3))',
-    data_model: 'hsl(var(--chart-4))',
-    default: 'hsl(var(--muted))',
+    key_feature: 'hsl(var(--chart-1-values))',
+    service_component: 'hsl(var(--chart-2-values))',
+    ui_view: 'hsl(var(--chart-3-values))',
+    data_model: 'hsl(var(--chart-4-values))',
+    default: 'hsl(var(--muted-values))',
   };
   return nodeTypeColors[type] || nodeTypeColors.default;
 };
@@ -322,10 +322,10 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
             top: `${draggedItemPreview.y}px`,
             transform: 'translate(-50%, -50%)', // Center on cursor
             padding: '8px 12px',
-            background: 'hsl(var(--card))',
-            border: '1px dashed hsl(var(--primary))',
+            background: 'hsl(var(--card-values))',
+            border: '1px dashed hsl(var(--primary-values))',
             borderRadius: 'var(--radius, 0.5rem)',
-            color: 'hsl(var(--card-foreground))',
+            color: 'hsl(var(--card-foreground-values))',
             fontSize: '0.875rem',
             opacity: 0.75,
             pointerEvents: 'none', // Crucial: preview should not intercept mouse events
@@ -379,7 +379,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
             {/* The div for the label has been removed. React Flow will render the label on the temporary edge. */}
             <Button
               variant="outline" size="iconSm"
-              style={{ position: 'absolute', left: acceptButtonScreenPos.x, top: acceptButtonScreenPos.y, transform: 'translate(-50%, -50%)', zIndex: 1001, backgroundColor: 'hsl(var(--background))', width: '24px', height: '24px' }}
+              style={{ position: 'absolute', left: acceptButtonScreenPos.x, top: acceptButtonScreenPos.y, transform: 'translate(-50%, -50%)', zIndex: 1001, backgroundColor: 'hsl(var(--background-values))', width: '24px', height: '24px' }}
               onClick={() => onAcceptVisualEdge?.(activeVisualEdgeSuggestion.id)}
               title="Accept suggestion"
             >
@@ -387,7 +387,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
             </Button>
             <Button
               variant="outline" size="iconSm"
-              style={{ position: 'absolute', left: rejectButtonScreenPos.x, top: rejectButtonScreenPos.y, transform: 'translate(-50%, -50%)', zIndex: 1001, backgroundColor: 'hsl(var(--background))', width: '24px', height: '24px' }}
+              style={{ position: 'absolute', left: rejectButtonScreenPos.x, top: rejectButtonScreenPos.y, transform: 'translate(-50%, -50%)', zIndex: 1001, backgroundColor: 'hsl(var(--background-values))', width: '24px', height: '24px' }}
               onClick={() => onRejectVisualEdge?.(activeVisualEdgeSuggestion.id)}
               title="Reject suggestion"
             >
