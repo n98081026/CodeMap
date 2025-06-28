@@ -35,8 +35,8 @@ const AISuggestionMiniToolbar: React.FC<AISuggestionMiniToolbarProps> = ({
     transform: 'translateX(-50%)', // Center align
     zIndex: 1500, // Ensure it's above nodes/edges
     padding: '4px',
-    backgroundColor: 'hsl(var(--background))',
-    border: '1px solid hsl(var(--border))',
+    backgroundColor: 'hsl(var(--background-values))',
+    border: '1px solid hsl(var(--border-values))',
     borderRadius: 'var(--radius)',
     boxShadow: 'var(--shadow-md)',
     display: 'flex',

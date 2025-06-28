@@ -288,68 +288,67 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
       styles={{
         options: {
           zIndex: 10000, // Keep high z-index
-          arrowColor: 'hsl(var(--card))', // Arrow color matches card background for seamless look
-          backgroundColor: 'hsl(var(--card))', // Use card background color
-          primaryColor: 'hsl(var(--primary))', // Use primary color from CSS variables
-          textColor: 'hsl(var(--card-foreground))', // Use card foreground color
-          // Updated overlayColor to use comma-separated HSL values from CSS variables
+          arrowColor: 'hsl(var(--card-values))',
+          backgroundColor: 'hsl(var(--card-values))',
+          primaryColor: 'hsl(var(--primary-values))',
+          textColor: 'hsl(var(--card-foreground-values))',
           overlayColor: `hsla(var(--background-values), 0.7)`,
         },
-        tooltip: { // Styles for the main tooltip box
-          borderRadius: 'var(--radius)', // Use CSS variable for radius, e.g., 0.5rem
-          padding: '1rem', // Standard padding
-          boxShadow: 'var(--shadow-lg)', // Use a standard shadow
-          border: '1px solid hsl(var(--border))',
+        tooltip: {
+          borderRadius: 'var(--radius)',
+          padding: '1rem',
+          boxShadow: 'var(--shadow-lg)',
+          border: '1px solid hsl(var(--border-values))',
         },
-        tooltipContainer: { // Styles for the container of the tooltip (rarely needed)
+        tooltipContainer: {
           textAlign: 'left',
         },
-        tooltipTitle: { // Styles for the title
+        tooltipTitle: {
           margin: 0,
-          fontSize: '1.125rem', // Tailwind text-lg
-          fontWeight: '600', // Tailwind semibold
+          fontSize: '1.125rem',
+          fontWeight: '600',
           paddingBottom: '0.5rem',
-          borderBottom: '1px solid hsl(var(--border))', // Separator
+          borderBottom: '1px solid hsl(var(--border-values))',
           marginBottom: '0.75rem',
         },
-        tooltipContent: { // Styles for the content text
-          fontSize: '0.875rem', // Tailwind text-sm
+        tooltipContent: {
+          fontSize: '0.875rem',
           lineHeight: '1.4',
         },
-        buttonNext: { // Styles for the Next button
-          backgroundColor: 'hsl(var(--primary))',
-          color: 'hsl(var(--primary-foreground))',
-          borderRadius: 'var(--radius-sm)', // Slightly smaller radius for buttons inside
+        buttonNext: {
+          backgroundColor: 'hsl(var(--primary-values))',
+          color: 'hsl(var(--primary-foreground-values))',
+          borderRadius: 'var(--radius-sm)',
           padding: '0.5rem 1rem',
           fontSize: '0.875rem',
           textTransform: 'none',
         },
-        buttonBack: { // Styles for the Back button
-          backgroundColor: 'hsl(var(--secondary))',
-          color: 'hsl(var(--secondary-foreground))',
+        buttonBack: {
+          backgroundColor: 'hsl(var(--secondary-values))',
+          color: 'hsl(var(--secondary-foreground-values))',
           borderRadius: 'var(--radius-sm)',
           padding: '0.5rem 1rem',
           fontSize: '0.875rem',
           marginRight: '0.5rem',
           textTransform: 'none',
         },
-        buttonSkip: { // Styles for the Skip button
-          color: 'hsl(var(--muted-foreground))',
+        buttonSkip: {
+          color: 'hsl(var(--muted-foreground-values))',
           fontSize: '0.8rem',
           textTransform: 'none',
         },
-        buttonClose: { // Styles for the X close button on the tooltip
-            top: '10px', // Adjust position as needed
+        buttonClose: {
+            top: '10px',
             right: '10px',
-            height: '1rem', // lucide icon size
-            width: '1rem', // lucide icon size
-            color: 'hsl(var(--muted-foreground))',
+            height: '1rem',
+            width: '1rem',
+            color: 'hsl(var(--muted-foreground-values))',
         },
-        beacon: { // Styles for the pulsing beacon before a step
-            outlineColor: 'hsl(var(--primary))',
-            backgroundColor: 'hsl(var(--primary))',
+        beacon: {
+            outlineColor: 'hsl(var(--primary-values))',
+            backgroundColor: 'hsl(var(--primary-values))',
         },
-        overlay: { // Styles for the dark overlay
+        overlay: {
             // already handled by overlayColor in options
         },
         spotlight: { // Styles for the highlighted area

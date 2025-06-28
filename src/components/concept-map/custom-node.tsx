@@ -136,7 +136,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data, id, se
     borderRadius: data.shape === 'ellipse' ? '50%' : '0.5rem',
     backgroundColor: data.type === 'ai-group-parent'
       ? 'rgba(100, 116, 139, 0.05)'
-      : data.backgroundColor || 'hsl(var(--card))',
+      : data.backgroundColor || 'hsl(var(--card-values))',
   };
 
   const handleNodeDoubleClick = () => {

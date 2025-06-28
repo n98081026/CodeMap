@@ -166,7 +166,7 @@ const getManhattanPath = (
 
 export const getMarkerDefinition = (markerTypeString?: string, edgeColor?: string): EdgeMarkerType | undefined => {
   if (!markerTypeString || markerTypeString === 'none') return undefined;
-  const color = edgeColor || 'hsl(var(--foreground))'; 
+  const color = edgeColor || 'hsl(var(--foreground-values))';
   switch (markerTypeString.toLowerCase()) {
       case 'arrow': return { type: MarkerType.Arrow, color, strokeWidth: 1 };
       case 'arrowclosed': return { type: MarkerType.ArrowClosed, color, strokeWidth: 1 };
@@ -229,7 +229,7 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> = React.mem
     }
   }, [isEditingLabel]);
   
-  const edgeColor = data?.color || 'hsl(var(--foreground))'; 
+  const edgeColor = data?.color || 'hsl(var(--foreground-values))';
   const lineTypeStyle = data?.lineType === 'dashed' ? { strokeDasharray: '5,5' } : {};
 
   const actualMarkerStart = typeof markerStart === 'string' ? getMarkerDefinition(markerStart, edgeColor) : markerStart;
