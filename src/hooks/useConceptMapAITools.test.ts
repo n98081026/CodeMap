@@ -251,6 +251,239 @@ describe('useConceptMapAITools', () => {
 
   // TODO: Add more tests for:
   // - addExtractedConceptsToMap
-  // - openSuggestRelationsModal & handleRelationsSuggested & addSuggestedRelationsToMap
+  describe('addExtractedConceptsToMap', () => {
+    const mockConceptsToAdd = [
+      { concept: "New Concept 1", context: "Context A", source: "Source X" },
+      { concept: "New Concept 2", context: "Context B" },
+    ];
+
+    beforeEach(() => {
+      // Reset relevant store method mocks before each test in this suite
+      mockStore.addNode.mockClear();
+      mockStore.removeExtractedConceptsFromSuggestions.mockClear();
+      mockToast.mockClear();
+      // Mock getNodePlacement or ensure it's part of a library that doesn't need explicit mocking for unit tests
+      // For now, we'll assume getNodePlacement works and check if addNode is called with a position object.
+    });
+
+    test('should add selected concepts to the map and show toast', () => {
+      const { result } = renderHook(() => useConceptMapAITools(false));
+
+      act(() => {
+        result.current.addExtractedConceptsToMap(mockConceptsToAdd);
+      });
+
+      expect(mockStore.addNode).toHaveBeenCalledTimes(mockConceptsToAdd.length);
+      expect(mockStore.addNode).toHaveBeenCalledWith(expect.objectContaining({
+        text: "New Concept 1",
+        type: 'ai-concept',
+        details: 'Context: Context A\nSource: "Source X"',
+        position: expect.any(Object), // Check that some position is passed
+      }));
+      expect(mockStore.addNode).toHaveBeenCalledWith(expect.objectContaining({
+        text: "New Concept 2",
+        type: 'ai-concept',
+        details: 'Context: Context B',
+        position: expect.any(Object),
+      }));
+      expect(mockToast).toHaveBeenCalledWith({
+        title: "Concepts Added",
+        description: `${mockConceptsToAdd.length} new concepts added.`,
+      });
+      expect(mockStore.removeExtractedConceptsFromSuggestions).toHaveBeenCalledWith(mockConceptsToAdd.map(c => c.concept));
+    });
+
+    test('should not add concepts if in view-only mode', () => {
+      const { result } = renderHook(() => useConceptMapAITools(true)); // isViewOnlyMode = true
+
+      act(() => {
+        result.current.addExtractedConceptsToMap(mockConceptsToAdd);
+      });
+
+      expect(mockStore.addNode).not.toHaveBeenCalled();
+      expect(mockStore.removeExtractedConceptsFromSuggestions).not.toHaveBeenCalled();
+      // A toast for view-only mode might be good here, but current hook impl doesn't show one for this specific action
+    });
+
+    test('should not do anything if no concepts are selected', () => {
+      const { result } = renderHook(() => useConceptMapAITools(false));
+
+      act(() => {
+        result.current.addExtractedConceptsToMap([]);
+      });
+
+      expect(mockStore.addNode).not.toHaveBeenCalled();
+      expect(mockToast).not.toHaveBeenCalled();
+      expect(mockStore.removeExtractedConceptsFromSuggestions).not.toHaveBeenCalled();
+    });
+  });
+
+  // TODO: Add more tests for:
+  describe('openSuggestRelationsModal', () => {
+    const mockNode1 = { id: 'n1', text: 'Node 1' };
+    const mockNode2 = { id: 'n2', text: 'Node 2' };
+    const mockNode3 = { id: 'n3', text: 'Node 3' };
+    const mockNode4 = { id: 'n4', text: 'Node 4' };
+    const mockNode5 = { id: 'n5', text: 'Node 5' };
+    const mockNode6 = { id: 'n6', text: 'Node 6' };
+
+    let mockGraphAdapterInstance: any;
+
+    beforeEach(() => {
+      mockStore.resetAiSuggestions.mockClear();
+      mockStore.selectedElementId = null;
+      mockStore.multiSelectedNodeIds = [];
+      mockStore.mapData = { nodes: [mockNode1, mockNode2, mockNode3, mockNode4, mockNode5, mockNode6], edges: [] };
+
+      // Mock GraphAdapterUtility
+      mockGraphAdapterInstance = {
+        fromArrays: jest.fn().mockReturnThis(), // chainable
+        hasNode: jest.fn().mockReturnValue(true),
+        getNeighborhood: jest.fn().mockReturnValue([]), // Default to no neighbors
+      };
+      jest.mock('@/lib/graphologyAdapter', () => ({
+        GraphAdapterUtility: jest.fn(() => mockGraphAdapterInstance),
+      }));
+    });
+
+    test('should open modal and set default concepts if no selection and map has few nodes', () => {
+      mockStore.mapData = { nodes: [mockNode1, mockNode2], edges: [] }; // Only 2 nodes
+      const { result } = renderHook(() => useConceptMapAITools(false));
+      act(() => result.current.openSuggestRelationsModal());
+      expect(result.current.isSuggestRelationsModalOpen).toBe(true);
+      expect(result.current.conceptsForRelationSuggestion).toEqual([mockNode1.text, mockNode2.text]);
+      expect(mockStore.resetAiSuggestions).toHaveBeenCalled();
+    });
+
+    test('should use up to 5 nodes from map if no selection and map has many nodes', () => {
+      const { result } = renderHook(() => useConceptMapAITools(false)); // mapData has 6 nodes from beforeEach
+      act(() => result.current.openSuggestRelationsModal());
+      expect(result.current.isSuggestRelationsModalOpen).toBe(true);
+      expect(result.current.conceptsForRelationSuggestion).toEqual([
+        mockNode1.text, mockNode2.text, mockNode3.text, mockNode4.text, mockNode5.text,
+      ]);
+    });
+
+    test('should use default examples if map is empty and no selection', () => {
+      mockStore.mapData = { nodes: [], edges: [] };
+      const { result } = renderHook(() => useConceptMapAITools(false));
+      act(() => result.current.openSuggestRelationsModal());
+      expect(result.current.conceptsForRelationSuggestion).toEqual(["Example A", "Example B"]);
+    });
+
+    test('should use multi-selected nodes if available (>=2)', () => {
+      mockStore.multiSelectedNodeIds = ['n1', 'n3'];
+      const { result } = renderHook(() => useConceptMapAITools(false));
+      act(() => result.current.openSuggestRelationsModal());
+      expect(result.current.conceptsForRelationSuggestion).toEqual([mockNode1.text, mockNode3.text]);
+    });
+
+    test('should use selected node and its neighbors if single node selected', () => {
+      mockStore.selectedElementId = 'n1';
+      mockGraphAdapterInstance.getNeighborhood.mockReturnValue(['n2', 'n3']); // n1 has neighbors n2, n3
+
+      const { result } = renderHook(() => useConceptMapAITools(false));
+      act(() => result.current.openSuggestRelationsModal());
+
+      expect(result.current.conceptsForRelationSuggestion).toContain(mockNode1.text);
+      expect(result.current.conceptsForRelationSuggestion).toContain(mockNode2.text);
+      expect(result.current.conceptsForRelationSuggestion).toContain(mockNode3.text);
+      expect(result.current.conceptsForRelationSuggestion.length).toBe(3); // n1 + 2 neighbors
+    });
+
+    test('should limit neighbors to 4 for single selected node context', () => {
+      mockStore.selectedElementId = 'n1';
+      // n1 has neighbors n2, n3, n4, n5, n6 - should only take first 4 (n2,n3,n4,n5)
+      mockGraphAdapterInstance.getNeighborhood.mockReturnValue(['n2', 'n3', 'n4', 'n5', 'n6']);
+
+      const { result } = renderHook(() => useConceptMapAITools(false));
+      act(() => result.current.openSuggestRelationsModal());
+
+      expect(result.current.conceptsForRelationSuggestion).toEqual([
+        mockNode1.text, mockNode2.text, mockNode3.text, mockNode4.text, mockNode5.text
+      ]);
+      expect(result.current.conceptsForRelationSuggestion.length).toBe(5); // n1 + 4 neighbors
+    });
+
+    test('should show toast and not open modal if in view-only mode', () => {
+      const { result } = renderHook(() => useConceptMapAITools(true));
+      act(() => result.current.openSuggestRelationsModal());
+      expect(result.current.isSuggestRelationsModalOpen).toBe(false);
+      expect(mockToast).toHaveBeenCalledWith({ title: "View Only Mode" });
+      expect(mockStore.resetAiSuggestions).not.toHaveBeenCalled(); // Should not reset if not opening
+    });
+  });
+
+  describe('handleRelationsSuggested', () => {
+    const testConcepts = ["Concept A", "Concept B"];
+    const mockSuggestedRelations = [
+      { source: "Concept A", target: "Concept B", relation: "is related to", reason: "They are often discussed together." },
+      { source: "Concept B", target: "Concept C", relation: "leads to" }
+    ];
+    const mockAiSuggestRelations = jest.requireMock('@/ai/flows').aiSuggestRelations;
+
+
+    beforeEach(() => {
+      mockAiSuggestRelations.mockClear();
+      mockStore.setAiSuggestedRelations.mockClear();
+      mockToast.mockClear();
+      mockStore.setAiProcessingNodeId.mockClear();
+    });
+
+    test('should call AI flow and update store on successful suggestion', async () => {
+      mockAiSuggestRelations.mockResolvedValue(mockSuggestedRelations);
+      const { result } = renderHook(() => useConceptMapAITools(false));
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.handleRelationsSuggested(testConcepts);
+      });
+
+      expect(mockAiSuggestRelations).toHaveBeenCalledWith({ concepts: testConcepts });
+      expect(mockStore.setAiSuggestedRelations).toHaveBeenCalledWith(mockSuggestedRelations);
+      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Suggest Relations Successful!" }));
+      expect(success).toBe(true);
+      expect(mockStore.setAiProcessingNodeId).toHaveBeenCalledWith('Suggest Relations');
+      expect(mockStore.setAiProcessingNodeId).toHaveBeenCalledWith(null);
+    });
+
+    test('should show error toast on AI flow failure', async () => {
+      const errorMessage = "Relation suggestion failed";
+      mockAiSuggestRelations.mockRejectedValue(new Error(errorMessage));
+      const { result } = renderHook(() => useConceptMapAITools(false));
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.handleRelationsSuggested(testConcepts);
+      });
+
+      expect(mockAiSuggestRelations).toHaveBeenCalledWith({ concepts: testConcepts });
+      expect(mockStore.setAiSuggestedRelations).not.toHaveBeenCalled();
+      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+        title: "Error: Could not complete Suggest Relations",
+        description: expect.stringContaining(errorMessage),
+        variant: "destructive",
+      }));
+      expect(success).toBe(false);
+    });
+
+    test('should not call AI flow if in view-only mode', async () => {
+      const { result } = renderHook(() => useConceptMapAITools(true));
+       let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.handleRelationsSuggested(testConcepts);
+      });
+      expect(mockAiSuggestRelations).not.toHaveBeenCalled();
+      expect(mockToast).toHaveBeenCalledWith({
+          title: "View Only Mode",
+          description: "Suggest Relations is disabled.",
+          variant: "default"
+      });
+      expect(success).toBe(false);
+    });
+  });
+
+  // TODO: Add more tests for:
+  // - addSuggestedRelationsToMap
   // - And so on for all other AI tools and their related functions
 });
