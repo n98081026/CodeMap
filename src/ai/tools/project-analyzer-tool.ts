@@ -2023,15 +2023,15 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
 
     console.log("[Analyzer] AST analysis results collected for potential dependency graph. Actual graph construction deferred.");
 
-    // Placeholder for buildDependencyGraph and resolveImportPath function implementations
-    // These will be substantial and are best developed iteratively.
+    // Placeholder for buildDependencyGraph and resolveImportPath function implementations - Now being implemented
 
-    /*
     interface ResolvedImport {
         targetPath: string; // Resolved path (internal) or identifier (external, e.g., 'npm:lodash')
         type: 'internal' | 'external' | 'unresolved';
         originalPath: string;
-        specificSymbols?: string[];
+        specificSymbols?: string[]; // For the original import statement
+        // Adding a field for any details or errors during resolution for this specific import
+        resolutionDetails?: string;
     }
 
     function resolveImportPath(
@@ -2040,89 +2040,112 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
         language: 'javascript' | 'typescript' | 'python',
         projectFiles: string[], // List of all file paths in the project relative to root
         pythonImportLevel?: number
-    ): ResolvedImport | null {
-        const projectRoot = '.'; // Assuming all paths in projectFiles are relative to this root
+    ): ResolvedImport { // Changed return type to always return a ResolvedImport
+        const projectRoot = '.';
         const importingFileDir = path.posix.dirname(importingFilePath);
 
-        // Normalize to use forward slashes for internal consistency
         const normalizePath = (p: string) => p.replace(/\\/g, '/');
-        const normalizedImportingFilePath = normalizePath(importingFilePath);
+        // const normalizedImportingFilePath = normalizePath(importingFilePath); // Already normalized if using path.posix
         const normalizedRawImportPath = normalizePath(rawImportPath);
 
-        const jsTsExtensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '/index.js', '/index.jsx', '/index.ts', '/index.tsx', '/index.mjs', '/index.cjs'];
-        const pyExtensions = ['.py', '/__init__.py'];
+        const jsTsPossibleExtensions = ['', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
+        // Order for index files: check direct match first, then with /index.<ext>
+        const jsTsIndexFiles = ['index.js', 'index.jsx', 'index.ts', 'index.tsx', 'index.mjs', 'index.cjs'];
 
         if (language === 'javascript' || language === 'typescript') {
-            if (normalizedRawImportPath.startsWith('./') || normalizedRawImportPath.startsWith('../')) {
-                let resolved = path.posix.resolve(importingFileDir, normalizedRawImportPath);
-                resolved = path.posix.relative(projectRoot, resolved); // Make relative to project root
+            // Handle Node.js built-in modules
+            const builtInNodeModules = ['fs', 'path', 'http', 'https', 'os', 'events', 'stream', 'util', 'crypto', 'zlib', 'url', 'querystring', 'assert', 'buffer', 'child_process', 'cluster', 'dgram', 'dns', 'domain', 'net', 'readline', 'repl', 'tls', 'tty', 'vm', 'string_decoder'];
+            if (builtInNodeModules.includes(normalizedRawImportPath)) {
+                return { targetPath: `node:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath, resolutionDetails: "Node.js built-in module." };
+            }
 
-                // Try with extensions
-                const candidates = [resolved, ...jsTsExtensions.map(ext => `${resolved}${ext}`)];
-                if (resolved.endsWith('/')) { // import from a directory, implies index file
-                    candidates.push(...jsTsExtensions.map(ext => `${resolved}index${ext.startsWith('/') ? ext.substring(1) : ext}`));
+            if (normalizedRawImportPath.startsWith('./') || normalizedRawImportPath.startsWith('../')) { // Relative path
+                const resolvedAbsolute = path.posix.resolve(importingFileDir, normalizedRawImportPath);
+                let resolvedRelative = path.posix.relative(projectRoot, resolvedAbsolute);
+                if (resolvedRelative.startsWith('../')) { // Still outside project root after resolve, likely an error or complex setup
+                    return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, resolutionDetails: "Resolved path is outside project root." };
+                }
+                // Ensure it doesn't become absolute if projectRoot is '.' and resolved is also '.'
+                if (resolvedRelative === '') resolvedRelative = '.';
+
+
+                // 1. Try direct match (e.g. import './foo.js')
+                if (projectFiles.includes(resolvedRelative) && (resolvedRelative.endsWith('.js') || resolvedRelative.endsWith('.jsx') || resolvedRelative.endsWith('.ts') || resolvedRelative.endsWith('.tsx') || resolvedRelative.endsWith('.mjs') || resolvedRelative.endsWith('.cjs'))) {
+                     return { targetPath: resolvedRelative, type: 'internal', originalPath: rawImportPath };
                 }
 
-                for (const candidate of candidates) {
+                // 2. Try with extensions
+                for (const ext of jsTsPossibleExtensions) {
+                    if (ext === '') continue; // Skip empty, already tried by direct match if extension was present
+                    const candidate = `${resolvedRelative}${ext}`;
                     if (projectFiles.includes(candidate)) {
                         return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
                     }
                 }
-                // Check if it's a directory import (e.g. import './components/') which implies index file.
-                const indexResolved = path.posix.join(resolved, 'index');
-                for (const ext of jsTsExtensions) {
-                    const candidateWithIndex = `${indexResolved}${ext.startsWith('/') ? ext.substring(1) : ext}`;
-                     if (projectFiles.includes(candidateWithIndex)) {
-                        return { targetPath: candidateWithIndex, type: 'internal', originalPath: rawImportPath };
+
+                // 3. Try as a directory (implies importing an index file from that directory)
+                // Check if 'resolvedRelative' itself is a directory path present by checking for index files within it.
+                for (const indexFile of jsTsIndexFiles) {
+                    const candidate = path.posix.join(resolvedRelative, indexFile);
+                    if (projectFiles.includes(candidate)) {
+                        return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
                     }
                 }
 
-                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath }; // Could not resolve
-            } else {
-                // External package or built-in module
-                // Basic check, a more robust solution would check against known built-ins or actual package list
-                if (['fs', 'path', 'http', 'https', 'os', 'events', 'stream', 'util', 'crypto', 'zlib', 'url', 'querystring', 'assert', 'buffer', 'child_process', 'cluster', 'dgram', 'dns', 'domain', 'net', 'readline', 'repl', 'tls', 'tty', 'vm', 'string_decoder'].includes(normalizedRawImportPath) ||
-                    !normalizedRawImportPath.includes('/') // Simplified check for top-level package
-                ) {
-                    return { targetPath: `npm:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath };
-                }
-                // Could be a path alias from tsconfig, or just an unresolvable path
-                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath };
+                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, resolutionDetails: `Could not resolve relative path: ${resolvedRelative} with any standard JS/TS extension or index file.` };
+            } else { // NPM package or path alias (path aliases not supported in this simplified version)
+                return { targetPath: `npm:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath, resolutionDetails: "Assumed NPM package." };
             }
         } else if (language === 'python') {
+            const pyPossibleExtensions = ['.py', '/__init__.py'];
+
             if (pythonImportLevel && pythonImportLevel > 0) { // Relative import: from .foo import X or from ..bar import Y
                 let currentDirParts = importingFileDir === '.' ? [] : importingFileDir.split('/');
-                if (pythonImportLevel > currentDirParts.length) {
-                    return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, specificSymbols: [`Relative import level ${pythonImportLevel} exceeds depth from root.`] };
+                if (pythonImportLevel > currentDirParts.length + 1) { // +1 because level 1 means same package, level 2 means parent.
+                    return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, resolutionDetails: `Relative import level ${pythonImportLevel} for '${rawImportPath}' is too deep from file '${importingFilePath}'.` };
                 }
-                const baseLookupPathParts = currentDirParts.slice(0, currentDirParts.length - (pythonImportLevel -1));
-                const modulePathParts = normalizedRawImportPath ? normalizedRawImportPath.split('.') : [];
-                const finalPathParts = [...baseLookupPathParts, ...modulePathParts];
-                let resolvedRelative = finalPathParts.join('/');
+                // For 'from . import X', level is 1, base is currentDirParts.
+                // For 'from .. import X', level is 2, base is parent of currentDirParts.
+                const baseLookupPathParts = currentDirParts.slice(0, currentDirParts.length - (pythonImportLevel - 1));
 
-                const candidates = [`${resolvedRelative}.py`, `${resolvedRelative}/__init__.py`];
-                for (const candidate of candidates) {
+                const modulePathParts = normalizedRawImportPath ? normalizedRawImportPath.split('.') : []; // e.g. "mod" or "subpkg.mod"
+                const resolvedPathAttempt = path.posix.join(...baseLookupPathParts, ...modulePathParts);
+
+                for (const ext of pyPossibleExtensions) {
+                    const candidate = normalizePath(`${resolvedPathAttempt}${ext}`);
                     if (projectFiles.includes(candidate)) {
                         return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
                     }
                 }
-                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, specificSymbols: [`Could not resolve relative path: ${resolvedRelative}`] };
+                // Attempt to resolve if rawImportPath itself is a directory (package)
+                // e.g. "from . import mypackage" -> ./mypackage/__init__.py
+                 if (!normalizedRawImportPath) { // from . import X (X is likely a module in current package)
+                     // This case is tricky, as X could be a module or a symbol in __init__.py
+                     // For now, we assume X is a module if rawImportPath is empty.
+                     // A more robust solution would require knowing what X is.
+                     // This specific case (empty rawImportPath for relative imports) might need to be handled by looking at specificSymbols.
+                 }
+
+
+                return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, resolutionDetails: `Could not resolve Python relative import '${rawImportPath}' from '${importingFilePath}'. Attempted path: ${resolvedPathAttempt}` };
 
             } else { // Absolute import: import foo.bar or from foo.bar import X
                 const modulePath = normalizedRawImportPath.replace(/\./g, '/');
-                const candidates = [`${modulePath}.py`, `${modulePath}/__init__.py`];
-                 for (const candidate of candidates) {
+                for (const ext of pyPossibleExtensions) {
+                    const candidate = normalizePath(`${modulePath}${ext}`);
                     if (projectFiles.includes(candidate)) {
                         return { targetPath: candidate, type: 'internal', originalPath: rawImportPath };
                     }
                 }
                 // If not found as internal, assume external/unresolved (Python stdlib or installed package)
-                return { targetPath: `pypi:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath };
+                // A more robust check would involve consulting a list of stdlib modules or checking installed packages.
+                return { targetPath: `pypi:${normalizedRawImportPath}`, type: 'external', originalPath: rawImportPath, resolutionDetails: "Assumed PyPI package or stdlib module." };
             }
         }
-        return null; // Should not happen if language is correctly specified
+
+        // Fallback for unknown language or unhandled case
+        return { targetPath: rawImportPath, type: 'unresolved', originalPath: rawImportPath, resolutionDetails: `Unsupported language '${language}' for path resolution or unhandled case.` };
     }
-    */
 
     // --- File Dependency Graph Construction (Conceptual Implementation) ---
 
@@ -2170,77 +2193,79 @@ async function analyzeProjectStructure(input: ProjectAnalysisInput): Promise<Pro
             if (language === 'unknown') continue; // Cannot resolve imports for unknown language
 
             for (const rawImp of data.rawImports) {
-                // ** IMPORTANT: Actual resolveImportPath is commented out and replaced by placeholder logic **
-                // const resolved = resolveImportPath(filePath, rawImp.originalPath, language, projectFilesList, rawImp.pythonImportLevel);
+                const resolved = resolveImportPath(filePath, rawImp.originalPath, language, projectFilesList, rawImp.pythonImportLevel);
 
-                let resolvedImportSimulated: ResolvedImport | null = null;
-                // Simplified placeholder logic for resolveImportPath:
-                if (rawImp.originalPath.startsWith('./') || rawImp.originalPath.startsWith('../')) {
-                    // Simulate trying to resolve a relative path (very naively)
-                    const tempResolved = path.posix.resolve(path.posix.dirname(filePath), rawImp.originalPath);
-                    const relativeToRoot = path.posix.relative('.', tempResolved);
-                    // Try common extensions for JS/TS, or .py for Python
-                    let foundPath: string | undefined = undefined;
-                    if (language === 'javascript' || language === 'typescript') {
-                        const exts = ['.js', '.ts', '.jsx', '.tsx', '/index.js', '/index.ts'];
-                        foundPath = [relativeToRoot, ...exts.map(e => relativeToRoot + e)].find(p => projectFilesList.includes(p));
-                    } else if (language === 'python') {
-                         foundPath = [`${relativeToRoot}.py`, `${relativeToRoot}/__init__.py`].find(p => projectFilesList.includes(p));
-                    }
-                    if (foundPath && projectFilesList.includes(foundPath)) {
-                       resolvedImportSimulated = { targetPath: foundPath, type: 'internal', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
-                    } else {
-                       resolvedImportSimulated = { targetPath: rawImp.originalPath, type: 'unresolved', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
-                    }
-                } else if (language === 'python' && rawImp.pythonImportLevel && rawImp.pythonImportLevel > 0) {
-                    // Simplified Python relative import (very naive)
-                    resolvedImportSimulated = { targetPath: rawImp.originalPath, type: 'unresolved', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols, details: "Simulated Python relative import, likely incorrect." };
-                } else if (!rawImp.originalPath.includes('/') && (language === 'javascript' || language === 'typescript')) {
-                     resolvedImportSimulated = { targetPath: `npm:${rawImp.originalPath}`, type: 'external', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
-                } else if (language === 'python' && !rawImp.originalPath.startsWith('.')) {
-                     resolvedImportSimulated = { targetPath: `pypi:${rawImp.originalPath}`, type: 'external', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
-                } else {
-                     resolvedImportSimulated = { targetPath: rawImp.originalPath, type: 'unresolved', originalPath: rawImp.originalPath, specificSymbols: rawImp.importedSymbols };
-                }
-                // --- End of placeholder logic for resolveImportPath ---
-
-                if (resolvedImportSimulated) {
+                if (resolved) {
                     sourceNode.imports.push({
-                        targetPath: resolvedImportSimulated.targetPath,
-                        type: resolvedImportSimulated.type,
-                        originalPath: resolvedImportSimulated.originalPath,
-                        specificSymbols: resolvedImportSimulated.specificSymbols,
+                        targetPath: resolved.targetPath,
+                        type: resolved.type,
+                        originalPath: resolved.originalPath,
+                        specificSymbols: rawImp.importedSymbols, // Keep original symbols from RawASTImport
+                        // resolutionDetails: resolved.resolutionDetails, // Optionally include for debugging
                     });
 
-                    if (resolvedImportSimulated.type === 'internal') {
-                        const targetNode = graph.get(resolvedImportSimulated.targetPath);
-                        if (targetNode && !targetNode.importedBy.includes(filePath)) {
+                    if (resolved.type === 'internal' && graph.has(resolved.targetPath)) {
+                        const targetNode = graph.get(resolved.targetPath)!;
+                        if (!targetNode.importedBy.includes(filePath)) {
                             targetNode.importedBy.push(filePath);
                         }
+                    } else if (resolved.type === 'internal' && !graph.has(resolved.targetPath)) {
+                        // This case might happen if a project file was imported but not part of the initial set of files
+                        // for which nodes were created (e.g. if it wasn't a JS/TS/PY file but still part of the projectFilesList).
+                        // Or if projectFilesList contains files not in analyzedFilesData keys.
+                        console.warn(`[DepGraph] Internal import target '${resolved.targetPath}' not found in graph nodes. Source: ${filePath}, Import: ${rawImp.originalPath}`);
+                         // Optionally, add a minimal node for it if it's in projectFilesList
+                        if (projectFilesList.includes(resolved.targetPath) && !graph.has(resolved.targetPath)) {
+                            graph.set(resolved.targetPath, {
+                                filePath: resolved.targetPath,
+                                imports: [],
+                                exports: [], // Unknown exports for non-analyzed files
+                                importedBy: [filePath],
+                            });
+                             console.log(`[DepGraph] Added missing target node to graph: ${resolved.targetPath}`);
+                        }
                     }
+                } else {
+                    // Should not happen if resolveImportPath always returns a ResolvedImport object
+                     sourceNode.imports.push({
+                        targetPath: rawImp.originalPath,
+                        type: 'unresolved',
+                        originalPath: rawImp.originalPath,
+                        specificSymbols: rawImp.importedSymbols,
+                        resolutionDetails: "resolveImportPath returned null unexpectedly.",
+                    });
                 }
             }
         }
-        console.log("[DepGraph] Finished processing imports with placeholder resolution.");
+        console.log("[DepGraph] Finished processing imports with actual resolveImportPath.");
         return graph;
     }
 
-    // Call buildDependencyGraph (even with placeholder resolveImportPath)
-    // The actual result won't be fully accurate but tests the structure.
-    const dependencyGraph = await buildDependencyGraph(astAnalysisResultsForDepGraph, filesList.map(f => f.name));
+    const projectFilePaths = filesList.map(f => f.name);
+    const dependencyGraph = await buildDependencyGraph(astAnalysisResultsForDepGraph, projectFilePaths);
+
     if (dependencyGraph) {
-      console.log(`[Analyzer] Conceptual dependency graph constructed with ${dependencyGraph.size} nodes.`);
-      // For debugging, print some of the graph.
-      // let i = 0;
-      // for (const [filePath, node] of dependencyGraph.entries()) {
-      //   if (i++ < 2) { // Print details for first 2 nodes
-      //     console.log(`[DepGraph Node]: ${filePath}`, {
-      //       imports: node.imports.slice(0,2), // show first 2 imports
-      //       exports: node.exports.slice(0,5), // show first 5 exports
-      //       importedBy: node.importedBy.slice(0,2) // show first 2 importers
-      //     });
-      //   }
-      // }
+      console.log(`[Analyzer] Dependency graph constructed with ${dependencyGraph.size} nodes.`);
+      let internalEdges = 0;
+      dependencyGraph.forEach(node => {
+        node.imports.forEach(imp => {
+          if (imp.type === 'internal') internalEdges++;
+        });
+      });
+      console.log(`[Analyzer] Dependency graph contains ${internalEdges} internal import edges.`);
+
+      // For debugging, print details for a few nodes
+      let i = 0;
+      for (const [filePath, node] of dependencyGraph.entries()) {
+        if (i < 3 && (node.imports.length > 0 || node.exports.length > 0)) {
+          console.log(`[DepGraph Node Sample]: ${filePath}`, {
+            imports: node.imports.filter(imp => imp.type === 'internal').slice(0,3).map(i => `${i.originalPath} -> ${i.targetPath} (${i.type})`),
+            exports: node.exports.slice(0,5).map(e => e.name),
+            importedByCount: node.importedBy.length
+          });
+          i++;
+        }
+      }
     }
 
 
