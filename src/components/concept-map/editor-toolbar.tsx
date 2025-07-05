@@ -167,6 +167,11 @@ export const EditorToolbar = React.memo(function EditorToolbar({
     startOrResumeTutorial('manualAddNodeTutorial', 0, true);
   };
 
+  // TEMP: Button to test manualCreateEdgeTutorial
+  const handleTestManualCreateEdgeTutorial = () => {
+    startOrResumeTutorial('manualCreateEdgeTutorial', 0, true);
+  };
+
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false); // For the BrainCircuit button
 
   const handleGenAIClick = React.useCallback((actionCallback: (() => void) | (() => Promise<void>), toolName: string) => {
@@ -722,6 +727,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleTestManualAddNodeTutorial}>
                 Test: Manual Add Node Tutorial
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleTestManualCreateEdgeTutorial}>
+                Test: Manual Create Edge Tutorial
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

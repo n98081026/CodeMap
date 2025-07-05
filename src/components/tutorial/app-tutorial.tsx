@@ -30,9 +30,15 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
 
   const tutorialTempTargetNodeId = useConceptMapStore(state => state.tutorialTempTargetNodeId);
   const clearTutorialTempTargetNodeId = useConceptMapStore(state => state.setTutorialTempTargetNodeId);
+  const tutorialTempTargetEdgeId = useConceptMapStore(state => state.tutorialTempTargetEdgeId); // Get new state
+  const clearTutorialTempTargetEdgeId = useConceptMapStore(state => state.setTutorialTempTargetEdgeId); // Get new action
 
-  const getStepsForTutorial = useCallback((key: string, dynamicNodeId?: string | null): Step[] => {
-    // console.log(`getStepsForTutorial called for key: ${key}, dynamicNodeId: ${dynamicNodeId}`); // Debug log
+  const getStepsForTutorial = useCallback((
+    key: string,
+    dynamicNodeId?: string | null,
+    dynamicEdgeId?: string | null // Add dynamicEdgeId
+  ): Step[] => {
+    // console.log(`getStepsForTutorial called for key: ${key}, dynamicNodeId: ${dynamicNodeId}, dynamicEdgeId: ${dynamicEdgeId}`);
     const commonWelcomeStep: Step = {
       target: 'body',
       content: '歡迎使用 CodeMap！這是一個幫助您理解和可視化代碼結構的工具。',
@@ -276,31 +282,65 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
       ];
     }
     // Add other tutorial definitions above this line
+    else if (key === 'manualCreateEdgeTutorial') {
+      return [
+        {
+          target: '.react-flow__pane',
+          content: '現在我們來學習如何手動連接兩個節點以創建一條邊。請確保您的畫布上至少有兩個節點。',
+          placement: 'center',
+          title: '手動創建邊',
+          disableBeacon: true,
+        },
+        {
+          target: '.react-flow__node:nth-of-type(1) .react-flow__handle', // Targets a handle of the first node, adjust if too generic
+          content: '將鼠標懸停在一個節點上，您會看到邊緣出現一些小的連接樁 (Handle)。點擊並按住其中一個 Handle 開始拖拽。',
+          title: '1. 開始拖拽連接線',
+          spotlightClicks: true, // Allows interaction with handles
+        },
+        {
+          target: '.react-flow__node:nth-of-type(2) .react-flow__handle', // Targets a handle of a second node
+          content: '將連接線拖拽到另一個節點的任意 Handle 上，然後鬆開鼠標按鈕。',
+          title: '2. 連接到目標節點',
+          spotlightClicks: true,
+        },
+        {
+          target: dynamicEdgeId ? `.react-flow__edge[id='${dynamicEdgeId}']` : '.react-flow__pane',
+          content: dynamicEdgeId
+            ? '太棒了！您已經成功創建了一條連接線（邊），它已被高亮顯示。'
+            : '一條新的連接線（邊）已經被創建。',
+          title: '3. 邊已創建',
+        },
+      ];
+    }
 
     return []; // Default to no steps
-  }, [user]); // Add user as dependency if roleSpecificSteps depend on it, and dynamicNodeId if used directly here.
+  }, [user]);
 
   useEffect(() => {
     if (user && !loading && activeTutorialKey) {
       const tutorialHasBeenSeen = localStorage.getItem(activeTutorialKey) === 'true';
-      const newSteps = getStepsForTutorial(activeTutorialKey, tutorialTempTargetNodeId);
+      // Pass both dynamic IDs to getStepsForTutorial
+      const newSteps = getStepsForTutorial(activeTutorialKey, tutorialTempTargetNodeId, tutorialTempTargetEdgeId);
 
       if (runTutorial) {
-        if (!tutorialHasBeenSeen || steps.length === 0 || (activeTutorialKey === 'manualAddNodeTutorial' && tutorialTempTargetNodeId)) {
-          // Refresh steps if tutorial just started, or if it's the manualAddNodeTutorial and a new node ID is available
+        if (!tutorialHasBeenSeen || steps.length === 0 ||
+            (activeTutorialKey === 'manualAddNodeTutorial' && tutorialTempTargetNodeId) ||
+            (activeTutorialKey === 'manualCreateEdgeTutorial' && tutorialTempTargetEdgeId)
+        ) {
           setSteps(newSteps);
         }
       } else {
-        // If tutorial is not supposed to run, clear steps
         if (steps.length > 0) setSteps([]);
       }
     } else if ((!user && !loading) || !activeTutorialKey) {
         if(runTutorial) setRunTutorialState(false);
         if (steps.length > 0) setSteps([]);
     }
-  // tutorialTempTargetNodeId is added to ensure steps recalculate when it changes for manualAddNodeTutorial.
-  // getStepsForTutorial is wrapped in useCallback, its dependencies need to be correct.
-  }, [user, loading, runTutorial, activeTutorialKey, setRunTutorialState, tutorialTempTargetNodeId, getStepsForTutorial, steps.length]);
+  }, [
+    user, loading, runTutorial, activeTutorialKey,
+    setRunTutorialState, tutorialTempTargetNodeId, tutorialTempTargetEdgeId, // Added edgeId
+    getStepsForTutorial, steps.length
+  ]);
 
 
   const handleJoyrideCallback = (data: CallBackProps) => {
@@ -314,12 +354,15 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
     if (finishedStatuses.includes(status) || (type === EVENTS.TOOLTIP_CLOSE && action === 'close')) {
       setRunTutorialState(false);
       if (activeTutorialKey === 'manualAddNodeTutorial') {
-        clearTutorialTempTargetNodeId(null); // Clear the temp node ID when this tutorial ends
+        clearTutorialTempTargetNodeId(null);
+      }
+      if (activeTutorialKey === 'manualCreateEdgeTutorial') { // Clear edge ID for its tutorial
+        clearTutorialTempTargetEdgeId(null);
       }
     } else if (type === EVENTS.STEP_AFTER && activeTutorialKey === 'manualAddNodeTutorial' && step.title === '2. 新節點已添加') {
-        // Potentially clear tutorialTempTargetNodeId if it's only needed for step 2's target
-        // However, it might be better to clear it only when the whole tutorial for this flow ends or is skipped.
-        // For now, clearing on full tutorial end/skip.
+      // Logic for specific step handling if needed
+    } else if (type === EVENTS.STEP_AFTER && activeTutorialKey === 'manualCreateEdgeTutorial' && step.title === '3. 邊已創建') {
+      // Logic for specific step handling if needed
     }
   };
 
