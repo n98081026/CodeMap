@@ -19,8 +19,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { UserRole } from '@/types';
 import { usePathname } from 'next/navigation'; 
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+import useTutorialStore from '@/stores/tutorial-store';
+import { useToast } from '@/hooks/use-toast';
+import { availableTutorials } from '@/components/tutorial/app-tutorial'; // Import defined tutorials
 
 export const Navbar = React.memo(function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -112,22 +113,24 @@ export const Navbar = React.memo(function Navbar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-64" align="end">
-                <DropdownMenuLabel>Tutorials</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => startOrResumeTutorial('projectUpload', 0, true)}>
-                  Getting Started (Project Upload)
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => startOrResumeTutorial('expandConcept', 0, true)}>
-                  Using AI: Expand Concept
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => startOrResumeTutorial('mapNavigation', 0, true)}>
-                  Editor Basics (Navigation & Inspector)
-                </DropdownMenuItem>
+                <DropdownMenuLabel>可用的教程</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {availableTutorials.map((tutorial) => (
+                  <DropdownMenuItem
+                    key={tutorial.key}
+                    onSelect={() => startOrResumeTutorial(tutorial.key, 0, true)}
+                    // Add a small visual cue if tutorial has been completed? Future enhancement.
+                  >
+                    {/* tutorial.icon && <tutorial.icon className="mr-2 h-4 w-4" /> */}
+                    {tutorial.title}
+                  </DropdownMenuItem>
+                ))}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => {
-                  resetTutorialProgress();
-                  toast({ title: "Tutorial Progress Reset", description: "You can now retake all tutorials automatically." });
+                  resetTutorialProgress(); // Use the function from the store
+                  toast({ title: "教程進度已重置", description: "您可以重新開始所有教程了。" });
                 }}>
-                  Reset All Tutorial Progress
+                  重置所有教程進度
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

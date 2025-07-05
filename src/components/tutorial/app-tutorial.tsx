@@ -3,6 +3,25 @@ import Joyride, { CallBackProps, STATUS, Step, EVENTS } from 'react-joyride';
 import { useAuth } from '@/contexts/auth-context';
 import useConceptMapStore from '@/stores/concept-map-store'; // Import concept map store
 import useTutorialStore from '@/stores/tutorial-store';
+import type { LucideIcon } from 'lucide-react'; // For potential icons in metadata
+
+export interface TutorialMetaData {
+  key: string;
+  title: string;
+  description?: string;
+  icon?: LucideIcon; // Optional: for future use in a richer menu
+}
+
+// Define this metadata where it's accessible, e.g., here or in a separate definitions file.
+export const availableTutorials: TutorialMetaData[] = [
+  { key: 'dashboardTutorial', title: '儀表板導覽' },
+  { key: 'projectUploadTutorial', title: '專案上傳與AI分析指引' },
+  { key: 'editorTutorial', title: '編輯器基礎操作' },
+  { key: 'extractConceptsToolTutorial', title: 'AI工具：提取概念' },
+  { key: 'manualAddNodeTutorial', title: '手動添加節點與編輯' },
+  { key: 'manualCreateEdgeTutorial', title: '手動創建連接邊' },
+  // Add more tutorials here as they are created
+];
 
 interface AppTutorialProps {
   // Props are not used as state is managed by stores

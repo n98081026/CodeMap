@@ -147,7 +147,7 @@ The main remaining area for full Supabase connection is:
             - [ ] Explain Ghost Preview and how to accept/cancel.
         - [ ] **(Optional) Project Overview Mode Tutorial**.
     - [ ] **Tutorial System Enhancements & Polish:**
-        - [ ] **"Help/Tutorials" Menu**: Allow users to re-trigger tutorials.
+        - [x] **"Help/Tutorials" Menu**: Allow users to re-trigger tutorials. (Implemented in Navbar using DropdownMenu and `availableTutorials` list. Includes "Reset All" functionality).
         - [ ] **Review and Refine Tutorial Text**.
         - [ ] **Visual Polish**.
         - [ ] **Test on Different Screen Sizes**.
