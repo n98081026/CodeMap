@@ -188,7 +188,7 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
         4. Run TypeScript type check: `npm run typecheck` (i.e., `tsc --noEmit`). Review and fix any reported type errors.
     - **Note for Jules:** Once these steps are done and changes are committed, Jules can proceed with reviewing any remaining ESLint issues or other planned tasks.
 
-- [ ] **ESLint & Prettier Configuration & Initial Setup (Jules - Partially Blocked):**
+- [X] **ESLint & Prettier Configuration & Initial Setup (Jules - Partially Blocked by User for full format/lint run):**
     - [X] Create `.prettierrc.json` with recommended settings.
     - [X] Create `.prettierignore` (added `*.py`, ensured standard ignores).
     - [X] Update `package.json` with necessary ESLint & Prettier devDependencies and quality-related scripts.
@@ -200,13 +200,13 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
     - [ ] **(User Action Required in Local Env - see above)** Run `npm run lint:fix` (ESLint) to check and autofix linting issues based on the new configuration.
     - [ ] Review any outstanding ESLint errors/warnings after `lint:fix`. (Jules will do this after user actions)
 
-- [ ] **Project Structure Optimization (Jules - Partially Blocked):**
-    - [ ] **Dashboard Pages De-duplication (Admin, Student, Teacher):**
+- [ ] **Project Structure Optimization (Jules - Test File Organization Blocked by User):**
+    - [X] **Dashboard Pages De-duplication (Admin, Student, Teacher):**
         - [X] Identified duplicate dashboard content between `src/app/(app)/[role]/dashboard/page.tsx` and `src/app/application/[role]/dashboard/page.tsx`.
         - [X] Created shared view components: `src/components/dashboard/admin/AdminDashboardView.tsx`, `src/components/dashboard/student/StudentDashboardView.tsx`, `src/components/dashboard/teacher/TeacherDashboardView.tsx`.
         - [X] Refactored all six dashboard `page.tsx` files to use these shared view components, effectively de-duplicating UI and core logic.
-    - [ ] **Test Files Organization (Blocked by User Action):**
-        - **(User Action Required in Local Env)** Create the following `__tests__` directories:
+    - [ ] **Test Files Organization (User Action Required First):**
+        - **Step 1 (User Action Required in Local Env):** Create the following `__tests__` directories:
             - `src/app/(app)/__tests__/`
             - `src/app/(app)/examples/__tests__/`
             - `src/components/concept-map/__tests__/`
@@ -217,7 +217,7 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
             - `src/services/classrooms/__tests__/`
             - `src/stores/__tests__/`
             - `src/ai/tools/__tests__/`
-        - [ ] **(Jules - Blocked)** Move existing test files to their respective new `__tests__` directory. Planned moves:
+        - **Step 2 (Jules - Blocked by Step 1):** Move existing test files to their respective new `__tests__` directory. Planned moves:
             - `src/app/(app)/layout.test.tsx` -> `src/app/(app)/__tests__/layout.test.tsx`
             - `src/app/(app)/examples/page.test.tsx` -> `src/app/(app)/examples/__tests__/page.test.tsx`
             - `src/components/concept-map/AIStagingToolbar.test.tsx` -> `src/components/concept-map/__tests__/AIStagingToolbar.test.tsx`
@@ -233,4 +233,4 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
             - `src/services/classrooms/classroomService.test.ts` -> `src/services/classrooms/__tests__/classroomService.test.ts`
             - `src/stores/concept-map-store.test.ts` -> `src/stores/__tests__/concept-map-store.test.ts`
             - `src/ai/tools/project-analyzer-tool.test.ts` -> `src/ai/tools/__tests__/project-analyzer-tool.test.ts`
-        - [ ] **(Jules - Blocked)** Verify/Update `vitest.config.ts` to correctly find tests in new locations.
+        - **Step 3 (Jules - Blocked by Step 1 & 2):** Verify/Update `vitest.config.ts` to correctly find tests in new locations and ensure tests still pass.
