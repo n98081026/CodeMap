@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react'; // Added useCallback
 import Joyride, { CallBackProps, STATUS, Step, EVENTS } from 'react-joyride';
 import { useAuth } from '@/contexts/auth-context';
-
-import useTutorialStore from '@/stores/tutorial-store'; // Import the tutorial store
+import useConceptMapStore from '@/stores/concept-map-store'; // Import concept map store
+import useTutorialStore from '@/stores/tutorial-store';
 
 interface AppTutorialProps {
-  // run, setRun and tutorialKey will now be primarily managed by/obtained from the store
+  // Props are not used as state is managed by stores
 }
 
 const AppTutorial: React.FC<AppTutorialProps> = () => {
@@ -17,7 +17,7 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
     runTutorial,
     currentStepIndex,
     setRunTutorialState,
-    setStepIndex
+    setStepIndex,
   } = useTutorialStore(
     useCallback(s => ({
       activeTutorialKey: s.activeTutorialKey,
@@ -28,8 +28,11 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
     }), [])
   );
 
-  // Define specific steps for different tutorials
-  const getStepsForTutorial = (key: string): Step[] => {
+  const tutorialTempTargetNodeId = useConceptMapStore(state => state.tutorialTempTargetNodeId);
+  const clearTutorialTempTargetNodeId = useConceptMapStore(state => state.setTutorialTempTargetNodeId);
+
+  const getStepsForTutorial = useCallback((key: string, dynamicNodeId?: string | null): Step[] => {
+    // console.log(`getStepsForTutorial called for key: ${key}, dynamicNodeId: ${dynamicNodeId}`); // Debug log
     const commonWelcomeStep: Step = {
       target: 'body',
       content: '歡迎使用 CodeMap！這是一個幫助您理解和可視化代碼結構的工具。',
@@ -239,11 +242,12 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
           // disableOverlayClicks: true, // Prevent clicking elsewhere during this step
         },
         {
-          // Temporarily target the pane. Later, we'll try to target the new node.
-          target: '.react-flow__pane',
-          content: '太棒了！一個新的「概念」節點已經出現在畫布上。您可以拖動它來改變位置。',
+          target: dynamicNodeId ? `[data-id='${dynamicNodeId}']` : '.react-flow__pane',
+          content: dynamicNodeId
+            ? '太棒了！一個新的「概念」節點已經添加到畫布上 (它已被高亮)。您可以拖動它來改變位置。'
+            : '一個新的「概念」節點已經添加到畫布中央。請找到它。',
           title: '2. 新節點已添加',
-          // event: 'click', // Consider if an event is needed or if it's just informational
+          // disableOverlayClicks: !!dynamicNodeId, // If we successfully target the node, prevent other clicks
         },
         {
           target: "#tutorial-target-toggle-properties-button",
@@ -252,46 +256,52 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
         },
       ];
     }
-
+    // Add other tutorial definitions above this line
 
     return []; // Default to no steps
-  };
+  }, [user]); // Add user as dependency if roleSpecificSteps depend on it.
 
   useEffect(() => {
-    if (user && !loading && activeTutorialKey) { // Depend on activeTutorialKey from store
+    if (user && !loading && activeTutorialKey) {
       const tutorialHasBeenSeen = localStorage.getItem(activeTutorialKey) === 'true';
-      if (runTutorial && !tutorialHasBeenSeen) {
-        setSteps(getStepsForTutorial(activeTutorialKey));
-      } else if (tutorialHasBeenSeen && runTutorial) { // If seen but run is true (e.g. forced restart)
-         setSteps(getStepsForTutorial(activeTutorialKey));
-      } else if (tutorialHasBeenSeen && !runTutorial) { // If seen and run is false
-        // This case is handled by the store now mostly
+      const newSteps = getStepsForTutorial(activeTutorialKey, tutorialTempTargetNodeId);
+
+      if (runTutorial) {
+        if (!tutorialHasBeenSeen || steps.length === 0 || (activeTutorialKey === 'manualAddNodeTutorial' && tutorialTempTargetNodeId)) {
+          // Refresh steps if tutorial just started, or if it's the manualAddNodeTutorial and a new node ID is available
+          setSteps(newSteps);
+        }
+      } else {
+        // If tutorial is not supposed to run, clear steps
+        if (steps.length > 0) setSteps([]);
       }
     } else if ((!user && !loading) || !activeTutorialKey) {
-        if(runTutorial) setRunTutorialState(false); // Ensure it's off if no user or key
-        setSteps([]);
+        if(runTutorial) setRunTutorialState(false);
+        if (steps.length > 0) setSteps([]);
     }
-  }, [user, loading, runTutorial, activeTutorialKey, setRunTutorialState]); // Updated dependencies
+  // tutorialTempTargetNodeId is added to ensure steps recalculate when it changes for manualAddNodeTutorial.
+  // getStepsForTutorial is wrapped in useCallback, its dependencies need to be correct.
+  }, [user, loading, runTutorial, activeTutorialKey, setRunTutorialState, tutorialTempTargetNodeId, getStepsForTutorial, steps.length]);
 
 
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status, type, lifecycle, index, action } = data;
+    const { status, type, lifecycle, index, action, step } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
     if (([EVENTS.STEP_AFTER, EVENTS.TARGET_NOT_FOUND] as string[]).includes(type)) {
-        // Update step index in store
         setStepIndex(index + (action === 'prev' ? -1 : 1));
     }
 
-
-    if (finishedStatuses.includes(status)) {
-      setRunTutorialState(false); // This will also update localStorage via the store's logic
-      // console.log(`${activeTutorialKey} completed or skipped.`);
-    } else if (type === EVENTS.TOOLTIP_CLOSE && lifecycle === 'complete') {
-      // This might indicate user closed a non-continuous step, or a step in a flow
-      // The store's setStepIndex and setRunTutorialState should handle most completion/skip logic.
+    if (finishedStatuses.includes(status) || (type === EVENTS.TOOLTIP_CLOSE && action === 'close')) {
+      setRunTutorialState(false);
+      if (activeTutorialKey === 'manualAddNodeTutorial') {
+        clearTutorialTempTargetNodeId(null); // Clear the temp node ID when this tutorial ends
+      }
+    } else if (type === EVENTS.STEP_AFTER && activeTutorialKey === 'manualAddNodeTutorial' && step.title === '2. 新節點已添加') {
+        // Potentially clear tutorialTempTargetNodeId if it's only needed for step 2's target
+        // However, it might be better to clear it only when the whole tutorial for this flow ends or is skipped.
+        // For now, clearing on full tutorial end/skip.
     }
-     // console.log(`Joyride (${activeTutorialKey}) callback data:`, data);
   };
 
   if (loading || !user || steps.length === 0 || !runTutorial || !activeTutorialKey) {

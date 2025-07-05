@@ -123,6 +123,30 @@ The main remaining area for full Supabase connection is:
     - [x] Created `MANUAL_TUTORIAL_TESTING_GUIDE.md`.
     - [x] **CSS Selector Refinement for Tutorials:** All tutorial step `target` selectors require manual verification and potential adjustment. (**Verified & Fixed:** Selectors appear largely stable. `overlayColor` style fix implemented.)
     - [ ] **Full Interactive Tutorial/Onboarding (Advanced):** Further expansion of tutorial coverage. (PENDING)
+    - [ ] **Expand Tutorial Coverage (Phase 2 - Current Focus):**
+        - [ ] **Manual Node/Edge Creation & Editing**:
+            - [x] Tutorial steps for adding a node via toolbar (Basic structure defined, dynamic target implemented via `tutorialTempTargetNodeId` in `conceptMapStore`).
+            - [ ] **Refine `manualAddNodeTutorial` for selecting and editing new node**:
+                - [ ] Add step to guide user to select the new node (if not auto-selected).
+                - [ ] Add step to guide user to open Properties Inspector (if not auto-opened or already open).
+                - [ ] Add step to highlight label input in Properties Inspector.
+                - [ ] (Optional) Add step for details input.
+            - [ ] Tutorial steps for creating an edge by dragging from a source handle to a target handle.
+            - [ ] Tutorial steps for selecting an edge and editing its label/details.
+        - [ ] **Using AI Tools - "Suggest Relations"**:
+            - [ ] Define steps for triggering "Suggest Relations".
+            - [ ] Explain the modal and input.
+            - [ ] Guide user to the AI Suggestion Panel.
+        - [ ] **Using AI Tools - "Expand Concept" (Advanced/Staging Area Usage)**:
+            - [ ] Focus on Staging Area interaction: accepting/clearing.
+        - [ ] **Using Ghost Previews (e.g., from AI Tidy Up - Layout Only)**:
+            - [ ] Explain Ghost Preview and how to accept/cancel.
+        - [ ] **(Optional) Project Overview Mode Tutorial**.
+    - [ ] **Tutorial System Enhancements & Polish:**
+        - [ ] **"Help/Tutorials" Menu**: Allow users to re-trigger tutorials.
+        - [ ] **Review and Refine Tutorial Text**.
+        - [ ] **Visual Polish**.
+        - [ ] **Test on Different Screen Sizes**.
 - [ ] **Onboarding & Initial Experience (Excluding Tutorial):**
     - [ ] **"Guest Mode" or "Try Without Login".** (Higher effort - PENDING)
     - [x] **Clearer "User Goals" Input.**
