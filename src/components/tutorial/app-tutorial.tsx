@@ -329,7 +329,24 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
             ? '太棒了！您已經成功創建了一條連接線（邊），它已被高亮顯示。'
             : '一條新的連接線（邊）已經被創建。',
           title: '3. 邊已創建',
+          spotlightClicks: true, // Allow clicking the new edge
         },
+        {
+          target: "#tutorial-target-toggle-properties-button",
+          content: '現在，請點擊選中剛剛創建的邊（如果它還沒有被選中）。然後，如果屬性面板未打開，請點擊此按鈕打開它。',
+          title: '4. 選中邊並打開屬性面板',
+        },
+        {
+          target: "input[data-tutorial-id='properties-inspector-edge-label-input']",
+          content: '在屬性面板中，您可以為這條邊輸入一個描述性的標籤，例如「導致」、「屬於」或「相關於」。',
+          title: '5. 編輯邊的標籤',
+        },
+        {
+          target: 'body',
+          content: '非常好！您現在知道如何創建邊並為其添加標籤了。',
+          placement: 'center',
+          title: '教程完成！',
+        }
       ];
     } else if (key === 'suggestRelationsToolTutorial') {
       return [

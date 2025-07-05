@@ -766,6 +766,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         <Label htmlFor="edgeLabel" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Label</Label>
         <Input 
             id="edgeLabel" 
+            data-tutorial-id="properties-inspector-edge-label-input" // Added tutorial ID
             value={elementLabelValue} 
             onChange={handleElementLabelChange} 
             disabled={isViewOnlyMode} 

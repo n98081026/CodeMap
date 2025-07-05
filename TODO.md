@@ -132,11 +132,11 @@ The main remaining area for full Supabase connection is:
                 - [x] Add step to highlight label input in Properties Inspector.
                 - [x] (Optional) Add step for details input.
             - [x] Tutorial steps for creating an edge by dragging from a source handle to a target handle (Basic structure defined, dynamic target via `tutorialTempTargetEdgeId` in `conceptMapStore`).
-            - [ ] **Refine `manualCreateEdgeTutorial` for selecting and editing new edge**:
-                - [ ] Add step to guide user to select the new edge.
-                - [ ] Add step to guide user to open Properties Inspector.
-                - [ ] Add step to highlight label input in Properties Inspector for the edge.
-            - [ ] Tutorial steps for selecting an edge and editing its label/details. <!--Duplicate? This seems covered by the above. Maybe remove or clarify if it's a separate tutorial flow. -->
+            - [x] **Refine `manualCreateEdgeTutorial` for selecting and editing new edge**:
+                - [x] Add step to guide user to select the new edge.
+                - [x] Add step to guide user to open Properties Inspector.
+                - [x] Add step to highlight label input in Properties Inspector for the edge.
+            - [ ] Tutorial steps for selecting an edge and editing its label/details. <!-- This seems covered by the refinement above. Mark for review/removal if truly duplicate. -->
         - [ ] **Using AI Tools - "Suggest Relations" (`suggestRelationsToolTutorial`)**:
             - [x] Define steps for triggering "Suggest Relations" from AI Tools menu.
             - [x] Explain the modal and how AI uses context.
