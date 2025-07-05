@@ -557,6 +557,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </div>
         <Textarea 
             id="nodeDetails"
+            data-tutorial-id="properties-inspector-node-details-input" // Added tutorial ID
             ref={textareaDetailsRef}
             value={elementDetailsValue} 
             onChange={handleElementDetailsChangeWithPalette}

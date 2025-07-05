@@ -247,19 +247,38 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
             ? '太棒了！一個新的「概念」節點已經添加到畫布上 (它已被高亮)。您可以拖動它來改變位置。'
             : '一個新的「概念」節點已經添加到畫布中央。請找到它。',
           title: '2. 新節點已添加',
-          // disableOverlayClicks: !!dynamicNodeId, // If we successfully target the node, prevent other clicks
+          spotlightClicks: true, // Allow clicking on the new node to select it
         },
         {
           target: "#tutorial-target-toggle-properties-button",
-          content: '選中新節點後 (如果它尚未被選中，請單擊它)，您可以點擊此按鈕打開屬性面板，然後編輯它的文本和詳細信息。',
-          title: '3. 編輯節點內容',
+          content: '很好！節點通常在添加後會自動選中。如果屬性面板沒有自動打開，請點擊此按鈕打開它。',
+          title: '3. 打開屬性面板',
         },
+        {
+          target: "input[data-tutorial-id='properties-inspector-node-text-input']",
+          content: '在屬性面板中，您可以在這個輸入框裡修改節點的名稱或標籤。試著輸入一些文字吧！',
+          title: '4. 修改節點標籤',
+          // Consider adding: event: 'input' and then checking if value changed, but that's more complex.
+          // For now, just informational.
+        },
+        {
+          target: "textarea[data-tutorial-id='properties-inspector-node-details-input']", // Assuming this ID will be added
+          content: '您還可以在「Details」區域為節點添加更詳細的描述或筆記。這對理解複雜概念很有幫助。',
+          title: '5. (可選) 添加詳細信息',
+          isOptional: true, // Joyride doesn't have a built-in 'isOptional' visual, but good for our logic
+        },
+        {
+          target: 'body',
+          content: '太棒了！您已經掌握了添加節點並編輯其基本信息的方法。繼續探索，嘗試創建更多節點和它們之間的聯繫吧！',
+          placement: 'center',
+          title: '教程完成！',
+        }
       ];
     }
     // Add other tutorial definitions above this line
 
     return []; // Default to no steps
-  }, [user]); // Add user as dependency if roleSpecificSteps depend on it.
+  }, [user]); // Add user as dependency if roleSpecificSteps depend on it, and dynamicNodeId if used directly here.
 
   useEffect(() => {
     if (user && !loading && activeTutorialKey) {

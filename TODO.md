@@ -126,11 +126,11 @@ The main remaining area for full Supabase connection is:
     - [ ] **Expand Tutorial Coverage (Phase 2 - Current Focus):**
         - [ ] **Manual Node/Edge Creation & Editing**:
             - [x] Tutorial steps for adding a node via toolbar (Basic structure defined, dynamic target implemented via `tutorialTempTargetNodeId` in `conceptMapStore`).
-            - [ ] **Refine `manualAddNodeTutorial` for selecting and editing new node**:
-                - [ ] Add step to guide user to select the new node (if not auto-selected).
-                - [ ] Add step to guide user to open Properties Inspector (if not auto-opened or already open).
-                - [ ] Add step to highlight label input in Properties Inspector.
-                - [ ] (Optional) Add step for details input.
+            - [x] **Refine `manualAddNodeTutorial` for selecting and editing new node**:
+                - [x] Add step to guide user to select the new node (if not auto-selected).
+                - [x] Add step to guide user to open Properties Inspector (if not auto-opened or already open).
+                - [x] Add step to highlight label input in Properties Inspector.
+                - [x] (Optional) Add step for details input.
             - [ ] Tutorial steps for creating an edge by dragging from a source handle to a target handle.
             - [ ] Tutorial steps for selecting an edge and editing its label/details.
         - [ ] **Using AI Tools - "Suggest Relations"**:
