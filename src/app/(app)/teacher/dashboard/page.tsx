@@ -6,93 +6,61 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+// import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // No longer needed
+// import { Button } from '@/components/ui/button'; // No longer needed
+// import Link from 'next/link'; // No longer needed
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
-import {
-  BookOpen,
-  Users,
-  LayoutDashboard,
-  Loader2,
-  AlertTriangle,
-} from 'lucide-react';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { useTeacherDashboardMetrics } from '@/hooks/useTeacherDashboardMetrics';
-import {
-  DashboardLinkCard,
-  type MetricState,
-} from '@/components/dashboard/dashboard-link-card';
+import { Loader2 } from 'lucide-react'; // For loading state
+// import { BookOpen, Users, LayoutDashboard, AlertTriangle } from 'lucide-react'; // Icons are in TeacherDashboardView
+// import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Now in TeacherDashboardView
+// import { useTeacherDashboardMetrics } from '@/hooks/useTeacherDashboardMetrics'; // Now in TeacherDashboardView
+// import { DashboardLinkCard, type MetricState } from '@/components/dashboard/dashboard-link-card'; // Now in TeacherDashboardView
+import TeacherDashboardView from '@/components/dashboard/teacher/TeacherDashboardView'; // Import the shared view
+import { useRouter } from 'next/navigation'; // For redirection
+import { useEffect } from 'react'; // For redirection logic
 
 export default function TeacherDashboardPage() {
-  const { user } = useAuth();
-  const { managedClassrooms, totalStudents } = useTeacherDashboardMetrics();
+  const { user, isLoading: authIsLoading } = useAuth();
+  const router = useRouter();
 
-  if (!user) return null; // Or a loading state
+ useEffect(() => {
+    // AppLayout handles general authentication. This page adds role-specific redirection.
+    if (!authIsLoading && user) {
+      // This page is for TEACHERs. ADMINs might also access it (as per original logic showing Admin Panel link).
+      // If a STUDENT lands here, redirect them to their dashboard.
+      if (user.role === UserRole.STUDENT) {
+        router.replace('/student/dashboard'); // Or /application/student/dashboard
+      }
+      // No explicit redirect for ADMIN, as they might be intentionally viewing a teacher-like dashboard
+      // or the TeacherDashboardView itself might show admin-specific links if user.role is ADMIN.
+      // If an ADMIN should *always* go to their own dashboard from this URL, a redirect can be added:
+      // else if (user.role === UserRole.ADMIN) {
+      //  router.replace('/admin/dashboard');
+      // }
+    }
+    // If !user and !authIsLoading, AppLayout should handle the redirect to /login.
+  }, [user, authIsLoading, router]);
 
-  const renderMetricCount = (metric: MetricState) => {
-    if (metric.isLoading)
-      return <Loader2 className='h-7 w-7 animate-spin text-primary' />;
-    if (metric.error)
-      return (
-        <AlertTriangle
-          className='h-7 w-7 text-destructive'
-          title={metric.error}
-        />
-      );
-    return metric.count !== null ? metric.count : '-';
-  };
 
-  return (
-    <div className='space-y-6'>
-      <DashboardHeader
-        title={`Welcome, ${user.name}!`}
-        description='Manage your classrooms and student activities.'
-        icon={LayoutDashboard}
-      >
-        {user.role === UserRole.ADMIN && (
-          <Button asChild variant='outline'>
-            <Link href='/application/admin/dashboard'>Admin Panel</Link>
-          </Button>
-        )}
-      </DashboardHeader>
-
-      <div className='grid gap-6 md:grid-cols-2'>
-        <DashboardLinkCard
-          title='Managed Classrooms'
-          description='Classrooms you are currently teaching.'
-          count={renderMetricCount(managedClassrooms)}
-          icon={BookOpen}
-          href='/application/teacher/classrooms'
-          linkText='Manage Classrooms'
-        />
-        <DashboardLinkCard
-          title='Total Students'
-          description='Students across all your classrooms.'
-          count={renderMetricCount(totalStudents)}
-          icon={Users}
-          href='/application/teacher/classrooms'
-          linkText='View Student Lists'
-        />
+  if (authIsLoading) {
+    return (
+      <div className='flex h-full items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
       </div>
+    );
+  }
 
-      <Card className='shadow-lg'>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Common tasks for managing your teaching activities.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild size='lg' className='w-full sm:w-auto'>
-            <Link href='/application/teacher/classrooms/new'>
-              <Users className='mr-2 h-5 w-5' /> Create New Classroom
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  if (!user || (user.role !== UserRole.TEACHER && user.role !== UserRole.ADMIN)) {
+    // This primarily catches non-teacher, non-admin roles after auth.
+    // AppLayout handles unauthenticated.
+    return (
+      <div className='flex h-full items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
+
+  // If user is authenticated and is a TEACHER or ADMIN, render the TeacherDashboardView
+  return <TeacherDashboardView user={user} />;
 }

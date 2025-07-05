@@ -8,83 +8,25 @@ import { BookOpen, Users, LayoutDashboard, Loader2, AlertTriangle } from "lucide
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
 import { useTeacherDashboardMetrics } from "@/hooks/useTeacherDashboardMetrics";
-import { QuickActionsCard, type QuickActionItem } from "@/components/dashboard/quick-actions-card";
+// Necessary imports for page-level logic
+import { useAuth } from "@/contexts/auth-context";
+import { UserRole, type User } from "@/types";
+import { Loader2 } from "lucide-react";
+// Removed imports that are now encapsulated in TeacherDashboardView:
+// import { Button } from "@/components/ui/button";
+// import Link from "next/link";
+// import { BookOpen, Users, LayoutDashboard, AlertTriangle } from "lucide-react";
+// import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+// import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
+// import { useTeacherDashboardMetrics } from "@/hooks/useTeacherDashboardMetrics";
+// import { QuickActionsCard, type QuickActionItem } from "@/components/dashboard/quick-actions-card";
+import TeacherDashboardView from "@/components/dashboard/teacher/TeacherDashboardView"; // Import the new shared view
 
 const LoadingSpinner = () => (
   <div className="flex h-screen w-screen items-center justify-center">
     <Loader2 className="h-12 w-12 animate-spin text-primary" />
   </div>
 );
-
-function TeacherDashboardContent({ user }: { user: User }) {
-  const {
-    managedClassrooms: managedClassroomsMetric,
-    totalStudents: totalStudentsMetric,
-  } = useTeacherDashboardMetrics();
-  
-  const adminDashboardLink = "/application/admin/dashboard";
-
-  const renderCount = (metric: { count: number | null, isLoading: boolean, error: string | null }, itemName: string) => {
-    if (metric.isLoading) {
-      return <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
-    }
-    if (metric.error && (metric.count === 0 || metric.count === null)) {
-        return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
-    }
-    return <div className="text-3xl font-bold">{metric.count ?? 0}</div>;
-  };
-
-  const teacherQuickActions: QuickActionItem[] = [
-    {
-      label: "Create New Classroom",
-      href: "/application/teacher/classrooms/new",
-      icon: Users, 
-      size: "lg",
-      className: "w-full sm:w-auto"
-    }
-  ];
-
-  return (
-    <div className="space-y-6">
-       <DashboardHeader
-        title={`Welcome, ${user.name}!`}
-        description="Manage your classrooms and student activities."
-        icon={LayoutDashboard}
-        iconLinkHref="/application/teacher/dashboard"
-      >
-        {user.role === UserRole.ADMIN && (
-          <Button asChild variant="outline">
-            <Link href={adminDashboardLink}>Admin Panel</Link>
-          </Button>
-        )}
-      </DashboardHeader>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <DashboardLinkCard
-          title="Managed Classrooms"
-          description="Classrooms you are currently teaching."
-          count={renderCount(managedClassroomsMetric, "classrooms")}
-          icon={BookOpen}
-          href="/application/teacher/classrooms"
-          linkText="Manage Classrooms"
-        />
-        <DashboardLinkCard
-          title="Total Students"
-          description="Students across all your classrooms."
-          count={renderCount(totalStudentsMetric, "students")}
-          icon={Users}
-          href="/application/teacher/classrooms"
-          linkText="View Student Lists"
-        />
-      </div>
-      <QuickActionsCard
-        actions={teacherQuickActions}
-        title="Quick Actions"
-        description="Common tasks for managing your teaching activities."
-      />
-    </div>
-  );
-}
 
 export default function TeacherDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();
@@ -93,11 +35,15 @@ export default function TeacherDashboardPage() {
     return <LoadingSpinner />;
   }
   
+  // Ensure the user is either a TEACHER or an ADMIN to view this page.
+  // AppLayout might handle the general !user case, but role check is specific here.
   if (!user || (user.role !== UserRole.TEACHER && user.role !== UserRole.ADMIN)) {
-    // AppLayout should handle redirect if role is completely wrong or not authenticated.
-    // This is a safeguard.
+    // In a real app, you might redirect or show an "Unauthorized" component.
+    // For now, returning null relies on AppLayout's potential redirect or shows nothing.
+    // Consider router.replace('/login') or router.replace('/unauthorized') if AppLayout doesn't cover this.
     return null; 
   }
 
-  return <TeacherDashboardContent user={user} />;
+  // Render the shared TeacherDashboardView, passing the authenticated user
+  return <TeacherDashboardView user={user} />;
 }

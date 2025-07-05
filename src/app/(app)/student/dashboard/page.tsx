@@ -26,142 +26,65 @@ import {
 } from 'lucide-react'; // Added Users, Settings
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics';
-import {
-  DashboardLinkCard,
-  type MetricState,
-} from '@/components/dashboard/dashboard-link-card';
-import { QuickActionsCard } from '@/components/dashboard/quick-actions-card';
+// Unused imports like Card, CardContent etc. are removed as StudentDashboardView handles its own UI.
+// Kept Link for Button asChild if needed, but StudentDashboardView handles its internal links.
+// import Link from 'next/link'; // No longer directly used here if StudentDashboardView handles all links
+import { useAuth } from '@/contexts/auth-context';
+import { UserRole } from '@/types'; // Import UserRole
+import { Loader2 } from 'lucide-react'; // For loading state
+// import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Now in StudentDashboardView
+// import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics'; // Now in StudentDashboardView
+// import { DashboardLinkCard, type MetricState } from '@/components/dashboard/dashboard-link-card'; // Now in StudentDashboardView
+// import { QuickActionsCard } from '@/components/dashboard/quick-actions-card'; // Now in StudentDashboardView
+import StudentDashboardView from '@/components/dashboard/student/StudentDashboardView'; // Import the new shared view
+import { useRouter } from 'next/navigation'; // For redirection
+import { useEffect } from 'react'; // For redirection logic
 
 export default function StudentDashboardPage() {
-  const { user } = useAuth();
-  // For a "general" dashboard, student-specific metrics might be fetched conditionally or not at all if not a student.
-  // For now, we assume they are fetched, and we'll conditionally display them.
-  const { classrooms, conceptMaps, submissions } = useStudentDashboardMetrics();
+  const { user, isLoading: authIsLoading } = useAuth();
+  const router = useRouter();
 
-  if (!user) return null;
-
-  const renderMetricCount = (metric: MetricState) => {
-    if (metric.isLoading)
-      return <Loader2 className='h-7 w-7 animate-spin text-primary' />;
-    if (metric.error)
-      return (
-        <AlertTriangle
-          className='h-7 w-7 text-destructive'
-          title={metric.error}
-        />
-      );
-    return metric.count !== null ? metric.count : '-';
-  };
-
-  const isStudentRole = user.role === UserRole.STUDENT;
-  // We can add checks for other roles if this dashboard becomes truly role-agnostic
-  // For now, we'll tailor it slightly if it's a student.
-
-  return (
-    <div className='space-y-6'>
-      <DashboardHeader
-        title={`Welcome, ${user.name}!`}
-        description={
-          isStudentRole
-            ? "Here's an overview of your activities and tools."
-            : 'Manage your projects and concept maps.'
+  useEffect(() => {
+    // AppLayout handles general authentication. This page adds role-specific redirection.
+    if (!authIsLoading && user) {
+      if (user.role !== UserRole.STUDENT) {
+        // If the authenticated user is not a student, redirect them appropriately.
+        // For example, redirect teachers to teacher dashboard, admins to admin dashboard.
+        // Or a generic fallback if the role doesn't have a specific dashboard here.
+        switch (user.role) {
+          case UserRole.ADMIN:
+            router.replace('/admin/dashboard'); // Or /application/admin/dashboard
+            break;
+          case UserRole.TEACHER:
+            router.replace('/teacher/dashboard'); // Or /application/teacher/dashboard
+            break;
+          default:
+            router.replace('/'); // Fallback to a generic home or their (app) root if applicable
+            break;
         }
-        icon={LayoutDashboard}
-      />
+      }
+    }
+    // If !user and !authIsLoading, AppLayout should handle the redirect to /login.
+  }, [user, authIsLoading, router]);
 
-      <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
-        {/* Common cards - always visible */}
-        <DashboardLinkCard
-          title='My Concept Maps'
-          description='Concept maps you have created or have access to.'
-          count={renderMetricCount(conceptMaps)} // This hook might need to be generalized or conditionally called
-          icon={Share2}
-          href='/application/student/concept-maps' // Link might need to be generalized if not a student
-          linkText='View My Maps'
-        />
-        <DashboardLinkCard
-          title='My Project Analyses'
-          description='Projects you have submitted for analysis.'
-          count={renderMetricCount(submissions)} // This hook might need to be generalized
-          icon={FolderKanban}
-          href='/application/student/projects/submissions' // Link might need to be generalized
-          linkText='View My Analyses'
-        />
-
-        {/* Student-specific card */}
-        {isStudentRole && (
-          <DashboardLinkCard
-            title='My Classrooms'
-            description='Classrooms you are enrolled in.'
-            count={renderMetricCount(classrooms)}
-            icon={BookOpen}
-            href='/application/student/classrooms'
-            linkText='View Classrooms'
-          />
-        )}
-
-        {/* Placeholder for other role-specific quick links if needed */}
-        {user.role === UserRole.TEACHER && (
-          <DashboardLinkCard
-            title='Manage Classrooms'
-            description='Access your teacher dashboard.'
-            icon={Users}
-            href='/application/teacher/dashboard'
-            linkText='Teacher Dashboard'
-          />
-        )}
-        {user.role === UserRole.ADMIN && (
-          <DashboardLinkCard
-            title='Admin Panel'
-            description='Access system administration tools.'
-            icon={Settings}
-            href='/application/admin/dashboard'
-            linkText='Admin Dashboard'
-          />
-        )}
+  if (authIsLoading) {
+    return (
+      <div className='flex h-full items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
       </div>
+    );
+  }
 
-      <QuickActionsCard
-        actions={[
-          {
-            href: '/application/concept-maps/editor/new',
-            label: 'Create New Concept Map',
-            icon: Compass,
-          },
-          {
-            href: '/application/student/projects/submit',
-            label: 'Analyze New Project',
-            icon: FileText,
-            id: 'tutorial-target-new-project-button',
-            tutorialKey: 'projectUpload', // Key for the tutorial store
-            tutorialButtonTooltip: "Show 'Project Upload' Tutorial",
-          },
-        ]}
-        title='Get Started'
-        description='Quickly access common tasks.'
-      />
+  if (!user || user.role !== UserRole.STUDENT) {
+    // Display loading or null while redirecting or if auth state is briefly inconsistent.
+    // AppLayout should prevent unauthenticated access. This primarily handles incorrect role access.
+     return (
+      <div className='flex h-full items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
 
-      {/* Original Quick Actions Card - can be removed or merged into QuickActionsCard logic */}
-      {/*
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Get started with common tasks quickly.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Button asChild size="lg" className="w-full">
-            <Link href="/application/concept-maps/editor/new">
-              <Compass className="mr-2 h-5 w-5" /> Create New Concept Map
-            </Link>
-          </Button>
-          <Button asChild variant="secondary" size="lg" className="w-full">
-            <Link href="/application/student/projects/submit">
-              <FileText className="mr-2 h-5 w-5" /> Submit New Project
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-      */}
-    </div>
-  );
+  // If user is authenticated and is a student, render the StudentDashboardView
+  return <StudentDashboardView user={user} />;
 }
