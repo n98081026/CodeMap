@@ -731,6 +731,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <DropdownMenuItem onSelect={handleTestManualCreateEdgeTutorial}>
                 Test: Manual Create Edge Tutorial
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => startOrResumeTutorial('suggestRelationsToolTutorial', 0, true)}>
+                Test: Suggest Relations Tutorial
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}

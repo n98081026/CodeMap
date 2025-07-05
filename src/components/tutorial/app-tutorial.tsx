@@ -20,6 +20,7 @@ export const availableTutorials: TutorialMetaData[] = [
   { key: 'extractConceptsToolTutorial', title: 'AI工具：提取概念' },
   { key: 'manualAddNodeTutorial', title: '手動添加節點與編輯' },
   { key: 'manualCreateEdgeTutorial', title: '手動創建連接邊' },
+  { key: 'suggestRelationsToolTutorial', title: 'AI工具：建議關係' },
   // Add more tutorials here as they are created
 ];
 
@@ -330,7 +331,56 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
           title: '3. 邊已創建',
         },
       ];
+    } else if (key === 'suggestRelationsToolTutorial') {
+      return [
+        {
+          target: '.react-flow__pane',
+          content: '現在來學習如何使用 AI 根據您地圖中的現有概念建議它們之間的潛在關係。',
+          placement: 'center',
+          title: 'AI工具：建議關係',
+          disableBeacon: true,
+        },
+        {
+          target: "button[aria-label='AI Tools']", // Or specific node context menu trigger if applicable
+          content: '首先，打開AI工具菜單。您通常可以在編輯器工具欄找到它。如果選中了一個節點，也可以在節點的右鍵菜單中找到相關AI選項。',
+          title: '1. 打開AI菜單',
+        },
+        {
+          target: "button[data-tutorial-id='ai-tool-suggest-relations']", // Ensure this ID exists on the menu item
+          content: '從菜單中選擇「建議關係」。',
+          title: '2. 選擇建議關係工具',
+        },
+        {
+          target: "[role='dialog'][aria-labelledby='suggest-relations-title']", // Adjust if modal has different aria label
+          content: 'AI會自動分析您圖譜中的概念（或者您選中的概念及其鄰近概念）來提出關係建議。您可以直接點擊「建議」按鈕。',
+          title: '3. 確認建議',
+          placement: 'auto',
+        },
+        {
+          target: "button[type='submit'][data-tutorial-id='suggest-relations-submit']",
+          content: '點擊此按鈕開始分析並獲取建議。',
+          title: '開始建議',
+        },
+        {
+          target: "button[data-tutorial-id='editor-toggle-ai-panel']",
+          content: '建議生成後，會顯示在AI建議面板中。如果面板未打開，請點擊此按鈕查看。',
+          title: '4. 查看建議的關係',
+        },
+        {
+          target: ".ai-suggestion-panel .suggestion-type-relation", // Placeholder - needs specific selector for relation items
+          content: '在建議面板中，您會看到AI建議的關係列表，通常包含源概念、目標概念和它們之間的關係標籤。您可以選擇接受這些建議，將它們作為新的邊添加到您的圖中。',
+          title: 'AI建議面板中的關係',
+          placement: 'left',
+        },
+        {
+          target: 'body',
+          content: '非常好！現在您知道如何利用AI來發現和建立概念之間的新聯繫了。',
+          placement: 'center',
+          title: '教程完成！',
+        },
+      ];
     }
+
 
     return []; // Default to no steps
   }, [user]);

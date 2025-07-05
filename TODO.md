@@ -137,10 +137,12 @@ The main remaining area for full Supabase connection is:
                 - [ ] Add step to guide user to open Properties Inspector.
                 - [ ] Add step to highlight label input in Properties Inspector for the edge.
             - [ ] Tutorial steps for selecting an edge and editing its label/details. <!--Duplicate? This seems covered by the above. Maybe remove or clarify if it's a separate tutorial flow. -->
-        - [ ] **Using AI Tools - "Suggest Relations"**:
-            - [ ] Define steps for triggering "Suggest Relations".
-            - [ ] Explain the modal and input.
-            - [ ] Guide user to the AI Suggestion Panel.
+        - [ ] **Using AI Tools - "Suggest Relations" (`suggestRelationsToolTutorial`)**:
+            - [x] Define steps for triggering "Suggest Relations" from AI Tools menu.
+            - [x] Explain the modal and how AI uses context.
+            - [x] Guide user to the AI Suggestion Panel to view and apply suggested relations.
+            - [ ] **TODO**: Ensure `button[data-tutorial-id='ai-tool-suggest-relations']` and `[role='dialog'][aria-labelledby='suggest-relations-title']` (and its submit button) have correct `data-tutorial-id` or stable selectors.
+            - [ ] **TODO**: Ensure AI Suggestion Panel items for relations have a stable selector like `.suggestion-type-relation`.
         - [ ] **Using AI Tools - "Expand Concept" (Advanced/Staging Area Usage)**:
             - [ ] Focus on Staging Area interaction: accepting/clearing.
         - [ ] **Using Ghost Previews (e.g., from AI Tidy Up - Layout Only)**:
