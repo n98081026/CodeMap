@@ -531,6 +531,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         <Label htmlFor="nodeLabel" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Label (Text)</Label>
         <Input 
             id="nodeLabel"
+            data-tutorial-id="properties-inspector-node-text-input" // Added tutorial ID
             ref={nodeLabelInputRef}
             value={elementLabelValue} 
             onChange={handleElementLabelChange} 
