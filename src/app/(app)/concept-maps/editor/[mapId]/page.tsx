@@ -21,6 +21,7 @@ import {
   AlignBottom,
 } from 'lucide-react';
 
+<<<<<<< HEAD
 import { EditorToolbar } from '@/components/concept-map/editor-toolbar';
 import { PropertiesInspector } from '@/components/concept-map/properties-inspector';
 import { AISuggestionPanel } from '@/components/concept-map/ai-suggestion-panel';
@@ -36,6 +37,16 @@ import {
   HelpCircle,
   Save,
 } from 'lucide-react';
+=======
+import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
+import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
+import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel";
+import { WhimsicalAIAssistant } from '@/components/concept-map/whimsical-ai-assistant';
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowLeft, Compass, Share2, Loader2, EyeOff, HelpCircle, Save } from "lucide-react";
+>>>>>>> master
 import {
   ExtractConceptsModal,
   SuggestRelationsModal,
@@ -65,9 +76,14 @@ import ProjectOverviewDisplay from '@/components/concept-map/project-overview-di
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+<<<<<<< HEAD
 import AISuggestionFloater, {
   type SuggestionAction,
 } from '@/components/concept-map/ai-suggestion-floater';
+=======
+import { useWhimsicalAITools } from '@/hooks/useWhimsicalAITools';
+import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
+>>>>>>> master
 import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
 import {
   AlertDialog,

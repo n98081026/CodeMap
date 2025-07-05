@@ -12,7 +12,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom', // For testing components that interact with DOM APIs
     setupFiles: ['./src/tests/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'], // Pattern for test files
+    include: ['src/**/*.test.{ts,tsx}', 'src/**/__tests__/**/*.{ts,tsx}', 'src/tests/**/*.test.{ts,tsx}'], // Pattern for test files
     coverage: {
       provider: 'v8', // or 'istanbul'
       reporter: ['text', 'json', 'html'],
