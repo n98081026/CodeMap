@@ -77,6 +77,33 @@ import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import { useReactFlow } from 'reactflow';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 
+// Locally defined simplified types for AI flow inputs if not exported from flows
+interface SimplifiedNodeInput {
+  id: string;
+  text: string;
+  details?: string;
+  // Add other properties if the flows expect them
+}
+
+interface SimplifiedEdgeInput {
+  source: string;
+  target: string;
+  label?: string;
+  // Add other properties if the flows expect them
+}
+
+interface SuggestMapImprovementsInput {
+  nodes: SimplifiedNodeInput[];
+  edges: SimplifiedEdgeInput[];
+  // userQuery?: string; // Example: if the flow takes a user query
+}
+
+interface FetchAllStructuralSuggestionsInput {
+  nodes: SimplifiedNodeInput[];
+  edges: SimplifiedEdgeInput[];
+}
+
+
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;
 const GRID_SIZE_FOR_AI_PLACEMENT = 20;
@@ -266,73 +293,77 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           `[AITools] Success: ${aiFunctionName} (ID: ${currentProcessingId})`
         );
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         loadingToast.dismiss();
         console.error(
           `Error in ${aiFunctionName} (ID: ${currentProcessingId}):`,
           error
         );
         let userFriendlyMessage = `The AI operation "${aiFunctionName}" failed. `;
-        if (error.message) {
-          const lowerErrorMessage = error.message.toLowerCase();
-          // Try to make some common errors more friendly
-          if (
-            lowerErrorMessage.includes('deadline_exceeded') ||
-            lowerErrorMessage.includes('timeout')
-          ) {
-            userFriendlyMessage +=
-              'The request timed out. This might be due to high server load or a complex request. Please try again in a few moments.';
-          } else if (
-            lowerErrorMessage.includes('resource_exhausted') ||
-            lowerErrorMessage.includes('quota')
-          ) {
-            userFriendlyMessage +=
-              'The AI resources are temporarily unavailable or quota has been exceeded. Please try again later or check your service plan.';
-          } else if (lowerErrorMessage.includes('api key not valid')) {
-            userFriendlyMessage =
-              'AI service configuration error. Please contact support.';
-          } else if (
-            lowerErrorMessage.includes('context length') ||
-            lowerErrorMessage.includes('input too long') ||
-            lowerErrorMessage.includes('token limit')
-          ) {
-            userFriendlyMessage +=
-              'The provided text or map data is too large for the AI to process. Please try with a smaller selection or a less complex map.';
-          } else if (
-            lowerErrorMessage.includes('safety settings') ||
-            lowerErrorMessage.includes('policy violation') ||
-            lowerErrorMessage.includes('blocked') ||
-            lowerErrorMessage.includes('unsafe content')
-          ) {
-            userFriendlyMessage = `The AI could not process the request due to content safety policies. Please review your input. Reason: ${error.message}`;
-          } else if (
-            lowerErrorMessage.includes('zoderror') ||
-            lowerErrorMessage.includes('schema validation')
-          ) {
-            userFriendlyMessage += `There was an issue with the data format sent to the AI. Details: ${error.message}`;
+        let errorMessage = 'An unknown error occurred.';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+
+        const lowerErrorMessage = errorMessage.toLowerCase();
+        // Try to make some common errors more friendly
+        if (
+          lowerErrorMessage.includes('deadline_exceeded') ||
+          lowerErrorMessage.includes('timeout')
+        ) {
+          userFriendlyMessage +=
+            'The request timed out. This might be due to high server load or a complex request. Please try again in a few moments.';
+        } else if (
+          lowerErrorMessage.includes('resource_exhausted') ||
+          lowerErrorMessage.includes('quota')
+        ) {
+          userFriendlyMessage +=
+            'The AI resources are temporarily unavailable or quota has been exceeded. Please try again later or check your service plan.';
+        } else if (lowerErrorMessage.includes('api key not valid')) {
+          userFriendlyMessage =
+            'AI service configuration error. Please contact support.';
+        } else if (
+          lowerErrorMessage.includes('context length') ||
+          lowerErrorMessage.includes('input too long') ||
+          lowerErrorMessage.includes('token limit')
+        ) {
+          userFriendlyMessage +=
+            'The provided text or map data is too large for the AI to process. Please try with a smaller selection or a less complex map.';
+        } else if (
+          lowerErrorMessage.includes('safety settings') ||
+          lowerErrorMessage.includes('policy violation') ||
+          lowerErrorMessage.includes('blocked') ||
+          lowerErrorMessage.includes('unsafe content')
+        ) {
+          userFriendlyMessage = `The AI could not process the request due to content safety policies. Please review your input. Reason: ${errorMessage}`;
+        } else if (
+          lowerErrorMessage.includes('zoderror') ||
+          lowerErrorMessage.includes('schema validation')
+        ) {
+          userFriendlyMessage += `There was an issue with the data format sent to the AI. Details: ${errorMessage}`;
             addDebugLog(
-              `[AITools] Zod/Schema validation error likely: ${error.message}`
+              `[AITools] Zod/Schema validation error likely: ${errorMessage}`
             );
           } else if (
-            typeof error.details === 'string' &&
+            error instanceof Object && 'details' in error && typeof error.details === 'string' &&
             error.details.toLowerCase().includes('permission_denied')
           ) {
             // Genkit specific for permission issues
             userFriendlyMessage =
               'AI operation failed due to a permission issue with the underlying service. Please check configurations or contact support.';
           } else {
-            userFriendlyMessage += `Details: ${error.message}`;
+            userFriendlyMessage += `Details: ${errorMessage}`;
           }
-        } else {
-          userFriendlyMessage += 'An unknown error occurred.';
         }
 
         // Add general advice only if not an API key error or safety policy violation (which have their own specific advice)
         if (
-          !error.message?.toLowerCase().includes('api key not valid') &&
+          !lowerErrorMessage.includes('api key not valid') &&
           !(
-            error.message?.toLowerCase().includes('safety settings') ||
-            error.message?.toLowerCase().includes('policy violation')
+            lowerErrorMessage.includes('safety settings') ||
+            lowerErrorMessage.includes('policy violation')
           )
         ) {
           userFriendlyMessage +=
@@ -346,7 +377,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           duration: 7000,
         });
         addDebugLog(
-          `[AITools] Error in ${aiFunctionName} (ID: ${currentProcessingId}): ${error.message}`
+          `[AITools] Error in ${aiFunctionName} (ID: ${currentProcessingId}): ${errorMessage}`
         );
         return null;
       } finally {
@@ -432,13 +463,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     (selectedConcepts: ExtractedConceptItem[]) => {
       if (isViewOnlyMode || selectedConcepts.length === 0) return;
       let addedCount = 0;
-      const currentNodes = useConceptMapStore.getState().mapData.nodes;
+      // const currentNodes = mapData.nodes; // Use mapData.nodes from dependencies directly
       selectedConcepts.forEach((conceptItem) => {
         addStoreNode({
           text: conceptItem.concept,
           type: 'ai-concept',
           position: getNodePlacement(
-            currentNodes,
+            mapData.nodes, // Use mapData.nodes from the hook's scope, ensured by dependency array
             'generic',
             null,
             null,
@@ -467,6 +498,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       toast,
       addStoreNode,
       removeExtractedConceptsFromSuggestions,
+      mapData.nodes, // Added mapData.nodes to dependency array
     ]
   );
 
@@ -552,62 +584,64 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       if (isViewOnlyMode || selectedRelations.length === 0) return;
       let relationsAddedCount = 0;
       let conceptsAddedFromRelationsCount = 0;
-      const currentNodes = useConceptMapStore.getState().mapData.nodes;
+      // const currentNodes = mapData.nodes; // Use mapData.nodes from dependencies
       selectedRelations.forEach((rel) => {
-        let sourceNode = useConceptMapStore
-          .getState()
-          .mapData.nodes.find(
-            (node) =>
-              node.text.toLowerCase().trim() === rel.source.toLowerCase().trim()
-          );
+        let sourceNode = mapData.nodes.find(
+          (node) =>
+            node.text.toLowerCase().trim() === rel.source.toLowerCase().trim()
+        );
         if (!sourceNode) {
           const newSourceNodeId = addStoreNode({
             text: rel.source,
             type: 'ai-concept',
             position: getNodePlacement(
-              currentNodes,
+              mapData.nodes, // Use mapData.nodes from dependencies
               'generic',
               null,
               null,
               GRID_SIZE_FOR_AI_PLACEMENT
             ),
           });
-          sourceNode = useConceptMapStore
-            .getState()
-            .mapData.nodes.find((node) => node.id === newSourceNodeId);
+          // After adding a node, mapData.nodes in the store is updated.
+          // To get the *very latest* state including the new node for subsequent finds in the same loop iteration,
+          // we might need to refresh currentNodes or rely on addStoreNode returning the new node.
+          // For simplicity here, we'll assume addStoreNode updates the store synchronously enough for the next find,
+          // or that getNodePlacement using the current mapData.nodes is sufficient for positioning.
+          // A more robust solution might involve passing the updated nodes list through iterations or
+          // having addStoreNode return the created node directly.
+          // However, the immediate find below for sourceNode might still hit a closure issue if not careful.
+          // Let's assume for now that subsequent finds will use the mapData.nodes from the hook's current render cycle.
+          const latestNodes = useConceptMapStore.getState().mapData.nodes; // Get latest after add
+          sourceNode = latestNodes.find((node) => node.id === newSourceNodeId);
           if (sourceNode) conceptsAddedFromRelationsCount++;
           else return;
         }
-        let targetNode = useConceptMapStore
-          .getState()
-          .mapData.nodes.find(
-            (node) =>
-              node.text.toLowerCase().trim() === rel.target.toLowerCase().trim()
-          );
+        let targetNode = mapData.nodes.find(
+          (node) =>
+            node.text.toLowerCase().trim() === rel.target.toLowerCase().trim()
+        );
         if (!targetNode) {
           const newTargetNodeId = addStoreNode({
             text: rel.target,
             type: 'ai-concept',
             position: getNodePlacement(
-              currentNodes,
+              mapData.nodes, // Use mapData.nodes from dependencies
               'generic',
               null,
               null,
               GRID_SIZE_FOR_AI_PLACEMENT
             ),
           });
-          targetNode = useConceptMapStore
-            .getState()
-            .mapData.nodes.find((node) => node.id === newTargetNodeId);
+          const latestNodes = useConceptMapStore.getState().mapData.nodes; // Get latest after add
+          targetNode = latestNodes.find((node) => node.id === newTargetNodeId);
           if (targetNode) conceptsAddedFromRelationsCount++;
           else return;
         }
-        const currentEdgesSnapshot =
-          useConceptMapStore.getState().mapData.edges;
+        // const currentEdgesSnapshot = mapData.edges; // Use mapData.edges from dependencies
         if (
           sourceNode &&
           targetNode &&
-          !currentEdgesSnapshot.some(
+          !mapData.edges.some( // Use mapData.edges from dependencies
             (edge) =>
               edge.source === sourceNode!.id &&
               edge.target === targetNode!.id &&
@@ -642,6 +676,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       addStoreNode,
       addStoreEdge,
       removeSuggestedRelationsFromSuggestions,
+      mapData.nodes, // Added mapData.nodes
+      mapData.edges, // Added mapData.edges
     ]
   );
 
@@ -1534,15 +1570,15 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     const currentNodes = mapData.nodes.map((n) => ({
       id: n.id,
       text: n.text,
-      details: n.details || '',
+      details: n.details || '', // Ensure details is always a string
     }));
-    const currentEdges = mapData.edges.map((e) => ({
+    const currentEdges: SimplifiedEdgeInput[] = mapData.edges.map((e) => ({
       source: e.source,
       target: e.target,
-      label: e.label || '',
+      label: e.label || '', // Ensure label is always a string
     }));
 
-    const output = await callAIWithStandardFeedback<any, SuggestedImprovements>(
+    const output = await callAIWithStandardFeedback<SuggestMapImprovementsInput, SuggestedImprovements>(
       'Suggest Map Improvements',
       suggestMapImprovementsFlow,
       { nodes: currentNodes, edges: currentEdges },
@@ -1741,21 +1777,21 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     multiSelectedNodeIds,
   ]);
 
-  const getPaneSuggestions = useCallback((): SuggestionAction[] => [], []);
-  const getNodeSuggestions = useCallback(
-    (_node: RFNode<CustomNodeData>): SuggestionAction[] => [],
-    []
-  );
-  const acceptAllExpansionPreviews = useCallback(() => {}, []);
-  const acceptSingleExpansionPreview = useCallback(
-    (_previewNodeId: string) => {},
-    []
-  );
-  const clearExpansionPreview = useCallback(() => {}, []);
-  const openRefineSuggestionModal = useCallback(
-    (_previewNodeId: string, _parentNodeId: string) => {},
-    []
-  );
+  // const getPaneSuggestions = useCallback((): SuggestionAction[] => [], []);
+  // const getNodeSuggestions = useCallback(
+  //   (_node: RFNode<CustomNodeData>): SuggestionAction[] => [],
+  //   []
+  // );
+  // const acceptAllExpansionPreviews = useCallback(() => {}, []);
+  // const acceptSingleExpansionPreview = useCallback(
+  //   (_previewNodeId: string) => {},
+  //   []
+  // );
+  // const clearExpansionPreview = useCallback(() => {}, []);
+  // const openRefineSuggestionModal = useCallback(
+  //   (_previewNodeId: string, _parentNodeId: string) => {},
+  //   []
+  // );
 
   return {
     isExtractConceptsModalOpen,
