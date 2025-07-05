@@ -223,7 +223,36 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
           title: '教程完成',
         },
       ];
+    } else if (key === 'manualAddNodeTutorial') {
+      return [
+        {
+          target: '.concept-map-editor-container',
+          content: '現在我們來學習如何手動添加一個新的概念節點到畫布上。',
+          placement: 'center',
+          title: '手動添加節點',
+          disableBeacon: true,
+        },
+        {
+          target: "button[data-tutorial-id='editor-add-node']",
+          content: '請點擊工具欄上的這個「添加節點」按鈕。一個新的節點將會出現在畫布中央。',
+          title: '1. 點擊添加節點按鈕',
+          // disableOverlayClicks: true, // Prevent clicking elsewhere during this step
+        },
+        {
+          // Temporarily target the pane. Later, we'll try to target the new node.
+          target: '.react-flow__pane',
+          content: '太棒了！一個新的「概念」節點已經出現在畫布上。您可以拖動它來改變位置。',
+          title: '2. 新節點已添加',
+          // event: 'click', // Consider if an event is needed or if it's just informational
+        },
+        {
+          target: "#tutorial-target-toggle-properties-button",
+          content: '選中新節點後 (如果它尚未被選中，請單擊它)，您可以點擊此按鈕打開屬性面板，然後編輯它的文本和詳細信息。',
+          title: '3. 編輯節點內容',
+        },
+      ];
     }
+
 
     return []; // Default to no steps
   };

@@ -248,19 +248,26 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
         - **Step 3 (Jules - Blocked by Step 1 & 2):** Verify/Update `vitest.config.ts` to correctly find tests in new locations and ensure tests still pass.
 
 ---
-## Ongoing: AI Interaction Layer Enhancements & Hook Refactoring
+## Ongoing: AI Interaction Layer Enhancements & Hook Refactoring (Revised after file restore)
 
-- [x] **Enhance `callAIWithStandardFeedback`:** (Jules - JSDoc updated; core functionality for `onSuccess`/`onError` callbacks and `error.details` in messages **NEEDS DEVELOPER RE-IMPLEMENTATION/VERIFICATION** due to file restore.)
-    - [ ] `options.onSuccess` callback implementation.
-    - [ ] `options.onError` callback implementation.
-    - [ ] Refined `userFriendlyMessage` generation for `error.details`.
-- [ ] **Refactor `useConceptMapAITools.ts` (Phase 1 - Low Risk):**
-    - [ ] **Extract AI success handlers**: **NEEDS DEVELOPER IMPLEMENTATION.** Logic for moving success handlers into `onSuccess` callbacks was lost during file restore. This is a key refactoring step.
+- [ ] **Enhance `callAIWithStandardFeedback` (NEEDS DEVELOPER IMPLEMENTATION):**
+    - [ ] Add `options.onSuccess?: (output: O, input: I) => void` callback.
+        - *Purpose*: Allow specific side effects post-AI success, before default toast.
+    - [ ] Add `options.onError?: (error: unknown, input: I) => boolean | void` callback.
+        - *Purpose*: Enable custom error handling; can suppress default error toast if it returns `true`.
+    - [ ] Refine `userFriendlyMessage` generation in `catch` block to better use `error.details` or other structured error info from Genkit.
+    - [x] JSDoc for `callAIWithStandardFeedback` has been updated to reflect these intended `onSuccess` and `onError` options. (Jules - Done)
+
+- [ ] **Refactor `useConceptMapAITools.ts` (NEEDS DEVELOPER REVIEW & IMPLEMENTATION):**
+    - [ ] **Extract AI success handlers**: Once `onSuccess` is implemented in `callAIWithStandardFeedback`, refactor `handle...` functions to move their success logic (e.g., `setAiExtractedConcepts`, `setStagedMapData`) into this callback.
         - *Goal*: Reduce nesting and length of `handle...` functions.
-    - [ ] **Isolate simple AI flow calls**: Review and simplify handlers.
-    - [ ] **Review and add comments**: Add more comments for complex sections. **NEEDS DEVELOPER REVIEW.**
-    - [ ] **Thoroughly review `useCallback` dependencies**: **CRITICAL - NEEDS DEVELOPER REVIEW & ADJUSTMENT.** Ensure all `useCallback` hooks have correct and exhaustive dependencies. This was a point of difficulty for Jules.
-- [ ] **Update relevant AI tool invocation points**: **NEEDS DEVELOPER IMPLEMENTATION.** Linked to "Extract AI success handlers".
+    - [ ] **Isolate simple AI flow calls**: Review handlers that primarily display a toast on success; ensure they leverage `callAIWithStandardFeedback`'s `successDescription` effectively.
+    - [ ] **Review and add/update comments**: Add more comments for complex sections throughout the hook.
+    - [ ] **Thoroughly review `useCallback` dependencies**: **CRITICAL - NEEDS DEVELOPER REVIEW & ADJUSTMENT WITH LOCAL LINTER/TESTING.** Ensure all `useCallback` hooks have correct and exhaustive dependencies, especially those interacting with Zustand store state or using `getState()`.
+
+- [ ] **Update relevant AI tool invocation points (NEEDS DEVELOPER IMPLEMENTATION):**
+    - This task is dependent on the above refactoring of `callAIWithStandardFeedback` and the `handle...` functions.
+
 - [ ] **Documentation**:
-    - [x] JSDoc for `callAIWithStandardFeedback` options (`onSuccess`, `onError`) updated (reflects intended state).
-    - [ ] Broader documentation for the hook and its patterns is still pending.
+    - [x] JSDoc for `callAIWithStandardFeedback` options updated. (Jules - Done)
+    - [ ] Broader documentation for the hook, its patterns, and specific AI handler logic is still pending.
