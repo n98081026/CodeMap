@@ -76,33 +76,10 @@ import { getNodePlacement } from '@/lib/layout-utils';
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import { useReactFlow } from 'reactflow';
 import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
-
-// Locally defined simplified types for AI flow inputs if not exported from flows
-interface SimplifiedNodeInput {
-  id: string;
-  text: string;
-  details?: string;
-  // Add other properties if the flows expect them
-}
-
-interface SimplifiedEdgeInput {
-  source: string;
-  target: string;
-  label?: string;
-  // Add other properties if the flows expect them
-}
-
-interface SuggestMapImprovementsInput {
-  nodes: SimplifiedNodeInput[];
-  edges: SimplifiedEdgeInput[];
-  // userQuery?: string; // Example: if the flow takes a user query
-}
-
-interface FetchAllStructuralSuggestionsInput {
-  nodes: SimplifiedNodeInput[];
-  edges: SimplifiedEdgeInput[];
-}
-
+import type {
+  AISuggestMapImprovementsInput,
+  AISharedSimplifiedEdgeInput,
+} from '@/types/ai-shared';
 
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;
@@ -1572,13 +1549,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       text: n.text,
       details: n.details || '', // Ensure details is always a string
     }));
-    const currentEdges: SimplifiedEdgeInput[] = mapData.edges.map((e) => ({
+    const currentEdges: AISharedSimplifiedEdgeInput[] = mapData.edges.map((e) => ({
       source: e.source,
       target: e.target,
       label: e.label || '', // Ensure label is always a string
     }));
 
-    const output = await callAIWithStandardFeedback<SuggestMapImprovementsInput, SuggestedImprovements>(
+    const output = await callAIWithStandardFeedback<AISuggestMapImprovementsInput, SuggestedImprovements>(
       'Suggest Map Improvements',
       suggestMapImprovementsFlow,
       { nodes: currentNodes, edges: currentEdges },

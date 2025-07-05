@@ -23,24 +23,7 @@ import { fetchAllStructuralSuggestionsFlow } from '@/ai/flows';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import useTutorialStore from '@/stores/tutorial-store';
-
-// Locally defined simplified types for AI flow inputs
-interface SimplifiedNodeInput {
-  id: string;
-  text: string;
-  details?: string;
-}
-
-interface SimplifiedEdgeInput {
-  source: string;
-  target: string;
-  label?: string;
-}
-
-interface FetchAllStructuralSuggestionsInput {
-  nodes: SimplifiedNodeInput[];
-  edges: SimplifiedEdgeInput[];
-}
+import type { AIFetchAllStructuralSuggestionsInput } from '@/types/ai-shared';
 
 export interface ArrangeAction {
   id: string;
@@ -396,7 +379,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 setIsLoadingSuggestions(true);
                 try {
                   const currentMapData = store.getState().mapData;
-                  const flowInput: FetchAllStructuralSuggestionsInput = {
+                  const flowInput: AIFetchAllStructuralSuggestionsInput = {
                     nodes: currentMapData.nodes.map(n => ({
                       id: n.id,
                       text: n.text,
