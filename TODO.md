@@ -250,25 +250,20 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
 ---
 ## Ongoing: AI Interaction Layer Enhancements & Hook Refactoring
 
-- [ ] **Enhance `callAIWithStandardFeedback`:**
-    - [ ] **`options.onSuccess` callback**: Add a new `onSuccess?: (output: O, input: I) => void` callback function to `options`. This callback will be invoked after the AI flow successfully executes but *before* the default success toast is displayed. It will receive the AI's output `O` and the original input `I` as parameters.
-        - *Purpose*: To allow callers to perform specific side effects or state updates after AI success (e.g., updating the store, triggering UI actions) beyond just showing a toast.
-        - *Consideration*: Decide if this callback should have the ability to prevent the default success toast (e.g., by returning a specific value). Initial thought is to keep it simple and not prevent the toast.
-    - [ ] **`options.onError` callback**: Add a new `onError?: (error: unknown, input: I) => boolean | void` callback function to `options`. This will be invoked after an AI flow fails but *before* the default error toast is displayed. It receives the error object and the original input.
-        - *Purpose*: To enable custom handling of specific errors by the caller. If this callback returns `true`, it signifies that the error has been fully handled, and `callAIWithStandardFeedback` will not display the default error toast. If it returns `false` or `void`, the default toast will still be shown.
-        - *Consideration*: Ensure proper error object propagation and handling.
-    - [ ] **Refine `userFriendlyMessage` generation**: In the existing error handling logic, for structured errors returned by Genkit (e.g., if a Genkit flow `throw new Error()` includes `details` or other custom properties), attempt to extract more useful information to enrich the `userFriendlyMessage`.
-
+- [x] **Enhance `callAIWithStandardFeedback`:** (Jules - Core functionality added)
+    - [x] **`options.onSuccess` callback**: Added `onSuccess?: (output: O, input: I) => void`.
+        - *Purpose*: Allows specific side effects post-AI success.
+    - [x] **`options.onError` callback**: Added `onError?: (error: unknown, input: I) => boolean | void`.
+        - *Purpose*: Enables custom error handling; can suppress default error toast if it returns `true`.
+    - [x] **Refine `userFriendlyMessage` generation**: Basic improvement to check for `error.details`.
+        - *Note*: Further refinement for various Genkit error structures may be needed.
 - [ ] **Refactor `useConceptMapAITools.ts` (Phase 1 - Low Risk):**
-    - [ ] **Extract AI success handlers**: Identify specific logic within `handle...` functions that follows a successful `callAIWithStandardFeedback` (e.g., `setAiExtractedConcepts(output.concepts)`). Consider moving this logic into the new `onSuccess` callback or encapsulating it in separate helper functions.
-        - *Goal*: To reduce the nesting level and length of `handle...` functions.
-        - *Example*: In `handleConceptsExtracted`, the `setAiExtractedConcepts(output.concepts)` logic can become part of the `onSuccess` callback.
-    - [ ] **Isolate simple AI flow calls**: For functions that invoke an AI flow and have minimal complex post-processing (e.g., `handleQuestionAnswered` which primarily displays a result toast), ensure their structure is concise and fully leverages the capabilities of `callAIWithStandardFeedback`.
-    - [ ] **Review and add comments**: Add comments to complex logic blocks or decision points within `useConceptMapAITools.ts` to improve readability.
-
-- [ ] **Update relevant AI tool invocation points**:
-    - [ ] Modify all calls to `callAIWithStandardFeedback` within `useConceptMapAITools.ts` to utilize the new `onSuccess` and `onError` callbacks where appropriate.
-    - [ ] For instance, in `handleConceptsExtracted`, the logic for `setAiExtractedConcepts` would be moved to an `onSuccess` callback passed to `callAIWithStandardFeedback`.
-
+    - [ ] **Extract AI success handlers**: (Partially Done by Jules for some handlers). **NEEDS REVIEW & COMPLETION by developer.** Many `handle...` functions' success logic (especially for Q&A and complex staging/ghost preview updates) was not fully moved to `onSuccess` due to tool limitations during Jules' session.
+        - *Goal*: Reduce nesting and length of `handle...` functions.
+    - [ ] **Isolate simple AI flow calls**: (Partially addressed). Review remaining handlers.
+    - [ ] **Review and add comments**: (Partially Done by Jules). **NEEDS DEVELOPER REVIEW** for overall clarity and for logic not touched by Jules.
+    - [ ] **Thoroughly review `useCallback` dependencies**: **CRITICAL - NEEDS DEVELOPER REVIEW.** Jules' attempts to fine-tune these were problematic. Ensure all `useCallback` hooks have correct and exhaustive dependencies, especially those interacting with Zustand store state (`mapData`, `selectedElementId`, etc.) or using `getState()` internally.
+- [ ] **Update relevant AI tool invocation points**: (Partially Done by Jules). Linked to "Extract AI success handlers". **NEEDS REVIEW & COMPLETION by developer.**
 - [ ] **Documentation**:
-    - [ ] Briefly document the new `options` parameters (`onSuccess`, `onError`) for `callAIWithStandardFeedback` and their usage.
+    - [x] JSDoc for `callAIWithStandardFeedback` options (`onSuccess`, `onError`) updated.
+    - [ ] Broader documentation for the hook and its patterns is still pending.
