@@ -185,6 +185,7 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
             - The entire `src/components/` directory.
             - Other directories like `src/app/application/student/projects/` and `src/app/application/teacher/` that Jules skipped due to sandbox limits.
         3. Run ESLint autofix: `npm run lint:fix`. This should be run *after* Prettier has formatted the codebase.
+        4. Run TypeScript type check: `npm run typecheck` (i.e., `tsc --noEmit`). Review and fix any reported type errors.
     - **Note for Jules:** Once these steps are done and changes are committed, Jules can proceed with reviewing any remaining ESLint issues or other planned tasks.
 
 - [ ] **ESLint & Prettier Configuration & Initial Setup (Jules):**
