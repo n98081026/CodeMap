@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import type { ProjectSubmission } from '@/types';
@@ -8,8 +7,11 @@ import { ProjectSubmissionStatus } from '@/types';
 
 const POLLING_INTERVAL = 7000; // Poll every 7 seconds
 
-export function useSubmissionStatusPoller(initialSubmission: ProjectSubmission) {
-  const [currentSubmission, setCurrentSubmission] = useState<ProjectSubmission>(initialSubmission);
+export function useSubmissionStatusPoller(
+  initialSubmission: ProjectSubmission
+) {
+  const [currentSubmission, setCurrentSubmission] =
+    useState<ProjectSubmission>(initialSubmission);
   const [isPolling, setIsPolling] = useState(false);
   // const { toast } = useToast(); // If you decide to add toasts for polling errors
 
@@ -28,16 +30,23 @@ export function useSubmissionStatusPoller(initialSubmission: ProjectSubmission) 
     // setIsPolling(true); // Re-evaluate if this is needed for general polling visual feedback
 
     try {
-      const response = await fetch(`/api/projects/submissions/${currentSubmission.id}`);
+      const response = await fetch(
+        `/api/projects/submissions/${currentSubmission.id}`
+      );
       if (!response.ok) {
-        console.error(`Polling failed for submission ${currentSubmission.id}: ${response.statusText}`);
+        console.error(
+          `Polling failed for submission ${currentSubmission.id}: ${response.statusText}`
+        );
         // Optionally show a toast for fetch error during polling from the component if desired
         return;
       }
       const updatedSubmissionData: ProjectSubmission = await response.json();
       setCurrentSubmission(updatedSubmissionData);
     } catch (error) {
-      console.error(`Error polling for submission ${currentSubmission.id}:`, error);
+      console.error(
+        `Error polling for submission ${currentSubmission.id}:`,
+        error
+      );
     } finally {
       // setIsPolling(false); // Re-evaluate
     }
@@ -52,7 +61,10 @@ export function useSubmissionStatusPoller(initialSubmission: ProjectSubmission) 
       ProjectSubmissionStatus.PROCESSING,
     ];
 
-    if (currentSubmission && activeStatuses.includes(currentSubmission.analysisStatus)) {
+    if (
+      currentSubmission &&
+      activeStatuses.includes(currentSubmission.analysisStatus)
+    ) {
       // fetchLatestStatus(); // Initial fetch if active status (optional, can be handled by manual refresh button too)
       intervalId = setInterval(fetchLatestStatus, POLLING_INTERVAL);
     }

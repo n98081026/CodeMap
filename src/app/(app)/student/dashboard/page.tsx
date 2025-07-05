@@ -1,17 +1,36 @@
-"use client";
+'use client';
 
-import React from "react"; // Ensure React is imported for useMemo if not already via other imports
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { useAuth } from "@/contexts/auth-context";
-import { UserRole } from "@/types"; // Import UserRole
-import { BookOpen, FileText, Share2, FolderKanban, LayoutDashboard, Compass, Loader2, AlertTriangle, Users, Settings } from "lucide-react"; // Added Users, Settings
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { useStudentDashboardMetrics } from "@/hooks/useStudentDashboardMetrics";
-import { DashboardLinkCard, type MetricState } from "@/components/dashboard/dashboard-link-card";
-import { QuickActionsCard } from "@/components/dashboard/quick-actions-card";
-
+import React from 'react'; // Ensure React is imported for useMemo if not already via other imports
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/auth-context';
+import { UserRole } from '@/types'; // Import UserRole
+import {
+  BookOpen,
+  FileText,
+  Share2,
+  FolderKanban,
+  LayoutDashboard,
+  Compass,
+  Loader2,
+  AlertTriangle,
+  Users,
+  Settings,
+} from 'lucide-react'; // Added Users, Settings
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics';
+import {
+  DashboardLinkCard,
+  type MetricState,
+} from '@/components/dashboard/dashboard-link-card';
+import { QuickActionsCard } from '@/components/dashboard/quick-actions-card';
 
 export default function StudentDashboardPage() {
   const { user } = useAuth();
@@ -22,8 +41,15 @@ export default function StudentDashboardPage() {
   if (!user) return null;
 
   const renderMetricCount = (metric: MetricState) => {
-    if (metric.isLoading) return <Loader2 className="h-7 w-7 animate-spin text-primary" />;
-    if (metric.error) return <AlertTriangle className="h-7 w-7 text-destructive" title={metric.error} />;
+    if (metric.isLoading)
+      return <Loader2 className='h-7 w-7 animate-spin text-primary' />;
+    if (metric.error)
+      return (
+        <AlertTriangle
+          className='h-7 w-7 text-destructive'
+          title={metric.error}
+        />
+      );
     return metric.count !== null ? metric.count : '-';
   };
 
@@ -32,79 +58,87 @@ export default function StudentDashboardPage() {
   // For now, we'll tailor it slightly if it's a student.
 
   return (
-    <div className="space-y-6">
-      <DashboardHeader 
+    <div className='space-y-6'>
+      <DashboardHeader
         title={`Welcome, ${user.name}!`}
-        description={isStudentRole ? "Here's an overview of your activities and tools." : "Manage your projects and concept maps."}
+        description={
+          isStudentRole
+            ? "Here's an overview of your activities and tools."
+            : 'Manage your projects and concept maps.'
+        }
         icon={LayoutDashboard}
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
         {/* Common cards - always visible */}
         <DashboardLinkCard
-          title="My Concept Maps"
-          description="Concept maps you have created or have access to."
+          title='My Concept Maps'
+          description='Concept maps you have created or have access to.'
           count={renderMetricCount(conceptMaps)} // This hook might need to be generalized or conditionally called
           icon={Share2}
-          href="/application/student/concept-maps" // Link might need to be generalized if not a student
-          linkText="View My Maps"
+          href='/application/student/concept-maps' // Link might need to be generalized if not a student
+          linkText='View My Maps'
         />
         <DashboardLinkCard
-          title="My Project Analyses"
-          description="Projects you have submitted for analysis."
+          title='My Project Analyses'
+          description='Projects you have submitted for analysis.'
           count={renderMetricCount(submissions)} // This hook might need to be generalized
           icon={FolderKanban}
-          href="/application/student/projects/submissions" // Link might need to be generalized
-          linkText="View My Analyses"
+          href='/application/student/projects/submissions' // Link might need to be generalized
+          linkText='View My Analyses'
         />
 
         {/* Student-specific card */}
         {isStudentRole && (
           <DashboardLinkCard
-            title="My Classrooms"
-            description="Classrooms you are enrolled in."
+            title='My Classrooms'
+            description='Classrooms you are enrolled in.'
             count={renderMetricCount(classrooms)}
             icon={BookOpen}
-            href="/application/student/classrooms"
-            linkText="View Classrooms"
+            href='/application/student/classrooms'
+            linkText='View Classrooms'
           />
         )}
 
         {/* Placeholder for other role-specific quick links if needed */}
         {user.role === UserRole.TEACHER && (
-             <DashboardLinkCard
-                title="Manage Classrooms"
-                description="Access your teacher dashboard."
-                icon={Users}
-                href="/application/teacher/dashboard"
-                linkText="Teacher Dashboard"
-            />
+          <DashboardLinkCard
+            title='Manage Classrooms'
+            description='Access your teacher dashboard.'
+            icon={Users}
+            href='/application/teacher/dashboard'
+            linkText='Teacher Dashboard'
+          />
         )}
         {user.role === UserRole.ADMIN && (
-            <DashboardLinkCard
-                title="Admin Panel"
-                description="Access system administration tools."
-                icon={Settings}
-                href="/application/admin/dashboard"
-                linkText="Admin Dashboard"
-            />
+          <DashboardLinkCard
+            title='Admin Panel'
+            description='Access system administration tools.'
+            icon={Settings}
+            href='/application/admin/dashboard'
+            linkText='Admin Dashboard'
+          />
         )}
       </div>
 
       <QuickActionsCard
         actions={[
-          { href: "/application/concept-maps/editor/new", label: "Create New Concept Map", icon: Compass },
           {
-            href: "/application/student/projects/submit",
-            label: "Analyze New Project",
+            href: '/application/concept-maps/editor/new',
+            label: 'Create New Concept Map',
+            icon: Compass,
+          },
+          {
+            href: '/application/student/projects/submit',
+            label: 'Analyze New Project',
             icon: FileText,
-            id: "tutorial-target-new-project-button",
-            tutorialKey: "projectUpload", // Key for the tutorial store
-            tutorialButtonTooltip: "Show 'Project Upload' Tutorial"
-          }
+            id: 'tutorial-target-new-project-button',
+            tutorialKey: 'projectUpload', // Key for the tutorial store
+            tutorialButtonTooltip: "Show 'Project Upload' Tutorial",
+          },
         ]}
-        title="Get Started"
-        description="Quickly access common tasks."
+        title='Get Started'
+        description='Quickly access common tasks.'
       />
 
       {/* Original Quick Actions Card - can be removed or merged into QuickActionsCard logic */}

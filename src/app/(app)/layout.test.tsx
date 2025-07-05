@@ -17,9 +17,10 @@ vi.mock('next/navigation', () => ({
 
 // Mock MainLayout component as it's a child and not the focus of this test
 vi.mock('@/components/layout/main-layout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div data-testid="main-layout">{children}</div>,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='main-layout'>{children}</div>
+  ),
 }));
-
 
 describe('AppLayout (/app/(app)/layout.tsx)', () => {
   let mockRouterPush: vi.Mock;
@@ -40,10 +41,16 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     });
     mockUsePathname.mockReturnValue('/student/dashboard'); // A protected route
 
-    render(<AppLayout><p>Test Child</p></AppLayout>);
+    render(
+      <AppLayout>
+        <p>Test Child</p>
+      </AppLayout>
+    );
 
     await waitFor(() => {
-      expect(mockRouterPush).toHaveBeenCalledWith('/login?redirectTo=%2Fstudent%2Fdashboard');
+      expect(mockRouterPush).toHaveBeenCalledWith(
+        '/login?redirectTo=%2Fstudent%2Fdashboard'
+      );
     });
   });
 
@@ -57,11 +64,15 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     });
     mockUsePathname.mockReturnValue('/student/dashboard');
 
-    render(<AppLayout><p>Test Child</p></AppLayout>);
+    render(
+      <AppLayout>
+        <p>Test Child</p>
+      </AppLayout>
+    );
 
     await waitFor(() => {
       // Wait a bit to ensure no redirect is called
-      return new Promise(resolve => setTimeout(resolve, 50));
+      return new Promise((resolve) => setTimeout(resolve, 50));
     });
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
@@ -76,7 +87,11 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     });
     mockUsePathname.mockReturnValue('/student/dashboard'); // Protected route
 
-    render(<AppLayout><p>Test Child</p></AppLayout>);
+    render(
+      <AppLayout>
+        <p>Test Child</p>
+      </AppLayout>
+    );
 
     await waitFor(() => {
       expect(mockRouterPush).toHaveBeenCalledWith('/examples');
@@ -93,10 +108,14 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     });
     mockUsePathname.mockReturnValue('/examples');
 
-    render(<AppLayout><p>Test Child</p></AppLayout>);
+    render(
+      <AppLayout>
+        <p>Test Child</p>
+      </AppLayout>
+    );
 
     await waitFor(() => {
-      return new Promise(resolve => setTimeout(resolve, 50));
+      return new Promise((resolve) => setTimeout(resolve, 50));
     });
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
@@ -109,12 +128,18 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
       isGuestSession: true,
       isLoading: false,
     });
-    mockUsePathname.mockReturnValue('/concept-maps/editor/example-guest-map-123');
+    mockUsePathname.mockReturnValue(
+      '/concept-maps/editor/example-guest-map-123'
+    );
 
-    render(<AppLayout><p>Test Child</p></AppLayout>);
+    render(
+      <AppLayout>
+        <p>Test Child</p>
+      </AppLayout>
+    );
 
     await waitFor(() => {
-      return new Promise(resolve => setTimeout(resolve, 50));
+      return new Promise((resolve) => setTimeout(resolve, 50));
     });
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
@@ -129,7 +154,11 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     });
     mockUsePathname.mockReturnValue('/concept-maps/editor/new'); // Attempting to create new map
 
-    render(<AppLayout><p>Test Child</p></AppLayout>);
+    render(
+      <AppLayout>
+        <p>Test Child</p>
+      </AppLayout>
+    );
 
     await waitFor(() => {
       expect(mockRouterPush).toHaveBeenCalledWith('/examples');
@@ -146,7 +175,11 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     });
     mockUsePathname.mockReturnValue('/concept-maps/editor/some-user-map-id');
 
-    render(<AppLayout><p>Test Child</p></AppLayout>);
+    render(
+      <AppLayout>
+        <p>Test Child</p>
+      </AppLayout>
+    );
 
     await waitFor(() => {
       expect(mockRouterPush).toHaveBeenCalledWith('/examples');
@@ -163,7 +196,11 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     });
     mockUsePathname.mockReturnValue('/student/dashboard');
 
-    const { getByTestId } = render(<AppLayout><p>Test Child</p></AppLayout>);
+    const { getByTestId } = render(
+      <AppLayout>
+        <p>Test Child</p>
+      </AppLayout>
+    );
 
     // Check for some kind of loading indicator.
     // Assuming AppLayout renders a specific loader or nothing until isLoading is false.

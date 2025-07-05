@@ -1,25 +1,37 @@
+'use client';
 
-"use client";
-
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Classroom, User, ConceptMap, ProjectSubmission } from "@/types";
-import { ArrowLeft, Users, Share2, FolderKanban, Loader2, AlertTriangle, BookOpen } from "lucide-react";
-import Link from "next/link";
-import { InviteStudentDialog } from "@/components/classrooms/invite-student-dialog";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/auth-context";
-import { EmptyState } from "@/components/layout/empty-state"; 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Classroom, User, ConceptMap, ProjectSubmission } from '@/types';
+import {
+  ArrowLeft,
+  Users,
+  Share2,
+  FolderKanban,
+  Loader2,
+  AlertTriangle,
+  BookOpen,
+} from 'lucide-react';
+import Link from 'next/link';
+import { InviteStudentDialog } from '@/components/classrooms/invite-student-dialog';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/auth-context';
+import { EmptyState } from '@/components/layout/empty-state';
 
 // Import new tab components
-import { ClassroomStudentsTab } from "@/components/teacher/classrooms/tabs/ClassroomStudentsTab";
-import { ClassroomMapsTab } from "@/components/teacher/classrooms/tabs/ClassroomMapsTab";
-import { ClassroomSubmissionsTab } from "@/components/teacher/classrooms/tabs/ClassroomSubmissionsTab";
-
+import { ClassroomStudentsTab } from '@/components/teacher/classrooms/tabs/ClassroomStudentsTab';
+import { ClassroomMapsTab } from '@/components/teacher/classrooms/tabs/ClassroomMapsTab';
+import { ClassroomSubmissionsTab } from '@/components/teacher/classrooms/tabs/ClassroomSubmissionsTab';
 
 export default function ClassroomDetailPage() {
   const paramsHook = useParams();
@@ -38,14 +50,16 @@ export default function ClassroomDetailPage() {
   const [mapsTotalPages, setMapsTotalPages] = useState(0);
   const [mapsTotalCount, setMapsTotalCount] = useState(0);
 
-  const [classroomSubmissions, setClassroomSubmissions] = useState<ProjectSubmission[]>([]);
+  const [classroomSubmissions, setClassroomSubmissions] = useState<
+    ProjectSubmission[]
+  >([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [errorSubmissions, setErrorSubmissions] = useState<string | null>(null);
   const [submissionsCurrentPage, setSubmissionsCurrentPage] = useState(1);
   const [submissionsTotalPages, setSubmissionsTotalPages] = useState(0);
   const [submissionsTotalCount, setSubmissionsTotalCount] = useState(0);
 
-  const headerIconLink = "/application/teacher/dashboard";
+  const headerIconLink = '/application/teacher/dashboard';
 
   const fetchClassroomDetailsAndStudents = useCallback(async () => {
     setIsLoadingClassroom(true);
@@ -54,14 +68,20 @@ export default function ClassroomDetailPage() {
       const response = await fetch(`/api/classrooms/${routeClassroomId}`);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch classroom details");
+        throw new Error(
+          errorData.message || 'Failed to fetch classroom details'
+        );
       }
       const data: Classroom = await response.json();
       setClassroom(data); // This data includes students array from the service
     } catch (err) {
       const errorMessage = (err as Error).message;
       setErrorClassroom(errorMessage);
-      toast({ title: "Error Fetching Classroom", description: errorMessage, variant: "destructive" });
+      toast({
+        title: 'Error Fetching Classroom',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsLoadingClassroom(false);
     }
@@ -69,54 +89,75 @@ export default function ClassroomDetailPage() {
 
   const MAPS_PER_PAGE = 10; // Define maps per page
 
-  const fetchClassroomMaps = useCallback(async (pageToFetch: number) => {
-    setIsLoadingMaps(true);
-    setErrorMaps(null);
-    try {
-      const response = await fetch(`/api/concept-maps?classroomId=${routeClassroomId}&page=${pageToFetch}&limit=${MAPS_PER_PAGE}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch classroom maps");
+  const fetchClassroomMaps = useCallback(
+    async (pageToFetch: number) => {
+      setIsLoadingMaps(true);
+      setErrorMaps(null);
+      try {
+        const response = await fetch(
+          `/api/concept-maps?classroomId=${routeClassroomId}&page=${pageToFetch}&limit=${MAPS_PER_PAGE}`
+        );
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || 'Failed to fetch classroom maps'
+          );
+        }
+        const data = await response.json(); // API returns { maps, totalCount, page, totalPages }
+        setClassroomMaps(data.maps);
+        setMapsTotalCount(data.totalCount);
+        setMapsTotalPages(data.totalPages);
+        setMapsCurrentPage(data.page);
+      } catch (err) {
+        const errorMessage = (err as Error).message;
+        setErrorMaps(errorMessage);
+        toast({
+          title: 'Error Fetching Maps',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingMaps(false);
       }
-      const data = await response.json(); // API returns { maps, totalCount, page, totalPages }
-      setClassroomMaps(data.maps);
-      setMapsTotalCount(data.totalCount);
-      setMapsTotalPages(data.totalPages);
-      setMapsCurrentPage(data.page);
-    } catch (err) {
-      const errorMessage = (err as Error).message;
-      setErrorMaps(errorMessage);
-      toast({ title: "Error Fetching Maps", description: errorMessage, variant: "destructive" });
-    } finally {
-      setIsLoadingMaps(false);
-    }
-  }, [routeClassroomId, toast]); // MAPS_PER_PAGE is a constant, no need to include
+    },
+    [routeClassroomId, toast]
+  ); // MAPS_PER_PAGE is a constant, no need to include
 
   const SUBMISSIONS_PER_PAGE = 10; // Define submissions per page
 
-  const fetchClassroomSubmissions = useCallback(async (pageToFetch: number) => {
-    setIsLoadingSubmissions(true);
-    setErrorSubmissions(null);
-    try {
-      const response = await fetch(`/api/projects/submissions?classroomId=${routeClassroomId}&page=${pageToFetch}&limit=${SUBMISSIONS_PER_PAGE}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch classroom submissions");
+  const fetchClassroomSubmissions = useCallback(
+    async (pageToFetch: number) => {
+      setIsLoadingSubmissions(true);
+      setErrorSubmissions(null);
+      try {
+        const response = await fetch(
+          `/api/projects/submissions?classroomId=${routeClassroomId}&page=${pageToFetch}&limit=${SUBMISSIONS_PER_PAGE}`
+        );
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || 'Failed to fetch classroom submissions'
+          );
+        }
+        const data = await response.json(); // API returns { submissions, totalCount, page, totalPages }
+        setClassroomSubmissions(data.submissions);
+        setSubmissionsTotalCount(data.totalCount);
+        setSubmissionsTotalPages(data.totalPages);
+        setSubmissionsCurrentPage(data.page);
+      } catch (err) {
+        const errorMessage = (err as Error).message;
+        setErrorSubmissions(errorMessage);
+        toast({
+          title: 'Error Fetching Submissions',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingSubmissions(false);
       }
-      const data = await response.json(); // API returns { submissions, totalCount, page, totalPages }
-      setClassroomSubmissions(data.submissions);
-      setSubmissionsTotalCount(data.totalCount);
-      setSubmissionsTotalPages(data.totalPages);
-      setSubmissionsCurrentPage(data.page);
-    } catch (err) {
-      const errorMessage = (err as Error).message;
-      setErrorSubmissions(errorMessage);
-      toast({ title: "Error Fetching Submissions", description: errorMessage, variant: "destructive" });
-    } finally {
-      setIsLoadingSubmissions(false);
-    }
-  }, [routeClassroomId, toast]); // SUBMISSIONS_PER_PAGE is a constant
-
+    },
+    [routeClassroomId, toast]
+  ); // SUBMISSIONS_PER_PAGE is a constant
 
   useEffect(() => {
     if (routeClassroomId) {
@@ -124,7 +165,14 @@ export default function ClassroomDetailPage() {
       fetchClassroomMaps(mapsCurrentPage);
       fetchClassroomSubmissions(submissionsCurrentPage); // Fetch initial page of submissions
     }
-  }, [routeClassroomId, fetchClassroomDetailsAndStudents, fetchClassroomMaps, fetchClassroomSubmissions, mapsCurrentPage, submissionsCurrentPage]);
+  }, [
+    routeClassroomId,
+    fetchClassroomDetailsAndStudents,
+    fetchClassroomMaps,
+    fetchClassroomSubmissions,
+    mapsCurrentPage,
+    submissionsCurrentPage,
+  ]);
 
   const handleMapsPageChange = useCallback((newPage: number) => {
     setMapsCurrentPage(newPage);
@@ -134,57 +182,78 @@ export default function ClassroomDetailPage() {
     setSubmissionsCurrentPage(newPage);
   }, []);
 
-  const handleRemoveStudent = useCallback(async (studentId: string, studentName: string) => {
-    if (!classroom) return;
-    try {
-      const response = await fetch(`/api/classrooms/${classroom.id}/students/${studentId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to remove student");
+  const handleRemoveStudent = useCallback(
+    async (studentId: string, studentName: string) => {
+      if (!classroom) return;
+      try {
+        const response = await fetch(
+          `/api/classrooms/${classroom.id}/students/${studentId}`,
+          {
+            method: 'DELETE',
+          }
+        );
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to remove student');
+        }
+        toast({
+          title: 'Student Removed',
+          description: `${studentName} has been removed from the classroom.`,
+        });
+        fetchClassroomDetailsAndStudents(); // Re-fetch classroom details to update student list
+      } catch (errorMsg) {
+        toast({
+          title: 'Error Removing Student',
+          description: (errorMsg as Error).message,
+          variant: 'destructive',
+        });
       }
-      toast({
-        title: "Student Removed",
-        description: `${studentName} has been removed from the classroom.`,
-      });
-      fetchClassroomDetailsAndStudents(); // Re-fetch classroom details to update student list
-    } catch (errorMsg) {
-      toast({
-        title: "Error Removing Student",
-        description: (errorMsg as Error).message,
-        variant: "destructive",
-      });
-    }
-  }, [classroom, toast, fetchClassroomDetailsAndStudents]);
+    },
+    [classroom, toast, fetchClassroomDetailsAndStudents]
+  );
 
   const handleStudentActionCompleted = useCallback(() => {
     fetchClassroomDetailsAndStudents(); // Re-fetch classroom details after invite/add
   }, [fetchClassroomDetailsAndStudents]);
 
-  if (isLoadingClassroom && !classroom) { // Initial loading state for the whole page
+  if (isLoadingClassroom && !classroom) {
+    // Initial loading state for the whole page
     return (
-      <div className="space-y-6 p-4">
-        <DashboardHeader title="Loading Classroom..." icon={Loader2} iconClassName="animate-spin" iconLinkHref={headerIconLink}/>
-        <div className="flex justify-center items-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className='space-y-6 p-4'>
+        <DashboardHeader
+          title='Loading Classroom...'
+          icon={Loader2}
+          iconClassName='animate-spin'
+          iconLinkHref={headerIconLink}
+        />
+        <div className='flex justify-center items-center py-10'>
+          <Loader2 className='h-8 w-8 animate-spin text-primary' />
         </div>
       </div>
     );
   }
 
-  if (errorClassroom || !classroom) { // Main error state if classroom itself fails to load
+  if (errorClassroom || !classroom) {
+    // Main error state if classroom itself fails to load
     return (
-      <div className="space-y-6 p-4">
-        <DashboardHeader title="Error" icon={AlertTriangle} iconLinkHref={headerIconLink} />
+      <div className='space-y-6 p-4'>
+        <DashboardHeader
+          title='Error'
+          icon={AlertTriangle}
+          iconLinkHref={headerIconLink}
+        />
         <Card>
           <CardHeader>
-            <CardTitle className="text-destructive">Could not load classroom</CardTitle>
+            <CardTitle className='text-destructive'>
+              Could not load classroom
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p>{errorClassroom || "The classroom data could not be found."}</p>
-            <Button asChild variant="outline" className="mt-4">
-              <Link href="/application/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
+            <p>{errorClassroom || 'The classroom data could not be found.'}</p>
+            <Button asChild variant='outline' className='mt-4'>
+              <Link href='/application/teacher/classrooms'>
+                <ArrowLeft className='mr-2 h-4 w-4' /> Back to Classrooms
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -195,32 +264,48 @@ export default function ClassroomDetailPage() {
   const enrolledStudents = classroom.students || [];
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       <DashboardHeader
         title={classroom.name}
         description={`Teacher: ${classroom.teacherName || 'N/A'} | Invite Code: ${classroom.inviteCode} | Manage students, maps, and submissions.`}
         icon={BookOpen} // Changed from Users to BookOpen for general classroom icon
-        iconClassName={isLoadingClassroom ? "animate-spin" : ""}
+        iconClassName={isLoadingClassroom ? 'animate-spin' : ''}
         iconLinkHref={headerIconLink}
       >
-         <Button asChild variant="outline">
-          <Link href="/application/teacher/classrooms"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Classrooms</Link>
+        <Button asChild variant='outline'>
+          <Link href='/application/teacher/classrooms'>
+            <ArrowLeft className='mr-2 h-4 w-4' /> Back to Classrooms
+          </Link>
         </Button>
-        <InviteStudentDialog classroomId={classroom.id} onActionCompleted={handleStudentActionCompleted} />
+        <InviteStudentDialog
+          classroomId={classroom.id}
+          onActionCompleted={handleStudentActionCompleted}
+        />
       </DashboardHeader>
 
-      <Tabs defaultValue="students" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="students"><Users className="mr-2 h-4 w-4 sm:inline hidden" />Students ({isLoadingClassroom ? '...' : enrolledStudents.length})</TabsTrigger>
-          <TabsTrigger value="maps"><Share2 className="mr-2 h-4 w-4 sm:inline hidden" />Concept Maps ({isLoadingMaps ? '...' : mapsTotalCount})</TabsTrigger>
-          <TabsTrigger value="submissions"><FolderKanban className="mr-2 h-4 w-4 sm:inline hidden" />Submissions ({isLoadingSubmissions ? '...' : submissionsTotalCount})</TabsTrigger>
+      <Tabs defaultValue='students' className='w-full'>
+        <TabsList className='grid w-full grid-cols-3'>
+          <TabsTrigger value='students'>
+            <Users className='mr-2 h-4 w-4 sm:inline hidden' />
+            Students ({isLoadingClassroom ? '...' : enrolledStudents.length})
+          </TabsTrigger>
+          <TabsTrigger value='maps'>
+            <Share2 className='mr-2 h-4 w-4 sm:inline hidden' />
+            Concept Maps ({isLoadingMaps ? '...' : mapsTotalCount})
+          </TabsTrigger>
+          <TabsTrigger value='submissions'>
+            <FolderKanban className='mr-2 h-4 w-4 sm:inline hidden' />
+            Submissions ({isLoadingSubmissions ? '...' : submissionsTotalCount})
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="students">
+        <TabsContent value='students'>
           <Card>
             <CardHeader>
               <CardTitle>Enrolled Students</CardTitle>
-              <CardDescription>List of students currently enrolled in this classroom.</CardDescription>
+              <CardDescription>
+                List of students currently enrolled in this classroom.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ClassroomStudentsTab
@@ -234,46 +319,52 @@ export default function ClassroomDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="maps">
+        <TabsContent value='maps'>
           <Card>
             <CardHeader>
               <CardTitle>Shared Concept Maps</CardTitle>
-              <CardDescription>Concept maps created by students and shared with this classroom.</CardDescription>
+              <CardDescription>
+                Concept maps created by students and shared with this classroom.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-                <ClassroomMapsTab
-                    isLoading={isLoadingMaps}
-                    error={errorMaps}
-                    maps={classroomMaps} // This will be the current page's maps
-                    currentPage={mapsCurrentPage}
-                    totalPages={mapsTotalPages}
-                    totalMapsCount={mapsTotalCount}
-                    onPageChange={handleMapsPageChange}
-                    enrolledStudents={enrolledStudents} 
-                    onFetchRetry={() => fetchClassroomMaps(mapsCurrentPage)} // Retry current page
-                />
+              <ClassroomMapsTab
+                isLoading={isLoadingMaps}
+                error={errorMaps}
+                maps={classroomMaps} // This will be the current page's maps
+                currentPage={mapsCurrentPage}
+                totalPages={mapsTotalPages}
+                totalMapsCount={mapsTotalCount}
+                onPageChange={handleMapsPageChange}
+                enrolledStudents={enrolledStudents}
+                onFetchRetry={() => fetchClassroomMaps(mapsCurrentPage)} // Retry current page
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="submissions">
+        <TabsContent value='submissions'>
           <Card>
             <CardHeader>
               <CardTitle>Project Submissions</CardTitle>
-              <CardDescription>Projects submitted by students in this classroom.</CardDescription>
+              <CardDescription>
+                Projects submitted by students in this classroom.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-                <ClassroomSubmissionsTab
-                    isLoading={isLoadingSubmissions}
-                    error={errorSubmissions}
-                    submissions={classroomSubmissions} // Current page's submissions
-                    currentPage={submissionsCurrentPage}
-                    totalPages={submissionsTotalPages}
-                    totalSubmissionsCount={submissionsTotalCount}
-                    onPageChange={handleSubmissionsPageChange}
-                    enrolledStudents={enrolledStudents} 
-                    onFetchRetry={() => fetchClassroomSubmissions(submissionsCurrentPage)} // Retry current page
-                />
+              <ClassroomSubmissionsTab
+                isLoading={isLoadingSubmissions}
+                error={errorSubmissions}
+                submissions={classroomSubmissions} // Current page's submissions
+                currentPage={submissionsCurrentPage}
+                totalPages={submissionsTotalPages}
+                totalSubmissionsCount={submissionsTotalCount}
+                onPageChange={handleSubmissionsPageChange}
+                enrolledStudents={enrolledStudents}
+                onFetchRetry={() =>
+                  fetchClassroomSubmissions(submissionsCurrentPage)
+                } // Retry current page
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -281,4 +372,3 @@ export default function ClassroomDetailPage() {
     </div>
   );
 }
-    

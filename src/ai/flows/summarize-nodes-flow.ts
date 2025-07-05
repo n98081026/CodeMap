@@ -1,4 +1,3 @@
-
 // src/ai/flows/summarize-nodes-flow.ts
 'use server';
 /**
@@ -9,29 +8,36 @@
  * - SummarizeNodesOutput - Output type for the flow.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const SummarizeNodesInputSchema = z.object({
-  nodeContents: z.array(z.string().min(1, { message: "Node content cannot be empty." }))
-    .min(1, { message: "At least one node content is required for summarization."})
+  nodeContents: z
+    .array(z.string().min(1, { message: 'Node content cannot be empty.' }))
+    .min(1, {
+      message: 'At least one node content is required for summarization.',
+    })
     .describe('An array of text content from the selected concept map nodes.'),
 });
 export type SummarizeNodesInput = z.infer<typeof SummarizeNodesInputSchema>;
 
 const SummarizeNodesOutputSchema = z.object({
-  summary: z.string().describe('A concise summary of all provided node contents.'),
+  summary: z
+    .string()
+    .describe('A concise summary of all provided node contents.'),
 });
 export type SummarizeNodesOutput = z.infer<typeof SummarizeNodesOutputSchema>;
 
-export async function summarizeNodes(input: SummarizeNodesInput): Promise<SummarizeNodesOutput> {
+export async function summarizeNodes(
+  input: SummarizeNodesInput
+): Promise<SummarizeNodesOutput> {
   return summarizeNodesInternalFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'summarizeNodesPrompt',
-  input: {schema: SummarizeNodesInputSchema},
-  output: {schema: SummarizeNodesOutputSchema},
+  input: { schema: SummarizeNodesInputSchema },
+  output: { schema: SummarizeNodesOutputSchema },
   prompt: `You are an AI assistant skilled at synthesizing information.
 Given the following text content from multiple concept map nodes:
 {{#each nodeContents}}
@@ -49,17 +55,18 @@ Example:
 `,
 });
 
-const summarizeNodesInternalFlow = ai.defineFlow( // Renamed internal flow variable
+const summarizeNodesInternalFlow = ai.defineFlow(
+  // Renamed internal flow variable
   {
     name: 'summarizeNodesFlow', // Genkit flow name can remain for Dev UI consistency
     inputSchema: SummarizeNodesInputSchema,
     outputSchema: SummarizeNodesOutputSchema,
   },
-  async input => {
+  async (input) => {
     if (input.nodeContents.length === 0) {
-        return { summary: "No content provided for summarization." };
+      return { summary: 'No content provided for summarization.' };
     }
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );

@@ -172,3 +172,29 @@ This updated TODO list aims to be more concise in the completed sections by summ
 The "Known Issues / Current State" section has been updated to reflect the significant progress on `projectStructureAnalyzerTool` and Interactive Tutorials.
 The Chinese section "下一步 (建議)" is considered superseded by the detailed English sections.
 The "Key Priorities" section has been updated to emphasize immediate testing needs and ongoing/future work.
+
+---
+## Project Setup & DX Enhancements (Jules & User)
+
+- [ ] **Manual User Tasks (Local Environment):**
+    - **Action:** In your local environment, please perform the following steps in order and commit the changes:
+        1. Ensure all dependencies are installed: `npm install` (or `yarn install`). This is crucial as Jules encountered issues running this in the sandbox.
+        2. Run the initial Prettier formatting: `npm run format`. This includes:
+            - The initial full-project format.
+            - Specifically `src/app/application/student/dashboard/page.tsx`.
+            - The entire `src/components/` directory.
+            - Other directories like `src/app/application/student/projects/` and `src/app/application/teacher/` that Jules skipped due to sandbox limits.
+        3. Run ESLint autofix: `npm run lint:fix`. This should be run *after* Prettier has formatted the codebase.
+    - **Note for Jules:** Once these steps are done and changes are committed, Jules can proceed with reviewing any remaining ESLint issues or other planned tasks.
+
+- [ ] **ESLint & Prettier Configuration & Initial Setup (Jules):**
+    - [X] Create `.prettierrc.json` with recommended settings.
+    - [X] Create `.prettierignore` (added `*.py`, ensured standard ignores).
+    - [X] Update `package.json` with necessary ESLint & Prettier devDependencies and quality-related scripts.
+    - [X] Refactor `eslint.config.js` to a standard Flat Config format, integrating Next.js and Prettier rules.
+    - [X] Delete a-conflicting `.eslintrc.json`.
+    - [X] Create `.eslintignore`.
+    - [X] Partially formatted project using Prettier (e.g., `src/ai/`, parts of `src/app/`, `src/hooks/`). Fixed syntax errors in `src/ai/tools/project-analyzer-tool.ts`.
+    - [ ] **(Blocked by Manual User Actions)** Run `npm run format` (Prettier) for remaining large directories / full project.
+    - [ ] **(Blocked by Manual User Actions)** Run `npm run lint:fix` (ESLint) to check and autofix linting issues based on the new configuration.
+    - [ ] Review any outstanding ESLint errors/warnings after `lint:fix`.

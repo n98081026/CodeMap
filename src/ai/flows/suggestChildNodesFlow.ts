@@ -10,16 +10,22 @@ export const SuggestChildNodesRequestSchema = z.object({
   existingChildrenTexts: z.array(z.string()).optional().default([]),
   maxSuggestions: z.number().int().positive().optional().default(3),
 });
-export type SuggestChildNodesRequest = z.infer<typeof SuggestChildNodesRequestSchema>;
+export type SuggestChildNodesRequest = z.infer<
+  typeof SuggestChildNodesRequestSchema
+>;
 
 export const SuggestedChildNodeSchema = z.object({
-  text: z.string().min(1, "Suggested text cannot be empty."),
+  text: z.string().min(1, 'Suggested text cannot be empty.'),
   relationLabel: z.string().optional().default('relates to'), // Default connecting label
 });
 export type SuggestedChildNode = z.infer<typeof SuggestedChildNodeSchema>;
 
-export const SuggestChildNodesResponseSchema = z.array(SuggestedChildNodeSchema);
-export type SuggestChildNodesResponse = z.infer<typeof SuggestChildNodesResponseSchema>;
+export const SuggestChildNodesResponseSchema = z.array(
+  SuggestedChildNodeSchema
+);
+export type SuggestChildNodesResponse = z.infer<
+  typeof SuggestChildNodesResponseSchema
+>;
 
 export const suggestChildNodesFlow = defineFlow(
   {
@@ -31,14 +37,20 @@ export const suggestChildNodesFlow = defineFlow(
       // if (!auth) {
       //   throw new Error('Authentication required.');
       // }
-    }
+    },
   },
   async (request) => {
-    const { parentNodeText, parentNodeDetails, existingChildrenTexts, maxSuggestions } = request;
+    const {
+      parentNodeText,
+      parentNodeDetails,
+      existingChildrenTexts,
+      maxSuggestions,
+    } = request;
 
-    const existingChildrenString = existingChildrenTexts.length > 0
-      ? `Avoid suggesting concepts very similar to these existing children: ${existingChildrenTexts.join(', ')}.`
-      : "This parent node currently has no children listed.";
+    const existingChildrenString =
+      existingChildrenTexts.length > 0
+        ? `Avoid suggesting concepts very similar to these existing children: ${existingChildrenTexts.join(', ')}.`
+        : 'This parent node currently has no children listed.';
 
     const prompt = `
 You are an assistant helping to brainstorm related concepts for a concept map.
@@ -70,7 +82,9 @@ Ensure the "text" for each child is not empty. Default "relationLabel" to "relat
 `;
 
     try {
-      console.log(`[suggestChildNodesFlow] Requesting ${maxSuggestions} child suggestions for parent: "${parentNodeText}"`);
+      console.log(
+        `[suggestChildNodesFlow] Requesting ${maxSuggestions} child suggestions for parent: "${parentNodeText}"`
+      );
       const llmResponse = await generate({
         model: geminiPro,
         prompt: prompt,
@@ -81,25 +95,31 @@ Ensure the "text" for each child is not empty. Default "relationLabel" to "relat
       const suggestions = llmResponse.output();
 
       if (!suggestions || !Array.isArray(suggestions)) {
-        console.error('SuggestChildNodesFlow: LLM output was not a valid array or was null.');
+        console.error(
+          'SuggestChildNodesFlow: LLM output was not a valid array or was null.'
+        );
         return [];
       }
 
-      console.log(`[suggestChildNodesFlow] Received ${suggestions.length} suggestions from LLM.`);
+      console.log(
+        `[suggestChildNodesFlow] Received ${suggestions.length} suggestions from LLM.`
+      );
 
       // Filter out any empty text suggestions just in case, though schema should catch it
       // and ensure relationLabel has a default.
       const validSuggestions = suggestions
-        .filter(s => s.text && s.text.trim() !== "")
-        .map(s => ({
+        .filter((s) => s.text && s.text.trim() !== '')
+        .map((s) => ({
           text: s.text,
-          relationLabel: s.relationLabel || 'relates to' // Ensure default
+          relationLabel: s.relationLabel || 'relates to', // Ensure default
         }));
 
       return validSuggestions.slice(0, maxSuggestions); // Ensure we don't exceed maxSuggestions
-
     } catch (error) {
-      console.error("Error in suggestChildNodesFlow during LLM call or processing:", error);
+      console.error(
+        'Error in suggestChildNodesFlow during LLM call or processing:',
+        error
+      );
       return []; // Return empty array on error
     }
   }

@@ -17,13 +17,13 @@ vi.mock('next/navigation', () => ({
     replace: mockRouterReplace,
   }),
   usePathname: () => '/mock-path', // Provide a mock pathname
-  useParams: () => ({ // Mock useParams
+  useParams: () => ({
+    // Mock useParams
     viewOnly: mockParamsGet('viewOnly'), // Allow tests to control this
     // Add other params if your hook uses them, e.g., mapId from URL path
     mapId: mockParamsGet('mapId'),
   }),
 }));
-
 
 // Mock useAuth - we don't need its internal logic for these tests, just its output
 vi.mock('@/contexts/auth-context', () => ({
@@ -40,7 +40,6 @@ vi.mock('@/hooks/use-toast', () => ({
     toast: mockToast,
   }),
 }));
-
 
 // Mock a minimal Zustand store
 const mockInitializeNewMap = vi.fn();
@@ -73,7 +72,8 @@ const mockStoreState = {
   addDebugLog: mockAddDebugLog,
   loadExampleMapData: mockLoadExampleMapData, // Mock the store's action
   // Add other state/actions as needed by the hook
-  temporal: { // Mock the temporal part if zundo is deeply integrated in ways that affect tests
+  temporal: {
+    // Mock the temporal part if zundo is deeply integrated in ways that affect tests
     getState: () => ({
       clear: vi.fn(),
     }),
@@ -116,23 +116,29 @@ vi.mock('@/stores/concept-map-store', () => {
       ...actualStore.default, // Spread actual default export
       getState: storeSpy.getState, // Override getState
       temporal: mockTemporal, // Provide mock temporal for direct access
-    }
+    },
   };
 });
-
 
 // Mock global fetch
 global.fetch = vi.fn();
 
 // Mock example-data
 const mockExampleProjects = [
-  { key: 'example1', name: 'Example Project 1', mapJsonPath: '/example-maps/example1.json' },
-  { key: 'example-valid', name: 'Valid Example', mapJsonPath: '/example-maps/example-valid.json' },
+  {
+    key: 'example1',
+    name: 'Example Project 1',
+    mapJsonPath: '/example-maps/example1.json',
+  },
+  {
+    key: 'example-valid',
+    name: 'Valid Example',
+    mapJsonPath: '/example-maps/example-valid.json',
+  },
 ];
 vi.mock('@/lib/example-data', () => ({
   exampleProjects: mockExampleProjects,
 }));
-
 
 describe('useConceptMapDataManager', () => {
   let mockUser: any;
@@ -164,12 +170,14 @@ describe('useConceptMapDataManager', () => {
       error: null,
     });
     // Ensure the store mock reflects the reset state for subsequent calls to useConceptMapStore()
-     (useConceptMapStore as vi.Mock).mockImplementation(() => ({
+    (useConceptMapStore as vi.Mock).mockImplementation(() => ({
       ...mockStoreState,
-       temporal: { getState: () => ({ clear: vi.fn() }) }
+      temporal: { getState: () => ({ clear: vi.fn() }) },
     }));
-    (useConceptMapStore as any).getState = () => ({ ...mockStoreState, temporal: { getState: () => ({ clear: vi.fn() }) } });
-
+    (useConceptMapStore as any).getState = () => ({
+      ...mockStoreState,
+      temporal: { getState: () => ({ clear: vi.fn() }) },
+    });
 
     (fetch as vi.Mock).mockReset(); // Reset fetch mocks
   });
@@ -183,25 +191,34 @@ describe('useConceptMapDataManager', () => {
         return undefined;
       });
 
-      const mockExampleData = { nodes: [{ id: 'node1', text: 'Example Node' }], edges: [] };
+      const mockExampleData = {
+        nodes: [{ id: 'node1', text: 'Example Node' }],
+        edges: [],
+      };
       (fetch as vi.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockExampleData,
       });
 
       const { rerender } = renderHook(
-        ({ routeMapIdFromProps, user }) => useConceptMapDataManager({ routeMapIdFromProps, user }),
+        ({ routeMapIdFromProps, user }) =>
+          useConceptMapDataManager({ routeMapIdFromProps, user }),
         { initialProps: { routeMapIdFromProps: routeMapId, user: null } } // Simulate guest initially
       );
 
       // Wait for useEffect to run and async operations to complete
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0)); // Allow microtasks to run
+        await new Promise((resolve) => setTimeout(resolve, 0)); // Allow microtasks to run
       });
 
       expect(fetch).toHaveBeenCalledWith(`/example-maps/${exampleKey}.json`);
       expect(mockSetIsLoading).toHaveBeenCalledWith(true);
-      expect(mockLoadExampleMapData).toHaveBeenCalledWith(mockExampleData, mockExampleProjects.find(p=>p.key === `example-${exampleKey}` || p.key === exampleKey)?.name);
+      expect(mockLoadExampleMapData).toHaveBeenCalledWith(
+        mockExampleData,
+        mockExampleProjects.find(
+          (p) => p.key === `example-${exampleKey}` || p.key === exampleKey
+        )?.name
+      );
       expect(mockSetIsLoading).toHaveBeenCalledWith(false);
       expect(mockSetInitialLoadComplete).toHaveBeenCalledWith(true);
       expect(mockSetError).toHaveBeenCalledWith(null); // Ensure no error was set
@@ -210,31 +227,45 @@ describe('useConceptMapDataManager', () => {
     it('should handle fetch error when loading example map from URL', async () => {
       const exampleKey = 'fetch-error-example';
       const routeMapId = `example-${exampleKey}`;
-       mockParamsGet.mockImplementation((key: string) => {
+      mockParamsGet.mockImplementation((key: string) => {
         if (key === 'viewOnly') return 'true';
         return undefined;
       });
 
       (fetch as vi.Mock).mockRejectedValueOnce(new Error('Network Error'));
-       // Ensure example-data has this key so it attempts fetch
+      // Ensure example-data has this key so it attempts fetch
       vi.doMock('@/lib/example-data', () => ({
-        exampleProjects: [...mockExampleProjects, { key: exampleKey, name: 'Fetch Error Example', mapJsonPath: `/example-maps/${exampleKey}.json` }],
+        exampleProjects: [
+          ...mockExampleProjects,
+          {
+            key: exampleKey,
+            name: 'Fetch Error Example',
+            mapJsonPath: `/example-maps/${exampleKey}.json`,
+          },
+        ],
       }));
 
-
       const { rerender } = renderHook(
-        ({ routeMapIdFromProps, user }) => useConceptMapDataManager({ routeMapIdFromProps, user }),
+        ({ routeMapIdFromProps, user }) =>
+          useConceptMapDataManager({ routeMapIdFromProps, user }),
         { initialProps: { routeMapIdFromProps: routeMapId, user: null } }
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       expect(fetch).toHaveBeenCalledWith(`/example-maps/${exampleKey}.json`);
       expect(mockSetIsLoading).toHaveBeenCalledWith(true);
-      expect(mockSetError).toHaveBeenCalledWith(expect.stringContaining('Failed to load example'));
-      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', title: 'Network Error' }));
+      expect(mockSetError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load example')
+      );
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'destructive',
+          title: 'Network Error',
+        })
+      );
       expect(mockSetIsLoading).toHaveBeenCalledWith(false);
       expect(mockSetInitialLoadComplete).toHaveBeenCalledWith(true);
       vi.doUnmock('@/lib/example-data'); // Clean up mock
@@ -249,24 +280,41 @@ describe('useConceptMapDataManager', () => {
       });
       (fetch as vi.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => { throw new Error('Invalid JSON'); },
+        json: async () => {
+          throw new Error('Invalid JSON');
+        },
       });
       vi.doMock('@/lib/example-data', () => ({
-        exampleProjects: [...mockExampleProjects, { key: exampleKey, name: 'Invalid JSON Example', mapJsonPath: `/example-maps/${exampleKey}.json` }],
+        exampleProjects: [
+          ...mockExampleProjects,
+          {
+            key: exampleKey,
+            name: 'Invalid JSON Example',
+            mapJsonPath: `/example-maps/${exampleKey}.json`,
+          },
+        ],
       }));
 
       const { rerender } = renderHook(
-        ({ routeMapIdFromProps, user }) => useConceptMapDataManager({ routeMapIdFromProps, user }),
+        ({ routeMapIdFromProps, user }) =>
+          useConceptMapDataManager({ routeMapIdFromProps, user }),
         { initialProps: { routeMapIdFromProps: routeMapId, user: null } }
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       expect(fetch).toHaveBeenCalledWith(`/example-maps/${exampleKey}.json`);
-      expect(mockSetError).toHaveBeenCalledWith(expect.stringContaining('Invalid JSON format'));
-      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', title: 'Data Format Error' }));
+      expect(mockSetError).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid JSON format')
+      );
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'destructive',
+          title: 'Data Format Error',
+        })
+      );
       vi.doUnmock('@/lib/example-data');
     });
   });
@@ -284,7 +332,12 @@ describe('useConceptMapDataManager', () => {
       mockStoreState.isViewOnlyMode = true;
       mockStoreState.mapId = 'example-somekey'; // Simulate an example map ID
 
-      const { result } = renderHook(() => useConceptMapDataManager({routeMapIdFromProps: 'example-somekey', user: null}));
+      const { result } = renderHook(() =>
+        useConceptMapDataManager({
+          routeMapIdFromProps: 'example-somekey',
+          user: null,
+        })
+      );
 
       await act(async () => {
         await result.current.saveMap(true); // Explicitly pass true for viewOnly param as per hook logic
@@ -292,8 +345,9 @@ describe('useConceptMapDataManager', () => {
 
       expect(fetch).not.toHaveBeenCalled(); // Assuming saveMap calls fetch
       expect(mockSetIsLoading).not.toHaveBeenCalledWith(true);
-      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({title: "View Only Mode"}));
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'View Only Mode' })
+      );
     });
   });
-
 });

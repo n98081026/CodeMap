@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -10,4 +9,3 @@ export default function NewConceptMapPage() {
   }, [router]);
   return null; // Or a loading indicator
 }
-

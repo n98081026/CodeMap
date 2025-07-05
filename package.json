@@ -79,10 +79,21 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^14.2.5", # Added for 'analyze' script
-    "cross-env": "^7.0.3", # Added for 'analyze' script
-    "depcheck": "^1.4.7", # Added for 'depcheck' script
-    "prettier": "^3.3.3", # Added for 'format' scripts
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.5",
+    "eslint-config-prettier": "^9.1.0",
+    "@next/eslint-plugin-next": "^14.2.5",
+    "@next/bundle-analyzer": "^14.2.5",
+    "cross-env": "^7.0.3",
+    "depcheck": "^1.4.7",
+    "prettier": "^3.3.3",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-jsx-a11y": "^6.9.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-prettier": "^5.2.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",

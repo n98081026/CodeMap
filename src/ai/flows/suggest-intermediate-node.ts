@@ -6,23 +6,60 @@ const ai = genkit({ plugins: [googleAI()] });
 
 // 1. Define Input Schema
 export const SuggestIntermediateNodeInputSchema = z.object({
-  sourceNodeText: z.string().describe("Text content of the source node."),
-  sourceNodeDetails: z.string().optional().describe("Detailed description of the source node, if any."),
-  targetNodeText: z.string().describe("Text content of the target node."),
-  targetNodeDetails: z.string().optional().describe("Detailed description of the target node, if any."),
-  existingEdgeLabel: z.string().optional().describe("The label of the existing edge connecting the source and target nodes.")
+  sourceNodeText: z.string().describe('Text content of the source node.'),
+  sourceNodeDetails: z
+    .string()
+    .optional()
+    .describe('Detailed description of the source node, if any.'),
+  targetNodeText: z.string().describe('Text content of the target node.'),
+  targetNodeDetails: z
+    .string()
+    .optional()
+    .describe('Detailed description of the target node, if any.'),
+  existingEdgeLabel: z
+    .string()
+    .optional()
+    .describe(
+      'The label of the existing edge connecting the source and target nodes.'
+    ),
 });
-export type SuggestIntermediateNodeInput = z.infer<typeof SuggestIntermediateNodeInputSchema>;
+export type SuggestIntermediateNodeInput = z.infer<
+  typeof SuggestIntermediateNodeInputSchema
+>;
 
 // 2. Define Output Schema (single best suggestion)
 export const SuggestIntermediateNodeOutputSchema = z.object({
-  intermediateNodeText: z.string().describe("The suggested text for the new intermediate node. This should be concise."),
-  intermediateNodeDetails: z.string().optional().describe("Suggested details for the new intermediate node, providing further elaboration if necessary."),
-  labelSourceToIntermediate: z.string().describe("Suggested label for the new edge from the original source node to the intermediate node. Should be concise and descriptive."),
-  labelIntermediateToTarget: z.string().describe("Suggested label for the new edge from the intermediate node to the original target node. Should be concise and descriptive."),
-  reasoning: z.string().optional().describe("A brief explanation of why this intermediate node and the new edge labels help clarify the relationship or break down the process between the source and target nodes.")
+  intermediateNodeText: z
+    .string()
+    .describe(
+      'The suggested text for the new intermediate node. This should be concise.'
+    ),
+  intermediateNodeDetails: z
+    .string()
+    .optional()
+    .describe(
+      'Suggested details for the new intermediate node, providing further elaboration if necessary.'
+    ),
+  labelSourceToIntermediate: z
+    .string()
+    .describe(
+      'Suggested label for the new edge from the original source node to the intermediate node. Should be concise and descriptive.'
+    ),
+  labelIntermediateToTarget: z
+    .string()
+    .describe(
+      'Suggested label for the new edge from the intermediate node to the original target node. Should be concise and descriptive.'
+    ),
+  reasoning: z
+    .string()
+    .optional()
+    .describe(
+      'A brief explanation of why this intermediate node and the new edge labels help clarify the relationship or break down the process between the source and target nodes.'
+    ),
 });
-export type SuggestIntermediateNodeOutput = z.infer<typeof SuggestIntermediateNodeOutputSchema>;
+export type SuggestIntermediateNodeOutput = z.infer<
+  typeof SuggestIntermediateNodeOutputSchema
+>;
 
 // 3. Define the Genkit Prompt
 const suggestIntermediateNodePrompt = ai.definePrompt({
@@ -76,16 +113,29 @@ export const suggestIntermediateNodeFlow = ai.defineFlow(
   async (input: SuggestIntermediateNodeInput) => {
     const { output } = await suggestIntermediateNodePrompt(input);
     if (!output) {
-      throw new Error("AI did not produce an output for suggesting an intermediate node.");
+      throw new Error(
+        'AI did not produce an output for suggesting an intermediate node.'
+      );
     }
-    if (typeof output.intermediateNodeText !== 'string' || output.intermediateNodeText.trim() === '') {
-        throw new Error("AI output missing or empty intermediateNodeText for intermediate node.");
+    if (
+      typeof output.intermediateNodeText !== 'string' ||
+      output.intermediateNodeText.trim() === ''
+    ) {
+      throw new Error(
+        'AI output missing or empty intermediateNodeText for intermediate node.'
+      );
     }
-    if (typeof output.labelSourceToIntermediate !== 'string' || output.labelSourceToIntermediate.trim() === '') {
-        throw new Error("AI output missing or empty labelSourceToIntermediate.");
+    if (
+      typeof output.labelSourceToIntermediate !== 'string' ||
+      output.labelSourceToIntermediate.trim() === ''
+    ) {
+      throw new Error('AI output missing or empty labelSourceToIntermediate.');
     }
-    if (typeof output.labelIntermediateToTarget !== 'string' || output.labelIntermediateToTarget.trim() === '') {
-        throw new Error("AI output missing or empty labelIntermediateToTarget.");
+    if (
+      typeof output.labelIntermediateToTarget !== 'string' ||
+      output.labelIntermediateToTarget.trim() === ''
+    ) {
+      throw new Error('AI output missing or empty labelIntermediateToTarget.');
     }
     return output;
   }

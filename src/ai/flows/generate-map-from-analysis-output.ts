@@ -5,32 +5,50 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { ProjectAnalysisOutputSchema, type ProjectAnalysisOutput } from '@/ai/tools/project-analyzer-tool';
+import {
+  ProjectAnalysisOutputSchema,
+  type ProjectAnalysisOutput,
+} from '@/ai/tools/project-analyzer-tool';
 import { ConceptMapDataSchema } from '@/types/zodSchemas'; // Assuming this is the desired output structure
 import type { ConceptMapData } from '@/types';
 
 export const GenerateMapFromAnalysisInputSchema = z.object({
-  analysisOutput: ProjectAnalysisOutputSchema.describe("The structured analysis output from projectStructureAnalyzerTool."),
-  userGoals: z.string().optional().describe("Optional user-provided goals or focus areas for the concept map generation."),
+  analysisOutput: ProjectAnalysisOutputSchema.describe(
+    'The structured analysis output from projectStructureAnalyzerTool.'
+  ),
+  userGoals: z
+    .string()
+    .optional()
+    .describe(
+      'Optional user-provided goals or focus areas for the concept map generation.'
+    ),
 });
-export type GenerateMapFromAnalysisInput = z.infer<typeof GenerateMapFromAnalysisInputSchema>;
+export type GenerateMapFromAnalysisInput = z.infer<
+  typeof GenerateMapFromAnalysisInputSchema
+>;
 
 // Output will be ConceptMapData, but Genkit flows often return an object,
 // so we'll wrap it, similar to generateMapSummaryFlow's output.
 export const GenerateMapFromAnalysisOutputSchema = z.object({
-  conceptMapData: ConceptMapDataSchema.describe("The generated concept map data (nodes and edges)."),
-  error: z.string().optional().describe("Error message if map generation failed."),
+  conceptMapData: ConceptMapDataSchema.describe(
+    'The generated concept map data (nodes and edges).'
+  ),
+  error: z
+    .string()
+    .optional()
+    .describe('Error message if map generation failed.'),
 });
-export type GenerateMapFromAnalysisOutput = z.infer<typeof GenerateMapFromAnalysisOutputSchema>;
+export type GenerateMapFromAnalysisOutput = z.infer<
+  typeof GenerateMapFromAnalysisOutputSchema
+>;
 
 // Adapted prompt logic from the original generateMapFromProject.ts
 // This prompt now assumes 'analysisOutput' is provided directly as input, not called via a tool.
-const generateMapFromStructurePrompt = ai.definePrompt(
-  {
-    name: 'generateMapFromAnalysisOutputPrompt', // New name for this specific prompt
-    input: { schema: GenerateMapFromAnalysisInputSchema }, // Takes the full analysis and goals
-    output: { schema: GenerateMapFromAnalysisOutputSchema }, // Outputs map data or error
-    prompt: `You are an expert software analyst tasked with creating a simple concept map FROM A PRE-ANALYZED project file structure.
+const generateMapFromStructurePrompt = ai.definePrompt({
+  name: 'generateMapFromAnalysisOutputPrompt', // New name for this specific prompt
+  input: { schema: GenerateMapFromAnalysisInputSchema }, // Takes the full analysis and goals
+  output: { schema: GenerateMapFromAnalysisOutputSchema }, // Outputs map data or error
+  prompt: `You are an expert software analyst tasked with creating a simple concept map FROM A PRE-ANALYZED project file structure.
 You are given the 'analysisOutput' object directly.
 
 Analysis Output Details:
@@ -97,8 +115,7 @@ Example (Successful Analysis of a Text File, with user goals):
 
 Generate the concept map JSON based on the provided 'analysisOutput'.
 `,
-  }
-);
+});
 
 export const generateMapFromAnalysisOutputFlow = ai.defineFlow(
   {
@@ -107,12 +124,23 @@ export const generateMapFromAnalysisOutputFlow = ai.defineFlow(
     outputSchema: GenerateMapFromAnalysisOutputSchema,
   },
   async (input) => {
-    if (input.analysisOutput.error && (!input.analysisOutput.detailedNodes || input.analysisOutput.detailedNodes.length === 0)) {
+    if (
+      input.analysisOutput.error &&
+      (!input.analysisOutput.detailedNodes ||
+        input.analysisOutput.detailedNodes.length === 0)
+    ) {
       // If the input analysis itself has a significant error, reflect that.
       const errorNodeId = `error_${input.analysisOutput.analyzedFileName.replace(/[^a-zA-Z0-9_]/g, '_') || 'general'}`;
       return {
         conceptMapData: {
-          nodes: [{ id: errorNodeId, text: "File Analysis Error", type: "error_node", details: input.analysisOutput.error }],
+          nodes: [
+            {
+              id: errorNodeId,
+              text: 'File Analysis Error',
+              type: 'error_node',
+              details: input.analysisOutput.error,
+            },
+          ],
           edges: [],
         },
         error: `Upstream analysis error: ${input.analysisOutput.error}`,
@@ -124,19 +152,19 @@ export const generateMapFromAnalysisOutputFlow = ai.defineFlow(
       if (!output) {
         return {
           conceptMapData: { nodes: [], edges: [] }, // Empty map on null output
-          error: "AI prompt for map generation returned null or undefined.",
+          error: 'AI prompt for map generation returned null or undefined.',
         };
       }
       // Ensure output.conceptMapData exists, even if empty, to satisfy schema
       if (!output.conceptMapData) {
         return {
           conceptMapData: { nodes: [], edges: [] },
-          error: output.error || "AI did not produce concept map data.",
+          error: output.error || 'AI did not produce concept map data.',
         };
       }
       return output; // Contains { conceptMapData: {nodes, edges}, error? }
     } catch (e: any) {
-      console.error("Error in generateMapFromAnalysisOutputFlow LLM call:", e);
+      console.error('Error in generateMapFromAnalysisOutputFlow LLM call:', e);
       return {
         conceptMapData: { nodes: [], edges: [] },
         error: `AI map generation failed: ${e.message}`,

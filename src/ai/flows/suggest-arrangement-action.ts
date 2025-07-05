@@ -4,23 +4,30 @@ import * as z from 'zod';
 
 // Define the list of valid action IDs that the AI can suggest
 const ArrangementActionIdEnum = z.enum([
-  "alignLefts", "alignCentersH", "alignRights",
-  "alignTops", "alignMiddlesV", "alignBottoms",
-  "distributeHorizontally", "distributeVertically"
+  'alignLefts',
+  'alignCentersH',
+  'alignRights',
+  'alignTops',
+  'alignMiddlesV',
+  'alignBottoms',
+  'distributeHorizontally',
+  'distributeVertically',
 ]);
 
 // Input Schema
 export const SuggestArrangementActionInputSchema = z.object({
-  selectedNodesInfo: z.array(
-    z.object({
-      id: z.string(),
-      x: z.number(),
-      y: z.number(),
-      width: z.number().optional(),
-      height: z.number().optional(),
-      text: z.string().optional(),
-    })
-  ).min(2, "At least two nodes are required for an arrangement suggestion."),
+  selectedNodesInfo: z
+    .array(
+      z.object({
+        id: z.string(),
+        x: z.number(),
+        y: z.number(),
+        width: z.number().optional(),
+        height: z.number().optional(),
+        text: z.string().optional(),
+      })
+    )
+    .min(2, 'At least two nodes are required for an arrangement suggestion.'),
 });
 
 // Output Schema
@@ -41,11 +48,18 @@ export const suggestArrangementActionFlow = defineFlow(
     const { selectedNodesInfo } = input;
 
     // Create a textual summary of the selected nodes' current state
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    let totalWidth = 0, totalHeight = 0;
-    const nodeTextsSample = selectedNodesInfo.slice(0, 3).map(n => n.text || 'Untitled Node').join(', ');
+    let minX = Infinity,
+      maxX = -Infinity,
+      minY = Infinity,
+      maxY = -Infinity;
+    let totalWidth = 0,
+      totalHeight = 0;
+    const nodeTextsSample = selectedNodesInfo
+      .slice(0, 3)
+      .map((n) => n.text || 'Untitled Node')
+      .join(', ');
 
-    selectedNodesInfo.forEach(node => {
+    selectedNodesInfo.forEach((node) => {
       const w = node.width || 150; // Use default if not provided
       const h = node.height || 70; // Use default if not provided
       minX = Math.min(minX, node.x);
@@ -116,14 +130,21 @@ export const suggestArrangementActionFlow = defineFlow(
 
     const outputData = llmResponse.output();
 
-    if (!outputData || !outputData.suggestion || !ArrangementActionIdEnum.safeParse(outputData.suggestion.actionId).success) {
+    if (
+      !outputData ||
+      !outputData.suggestion ||
+      !ArrangementActionIdEnum.safeParse(outputData.suggestion.actionId).success
+    ) {
       // Fallback if AI fails to provide a valid actionId or output
-      console.error("AI failed to provide a valid arrangement suggestion. Output:", outputData);
+      console.error(
+        'AI failed to provide a valid arrangement suggestion. Output:',
+        outputData
+      );
       return {
         suggestion: {
-          actionId: "alignLefts", // Default fallback action
-          reason: "AI suggestion failed, defaulting to align lefts."
-        }
+          actionId: 'alignLefts', // Default fallback action
+          reason: 'AI suggestion failed, defaulting to align lefts.',
+        },
       };
     }
 

@@ -6,18 +6,40 @@ import { z } from 'genkit';
 
 // 1. Define Input Schema
 export const RefineNodeSuggestionInputSchema = z.object({
-  originalText: z.string().describe("The original text content of the node/suggestion."),
-  originalDetails: z.string().optional().describe("The original detailed description of the node/suggestion, if any."),
-  userInstruction: z.string().describe("The user's instruction on how to refine the text/details.")
+  originalText: z
+    .string()
+    .describe('The original text content of the node/suggestion.'),
+  originalDetails: z
+    .string()
+    .optional()
+    .describe(
+      'The original detailed description of the node/suggestion, if any.'
+    ),
+  userInstruction: z
+    .string()
+    .describe("The user's instruction on how to refine the text/details."),
 });
-export type RefineNodeSuggestionInput = z.infer<typeof RefineNodeSuggestionInputSchema>;
+export type RefineNodeSuggestionInput = z.infer<
+  typeof RefineNodeSuggestionInputSchema
+>;
 
 // 2. Define Output Schema
 export const RefineNodeSuggestionOutputSchema = z.object({
-  refinedText: z.string().describe("The AI-refined text content for the node. This should be suitable as a concise node label."),
-  refinedDetails: z.string().optional().describe("The AI-refined detailed description for the node, if applicable. This provides further elaboration.")
+  refinedText: z
+    .string()
+    .describe(
+      'The AI-refined text content for the node. This should be suitable as a concise node label.'
+    ),
+  refinedDetails: z
+    .string()
+    .optional()
+    .describe(
+      'The AI-refined detailed description for the node, if applicable. This provides further elaboration.'
+    ),
 });
-export type RefineNodeSuggestionOutput = z.infer<typeof RefineNodeSuggestionOutputSchema>;
+export type RefineNodeSuggestionOutput = z.infer<
+  typeof RefineNodeSuggestionOutputSchema
+>;
 
 // 3. Define the Genkit Prompt
 const refineNodeSuggestionPrompt = ai.definePrompt({
@@ -65,14 +87,18 @@ export const refineNodeSuggestionFlow = ai.defineFlow(
   async (input) => {
     const { output } = await refineNodeSuggestionPrompt(input);
     if (!output) {
-      throw new Error("AI did not produce an output for refining the node suggestion.");
+      throw new Error(
+        'AI did not produce an output for refining the node suggestion.'
+      );
     }
     // Ensure refinedText is always present, even if AI omits it (though schema should enforce)
     if (typeof output.refinedText !== 'string') {
-        // Attempt to use original text if AI fails to provide refinedText
-        // Or, depending on strictness, could throw error or return a default
-        console.warn("AI output missing refinedText, using originalText as fallback for refinedText.");
-        output.refinedText = input.originalText;
+      // Attempt to use original text if AI fails to provide refinedText
+      // Or, depending on strictness, could throw error or return a default
+      console.warn(
+        'AI output missing refinedText, using originalText as fallback for refinedText.'
+      );
+      output.refinedText = input.originalText;
     }
     return output;
   }

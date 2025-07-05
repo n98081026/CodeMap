@@ -23,38 +23,54 @@ export const SemanticTidyUpNodeUpdateSchema = z.object({
   x: z.number(),
   y: z.number(),
 });
-export type SemanticTidyUpNodeUpdate = z.infer<typeof SemanticTidyUpNodeUpdateSchema>;
-export const SemanticTidyUpResponseSchema = z.array(SemanticTidyUpNodeUpdateSchema);
-export type SemanticTidyUpResponse = z.infer<typeof SemanticTidyUpResponseSchema>;
+export type SemanticTidyUpNodeUpdate = z.infer<
+  typeof SemanticTidyUpNodeUpdateSchema
+>;
+export const SemanticTidyUpResponseSchema = z.array(
+  SemanticTidyUpNodeUpdateSchema
+);
+export type SemanticTidyUpResponse = z.infer<
+  typeof SemanticTidyUpResponseSchema
+>;
 
 export const semanticTidyUpFlow = defineFlow(
   {
     name: 'semanticTidyUpFlow',
     inputSchema: SemanticTidyUpRequestSchema,
     outputSchema: SemanticTidyUpResponseSchema,
-    authPolicy: (auth, input) => { // Example auth policy, adjust as needed
+    authPolicy: (auth, input) => {
+      // Example auth policy, adjust as needed
       // Allow if user is authenticated, or implement more specific checks
       // if (!auth) {
       //   throw new Error('Authentication required.');
       // }
-    }
+    },
   },
   async (nodesToTidy) => {
     if (!nodesToTidy || nodesToTidy.length < 2) {
       // Not enough nodes to tidy, return their original positions
-      return nodesToTidy.map(n => ({ id: n.id, x: n.x, y: n.y }));
+      return nodesToTidy.map((n) => ({ id: n.id, x: n.x, y: n.y }));
     }
 
     const nodesString = JSON.stringify(
-      nodesToTidy.map(n => ({ id: n.id, text: n.text, details: n.details, currentX: n.x, currentY: n.y, width: n.width, height: n.height })),
-      null, 2
+      nodesToTidy.map((n) => ({
+        id: n.id,
+        text: n.text,
+        details: n.details,
+        currentX: n.x,
+        currentY: n.y,
+        width: n.width,
+        height: n.height,
+      })),
+      null,
+      2
     );
 
     // Estimate a bounding box or canvas area to guide the LLM
-    const minX = Math.min(...nodesToTidy.map(n => n.x));
-    const minY = Math.min(...nodesToTidy.map(n => n.y));
-    const maxX = Math.max(...nodesToTidy.map(n => n.x + (n.width || 150)));
-    const maxY = Math.max(...nodesToTidy.map(n => n.y + (n.height || 70)));
+    const minX = Math.min(...nodesToTidy.map((n) => n.x));
+    const minY = Math.min(...nodesToTidy.map((n) => n.y));
+    const maxX = Math.max(...nodesToTidy.map((n) => n.x + (n.width || 150)));
+    const maxY = Math.max(...nodesToTidy.map((n) => n.y + (n.height || 70)));
     const canvasWidth = Math.max(500, maxX - minX + 200);
     const canvasHeight = Math.max(400, maxY - minY + 200);
 
@@ -86,7 +102,9 @@ The origin (0,0) for your new layout should be considered the top-left of the bo
 `;
 
     try {
-      console.log(`[semanticTidyUpFlow] Sending ${nodesToTidy.length} nodes to LLM for tidying.`);
+      console.log(
+        `[semanticTidyUpFlow] Sending ${nodesToTidy.length} nodes to LLM for tidying.`
+      );
       const llmResponse = await generate({
         model: geminiPro,
         prompt: prompt,
@@ -97,38 +115,61 @@ The origin (0,0) for your new layout should be considered the top-left of the bo
       const suggestedUpdates = llmResponse.output();
 
       if (!suggestedUpdates || !Array.isArray(suggestedUpdates)) {
-        console.error('SemanticTidyUpFlow: LLM output was not a valid array or was null.');
-        return nodesToTidy.map(n => ({ id: n.id, x: n.x, y: n.y }));
+        console.error(
+          'SemanticTidyUpFlow: LLM output was not a valid array or was null.'
+        );
+        return nodesToTidy.map((n) => ({ id: n.id, x: n.x, y: n.y }));
       }
 
-      console.log(`[semanticTidyUpFlow] Received ${suggestedUpdates.length} updates from LLM.`);
+      console.log(
+        `[semanticTidyUpFlow] Received ${suggestedUpdates.length} updates from LLM.`
+      );
 
-      const outputNodeIds = new Set(suggestedUpdates.map(upd => upd.id));
-      const originalNodeIds = new Set(nodesToTidy.map(n => n.id));
+      const outputNodeIds = new Set(suggestedUpdates.map((upd) => upd.id));
+      const originalNodeIds = new Set(nodesToTidy.map((n) => n.id));
 
-      if (outputNodeIds.size !== originalNodeIds.size || !nodesToTidy.every(n => outputNodeIds.has(n.id))) {
-        console.error('SemanticTidyUpFlow: LLM output did not include all original node IDs or had duplicates. Output IDs:', Array.from(outputNodeIds), 'Original IDs:', Array.from(originalNodeIds));
-        return nodesToTidy.map(n => ({ id: n.id, x: n.x, y: n.y }));
+      if (
+        outputNodeIds.size !== originalNodeIds.size ||
+        !nodesToTidy.every((n) => outputNodeIds.has(n.id))
+      ) {
+        console.error(
+          'SemanticTidyUpFlow: LLM output did not include all original node IDs or had duplicates. Output IDs:',
+          Array.from(outputNodeIds),
+          'Original IDs:',
+          Array.from(originalNodeIds)
+        );
+        return nodesToTidy.map((n) => ({ id: n.id, x: n.x, y: n.y }));
       }
 
       const validatedUpdates = suggestedUpdates.filter(
-        upd => typeof upd.x === 'number' && typeof upd.y === 'number' && originalNodeIds.has(upd.id)
+        (upd) =>
+          typeof upd.x === 'number' &&
+          typeof upd.y === 'number' &&
+          originalNodeIds.has(upd.id)
       );
 
       if (validatedUpdates.length !== originalNodeIds.size) {
-        console.warn('SemanticTidyUpFlow: Some updates were invalid (non-numeric x/y or wrong ID) after initial schema validation. Returning original positions for missing/invalid ones.');
-        const validUpdatesMap = new Map(validatedUpdates.map(upd => [upd.id, upd]));
-        return nodesToTidy.map(n => {
+        console.warn(
+          'SemanticTidyUpFlow: Some updates were invalid (non-numeric x/y or wrong ID) after initial schema validation. Returning original positions for missing/invalid ones.'
+        );
+        const validUpdatesMap = new Map(
+          validatedUpdates.map((upd) => [upd.id, upd])
+        );
+        return nodesToTidy.map((n) => {
           const validUpdate = validUpdatesMap.get(n.id);
           return validUpdate ? validUpdate : { id: n.id, x: n.x, y: n.y };
         });
       }
-      console.log(`[semanticTidyUpFlow] Successfully processed and validated ${validatedUpdates.length} node updates.`);
+      console.log(
+        `[semanticTidyUpFlow] Successfully processed and validated ${validatedUpdates.length} node updates.`
+      );
       return validatedUpdates;
-
     } catch (error) {
-      console.error("Error in semanticTidyUpFlow during LLM call or processing:", error);
-      return nodesToTidy.map(n => ({ id: n.id, x: n.x, y: n.y }));
+      console.error(
+        'Error in semanticTidyUpFlow during LLM call or processing:',
+        error
+      );
+      return nodesToTidy.map((n) => ({ id: n.id, x: n.x, y: n.y }));
     }
   }
 );

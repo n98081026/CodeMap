@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -13,38 +12,61 @@
  * - ExpandConceptOutput - The return type for the expandConcept function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const ExpandConceptInputSchema = z.object({
-  concept: z
+  concept: z.string().describe('The concept to expand upon.'),
+  existingMapContext: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Brief text of existing nodes in the map to provide context and guide the expansion.'
+    ),
+  userRefinementPrompt: z
     .string()
-    .describe('The concept to expand upon.'),
-  existingMapContext: z.array(z.string()).optional().describe('Brief text of existing nodes in the map to provide context and guide the expansion.'),
-  userRefinementPrompt: z.string().optional().describe('An optional user-provided prompt to further refine or guide the concept expansion.'),
+    .optional()
+    .describe(
+      'An optional user-provided prompt to further refine or guide the concept expansion.'
+    ),
 });
 export type ExpandConceptInput = z.infer<typeof ExpandConceptInputSchema>;
 
 const ExpandedIdeaSchema = z.object({
-  text: z.string().describe("The text for the new expanded idea/node."),
-  relationLabel: z.string().optional().describe("A brief label for the relationship from the parent concept to this new idea, e.g., 'leads to', 'example of', 'supports'. Default is 'related to' if not provided."),
-  reasoning: z.string().optional().describe("A brief explanation for why this specific idea is suggested as an expansion, linking it to the parent concept or user prompt.")
+  text: z.string().describe('The text for the new expanded idea/node.'),
+  relationLabel: z
+    .string()
+    .optional()
+    .describe(
+      "A brief label for the relationship from the parent concept to this new idea, e.g., 'leads to', 'example of', 'supports'. Default is 'related to' if not provided."
+    ),
+  reasoning: z
+    .string()
+    .optional()
+    .describe(
+      'A brief explanation for why this specific idea is suggested as an expansion, linking it to the parent concept or user prompt.'
+    ),
 });
 
 const ExpandConceptOutputSchema = z.object({
-  expandedIdeas: z.array(ExpandedIdeaSchema)
-    .describe('A list of new concepts (as objects with text, optional relationLabel, and optional reasoning) related to the input concept.'),
+  expandedIdeas: z
+    .array(ExpandedIdeaSchema)
+    .describe(
+      'A list of new concepts (as objects with text, optional relationLabel, and optional reasoning) related to the input concept.'
+    ),
 });
 export type ExpandConceptOutput = z.infer<typeof ExpandConceptOutputSchema>;
 
-export async function expandConcept(input: ExpandConceptInput): Promise<ExpandConceptOutput> {
+export async function expandConcept(
+  input: ExpandConceptInput
+): Promise<ExpandConceptOutput> {
   return expandConceptFlow(input);
 }
 
 const expandConceptPrompt = ai.definePrompt({
   name: 'expandConceptPrompt',
-  input: {schema: ExpandConceptInputSchema},
-  output: {schema: ExpandConceptOutputSchema},
+  input: { schema: ExpandConceptInputSchema },
+  output: { schema: ExpandConceptOutputSchema },
   prompt: `You are an expert in concept mapping and knowledge expansion, adept at generating diverse and insightful related ideas.
 
 Your task is to expand on the central concept: "{{concept}}"
@@ -99,9 +121,8 @@ const expandConceptFlow = ai.defineFlow(
     inputSchema: ExpandConceptInputSchema,
     outputSchema: ExpandConceptOutputSchema,
   },
-  async input => {
-    const {output} = await expandConceptPrompt(input);
+  async (input) => {
+    const { output } = await expandConceptPrompt(input);
     return output!;
   }
 );
-

@@ -9,26 +9,48 @@ vi.mock('@/contexts/auth-context');
 
 // Mock child components to simplify testing the page's logic
 vi.mock('@/components/dashboard/dashboard-header', () => ({
-  DashboardHeader: ({ title, subtitle }: { title: string, subtitle?: string }) => (
-    <div data-testid="dashboard-header">
+  DashboardHeader: ({
+    title,
+    subtitle,
+  }: {
+    title: string;
+    subtitle?: string;
+  }) => (
+    <div data-testid='dashboard-header'>
       <h1>{title}</h1>
       {subtitle && <p>{subtitle}</p>}
     </div>
   ),
 }));
 
-vi.mock('@/components/concept-map/concept-map-list-item', () => ({ // Assuming ExampleProjectCard is similar or uses this
-    ExampleProjectCard: ({ project, actionType }: { project: any, actionType: 'viewAsGuest' | 'loadExample' }) => ( // Simplified props
-    <div data-testid={`example-card-${project.id}`} data-actiontype={actionType}>
+vi.mock('@/components/concept-map/concept-map-list-item', () => ({
+  // Assuming ExampleProjectCard is similar or uses this
+  ExampleProjectCard: (
+    {
+      project,
+      actionType,
+    }: { project: any; actionType: 'viewAsGuest' | 'loadExample' } // Simplified props
+  ) => (
+    <div
+      data-testid={`example-card-${project.id}`}
+      data-actiontype={actionType}
+    >
       {project.title}
     </div>
   ),
 }));
 
 vi.mock('@/components/layout/GuestModeCtaBanner', () => ({
-  GuestModeCtaBanner: ({ DONT_REDIRECT_ON_LOGIN }: { DONT_REDIRECT_ON_LOGIN?: boolean }) => ( // Match expected props
-    <div data-testid="guest-cta-banner" data-dont-redirect={DONT_REDIRECT_ON_LOGIN}>CTA Banner</div>
-  )
+  GuestModeCtaBanner: (
+    { DONT_REDIRECT_ON_LOGIN }: { DONT_REDIRECT_ON_LOGIN?: boolean } // Match expected props
+  ) => (
+    <div
+      data-testid='guest-cta-banner'
+      data-dont-redirect={DONT_REDIRECT_ON_LOGIN}
+    >
+      CTA Banner
+    </div>
+  ),
 }));
 
 // Mock example data
@@ -37,12 +59,29 @@ vi.mock('@/lib/example-data', async (importOriginal) => {
   return {
     ...original,
     exampleProjectsData: [
-      { id: 'ex1', title: 'Example 1', description: 'Desc 1', imageUrl: '', tags: [], lastUpdated: '', estimatedComplexity: '', coreConcepts: [] },
-      { id: 'ex2', title: 'Example 2', description: 'Desc 2', imageUrl: '', tags: [], lastUpdated: '', estimatedComplexity: '', coreConcepts: [] },
+      {
+        id: 'ex1',
+        title: 'Example 1',
+        description: 'Desc 1',
+        imageUrl: '',
+        tags: [],
+        lastUpdated: '',
+        estimatedComplexity: '',
+        coreConcepts: [],
+      },
+      {
+        id: 'ex2',
+        title: 'Example 2',
+        description: 'Desc 2',
+        imageUrl: '',
+        tags: [],
+        lastUpdated: '',
+        estimatedComplexity: '',
+        coreConcepts: [],
+      },
     ],
   };
 });
-
 
 describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
   beforeEach(() => {
@@ -76,7 +115,10 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
 
     expect(screen.getByTestId('guest-cta-banner')).toBeInTheDocument();
     // Check DONT_REDIRECT_ON_LOGIN prop for the banner on this page
-    expect(screen.getByTestId('guest-cta-banner')).toHaveAttribute('data-dont-redirect', 'true');
+    expect(screen.getByTestId('guest-cta-banner')).toHaveAttribute(
+      'data-dont-redirect',
+      'true'
+    );
   });
 
   it('should NOT render GuestModeCtaBanner when not in a guest session (authenticated user)', () => {
@@ -105,7 +147,7 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
   it('should pass "loadExample" actionType to ExampleProjectCard when authenticated', () => {
     (useAuth as vi.Mock).mockReturnValue({
       isGuestSession: false,
-      user: { id: 'test-user'},
+      user: { id: 'test-user' },
     });
 
     render(<ExamplesPage />);
@@ -113,5 +155,4 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
     const card1 = screen.getByTestId('example-card-ex1');
     expect(card1).toHaveAttribute('data-actiontype', 'loadExample');
   });
-
 });

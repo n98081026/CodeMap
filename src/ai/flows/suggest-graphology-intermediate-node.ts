@@ -2,28 +2,49 @@
 import { defineFlow, generate } from '@genkit-ai/flow';
 import { geminiPro } from '@genkit-ai/googleai'; // Or your preferred model
 import { z } from 'zod';
-import { graphologyInterCommunityEdgeTool, InterCommunityEdgeInputSchema, CandidateLocationSchema } from '../tools'; // Assumes index.ts exports these
-import { MapDataSchema, MapImprovementSuggestionSchema, NewIntermediateNodeDataSchema as MapImprovementNewIntermediateNodeDataSchema } from './suggest-map-improvement';
+import {
+  graphologyInterCommunityEdgeTool,
+  InterCommunityEdgeInputSchema,
+  CandidateLocationSchema,
+} from '../tools'; // Assumes index.ts exports these
+import {
+  MapDataSchema,
+  MapImprovementSuggestionSchema,
+  NewIntermediateNodeDataSchema as MapImprovementNewIntermediateNodeDataSchema,
+} from './suggest-map-improvement';
 
 // Schema for the LLM's validation and intermediate node text suggestion response
 const LlmIntermediateNodeResponseSchema = z.object({
-  isValidSuggestion: z.boolean().describe("Whether inserting an intermediate node based on the suggested text is a good idea."),
-  newNodeText: z.string().nullable().describe("The concise text/label for the new intermediate node if valid; otherwise null."),
-  reason: z.string().nullable().describe("Reason for why this intermediate node (and text) would be a good addition, or why not."),
+  isValidSuggestion: z
+    .boolean()
+    .describe(
+      'Whether inserting an intermediate node based on the suggested text is a good idea.'
+    ),
+  newNodeText: z
+    .string()
+    .nullable()
+    .describe(
+      'The concise text/label for the new intermediate node if valid; otherwise null.'
+    ),
+  reason: z
+    .string()
+    .nullable()
+    .describe(
+      'Reason for why this intermediate node (and text) would be a good addition, or why not.'
+    ),
 });
 
 // Define a schema for the prompt input, for clarity with Genkit's structured prompts
 const SuggestIntermediateNodeContentPromptInputSchema = z.object({
-    sourceNodeId: z.string(),
-    sourceNodeText: z.string(),
-    sourceNodeDetails: z.string().optional(),
-    targetNodeId: z.string(),
-    targetNodeText: z.string(),
-    targetNodeDetails: z.string().optional(),
-    sourceCommunityId: z.number(),
-    targetCommunityId: z.number(),
+  sourceNodeId: z.string(),
+  sourceNodeText: z.string(),
+  sourceNodeDetails: z.string().optional(),
+  targetNodeId: z.string(),
+  targetNodeText: z.string(),
+  targetNodeDetails: z.string().optional(),
+  sourceCommunityId: z.number(),
+  targetCommunityId: z.number(),
 });
-
 
 export const suggestGraphologyIntermediateNodeFlow = defineFlow(
   {
@@ -37,8 +58,15 @@ export const suggestGraphologyIntermediateNodeFlow = defineFlow(
       // The input for this tool is MapDataSchema, which matches the flow's input.
       const toolResult = await graphologyInterCommunityEdgeTool.run(mapData);
 
-      if (toolResult.error || !toolResult.candidateLocations || toolResult.candidateLocations.length === 0) {
-        console.log('[SuggestIntermediateNodeFlow] No candidate inter-community edges found or error occurred:', toolResult.error);
+      if (
+        toolResult.error ||
+        !toolResult.candidateLocations ||
+        toolResult.candidateLocations.length === 0
+      ) {
+        console.log(
+          '[SuggestIntermediateNodeFlow] No candidate inter-community edges found or error occurred:',
+          toolResult.error
+        );
         return null;
       }
 
@@ -46,21 +74,27 @@ export const suggestGraphologyIntermediateNodeFlow = defineFlow(
       const candidateLocation = toolResult.candidateLocations[0];
 
       // Step 2: Prepare data for LLM prompt
-      const sourceNode = mapData.nodes.find(n => n.id === candidateLocation.sourceNodeId);
-      const targetNode = mapData.nodes.find(n => n.id === candidateLocation.targetNodeId);
+      const sourceNode = mapData.nodes.find(
+        (n) => n.id === candidateLocation.sourceNodeId
+      );
+      const targetNode = mapData.nodes.find(
+        (n) => n.id === candidateLocation.targetNodeId
+      );
 
       if (!sourceNode || !targetNode) {
-        console.error('[SuggestIntermediateNodeFlow] Source or target node not found for candidate location.');
+        console.error(
+          '[SuggestIntermediateNodeFlow] Source or target node not found for candidate location.'
+        );
         return null;
       }
 
       const promptInput = {
         sourceNodeId: sourceNode.id,
         sourceNodeText: sourceNode.text,
-        sourceNodeDetails: sourceNode.details || "",
+        sourceNodeDetails: sourceNode.details || '',
         targetNodeId: targetNode.id,
         targetNodeText: targetNode.text,
-        targetNodeDetails: targetNode.details || "",
+        targetNodeDetails: targetNode.details || '',
         sourceCommunityId: candidateLocation.sourceCommunityId,
         targetCommunityId: candidateLocation.targetCommunityId,
       };
@@ -107,7 +141,9 @@ export const suggestGraphologyIntermediateNodeFlow = defineFlow(
       const validationResult = llmResponse.output();
 
       if (!validationResult) {
-        console.warn('[SuggestIntermediateNodeFlow] LLM did not return valid output for intermediate node suggestion.');
+        console.warn(
+          '[SuggestIntermediateNodeFlow] LLM did not return valid output for intermediate node suggestion.'
+        );
         return null;
       }
 
@@ -118,7 +154,9 @@ export const suggestGraphologyIntermediateNodeFlow = defineFlow(
         // sourceNodeId, targetNodeId, intermediateNodeText, labelToIntermediate, labelFromIntermediate
         // We need to ask LLM for labels for the new edges or use defaults.
         // For now, let's use default labels. A more advanced prompt could ask for these.
-        const intermediateSuggestionData: z.infer<typeof MapImprovementNewIntermediateNodeDataSchema> = {
+        const intermediateSuggestionData: z.infer<
+          typeof MapImprovementNewIntermediateNodeDataSchema
+        > = {
           sourceNodeId: candidateLocation.sourceNodeId,
           targetNodeId: candidateLocation.targetNodeId,
           intermediateNodeText: validationResult.newNodeText,
@@ -137,10 +175,11 @@ export const suggestGraphologyIntermediateNodeFlow = defineFlow(
         // Validate against the main output schema for the flow
         return MapImprovementSuggestionSchema.parse(finalSuggestion);
       } else {
-        console.log(`[SuggestIntermediateNodeFlow] LLM deemed intermediate node not valid for edge ${candidateLocation.originalEdgeId}. Reason: ${validationResult.reason}`);
+        console.log(
+          `[SuggestIntermediateNodeFlow] LLM deemed intermediate node not valid for edge ${candidateLocation.originalEdgeId}. Reason: ${validationResult.reason}`
+        );
         return null;
       }
-
     } catch (e: any) {
       console.error('Error in suggestGraphologyIntermediateNodeFlow:', e);
       return null;
