@@ -115,9 +115,9 @@ export const SuggestRelationsModal: React.FC<GenAIModalProps & { sourceNodesCont
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[525px]" data-tutorial-id="suggest-relations-modal">
         <DialogHeader>
-          <DialogTitle>Suggest Relations</DialogTitle>
+          <DialogTitle id="suggest-relations-title">Suggest Relations</DialogTitle> {/* Added id for aria-labelledby if needed by TODO */}
           <DialogDescription>
             AI will suggest relations between selected nodes or concepts.
           </DialogDescription>
@@ -131,7 +131,7 @@ export const SuggestRelationsModal: React.FC<GenAIModalProps & { sourceNodesCont
                 <FormItem>
                   <FormLabel>Additional Context (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="e.g., focus on causal relationships, or data flow" {...field} disabled={isProcessingRelations} />
+                    <Textarea data-tutorial-id="suggest-relations-custom-prompt-input" placeholder="e.g., focus on causal relationships, or data flow" {...field} disabled={isProcessingRelations} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -139,7 +139,7 @@ export const SuggestRelationsModal: React.FC<GenAIModalProps & { sourceNodesCont
             />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isProcessingRelations}>Cancel</Button>
-              <Button type="submit" disabled={isProcessingRelations}>
+              <Button data-tutorial-id="suggest-relations-submit" type="submit" disabled={isProcessingRelations}>
                 {isProcessingRelations && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isProcessingRelations ? "Suggesting..." : "Suggest Relations"}
               </Button>

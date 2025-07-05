@@ -493,7 +493,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             <DropdownMenuItem onClick={() => handleGenAIClick(onExtractConcepts, "Extract Concepts")} disabled={isViewOnlyMode}>
               <SearchCode className="mr-2 h-4 w-4" /> Extract Concepts
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleGenAIClick(onSuggestRelations, "Suggest Relations")} disabled={isViewOnlyMode}>
+            <DropdownMenuItem data-tutorial-id="ai-tool-suggest-relations" onClick={() => handleGenAIClick(onSuggestRelations, "Suggest Relations")} disabled={isViewOnlyMode}>
               <Lightbulb className="mr-2 h-4 w-4" /> Suggest Relations
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleGenAIClick(onExpandConcept, "Expand Concept")} disabled={isExpandConceptDisabled}>

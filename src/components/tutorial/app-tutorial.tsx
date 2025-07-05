@@ -21,6 +21,8 @@ export const availableTutorials: TutorialMetaData[] = [
   { key: 'manualAddNodeTutorial', title: '手動添加節點與編輯' },
   { key: 'manualCreateEdgeTutorial', title: '手動創建連接邊' },
   { key: 'suggestRelationsToolTutorial', title: 'AI工具：建議關係' },
+  { key: 'expandConceptStagingTutorial', title: 'AI工具：管理擴展概念 (預覽區)' },
+  { key: 'ghostPreviewLayoutTutorial', title: '佈局調整：鬼影預覽' },
   // Add more tutorials here as they are created
 ];
 
@@ -225,7 +227,7 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
         },
         {
           target: "[role='dialog'][aria-labelledby='extract-concepts-title']", // Example: Target modal by role and aria-label
-          content: '這是提取概念的對話框。AI會分析選中節點的文本。您可以直接點擊「提取」按鈕。',
+          content: '這是提取概念的對話框。AI會分析選中節點的文本。您可以直接點擊「Extract Concepts」按鈕。',
           title: '4. 確認提取',
           placement: 'auto',
         },
@@ -368,30 +370,116 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
           title: '2. 選擇建議關係工具',
         },
         {
-          target: "[role='dialog'][aria-labelledby='suggest-relations-title']", // Adjust if modal has different aria label
-          content: 'AI會自動分析您圖譜中的概念（或者您選中的概念及其鄰近概念）來提出關係建議。您可以直接點擊「建議」按鈕。',
-          title: '3. 確認建議',
+          target: "[data-tutorial-id='suggest-relations-modal']",
+          content: 'AI會自動分析您圖譜中的概念（或者您選中的概念及其鄰近概念）來提出關係建議。您可以選擇性地提供額外的情境提示，或直接點擊「Suggest Relations」按鈕。',
+          title: '3. 建議關係對話框',
           placement: 'auto',
         },
         {
-          target: "button[type='submit'][data-tutorial-id='suggest-relations-submit']",
-          content: '點擊此按鈕開始分析並獲取建議。',
-          title: '開始建議',
+          target: "[data-tutorial-id='suggest-relations-custom-prompt-input']",
+          content: '（可選）如果您想引導AI的建議方向，可以在這裡輸入提示，例如「專注於因果關係」。',
+          title: '提供額外提示',
+        },
+        {
+          target: "button[data-tutorial-id='suggest-relations-submit']",
+          content: '準備好後，點擊此按鈕開始分析並獲取建議。',
+          title: '4. 開始建議',
         },
         {
           target: "button[data-tutorial-id='editor-toggle-ai-panel']",
-          content: '建議生成後，會顯示在AI建議面板中。如果面板未打開，請點擊此按鈕查看。',
-          title: '4. 查看建議的關係',
+          content: '建議生成後，會顯示在AI建議面板中。如果面板未打開，請點擊此按鈕（通常在編輯器右側）查看。',
+          title: '5. 查看建議的關係',
         },
         {
-          target: ".ai-suggestion-panel .suggestion-type-relation", // Placeholder - needs specific selector for relation items
-          content: '在建議面板中，您會看到AI建議的關係列表，通常包含源概念、目標概念和它們之間的關係標籤。您可以選擇接受這些建議，將它們作為新的邊添加到您的圖中。',
-          title: 'AI建議面板中的關係',
+          target: "[data-tutorial-id='suggested-relations-section']",
+          content: '在建議面板的「建議關係」區域，您會看到AI建議的關係列表。每個建議通常包含源概念、目標概念和它們之間的關係標籤。',
+          title: '6. AI建議面板中的關係',
+          placement: 'left',
+        },
+        {
+          target: "[data-tutorial-id='add-selected-relations-button']",
+          content: '您可以勾選想要添加的關係建議，然後點擊此按鈕將它們作為新的邊添加到您的概念圖中。',
+          title: '7. 添加選中的關係',
           placement: 'left',
         },
         {
           target: 'body',
           content: '非常好！現在您知道如何利用AI來發現和建立概念之間的新聯繫了。',
+          placement: 'center',
+          title: '教程完成！',
+        },
+      ];
+    } else if (key === 'expandConceptStagingTutorial') {
+      // This tutorial assumes the "Expand Concept" AI tool has already been run
+      // and suggestions are visible in the staging area.
+      return [
+        {
+          target: "[data-tutorial-id='ai-staging-toolbar']",
+          content: '當您使用「擴展概念」等AI工具後，建議的內容會先出現在這個「AI預覽區」工具條。您可以在這裡決定是否將它們正式加入到您的概念圖中。',
+          placement: 'top',
+          title: 'AI預覽區介紹',
+          disableBeacon: true,
+        },
+        {
+          target: ".react-flow__node[data-type='ai-expanded-staged']", // Targets a staged node
+          content: '這些是AI建議的新概念節點，它們暫時以「預覽」狀態顯示在畫布上。您可以查看它們是否符合您的需求。',
+          title: '預覽節點',
+          // Note: This selector might target the first such node. If multiple, it highlights one.
+        },
+        {
+          target: "[data-tutorial-id='ai-mini-toolbar']", // This will target the mini toolbar if visible for a selected staged node
+          content: '如果您選中一個預覽節點，可能會出現一個迷你工具欄，提供快速操作，如「快速擴展」或「簡化文本」。注意：並非所有預覽元素都有迷你工具欄。',
+          title: '迷你快捷操作 (可選)',
+          // isOptional: true, // Joyride doesn't have this, but it's a conditional step.
+          // This step might not always find a target if no staged node is selected or has a mini-toolbar.
+          // Consider making this step's description more general if the toolbar is not always present.
+        },
+        {
+          target: "button[data-tutorial-id='staging-toolbar-accept-all']",
+          content: '如果您對所有預覽的建議都感到滿意，可以點擊「Commit to Map」按鈕，將它們一次性永久添加到您的概念圖中。',
+          title: '全部採納建議',
+        },
+        {
+          target: "button[data-tutorial-id='staging-toolbar-clear-all']",
+          content: '如果您不希望保留這些預覽的建議，可以點擊「Discard All」按鈕，將它們從預覽區移除。',
+          title: '全部清除建議',
+        },
+        {
+          target: 'body',
+          content: '太棒了！您已經學會了如何使用AI預覽區來管理和確認AI生成的概念擴展。',
+          placement: 'center',
+          title: '教程完成！',
+        },
+      ];
+    } else if (key === 'ghostPreviewLayoutTutorial') {
+      // This tutorial assumes a ghost preview (e.g., from AI Tidy Up layout only) is active.
+      return [
+        {
+          target: ".react-flow__node[data-ghost='true']", // Target a ghost node
+          content: '當您使用某些AI佈局調整功能時，系統會首先顯示一個「鬼影預覽」。這些高亮的元素展示了建議的更改，但尚未永久生效。',
+          placement: 'auto',
+          title: '鬼影預覽介紹',
+          disableBeacon: true,
+        },
+        {
+          target: "[data-tutorial-id='ghost-preview-toolbar']",
+          content: '這個工具欄讓您可以決定是否接受這些預覽中的佈局更改。',
+          title: '預覽工具欄',
+          placement: 'top',
+        },
+        {
+          target: "button[data-tutorial-id='ghost-toolbar-accept']",
+          content: '如果您喜歡預覽的佈局，請點擊「接受佈局」按鈕。這些更改將被應用到您的概念圖上。',
+          title: '接受更改',
+        },
+        {
+          target: "button[data-tutorial-id='ghost-toolbar-cancel']",
+          content: '如果您不想應用這些佈局更改，請點擊「取消」按鈕。您的地圖將恢復到調整前的狀態。',
+          title: '取消更改',
+        },
+        {
+          target: 'body',
+          content: '您已了解如何使用鬼影預覽來管理AI提出的佈局建議！',
           placement: 'center',
           title: '教程完成！',
         },

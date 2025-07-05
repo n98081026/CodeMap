@@ -180,6 +180,7 @@ const RenderEditableRelationLabel: React.FC<{
 
     return (
       <div
+        data-tutorial-id={`suggested-relation-item-${index}`}
         className="flex items-center text-sm group w-full"
         draggable={!isViewOnlyMode && !item.isEditing}
         onDragStart={(e) => {
@@ -345,10 +346,13 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     parentRef: React.RefObject<HTMLDivElement>, // For virtualizer
     rowVirtualizerInstance: any // Instance of useVirtualizer
   ) => {
+    const isRelationsSection = itemKeyPrefix.startsWith('relation-');
+    const sectionId = isRelationsSection ? "suggested-relations-section" : "extracted-concepts-section";
+
     if (!onAddSelectedItems && items.length === 0 && !mapData) return null; // mapData was unused, removed
     if (!items || items.length === 0) {
       return (
-        <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)}>
+        <Card className={cn("mb-4 bg-background/80 shadow-md", cardClassName)} data-tutorial-id={sectionId}>
           <CardHeader>
             <CardTitle className={cn("text-base font-semibold text-muted-foreground flex items-center", titleClassName)}>
               <IconComponent className="mr-2 h-5 w-5" /> {title} (0)
@@ -519,10 +523,29 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         </CardContent>
         {!isViewOnlyMode && items.length > 0 && onAddSelectedItems && countOfAllNewOrSimilar > 0 && (
           <CardFooter className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
-            <Button size="sm" variant="outline" onClick={handleAddSelected} disabled={isViewOnlyMode || countOfSelectedAndSelectable === 0} className="w-full sm:w-auto">
+            <Button
+              data-tutorial-id={isRelationsSection ? "add-selected-relations-button" : "add-selected-concepts-button"}
+              size="sm"
+              variant="outline"
+              onClick={handleAddSelected}
+              disabled={isViewOnlyMode || countOfSelectedAndSelectable === 0}
+              className="w-full sm:w-auto"
+            >
               <PlusCircle className="mr-2 h-4 w-4" /> Add Selected ({countOfSelectedAndSelectable})
             </Button>
-            <Button size="sm" variant="default" onClick={() => { /* ... */ }} disabled={isViewOnlyMode || countOfAllNewOrSimilar === 0} className="w-full sm:w-auto">
+            <Button
+              data-tutorial-id={isRelationsSection ? "add-all-new-relations-button" : "add-all-new-concepts-button"}
+              size="sm"
+              variant="default"
+              onClick={() => {
+                /* TODO: Implement Add All New/Similar functionality more directly */
+                handleSelectAllNewOrSimilar(true); // Select all new/similar first
+                // Timeout to allow state update before clicking add, or refactor handleAddSelected
+                setTimeout(() => handleAddSelected(), 0);
+              }}
+              disabled={isViewOnlyMode || countOfAllNewOrSimilar === 0}
+              className="w-full sm:w-auto"
+            >
               <PlusCircle className="mr-2 h-4 w-4" /> Add All New/Similar ({countOfAllNewOrSimilar})
             </Button>
           </CardFooter>
@@ -546,7 +569,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     return (
       // The ScrollArea is now *inside* renderSuggestionSection
       // This outer div will just hold the sections
-      <div className="h-full w-full p-4 space-y-4 text-left overflow-y-auto"> {/* Added overflow-y-auto to main container if ScrollArea is per section */}
+      <div className="h-full w-full p-4 space-y-4 text-left overflow-y-auto" data-tutorial-id="ai-suggestion-panel-content"> {/* Added ID to content area */}
           {onAddExtractedConcepts && renderSuggestionSection(
             "Extracted Concepts", SearchCode, editableExtracted, selectedExtractedIndices, "extracted-concept",
             onAddExtractedConcepts, onClearExtractedConcepts,
@@ -564,7 +587,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   };
 
   return (
-    <Card className="h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner">
+    <Card className="h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner" data-tutorial-id="ai-suggestion-panel">
       <CardContent className="flex h-full flex-col items-center justify-center text-center p-0">
         {mainContent()}
       </CardContent>
