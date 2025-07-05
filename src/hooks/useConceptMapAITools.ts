@@ -2163,75 +2163,47 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       setMapContextQuestionAnswer(null); // Clear previous answer
       setIsMapContextQuestionModalOpen(true);
     },
-    handleAskQuestionAboutMapContext: useCallback(async (question: string) => {
-      if (isViewOnlyMode) { // Added isViewOnlyMode check
-          toast({ title: 'View Only Mode', description: 'Cannot ask map questions in view-only mode.' });
-          return;
+    handleAskQuestionAboutEdge: useCallback(async (question: string) => {
+      if (isViewOnlyMode) {
+        toast({ title: 'View Only Mode', description: 'Cannot ask questions about edges in view-only mode.' });
+        return;
       }
-      // Access store data safely within the callback if it's not a dependency that defines the callback's identity
-      const currentMapDataFromStore = useConceptMapStore.getState().mapData;
-      const currentMapNameFromStore = useConceptMapStore.getState().mapName;
-      const currentMapIdFromStore = useConceptMapStore.getState().mapId;
-
-
-      if (currentMapDataFromStore.nodes.length === 0) {
+      if (!edgeQuestionContext) {
         toast({
-          title: 'Empty Map',
-          description: 'Cannot ask questions about an empty map.',
-          variant: 'default',
+          title: 'Error',
+          description: 'Edge context is missing for Q&A.',
+          variant: 'destructive',
         });
         return;
       }
-      setIsAskingAboutMapContext(true);
-
-      const simplifiedNodes = currentMapDataFromStore.nodes.map((n) => ({
-        id: n.id,
-        text: n.text,
-        type: n.type,
-        details: n.details?.substring(0, 200),
-      }));
-      const simplifiedEdges = currentMapDataFromStore.edges.map((e) => ({
-        source: e.source,
-        target: e.target,
-        label: e.label,
-      }));
-
-      const input: AskQuestionAboutMapContextInput = {
-        nodes: simplifiedNodes,
-        edges: simplifiedEdges,
+      setIsAskingAboutEdge(true);
+      const input: AskQuestionAboutEdgeInput = {
+        ...edgeQuestionContext,
         userQuestion: question,
-        mapName: currentMapNameFromStore,
       };
-
-      // const output = // Store output to check if AI call itself failed
-      await callAIWithStandardFeedback< // Removed 'output =' as onSuccess handles the result
-        AskQuestionAboutMapContextInput,
-        AskQuestionAboutMapContextOutput
-      >('Ask AI About Map', askQuestionAboutMapContextFlow, input, {
-        loadingMessage: 'AI is analyzing the entire map to answer your question...',
+      await callAIWithStandardFeedback<
+        AskQuestionAboutEdgeInput,
+        AskQuestionAboutEdgeOutput
+      >('Ask AI About Edge', askQuestionAboutEdgeFlow, input, {
+        loadingMessage: 'AI is considering your question about the edge...',
         successTitle: 'AI Answer Received',
         hideSuccessToast: true,
-        processingId: `map-qa-${currentMapIdFromStore || 'current'}`,
-        onSuccess: (output) => { // Pass 'output' from callAIWithStandardFeedback
+        processingId: `edge-qa-${edgeQuestionContext.edgeId}`,
+        onSuccess: (output) => {
           if (output?.answer) {
-            setMapContextQuestionAnswer(output.answer);
+            setEdgeQuestionAnswer(output.answer);
           } else if (output?.error) {
-            setMapContextQuestionAnswer(`Error: ${output.error}`);
+            setEdgeQuestionAnswer(`Error: ${output.error}`);
           } else {
-            // This case handles if 'output' is not null, but 'answer' and 'error' are missing
-            setMapContextQuestionAnswer('AI could not provide an answer for this question about the map.');
+            setEdgeQuestionAnswer('AI could not provide a specific answer or error for this question.');
           }
         },
-        onError: (_error, _input) => { // Added onError to ensure state is reset
-          setMapContextQuestionAnswer('Failed to get an answer from AI about the map.');
+        onError: () => {
+          setEdgeQuestionAnswer('Failed to get an answer from AI.');
         }
       });
-      setIsAskingAboutMapContext(false); // Ensure this is called
-    },
-    [isViewOnlyMode, callAIWithStandardFeedback, toast, setIsAskingAboutMapContext, setMapContextQuestionAnswer]
-    // mapData is not needed as a dep here because we are using getState() for mapId, mapName, and nodes.
-    // isViewOnlyMode, setters, and stable functions like callAIWithStandardFeedback and toast are the main dependencies.
-    ),
+      setIsAskingAboutEdge(false);
+    }, [isViewOnlyMode, edgeQuestionContext, callAIWithStandardFeedback, toast, setIsAskingAboutEdge, setEdgeQuestionAnswer]),
     isMapContextQuestionModalOpen,
     setIsMapContextQuestionModalOpen,
     mapContextQuestionAnswer,
