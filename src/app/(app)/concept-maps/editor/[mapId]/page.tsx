@@ -12,6 +12,7 @@ import { AlignLeft, AlignCenterHorizontal, AlignRight, AlignTop, AlignCenterVert
 import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
 import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
 import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel";
+import { WhimsicalAIAssistant } from '@/components/concept-map/whimsical-ai-assistant';
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -39,6 +40,7 @@ import ProjectOverviewDisplay from "@/components/concept-map/project-overview-di
 import useConceptMapStore from '@/stores/concept-map-store';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+import { useWhimsicalAITools } from '@/hooks/useWhimsicalAITools';
 import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
 import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
 import {

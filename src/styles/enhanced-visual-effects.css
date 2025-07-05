@@ -1,0 +1,299 @@
+/* 增強視覺效果樣式 */
+
+/* 基礎動畫關鍵幀 */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.6), 0 0 30px rgba(102, 126, 234, 0.4);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes draw-path {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes node-appear {
+  0% { 
+    opacity: 0; 
+    transform: scale(0) rotate(-180deg); 
+  }
+  60% { 
+    opacity: 1; 
+    transform: scale(1.1) rotate(-20deg); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: scale(1) rotate(0deg); 
+  }
+}
+
+/* 增強節點樣式 */
+.enhanced-node {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+.enhanced-node.ai-generated {
+  position: relative;
+  overflow: visible;
+}
+
+.enhanced-node.ai-generated::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #667eea, #764ba2, #667eea);
+  background-size: 200% 200%;
+  border-radius: inherit;
+  z-index: -1;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.enhanced-node.ai-generated::after {
+  content: '✨';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 12px;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.enhanced-node.selected {
+  z-index: 10;
+}
+
+.enhanced-node.hovered {
+  animation: float 2s ease-in-out infinite;
+}
+
+/* 增強邊樣式 */
+.enhanced-edge {
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.enhanced-edge.ai-generated {
+  stroke-dasharray: 5, 5;
+  animation: draw-path 1s ease-out;
+}
+
+.enhanced-edge.selected {
+  stroke-width: 3;
+  filter: drop-shadow(0 2px 8px rgba(102, 126, 234, 0.4));
+}
+
+/* 粒子效果 */
+.particle {
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.particle-creation {
+  background: radial-gradient(circle, #f59e0b, #d97706);
+  box-shadow: 0 0 6px #f59e0b;
+}
+
+.particle-connection {
+  background: radial-gradient(circle, #10b981, #059669);
+  box-shadow: 0 0 6px #10b981;
+}
+
+.particle-magic {
+  background: radial-gradient(circle, #667eea, #764ba2);
+  box-shadow: 0 0 8px #667eea;
+}
+
+/* 脈衝波效果 */
+.pulse-wave {
+  border-radius: 50%;
+  animation: pulse-glow 1.5s ease-out infinite;
+}
+
+/* 魔法光環 */
+.magic-aura {
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(102, 126, 234, 0.3) 0%,
+    rgba(118, 75, 162, 0.2) 30%,
+    rgba(102, 126, 234, 0.1) 60%,
+    transparent 100%
+  );
+  animation: float 3s ease-in-out infinite;
+}
+
+/* 佈局控制面板 */
+.layout-control-panel {
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.layout-control-panel .card-header {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+}
+
+/* 節點內容樣式 */
+.node-content {
+  backdrop-filter: blur(5px);
+  position: relative;
+  overflow: hidden;
+}
+
+.node-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.node-content:hover::before {
+  left: 100%;
+}
+
+/* AI 生成節點特殊效果 */
+.node-content.ai-generated {
+  background: linear-gradient(135deg, 
+    rgba(102, 126, 234, 0.1) 0%, 
+    rgba(118, 75, 162, 0.1) 100%
+  );
+  border: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+/* 選中狀態 */
+.node-content.selected {
+  background: linear-gradient(135deg, 
+    rgba(102, 126, 234, 0.2) 0%, 
+    rgba(118, 75, 162, 0.2) 100%
+  );
+  border: 2px solid #667eea;
+  box-shadow: 
+    0 0 0 3px rgba(102, 126, 234, 0.3),
+    0 4px 20px rgba(102, 126, 234, 0.2);
+}
+
+/* 懸停狀態 */
+.node-content:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .enhanced-node {
+    transform: scale(0.9);
+  }
+  
+  .layout-control-panel .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .particle {
+    width: 3px;
+    height: 3px;
+  }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .node-content {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(102, 126, 234, 0.4);
+    color: #e2e8f0;
+  }
+  
+  .node-content.ai-generated {
+    background: linear-gradient(135deg, 
+      rgba(102, 126, 234, 0.2) 0%, 
+      rgba(118, 75, 162, 0.2) 100%
+    );
+  }
+  
+  .enhanced-edge {
+    stroke: #64748b;
+  }
+  
+  .enhanced-edge.ai-generated {
+    stroke: #8b5cf6;
+  }
+}
+
+/* 高對比度模式 */
+@media (prefers-contrast: high) {
+  .enhanced-node {
+    border-width: 3px;
+  }
+  
+  .enhanced-edge {
+    stroke-width: 3px;
+  }
+  
+  .particle {
+    box-shadow: 0 0 10px currentColor;
+  }
+}
+
+/* 減少動畫偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .enhanced-node,
+  .enhanced-edge,
+  .particle,
+  .pulse-wave,
+  .magic-aura {
+    animation: none;
+    transition: none;
+  }
+  
+  .enhanced-node.hovered {
+    transform: scale(1.05);
+  }
+}
+
+/* 打印樣式 */
+@media print {
+  .layout-control-panel,
+  .visual-effects-container {
+    display: none;
+  }
+  
+  .enhanced-node,
+  .enhanced-edge {
+    animation: none;
+    transition: none;
+  }
+  
+  .node-content {
+    background: white;
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+}
