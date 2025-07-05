@@ -8,7 +8,7 @@ export const MapDataSchema = z.object({
   nodes: z.array(
     z.object({
       id: z.string(),
-      text: z.string().min(1, "Node text cannot be empty."),
+      text: z.string().min(1, 'Node text cannot be empty.'),
       details: z.string().optional(),
     })
   ),
@@ -22,17 +22,40 @@ export const MapDataSchema = z.object({
 });
 
 // Output Schema: A single group suggestion, or null (remains the same)
-export const NodeGroupSuggestionSchema = z.object({
-  nodeIdsToGroup: z.array(z.string()).min(2).max(5, "Suggest grouping 2 to 5 nodes."),
-  suggestedParentName: z.string().min(1, "Suggested parent name cannot be empty."),
-  reason: z.string().optional(),
-}).nullable();
+export const NodeGroupSuggestionSchema = z
+  .object({
+    nodeIdsToGroup: z
+      .array(z.string())
+      .min(2)
+      .max(5, 'Suggest grouping 2 to 5 nodes.'),
+    suggestedParentName: z
+      .string()
+      .min(1, 'Suggested parent name cannot be empty.'),
+    reason: z.string().optional(),
+  })
+  .nullable();
 
 // New Zod schema for the LLM's validation and naming response
 const LlmGroupValidationResponseSchema = z.object({
-  isCoherent: z.boolean().describe("Whether the provided list of nodes forms a semantically coherent group."),
-  suggestedParentName: z.string().optional().nullable().describe("A concise parent name if the group is coherent, otherwise null."),
-  reason: z.string().optional().nullable().describe("A brief reason for the grouping if coherent, or why it's not, otherwise null."),
+  isCoherent: z
+    .boolean()
+    .describe(
+      'Whether the provided list of nodes forms a semantically coherent group.'
+    ),
+  suggestedParentName: z
+    .string()
+    .optional()
+    .nullable()
+    .describe(
+      'A concise parent name if the group is coherent, otherwise null.'
+    ),
+  reason: z
+    .string()
+    .optional()
+    .nullable()
+    .describe(
+      "A brief reason for the grouping if coherent, or why it's not, otherwise null."
+    ),
 });
 
 export const suggestNodeGroupCandidatesFlow = defineFlow(
@@ -47,31 +70,49 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
     }
 
     // Step 1: Graphology Community Detection
-    const communityDetectionResult = await graphologyCommunityDetectionTool.run(mapData);
+    const communityDetectionResult =
+      await graphologyCommunityDetectionTool.run(mapData);
 
-    if (communityDetectionResult.error || !communityDetectionResult.detectedCommunities || communityDetectionResult.detectedCommunities.length === 0) {
-      console.log('[SuggestNodeGroup] No communities found by graphology tool or error occurred.', communityDetectionResult.error);
+    if (
+      communityDetectionResult.error ||
+      !communityDetectionResult.detectedCommunities ||
+      communityDetectionResult.detectedCommunities.length === 0
+    ) {
+      console.log(
+        '[SuggestNodeGroup] No communities found by graphology tool or error occurred.',
+        communityDetectionResult.error
+      );
       return null;
     }
 
     // Take the first valid community (already filtered by size 2-5 in the tool)
     const firstCommunity = communityDetectionResult.detectedCommunities[0];
-    if (!firstCommunity || firstCommunity.nodeIds.length < 2) { // Should be redundant due to tool's filtering
-      console.log('[SuggestNodeGroup] First community is invalid or too small.');
+    if (!firstCommunity || firstCommunity.nodeIds.length < 2) {
+      // Should be redundant due to tool's filtering
+      console.log(
+        '[SuggestNodeGroup] First community is invalid or too small.'
+      );
       return null;
     }
 
     // Step 2: LLM Refinement & Naming
-    const nodesInCommunity = mapData.nodes.filter(node => firstCommunity.nodeIds.includes(node.id));
+    const nodesInCommunity = mapData.nodes.filter((node) =>
+      firstCommunity.nodeIds.includes(node.id)
+    );
 
     if (nodesInCommunity.length !== firstCommunity.nodeIds.length) {
-        console.warn('[SuggestNodeGroup] Mismatch between community node IDs and found nodes. Aborting.');
-        return null;
+      console.warn(
+        '[SuggestNodeGroup] Mismatch between community node IDs and found nodes. Aborting.'
+      );
+      return null;
     }
 
-    const communityNodesSummary = nodesInCommunity.map(n =>
-      `Node(id="${n.id}", text="${n.text}"${n.details ? `, details_preview="${n.details.substring(0, 70)}..."` : ''})`
-    ).join('; ');
+    const communityNodesSummary = nodesInCommunity
+      .map(
+        (n) =>
+          `Node(id="${n.id}", text="${n.text}"${n.details ? `, details_preview="${n.details.substring(0, 70)}..."` : ''})`
+      )
+      .join('; ');
 
     const validateAndNamePrompt = `
       You are an expert knowledge organizer. A community detection algorithm has identified the following group of nodes from a concept map:
@@ -112,13 +153,15 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
       },
       config: {
         temperature: 0.5, // Moderate temperature for creative but relevant naming
-      }
+      },
     });
 
     const validationOutput = llmResponse.output();
 
     if (!validationOutput) {
-      console.warn('[SuggestNodeGroup] LLM validation/naming returned no output.');
+      console.warn(
+        '[SuggestNodeGroup] LLM validation/naming returned no output.'
+      );
       return null;
     }
 
@@ -134,11 +177,16 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
       if (parsedResult.success) {
         return parsedResult.data;
       } else {
-        console.warn('[SuggestNodeGroup] LLM output for coherent group failed final schema validation:', parsedResult.error);
+        console.warn(
+          '[SuggestNodeGroup] LLM output for coherent group failed final schema validation:',
+          parsedResult.error
+        );
         return null;
       }
     } else {
-      console.log('[SuggestNodeGroup] LLM deemed the community not coherent or failed to provide a name.');
+      console.log(
+        '[SuggestNodeGroup] LLM deemed the community not coherent or failed to provide a name.'
+      );
       return null;
     }
   }

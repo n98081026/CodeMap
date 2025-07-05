@@ -5,21 +5,44 @@ import * as z from 'zod';
 export const SummarizeCodeElementInputSchema = z.object({
   elementType: z.enum(['function', 'class']),
   elementName: z.string(),
-  signature: z.string().optional().describe("e.g., for a function: (price: number, quantity: number): number, for a class: extends BaseService implements IOrderable"),
+  signature: z
+    .string()
+    .optional()
+    .describe(
+      'e.g., for a function: (price: number, quantity: number): number, for a class: extends BaseService implements IOrderable'
+    ),
   filePath: z.string(),
-  comments: z.string().optional().describe("JSDoc or other extracted comments"),
+  comments: z.string().optional().describe('JSDoc or other extracted comments'),
   isExported: z.boolean().optional(),
   // For classes:
-  classMethods: z.array(z.string()).optional().describe("Array of method signatures or names, e.g., [\"processOrder(order: Order): boolean\", \"getHistory(): Order[]\"]"),
-  classProperties: z.array(z.string()).optional().describe("Array of property signatures, e.g., [\"orderQueue: Queue<Order>\", \"maxRetries: number (private)\"]"),
+  classMethods: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Array of method signatures or names, e.g., ["processOrder(order: Order): boolean", "getHistory(): Order[]"]'
+    ),
+  classProperties: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Array of property signatures, e.g., ["orderQueue: Queue<Order>", "maxRetries: number (private)"]'
+    ),
 });
-export type SummarizeCodeElementInput = z.infer<typeof SummarizeCodeElementInputSchema>;
+export type SummarizeCodeElementInput = z.infer<
+  typeof SummarizeCodeElementInputSchema
+>;
 
 // Define Zod schema for the output
 export const SummarizeCodeElementOutputSchema = z.object({
-  semanticSummary: z.string().describe("1-2 sentence summary of the element's purpose, or 'Purpose unclear from available data.'"),
+  semanticSummary: z
+    .string()
+    .describe(
+      "1-2 sentence summary of the element's purpose, or 'Purpose unclear from available data.'"
+    ),
 });
-export type SummarizeCodeElementOutput = z.infer<typeof SummarizeCodeElementOutputSchema>;
+export type SummarizeCodeElementOutput = z.infer<
+  typeof SummarizeCodeElementOutputSchema
+>;
 
 // Define the LLM Prompt
 const summarizeCodeElementPurposePrompt = ai.definePrompt({
@@ -68,12 +91,15 @@ export const summarizeCodeElementPurposeFlow = defineFlow(
     outputSchema: SummarizeCodeElementOutputSchema,
   },
   async (input) => {
-    const llmResponse = await summarizeCodeElementPurposePrompt.generate({ input, temperature: 0.4 }); // Adjust temperature as needed
+    const llmResponse = await summarizeCodeElementPurposePrompt.generate({
+      input,
+      temperature: 0.4,
+    }); // Adjust temperature as needed
     const output = llmResponse.output();
     if (!output) {
-        // This case should ideally be handled by Genkit's schema validation or prompt erroring
-        // but as a fallback if output is null/undefined unexpectedly.
-        return { semanticSummary: "Purpose unclear due to generation error." };
+      // This case should ideally be handled by Genkit's schema validation or prompt erroring
+      // but as a fallback if output is null/undefined unexpectedly.
+      return { semanticSummary: 'Purpose unclear due to generation error.' };
     }
     return output; // Already matches SummarizeCodeElementOutputSchema
   }

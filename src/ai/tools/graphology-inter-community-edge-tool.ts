@@ -7,7 +7,9 @@ import louvain from 'graphology-communities-louvain';
 import Graph from 'graphology'; // Only for typehint if needed, graphInstance is GraphologyInstance from adapter
 
 export const InterCommunityEdgeInputSchema = MapDataSchema;
-export type InterCommunityEdgeInput = z.infer<typeof InterCommunityEdgeInputSchema>;
+export type InterCommunityEdgeInput = z.infer<
+  typeof InterCommunityEdgeInputSchema
+>;
 
 export const CandidateLocationSchema = z.object({
   sourceNodeId: z.string(),
@@ -26,7 +28,8 @@ export const InterCommunityEdgeOutputSchema = z.object({
 export const graphologyInterCommunityEdgeTool = defineTool(
   {
     name: 'graphologyInterCommunityEdgeDetector',
-    description: 'Identifies edges that connect distinct node communities (clusters) in a concept map, which are candidates for intermediate node insertion.',
+    description:
+      'Identifies edges that connect distinct node communities (clusters) in a concept map, which are candidates for intermediate node insertion.',
     inputSchema: InterCommunityEdgeInputSchema,
     outputSchema: InterCommunityEdgeOutputSchema,
   },
@@ -35,7 +38,9 @@ export const graphologyInterCommunityEdgeTool = defineTool(
       const { nodes, edges } = mapData;
 
       if (!nodes || nodes.length < 2 || !edges || edges.length === 0) {
-        console.log('[InterCommunityEdgeTool] Not enough nodes or no edges to analyze.');
+        console.log(
+          '[InterCommunityEdgeTool] Not enough nodes or no edges to analyze.'
+        );
         return { candidateLocations: [] };
       }
 
@@ -44,15 +49,22 @@ export const graphologyInterCommunityEdgeTool = defineTool(
       const graphInstance = graphAdapter.fromArrays(nodes, edges);
 
       if (graphInstance.order < 2 || graphInstance.size === 0) {
-        console.log('[InterCommunityEdgeTool] Graph instance has too few nodes or no edges after creation.');
+        console.log(
+          '[InterCommunityEdgeTool] Graph instance has too few nodes or no edges after creation.'
+        );
         return { candidateLocations: [] };
       }
 
       try {
         louvain.assign(graphInstance); // Adds 'community' attribute to nodes
       } catch (louvainError: any) {
-        console.warn(`[InterCommunityEdgeTool] Louvain algorithm error: ${louvainError.message}. This can occur with certain graph structures (e.g., highly disconnected).`);
-        return { candidateLocations: [], error: `Louvain algorithm failed: ${louvainError.message}` };
+        console.warn(
+          `[InterCommunityEdgeTool] Louvain algorithm error: ${louvainError.message}. This can occur with certain graph structures (e.g., highly disconnected).`
+        );
+        return {
+          candidateLocations: [],
+          error: `Louvain algorithm failed: ${louvainError.message}`,
+        };
       }
 
       const nodeCommunityMap = new Map<string, number>();
@@ -67,8 +79,10 @@ export const graphologyInterCommunityEdgeTool = defineTool(
       });
 
       if (!communitiesAssigned && graphInstance.order > 0) {
-         console.warn("[InterCommunityEdgeTool] Louvain ran, but no nodes seem to have been assigned a community attribute.");
-         return { candidateLocations: [] };
+        console.warn(
+          '[InterCommunityEdgeTool] Louvain ran, but no nodes seem to have been assigned a community attribute.'
+        );
+        return { candidateLocations: [] };
       }
 
       const candidateLocations: CandidateLocation[] = [];
@@ -79,14 +93,18 @@ export const graphologyInterCommunityEdgeTool = defineTool(
         // Assuming the input 'edges' will practically be ConceptMapEdge[].
         const edgeId = (edge as any).id;
         if (!edgeId) {
-            // console.warn(`[InterCommunityEdgeTool] Edge between ${edge.source} and ${edge.target} is missing an ID, skipping.`);
-            continue;
+          // console.warn(`[InterCommunityEdgeTool] Edge between ${edge.source} and ${edge.target} is missing an ID, skipping.`);
+          continue;
         }
 
         const sourceCommunity = nodeCommunityMap.get(edge.source);
         const targetCommunity = nodeCommunityMap.get(edge.target);
 
-        if (sourceCommunity !== undefined && targetCommunity !== undefined && sourceCommunity !== targetCommunity) {
+        if (
+          sourceCommunity !== undefined &&
+          targetCommunity !== undefined &&
+          sourceCommunity !== targetCommunity
+        ) {
           candidateLocations.push({
             sourceNodeId: edge.source,
             targetNodeId: edge.target,
@@ -97,7 +115,6 @@ export const graphologyInterCommunityEdgeTool = defineTool(
         }
       }
       return { candidateLocations };
-
     } catch (e: any) {
       console.error('Error in graphologyInterCommunityEdgeTool:', e);
       return {

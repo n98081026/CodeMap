@@ -7,35 +7,60 @@ import { z } from 'genkit';
 // 1. Define Input Schema
 const NodeLayoutInfoSchema = z.object({
   id: z.string(),
-  x: z.number().describe("Current X coordinate (top-left) of the node."),
-  y: z.number().describe("Current Y coordinate (top-left) of the node."),
-  width: z.number().describe("Width of the node."),
-  height: z.number().describe("Height of the node."),
-  text: z.string().optional().describe("Node label/text content, for contextual understanding."),
-  type: z.string().optional().describe("Node type, for contextual understanding.")
+  x: z.number().describe('Current X coordinate (top-left) of the node.'),
+  y: z.number().describe('Current Y coordinate (top-left) of the node.'),
+  width: z.number().describe('Width of the node.'),
+  height: z.number().describe('Height of the node.'),
+  text: z
+    .string()
+    .optional()
+    .describe('Node label/text content, for contextual understanding.'),
+  type: z
+    .string()
+    .optional()
+    .describe('Node type, for contextual understanding.'),
 });
 
 export const AiTidyUpSelectionInputSchema = z.object({
-  nodes: z.array(NodeLayoutInfoSchema).min(2).describe("Array of 2 or more selected nodes to be tidied.")
+  nodes: z
+    .array(NodeLayoutInfoSchema)
+    .min(2)
+    .describe('Array of 2 or more selected nodes to be tidied.'),
   // Consider adding canvasWidth/Height or bounding box of selection if proven necessary for better AI results later.
 });
-export type AiTidyUpSelectionInput = z.infer<typeof AiTidyUpSelectionInputSchema>;
+export type AiTidyUpSelectionInput = z.infer<
+  typeof AiTidyUpSelectionInputSchema
+>;
 
 // 2. Define Output Schema
 const NodeNewPositionSchema = z.object({
-  id: z.string().describe("ID of the node."),
-  x: z.number().describe("New suggested X coordinate (top-left) for the node."),
-  y: z.number().describe("New suggested Y coordinate (top-left) for the node.")
+  id: z.string().describe('ID of the node.'),
+  x: z.number().describe('New suggested X coordinate (top-left) for the node.'),
+  y: z.number().describe('New suggested Y coordinate (top-left) for the node.'),
 });
 
 export const AiTidyUpSelectionOutputSchema = z.object({
-  newPositions: z.array(NodeNewPositionSchema).describe("Array of nodes with their new suggested positions."),
-  suggestedParentNode: z.object({
-    text: z.string().describe("A concise and descriptive label for the new parent node."),
-    type: z.string().default('ai-group').describe("The type for the new parent node (e.g., 'ai-group').")
-  }).optional().describe("If the AI deems it appropriate, suggests a new parent node to group all selected nodes.")
+  newPositions: z
+    .array(NodeNewPositionSchema)
+    .describe('Array of nodes with their new suggested positions.'),
+  suggestedParentNode: z
+    .object({
+      text: z
+        .string()
+        .describe('A concise and descriptive label for the new parent node.'),
+      type: z
+        .string()
+        .default('ai-group')
+        .describe("The type for the new parent node (e.g., 'ai-group')."),
+    })
+    .optional()
+    .describe(
+      'If the AI deems it appropriate, suggests a new parent node to group all selected nodes.'
+    ),
 });
-export type AiTidyUpSelectionOutput = z.infer<typeof AiTidyUpSelectionOutputSchema>;
+export type AiTidyUpSelectionOutput = z.infer<
+  typeof AiTidyUpSelectionOutputSchema
+>;
 
 // 3. Define the Genkit Prompt
 const aiTidyUpSelectionPrompt = ai.definePrompt({
@@ -111,23 +136,41 @@ export const aiTidyUpSelectionFlow = ai.defineFlow(
     if (input.nodes.length < 2) {
       // Should be caught by Zod schema min(2) but good to have a check.
       // Return original positions if fewer than 2 nodes (nothing to tidy).
-      return { newPositions: input.nodes.map(n => ({ id: n.id, x: n.x, y: n.y })) };
+      return {
+        newPositions: input.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
+      };
     }
 
     const { output } = await aiTidyUpSelectionPrompt(input);
-    if (!output || !output.newPositions || output.newPositions.length !== input.nodes.length) {
-      console.error("AI Tidy Up: Output missing or newPositions array length mismatch.", output);
+    if (
+      !output ||
+      !output.newPositions ||
+      output.newPositions.length !== input.nodes.length
+    ) {
+      console.error(
+        'AI Tidy Up: Output missing or newPositions array length mismatch.',
+        output
+      );
       // Fallback: return original positions if AI output is invalid
       // This prevents map disruption if AI fails.
-      return { newPositions: input.nodes.map(n => ({ id: n.id, x: n.x, y: n.y })) };
+      return {
+        newPositions: input.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
+      };
     }
 
     // Further validation: ensure all original node IDs are present in the output
-    const originalNodeIds = new Set(input.nodes.map(n => n.id));
-    const outputNodeIds = new Set(output.newPositions.map(p => p.id));
-    if (originalNodeIds.size !== outputNodeIds.size || !Array.from(originalNodeIds).every(id => outputNodeIds.has(id))) {
-        console.error("AI Tidy Up: Output newPositions do not contain all original node IDs.");
-        return { newPositions: input.nodes.map(n => ({ id: n.id, x: n.x, y: n.y })) };
+    const originalNodeIds = new Set(input.nodes.map((n) => n.id));
+    const outputNodeIds = new Set(output.newPositions.map((p) => p.id));
+    if (
+      originalNodeIds.size !== outputNodeIds.size ||
+      !Array.from(originalNodeIds).every((id) => outputNodeIds.has(id))
+    ) {
+      console.error(
+        'AI Tidy Up: Output newPositions do not contain all original node IDs.'
+      );
+      return {
+        newPositions: input.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
+      };
     }
 
     return output;

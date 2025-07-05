@@ -4,7 +4,7 @@ import * as z from 'zod';
 
 // Define the input schema for the flow
 const SuggestQuickChildTextsInputSchema = z.object({
-  parentNodeText: z.string().min(1, "Parent node text cannot be empty."),
+  parentNodeText: z.string().min(1, 'Parent node text cannot be empty.'),
   parentNodeDetails: z.string().optional(),
   // Optionally, could add 'direction' if AI should tailor suggestions based on it,
   // but keeping it simple for now.
@@ -12,7 +12,9 @@ const SuggestQuickChildTextsInputSchema = z.object({
 
 // Define the output schema for the flow
 const SuggestQuickChildTextsOutputSchema = z.object({
-  suggestions: z.array(z.string()).length(3, "Must provide exactly 3 suggestions."), // Requesting 3 suggestions
+  suggestions: z
+    .array(z.string())
+    .length(3, 'Must provide exactly 3 suggestions.'), // Requesting 3 suggestions
 });
 
 export const suggestQuickChildTextsFlow = defineFlow(
@@ -59,11 +61,11 @@ export const suggestQuickChildTextsFlow = defineFlow(
     // This is a fallback if the LLM doesn't strictly adhere to "exactly 3".
     let finalSuggestions = outputData.suggestions;
     if (finalSuggestions.length > 3) {
-        finalSuggestions = finalSuggestions.slice(0, 3);
+      finalSuggestions = finalSuggestions.slice(0, 3);
     } else {
-        while (finalSuggestions.length < 3) {
-            finalSuggestions.push("New Suggestion"); // Placeholder if LLM gives too few
-        }
+      while (finalSuggestions.length < 3) {
+        finalSuggestions.push('New Suggestion'); // Placeholder if LLM gives too few
+      }
     }
 
     return { suggestions: finalSuggestions };

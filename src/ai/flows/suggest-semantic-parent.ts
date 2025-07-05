@@ -4,18 +4,22 @@ import * as z from 'zod';
 
 // Input Schema: An array of objects, each representing a selected node
 export const SuggestSemanticParentInputSchema = z.object({
-  selectedNodesContent: z.array(
-    z.object({
-      id: z.string(), // Keep ID for potential context, though AI might not use it directly
-      text: z.string().min(1, "Node text cannot be empty."),
-      details: z.string().optional(),
-    })
-  ).min(2, "At least two nodes are required for grouping."), // Require at least 2 nodes
+  selectedNodesContent: z
+    .array(
+      z.object({
+        id: z.string(), // Keep ID for potential context, though AI might not use it directly
+        text: z.string().min(1, 'Node text cannot be empty.'),
+        details: z.string().optional(),
+      })
+    )
+    .min(2, 'At least two nodes are required for grouping.'), // Require at least 2 nodes
 });
 
 // Output Schema
 export const SuggestSemanticParentOutputSchema = z.object({
-  parentNodeText: z.string().min(1, "Suggested parent node text cannot be empty."),
+  parentNodeText: z
+    .string()
+    .min(1, 'Suggested parent node text cannot be empty.'),
   groupingReason: z.string().optional(),
 });
 
@@ -29,9 +33,12 @@ export const suggestSemanticParentNodeFlow = defineFlow(
     const { selectedNodesContent } = input;
 
     // Prepare a summary of the selected nodes for the prompt
-    const nodesSummary = selectedNodesContent.map(node =>
-      `- "${node.text}"${node.details ? ` (Details: ${node.details.substring(0, 100)}${node.details.length > 100 ? '...' : ''})` : ''}`
-    ).join('\n');
+    const nodesSummary = selectedNodesContent
+      .map(
+        (node) =>
+          `- "${node.text}"${node.details ? ` (Details: ${node.details.substring(0, 100)}${node.details.length > 100 ? '...' : ''})` : ''}`
+      )
+      .join('\n');
 
     const prompt = `
       You are an expert in knowledge organization and concept mapping.
@@ -72,18 +79,25 @@ export const suggestSemanticParentNodeFlow = defineFlow(
 
     const outputData = llmResponse.output();
     if (!outputData) {
-      throw new Error('No output data received from LLM for semantic parent suggestion.');
+      throw new Error(
+        'No output data received from LLM for semantic parent suggestion.'
+      );
     }
 
     // Ensure parentNodeText is not empty, even if schema should catch it.
-    if (!outputData.parentNodeText || outputData.parentNodeText.trim() === "") {
-        // Fallback if AI returns empty text, though schema should prevent this.
-        return { parentNodeText: "Suggested Group", groupingReason: outputData.groupingReason || "AI suggested a group based on selected nodes." };
+    if (!outputData.parentNodeText || outputData.parentNodeText.trim() === '') {
+      // Fallback if AI returns empty text, though schema should prevent this.
+      return {
+        parentNodeText: 'Suggested Group',
+        groupingReason:
+          outputData.groupingReason ||
+          'AI suggested a group based on selected nodes.',
+      };
     }
 
     return {
-        parentNodeText: outputData.parentNodeText,
-        groupingReason: outputData.groupingReason,
+      parentNodeText: outputData.parentNodeText,
+      groupingReason: outputData.groupingReason,
     };
   }
 );

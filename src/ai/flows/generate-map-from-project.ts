@@ -8,24 +8,37 @@
  * - GenerateMapFromProjectOutput - The return type for the generateMapFromProject function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { projectStructureAnalyzerTool } from '@/ai/tools/project-analyzer-tool';
 
 const GenerateMapFromProjectInputSchema = z.object({
-  projectStoragePath: z.string().describe(
-    'The cloud storage path or reference to the uploaded project archive (e.g., .zip, .tar.gz).'
-  ),
-  userGoals: z.string().optional().describe(
-    'Optional user-provided goals or focus areas for the concept map generation, which can guide the AI on what to emphasize.'
-  ),
+  projectStoragePath: z
+    .string()
+    .describe(
+      'The cloud storage path or reference to the uploaded project archive (e.g., .zip, .tar.gz).'
+    ),
+  userGoals: z
+    .string()
+    .optional()
+    .describe(
+      'Optional user-provided goals or focus areas for the concept map generation, which can guide the AI on what to emphasize.'
+    ),
 });
-export type GenerateMapFromProjectInput = z.infer<typeof GenerateMapFromProjectInputSchema>;
+export type GenerateMapFromProjectInput = z.infer<
+  typeof GenerateMapFromProjectInputSchema
+>;
 
 const GenerateMapFromProjectOutputSchema = z.object({
-  conceptMapData: z.string().describe('The concept map data in a well-formed JSON string format, representing nodes and edges. Node IDs must be unique strings.'),
+  conceptMapData: z
+    .string()
+    .describe(
+      'The concept map data in a well-formed JSON string format, representing nodes and edges. Node IDs must be unique strings.'
+    ),
 });
-export type GenerateMapFromProjectOutput = z.infer<typeof GenerateMapFromProjectOutputSchema>;
+export type GenerateMapFromProjectOutput = z.infer<
+  typeof GenerateMapFromProjectOutputSchema
+>;
 
 export async function generateMapFromProject(
   input: GenerateMapFromProjectInput
@@ -125,8 +138,8 @@ Begin analysis using the tool and generate the concept map JSON based on these e
 
 const prompt = ai.definePrompt({
   name: 'generateMapFromProjectPrompt',
-  input: {schema: GenerateMapFromProjectInputSchema},
-  output: {schema: GenerateMapFromProjectOutputSchema},
+  input: { schema: GenerateMapFromProjectInputSchema },
+  output: { schema: GenerateMapFromProjectOutputSchema },
   tools: [projectStructureAnalyzerTool], // Make the tool available
   prompt: newPromptText, // Use the new prompt text here
 });
@@ -140,17 +153,20 @@ const generateMapFromProjectFlow = ai.defineFlow(
   async (input) => {
     // The prompt will handle calling the tool.
     // We just need to pass the input to the prompt.
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
 
     // Basic validation attempt
     try {
       JSON.parse(output!.conceptMapData);
     } catch (e) {
-      console.error("Generated conceptMapData is not valid JSON:", output?.conceptMapData);
+      console.error(
+        'Generated conceptMapData is not valid JSON:',
+        output?.conceptMapData
+      );
       // Potentially throw or attempt to fix.
       // For now, rely on schema validation by Genkit if strict enough.
       // Or return a structured error in outputSchema if that's preferred.
-      throw new Error("AI failed to generate valid JSON for the concept map.");
+      throw new Error('AI failed to generate valid JSON for the concept map.');
     }
     return output!;
   }

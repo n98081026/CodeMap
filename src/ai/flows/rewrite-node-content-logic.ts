@@ -1,4 +1,3 @@
-
 // src/ai/flows/rewrite-node-content-logic.ts
 // Original filename was rewrite-node-content-flow.ts
 'use server';
@@ -10,38 +9,56 @@
  * - RewriteNodeContentOutput - Output schema for the flow.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const RewriteNodeContentInputSchema = z.object({
-  currentText: z.string().describe('The current text content of the concept map node.'),
-  currentDetails: z.string().optional().describe('Optional current detailed description of the node.'),
-  targetTone: z.enum([
-    "formal", 
-    "casual", 
-    "concise", 
-    "elaborate", 
-    "humorous", 
-    "professional", 
-    "simple"
-  ]).describe('The desired tone for the rewritten content.'),
+  currentText: z
+    .string()
+    .describe('The current text content of the concept map node.'),
+  currentDetails: z
+    .string()
+    .optional()
+    .describe('Optional current detailed description of the node.'),
+  targetTone: z
+    .enum([
+      'formal',
+      'casual',
+      'concise',
+      'elaborate',
+      'humorous',
+      'professional',
+      'simple',
+    ])
+    .describe('The desired tone for the rewritten content.'),
 });
-export type RewriteNodeContentInput = z.infer<typeof RewriteNodeContentInputSchema>;
+export type RewriteNodeContentInput = z.infer<
+  typeof RewriteNodeContentInputSchema
+>;
 
 const RewriteNodeContentOutputSchema = z.object({
-  rewrittenText: z.string().describe('The AI-rewritten text content for the node.'),
-  rewrittenDetails: z.string().optional().describe('Optional AI-rewritten detailed description for the node.'),
+  rewrittenText: z
+    .string()
+    .describe('The AI-rewritten text content for the node.'),
+  rewrittenDetails: z
+    .string()
+    .optional()
+    .describe('Optional AI-rewritten detailed description for the node.'),
 });
-export type RewriteNodeContentOutput = z.infer<typeof RewriteNodeContentOutputSchema>;
+export type RewriteNodeContentOutput = z.infer<
+  typeof RewriteNodeContentOutputSchema
+>;
 
-export async function rewriteNodeContent(input: RewriteNodeContentInput): Promise<RewriteNodeContentOutput> {
+export async function rewriteNodeContent(
+  input: RewriteNodeContentInput
+): Promise<RewriteNodeContentOutput> {
   return rewriteNodeContentFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'rewriteNodeContentPrompt',
-  input: {schema: RewriteNodeContentInputSchema},
-  output: {schema: RewriteNodeContentOutputSchema},
+  input: { schema: RewriteNodeContentInputSchema },
+  output: { schema: RewriteNodeContentOutputSchema },
   prompt: `You are an expert AI assistant specializing in refining and rewriting text to match specific tones.
 A user wants to rewrite the content of a concept map node.
 
@@ -79,8 +96,8 @@ const rewriteNodeContentFlow = ai.defineFlow(
     inputSchema: RewriteNodeContentInputSchema,
     outputSchema: RewriteNodeContentOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const { output } = await prompt(input);
     return output!;
   }
 );

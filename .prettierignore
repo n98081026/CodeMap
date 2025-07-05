@@ -1,0 +1,54 @@
+# Next.js build outputs
+.next/
+out/
+
+# Node modules
+node_modules/
+
+# Coverage reports
+coverage/
+
+# Distribution/build folders (generic)
+dist/
+build/
+
+# Static assets that might be externally managed
+public/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# IDE/editor directories
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lint-staged.log
+
+# Temporary files
+tmp/
+
+# Generated documentation (if any)
+docs/_build/
+
+# Specific files if needed
+# myfile.generated.js
+
+ # Python files (to be handled by a Python-specific formatter like Black)
+ *.py

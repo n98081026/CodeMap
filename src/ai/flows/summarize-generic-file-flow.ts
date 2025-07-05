@@ -6,16 +6,34 @@ import { projectAnalysisToolSchema } from './project-analysis-flow'; // Assuming
 
 export const SummarizeGenericFileInputSchema = z.object({
   fileName: z.string().describe('The name of the file to be summarized.'),
-  fileContentSnippet: z.string().describe('A snippet of the file content (e.g., first N lines or M characters).'),
-  fileType: z.string().optional().describe('The identified type of the file (e.g., dockerfile, shell_script, xml_config). This helps the LLM tailor the summary.'),
+  fileContentSnippet: z
+    .string()
+    .describe(
+      'A snippet of the file content (e.g., first N lines or M characters).'
+    ),
+  fileType: z
+    .string()
+    .optional()
+    .describe(
+      'The identified type of the file (e.g., dockerfile, shell_script, xml_config). This helps the LLM tailor the summary.'
+    ),
 });
-type SummarizeGenericFileInput = z.infer<typeof SummarizeGenericFileInputSchema>;
+type SummarizeGenericFileInput = z.infer<
+  typeof SummarizeGenericFileInputSchema
+>;
 
 export const SummarizeGenericFileOutputSchema = z.object({
-  summary: z.string().describe('A brief summary of the file\'s purpose or key content.'),
-  error: z.string().optional().describe('Any error that occurred during summarization.'),
+  summary: z
+    .string()
+    .describe("A brief summary of the file's purpose or key content."),
+  error: z
+    .string()
+    .optional()
+    .describe('Any error that occurred during summarization.'),
 });
-type SummarizeGenericFileOutput = z.infer<typeof SummarizeGenericFileOutputSchema>;
+type SummarizeGenericFileOutput = z.infer<
+  typeof SummarizeGenericFileOutputSchema
+>;
 
 export const summarizeGenericFileFlow = defineFlow(
   {
@@ -27,7 +45,10 @@ export const summarizeGenericFileFlow = defineFlow(
     const { fileName, fileContentSnippet, fileType } = input;
 
     if (!fileContentSnippet.trim()) {
-      return { summary: `File '${fileName}' appears to be empty or contains only whitespace.`, error: 'Empty content snippet.' };
+      return {
+        summary: `File '${fileName}' appears to be empty or contains only whitespace.`,
+        error: 'Empty content snippet.',
+      };
     }
 
     const prompt = `
@@ -54,30 +75,39 @@ export const summarizeGenericFileFlow = defineFlow(
       const summaryText = llmResponse.text()?.trim();
 
       if (!summaryText) {
-        return { summary: `Could not generate a summary for '${fileName}'. The AI response was empty.`, error: 'Empty AI response.' };
+        return {
+          summary: `Could not generate a summary for '${fileName}'. The AI response was empty.`,
+          error: 'Empty AI response.',
+        };
       }
 
       return { summary: summaryText };
-
     } catch (err: any) {
-      console.error(`[summarizeGenericFileFlow] Error summarizing ${fileName}:`, err);
+      console.error(
+        `[summarizeGenericFileFlow] Error summarizing ${fileName}:`,
+        err
+      );
       return {
         summary: `Failed to generate summary for '${fileName}'.`,
-        error: err.message || 'An unexpected error occurred during AI summarization.'
+        error:
+          err.message ||
+          'An unexpected error occurred during AI summarization.',
       };
     }
   }
 );
 
 // Helper function to run this flow (optional, but good for testing or direct use)
-export async function runSummarizeGenericFile(input: SummarizeGenericFileInput): Promise<SummarizeGenericFileOutput> {
+export async function runSummarizeGenericFile(
+  input: SummarizeGenericFileInput
+): Promise<SummarizeGenericFileOutput> {
   try {
     return await runFlow(summarizeGenericFileFlow, input);
   } catch (error: any) {
-    console.error("Error running summarizeGenericFileFlow:", error);
+    console.error('Error running summarizeGenericFileFlow:', error);
     return {
       summary: `Error invoking summarization flow for '${input.fileName}'.`,
-      error: error.message || "Unknown error running flow."
+      error: error.message || 'Unknown error running flow.',
     };
   }
 }

@@ -1,4 +1,3 @@
-
 // src/ai/flows/extract-concepts.ts
 'use server';
 /**
@@ -9,8 +8,8 @@
  * - ExtractConceptsOutput - The return type for the extractConcepts function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const ExtractConceptsInputSchema = z.object({
   text: z.string().describe('The text to extract concepts from.'),
@@ -20,24 +19,40 @@ export type ExtractConceptsInput = z.infer<typeof ExtractConceptsInputSchema>;
 // Updated output schema to include context/reason for each concept
 const ExtractedConceptItemSchema = z.object({
   concept: z.string().describe('The extracted key concept or entity.'),
-  context: z.string().optional().describe('A brief explanation or the surrounding text snippet that justifies why this concept is important or where it was found.'),
-  source: z.string().optional().describe('Optional: The specific part of the input text (e.g., a sentence or phrase) from which the concept was most directly extracted, if easily identifiable.')
+  context: z
+    .string()
+    .optional()
+    .describe(
+      'A brief explanation or the surrounding text snippet that justifies why this concept is important or where it was found.'
+    ),
+  source: z
+    .string()
+    .optional()
+    .describe(
+      'Optional: The specific part of the input text (e.g., a sentence or phrase) from which the concept was most directly extracted, if easily identifiable.'
+    ),
 });
 export type ExtractedConceptItem = z.infer<typeof ExtractedConceptItemSchema>;
 
 const ExtractConceptsOutputSchema = z.object({
-  concepts: z.array(ExtractedConceptItemSchema).describe('The key concepts extracted from the text, each with optional context/source.'),
+  concepts: z
+    .array(ExtractedConceptItemSchema)
+    .describe(
+      'The key concepts extracted from the text, each with optional context/source.'
+    ),
 });
 export type ExtractConceptsOutput = z.infer<typeof ExtractConceptsOutputSchema>;
 
-export async function extractConcepts(input: ExtractConceptsInput): Promise<ExtractConceptsOutput> {
+export async function extractConcepts(
+  input: ExtractConceptsInput
+): Promise<ExtractConceptsOutput> {
   return extractConceptsFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'extractConceptsPrompt',
-  input: {schema: ExtractConceptsInputSchema},
-  output: {schema: ExtractConceptsOutputSchema},
+  input: { schema: ExtractConceptsInputSchema },
+  output: { schema: ExtractConceptsOutputSchema },
   prompt: `You are an expert at identifying and extracting core concepts and key entities from text. Your task is to distill the most significant nouns or short noun phrases that represent the central ideas of the provided text.
 
 Please analyze the following text:
@@ -70,9 +85,8 @@ const extractConceptsFlow = ai.defineFlow(
     inputSchema: ExtractConceptsInputSchema,
     outputSchema: ExtractConceptsOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const { output } = await prompt(input);
     return output!;
   }
 );
-

@@ -1,58 +1,21 @@
-
-"use client";
-import Link from "next/link";
-import { useAuth } from "@/contexts/auth-context";
-import { UserRole, type User } from "@/types";
-import { Users, Settings, LayoutDashboard, Loader2, AlertTriangle } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
-import { useAdminDashboardMetrics } from "@/hooks/useAdminDashboardMetrics";
-
-function AdminDashboardContent({ user }: { user: User }) {
-  const { users: usersMetric, classrooms: classroomsMetric } = useAdminDashboardMetrics();
-
-  const renderCount = (metric: { count: number | null, isLoading: boolean, error: string | null }, itemName: string) => {
-    if (metric.isLoading) {
-      return <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /> <span>Loading {itemName}...</span></div>;
-    }
-    if (metric.error && (metric.count === 0 || metric.count === null)) {
-        return <div className="text-destructive flex items-center text-sm"><AlertTriangle className="mr-1 h-5 w-5" /> Error</div>;
-    }
-    return <div className="text-3xl font-bold">{metric.count ?? 0}</div>;
-  };
-
-  return (
-    <div className="space-y-6">
-      <DashboardHeader
-        title="Admin Dashboard"
-        description="System overview and management tools."
-        icon={LayoutDashboard}
-        iconLinkHref="/application/admin/dashboard"
-      />
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <DashboardLinkCard
-          title="User Management"
-          description="Total registered users in the system."
-          count={renderCount(usersMetric, "users")}
-          icon={Users}
-          href="/application/admin/users"
-          linkText="Manage Users"
-        />
-        <DashboardLinkCard
-          title="System Settings"
-          description="Active classrooms. Configure system parameters here."
-          count={renderCount(classroomsMetric, "classrooms")}
-          icon={Settings}
-          href="/application/admin/settings"
-          linkText="Configure Settings"
-        />
-      </div>
-    </div>
-  );
-}
+'use client';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/auth-context';
+import { UserRole, type User } from '@/types';
+import {
+  Users,
+  Settings,
+  LayoutDashboard,
+  Loader2,
+  AlertTriangle,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Kept for context, though AdminDashboardView also imports it
+// import { DashboardLinkCard } from '@/components/dashboard/dashboard-link-card'; // Now part of AdminDashboardView
+// import { useAdminDashboardMetrics } from '@/hooks/useAdminDashboardMetrics'; // Now part of AdminDashboardView
+import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
 
 export default function AdminDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();
@@ -63,25 +26,25 @@ export default function AdminDashboardPage() {
       if (!user) {
         router.replace('/login');
       } else if (user.role !== UserRole.ADMIN) {
-        router.replace('/login'); 
+        router.replace('/login'); // Or a more specific unauthorized page for non-admins
       }
     }
   }, [user, authIsLoading, router]);
 
   if (authIsLoading || !user) {
     return (
-        <div className="flex h-screen w-screen items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
+      <div className='flex h-screen w-screen items-center justify-center'>
+        <Loader2 className='h-12 w-12 animate-spin text-primary' />
+      </div>
     );
   }
-  
+
   if (user.role !== UserRole.ADMIN) {
     // This case should ideally be handled by the redirect in useEffect,
     // but returning null prevents rendering the content component if role mismatch occurs briefly.
     return null;
   }
 
-  return <AdminDashboardContent user={user} />;
+  // Render the shared view component, passing the user prop
+  return <AdminDashboardView user={user} />;
 }
-

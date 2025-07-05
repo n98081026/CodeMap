@@ -1,67 +1,61 @@
+'use client';
 
-"use client";
-
-import React, { useEffect } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/auth-context";
-import { UserRole } from "@/types";
-import { Users, Settings, LayoutDashboard, Loader2, AlertTriangle } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { useAdminDashboardMetrics } from "@/hooks/useAdminDashboardMetrics";
-import { DashboardLinkCard, type MetricState } from "@/components/dashboard/dashboard-link-card";
+import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
+import { UserRole } from '@/types';
+import {
+  Users,
+  Settings,
+  LayoutDashboard,
+  Loader2,
+  AlertTriangle,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+// DashboardHeader, useAdminDashboardMetrics, DashboardLinkCard, MetricState, Loader2, AlertTriangle, Users, Settings, LayoutDashboard
+// are now encapsulated within AdminDashboardView or not directly needed by this page component.
+import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
+// Loader2 might still be needed for the top-level loading state if not handled by AppLayout sufficiently
+import { Loader2 } from 'lucide-react';
 
 
 export default function AdminDashboardPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authIsLoading } = useAuth(); // Use authIsLoading from useAuth
   const router = useRouter();
-  const { users, classrooms } = useAdminDashboardMetrics();
 
   useEffect(() => {
-    if (user && user.role !== UserRole.ADMIN) {
-      router.replace('/login'); // Or a more appropriate redirect
+    // Auth check logic is primarily handled by AppLayout for routes within (app)
+    // However, an additional role check specific to this page can be kept.
+    if (!authIsLoading && user && user.role !== UserRole.ADMIN) {
+      router.replace('/login'); // Or an unauthorized page
     }
-  }, [user, router]);
+    // If !authIsLoading && !user, AppLayout should have already initiated a redirect.
+  }, [user, authIsLoading, router]);
 
-  if (!user || user.role !== UserRole.ADMIN) {
-    return null; // Or a loading/unauthorized state
+  // isLoading from useAuth in AppLayout handles the initial loading state.
+  // This page should only render if authentication is complete and successful.
+  // If AppLayout is already showing a loader, this might be redundant or can be simplified.
+  if (authIsLoading) {
+    return (
+      <div className='flex h-full items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
   }
 
-  const renderMetricCount = (metric: MetricState) => {
-    if (metric.isLoading) return <Loader2 className="h-7 w-7 animate-spin text-primary" />;
-    if (metric.error) return <AlertTriangle className="h-7 w-7 text-destructive" title={metric.error} />;
-    return metric.count !== null ? metric.count : '-';
-  };
+  if (!user || user.role !== UserRole.ADMIN) {
+    // This state should ideally be caught by AppLayout's redirect or the useEffect above.
+    // Returning null or a minimal loader avoids rendering content if there's a brief moment before redirect.
+    return (
+        <div className='flex h-full items-center justify-center'>
+          <Loader2 className='h-8 w-8 animate-spin text-primary' />
+        </div>
+    );
+  }
 
-  return (
-    <div className="space-y-6">
-      <DashboardHeader 
-        title="Admin Dashboard"
-        description="System overview and management tools."
-        icon={LayoutDashboard}
-        iconLinkHref="/" // Or link to a main admin overview if different from current page
-      />
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <DashboardLinkCard
-          title="User Management"
-          description="Total registered users in the system."
-          count={renderMetricCount(users)}
-          icon={Users}
-          href="/application/admin/users"
-          linkText="Manage Users"
-        />
-        <DashboardLinkCard
-          title="System Settings" // Title can be "Active Classrooms" if preferred
-          description="Active classrooms. Configure system parameters here." // Or "Total active classrooms in the system."
-          count={renderMetricCount(classrooms)}
-          icon={Settings} // Or BookOpen for classrooms
-          href="/application/admin/settings"
-          linkText="Configure Settings"
-        />
-      </div>
-    </div>
-  );
+  // Render the shared view component
+  // The 'user' prop might be passed if AdminDashboardView needs it,
+  // though AdminDashboardView itself uses useAdminDashboardMetrics which doesn't strictly need user from props.
+  return <AdminDashboardView user={user} />;
 }
-

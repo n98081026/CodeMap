@@ -7,5 +7,11 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  return NextResponse.json({ message: "This register endpoint is deprecated. Use Supabase client-side authentication via AuthContext, which also handles profile creation." }, { status: 404 });
+  return NextResponse.json(
+    {
+      message:
+        'This register endpoint is deprecated. Use Supabase client-side authentication via AuthContext, which also handles profile creation.',
+    },
+    { status: 404 }
+  );
 }

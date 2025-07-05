@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
@@ -23,18 +22,28 @@ interface SupabaseStorageUploadState {
   uploadFile: (params: UploadFileParams) => Promise<string | null>;
 }
 
-export function useSupabaseStorageUpload({ bucketName }: UseSupabaseStorageUploadOptions): SupabaseStorageUploadState {
+export function useSupabaseStorageUpload({
+  bucketName,
+}: UseSupabaseStorageUploadOptions): SupabaseStorageUploadState {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null);
   const { toast } = useToast();
 
   const uploadFile = useCallback(
-    async ({ file, filePathInBucket, cacheControl = '3600', upsert = false }: UploadFileParams): Promise<string | null> => {
+    async ({
+      file,
+      filePathInBucket,
+      cacheControl = '3600',
+      upsert = false,
+    }: UploadFileParams): Promise<string | null> => {
       setIsUploading(true);
       setError(null);
       setUploadedFilePath(null);
-      toast({ title: "File Upload Starting", description: `Uploading "${file.name}" to storage.`});
+      toast({
+        title: 'File Upload Starting',
+        description: `Uploading "${file.name}" to storage.`,
+      });
 
       try {
         const { data, error: uploadError } = await supabase.storage
@@ -49,17 +58,29 @@ export function useSupabaseStorageUpload({ bucketName }: UseSupabaseStorageUploa
         }
 
         if (!data || !data.path) {
-          throw new Error('File uploaded but no path was returned from Supabase Storage.');
+          throw new Error(
+            'File uploaded but no path was returned from Supabase Storage.'
+          );
         }
-        
+
         setUploadedFilePath(data.path);
-        toast({ title: "File Upload Successful", description: `"${file.name}" stored at ${data.path}.`});
+        toast({
+          title: 'File Upload Successful',
+          description: `"${file.name}" stored at ${data.path}.`,
+        });
         return data.path;
       } catch (e) {
         const uploadErr = e as Error;
-        console.error(`Supabase Storage upload error to bucket "${bucketName}":`, uploadErr);
+        console.error(
+          `Supabase Storage upload error to bucket "${bucketName}":`,
+          uploadErr
+        );
         setError(uploadErr);
-        toast({ title: "File Upload Failed", description: uploadErr.message, variant: "destructive" });
+        toast({
+          title: 'File Upload Failed',
+          description: uploadErr.message,
+          variant: 'destructive',
+        });
         return null;
       } finally {
         setIsUploading(false);

@@ -4,14 +4,16 @@ import * as z from 'zod';
 
 // Input Schema: Current map data
 export const MapDataSchema = z.object({
-  nodes: z.array(
-    z.object({
-      id: z.string(),
-      text: z.string().min(1, "Node text cannot be empty."),
-      details: z.string().optional(),
-      // Consider adding x, y, parentNode for more context if useful for AI
-    })
-  ).min(2, "Map must have at least 2 nodes for improvement suggestions."), // Require min nodes
+  nodes: z
+    .array(
+      z.object({
+        id: z.string(),
+        text: z.string().min(1, 'Node text cannot be empty.'),
+        details: z.string().optional(),
+        // Consider adding x, y, parentNode for more context if useful for AI
+      })
+    )
+    .min(2, 'Map must have at least 2 nodes for improvement suggestions.'), // Require min nodes
   edges: z.array(
     z.object({
       source: z.string(),
@@ -43,23 +45,25 @@ const FormGroupDataSchema = z.object({
 });
 
 // Output Schema: A single map improvement suggestion, or null
-export const MapImprovementSuggestionSchema = z.union([
-  z.object({
-    type: z.literal("ADD_EDGE"),
-    data: AddEdgeDataSchema,
-    reason: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("NEW_INTERMEDIATE_NODE"),
-    data: NewIntermediateNodeDataSchema,
-    reason: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("FORM_GROUP"),
-    data: FormGroupDataSchema,
-    reason: z.string().optional(),
-  }),
-]).nullable();
+export const MapImprovementSuggestionSchema = z
+  .union([
+    z.object({
+      type: z.literal('ADD_EDGE'),
+      data: AddEdgeDataSchema,
+      reason: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('NEW_INTERMEDIATE_NODE'),
+      data: NewIntermediateNodeDataSchema,
+      reason: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('FORM_GROUP'),
+      data: FormGroupDataSchema,
+      reason: z.string().optional(),
+    }),
+  ])
+  .nullable();
 
 export const suggestMapImprovementFlow = defineFlow(
   {
@@ -70,16 +74,23 @@ export const suggestMapImprovementFlow = defineFlow(
   async (input) => {
     const { nodes, edges } = input;
 
-    if (nodes.length < 3 && edges.length < 1) { // Need enough elements for meaningful suggestions
-        return null;
+    if (nodes.length < 3 && edges.length < 1) {
+      // Need enough elements for meaningful suggestions
+      return null;
     }
 
-    const nodesSummary = nodes.map(n =>
-      `Node(id="${n.id}", text="${n.text}"${n.details ? `, details_preview="${n.details.substring(0, 50)}..."` : ''})`
-    ).join(', ');
-    const edgesSummary = edges.map(e =>
-      `Edge(source="${e.source}", target="${e.target}"${e.label ? `, label="${e.label}"` : ''})`
-    ).join(', ');
+    const nodesSummary = nodes
+      .map(
+        (n) =>
+          `Node(id="${n.id}", text="${n.text}"${n.details ? `, details_preview="${n.details.substring(0, 50)}..."` : ''})`
+      )
+      .join(', ');
+    const edgesSummary = edges
+      .map(
+        (e) =>
+          `Edge(source="${e.source}", target="${e.target}"${e.label ? `, label="${e.label}"` : ''})`
+      )
+      .join(', ');
 
     const prompt = `
       You are an expert concept map analyst and knowledge structurer.
@@ -123,16 +134,32 @@ export const suggestMapImprovementFlow = defineFlow(
 
     // Basic validation for suggested IDs (can be enhanced)
     if (outputData) {
-      const inputNodeIds = new Set(nodes.map(n => n.id));
-      if (outputData.type === "ADD_EDGE" || outputData.type === "NEW_INTERMEDIATE_NODE") {
-        if (!inputNodeIds.has(outputData.data.sourceNodeId) || !inputNodeIds.has(outputData.data.targetNodeId)) {
-          console.warn("AI suggested an edge or intermediate node involving non-existent node IDs. Clearing suggestion.");
+      const inputNodeIds = new Set(nodes.map((n) => n.id));
+      if (
+        outputData.type === 'ADD_EDGE' ||
+        outputData.type === 'NEW_INTERMEDIATE_NODE'
+      ) {
+        if (
+          !inputNodeIds.has(outputData.data.sourceNodeId) ||
+          !inputNodeIds.has(outputData.data.targetNodeId)
+        ) {
+          console.warn(
+            'AI suggested an edge or intermediate node involving non-existent node IDs. Clearing suggestion.'
+          );
           return null;
         }
-      } else if (outputData.type === "FORM_GROUP") {
-        const allGroupIdsValid = outputData.data.nodeIdsToGroup.every(id => inputNodeIds.has(id));
-        if (!allGroupIdsValid || new Set(outputData.data.nodeIdsToGroup).size !== outputData.data.nodeIdsToGroup.length) {
-          console.warn("AI suggested grouping with invalid or duplicate node IDs. Clearing suggestion.");
+      } else if (outputData.type === 'FORM_GROUP') {
+        const allGroupIdsValid = outputData.data.nodeIdsToGroup.every((id) =>
+          inputNodeIds.has(id)
+        );
+        if (
+          !allGroupIdsValid ||
+          new Set(outputData.data.nodeIdsToGroup).size !==
+            outputData.data.nodeIdsToGroup.length
+        ) {
+          console.warn(
+            'AI suggested grouping with invalid or duplicate node IDs. Clearing suggestion.'
+          );
           return null;
         }
       }

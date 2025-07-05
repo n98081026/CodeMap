@@ -2,28 +2,48 @@
 import { defineFlow, generate } from '@genkit-ai/flow';
 import { geminiPro } from '@genkit-ai/googleai'; // Or your preferred model
 import { z } from 'zod';
-import { graphologySharedNeighborsEdgeTool, SharedNeighborsEdgeInputSchema, CandidateEdgeSchema } from '../tools'; // Assumes index.ts exports these
-import { MapDataSchema, MapImprovementSuggestionSchema } from './suggest-map-improvement'; // For input and output structure
+import {
+  graphologySharedNeighborsEdgeTool,
+  SharedNeighborsEdgeInputSchema,
+  CandidateEdgeSchema,
+} from '../tools'; // Assumes index.ts exports these
+import {
+  MapDataSchema,
+  MapImprovementSuggestionSchema,
+} from './suggest-map-improvement'; // For input and output structure
 
 // Schema for the LLM's validation and labeling response
 const LlmEdgeValidationResponseSchema = z.object({
-  isSensible: z.boolean().describe("Whether adding a direct edge between the nodes makes semantic sense."),
-  suggestedLabel: z.string().nullable().describe("A concise, descriptive, action-oriented label if the edge is sensible; otherwise null."),
-  reason: z.string().nullable().describe("Reason for the edge being sensible and the label choice, or why it's not sensible."),
+  isSensible: z
+    .boolean()
+    .describe(
+      'Whether adding a direct edge between the nodes makes semantic sense.'
+    ),
+  suggestedLabel: z
+    .string()
+    .nullable()
+    .describe(
+      'A concise, descriptive, action-oriented label if the edge is sensible; otherwise null.'
+    ),
+  reason: z
+    .string()
+    .nullable()
+    .describe(
+      "Reason for the edge being sensible and the label choice, or why it's not sensible."
+    ),
 });
 
 // Define a schema for the prompt input, if using structured prompts with Genkit
 const ValidateAndLabelEdgePromptInputSchema = z.object({
-    sourceNodeId: z.string(),
-    sourceNodeText: z.string(),
-    sourceNodeDetails: z.string().optional(),
-    targetNodeId: z.string(),
-    targetNodeText: z.string(),
-    targetNodeDetails: z.string().optional(),
-    sharedNodesDetails: z.string(),
-    jaccardIndex: z.number(),
+  sourceNodeId: z.string(),
+  sourceNodeText: z.string(),
+  sourceNodeDetails: z.string().optional(),
+  targetNodeId: z.string(),
+  targetNodeText: z.string(),
+  targetNodeDetails: z.string().optional(),
+  sharedNodesDetails: z.string(),
+  jaccardIndex: z.number(),
 });
-
 
 export const suggestGraphologyEnhancedEdgeFlow = defineFlow(
   {
@@ -37,38 +57,52 @@ export const suggestGraphologyEnhancedEdgeFlow = defineFlow(
       const toolInput: z.infer<typeof SharedNeighborsEdgeInputSchema> = {
         ...mapData,
         jaccardThreshold: 0.25, // Example threshold, could be configurable
-        maxCandidates: 1,       // We only want the top candidate for LLM validation
+        maxCandidates: 1, // We only want the top candidate for LLM validation
       };
       const toolResult = await graphologySharedNeighborsEdgeTool.run(toolInput);
 
-      if (toolResult.error || !toolResult.candidateEdges || toolResult.candidateEdges.length === 0) {
-        console.log('[SuggestEdgeFlow] No candidate edges from graphology tool or error:', toolResult.error);
+      if (
+        toolResult.error ||
+        !toolResult.candidateEdges ||
+        toolResult.candidateEdges.length === 0
+      ) {
+        console.log(
+          '[SuggestEdgeFlow] No candidate edges from graphology tool or error:',
+          toolResult.error
+        );
         return null;
       }
 
       const topCandidate = toolResult.candidateEdges[0];
 
       // Step 2: Prepare data for LLM prompt
-      const sourceNode = mapData.nodes.find(n => n.id === topCandidate.sourceNodeId);
-      const targetNode = mapData.nodes.find(n => n.id === topCandidate.targetNodeId);
+      const sourceNode = mapData.nodes.find(
+        (n) => n.id === topCandidate.sourceNodeId
+      );
+      const targetNode = mapData.nodes.find(
+        (n) => n.id === topCandidate.targetNodeId
+      );
 
       if (!sourceNode || !targetNode) {
-        console.error('[SuggestEdgeFlow] Source or target node not found for top candidate.');
+        console.error(
+          '[SuggestEdgeFlow] Source or target node not found for top candidate.'
+        );
         return null;
       }
 
       const sharedNodesDetails = topCandidate.sharedNeighborIds
-        .map(id => mapData.nodes.find(n => n.id === id)?.text || id)
+        .map((id) => mapData.nodes.find((n) => n.id === id)?.text || id)
         .join(', ');
 
       const promptInput = {
         sourceNodeId: sourceNode.id,
         sourceNodeText: sourceNode.text,
-        sourceNodeDetails: sourceNode.details || "",
+        sourceNodeDetails: sourceNode.details || '',
         targetNodeId: targetNode.id,
         targetNodeText: targetNode.text,
-        targetNodeDetails: targetNode.details || "",
-        sharedNodesDetails: sharedNodesDetails.length > 0 ? sharedNodesDetails : "none",
+        targetNodeDetails: targetNode.details || '',
+        sharedNodesDetails:
+          sharedNodesDetails.length > 0 ? sharedNodesDetails : 'none',
         jaccardIndex: topCandidate.jaccardIndex,
       };
 
@@ -116,7 +150,9 @@ export const suggestGraphologyEnhancedEdgeFlow = defineFlow(
       const validationResult = llmResponse.output();
 
       if (!validationResult) {
-        console.warn('[SuggestEdgeFlow] LLM did not return valid validation output.');
+        console.warn(
+          '[SuggestEdgeFlow] LLM did not return valid validation output.'
+        );
         return null;
       }
 
@@ -135,10 +171,11 @@ export const suggestGraphologyEnhancedEdgeFlow = defineFlow(
         // or ensure the structure matches. MapImprovementSuggestionSchema.parse should handle it.
         return MapImprovementSuggestionSchema.parse(addEdgeSuggestion);
       } else {
-        console.log(`[SuggestEdgeFlow] LLM deemed edge not sensible for ${topCandidate.sourceNodeId} -> ${topCandidate.targetNodeId}. Reason: ${validationResult.reason}`);
+        console.log(
+          `[SuggestEdgeFlow] LLM deemed edge not sensible for ${topCandidate.sourceNodeId} -> ${topCandidate.targetNodeId}. Reason: ${validationResult.reason}`
+        );
         return null;
       }
-
     } catch (e: any) {
       console.error('Error in suggestGraphologyEnhancedEdgeFlow:', e);
       return null; // Return null on error as per output schema

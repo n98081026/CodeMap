@@ -4,27 +4,45 @@ import { ConceptMapNodeSchema, ConceptMapEdgeSchema } from '@/types/zodSchemas';
 
 // --- Input Schema ---
 const MapDataSchema = z.object({
-  nodes: z.array(ConceptMapNodeSchema).describe("Array of nodes in the concept map. Each node has an id, text (label/content), type, and optional details."),
-  edges: z.array(ConceptMapEdgeSchema).describe("Array of edges connecting the nodes. Each edge specifies a source and target node ID, and an optional label."),
+  nodes: z
+    .array(ConceptMapNodeSchema)
+    .describe(
+      'Array of nodes in the concept map. Each node has an id, text (label/content), type, and optional details.'
+    ),
+  edges: z
+    .array(ConceptMapEdgeSchema)
+    .describe(
+      'Array of edges connecting the nodes. Each edge specifies a source and target node ID, and an optional label.'
+    ),
 });
 
 export const GenerateMapSummaryInputSchema = MapDataSchema;
-export type GenerateMapSummaryInput = z.infer<typeof GenerateMapSummaryInputSchema>;
+export type GenerateMapSummaryInput = z.infer<
+  typeof GenerateMapSummaryInputSchema
+>;
 
 // --- Output Schema ---
 export const GenerateMapSummaryOutputSchema = z.object({
-  summary: z.string().describe("A concise, human-readable summary of the concept map, highlighting key components/clusters and their relationships. Should be 2-3 paragraphs."),
-  error: z.string().optional().describe("Error message if the summary generation failed."),
+  summary: z
+    .string()
+    .describe(
+      'A concise, human-readable summary of the concept map, highlighting key components/clusters and their relationships. Should be 2-3 paragraphs.'
+    ),
+  error: z
+    .string()
+    .optional()
+    .describe('Error message if the summary generation failed.'),
 });
-export type GenerateMapSummaryOutput = z.infer<typeof GenerateMapSummaryOutputSchema>;
+export type GenerateMapSummaryOutput = z.infer<
+  typeof GenerateMapSummaryOutputSchema
+>;
 
 // --- Prompt for LLM ---
-const generateSummaryPrompt = ai.definePrompt(
-  {
-    name: 'generateMapSummaryPrompt',
-    input: { schema: GenerateMapSummaryInputSchema },
-    output: { schema: GenerateMapSummaryOutputSchema },
-    prompt: `You are an expert analyst tasked with summarizing a concept map.
+const generateSummaryPrompt = ai.definePrompt({
+  name: 'generateMapSummaryPrompt',
+  input: { schema: GenerateMapSummaryInputSchema },
+  output: { schema: GenerateMapSummaryOutputSchema },
+  prompt: `You are an expert analyst tasked with summarizing a concept map.
 Given the following concept map data:
 
 Nodes:
@@ -50,8 +68,7 @@ If the map data is empty or insufficient for a meaningful summary, set the 'erro
 Output strictly as a JSON object matching the specified output schema.
 Focus on clarity and conciseness.
 `,
-  },
-);
+});
 
 // --- Genkit Flow ---
 export const generateMapSummaryFlow = ai.defineFlow(
@@ -63,34 +80,35 @@ export const generateMapSummaryFlow = ai.defineFlow(
   async (input) => {
     if (!input.nodes || input.nodes.length === 0) {
       return {
-        summary: "Cannot generate summary: The concept map is empty.",
-        error: "The concept map contains no nodes.",
+        summary: 'Cannot generate summary: The concept map is empty.',
+        error: 'The concept map contains no nodes.',
       };
     }
 
     // Basic check for minimal content
     if (input.nodes.length < 2 && input.edges.length === 0) {
-         return {
-            summary: "The concept map is very small, containing only one isolated node. It represents a single concept: " + input.nodes[0].text,
-            error: "Map too small for detailed summary, contains only one node."
-         }
+      return {
+        summary:
+          'The concept map is very small, containing only one isolated node. It represents a single concept: ' +
+          input.nodes[0].text,
+        error: 'Map too small for detailed summary, contains only one node.',
+      };
     }
-
 
     try {
       const { output } = await generateSummaryPrompt(input);
 
       if (!output) {
         return {
-          summary: "AI failed to generate a summary for this map.",
-          error: "AI prompt output was null or undefined.",
+          summary: 'AI failed to generate a summary for this map.',
+          error: 'AI prompt output was null or undefined.',
         };
       }
       return output;
     } catch (e: any) {
-      console.error("Error in generateMapSummaryFlow LLM call:", e);
+      console.error('Error in generateMapSummaryFlow LLM call:', e);
       return {
-        summary: "An error occurred while AI was generating the map summary.",
+        summary: 'An error occurred while AI was generating the map summary.',
         error: `AI summary generation failed: ${e.message}`,
       };
     }
