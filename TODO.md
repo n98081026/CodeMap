@@ -250,20 +250,17 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
 ---
 ## Ongoing: AI Interaction Layer Enhancements & Hook Refactoring
 
-- [x] **Enhance `callAIWithStandardFeedback`:** (Jules - Core functionality added)
-    - [x] **`options.onSuccess` callback**: Added `onSuccess?: (output: O, input: I) => void`.
-        - *Purpose*: Allows specific side effects post-AI success.
-    - [x] **`options.onError` callback**: Added `onError?: (error: unknown, input: I) => boolean | void`.
-        - *Purpose*: Enables custom error handling; can suppress default error toast if it returns `true`.
-    - [x] **Refine `userFriendlyMessage` generation**: Basic improvement to check for `error.details`.
-        - *Note*: Further refinement for various Genkit error structures may be needed.
+- [x] **Enhance `callAIWithStandardFeedback`:** (Jules - JSDoc updated; core functionality for `onSuccess`/`onError` callbacks and `error.details` in messages **NEEDS DEVELOPER RE-IMPLEMENTATION/VERIFICATION** due to file restore.)
+    - [ ] `options.onSuccess` callback implementation.
+    - [ ] `options.onError` callback implementation.
+    - [ ] Refined `userFriendlyMessage` generation for `error.details`.
 - [ ] **Refactor `useConceptMapAITools.ts` (Phase 1 - Low Risk):**
-    - [ ] **Extract AI success handlers**: (Partially Done by Jules for some handlers). **NEEDS REVIEW & COMPLETION by developer.** Many `handle...` functions' success logic (especially for Q&A and complex staging/ghost preview updates) was not fully moved to `onSuccess` due to tool limitations during Jules' session.
+    - [ ] **Extract AI success handlers**: **NEEDS DEVELOPER IMPLEMENTATION.** Logic for moving success handlers into `onSuccess` callbacks was lost during file restore. This is a key refactoring step.
         - *Goal*: Reduce nesting and length of `handle...` functions.
-    - [ ] **Isolate simple AI flow calls**: (Partially addressed). Review remaining handlers.
-    - [ ] **Review and add comments**: (Partially Done by Jules). **NEEDS DEVELOPER REVIEW** for overall clarity and for logic not touched by Jules.
-    - [ ] **Thoroughly review `useCallback` dependencies**: **CRITICAL - NEEDS DEVELOPER REVIEW.** Jules' attempts to fine-tune these were problematic. Ensure all `useCallback` hooks have correct and exhaustive dependencies, especially those interacting with Zustand store state (`mapData`, `selectedElementId`, etc.) or using `getState()` internally.
-- [ ] **Update relevant AI tool invocation points**: (Partially Done by Jules). Linked to "Extract AI success handlers". **NEEDS REVIEW & COMPLETION by developer.**
+    - [ ] **Isolate simple AI flow calls**: Review and simplify handlers.
+    - [ ] **Review and add comments**: Add more comments for complex sections. **NEEDS DEVELOPER REVIEW.**
+    - [ ] **Thoroughly review `useCallback` dependencies**: **CRITICAL - NEEDS DEVELOPER REVIEW & ADJUSTMENT.** Ensure all `useCallback` hooks have correct and exhaustive dependencies. This was a point of difficulty for Jules.
+- [ ] **Update relevant AI tool invocation points**: **NEEDS DEVELOPER IMPLEMENTATION.** Linked to "Extract AI success handlers".
 - [ ] **Documentation**:
-    - [x] JSDoc for `callAIWithStandardFeedback` options (`onSuccess`, `onError`) updated.
+    - [x] JSDoc for `callAIWithStandardFeedback` options (`onSuccess`, `onError`) updated (reflects intended state).
     - [ ] Broader documentation for the hook and its patterns is still pending.
