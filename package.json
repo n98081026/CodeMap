@@ -6,10 +6,15 @@
     "dev": "next dev --port 9002 --hostname 0.0.0.0",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
+    "build": "npm run lint && npm run typecheck && next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
     "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore",
+    "analyze": "cross-env ANALYZE=true next build",
+    "depcheck": "depcheck",
     "test": "vitest",
     "test:ui": "vitest --ui"
   },
@@ -74,6 +79,10 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^14.2.5", # Added for 'analyze' script
+    "cross-env": "^7.0.3", # Added for 'analyze' script
+    "depcheck": "^1.4.7", # Added for 'depcheck' script
+    "prettier": "^3.3.3", # Added for 'format' scripts
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
