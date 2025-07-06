@@ -5,9 +5,9 @@ import {
   useConceptMapAITools,
   type ExpandConceptInput,
   type RefineModalData,
-} from './useConceptMapAITools'; // Added RefineModalData
+} from '../useConceptMapAITools'; // Added RefineModalData
 
-import type { CustomNodeData } from './custom-node';
+import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import type {
   SuggestRelationsOutput,
   ExpandConceptOutput,

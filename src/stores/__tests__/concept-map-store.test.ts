@@ -5,7 +5,7 @@ import { type TemporalState as ZundoTemporalState } from 'zundo'; // Correct imp
 import useConceptMapStore, {
   initialStateBase,
   type ConceptMapStoreTemporalState,
-} from './concept-map-store';
+} from '../concept-map-store';
 
 import type {
   ConceptMap,
@@ -22,12 +22,11 @@ vi.mock('uuid', () => ({
 }));
 
 // Mocking the external flow used in fetchProjectOverview
+import { generateProjectOverviewFlow } from '@/ai/flows/generate-project-overview';
 vi.mock('@/ai/flows/generate-project-overview', () => ({
   generateProjectOverviewFlow: vi.fn(),
 }));
-const mockGenerateProjectOverviewFlow = vi.mocked(
-  require('@/ai/flows/generate-project-overview').generateProjectOverviewFlow
-);
+const mockGenerateProjectOverviewFlow = vi.mocked(generateProjectOverviewFlow);
 
 // Helper to reset store state before each test
 const resetStore = () => {

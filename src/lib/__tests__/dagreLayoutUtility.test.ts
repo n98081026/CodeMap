@@ -1,24 +1,24 @@
-import { DagreLayoutUtility } from './dagreLayoutUtility';
+import { DagreLayoutUtility } from '../dagreLayoutUtility';
 
 import type {
   NodeLayoutInput,
   EdgeLayoutInput,
   DagreLayoutOptions,
   NodePositionOutput,
-} from '../types/graph-adapter';
+} from '@/types/graph-adapter';
 
 // Mock dagre library
-const mockDagreNode = jest.fn();
-const mockDagreSetNode = jest.fn();
-const mockDagreSetEdge = jest.fn();
-const mockDagreNodes = jest.fn();
-const mockDagreLayout = jest.fn();
+const mockDagreNode = vi.fn();
+const mockDagreSetNode = vi.fn();
+const mockDagreSetEdge = vi.fn();
+const mockDagreNodes = vi.fn();
+const mockDagreLayout = vi.fn();
 
-jest.mock('dagre', () => ({
+vi.mock('dagre', () => ({
   graphlib: {
-    Graph: jest.fn().mockImplementation(() => ({
-      setGraph: jest.fn(),
-      setDefaultEdgeLabel: jest.fn(),
+    Graph: vi.fn().mockImplementation(() => ({
+      setGraph: vi.fn(),
+      setDefaultEdgeLabel: vi.fn(),
       node: mockDagreNode,
       setNode: mockDagreSetNode,
       setEdge: mockDagreSetEdge,
@@ -126,7 +126,7 @@ describe('DagreLayoutUtility', () => {
   });
 
   test('should warn if edge references non-existent node', async () => {
-    const consoleWarnSpy = jest
+    const consoleWarnSpy = vi
       .spyOn(console, 'warn')
       .mockImplementation(() => {});
     const nodes: NodeLayoutInput[] = [{ id: 'n1', width: 100, height: 50 }];
@@ -135,7 +135,7 @@ describe('DagreLayoutUtility', () => {
 
     // Mock hasNode to reflect the actual nodes set
     const graphInstance = (dagre as any).graphlib.Graph.mock.results[0].value;
-    graphInstance.hasNode = jest.fn((id) => id === 'n1');
+    graphInstance.hasNode = vi.fn((id) => id === 'n1');
 
     mockDagreNodes.mockReturnValue(['n1']); // Only n1 is processed by dagre
     mockDagreNode.mockReturnValue({ x: 50, y: 25, width: 100, height: 50 });

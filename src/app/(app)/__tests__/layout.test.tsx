@@ -2,7 +2,7 @@ import { render, waitFor } from '@testing-library/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import AppLayout from './layout'; // Assuming this is the correct export name
+import AppLayout from '../layout'; // Assuming this is the correct export name
 
 import { useAuth } from '@/contexts/auth-context';
 
@@ -12,10 +12,17 @@ vi.mock('@/contexts/auth-context');
 // Mock next/navigation
 const mockUseRouter = vi.fn();
 const mockUsePathname = vi.fn();
-vi.mock('next/navigation', () => ({
-  useRouter: () => mockUseRouter(),
-  usePathname: () => mockUsePathname(),
-}));
+const mockUseSearchParams = vi.fn();
+
+vi.mock('next/navigation', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useRouter: () => mockUseRouter(),
+    usePathname: () => mockUsePathname(),
+    useSearchParams: () => mockUseSearchParams(),
+  };
+});
 
 // Mock MainLayout component as it's a child and not the focus of this test
 vi.mock('@/components/layout/main-layout', () => ({

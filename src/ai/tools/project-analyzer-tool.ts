@@ -3164,10 +3164,10 @@ async function analyzeProjectStructure(
     }
 
     output.directoryStructureSummary = [];
-    const MAX_DIR_DEPTH_FOR_SUMMARY = 3; // Configure max depth for summary to avoid excessive detail
+    // const MAX_DIR_DEPTH_FOR_SUMMARY = 3; // Configure max depth for summary to avoid excessive detail // Duplicate
 
     for (const [dirPath, data] of directoryDataMap.entries()) {
-      if (data.depth > MAX_DIR_DEPTH_FOR_SUMMARY && dirPath !== '.') continue; // Skip very deep directories unless it's root
+      // if (data.depth > MAX_DIR_DEPTH_FOR_SUMMARY && dirPath !== '.') continue; // Skip very deep directories unless it's root // Duplicate
 
       let inferredPurpose = 'General';
       const lowerDirPath = dirPath.toLowerCase();

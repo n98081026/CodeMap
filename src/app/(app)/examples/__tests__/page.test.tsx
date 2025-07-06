@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import ExamplesPage from './page'; // Default export
+import ExamplesPage from '../page'; // Default export
 
 import { useAuth } from '@/contexts/auth-context';
 import { exampleProjectsData } from '@/lib/example-data';

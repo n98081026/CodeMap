@@ -6,7 +6,7 @@ import {
   getAllClassrooms,
   updateClassroom,
   deleteClassroom,
-} from './classroomService'; // Added deleteClassroom
+} from '../classroomService'; // Added deleteClassroom
 
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService';

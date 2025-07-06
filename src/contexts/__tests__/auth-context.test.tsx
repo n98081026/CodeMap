@@ -6,8 +6,8 @@ import {
   AuthProvider,
   useAuth,
   __test__handleCopyExampleAction,
-} from './auth-context'; // Import the function for testing
-import { handleCopyExampleAction as __test__handleCopyExampleAction } from './auth-context';
+} from '../auth-context'; // Import the function for testing
+import { handleCopyExampleAction as __test__handleCopyExampleAction } from '../auth-context';
 
 import { useToast } from '@/hooks/use-toast';
 import { exampleProjects as actualExampleProjects } from '@/lib/example-data';
@@ -74,9 +74,18 @@ const mockExampleProjectsData = [
     mapJsonPath: '/example-maps/example2.json',
   },
 ];
-vi.mock('@/lib/example-data', () => ({
-  exampleProjects: mockExampleProjectsData,
-}));
+// vi.mock('@/lib/example-data', () => ({ // This will be hoisted
+//   exampleProjects: mockExampleProjectsData,
+// }));
+// Corrected mock structure for hoisting:
+vi.mock('@/lib/example-data', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    // To allow actualExampleProjects to be used if needed, but override exampleProjects for tests
+    exampleProjects: mockExampleProjectsData, // Use the pre-defined mock data
+  };
+});
 
 // Mock Zustand store for concept maps
 const mockInitializeNewMap = vi.fn();

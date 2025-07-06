@@ -1,37 +1,37 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 
-import { AISuggestionPanel } from './ai-suggestion-panel';
+import { AISuggestionPanel } from '../ai-suggestion-panel';
 
-import type { RelationSuggestion } from './ai-suggestion-panel'; // Assuming RelationSuggestion is exported or defined locally for tests
+import type { RelationSuggestion } from '../ai-suggestion-panel'; // Assuming RelationSuggestion is exported or defined locally for tests
 import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
 
 import useConceptMapStore from '@/stores/concept-map-store';
 
 // Mock Zustand store
-jest.mock('@/stores/concept-map-store');
+vi.mock('@/stores/concept-map-store');
 
 // Mock @tanstack/react-virtual
-jest.mock('@tanstack/react-virtual', () => ({
-  useVirtualizer: jest.fn((options) => {
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: vi.fn((options) => {
     // Simple mock: just map over the items directly for rendering in tests
     const virtualItems = Array.from({ length: options.count }, (_, index) => ({
       index,
       start: index * options.estimateSize(),
       size: options.estimateSize(),
-      measureRef: jest.fn(), // Corrected: measureRef to measureElement
+      measureRef: vi.fn(), // Corrected: measureRef to measureElement
     }));
     return {
       getVirtualItems: () => virtualItems,
       getTotalSize: () => options.count * options.estimateSize(),
-      measureElement: jest.fn(), // Added measureElement to the return
+      measureElement: vi.fn(), // Added measureElement to the return
     };
   }),
 }));
 
 // Mock Lucide icons
-jest.mock('lucide-react', () => {
-  const original = jest.requireActual('lucide-react');
+vi.mock('lucide-react', async (importOriginal) => {
+  const original = await importOriginal();
   return {
     ...original,
     GitFork: () => <svg data-testid='git-fork-icon' />,
@@ -50,9 +50,9 @@ jest.mock('lucide-react', () => {
 });
 
 describe('AISuggestionPanel', () => {
-  let mockSetDragPreview: jest.Mock;
-  let mockClearDragPreview: jest.Mock;
-  let mockSetDraggedRelationPreview: jest.Mock;
+  let mockSetDragPreview: vi.Mock;
+  let mockClearDragPreview: vi.Mock;
+  let mockSetDraggedRelationPreview: vi.Mock;
 
   const mockExtractedConcepts: ExtractedConceptItem[] = [
     { concept: 'Concept 1', context: 'Context A', source: 'Source X' },
@@ -104,7 +104,7 @@ describe('AISuggestionPanel', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders empty state when no suggestions are provided', () => {
@@ -122,12 +122,12 @@ describe('AISuggestionPanel', () => {
   });
 
   describe('Extracted Concepts Section', () => {
-    let mockOnAddExtractedConcepts: jest.Mock;
-    let mockOnClearExtractedConcepts: jest.Mock;
+    let mockOnAddExtractedConcepts: vi.Mock;
+    let mockOnClearExtractedConcepts: vi.Mock;
 
     beforeEach(() => {
-      mockOnAddExtractedConcepts = jest.fn();
-      mockOnClearExtractedConcepts = jest.fn();
+      mockOnAddExtractedConcepts = vi.fn();
+      mockOnClearExtractedConcepts = vi.fn();
     });
 
     test('renders extracted concepts and their statuses', () => {
@@ -229,12 +229,12 @@ describe('AISuggestionPanel', () => {
   });
 
   describe('Suggested Relations Section', () => {
-    let mockOnAddSuggestedRelations: jest.Mock;
-    let mockOnClearSuggestedRelations: jest.Mock;
+    let mockOnAddSuggestedRelations: vi.Mock;
+    let mockOnClearSuggestedRelations: vi.Mock;
 
     beforeEach(() => {
-      mockOnAddSuggestedRelations = jest.fn();
-      mockOnClearSuggestedRelations = jest.fn();
+      mockOnAddSuggestedRelations = vi.fn();
+      mockOnClearSuggestedRelations = vi.fn();
     });
 
     test('renders suggested relations', () => {
