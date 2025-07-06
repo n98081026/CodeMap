@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { usePathname } from 'next/navigation';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { SidebarNav } from './sidebar-nav'; // Assuming named export
+import { SidebarNav } from '../sidebar-nav'; // Assuming named export
 
 import { useAuth } from '@/contexts/auth-context';
 

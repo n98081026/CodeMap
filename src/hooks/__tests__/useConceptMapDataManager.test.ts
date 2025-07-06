@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { useConceptMapDataManager } from './useConceptMapDataManager';
+import { useConceptMapDataManager } from '../useConceptMapDataManager';
 
 import { useAuth } from '@/contexts/auth-context'; // Keep this, but it's mocked
 import { useToast } from '@/hooks/use-toast';
@@ -82,43 +82,38 @@ const mockStoreState = {
   },
 };
 
-// vi.mock('@/stores/concept-map-store', () => ({
-//   useConceptMapStore: vi.fn(() => mockStoreState),
-//   // If you need to access getState().clear() for temporal
-//   // default: { getState: () => mockStoreState, temporal: { getState: () => ({ clear: vi.fn() }) } }
-// }));
-
-vi.mock('@/stores/concept-map-store', () => {
-  const actualStore = vi.importActual('@/stores/concept-map-store');
+vi.mock('@/stores/concept-map-store', async (importOriginal) => {
+  const actual = await importOriginal();
   const mockTemporal = {
     getState: () => ({
       clear: vi.fn(),
-      // ... other temporal state/actions if needed
     }),
-    // ... other temporal methods like `subscribe`, `destroy` if used
   };
 
-  // Create a spy on the actual store and then override parts of it
-  const storeSpy = vi.fn(() => ({
-    ...actualStore.useConceptMapStore.getState(), // Get actual initial state
-    ...mockStoreState, // Override with mocks for actions
-    temporal: mockTemporal, // Provide mock temporal
-  }));
+  // This will be the function returned by `useConceptMapStore`
+  const storeHookMock = () => ({
+    ...(actual.useConceptMapStore ? actual.useConceptMapStore.getState() : {}), // Spread initial state from actual store if possible
+    ...mockStoreState, // Apply our defined mock state and actions
+    temporal: mockTemporal,
+  });
 
-  // Also mock the `getState` method if it's used directly
-  storeSpy.getState = () => ({
-    ...actualStore.useConceptMapStore.getState(),
+  // If `useConceptMapStore.getState()` is used directly
+  storeHookMock.getState = () => ({
+    ...(actual.useConceptMapStore ? actual.useConceptMapStore.getState() : {}),
     ...mockStoreState,
     temporal: mockTemporal,
   });
 
+  // If `useConceptMapStore.temporal` is accessed directly
+  storeHookMock.temporal = mockTemporal;
+
+
   return {
-    useConceptMapStore: storeSpy,
-    default: {
-      ...actualStore.default, // Spread actual default export
-      getState: storeSpy.getState, // Override getState
-      temporal: mockTemporal, // Provide mock temporal for direct access
-    },
+    ...actual,
+    useConceptMapStore: storeHookMock,
+    // Handling if the store is imported as default: `import useStore from '...'`
+    // and then `useStore.getState()` or `useStore.temporal` is used.
+    default: storeHookMock,
   };
 });
 

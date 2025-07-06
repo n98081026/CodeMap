@@ -1,5 +1,5 @@
 // src/lib/layout-utils.test.ts
-import { getNodePlacement } from './layout-utils';
+import { getNodePlacement } from '../layout-utils';
 
 import type { ConceptMapNode } from '@/types';
 
