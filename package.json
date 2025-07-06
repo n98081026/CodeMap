@@ -17,7 +17,8 @@
     "analyze": "cross-env ANALYZE=true next build",
     "depcheck": "depcheck",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.8.0",
@@ -83,6 +84,7 @@
   "devDependencies": {
     "@next/bundle-analyzer": "^14.2.5",
     "@next/eslint-plugin-next": "^14.2.5",
+    "@playwright/test": "^1.53.2",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
