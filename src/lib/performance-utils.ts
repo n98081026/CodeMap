@@ -11,7 +11,7 @@ export function debounce<T extends (...args: any[]) => any>(
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
-  
+
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
@@ -24,12 +24,12 @@ export function throttle<T extends (...args: any[]) => any>(
   limit: number
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
-  
+
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+      setTimeout(() => (inThrottle = false), limit);
     }
   };
 }
@@ -48,28 +48,35 @@ export function usePerformanceMonitor(operationName: string) {
   const startTiming = useCallback(() => {
     return performance.now();
   }, []);
-  
-  const endTiming = useCallback((startTime: number) => {
-    const duration = performance.now() - startTime;
-    console.log(`⏱️ ${operationName} took ${duration.toFixed(2)}ms`);
-    
-    // Report to analytics if available
-    if (typeof window !== 'undefined' && 'gtag' in window) {
-      (window as any).gtag('event', 'timing_complete', {
-        name: operationName,
-        value: Math.round(duration)
-      });
-    }
-    
-    return duration;
-  }, [operationName]);
-  
+
+  const endTiming = useCallback(
+    (startTime: number) => {
+      const duration = performance.now() - startTime;
+      console.log(`⏱️ ${operationName} took ${duration.toFixed(2)}ms`);
+
+      // Report to analytics if available
+      if (typeof window !== 'undefined' && 'gtag' in window) {
+        (window as any).gtag('event', 'timing_complete', {
+          name: operationName,
+          value: Math.round(duration),
+        });
+      }
+
+      return duration;
+    },
+    [operationName]
+  );
+
   return { startTiming, endTiming };
 }
 
 // Memory usage monitoring
 export function getMemoryUsage(): string {
-  if (typeof window !== 'undefined' && 'performance' in window && 'memory' in performance) {
+  if (
+    typeof window !== 'undefined' &&
+    'performance' in window &&
+    'memory' in performance
+  ) {
     const memory = (performance as any).memory;
     const used = Math.round(memory.usedJSHeapSize / 1024 / 1024);
     const total = Math.round(memory.totalJSHeapSize / 1024 / 1024);
@@ -87,7 +94,7 @@ export function shouldRenderNode(
   const buffer = 200; // Render buffer outside viewport
   const scaledX = (nodePosition.x + viewport.x) * viewport.zoom;
   const scaledY = (nodePosition.y + viewport.y) * viewport.zoom;
-  
+
   return (
     scaledX > -buffer &&
     scaledX < canvasSize.width + buffer &&
@@ -102,15 +109,15 @@ export class BatchProcessor<T> {
   private batchSize: number;
   private processor: (items: T[]) => void;
   private timeout: NodeJS.Timeout | null = null;
-  
+
   constructor(batchSize: number, processor: (items: T[]) => void) {
     this.batchSize = batchSize;
     this.processor = processor;
   }
-  
+
   add(item: T): void {
     this.batch.push(item);
-    
+
     if (this.batch.length >= this.batchSize) {
       this.flush();
     } else {
@@ -119,7 +126,7 @@ export class BatchProcessor<T> {
       this.timeout = setTimeout(() => this.flush(), 100);
     }
   }
-  
+
   flush(): void {
     if (this.batch.length > 0) {
       this.processor([...this.batch]);
@@ -135,11 +142,13 @@ export class BatchProcessor<T> {
 // Web Vitals reporting
 export function reportWebVitals(metric: any): void {
   console.log(`📊 ${metric.name}: ${metric.value}`);
-  
+
   // Report to analytics
   if (typeof window !== 'undefined' && 'gtag' in window) {
     (window as any).gtag('event', metric.name, {
-      value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
+      value: Math.round(
+        metric.name === 'CLS' ? metric.value * 1000 : metric.value
+      ),
       event_category: 'Web Vitals',
       event_label: metric.id,
       non_interaction: true,

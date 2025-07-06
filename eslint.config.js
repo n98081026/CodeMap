@@ -41,11 +41,6 @@ export default [
       "react": reactPlugin,
       "react-hooks": reactHooksPlugin,
       "jsx-a11y": jsxA11yPlugin,
-      "@typescript-eslint": tseslint,
-      "import": importPlugin,
-      "react": reactPlugin,
-      "react-hooks": reactHooksPlugin,
-      "jsx-a11y": jsxA11yPlugin,
       // "prettier" plugin is correctly placed here for global application
       "prettier": prettierPlugin,
       // "@next/next" plugin will be applied more specifically below

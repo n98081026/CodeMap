@@ -8,11 +8,11 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose, // If needed for explicit close button alongside cancel
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface RefineGhostNodeModalProps {
   isOpen: boolean;
@@ -51,45 +51,50 @@ export const RefineGhostNodeModal: React.FC<RefineGhostNodeModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className='sm:max-w-[480px]'>
         <DialogHeader>
           <DialogTitle>Refine Suggestion</DialogTitle>
           <DialogDescription>
-            Edit the content for this AI-suggested node before adding it to the map.
+            Edit the content for this AI-suggested node before adding it to the
+            map.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="ghostNodeText" className="text-right">
+          <div className='grid gap-4 py-4'>
+            <div className='grid grid-cols-4 items-center gap-4'>
+              <Label htmlFor='ghostNodeText' className='text-right'>
                 Text
               </Label>
               <Input
-                id="ghostNodeText"
+                id='ghostNodeText'
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                className="col-span-3"
+                className='col-span-3'
                 required
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="ghostNodeDetails" className="text-right">
+            <div className='grid grid-cols-4 items-center gap-4'>
+              <Label htmlFor='ghostNodeDetails' className='text-right'>
                 Details
               </Label>
               <Textarea
-                id="ghostNodeDetails"
+                id='ghostNodeDetails'
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
-                className="col-span-3 h-24 resize-none"
-                placeholder="(Optional) Add more details..."
+                className='col-span-3 h-24 resize-none'
+                placeholder='(Optional) Add more details...'
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit">Save Changes</Button>
+            <Button type='submit'>Save Changes</Button>
           </DialogFooter>
         </form>
       </DialogContent>

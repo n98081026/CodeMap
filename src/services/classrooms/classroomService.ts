@@ -1,4 +1,3 @@
-
 // src/services/classrooms/classroomService.ts
 'use server';
 
@@ -9,18 +8,33 @@
 import type { Classroom, User } from '@/types';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
-import { getUserById } from '@/services/users/userService'; 
-import { BYPASS_AUTH_FOR_TESTING, MOCK_CLASSROOM_SHARED, MOCK_CLASSROOM_TEACHER_OWNED, MOCK_STUDENT_USER, MOCK_TEACHER_USER, MOCK_USERS } from '@/lib/config';
+import { getUserById } from '@/services/users/userService';
+import {
+  BYPASS_AUTH_FOR_TESTING,
+  MOCK_CLASSROOM_SHARED,
+  MOCK_CLASSROOM_TEACHER_OWNED,
+  MOCK_STUDENT_USER,
+  MOCK_TEACHER_USER,
+  MOCK_USERS,
+} from '@/lib/config';
 
 // Mock data store for bypass mode
-let MOCK_CLASSROOMS_STORE: Classroom[] = [MOCK_CLASSROOM_SHARED, MOCK_CLASSROOM_TEACHER_OWNED];
-let MOCK_CLASSROOM_STUDENTS_STORE: Array<{classroom_id: string, student_id: string}> = [
-    { classroom_id: MOCK_CLASSROOM_SHARED.id, student_id: MOCK_STUDENT_USER.id },
-    { classroom_id: MOCK_CLASSROOM_SHARED.id, student_id: 'another-mock-student-id'},
-    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED.id, student_id: 'mock-s1'},
-    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED.id, student_id: 'mock-s2'},
+let MOCK_CLASSROOMS_STORE: Classroom[] = [
+  MOCK_CLASSROOM_SHARED,
+  MOCK_CLASSROOM_TEACHER_OWNED,
 ];
-
+let MOCK_CLASSROOM_STUDENTS_STORE: Array<{
+  classroom_id: string;
+  student_id: string;
+}> = [
+  { classroom_id: MOCK_CLASSROOM_SHARED.id, student_id: MOCK_STUDENT_USER.id },
+  {
+    classroom_id: MOCK_CLASSROOM_SHARED.id,
+    student_id: 'another-mock-student-id',
+  },
+  { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED.id, student_id: 'mock-s1' },
+  { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED.id, student_id: 'mock-s2' },
+];
 
 async function populateTeacherName(classroom: Classroom): Promise<void> {
   if (classroom.teacherId && !classroom.teacherName) {
@@ -28,20 +42,24 @@ async function populateTeacherName(classroom: Classroom): Promise<void> {
     if (teacher) {
       classroom.teacherName = teacher.name;
     } else {
-      classroom.teacherName = "Unknown Teacher";
+      classroom.teacherName = 'Unknown Teacher';
     }
   }
 }
 
-async function populateStudentDetailsForClassroom(classroom: Classroom): Promise<void> {
-    if (BYPASS_AUTH_FOR_TESTING) {
-        const studentEntries = MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id === classroom.id);
-        classroom.studentIds = studentEntries.map(entry => entry.student_id);
-        classroom.students = classroom.studentIds
-            .map(id => MOCK_USERS.find(u => u.id === id))
-            .filter(u => u !== undefined) as User[];
-        return;
-    }
+async function populateStudentDetailsForClassroom(
+  classroom: Classroom
+): Promise<void> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const studentEntries = MOCK_CLASSROOM_STUDENTS_STORE.filter(
+      (cs) => cs.classroom_id === classroom.id
+    );
+    classroom.studentIds = studentEntries.map((entry) => entry.student_id);
+    classroom.students = classroom.studentIds
+      .map((id) => MOCK_USERS.find((u) => u.id === id))
+      .filter((u) => u !== undefined) as User[];
+    return;
+  }
 
   const { data: studentEntries, error: studentEntriesError } = await supabase
     .from('classroom_students')
@@ -49,13 +67,16 @@ async function populateStudentDetailsForClassroom(classroom: Classroom): Promise
     .eq('classroom_id', classroom.id);
 
   if (studentEntriesError) {
-    console.error(`Error fetching student entries for classroom ${classroom.id}:`, studentEntriesError);
+    console.error(
+      `Error fetching student entries for classroom ${classroom.id}:`,
+      studentEntriesError
+    );
     classroom.studentIds = [];
     classroom.students = [];
     return;
   }
 
-  const studentIds = studentEntries.map(entry => entry.student_id);
+  const studentIds = studentEntries.map((entry) => entry.student_id);
   classroom.studentIds = studentIds;
 
   if (studentIds.length > 0) {
@@ -65,8 +86,11 @@ async function populateStudentDetailsForClassroom(classroom: Classroom): Promise
       .in('id', studentIds);
 
     if (profilesError) {
-      console.error(`Error fetching student profiles for classroom ${classroom.id}:`, profilesError);
-      classroom.students = []; 
+      console.error(
+        `Error fetching student profiles for classroom ${classroom.id}:`,
+        profilesError
+      );
+      classroom.students = [];
       return;
     }
     classroom.students = studentProfiles as User[];
@@ -75,19 +99,23 @@ async function populateStudentDetailsForClassroom(classroom: Classroom): Promise
   }
 }
 
-
 export async function createClassroom(
   name: string,
   description: string | undefined,
   teacherId: string,
   subject?: string,
-  difficulty?: "beginner" | "intermediate" | "advanced",
+  difficulty?: 'beginner' | 'intermediate' | 'advanced',
   enableStudentAiAnalysis?: boolean
 ): Promise<Classroom> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const teacher = MOCK_USERS.find(u => u.id === teacherId);
-    if (!teacher || (teacher.role !== UserRole.TEACHER && teacher.role !== UserRole.ADMIN)) {
-      throw new Error("BYPASS_AUTH: Invalid teacher ID or user is not authorized.");
+    const teacher = MOCK_USERS.find((u) => u.id === teacherId);
+    if (
+      !teacher ||
+      (teacher.role !== UserRole.TEACHER && teacher.role !== UserRole.ADMIN)
+    ) {
+      throw new Error(
+        'BYPASS_AUTH: Invalid teacher ID or user is not authorized.'
+      );
     }
     const newClassroom: Classroom = {
       id: `class-bypass-${Date.now()}`,
@@ -96,23 +124,29 @@ export async function createClassroom(
       teacherId,
       teacherName: teacher.name,
       studentIds: [],
-      students:[],
+      students: [],
       inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
       subject,
       difficulty,
-      enableStudentAiAnalysis: enableStudentAiAnalysis === undefined ? true : enableStudentAiAnalysis,
+      enableStudentAiAnalysis:
+        enableStudentAiAnalysis === undefined ? true : enableStudentAiAnalysis,
     };
     MOCK_CLASSROOMS_STORE.push(newClassroom);
     return newClassroom;
   }
 
   const teacher = await getUserById(teacherId);
-  if (!teacher || (teacher.role !== UserRole.TEACHER && teacher.role !== UserRole.ADMIN)) {
-    throw new Error("Invalid teacher ID or user is not authorized to create classrooms.");
+  if (
+    !teacher ||
+    (teacher.role !== UserRole.TEACHER && teacher.role !== UserRole.ADMIN)
+  ) {
+    throw new Error(
+      'Invalid teacher ID or user is not authorized to create classrooms.'
+    );
   }
 
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  
+
   const classroomToInsert: any = {
     name,
     description: description || null,
@@ -122,7 +156,8 @@ export async function createClassroom(
 
   if (subject) classroomToInsert.subject = subject;
   if (difficulty) classroomToInsert.difficulty = difficulty;
-  classroomToInsert.enable_student_ai_analysis = enableStudentAiAnalysis === undefined ? true : enableStudentAiAnalysis;
+  classroomToInsert.enable_student_ai_analysis =
+    enableStudentAiAnalysis === undefined ? true : enableStudentAiAnalysis;
 
   const { data, error } = await supabase
     .from('classrooms')
@@ -134,15 +169,15 @@ export async function createClassroom(
     console.error('Supabase createClassroom error:', error);
     throw new Error(`Failed to create classroom: ${error.message}`);
   }
-  if (!data) throw new Error("Failed to create classroom: No data returned.");
+  if (!data) throw new Error('Failed to create classroom: No data returned.');
 
   return {
     id: data.id,
     name: data.name,
     description: data.description ?? undefined,
     teacherId: data.teacher_id,
-    teacherName: teacher.name, 
-    studentIds: [], 
+    teacherName: teacher.name,
+    studentIds: [],
     students: [],
     inviteCode: data.invite_code,
     subject: data.subject ?? undefined,
@@ -151,7 +186,6 @@ export async function createClassroom(
   };
 }
 
-
 export async function getClassroomsByTeacherId(
   teacherId: string,
   page?: number,
@@ -159,22 +193,33 @@ export async function getClassroomsByTeacherId(
   searchTerm?: string
 ): Promise<{ classrooms: Classroom[]; totalCount: number }> {
   if (BYPASS_AUTH_FOR_TESTING && teacherId === MOCK_TEACHER_USER.id) {
-    let filtered = MOCK_CLASSROOMS_STORE.filter(c => c.teacherId === teacherId);
+    let filtered = MOCK_CLASSROOMS_STORE.filter(
+      (c) => c.teacherId === teacherId
+    );
     if (searchTerm) {
-      filtered = filtered.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      filtered = filtered.filter((c) =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
     const totalCount = filtered.length;
     if (page && limit) {
       filtered = filtered.slice((page - 1) * limit, page * limit);
     }
-    return { classrooms: filtered.map(c => ({...c, studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id === c.id).map(cs => cs.student_id)})), totalCount };
+    return {
+      classrooms: filtered.map((c) => ({
+        ...c,
+        studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(
+          (cs) => cs.classroom_id === c.id
+        ).map((cs) => cs.student_id),
+      })),
+      totalCount,
+    };
   }
-   if (BYPASS_AUTH_FOR_TESTING) return { classrooms: [], totalCount: 0 };
-
+  if (BYPASS_AUTH_FOR_TESTING) return { classrooms: [], totalCount: 0 };
 
   let query = supabase
     .from('classrooms')
-    .select('*, teacher:profiles!teacher_id(name)', { count: 'exact' }) 
+    .select('*, teacher:profiles!teacher_id(name)', { count: 'exact' })
     .eq('teacher_id', teacherId)
     .order('name', { ascending: true });
 
@@ -197,16 +242,16 @@ export async function getClassroomsByTeacherId(
 
   const classroomsPromises = (data || []).map(async (c) => {
     const classroom: Classroom = {
-        id: c.id,
-        name: c.name,
-        description: c.description ?? undefined,
-        teacherId: c.teacher_id,
-        teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
-        studentIds: [], 
-        inviteCode: c.invite_code,
-        subject: c.subject ?? undefined,
-        difficulty: c.difficulty ?? undefined,
-        enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
+      id: c.id,
+      name: c.name,
+      description: c.description ?? undefined,
+      teacherId: c.teacher_id,
+      teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
+      studentIds: [],
+      inviteCode: c.invite_code,
+      subject: c.subject ?? undefined,
+      difficulty: c.difficulty ?? undefined,
+      enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
     };
     const { count: studentCount, error: countError } = await supabase
       .from('classroom_students')
@@ -214,10 +259,12 @@ export async function getClassroomsByTeacherId(
       .eq('classroom_id', c.id);
 
     if (countError) {
-        console.warn(`Error counting students for classroom ${c.id}: ${countError.message}`);
-        classroom.studentIds = [];
+      console.warn(
+        `Error counting students for classroom ${c.id}: ${countError.message}`
+      );
+      classroom.studentIds = [];
     } else {
-        classroom.studentIds = Array(studentCount || 0).fill('');
+      classroom.studentIds = Array(studentCount || 0).fill('');
     }
     return classroom;
   });
@@ -226,16 +273,23 @@ export async function getClassroomsByTeacherId(
   return { classrooms, totalCount: count || 0 };
 }
 
-
-export async function getClassroomsByStudentId(studentId: string): Promise<Classroom[]> {
-    if (BYPASS_AUTH_FOR_TESTING && studentId === MOCK_STUDENT_USER.id) {
-        const enrolledClassroomIds = MOCK_CLASSROOM_STUDENTS_STORE
-            .filter(cs => cs.student_id === studentId)
-            .map(cs => cs.classroom_id);
-        return MOCK_CLASSROOMS_STORE.filter(c => enrolledClassroomIds.includes(c.id))
-                                   .map(c => ({...c, studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id === c.id).map(cs => cs.student_id)}));
-    }
-    if (BYPASS_AUTH_FOR_TESTING) return [];
+export async function getClassroomsByStudentId(
+  studentId: string
+): Promise<Classroom[]> {
+  if (BYPASS_AUTH_FOR_TESTING && studentId === MOCK_STUDENT_USER.id) {
+    const enrolledClassroomIds = MOCK_CLASSROOM_STUDENTS_STORE.filter(
+      (cs) => cs.student_id === studentId
+    ).map((cs) => cs.classroom_id);
+    return MOCK_CLASSROOMS_STORE.filter((c) =>
+      enrolledClassroomIds.includes(c.id)
+    ).map((c) => ({
+      ...c,
+      studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(
+        (cs) => cs.classroom_id === c.id
+      ).map((cs) => cs.student_id),
+    }));
+  }
+  if (BYPASS_AUTH_FOR_TESTING) return [];
 
   const { data: studentClassEntries, error: entriesError } = await supabase
     .from('classroom_students')
@@ -243,14 +297,19 @@ export async function getClassroomsByStudentId(studentId: string): Promise<Class
     .eq('student_id', studentId);
 
   if (entriesError) {
-    console.error('Supabase getClassroomsByStudentId (entries) error:', entriesError);
-    throw new Error(`Failed to fetch student's classroom entries: ${entriesError.message}`);
+    console.error(
+      'Supabase getClassroomsByStudentId (entries) error:',
+      entriesError
+    );
+    throw new Error(
+      `Failed to fetch student's classroom entries: ${entriesError.message}`
+    );
   }
   if (!studentClassEntries || studentClassEntries.length === 0) {
     return [];
   }
 
-  const classroomIds = studentClassEntries.map(entry => entry.classroom_id);
+  const classroomIds = studentClassEntries.map((entry) => entry.classroom_id);
 
   const { data: classroomData, error: classroomsError } = await supabase
     .from('classrooms')
@@ -259,52 +318,59 @@ export async function getClassroomsByStudentId(studentId: string): Promise<Class
     .order('name', { ascending: true });
 
   if (classroomsError) {
-    console.error('Supabase getClassroomsByStudentId (classrooms) error:', classroomsError);
+    console.error(
+      'Supabase getClassroomsByStudentId (classrooms) error:',
+      classroomsError
+    );
     throw new Error(`Failed to fetch classrooms: ${classroomsError.message}`);
   }
 
   const classroomsPromises = (classroomData || []).map(async (c) => {
     const classroom: Classroom = {
-        id: c.id,
-        name: c.name,
-        description: c.description ?? undefined,
-        teacherId: c.teacher_id,
-        teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
-        studentIds: [], 
-        inviteCode: c.invite_code,
-        subject: c.subject ?? undefined,
-        difficulty: c.difficulty ?? undefined,
-        enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
+      id: c.id,
+      name: c.name,
+      description: c.description ?? undefined,
+      teacherId: c.teacher_id,
+      teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
+      studentIds: [],
+      inviteCode: c.invite_code,
+      subject: c.subject ?? undefined,
+      difficulty: c.difficulty ?? undefined,
+      enableStudentAiAnalysis: c.enable_student_ai_analysis ?? true,
     };
     const { count: studentCount, error: countError } = await supabase
       .from('classroom_students')
       .select('student_id', { count: 'exact', head: true })
       .eq('classroom_id', c.id);
-    if (countError) console.warn(`Error counting students for classroom ${c.id}: ${countError.message}`);
+    if (countError)
+      console.warn(
+        `Error counting students for classroom ${c.id}: ${countError.message}`
+      );
     classroom.studentIds = Array(studentCount || 0).fill('');
     return classroom;
   });
-  
+
   return Promise.all(classroomsPromises);
 }
 
-
-export async function getClassroomById(classroomId: string): Promise<Classroom | null> {
+export async function getClassroomById(
+  classroomId: string
+): Promise<Classroom | null> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const classroom = MOCK_CLASSROOMS_STORE.find(c => c.id === classroomId);
+    const classroom = MOCK_CLASSROOMS_STORE.find((c) => c.id === classroomId);
     if (!classroom) return null;
-    const clonedClassroom = {...classroom}; // Avoid mutating mock store directly
+    const clonedClassroom = { ...classroom }; // Avoid mutating mock store directly
     await populateStudentDetailsForClassroom(clonedClassroom); // Populate mock students
     return clonedClassroom;
   }
 
   const { data, error } = await supabase
     .from('classrooms')
-    .select('*, teacher:profiles!teacher_id(name)') 
+    .select('*, teacher:profiles!teacher_id(name)')
     .eq('id', classroomId)
     .single();
 
-  if (error && error.code !== 'PGRST116') { 
+  if (error && error.code !== 'PGRST116') {
     console.error('Supabase getClassroomById error:', error);
     throw new Error(`Failed to fetch classroom: ${error.message}`);
   }
@@ -316,8 +382,8 @@ export async function getClassroomById(classroomId: string): Promise<Classroom |
     description: data.description ?? undefined,
     teacherId: data.teacher_id,
     teacherName: (data.teacher as any)?.name || 'Unknown Teacher',
-    studentIds: [], 
-    students: [],   
+    studentIds: [],
+    students: [],
     inviteCode: data.invite_code,
     subject: data.subject ?? undefined,
     difficulty: data.difficulty ?? undefined,
@@ -328,27 +394,41 @@ export async function getClassroomById(classroomId: string): Promise<Classroom |
   return classroom;
 }
 
-
-export async function addStudentToClassroom(classroomId: string, studentId: string): Promise<Classroom | null> {
+export async function addStudentToClassroom(
+  classroomId: string,
+  studentId: string
+): Promise<Classroom | null> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const classroom = MOCK_CLASSROOMS_STORE.find(c => c.id === classroomId);
-    const student = MOCK_USERS.find(u => u.id === studentId && u.role === UserRole.STUDENT);
-    if (!classroom) throw new Error("BYPASS_AUTH: Classroom not found.");
-    if (!student) throw new Error("BYPASS_AUTH: Invalid student ID or user is not a student.");
-    if (!MOCK_CLASSROOM_STUDENTS_STORE.find(cs => cs.classroom_id === classroomId && cs.student_id === studentId)) {
-      MOCK_CLASSROOM_STUDENTS_STORE.push({ classroom_id: classroomId, student_id: studentId });
+    const classroom = MOCK_CLASSROOMS_STORE.find((c) => c.id === classroomId);
+    const student = MOCK_USERS.find(
+      (u) => u.id === studentId && u.role === UserRole.STUDENT
+    );
+    if (!classroom) throw new Error('BYPASS_AUTH: Classroom not found.');
+    if (!student)
+      throw new Error(
+        'BYPASS_AUTH: Invalid student ID or user is not a student.'
+      );
+    if (
+      !MOCK_CLASSROOM_STUDENTS_STORE.find(
+        (cs) => cs.classroom_id === classroomId && cs.student_id === studentId
+      )
+    ) {
+      MOCK_CLASSROOM_STUDENTS_STORE.push({
+        classroom_id: classroomId,
+        student_id: studentId,
+      });
     }
-    const clonedClassroom = {...classroom};
+    const clonedClassroom = { ...classroom };
     await populateStudentDetailsForClassroom(clonedClassroom);
     return clonedClassroom;
   }
 
-  const classroomData = await getClassroomById(classroomId); 
-  if (!classroomData) throw new Error("Classroom not found.");
+  const classroomData = await getClassroomById(classroomId);
+  if (!classroomData) throw new Error('Classroom not found.');
 
   const student = await getUserById(studentId);
   if (!student || student.role !== UserRole.STUDENT) {
-    throw new Error("Invalid student ID or user is not a student.");
+    throw new Error('Invalid student ID or user is not a student.');
   }
 
   const { data: existingEntry, error: checkError } = await supabase
@@ -356,15 +436,15 @@ export async function addStudentToClassroom(classroomId: string, studentId: stri
     .select('*')
     .eq('classroom_id', classroomId)
     .eq('student_id', studentId)
-    .maybeSingle(); 
+    .maybeSingle();
 
-  if (checkError && checkError.code !== 'PGRST116') { 
-      console.error("Error checking existing student enrollment:", checkError);
-      throw new Error(`Failed to check enrollment: ${checkError.message}`);
+  if (checkError && checkError.code !== 'PGRST116') {
+    console.error('Error checking existing student enrollment:', checkError);
+    throw new Error(`Failed to check enrollment: ${checkError.message}`);
   }
 
-  if (existingEntry) { 
-    await populateStudentDetailsForClassroom(classroomData); 
+  if (existingEntry) {
+    await populateStudentDetailsForClassroom(classroomData);
     return classroomData;
   }
 
@@ -374,28 +454,32 @@ export async function addStudentToClassroom(classroomId: string, studentId: stri
 
   if (insertError) {
     console.error('Supabase addStudentToClassroom error:', insertError);
-    throw new Error(`Failed to add student to classroom: ${insertError.message}`);
+    throw new Error(
+      `Failed to add student to classroom: ${insertError.message}`
+    );
   }
 
-  await populateStudentDetailsForClassroom(classroomData); 
+  await populateStudentDetailsForClassroom(classroomData);
   return classroomData;
 }
 
-
-export async function removeStudentFromClassroom(classroomId: string, studentId: string): Promise<Classroom | null> {
-   if (BYPASS_AUTH_FOR_TESTING) {
-    const classroom = MOCK_CLASSROOMS_STORE.find(c => c.id === classroomId);
-    if (!classroom) throw new Error("BYPASS_AUTH: Classroom not found.");
+export async function removeStudentFromClassroom(
+  classroomId: string,
+  studentId: string
+): Promise<Classroom | null> {
+  if (BYPASS_AUTH_FOR_TESTING) {
+    const classroom = MOCK_CLASSROOMS_STORE.find((c) => c.id === classroomId);
+    if (!classroom) throw new Error('BYPASS_AUTH: Classroom not found.');
     MOCK_CLASSROOM_STUDENTS_STORE = MOCK_CLASSROOM_STUDENTS_STORE.filter(
-      cs => !(cs.classroom_id === classroomId && cs.student_id === studentId)
+      (cs) => !(cs.classroom_id === classroomId && cs.student_id === studentId)
     );
-    const clonedClassroom = {...classroom};
+    const clonedClassroom = { ...classroom };
     await populateStudentDetailsForClassroom(clonedClassroom);
     return clonedClassroom;
   }
 
-  const classroomData = await getClassroomById(classroomId); 
-  if (!classroomData) throw new Error("Classroom not found.");
+  const classroomData = await getClassroomById(classroomId);
+  if (!classroomData) throw new Error('Classroom not found.');
 
   const { error } = await supabase
     .from('classroom_students')
@@ -405,39 +489,60 @@ export async function removeStudentFromClassroom(classroomId: string, studentId:
 
   if (error) {
     console.error('Supabase removeStudentFromClassroom error:', error);
-    throw new Error(`Failed to remove student from classroom: ${error.message}`);
+    throw new Error(
+      `Failed to remove student from classroom: ${error.message}`
+    );
   }
 
-  await populateStudentDetailsForClassroom(classroomData); 
+  await populateStudentDetailsForClassroom(classroomData);
   return classroomData;
 }
 
-
-export async function updateClassroom(classroomId: string, updates: Partial<Pick<Classroom, 'name' | 'description' | 'subject' | 'difficulty' | 'enableStudentAiAnalysis'>>): Promise<Classroom | null> {
+export async function updateClassroom(
+  classroomId: string,
+  updates: Partial<
+    Pick<
+      Classroom,
+      | 'name'
+      | 'description'
+      | 'subject'
+      | 'difficulty'
+      | 'enableStudentAiAnalysis'
+    >
+  >
+): Promise<Classroom | null> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const index = MOCK_CLASSROOMS_STORE.findIndex(c => c.id === classroomId);
+    const index = MOCK_CLASSROOMS_STORE.findIndex((c) => c.id === classroomId);
     if (index === -1) return null;
-    MOCK_CLASSROOMS_STORE[index] = { ...MOCK_CLASSROOMS_STORE[index], ...updates };
-    const clonedClassroom = {...MOCK_CLASSROOMS_STORE[index]};
+    MOCK_CLASSROOMS_STORE[index] = {
+      ...MOCK_CLASSROOMS_STORE[index],
+      ...updates,
+    };
+    const clonedClassroom = { ...MOCK_CLASSROOMS_STORE[index] };
     await populateStudentDetailsForClassroom(clonedClassroom);
     return clonedClassroom;
   }
-  
+
   const classroomToUpdate = await getClassroomById(classroomId);
-  if (!classroomToUpdate) return null; 
+  if (!classroomToUpdate) return null;
 
   const supabaseUpdates: any = {};
   if (updates.name !== undefined) supabaseUpdates.name = updates.name;
-  if (updates.description !== undefined) supabaseUpdates.description = updates.description === "" ? null : updates.description;
-  if (updates.subject !== undefined) supabaseUpdates.subject = updates.subject === "" ? null : updates.subject;
-  if (updates.difficulty !== undefined) supabaseUpdates.difficulty = updates.difficulty;
-  if (updates.enableStudentAiAnalysis !== undefined) supabaseUpdates.enable_student_ai_analysis = updates.enableStudentAiAnalysis;
-  
+  if (updates.description !== undefined)
+    supabaseUpdates.description =
+      updates.description === '' ? null : updates.description;
+  if (updates.subject !== undefined)
+    supabaseUpdates.subject = updates.subject === '' ? null : updates.subject;
+  if (updates.difficulty !== undefined)
+    supabaseUpdates.difficulty = updates.difficulty;
+  if (updates.enableStudentAiAnalysis !== undefined)
+    supabaseUpdates.enable_student_ai_analysis =
+      updates.enableStudentAiAnalysis;
+
   if (Object.keys(supabaseUpdates).length === 0) {
-      return classroomToUpdate; 
+    return classroomToUpdate;
   }
   supabaseUpdates.updated_at = new Date().toISOString();
-
 
   const { data, error } = await supabase
     .from('classrooms')
@@ -450,31 +555,34 @@ export async function updateClassroom(classroomId: string, updates: Partial<Pick
     console.error('Supabase updateClassroom error:', error);
     throw new Error(`Failed to update classroom: ${error.message}`);
   }
-  if (!data) return null; 
+  if (!data) return null;
 
   const updatedClassroom: Classroom = {
     id: data.id,
     name: data.name,
     description: data.description ?? undefined,
     teacherId: data.teacher_id,
-    teacherName: (data.teacher as any)?.name || classroomToUpdate.teacherName, 
-    studentIds: classroomToUpdate.studentIds, 
-    students: classroomToUpdate.students, 
+    teacherName: (data.teacher as any)?.name || classroomToUpdate.teacherName,
+    studentIds: classroomToUpdate.studentIds,
+    students: classroomToUpdate.students,
     inviteCode: data.invite_code,
     subject: data.subject ?? undefined,
     difficulty: data.difficulty ?? undefined,
     enableStudentAiAnalysis: data.enable_student_ai_analysis ?? true,
   };
-  await populateStudentDetailsForClassroom(updatedClassroom); 
+  await populateStudentDetailsForClassroom(updatedClassroom);
   return updatedClassroom;
 }
-
 
 export async function deleteClassroom(classroomId: string): Promise<boolean> {
   if (BYPASS_AUTH_FOR_TESTING) {
     const initialLength = MOCK_CLASSROOMS_STORE.length;
-    MOCK_CLASSROOMS_STORE = MOCK_CLASSROOMS_STORE.filter(c => c.id !== classroomId);
-    MOCK_CLASSROOM_STUDENTS_STORE = MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id !== classroomId);
+    MOCK_CLASSROOMS_STORE = MOCK_CLASSROOMS_STORE.filter(
+      (c) => c.id !== classroomId
+    );
+    MOCK_CLASSROOM_STUDENTS_STORE = MOCK_CLASSROOM_STUDENTS_STORE.filter(
+      (cs) => cs.classroom_id !== classroomId
+    );
     return MOCK_CLASSROOMS_STORE.length < initialLength;
   }
 
@@ -484,37 +592,53 @@ export async function deleteClassroom(classroomId: string): Promise<boolean> {
     .eq('classroom_id', classroomId);
 
   if (deleteEnrollmentsError) {
-    console.error('Supabase deleteClassroom (enrollments) error:', deleteEnrollmentsError);
-    throw new Error(`Failed to delete student enrollments for classroom: ${deleteEnrollmentsError.message}`);
+    console.error(
+      'Supabase deleteClassroom (enrollments) error:',
+      deleteEnrollmentsError
+    );
+    throw new Error(
+      `Failed to delete student enrollments for classroom: ${deleteEnrollmentsError.message}`
+    );
   }
 
   const { error: deleteClassroomError, count } = await supabase
     .from('classrooms')
-    .delete({count: 'exact'})
+    .delete({ count: 'exact' })
     .eq('id', classroomId);
 
   if (deleteClassroomError) {
     console.error('Supabase deleteClassroom error:', deleteClassroomError);
-    throw new Error(`Failed to delete classroom: ${deleteClassroomError.message}`);
+    throw new Error(
+      `Failed to delete classroom: ${deleteClassroomError.message}`
+    );
   }
-  
+
   return count !== null && count > 0;
 }
 
-
 export async function getAllClassrooms(): Promise<Classroom[]> {
-   if (BYPASS_AUTH_FOR_TESTING) {
-    return MOCK_CLASSROOMS_STORE.map(c => ({...c, studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(cs => cs.classroom_id === c.id).map(cs => cs.student_id)}));
+  if (BYPASS_AUTH_FOR_TESTING) {
+    return MOCK_CLASSROOMS_STORE.map((c) => ({
+      ...c,
+      studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(
+        (cs) => cs.classroom_id === c.id
+      ).map((cs) => cs.student_id),
+    }));
   }
 
   const { data: classroomRows, error: classroomError } = await supabase
     .from('classrooms')
-    .select('*, teacher:profiles!teacher_id(name)') 
+    .select('*, teacher:profiles!teacher_id(name)')
     .order('name', { ascending: true });
 
   if (classroomError) {
-    console.error('Supabase getAllClassrooms (fetch classrooms) error:', classroomError);
-    throw new Error(`Failed to fetch all classrooms: ${classroomError.message}`);
+    console.error(
+      'Supabase getAllClassrooms (fetch classrooms) error:',
+      classroomError
+    );
+    throw new Error(
+      `Failed to fetch all classrooms: ${classroomError.message}`
+    );
   }
 
   if (!classroomRows) {
@@ -528,7 +652,7 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
       description: row.description ?? undefined,
       teacherId: row.teacher_id,
       teacherName: (row.teacher as any)?.name || 'Unknown Teacher',
-      studentIds: [], 
+      studentIds: [],
       inviteCode: row.invite_code,
       subject: row.subject ?? undefined,
       difficulty: row.difficulty ?? undefined,
@@ -540,8 +664,11 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
       .select('student_id', { count: 'exact', head: true })
       .eq('classroom_id', classroom.id);
 
-    if (countError) console.warn(`Error counting students for classroom ${classroom.id}: ${countError.message}`);
-    classroom.studentIds = Array(studentCount || 0).fill(''); 
+    if (countError)
+      console.warn(
+        `Error counting students for classroom ${classroom.id}: ${countError.message}`
+      );
+    classroom.studentIds = Array(studentCount || 0).fill('');
 
     return classroom;
   });

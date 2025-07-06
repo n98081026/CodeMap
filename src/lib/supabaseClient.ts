@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase'; // Ensure this path is correct
 
@@ -6,12 +5,20 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl) {
-  console.error("CRITICAL: Missing environment variable NEXT_PUBLIC_SUPABASE_URL");
-  throw new Error("Missing environment variable NEXT_PUBLIC_SUPABASE_URL. Frontend cannot initialize Supabase.");
+  console.error(
+    'CRITICAL: Missing environment variable NEXT_PUBLIC_SUPABASE_URL'
+  );
+  throw new Error(
+    'Missing environment variable NEXT_PUBLIC_SUPABASE_URL. Frontend cannot initialize Supabase.'
+  );
 }
 if (!supabaseAnonKey) {
-  console.error("CRITICAL: Missing environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  throw new Error("Missing environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY. Frontend cannot initialize Supabase.");
+  console.error(
+    'CRITICAL: Missing environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  );
+  throw new Error(
+    'Missing environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY. Frontend cannot initialize Supabase.'
+  );
 }
 
 // Create a single supabase client for interacting with your database

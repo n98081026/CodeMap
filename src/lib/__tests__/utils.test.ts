@@ -8,7 +8,9 @@ describe('utils', () => {
     });
 
     it('should handle conditional classes', () => {
-      expect(cn('base', true && 'conditional', false && 'hidden')).toBe('base conditional');
+      expect(cn('base', true && 'conditional', false && 'hidden')).toBe(
+        'base conditional'
+      );
     });
 
     it('should handle undefined and null values', () => {
@@ -29,11 +31,13 @@ describe('utils', () => {
     });
 
     it('should handle object inputs', () => {
-      expect(cn({
-        'class1': true,
-        'class2': false,
-        'class3': true
-      })).toBe('class1 class3');
+      expect(
+        cn({
+          class1: true,
+          class2: false,
+          class3: true,
+        })
+      ).toBe('class1 class3');
     });
   });
 });

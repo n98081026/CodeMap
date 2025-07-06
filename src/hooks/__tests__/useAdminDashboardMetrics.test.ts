@@ -13,7 +13,7 @@ describe('useAdminDashboardMetrics', () => {
   it('should return loading state initially', () => {
     (fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ userCount: 10, classroomCount: 5 })
+      json: async () => ({ userCount: 10, classroomCount: 5 }),
     });
 
     const { result } = renderHook(() => useAdminDashboardMetrics());
@@ -28,7 +28,7 @@ describe('useAdminDashboardMetrics', () => {
     const mockData = { userCount: 15, classroomCount: 8 };
     (fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockData
+      json: async () => mockData,
     });
 
     const { result } = renderHook(() => useAdminDashboardMetrics());
@@ -59,7 +59,7 @@ describe('useAdminDashboardMetrics', () => {
   it('should handle non-ok response', async () => {
     (fetch as any).mockResolvedValueOnce({
       ok: false,
-      status: 500
+      status: 500,
     });
 
     const { result } = renderHook(() => useAdminDashboardMetrics());

@@ -15,7 +15,11 @@ describe('useStudentDashboardMetrics', () => {
   it('should return loading state initially', () => {
     (fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ classroomCount: 3, conceptMapCount: 7, submissionCount: 2 })
+      json: async () => ({
+        classroomCount: 3,
+        conceptMapCount: 7,
+        submissionCount: 2,
+      }),
     });
 
     const { result } = renderHook(() => useStudentDashboardMetrics(mockUserId));
@@ -28,10 +32,14 @@ describe('useStudentDashboardMetrics', () => {
   });
 
   it('should fetch and return student metrics successfully', async () => {
-    const mockData = { classroomCount: 4, conceptMapCount: 12, submissionCount: 6 };
+    const mockData = {
+      classroomCount: 4,
+      conceptMapCount: 12,
+      submissionCount: 6,
+    };
     (fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockData
+      json: async () => mockData,
     });
 
     const { result } = renderHook(() => useStudentDashboardMetrics(mockUserId));

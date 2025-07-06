@@ -1,4 +1,3 @@
-
 // src/lib/config.ts
 
 // Set this to true to bypass Supabase auth and use a mock student user.
@@ -35,7 +34,11 @@ export const MOCK_STUDENT_USER = MOCK_STUDENT_USER_V3;
 export const MOCK_TEACHER_USER = MOCK_TEACHER_USER_V3;
 export const MOCK_ADMIN_USER = MOCK_ADMIN_USER_V3;
 
-export const MOCK_USERS: User[] = [MOCK_STUDENT_USER_V3, MOCK_TEACHER_USER_V3, MOCK_ADMIN_USER_V3];
+export const MOCK_USERS: User[] = [
+  MOCK_STUDENT_USER_V3,
+  MOCK_TEACHER_USER_V3,
+  MOCK_ADMIN_USER_V3,
+];
 
 export const MOCK_CLASSROOM_SHARED_V3: Classroom = {
   id: 'class-shared-v3-cs01',
@@ -63,19 +66,48 @@ export const MOCK_CLASSROOM_TEACHER_OWNED_V3: Classroom = {
   enableStudentAiAnalysis: true,
 };
 
-export const MOCK_CLASSROOMS_STORE: Classroom[] = [MOCK_CLASSROOM_SHARED_V3, MOCK_CLASSROOM_TEACHER_OWNED_V3];
-export const MOCK_CLASSROOM_STUDENTS_STORE: Array<{classroom_id: string, student_id: string}> = [
-    { classroom_id: MOCK_CLASSROOM_SHARED_V3.id, student_id: MOCK_STUDENT_USER_V3.id },
-    { classroom_id: MOCK_CLASSROOM_SHARED_V3.id, student_id: 'another-mock-student-v3-s002'},
-    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED_V3.id, student_id: 'mock-v3-s003'},
-    { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED_V3.id, student_id: 'mock-v3-s004'},
+export const MOCK_CLASSROOMS_STORE: Classroom[] = [
+  MOCK_CLASSROOM_SHARED_V3,
+  MOCK_CLASSROOM_TEACHER_OWNED_V3,
+];
+export const MOCK_CLASSROOM_STUDENTS_STORE: Array<{
+  classroom_id: string;
+  student_id: string;
+}> = [
+  {
+    classroom_id: MOCK_CLASSROOM_SHARED_V3.id,
+    student_id: MOCK_STUDENT_USER_V3.id,
+  },
+  {
+    classroom_id: MOCK_CLASSROOM_SHARED_V3.id,
+    student_id: 'another-mock-student-v3-s002',
+  },
+  {
+    classroom_id: MOCK_CLASSROOM_TEACHER_OWNED_V3.id,
+    student_id: 'mock-v3-s003',
+  },
+  {
+    classroom_id: MOCK_CLASSROOM_TEACHER_OWNED_V3.id,
+    student_id: 'mock-v3-s004',
+  },
 ];
 
 export const MOCK_CONCEPT_MAP_STUDENT_V3: ConceptMap = {
   id: 'map-student-v3-ms01',
   name: 'Student Bypass Map V3 Alpha',
   ownerId: MOCK_STUDENT_USER_V3.id,
-  mapData: { nodes: [{id: 'n1-v3-alpha', text: 'Bypass Node V3 Alpha', type: 'default', x: 70, y:70}], edges: [] },
+  mapData: {
+    nodes: [
+      {
+        id: 'n1-v3-alpha',
+        text: 'Bypass Node V3 Alpha',
+        type: 'default',
+        x: 70,
+        y: 70,
+      },
+    ],
+    edges: [],
+  },
   isPublic: true,
   sharedWithClassroomId: MOCK_CLASSROOM_SHARED_V3.id,
   createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -86,17 +118,30 @@ export const MOCK_CONCEPT_MAP_TEACHER_V3: ConceptMap = {
   id: 'map-teacher-v3-mt01',
   name: 'Teacher Bypass Map V3 Beta',
   ownerId: MOCK_TEACHER_USER_V3.id,
-  mapData: { nodes: [{id: 'nt1-v3-beta', text: 'Teacher Node V3 Beta', type: 'important', x: 100, y:100}], edges: [] },
+  mapData: {
+    nodes: [
+      {
+        id: 'nt1-v3-beta',
+        text: 'Teacher Node V3 Beta',
+        type: 'important',
+        x: 100,
+        y: 100,
+      },
+    ],
+    edges: [],
+  },
   isPublic: false,
   sharedWithClassroomId: MOCK_CLASSROOM_TEACHER_OWNED_V3.id,
   createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
   updatedAt: new Date().toISOString(),
 };
 
-export const MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [MOCK_CONCEPT_MAP_STUDENT_V3, MOCK_CONCEPT_MAP_TEACHER_V3];
+export const MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [
+  MOCK_CONCEPT_MAP_STUDENT_V3,
+  MOCK_CONCEPT_MAP_TEACHER_V3,
+];
 // This is the specific map used by useConceptMapDataManager's MOCK_USER_FOR_TESTING_MAPS
 export const MOCK_CONCEPT_MAP_STUDENT = MOCK_CONCEPT_MAP_STUDENT_V3;
-
 
 export const MOCK_PROJECT_SUBMISSION_STUDENT_V3: ProjectSubmission = {
   id: 'sub-student-v3-sps01',
@@ -121,7 +166,10 @@ export const MOCK_PROJECT_SUBMISSION_PROCESSING_V3: ProjectSubmission = {
   classroomId: MOCK_CLASSROOM_SHARED_V3.id,
 };
 
-export const MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [MOCK_PROJECT_SUBMISSION_STUDENT_V3, MOCK_PROJECT_SUBMISSION_PROCESSING_V3];
+export const MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [
+  MOCK_PROJECT_SUBMISSION_STUDENT_V3,
+  MOCK_PROJECT_SUBMISSION_PROCESSING_V3,
+];
 
 // This is the critical object for useConceptMapDataManager bypass logic
 export const MOCK_USER_FOR_TESTING_MAPS: { [key: string]: ConceptMap } = {
