@@ -64,9 +64,9 @@ export const ExtractConceptsModal: React.FC<
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className='sm:max-w-lg'>
+      <DialogContent className='sm:max-w-lg' data-tutorial-id='extract-concepts-modal-content'>
         <DialogHeader>
-          <DialogTitle>AI 幫你抓重點 (Extract Concepts)</DialogTitle>
+          <DialogTitle id='extract-concepts-title'>AI 幫你抓重點 (Extract Concepts)</DialogTitle> {/* Added id for aria-labelledby if DialogContent uses it implicitly */}
           <DialogDescription>
             把一段文字貼進來，或者直接使用選中節點的內容。AI
             會自動幫你找出裡面最重要的詞彙或短語，並顯示在「AI
@@ -126,6 +126,7 @@ export const ExtractConceptsModal: React.FC<
                 Cancel
               </Button>
               <Button
+                data-tutorial-id='extract-concepts-submit-button' // Added tutorial ID
                 type='submit'
                 disabled={
                   isProcessingExtraction || !form.watch('textToExtract')?.trim()
