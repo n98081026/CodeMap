@@ -6,16 +6,10 @@ test.describe('Extract Concepts AI Tool Flow', () => {
   // const EXPECTED_CONCEPT_FULL = 'Playwright'; // Concetto esatto se si vuole essere più precisi
 
   test.beforeEach(async ({ page }) => {
-    // Login
-    await page.goto('/login');
-    const testUserEmail = process.env.TEST_USER_EMAIL || 'testuser@example.com';
-    const testUserPassword = process.env.TEST_USER_PASSWORD || 'password123';
-
-    await page.locator('input[type="email"]').fill(testUserEmail);
-    await page.locator('input[type="password"]').fill(testUserPassword);
-    await page.getByRole('button', { name: /Login|Sign In/i }).click();
-    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 20000 });
-    console.log(`Login successful for Extract Concepts test. Current page: ${page.url()}`);
+    // Il login è gestito da global.setup.ts e storageState.
+    // Assicuriamoci di essere sulla dashboard e poi creiamo una nuova mappa.
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 10000 });
+    console.log(`Starting Extract Concepts test from page: ${page.url()}`);
 
     // Naviga per creare una nuova mappa per un ambiente di test pulito
     await page.getByRole('link', { name: /concept maps|my maps|le mie mappe/i }).first().click();

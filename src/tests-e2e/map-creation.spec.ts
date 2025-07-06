@@ -1,23 +1,19 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Map Creation and Editing Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    // Login
-    await page.goto('/login');
-    const testUserEmail = process.env.TEST_USER_EMAIL || 'testuser@example.com'; // Usa var d'ambiente o default
-    const testUserPassword = process.env.TEST_USER_PASSWORD || 'password123'; // Usa var d'ambiente o default
-
-    await page.locator('input[type="email"]').fill(testUserEmail);
-    await page.locator('input[type="password"]').fill(testUserPassword);
-    // Selettore robusto per il pulsante di login
-    await page.getByRole('button', { name: /Login|Sign In/i }).click();
-
-    // Attendi il reindirizzamento alla dashboard
-    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 20000 }); // Timeout aumentato
-    console.log(`Login successful for map creation test. Current page: ${page.url()}`);
-  });
+  // Il login è ora gestito globalmente tramite global.setup.ts e storageState nel playwright.config.ts
+  // Il blocco test.beforeEach per il login è stato rimosso.
+  // I test in questo describe inizieranno con l'utente già autenticato.
 
   test('should allow a user to create a new map, add and edit a node, and save', async ({ page }) => {
+    // L'utente dovrebbe essere già sulla dashboard o su una pagina post-login.
+    // Se global.setup.ts reindirizza a /dashboard, partiamo da lì.
+    // Se no, potremmo dover aggiungere un page.goto('/student/dashboard') o simile qui,
+    // ma idealmente global.setup.ts lascia l'utente sulla pagina iniziale post-login.
+    // Per ora, assumiamo che l'URL iniziale sia /student/dashboard come da flusso di login.
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 10000 }); // Verifica di essere sulla dashboard
+    console.log(`Starting map creation test from page: ${page.url()}`);
+
     // Dalla dashboard, naviga alla pagina delle mappe concettuali dello studente
     // Questo presuppone che l'utente sia uno studente. Adattare se il ruolo è diverso.
     // Esempio: cliccare un link "Le mie mappe" o "Concept Maps"
