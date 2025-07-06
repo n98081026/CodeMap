@@ -20,12 +20,12 @@ const tempFiles = [
   'tmp_rovodev_whimsical_gai_enhancements.md',
   'tmp_rovodev_whimsical_gai_completion_summary.md',
   'tmp_rovodev_enhanced_visual_completion_summary.md',
-  'tmp_rovodev_cleanup.js'
+  'tmp_rovodev_cleanup.js',
 ];
 
 let cleanedCount = 0;
 
-tempFiles.forEach(file => {
+tempFiles.forEach((file) => {
   const filePath = path.join(process.cwd(), file);
   if (fs.existsSync(filePath)) {
     try {

@@ -6,9 +6,7 @@
  */
 
 import type { Classroom, User } from '@/types';
-import { UserRole } from '@/types';
-import { supabase } from '@/lib/supabaseClient';
-import { getUserById } from '@/services/users/userService';
+
 import {
   BYPASS_AUTH_FOR_TESTING,
   MOCK_CLASSROOM_SHARED,
@@ -17,6 +15,9 @@ import {
   MOCK_TEACHER_USER,
   MOCK_USERS,
 } from '@/lib/config';
+import { supabase } from '@/lib/supabaseClient';
+import { getUserById } from '@/services/users/userService';
+import { UserRole } from '@/types';
 
 // Mock data store for bypass mode
 let MOCK_CLASSROOMS_STORE: Classroom[] = [

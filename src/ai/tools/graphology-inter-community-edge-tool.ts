@@ -1,10 +1,11 @@
 // src/ai/tools/graphology-inter-community-edge-tool.ts
 import { defineTool } from '@genkit-ai/tool';
+import Graph from 'graphology'; // Only for typehint if needed, graphInstance is GraphologyInstance from adapter
+import louvain from 'graphology-communities-louvain';
 import { z } from 'zod';
+
 import { GraphAdapterUtility } from '../../lib/graphologyAdapter';
 import { MapDataSchema } from '../flows/suggest-map-improvement'; // Using this as the base for MapData
-import louvain from 'graphology-communities-louvain';
-import Graph from 'graphology'; // Only for typehint if needed, graphInstance is GraphologyInstance from adapter
 
 export const InterCommunityEdgeInputSchema = MapDataSchema;
 export type InterCommunityEdgeInput = z.infer<

@@ -1,11 +1,5 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import type { ProjectSubmission } from '@/types';
-// import { ProjectSubmissionStatus } from "@/types"; // Not strictly needed if only displaying
-import { SubmissionListItem } from '@/components/projects/submission-list-item';
-import { Button } from '@/components/ui/button';
 import {
   FolderKanban,
   PlusCircle,
@@ -14,11 +8,19 @@ import {
   ArrowLeft,
   ArrowRight,
 } from 'lucide-react';
+import Link from 'next/link';
+import React, { useState, useEffect, useCallback } from 'react';
+
+import type { ProjectSubmission } from '@/types';
+
+// import { ProjectSubmissionStatus } from "@/types"; // Not strictly needed if only displaying
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { SubmissionListItem } from '@/components/projects/submission-list-item';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { EmptyState } from '@/components/ui/empty-state';
 
 const SUBMISSIONS_PER_PAGE = 9;
 

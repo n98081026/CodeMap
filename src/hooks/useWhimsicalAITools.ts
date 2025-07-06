@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import useConceptMapStore from '@/stores/concept-map-store';
+
+import type { ConceptMapNode } from '@/types';
+
 import {
   whimsicalExtractConcepts,
   type WhimsicalExtractConceptsInput,
@@ -14,8 +15,9 @@ import {
   animateLayoutTransition,
   DEFAULT_ANIMATIONS,
 } from '@/components/concept-map/ai-animation-utils';
-import type { ConceptMapNode } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 import { getNodePlacement } from '@/lib/layout-utils';
+import useConceptMapStore from '@/stores/concept-map-store';
 
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;

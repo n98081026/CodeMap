@@ -1,11 +1,12 @@
 // src/ai/tools/graphology-community-detection-tool.ts
 import { defineTool } from '@genkit-ai/tool';
+import louvain from 'graphology-communities-louvain';
 import { z } from 'zod';
+
 import { GraphAdapterUtility } from '../../lib/graphologyAdapter';
 // MapDataSchema is defined in suggest-map-improvement.ts and suggest-node-group-candidates.ts
 // Using the one from suggest-map-improvement as the canonical source for this tool.
 import { MapDataSchema } from '../flows/suggest-map-improvement';
-import louvain from 'graphology-communities-louvain';
 // Graph is a default export from 'graphology'
 // Not strictly needed if graphInstance.order check is sufficient and fromArrays handles empty nodes.
 

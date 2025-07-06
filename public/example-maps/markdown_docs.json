@@ -3,8 +3,8 @@
     {
       "id": "documentation",
       "type": "custom",
-      "data": { 
-        "label": "Documentation System", 
+      "data": {
+        "label": "Documentation System",
         "details": "Comprehensive knowledge management and information architecture",
         "type": "concept"
       },
@@ -13,8 +13,8 @@
     {
       "id": "content-structure",
       "type": "custom",
-      "data": { 
-        "label": "Content Structure", 
+      "data": {
+        "label": "Content Structure",
         "details": "Hierarchical organization of information and topics",
         "type": "concept"
       },
@@ -23,8 +23,8 @@
     {
       "id": "markdown-syntax",
       "type": "custom",
-      "data": { 
-        "label": "Markdown Syntax", 
+      "data": {
+        "label": "Markdown Syntax",
         "details": "Lightweight markup language for formatting text",
         "type": "concept"
       },
@@ -33,8 +33,8 @@
     {
       "id": "navigation",
       "type": "custom",
-      "data": { 
-        "label": "Navigation System", 
+      "data": {
+        "label": "Navigation System",
         "details": "User-friendly browsing and discovery mechanisms",
         "type": "concept"
       },
@@ -43,8 +43,8 @@
     {
       "id": "headers",
       "type": "custom",
-      "data": { 
-        "label": "Headers & Sections", 
+      "data": {
+        "label": "Headers & Sections",
         "details": "Document structure using H1-H6 hierarchy",
         "type": "concept"
       },
@@ -53,8 +53,8 @@
     {
       "id": "links",
       "type": "custom",
-      "data": { 
-        "label": "Cross-References", 
+      "data": {
+        "label": "Cross-References",
         "details": "Internal and external linking for knowledge connectivity",
         "type": "concept"
       },
@@ -63,8 +63,8 @@
     {
       "id": "media",
       "type": "custom",
-      "data": { 
-        "label": "Media Assets", 
+      "data": {
+        "label": "Media Assets",
         "details": "Images, diagrams, and multimedia content integration",
         "type": "concept"
       },
@@ -73,8 +73,8 @@
     {
       "id": "search",
       "type": "custom",
-      "data": { 
-        "label": "Search & Discovery", 
+      "data": {
+        "label": "Search & Discovery",
         "details": "Content indexing and retrieval capabilities",
         "type": "concept"
       },

@@ -3,8 +3,9 @@
  * @fileOverview Flow to answer questions about a specific edge and its connected nodes.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 // --- Input Schema ---
 export const AskQuestionAboutEdgeInputSchema = z.object({

@@ -9,8 +9,9 @@
  * - RewriteNodeContentOutput - Output schema for the flow.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const RewriteNodeContentInputSchema = z.object({
   currentText: z

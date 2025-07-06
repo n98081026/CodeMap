@@ -1,7 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import {
+  PlusCircle,
+  BookOpen,
+  Loader2,
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+} from 'lucide-react';
 import Link from 'next/link';
+import React, { useState, useEffect, useCallback } from 'react';
+
+import type { Classroom } from '@/types';
+
+import { ClassroomListItem } from '@/components/classrooms/classroom-list-item';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { EditClassroomDialog } from '@/components/teacher/classrooms/edit-classroom-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,22 +25,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  PlusCircle,
-  BookOpen,
-  Loader2,
-  AlertTriangle,
-  ArrowLeft,
-  ArrowRight,
-} from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Classroom } from '@/types';
 import { UserRole } from '@/types';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { ClassroomListItem } from '@/components/classrooms/classroom-list-item';
-import { EditClassroomDialog } from '@/components/teacher/classrooms/edit-classroom-dialog';
-import { EmptyState } from '@/components/ui/empty-state';
 
 const CLASSROOMS_PER_PAGE = 9;
 

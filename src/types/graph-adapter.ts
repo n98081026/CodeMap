@@ -79,7 +79,9 @@ export interface DagreLayoutOutput {
  * @param layoutInput - The input data for the layout, including nodes, edges, and options.
  * @returns An object containing the array of nodes with their new x and y coordinates.
  */
-export type DagreLayoutUtilityType = (layoutInput: DagreLayoutInput) => DagreLayoutOutput; // Renamed to avoid conflict
+export type DagreLayoutUtilityType = (
+  layoutInput: DagreLayoutInput
+) => DagreLayoutOutput; // Renamed to avoid conflict
 
 // --- Graphology Related Types ---
 
@@ -110,19 +112,14 @@ export interface GraphAdapter {
     options?: GraphAdapterOptions
   ): GraphologyInstance;
 
-  toArrays(
-    graphInstance: GraphologyInstance
-  ): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+  toArrays(graphInstance: GraphologyInstance): {
+    nodes: ConceptMapNode[];
+    edges: ConceptMapEdge[];
+  };
 
-  getDescendants(
-    graphInstance: GraphologyInstance,
-    nodeId: string
-  ): string[];
+  getDescendants(graphInstance: GraphologyInstance, nodeId: string): string[];
 
-  getAncestors(
-    graphInstance: GraphologyInstance,
-    nodeId: string
-  ): string[];
+  getAncestors(graphInstance: GraphologyInstance, nodeId: string): string[];
 
   getNeighborhood(
     graphInstance: GraphologyInstance,
@@ -133,7 +130,7 @@ export interface GraphAdapter {
   getSubgraphData(
     graphInstance: GraphologyInstance,
     nodeIds: string[]
-  ): { nodes: ConceptMapNode[], edges: ConceptMapEdge[] };
+  ): { nodes: ConceptMapNode[]; edges: ConceptMapEdge[] };
 }
 
 // --- Types for Snapping Logic (Moved from flow-canvas-core.tsx) ---
@@ -176,9 +173,9 @@ export type RFLayoutNode = RFNode<LayoutNodeInfo>;
  * Represents an update to a node's position, typically from a layout algorithm.
  */
 export interface LayoutNodeUpdate {
-    id: string;
-    x: number;
-    y: number;
-    width?: number;
-    height?: number;
+  id: string;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
 }

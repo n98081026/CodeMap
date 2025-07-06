@@ -1,8 +1,10 @@
 // src/ai/tools/supabase-file-fetcher-tool.ts
+import path from 'path'; // For extracting filename
+
 import { defineTool } from '@genkit-ai/tool';
 import { z } from 'zod';
+
 import { supabase } from '../../lib/supabaseClient'; // Adjust path if needed
-import path from 'path'; // For extracting filename
 
 export const SupabaseFileFetcherInputSchema = z.object({
   bucketName: z.string().min(1, 'Bucket name cannot be empty.'),

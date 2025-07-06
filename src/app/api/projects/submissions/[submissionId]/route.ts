@@ -1,10 +1,12 @@
 // src/app/api/projects/submissions/[submissionId]/route.ts
 import { NextResponse } from 'next/server';
+
+import type { ProjectSubmissionStatus } from '@/types';
+
 import {
   getSubmissionById,
   updateSubmissionStatus,
 } from '@/services/projectSubmissions/projectSubmissionService';
-import type { ProjectSubmissionStatus } from '@/types';
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder
 
 export async function GET(

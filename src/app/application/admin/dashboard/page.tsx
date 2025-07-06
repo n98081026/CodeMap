@@ -1,7 +1,4 @@
 'use client';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/auth-context';
-import { UserRole, type User } from '@/types';
 import {
   Users,
   Settings,
@@ -9,13 +6,17 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+
+import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Kept for context, though AdminDashboardView also imports it
 // import { DashboardLinkCard } from '@/components/dashboard/dashboard-link-card'; // Now part of AdminDashboardView
 // import { useAdminDashboardMetrics } from '@/hooks/useAdminDashboardMetrics'; // Now part of AdminDashboardView
-import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { useAuth } from '@/contexts/auth-context';
+import { UserRole, type User } from '@/types';
 
 export default function AdminDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();

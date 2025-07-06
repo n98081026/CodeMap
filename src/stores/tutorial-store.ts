@@ -1,13 +1,16 @@
 import { create } from 'zustand';
 
-import { create } from 'zustand';
 import { availableTutorials } from '@/components/tutorial/app-tutorial'; // Import to access all tutorial keys
 
 interface TutorialStoreState {
   activeTutorialKey: string | null;
   runTutorial: boolean;
   currentStepIndex: number;
-  startOrResumeTutorial: (tutorialKey: string, stepIndex?: number, forceRestart?: boolean) => void;
+  startOrResumeTutorial: (
+    tutorialKey: string,
+    stepIndex?: number,
+    forceRestart?: boolean
+  ) => void;
   stopTutorial: () => void;
   setRunTutorialState: (run: boolean) => void;
   setStepIndex: (index: number) => void;
@@ -21,7 +24,10 @@ const useTutorialStore = create<TutorialStoreState>((set, get) => ({
   startOrResumeTutorial: (tutorialKey, stepIndex = 0, forceRestart = false) => {
     const currentKey = get().activeTutorialKey;
     const isRunning = get().runTutorial;
-    const currentStoredStepIndex = parseInt(localStorage.getItem(`${tutorialKey}_stepIndex`) || '0', 10);
+    const currentStoredStepIndex = parseInt(
+      localStorage.getItem(`${tutorialKey}_stepIndex`) || '0',
+      10
+    );
 
     if (forceRestart) {
       localStorage.removeItem(`${tutorialKey}_completed`);
@@ -30,10 +36,11 @@ const useTutorialStore = create<TutorialStoreState>((set, get) => ({
       set({
         activeTutorialKey: tutorialKey,
         runTutorial: true,
-        currentStepIndex: stepIndex
+        currentStepIndex: stepIndex,
       });
     } else {
-      const isCompleted = localStorage.getItem(`${tutorialKey}_completed`) === 'true';
+      const isCompleted =
+        localStorage.getItem(`${tutorialKey}_completed`) === 'true';
       if (isCompleted) {
         console.log(`Tutorial ${tutorialKey} already completed. Not starting.`);
         set({ runTutorial: false });
@@ -41,14 +48,19 @@ const useTutorialStore = create<TutorialStoreState>((set, get) => ({
       }
 
       if (currentKey !== tutorialKey || !isRunning) {
-        console.log(`Starting/resuming tutorial ${tutorialKey} from step ${currentStoredStepIndex > 0 ? currentStoredStepIndex : stepIndex}.`);
+        console.log(
+          `Starting/resuming tutorial ${tutorialKey} from step ${currentStoredStepIndex > 0 ? currentStoredStepIndex : stepIndex}.`
+        );
         set({
           activeTutorialKey: tutorialKey,
           runTutorial: true,
-          currentStepIndex: currentStoredStepIndex > 0 ? currentStoredStepIndex : stepIndex
+          currentStepIndex:
+            currentStoredStepIndex > 0 ? currentStoredStepIndex : stepIndex,
         });
       } else {
-         console.log(`Tutorial ${tutorialKey} is already set to run. Forcing step index to ${stepIndex}.`);
+        console.log(
+          `Tutorial ${tutorialKey} is already set to run. Forcing step index to ${stepIndex}.`
+        );
         set({ runTutorial: true, currentStepIndex: stepIndex });
       }
     }
@@ -67,7 +79,9 @@ const useTutorialStore = create<TutorialStoreState>((set, get) => ({
     if (!run && tutorialKey) {
       localStorage.setItem(`${tutorialKey}_completed`, 'true');
       localStorage.removeItem(`${tutorialKey}_stepIndex`);
-      console.log(`Tutorial ${tutorialKey} run state set to false (completed/skipped).`);
+      console.log(
+        `Tutorial ${tutorialKey} run state set to false (completed/skipped).`
+      );
       set({ runTutorial: false, activeTutorialKey: null, currentStepIndex: 0 });
     } else {
       console.log(`Tutorial ${tutorialKey || 'None'} run state set to ${run}.`);
@@ -87,15 +101,19 @@ const useTutorialStore = create<TutorialStoreState>((set, get) => ({
       localStorage.removeItem(`${tutorialKey}_stepIndex`);
       console.log(`Progress for tutorial ${tutorialKey} reset.`);
       if (get().activeTutorialKey === tutorialKey) {
-        set({ runTutorial: false, activeTutorialKey: null, currentStepIndex: 0 });
+        set({
+          runTutorial: false,
+          activeTutorialKey: null,
+          currentStepIndex: 0,
+        });
       }
     } else {
       // Reset all known tutorials
-      availableTutorials.forEach(t => {
+      availableTutorials.forEach((t) => {
         localStorage.removeItem(`${t.key}_completed`);
         localStorage.removeItem(`${t.key}_stepIndex`);
       });
-      console.log("Progress for all tutorials reset.");
+      console.log('Progress for all tutorials reset.');
       set({ runTutorial: false, activeTutorialKey: null, currentStepIndex: 0 });
     }
   },

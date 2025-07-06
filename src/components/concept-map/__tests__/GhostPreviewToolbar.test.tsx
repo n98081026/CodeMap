@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import GhostPreviewToolbar from './GhostPreviewToolbar';
+
 import useConceptMapStore from '@/stores/concept-map-store';
 
 // Mock the Zustand store

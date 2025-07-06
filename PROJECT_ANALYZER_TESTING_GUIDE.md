@@ -25,7 +25,6 @@
 ## B. 準備工作
 
 1.  **測試文件/項目準備**:
-
     - **B.1. 結構複雜的小型合法ZIP項目 (NEW)**:
       - **描述**: 一個包含多層目錄結構 (至少3-4層深) 和多種文件類型的ZIP包：
         - 源代碼: JS, TS, Python 文件分佈在不同子目錄 (例如 `src/services`, `src/components`, `src/utils`, `app/api`, `lib/core`)。
@@ -126,7 +125,6 @@
 ## B. 準備工作
 
 1.  **測試文件/項目準備**：
-
     - **B.1. 小型合法ZIP項目**:
       - **描述**: 一個包含少量（例如5-10個）多種類型文件的ZIP包：
         - JavaScript (`.js`): 包含一些函數、類、導入/導出。
@@ -150,12 +148,10 @@
       - **語法錯誤的源代碼文件**: 每個語言（JS, TS, PY）準備一個包含明顯語法錯誤的文件。
 
 2.  **Supabase Storage**:
-
     - 確保您的 `project_archives` bucket 已創建並配置正確的訪問策略（儘管服務端調用可能繞過部分RLS，但良好實踐仍需配置）。
     - 熟悉如何上傳文件到此bucket的特定路徑。
 
 3.  **工具觸發方式**:
-
     - 您需要一種可靠的方式來調用 `generateMapFromProject` Genkit flow，並能指定 `projectStoragePath` 作為輸入（指向您在Supabase Storage中上傳的測試文件或ZIP包的路徑）。
     - **選項1: 應用前端**: 如果CodeMap應用的“上傳項目”功能已完整對接到此flow，則可通過前端UI觸發。
     - **選項2: Genkit Developer UI**: 如果Genkit flow已配置了HTTP觸發器，可以使用Genkit的開發者UI（通常在本地運行Genkit時可用）來手動觸發並提供輸入。

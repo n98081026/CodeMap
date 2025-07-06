@@ -1,4 +1,3 @@
-
 // src/types/supabase.ts
 
 /**
@@ -35,7 +34,7 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Json[];
 
 // This is a minimal placeholder to allow the app to compile.
 // Replace with your actual generated types.
@@ -44,262 +43,267 @@ export interface Database {
     Tables: {
       profiles: {
         Row: {
-          id: string
-          name: string
-          email: string
-          role: "student" | "teacher" | "admin"
-          created_at: string
-          updated_at: string | null
-        }
+          id: string;
+          name: string;
+          email: string;
+          role: 'student' | 'teacher' | 'admin';
+          created_at: string;
+          updated_at: string | null;
+        };
         Insert: {
-          id: string
-          name: string
-          email: string
-          role: "student" | "teacher" | "admin"
-          created_at?: string
-          updated_at?: string | null
-        }
+          id: string;
+          name: string;
+          email: string;
+          role: 'student' | 'teacher' | 'admin';
+          created_at?: string;
+          updated_at?: string | null;
+        };
         Update: {
-          id?: string
-          name?: string
-          email?: string
-          role?: "student" | "teacher" | "admin"
-          created_at?: string
-          updated_at?: string | null
-        }
+          id?: string;
+          name?: string;
+          email?: string;
+          role?: 'student' | 'teacher' | 'admin';
+          created_at?: string;
+          updated_at?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
+            foreignKeyName: 'profiles_id_fkey';
+            columns: ['id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       classrooms: {
         Row: {
-          id: string
-          name: string
-          description: string | null
-          teacher_id: string
-          invite_code: string
-          subject: string | null
-          difficulty: "beginner" | "intermediate" | "advanced" | null
-          enable_student_ai_analysis: boolean
-          created_at: string
-          updated_at: string | null
-        }
+          id: string;
+          name: string;
+          description: string | null;
+          teacher_id: string;
+          invite_code: string;
+          subject: string | null;
+          difficulty: 'beginner' | 'intermediate' | 'advanced' | null;
+          enable_student_ai_analysis: boolean;
+          created_at: string;
+          updated_at: string | null;
+        };
         Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          teacher_id: string
-          invite_code: string
-          subject?: string | null
-          difficulty?: "beginner" | "intermediate" | "advanced" | null
-          enable_student_ai_analysis?: boolean
-          created_at?: string
-          updated_at?: string | null
-        }
+          id?: string;
+          name: string;
+          description?: string | null;
+          teacher_id: string;
+          invite_code: string;
+          subject?: string | null;
+          difficulty?: 'beginner' | 'intermediate' | 'advanced' | null;
+          enable_student_ai_analysis?: boolean;
+          created_at?: string;
+          updated_at?: string | null;
+        };
         Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          teacher_id?: string
-          invite_code?: string
-          subject?: string | null
-          difficulty?: "beginner" | "intermediate" | "advanced" | null
-          enable_student_ai_analysis?: boolean
-          created_at?: string
-          updated_at?: string | null
-        }
+          id?: string;
+          name?: string;
+          description?: string | null;
+          teacher_id?: string;
+          invite_code?: string;
+          subject?: string | null;
+          difficulty?: 'beginner' | 'intermediate' | 'advanced' | null;
+          enable_student_ai_analysis?: boolean;
+          created_at?: string;
+          updated_at?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "classrooms_teacher_id_fkey"
-            columns: ["teacher_id"]
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
+            foreignKeyName: 'classrooms_teacher_id_fkey';
+            columns: ['teacher_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       classroom_students: {
         Row: {
-          classroom_id: string
-          student_id: string
-          created_at: string
-        }
+          classroom_id: string;
+          student_id: string;
+          created_at: string;
+        };
         Insert: {
-          classroom_id: string
-          student_id: string
-          created_at?: string
-        }
+          classroom_id: string;
+          student_id: string;
+          created_at?: string;
+        };
         Update: {
-          classroom_id?: string
-          student_id?: string
-          created_at?: string
-        }
+          classroom_id?: string;
+          student_id?: string;
+          created_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "classroom_students_classroom_id_fkey"
-            columns: ["classroom_id"]
-            referencedRelation: "classrooms"
-            referencedColumns: ["id"]
+            foreignKeyName: 'classroom_students_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "classroom_students_student_id_fkey"
-            columns: ["student_id"]
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
+            foreignKeyName: 'classroom_students_student_id_fkey';
+            columns: ['student_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       concept_maps: {
         Row: {
-          id: string
-          name: string
-          owner_id: string
-          map_data: Json // ConceptMapData
-          is_public: boolean
-          shared_with_classroom_id: string | null
-          created_at: string
-          updated_at: string | null
-        }
+          id: string;
+          name: string;
+          owner_id: string;
+          map_data: Json; // ConceptMapData
+          is_public: boolean;
+          shared_with_classroom_id: string | null;
+          created_at: string;
+          updated_at: string | null;
+        };
         Insert: {
-          id?: string
-          name: string
-          owner_id: string
-          map_data: Json
-          is_public?: boolean
-          shared_with_classroom_id?: string | null
-          created_at?: string
-          updated_at?: string | null
-        }
+          id?: string;
+          name: string;
+          owner_id: string;
+          map_data: Json;
+          is_public?: boolean;
+          shared_with_classroom_id?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
         Update: {
-          id?: string
-          name?: string
-          owner_id?: string
-          map_data?: Json
-          is_public?: boolean
-          shared_with_classroom_id?: string | null
-          created_at?: string
-          updated_at?: string | null
-        }
+          id?: string;
+          name?: string;
+          owner_id?: string;
+          map_data?: Json;
+          is_public?: boolean;
+          shared_with_classroom_id?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "concept_maps_owner_id_fkey"
-            columns: ["owner_id"]
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: 'concept_maps_owner_id_fkey';
+            columns: ['owner_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "concept_maps_shared_with_classroom_id_fkey"
-            columns: ["shared_with_classroom_id"]
-            referencedRelation: "classrooms"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
+            foreignKeyName: 'concept_maps_shared_with_classroom_id_fkey';
+            columns: ['shared_with_classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       project_submissions: {
         Row: {
-          id: string
-          student_id: string
-          classroom_id: string | null
-          original_file_name: string
-          file_size: number
-          file_storage_path: string | null
-          submission_timestamp: string
-          analysis_status: string // ProjectSubmissionStatus enum
-          analysis_error: string | null
-          generated_concept_map_id: string | null
-          created_at: string
-          updated_at: string | null
-        }
+          id: string;
+          student_id: string;
+          classroom_id: string | null;
+          original_file_name: string;
+          file_size: number;
+          file_storage_path: string | null;
+          submission_timestamp: string;
+          analysis_status: string; // ProjectSubmissionStatus enum
+          analysis_error: string | null;
+          generated_concept_map_id: string | null;
+          created_at: string;
+          updated_at: string | null;
+        };
         Insert: {
-          id?: string
-          student_id: string
-          classroom_id?: string | null
-          original_file_name: string
-          file_size: number
-          file_storage_path?: string | null
-          submission_timestamp?: string
-          analysis_status: string
-          analysis_error?: string | null
-          generated_concept_map_id?: string | null
-          created_at?: string
-          updated_at?: string | null
-        }
+          id?: string;
+          student_id: string;
+          classroom_id?: string | null;
+          original_file_name: string;
+          file_size: number;
+          file_storage_path?: string | null;
+          submission_timestamp?: string;
+          analysis_status: string;
+          analysis_error?: string | null;
+          generated_concept_map_id?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
         Update: {
-          id?: string
-          student_id?: string
-          classroom_id?: string | null
-          original_file_name?: string
-          file_size?: number
-          file_storage_path?: string | null
-          submission_timestamp?: string
-          analysis_status?: string
-          analysis_error?: string | null
-          generated_concept_map_id?: string | null
-          created_at?: string
-          updated_at?: string | null
-        }
+          id?: string;
+          student_id?: string;
+          classroom_id?: string | null;
+          original_file_name?: string;
+          file_size?: number;
+          file_storage_path?: string | null;
+          submission_timestamp?: string;
+          analysis_status?: string;
+          analysis_error?: string | null;
+          generated_concept_map_id?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "project_submissions_student_id_fkey"
-            columns: ["student_id"]
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: 'project_submissions_student_id_fkey';
+            columns: ['student_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "project_submissions_classroom_id_fkey"
-            columns: ["classroom_id"]
-            referencedRelation: "classrooms"
-            referencedColumns: ["id"]
+            foreignKeyName: 'project_submissions_classroom_id_fkey';
+            columns: ['classroom_id'];
+            referencedRelation: 'classrooms';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "project_submissions_generated_concept_map_id_fkey"
-            columns: ["generated_concept_map_id"]
-            referencedRelation: "concept_maps"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
+            foreignKeyName: 'project_submissions_generated_concept_map_id_fkey';
+            columns: ['generated_concept_map_id'];
+            referencedRelation: 'concept_maps';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       system_settings: {
-         Row: {
-            id: string
-            enable_ai_project_analysis: boolean
-            default_concept_map_visibility: string // "public" | "private"
-            max_project_file_size_mb: number
-            updated_at: string | null
-        }
+        Row: {
+          id: string;
+          enable_ai_project_analysis: boolean;
+          default_concept_map_visibility: string; // "public" | "private"
+          max_project_file_size_mb: number;
+          updated_at: string | null;
+        };
         Insert: {
-            id: string
-            enable_ai_project_analysis?: boolean
-            default_concept_map_visibility?: string
-            max_project_file_size_mb?: number
-            updated_at?: string | null
-        }
+          id: string;
+          enable_ai_project_analysis?: boolean;
+          default_concept_map_visibility?: string;
+          max_project_file_size_mb?: number;
+          updated_at?: string | null;
+        };
         Update: {
-            id?: string
-            enable_ai_project_analysis?: boolean
-            default_concept_map_visibility?: string
-            max_project_file_size_mb?: number
-            updated_at?: string | null
-        }
-        Relationships: []
-      }
-    }
+          id?: string;
+          enable_ai_project_analysis?: boolean;
+          default_concept_map_visibility?: string;
+          max_project_file_size_mb?: number;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Enums: {
-      user_role_enum: "student" | "teacher" | "admin"
-      project_submission_status_enum: "pending" | "queued" | "processing" | "completed" | "failed"
-    }
+      user_role_enum: 'student' | 'teacher' | 'admin';
+      project_submission_status_enum:
+        | 'pending'
+        | 'queued'
+        | 'processing'
+        | 'completed'
+        | 'failed';
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
+      [_ in never]: never;
+    };
+  };
 }

@@ -8,8 +8,9 @@
  * - ExtractConceptsOutput - The return type for the extractConcepts function.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const ExtractConceptsInputSchema = z.object({
   text: z.string().describe('The text to extract concepts from.'),

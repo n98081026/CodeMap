@@ -1,29 +1,70 @@
-"use client";
+'use client';
 
+import {
+  FilePlus,
+  Save,
+  Upload,
+  Download,
+  Undo,
+  Redo,
+  PlusSquare,
+  Spline,
+  Shuffle,
+  LayoutPanelLeft,
+  BoxSelect,
+  LayoutGrid,
+  ScanSearch,
+  Wand2, // 合併所有 icon
+  SearchCode,
+  Lightbulb,
+  Brain,
+  Loader2,
+  Settings2,
+  BotMessageSquare,
+  Sparkles,
+  TextSearch,
+  ListCollapse,
+  ScrollText,
+  SearchPlus,
+  TestTube2,
+  type LucideIcon,
+  Eye,
+  EyeOff,
+  Edit3,
+  FileText as FileTextIcon,
+  MessagesSquare,
+  GraduationCap,
+  Grid,
+  Network,
+  AlignHorizontalDistributeCenter,
+  BrainCircuit,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import React, { useState, useCallback } from 'react';
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+import type { AIFetchAllStructuralSuggestionsInput } from '@/types/ai-shared';
+
+import { fetchAllStructuralSuggestionsFlow } from '@/ai/flows';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 import {
-  FilePlus, Save, Upload, Download, Undo, Redo, PlusSquare, Spline, Shuffle, LayoutPanelLeft, BoxSelect, LayoutGrid, ScanSearch, Wand2, // 合併所有 icon
-  SearchCode, Lightbulb, Brain, Loader2, Settings2, BotMessageSquare, Sparkles, TextSearch, ListCollapse, ScrollText, SearchPlus, TestTube2, type LucideIcon, Eye, EyeOff,
-  Edit3, FileText as FileTextIcon, MessagesSquare, GraduationCap, Grid, Network, AlignHorizontalDistributeCenter, BrainCircuit
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import useConceptMapStore from '@/stores/concept-map-store';
-import { fetchAllStructuralSuggestionsFlow } from '@/ai/flows';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import useConceptMapStore from '@/stores/concept-map-store';
 import useTutorialStore from '@/stores/tutorial-store';
-import type { AIFetchAllStructuralSuggestionsInput } from '@/types/ai-shared';
 
 export interface ArrangeAction {
   id: string;
@@ -51,10 +92,10 @@ interface EditorToolbarProps {
   canAddEdge?: boolean;
   onToggleProperties: () => void;
   onToggleAiPanel: () => void;
-  onToggleDebugLogViewer: () => void; 
+  onToggleDebugLogViewer: () => void;
   isPropertiesPanelOpen?: boolean;
   isAiPanelOpen?: boolean;
-  isDebugLogViewerOpen?: boolean; 
+  isDebugLogViewerOpen?: boolean;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -75,15 +116,15 @@ interface EditorToolbarProps {
   isOverviewModeActive?: boolean;
   onSummarizeMap?: () => void;
   isSummarizingMap?: boolean;
-  onAskQuestionAboutMapContext?: () => void; 
-  isAskingAboutMapContext?: boolean; 
-  onTidySelection?: () => void; 
-  onSuggestMapImprovements?: () => void; 
+  onAskQuestionAboutMapContext?: () => void;
+  isAskingAboutMapContext?: boolean;
+  onTidySelection?: () => void;
+  onSuggestMapImprovements?: () => void;
   isSuggestingMapImprovements?: boolean;
-  onApplySemanticTidyUp?: () => void; 
+  onApplySemanticTidyUp?: () => void;
   isApplyingSemanticTidyUp?: boolean;
-  onAiTidySelection?: () => void; 
-  onDagreTidySelection?: () => void; 
+  onAiTidySelection?: () => void;
+  onDagreTidySelection?: () => void;
   isDagreTidying?: boolean;
 }
 
@@ -105,10 +146,10 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   canAddEdge,
   onToggleProperties,
   onToggleAiPanel,
-  onToggleDebugLogViewer, 
+  onToggleDebugLogViewer,
   isPropertiesPanelOpen,
   isAiPanelOpen,
-  isDebugLogViewerOpen, 
+  isDebugLogViewerOpen,
   onUndo,
   onRedo,
   canUndo,
@@ -140,15 +181,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   isApplyingSemanticTidyUp,
   onAiTidySelection,
 
-  onAskQuestionAboutMapContext, // Destructure new prop
-  isAskingAboutMapContext, // Destructure new prop
-  onTidySelection,
-  onSuggestMapImprovements,
-  isSuggestingMapImprovements,
-  onApplySemanticTidyUp, // Destructure new prop
-  isApplyingSemanticTidyUp, // Destructure new prop
-  onAiTidySelection, // Destructure new prop
-
   onDagreTidySelection,
   isDagreTidying,
 }: EditorToolbarProps) {
@@ -159,7 +191,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const currentMapId = useConceptMapStore((s) => s.mapId);
   const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview);
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback(s => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
+    useCallback((s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
   );
 
   // TEMP: Button to test manualAddNodeTutorial
@@ -174,31 +206,45 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false); // For the BrainCircuit button
 
-  const handleGenAIClick = React.useCallback((actionCallback: (() => void) | (() => Promise<void>), toolName: string) => {
-    if (isViewOnlyMode) {
-       toast({ title: "View Only Mode", description: `Cannot use ${toolName} in view-only mode.`, variant: "default" });
-      return;
-    }
-    actionCallback();
-  }, [isViewOnlyMode, toast]);
+  const handleGenAIClick = React.useCallback(
+    (
+      actionCallback: (() => void) | (() => Promise<void>),
+      toolName: string
+    ) => {
+      if (isViewOnlyMode) {
+        toast({
+          title: 'View Only Mode',
+          description: `Cannot use ${toolName} in view-only mode.`,
+          variant: 'default',
+        });
+        return;
+      }
+      actionCallback();
+    },
+    [isViewOnlyMode, toast]
+  );
 
-  const isExpandConceptDisabled = isViewOnlyMode || !selectedNodeId || numMultiSelectedNodes > 1;
+  const isExpandConceptDisabled =
+    isViewOnlyMode || !selectedNodeId || numMultiSelectedNodes > 1;
   const getExpandConceptTooltip = () => {
-    if (isViewOnlyMode) return "Expand Concept (Disabled in View Mode)";
-    if (!selectedNodeId) return "Expand Concept (Select a node first)";
-    if (numMultiSelectedNodes > 1) return "Expand Concept (Select a single node)";
-    return "Expand Selected Concept (AI)";
+    if (isViewOnlyMode) return 'Expand Concept (Disabled in View Mode)';
+    if (!selectedNodeId) return 'Expand Concept (Select a node first)';
+    if (numMultiSelectedNodes > 1)
+      return 'Expand Concept (Select a single node)';
+    return 'Expand Selected Concept (AI)';
   };
 
   const isSummarizeNodesDisabled = isViewOnlyMode || numMultiSelectedNodes < 2;
   const getSummarizeNodesTooltip = () => {
-    if (isViewOnlyMode) return "Summarize Selection (Disabled in View Mode)";
-    if (numMultiSelectedNodes < 2) return "Summarize Selection (Select 2+ nodes)";
-    return "Summarize Selection (AI)";
+    if (isViewOnlyMode) return 'Summarize Selection (Disabled in View Mode)';
+    if (numMultiSelectedNodes < 2)
+      return 'Summarize Selection (Select 2+ nodes)';
+    return 'Summarize Selection (AI)';
   };
 
-  const numMultiSelectedNodeIds = useConceptMapStore(s => s.selectedNodeIds).length;
-
+  const numMultiSelectedNodeIds = useConceptMapStore(
+    (s) => s.selectedNodeIds
+  ).length;
 
   const handleCopyToWorkspace = () => {
     if (currentMapId && currentMapId.startsWith('example-')) {
@@ -209,311 +255,303 @@ export const EditorToolbar = React.memo(function EditorToolbar({
       router.push(`/login?${params.toString()}`);
     } else {
       toast({
-        title: "Error",
-        description: "This map cannot be copied to workspace automatically.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'This map cannot be copied to workspace automatically.',
+        variant: 'destructive',
       });
     }
   };
 
-  const showCopyButton = isViewOnlyMode && currentMapId && currentMapId.startsWith('example-') && !authIsLoading && !isAuthenticated;
+  const showCopyButton =
+    isViewOnlyMode &&
+    currentMapId &&
+    currentMapId.startsWith('example-') &&
+    !authIsLoading &&
+    !isAuthenticated;
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="mb-2 flex h-14 items-center gap-1 rounded-lg border bg-card p-2 shadow-sm flex-wrap">
+      <div className='mb-2 flex h-14 items-center gap-1 rounded-lg border bg-card p-2 shadow-sm flex-wrap'>
         {showCopyButton && (
           <>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline_primary" size="sm" onClick={handleCopyToWorkspace} className="mr-2">
-                  <Edit3 className="h-4 w-4 mr-2" />
+                <Button
+                  variant='outline_primary'
+                  size='sm'
+                  onClick={handleCopyToWorkspace}
+                  className='mr-2'
+                >
+                  <Edit3 className='h-4 w-4 mr-2' />
                   Copy to My Workspace & Edit
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Log in or sign up to copy and edit this example map.</TooltipContent>
+              <TooltipContent>
+                Log in or sign up to copy and edit this example map.
+              </TooltipContent>
             </Tooltip>
-            <Separator orientation="vertical" className="mx-1 h-full" />
+            <Separator orientation='vertical' className='mx-1 h-full' />
           </>
         )}
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onNewMap} >
-              <FilePlus className="h-5 w-5" />
+            <Button variant='ghost' size='icon' onClick={onNewMap}>
+              <FilePlus className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
           <TooltipContent>New Map</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onSaveMap} disabled={isSaving || isViewOnlyMode || showCopyButton}>
-              {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onSaveMap}
+              disabled={isSaving || isViewOnlyMode || showCopyButton}
+            >
+              {isSaving ? (
+                <Loader2 className='h-5 w-5 animate-spin' />
+              ) : (
+                <Save className='h-5 w-5' />
+              )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{showCopyButton ? "Log in to save maps" : isViewOnlyMode ? "Save Map (Disabled in View Mode)" : "Save Map"}</TooltipContent>
+          <TooltipContent>
+            {showCopyButton
+              ? 'Log in to save maps'
+              : isViewOnlyMode
+                ? 'Save Map (Disabled in View Mode)'
+                : 'Save Map'}
+          </TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onTriggerImport} disabled={isViewOnlyMode || showCopyButton}>
-              <Upload className="h-5 w-5" />
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onTriggerImport}
+              disabled={isViewOnlyMode || showCopyButton}
+            >
+              <Upload className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{showCopyButton ? "Log in to import maps" : isViewOnlyMode ? "Import Map (Disabled)" : "Import Map (JSON)"}</TooltipContent>
+          <TooltipContent>
+            {showCopyButton
+              ? 'Log in to import maps'
+              : isViewOnlyMode
+                ? 'Import Map (Disabled)'
+                : 'Import Map (JSON)'}
+          </TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onExportMap}>
-              <Download className="h-5 w-5" />
+            <Button variant='ghost' size='icon' onClick={onExportMap}>
+              <Download className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Export Map (JSON)</TooltipContent>
         </Tooltip>
 
-        <Separator orientation="vertical" className="mx-1 h-full" />
+        <Separator orientation='vertical' className='mx-1 h-full' />
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onUndo} disabled={isViewOnlyMode || !canUndo || showCopyButton}>
-              <Undo className="h-5 w-5" />
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onUndo}
+              disabled={isViewOnlyMode || !canUndo || showCopyButton}
+            >
+              <Undo className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{showCopyButton ? "Log in to use undo/redo" : isViewOnlyMode ? "Undo (Disabled)" : !canUndo ? "Nothing to Undo" : "Undo"}</TooltipContent>
+          <TooltipContent>
+            {showCopyButton
+              ? 'Log in to use undo/redo'
+              : isViewOnlyMode
+                ? 'Undo (Disabled)'
+                : !canUndo
+                  ? 'Nothing to Undo'
+                  : 'Undo'}
+          </TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onRedo} disabled={isViewOnlyMode || !canRedo || showCopyButton}>
-              <Redo className="h-5 w-5" />
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onRedo}
+              disabled={isViewOnlyMode || !canRedo || showCopyButton}
+            >
+              <Redo className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{showCopyButton ? "Log in to use undo/redo" : isViewOnlyMode ? "Redo (Disabled)" : !canRedo ? "Nothing to Redo" : "Redo"}</TooltipContent>
+          <TooltipContent>
+            {showCopyButton
+              ? 'Log in to use undo/redo'
+              : isViewOnlyMode
+                ? 'Redo (Disabled)'
+                : !canRedo
+                  ? 'Nothing to Redo'
+                  : 'Redo'}
+          </TooltipContent>
         </Tooltip>
 
-        <Separator orientation="vertical" className="mx-1 h-full" />
+        <Separator orientation='vertical' className='mx-1 h-full' />
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onAddNodeToData} disabled={isViewOnlyMode || showCopyButton}>
-              <PlusSquare className="h-5 w-5" />
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onAddNodeToData}
+              disabled={isViewOnlyMode || showCopyButton}
+            >
+              <PlusSquare className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{showCopyButton ? "Log in to add elements" : isViewOnlyMode ? "Add Node (Disabled)" : "Add Node"}</TooltipContent>
+          <TooltipContent>
+            {showCopyButton
+              ? 'Log in to add elements'
+              : isViewOnlyMode
+                ? 'Add Node (Disabled)'
+                : 'Add Node'}
+          </TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onAddEdgeToData} disabled={isViewOnlyMode || !canAddEdge || showCopyButton}>
-              <Spline className="h-5 w-5" />
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onAddEdgeToData}
+              disabled={isViewOnlyMode || !canAddEdge || showCopyButton}
+            >
+              <Spline className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{showCopyButton ? "Log in to add elements" : isViewOnlyMode ? "Add Edge (Disabled)" : !canAddEdge ? "Add Edge (Requires 2+ nodes)" : "Add Edge"}</TooltipContent>
+          <TooltipContent>
+            {showCopyButton
+              ? 'Log in to add elements'
+              : isViewOnlyMode
+                ? 'Add Edge (Disabled)'
+                : !canAddEdge
+                  ? 'Add Edge (Requires 2+ nodes)'
+                  : 'Add Edge'}
+          </TooltipContent>
         </Tooltip>
 
-        <Separator orientation="vertical" className="mx-1 h-full" />
-
+        <Separator orientation='vertical' className='mx-1 h-full' />
 
         {/* AI Tools Dropdown */}
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isViewOnlyMode || showCopyButton} aria-label="AI Tools">
-                  <Sparkles className="h-5 w-5" />
-
-        {/* Auto-layout Button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => onAutoLayout?.()} disabled={isViewOnlyMode || !onAutoLayout || showCopyButton}>
-              <Shuffle className="h-5 w-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{showCopyButton ? "Log in to use layout tools" : isViewOnlyMode ? "Shuffle Layout (Disabled)" : !onAutoLayout ? "Shuffle Layout (Not Configured)" : "Shuffle Layout (Experimental)"}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onTidySelection?.()}
-              disabled={isViewOnlyMode || !onTidySelection || numMultiSelectedNodes < 2 || showCopyButton}
-            >
-              <LayoutGrid className="h-5 w-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {showCopyButton ? "Log in to use layout tools" :
-             isViewOnlyMode
-              ? "Tidy Selection (Disabled in View Mode)"
-              : !onTidySelection
-              ? "Tidy Selection (Not Configured)"
-              : numMultiSelectedNodes < 2
-              ? "Tidy Selection (Select 2+ nodes)"
-              : "Tidy Selected Nodes"}
-          </TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleGenAIClick(onApplySemanticTidyUp!, "AI Semantic Tidy")}
-              disabled={isViewOnlyMode || !onApplySemanticTidyUp || isApplyingSemanticTidyUp || numMultiSelectedNodes < 2 || showCopyButton}
-            >
-              {isApplyingSemanticTidyUp ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {showCopyButton ? "Log in to use AI tools" :
-             isViewOnlyMode
-              ? "AI Semantic Tidy (Disabled in View Mode)"
-              : !onApplySemanticTidyUp
-              ? "AI Semantic Tidy (Not Configured)"
-              : isApplyingSemanticTidyUp
-              ? "Processing..."
-              : numMultiSelectedNodes < 2
-              ? "AI Semantic Tidy (Select 2+ nodes)"
-              : "Arrange Selected Nodes with AI (Semantic Tidy)"}
-          </TooltipContent>
-        </Tooltip>
-
-        {/* New Auto-layout (Dagre) Button - Full Map */}
-        {/* New "Suggest Structural Improvements" Button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={async () => {
-                if (isViewOnlyMode) {
-                  toast({ title: "View Only Mode", description: "Cannot suggest improvements in view-only mode.", variant: "default" });
-                  return;
-                }
-                setIsLoadingSuggestions(true);
-                try {
-                  const currentMapData = store.getState().mapData;
-                  const flowInput: AIFetchAllStructuralSuggestionsInput = {
-                    nodes: currentMapData.nodes.map(n => ({
-                      id: n.id,
-                      text: n.text,
-                      details: n.details || ""
-                    })),
-                    edges: currentMapData.edges.map(e => ({
-                      source: e.source,
-                      target: e.target,
-                      label: e.label || ""
-                    })),
-                  };
-                  const results = await fetchAllStructuralSuggestionsFlow.run(flowInput);
-                  store.getState().setStructuralSuggestions(results);
-                  toast({ title: "AI Suggestions", description: `Received ${results.length} structural suggestions.` });
-                } catch (error) {
-                  console.error("Failed to fetch structural suggestions", error);
-                  toast({ title: "Error", description: "Failed to fetch AI structural suggestions.", variant: "destructive" });
-                  store.getState().clearStructuralSuggestions(); // Clear any stale suggestions
-                } finally {
-                  setIsLoadingSuggestions(false);
-                }
-              }}
-              disabled={isViewOnlyMode || isLoadingSuggestions}
-            >
-              {isLoadingSuggestions ? <Loader2 className="h-5 w-5 animate-spin" /> : <BrainCircuit className="h-5 w-5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {isViewOnlyMode ? "Suggest Improvements (Disabled)" : isLoadingSuggestions ? "Loading..." : "Suggest Structural Improvements (AI)"}
-          </TooltipContent>
-        </Tooltip>
-
-        {/* New Auto-layout (Dagre) Button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={isViewOnlyMode || !onAutoLayout || showCopyButton}
-              onClick={() => onAutoLayout?.()}
-              aria-label="Auto-layout Full Map (Dagre)"
-            >
-              <Network className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{showCopyButton ? "Log in to use layout tools" : isViewOnlyMode ? "Auto-layout Full Map (Disabled)" : !onAutoLayout ? "Auto-layout Full Map (Not Configured)" : "Auto-layout Full Map (Dagre)"}</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Dagre Tidy Selection Button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => handleGenAIClick(onDagreTidySelection!, "Dagre Tidy Selection")}
-              disabled={isViewOnlyMode || !onDagreTidySelection || isDagreTidying || numMultiSelectedNodes < 2 || showCopyButton}
-              aria-label="Tidy Selected Subgraph (Dagre)"
-            >
-              {isDagreTidying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Grid className="h-4 w-4" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {showCopyButton ? "Log in to use layout tools" :
-             isViewOnlyMode ? "Tidy Selection (Dagre - Disabled)"
-              : !onDagreTidySelection ? "Tidy Selection (Dagre - Not Configured)"
-              : numMultiSelectedNodes < 2 ? "Tidy Selection (Dagre - Select 2+ nodes)"
-              : isDagreTidying ? "Processing..."
-              : "Tidy Selected Subgraph (Dagre)"}
-          </TooltipContent>
-        </Tooltip>
-
-
-        <Separator orientation="vertical" className="mx-1 h-full" />
-
-        {/* Suggest AI Group Button (conditionally rendered) */}
-        {!isViewOnlyMode && !showCopyButton && numMultiSelectedNodes >= 2 && onSuggestAISemanticGroup && (
-          <>
-            <Tooltip>
-              <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onSuggestAISemanticGroup}
+                  variant='ghost'
+                  size='icon'
+                  disabled={isViewOnlyMode || showCopyButton}
+                  aria-label='AI Tools'
                 >
-                  <BoxSelect className="h-5 w-5" />
-
+                  <Sparkles className='h-5 w-5' />
                 </Button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent>{showCopyButton ? "Log in to use AI tools" : isViewOnlyMode ? "AI Tools (Disabled)" : "AI Tools"}</TooltipContent>
+            <TooltipContent>
+              {showCopyButton
+                ? 'Log in to use AI tools'
+                : isViewOnlyMode
+                  ? 'AI Tools (Disabled)'
+                  : 'AI Tools'}
+            </TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={() => handleGenAIClick(onQuickCluster, "Quick AI Cluster")} disabled={isViewOnlyMode}>
-              <Sparkles className="mr-2 h-4 w-4" /> Quick AI Cluster
+          <DropdownMenuContent align='start'>
+            <DropdownMenuItem
+              onClick={() =>
+                handleGenAIClick(onQuickCluster, 'Quick AI Cluster')
+              }
+              disabled={isViewOnlyMode}
+            >
+              <Sparkles className='mr-2 h-4 w-4' /> Quick AI Cluster
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleGenAIClick(onGenerateSnippetFromText, "Generate Snippet")} disabled={isViewOnlyMode}>
-              <TextSearch className="mr-2 h-4 w-4" /> Generate Snippet from Text
+            <DropdownMenuItem
+              onClick={() =>
+                handleGenAIClick(onGenerateSnippetFromText, 'Generate Snippet')
+              }
+              disabled={isViewOnlyMode}
+            >
+              <TextSearch className='mr-2 h-4 w-4' /> Generate Snippet from Text
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleGenAIClick(onExtractConcepts, "Extract Concepts")} disabled={isViewOnlyMode}>
-              <SearchCode className="mr-2 h-4 w-4" /> Extract Concepts
+            <DropdownMenuItem
+              onClick={() =>
+                handleGenAIClick(onExtractConcepts, 'Extract Concepts')
+              }
+              disabled={isViewOnlyMode}
+            >
+              <SearchCode className='mr-2 h-4 w-4' /> Extract Concepts
             </DropdownMenuItem>
-            <DropdownMenuItem data-tutorial-id="ai-tool-suggest-relations" onClick={() => handleGenAIClick(onSuggestRelations, "Suggest Relations")} disabled={isViewOnlyMode}>
-              <Lightbulb className="mr-2 h-4 w-4" /> Suggest Relations
+            <DropdownMenuItem
+              data-tutorial-id='ai-tool-suggest-relations'
+              onClick={() =>
+                handleGenAIClick(onSuggestRelations, 'Suggest Relations')
+              }
+              disabled={isViewOnlyMode}
+            >
+              <Lightbulb className='mr-2 h-4 w-4' /> Suggest Relations
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleGenAIClick(onExpandConcept, "Expand Concept")} disabled={isExpandConceptDisabled}>
-              <Brain className="mr-2 h-4 w-4" /> Expand Selected Concept
+            <DropdownMenuItem
+              onClick={() =>
+                handleGenAIClick(onExpandConcept, 'Expand Concept')
+              }
+              disabled={isExpandConceptDisabled}
+            >
+              <Brain className='mr-2 h-4 w-4' /> Expand Selected Concept
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleGenAIClick(onSummarizeSelectedNodes, "Summarize Selection")} disabled={isSummarizeNodesDisabled}>
-              <ListCollapse className="mr-2 h-4 w-4" /> Summarize Selection
+            <DropdownMenuItem
+              onClick={() =>
+                handleGenAIClick(
+                  onSummarizeSelectedNodes,
+                  'Summarize Selection'
+                )
+              }
+              disabled={isSummarizeNodesDisabled}
+            >
+              <ListCollapse className='mr-2 h-4 w-4' /> Summarize Selection
             </DropdownMenuItem>
-            {onSummarizeMap &&
-              <DropdownMenuItem onClick={() => handleGenAIClick(onSummarizeMap, "Summarize Map")} disabled={isViewOnlyMode || isSummarizingMap}>
-                {isSummarizingMap ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileTextIcon className="mr-2 h-4 w-4" />}
+            {onSummarizeMap && (
+              <DropdownMenuItem
+                onClick={() =>
+                  handleGenAIClick(onSummarizeMap, 'Summarize Map')
+                }
+                disabled={isViewOnlyMode || isSummarizingMap}
+              >
+                {isSummarizingMap ? (
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                ) : (
+                  <FileTextIcon className='mr-2 h-4 w-4' />
+                )}
                 Summarize Map
               </DropdownMenuItem>
-            }
-            {onAskQuestionAboutMapContext &&
-              <DropdownMenuItem onClick={() => handleGenAIClick(onAskQuestionAboutMapContext, "Ask AI About Map")} disabled={isViewOnlyMode || isAskingAboutMapContext}>
-                {isAskingAboutMapContext ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessagesSquare className="mr-2 h-4 w-4" />}
+            )}
+            {onAskQuestionAboutMapContext && (
+              <DropdownMenuItem
+                onClick={() =>
+                  handleGenAIClick(
+                    onAskQuestionAboutMapContext,
+                    'Ask AI About Map'
+                  )
+                }
+                disabled={isViewOnlyMode || isAskingAboutMapContext}
+              >
+                {isAskingAboutMapContext ? (
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                ) : (
+                  <MessagesSquare className='mr-2 h-4 w-4' />
+                )}
                 Ask AI About Map
               </DropdownMenuItem>
-            }
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -522,49 +560,101 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={isViewOnlyMode || showCopyButton} aria-label="Layout Tools">
-                  <LayoutGrid className="h-5 w-5" />
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  disabled={isViewOnlyMode || showCopyButton}
+                  aria-label='Layout Tools'
+                >
+                  <LayoutGrid className='h-5 w-5' />
                 </Button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent>{showCopyButton ? "Log in to use Layout tools" : isViewOnlyMode ? "Layout Tools (Disabled)" : "Layout Tools"}</TooltipContent>
+            <TooltipContent>
+              {showCopyButton
+                ? 'Log in to use Layout tools'
+                : isViewOnlyMode
+                  ? 'Layout Tools (Disabled)'
+                  : 'Layout Tools'}
+            </TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="start">
-            {onAutoLayout &&
-              <DropdownMenuItem onClick={() => handleGenAIClick(onAutoLayout, "Auto Layout")} disabled={isViewOnlyMode}>
-                <Shuffle className="mr-2 h-4 w-4" /> Auto-layout Full Map (Old)
+          <DropdownMenuContent align='start'>
+            {onAutoLayout && (
+              <DropdownMenuItem
+                onClick={() => handleGenAIClick(onAutoLayout, 'Auto Layout')}
+                disabled={isViewOnlyMode}
+              >
+                <Shuffle className='mr-2 h-4 w-4' /> Auto-layout Full Map (Old)
               </DropdownMenuItem>
-            }
-            {onDagreTidySelection &&
-              <DropdownMenuItem onClick={() => handleGenAIClick(onDagreTidySelection, "Dagre Tidy Selection")} disabled={isViewOnlyMode || isDagreTidying || numMultiSelectedNodeIds < 2}>
-                {isDagreTidying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Grid className="mr-2 h-4 w-4" />}
+            )}
+            {onDagreTidySelection && (
+              <DropdownMenuItem
+                onClick={() =>
+                  handleGenAIClick(onDagreTidySelection, 'Dagre Tidy Selection')
+                }
+                disabled={
+                  isViewOnlyMode ||
+                  isDagreTidying ||
+                  numMultiSelectedNodeIds < 2
+                }
+              >
+                {isDagreTidying ? (
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                ) : (
+                  <Grid className='mr-2 h-4 w-4' />
+                )}
                 Tidy Selection (Dagre)
               </DropdownMenuItem>
-            }
-            {onAiTidySelection &&
-              <DropdownMenuItem onClick={() => handleGenAIClick(onAiTidySelection, "AI Tidy Selection")} disabled={isViewOnlyMode || numMultiSelectedNodes < 2}>
-                <AlignHorizontalDistributeCenter className="mr-2 h-4 w-4" /> AI Tidy Selection
+            )}
+            {onAiTidySelection && (
+              <DropdownMenuItem
+                onClick={() =>
+                  handleGenAIClick(onAiTidySelection, 'AI Tidy Selection')
+                }
+                disabled={isViewOnlyMode || numMultiSelectedNodes < 2}
+              >
+                <AlignHorizontalDistributeCenter className='mr-2 h-4 w-4' /> AI
+                Tidy Selection
               </DropdownMenuItem>
-            }
-             {onApplySemanticTidyUp &&
-              <DropdownMenuItem onClick={() => handleGenAIClick(onApplySemanticTidyUp, "AI Semantic Tidy")} disabled={isViewOnlyMode || isApplyingSemanticTidyUp || numMultiSelectedNodes < 2}>
-                {isApplyingSemanticTidyUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+            )}
+            {onApplySemanticTidyUp && (
+              <DropdownMenuItem
+                onClick={() =>
+                  handleGenAIClick(onApplySemanticTidyUp, 'AI Semantic Tidy')
+                }
+                disabled={
+                  isViewOnlyMode ||
+                  isApplyingSemanticTidyUp ||
+                  numMultiSelectedNodes < 2
+                }
+              >
+                {isApplyingSemanticTidyUp ? (
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                ) : (
+                  <Wand2 className='mr-2 h-4 w-4' />
+                )}
                 AI Semantic Tidy
               </DropdownMenuItem>
-            }
+            )}
             {arrangeActions && arrangeActions.length > 0 && (
               <>
                 <DropdownMenuSeparator />
-                {arrangeActions.map((actionItem) => (
+                {arrangeActions.map((actionItem) =>
                   actionItem.isSeparator ? (
                     <DropdownMenuSeparator key={actionItem.id} />
                   ) : (
-                    <DropdownMenuItem key={actionItem.id} onSelect={actionItem.action} disabled={isViewOnlyMode || numMultiSelectedNodes < 1}>
-                      {actionItem.icon && <actionItem.icon className="mr-2 h-4 w-4" />}
+                    <DropdownMenuItem
+                      key={actionItem.id}
+                      onSelect={actionItem.action}
+                      disabled={isViewOnlyMode || numMultiSelectedNodes < 1}
+                    >
+                      {actionItem.icon && (
+                        <actionItem.icon className='mr-2 h-4 w-4' />
+                      )}
                       {actionItem.label}
                     </DropdownMenuItem>
                   )
-                ))}
+                )}
               </>
             )}
           </DropdownMenuContent>
@@ -575,98 +665,183 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
-                size="icon"
+                variant='ghost'
+                size='icon'
                 onClick={async () => {
-                  if (isViewOnlyMode) { return; }
+                  if (isViewOnlyMode) {
+                    return;
+                  }
                   setIsLoadingSuggestions(true);
                   try {
                     const currentMapData = store.getState().mapData;
                     const flowInput = {
-                      nodes: currentMapData.nodes.map(n => ({ id: n.id, text: n.text, details: n.details || "" })),
-                      edges: currentMapData.edges.map(e => ({ source: e.source, target: e.target, label: e.label || "" })),
+                      nodes: currentMapData.nodes.map((n) => ({
+                        id: n.id,
+                        text: n.text,
+                        details: n.details || '',
+                      })),
+                      edges: currentMapData.edges.map((e) => ({
+                        source: e.source,
+                        target: e.target,
+                        label: e.label || '',
+                      })),
                     };
-                    const results = await fetchAllStructuralSuggestionsFlow.run(flowInput as any);
+                    const results = await fetchAllStructuralSuggestionsFlow.run(
+                      flowInput as any
+                    );
                     store.getState().setStructuralSuggestions(results);
-                    toast({ title: "AI Suggestions", description: `Received ${results.length} structural suggestions.` });
+                    toast({
+                      title: 'AI Suggestions',
+                      description: `Received ${results.length} structural suggestions.`,
+                    });
                   } catch (error) {
-                    console.error("Failed to fetch structural suggestions", error);
-                    toast({ title: "Error", description: "Failed to fetch AI structural suggestions.", variant: "destructive" });
+                    console.error(
+                      'Failed to fetch structural suggestions',
+                      error
+                    );
+                    toast({
+                      title: 'Error',
+                      description: 'Failed to fetch AI structural suggestions.',
+                      variant: 'destructive',
+                    });
                     store.getState().clearStructuralSuggestions();
                   } finally {
                     setIsLoadingSuggestions(false);
                   }
                 }}
-                disabled={isViewOnlyMode || isLoadingSuggestions || showCopyButton}
+                disabled={
+                  isViewOnlyMode || isLoadingSuggestions || showCopyButton
+                }
               >
-                {isLoadingSuggestions ? <Loader2 className="h-5 w-5 animate-spin" /> : <BrainCircuit className="h-5 w-5" />}
+                {isLoadingSuggestions ? (
+                  <Loader2 className='h-5 w-5 animate-spin' />
+                ) : (
+                  <BrainCircuit className='h-5 w-5' />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {showCopyButton ? "Log in to use AI tools" : isViewOnlyMode ? "Suggest Improvements (Disabled)" : isLoadingSuggestions ? "Loading..." : "Suggest Structural Improvements (AI)"}
+              {showCopyButton
+                ? 'Log in to use AI tools'
+                : isViewOnlyMode
+                  ? 'Suggest Improvements (Disabled)'
+                  : isLoadingSuggestions
+                    ? 'Loading...'
+                    : 'Suggest Structural Improvements (AI)'}
             </TooltipContent>
           </Tooltip>
         )}
 
-        {!isViewOnlyMode && !showCopyButton && onSuggestAISemanticGroup && numMultiSelectedNodes >=2 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onSuggestAISemanticGroup, "Suggest AI Grouping")}>
-                <BoxSelect className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Suggest AI Grouping for Selection</TooltipContent>
-          </Tooltip>
-        )}
-        {!isViewOnlyMode && !showCopyButton && onSuggestAIArrangement && numMultiSelectedNodes >=2 && (
-           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onSuggestAIArrangement, "AI Suggest Arrangement")} disabled={isSuggestingAIArrangement}>
-                {isSuggestingAIArrangement ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>AI Suggest Arrangement for Selection</TooltipContent>
-          </Tooltip>
-        )}
-         {!isViewOnlyMode && !showCopyButton && onAIDiscoverGroup && mapNodeCount && mapNodeCount >=3 && (
-           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => handleGenAIClick(onAIDiscoverGroup, "AI Discover Group")} disabled={isAIDiscoveringGroup}>
-                 {isAIDiscoveringGroup ? <Loader2 className="h-5 w-5 animate-spin" /> : <SearchPlus className="h-5 w-5" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>AI Discover Potential Group in Map</TooltipContent>
-          </Tooltip>
-        )}
+        {!isViewOnlyMode &&
+          !showCopyButton &&
+          onSuggestAISemanticGroup &&
+          numMultiSelectedNodes >= 2 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  onClick={() =>
+                    handleGenAIClick(
+                      onSuggestAISemanticGroup,
+                      'Suggest AI Grouping'
+                    )
+                  }
+                >
+                  <BoxSelect className='h-5 w-5' />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Suggest AI Grouping for Selection</TooltipContent>
+            </Tooltip>
+          )}
+        {!isViewOnlyMode &&
+          !showCopyButton &&
+          onSuggestAIArrangement &&
+          numMultiSelectedNodes >= 2 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  onClick={() =>
+                    handleGenAIClick(
+                      onSuggestAIArrangement,
+                      'AI Suggest Arrangement'
+                    )
+                  }
+                  disabled={isSuggestingAIArrangement}
+                >
+                  {isSuggestingAIArrangement ? (
+                    <Loader2 className='h-5 w-5 animate-spin' />
+                  ) : (
+                    <Wand2 className='h-5 w-5' />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                AI Suggest Arrangement for Selection
+              </TooltipContent>
+            </Tooltip>
+          )}
+        {!isViewOnlyMode &&
+          !showCopyButton &&
+          onAIDiscoverGroup &&
+          mapNodeCount &&
+          mapNodeCount >= 3 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  onClick={() =>
+                    handleGenAIClick(onAIDiscoverGroup, 'AI Discover Group')
+                  }
+                  disabled={isAIDiscoveringGroup}
+                >
+                  {isAIDiscoveringGroup ? (
+                    <Loader2 className='h-5 w-5 animate-spin' />
+                  ) : (
+                    <SearchPlus className='h-5 w-5' />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                AI Discover Potential Group in Map
+              </TooltipContent>
+            </Tooltip>
+          )}
 
+        <div className='flex-grow' />
 
-        <div className="flex-grow" />
-
-        <Separator orientation="vertical" className="mx-1 h-full" />
+        <Separator orientation='vertical' className='mx-1 h-full' />
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="icon"
+              variant='ghost'
+              size='icon'
               onClick={onToggleDebugLogViewer}
-              className={cn(isDebugLogViewerOpen && "bg-accent text-accent-foreground")}
+              className={cn(
+                isDebugLogViewerOpen && 'bg-accent text-accent-foreground'
+              )}
             >
-              <ScrollText className="h-5 w-5" />
+              <ScrollText className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isDebugLogViewerOpen ? "Hide Debug Logs" : "Show Debug Logs"}</TooltipContent>
+          <TooltipContent>
+            {isDebugLogViewerOpen ? 'Hide Debug Logs' : 'Show Debug Logs'}
+          </TooltipContent>
         </Tooltip>
 
         {onTestEdgeOverlay && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="outline"
-                size="icon"
+                variant='outline'
+                size='icon'
                 onClick={onTestEdgeOverlay}
-                className="border-yellow-500 hover:bg-yellow-500/10"
+                className='border-yellow-500 hover:bg-yellow-500/10'
               >
-                <TestTube2 className="h-5 w-5 text-yellow-600" />
+                <TestTube2 className='h-5 w-5 text-yellow-600' />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Test Edge Overlay (Dev)</TooltipContent>
@@ -676,29 +851,37 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              id="tutorial-target-toggle-properties-button"
-              variant="ghost"
-              size="icon"
+              id='tutorial-target-toggle-properties-button'
+              variant='ghost'
+              size='icon'
               onClick={onToggleProperties}
-              className={cn(isPropertiesPanelOpen && "bg-accent text-accent-foreground")}
+              className={cn(
+                isPropertiesPanelOpen && 'bg-accent text-accent-foreground'
+              )}
             >
-              <Settings2 className="h-5 w-5" />
+              <Settings2 className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isPropertiesPanelOpen ? "Hide Properties" : "Show Properties"}</TooltipContent>
+          <TooltipContent>
+            {isPropertiesPanelOpen ? 'Hide Properties' : 'Show Properties'}
+          </TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="icon"
+              variant='ghost'
+              size='icon'
               onClick={onToggleAiPanel}
-              className={cn(isAiPanelOpen && "bg-accent text-accent-foreground")}
+              className={cn(
+                isAiPanelOpen && 'bg-accent text-accent-foreground'
+              )}
             >
-              <BotMessageSquare className="h-5 w-5" />
+              <BotMessageSquare className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{isAiPanelOpen ? "Hide AI Suggestions" : "Show AI Suggestions"}</TooltipContent>
+          <TooltipContent>
+            {isAiPanelOpen ? 'Hide AI Suggestions' : 'Show AI Suggestions'}
+          </TooltipContent>
         </Tooltip>
 
         {!isViewOnlyMode && !showCopyButton && (
@@ -706,32 +889,44 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label="Tutorials">
-                    <GraduationCap className="h-5 w-5" />
+                  <Button variant='ghost' size='icon' aria-label='Tutorials'>
+                    <GraduationCap className='h-5 w-5' />
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
               <TooltipContent>Editor Tutorials</TooltipContent>
             </Tooltip>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onSelect={() => startOrResumeTutorial('editorTutorial', 0, true)}>
+            <DropdownMenuContent align='end' className='w-56'>
+              <DropdownMenuItem
+                onSelect={() =>
+                  startOrResumeTutorial('editorTutorial', 0, true)
+                }
+              >
                 Editor Basics Tour
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => startOrResumeTutorial('extractConceptsToolTutorial', 0, true)}>
+              <DropdownMenuItem
+                onSelect={() =>
+                  startOrResumeTutorial('extractConceptsToolTutorial', 0, true)
+                }
+              >
                 Using AI: Extract Concepts
               </DropdownMenuItem>
               {/* Example for another AI tool tutorial if it existed */}
               {/* <DropdownMenuItem onSelect={() => startOrResumeTutorial('expandConceptToolTutorial', 0, true)}>
                 Using AI: Expand Concept
               </DropdownMenuItem> */}
-               <DropdownMenuSeparator />
+              <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleTestManualAddNodeTutorial}>
                 Test: Manual Add Node Tutorial
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={handleTestManualCreateEdgeTutorial}>
                 Test: Manual Create Edge Tutorial
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => startOrResumeTutorial('suggestRelationsToolTutorial', 0, true)}>
+              <DropdownMenuItem
+                onSelect={() =>
+                  startOrResumeTutorial('suggestRelationsToolTutorial', 0, true)
+                }
+              >
                 Test: Suggest Relations Tutorial
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -742,26 +937,35 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
-                size="icon"
+                variant='ghost'
+                size='icon'
                 onClick={onToggleOverviewMode}
-                className={cn(isOverviewModeActive && !isFetchingOverview && "bg-accent text-accent-foreground")}
-                disabled={isViewOnlyMode || showCopyButton || isFetchingOverview}
+                className={cn(
+                  isOverviewModeActive &&
+                    !isFetchingOverview &&
+                    'bg-accent text-accent-foreground'
+                )}
+                disabled={
+                  isViewOnlyMode || showCopyButton || isFetchingOverview
+                }
               >
                 {isFetchingOverview ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className='h-5 w-5 animate-spin' />
                 ) : isOverviewModeActive ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className='h-5 w-5' />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className='h-5 w-5' />
                 )}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {isFetchingOverview ? "AI is generating project overview..." :
-               showCopyButton ? "Log in to use Project Overview" :
-               isOverviewModeActive ? "Exit Overview Mode" :
-               "Show Project Overview (AI)"}
+              {isFetchingOverview
+                ? 'AI is generating project overview...'
+                : showCopyButton
+                  ? 'Log in to use Project Overview'
+                  : isOverviewModeActive
+                    ? 'Exit Overview Mode'
+                    : 'Show Project Overview (AI)'}
             </TooltipContent>
           </Tooltip>
         )}
@@ -769,4 +973,4 @@ export const EditorToolbar = React.memo(function EditorToolbar({
     </TooltipProvider>
   );
 });
-EditorToolbar.displayName = "EditorToolbar";
+EditorToolbar.displayName = 'EditorToolbar';

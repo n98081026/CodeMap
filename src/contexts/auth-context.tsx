@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import React, {
   createContext,
   useContext,
@@ -10,28 +10,31 @@ import React, {
   useMemo,
   useRef,
 } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+
 import type { User } from '@/types';
-import { UserRole } from '@/types';
-import { supabase } from '@/lib/supabaseClient';
+import type { ConceptMapData } from '@/types'; // Assuming ConceptMapData is defined
 import type {
   AuthChangeEvent,
   Session,
   User as SupabaseUser,
 } from '@supabase/supabase-js';
-import {
-  getUserById as fetchSupabaseUserProfile,
-  updateUser as updateUserProfileService,
-  createUserProfile,
-} from '@/services/users/userService';
+import type { ReactNode } from 'react';
+
 import { useToast } from '@/hooks/use-toast';
-// Ensure V3 is the default for bypass
 import {
   BYPASS_AUTH_FOR_TESTING,
   MOCK_STUDENT_USER_V3,
   MOCK_TEACHER_USER_V3,
   MOCK_ADMIN_USER_V3,
 } from '@/lib/config';
+import { exampleProjects } from '@/lib/example-data';
+import { supabase } from '@/lib/supabaseClient';
+import {
+  getUserById as fetchSupabaseUserProfile,
+  updateUser as updateUserProfileService,
+  createUserProfile,
+} from '@/services/users/userService';
+// Ensure V3 is the default for bypass
 
 // DEFAULT_BYPASS_USER is now MOCK_STUDENT_USER_V3 for student testing
 const DEFAULT_BYPASS_USER = MOCK_STUDENT_USER_V3;
@@ -534,9 +537,8 @@ export const useAuth = () => {
 };
 
 // Helper function (can be moved to a service or utility file if it grows)
-import { exampleProjects } from '@/lib/example-data';
 import useConceptMapStore from '@/stores/concept-map-store';
-import type { ConceptMapData } from '@/types'; // Assuming ConceptMapData is defined
+import { UserRole } from '@/types';
 
 async function handleCopyExampleAction(
   exampleKey: string,

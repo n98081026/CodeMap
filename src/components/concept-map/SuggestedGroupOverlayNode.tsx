@@ -1,16 +1,17 @@
+import { GroupIcon, CheckCircle, XCircle, InfoIcon } from 'lucide-react'; // Added icons
 import React, { useState } from 'react'; // Added useState
 import { NodeProps } from 'reactflow';
+
 import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from '@/components/ui/popover';
-import { GroupIcon, CheckCircle, XCircle, InfoIcon } from 'lucide-react'; // Added icons
-import useConceptMapStore from '@/stores/concept-map-store';
 // uuidv4 might not be needed here if group creation doesn't generate ID on client
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import useConceptMapStore from '@/stores/concept-map-store';
 
 interface SuggestedGroupOverlayNodeData {
   suggestionId: string; // Original suggestion ID

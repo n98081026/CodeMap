@@ -1,9 +1,12 @@
-import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
+import React from 'react';
+
 import { AISuggestionPanel } from './ai-suggestion-panel';
-import useConceptMapStore from '@/stores/concept-map-store';
-import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
+
 import type { RelationSuggestion } from './ai-suggestion-panel'; // Assuming RelationSuggestion is exported or defined locally for tests
+import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
+
+import useConceptMapStore from '@/stores/concept-map-store';
 
 // Mock Zustand store
 jest.mock('@/stores/concept-map-store');

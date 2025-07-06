@@ -1,5 +1,12 @@
 'use client';
 
+import { PlusCircle, Edit, Trash2, Users } from 'lucide-react';
+
+import type { User } from '@/types';
+
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -7,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -16,11 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import type { User } from '@/types';
 import { UserRole } from '@/types';
-import { PlusCircle, Edit, Trash2, Users } from 'lucide-react';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 
 // Mock data for users
 const mockUsers: User[] = [

@@ -1,33 +1,7 @@
 // src/app/application/admin/users/page.tsx
 'use client';
 
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useDeferredValue,
-  useRef,
-} from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import type { User } from '@/types';
-import { UserRole } from '@/types';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   PlusCircle,
   Edit,
@@ -39,8 +13,19 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useDeferredValue,
+  useRef,
+} from 'react';
+
+import type { User } from '@/types';
+
+import { EditUserDialog } from '@/components/admin/users/edit-user-dialog';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { useToast } from '@/hooks/use-toast';
+import { EmptyState } from '@/components/layout/empty-state';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,22 +36,39 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/auth-context';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { EmptyState } from '@/components/layout/empty-state';
-import { EditUserDialog } from '@/components/admin/users/edit-user-dialog';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
 import {
   MOCK_ADMIN_USER_V3,
   MOCK_STUDENT_USER_V3,
   MOCK_TEACHER_USER_V3,
 } from '@/lib/config';
+import { UserRole } from '@/types';
 
 const USERS_PER_PAGE = 15;
 const PREDEFINED_MOCK_USER_IDS = [

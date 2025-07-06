@@ -27,7 +27,7 @@ export const ConceptMapEdgeSchema = z.object({
   color: z.string().optional(),
   lineType: z.enum(['solid', 'dashed']).optional(),
   markerStart: z.string().optional(), // Could be enum if values are fixed
-  markerEnd: z.string().optional(),   // Could be enum if values are fixed
+  markerEnd: z.string().optional(), // Could be enum if values are fixed
 });
 
 export const ConceptMapDataSchema = z.object({
@@ -43,9 +43,9 @@ export const ConceptMapSchema = z.object({
   isPublic: z.boolean(),
   sharedWithClassroomId: z.string().nullable().optional(),
   createdAt: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: "createdAt must be a valid ISO string date",
+    message: 'createdAt must be a valid ISO string date',
   }),
   updatedAt: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: "updatedAt must be a valid ISO string date",
+    message: 'updatedAt must be a valid ISO string date',
   }),
 });

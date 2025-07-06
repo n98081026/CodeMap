@@ -1,22 +1,32 @@
+'use client';
+import {
+  BookOpen,
+  FileText,
+  Share2,
+  FolderKanban,
+  LayoutDashboard,
+  Compass,
+  Loader2,
+  AlertTriangle,
+} from 'lucide-react';
+import { Loader2 } from 'lucide-react'; // Keep Loader2 for the page-level spinner
+import Link from 'next/link';
 
-"use client";
-import Link from "next/link";
-import { useAuth } from "@/contexts/auth-context";
-import type { User } from "@/types";
-import { BookOpen, FileText, Share2, FolderKanban, LayoutDashboard, Compass, Loader2, AlertTriangle } from "lucide-react";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card";
-import { useStudentDashboardMetrics } from "@/hooks/useStudentDashboardMetrics";
+import type { User } from '@/types';
+
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { DashboardLinkCard } from '@/components/dashboard/dashboard-link-card';
 // import { DashboardHeader } from "@/components/dashboard/dashboard-header"; // Now in StudentDashboardView
 // import { DashboardLinkCard } from "@/components/dashboard/dashboard-link-card"; // Now in StudentDashboardView
 // import { useStudentDashboardMetrics } from "@/hooks/useStudentDashboardMetrics"; // Now in StudentDashboardView
 // import { QuickActionsCard, type QuickActionItem } from "@/components/dashboard/quick-actions-card"; // Now in StudentDashboardView
-import StudentDashboardView from "@/components/dashboard/student/StudentDashboardView"; // Import the new shared view
-import { Loader2 } from "lucide-react"; // Keep Loader2 for the page-level spinner
+import StudentDashboardView from '@/components/dashboard/student/StudentDashboardView'; // Import the new shared view
+import { useAuth } from '@/contexts/auth-context';
+import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics';
 
 const LoadingSpinner = () => (
-  <div className="flex h-screen w-screen items-center justify-center">
-    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+  <div className='flex h-screen w-screen items-center justify-center'>
+    <Loader2 className='h-12 w-12 animate-spin text-primary' />
   </div>
 );
 
@@ -28,13 +38,13 @@ export default function StudentDashboardPage() {
     // but this ensures StudentDashboardPage doesn't try to render content prematurely.
     return <LoadingSpinner />;
   }
-  
+
   if (!user) {
     // This case should ideally be handled by AppLayout's redirect.
     // If reached, it means auth loaded, but user is null (not authenticated).
     // Or, if this page is meant ONLY for students, a role check could be added here too,
     // though AppLayout is a more general place for auth checks.
-    return null; 
+    return null;
   }
 
   // At this point, user is authenticated.

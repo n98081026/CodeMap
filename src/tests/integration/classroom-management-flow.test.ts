@@ -4,11 +4,12 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
-  createClassroom, 
-  getClassroomById, 
-  addStudentToClassroom, 
-  removeStudentFromClassroom 
+
+import {
+  createClassroom,
+  getClassroomById,
+  addStudentToClassroom,
+  removeStudentFromClassroom,
 } from '@/services/classrooms/classroomService';
 
 // Mock Supabase client
@@ -17,19 +18,19 @@ vi.mock('@/lib/supabaseClient', () => ({
     from: vi.fn(() => ({
       insert: vi.fn(() => ({
         select: vi.fn(() => ({
-          single: vi.fn()
-        }))
+          single: vi.fn(),
+        })),
       })),
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          single: vi.fn()
-        }))
+          single: vi.fn(),
+        })),
       })),
       delete: vi.fn(() => ({
-        eq: vi.fn()
-      }))
-    }))
-  }
+        eq: vi.fn(),
+      })),
+    })),
+  },
 }));
 
 describe('Classroom Management Integration Tests', () => {
@@ -45,27 +46,27 @@ describe('Classroom Management Integration Tests', () => {
         description: 'Learn advanced programming concepts',
         teacher_id: 'teacher-123',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: mockClassroom,
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await createClassroom({
         name: 'Advanced Programming',
         description: 'Learn advanced programming concepts',
-        teacherId: 'teacher-123'
+        teacherId: 'teacher-123',
       });
 
       expect(result.success).toBe(true);
@@ -77,21 +78,21 @@ describe('Classroom Management Integration Tests', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Teacher not found' }
+        error: { message: 'Teacher not found' },
       });
 
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await createClassroom({
         name: 'Invalid Classroom',
         description: 'This should fail',
-        teacherId: 'nonexistent-teacher'
+        teacherId: 'nonexistent-teacher',
       });
 
       expect(result.success).toBe(false);
@@ -111,29 +112,29 @@ describe('Classroom Management Integration Tests', () => {
             id: 'student-1',
             name: 'Alice Johnson',
             email: 'alice@example.com',
-            role: 'student'
+            role: 'student',
           },
           {
             id: 'student-2',
             name: 'Bob Smith',
             email: 'bob@example.com',
-            role: 'student'
-          }
-        ]
+            role: 'student',
+          },
+        ],
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockSelect = vi.fn().mockResolvedValue({
         data: mockClassroomWithStudents,
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: mockSelect
-          })
-        })
+            single: mockSelect,
+          }),
+        }),
       });
 
       const result = await getClassroomById('class-123');
@@ -147,15 +148,15 @@ describe('Classroom Management Integration Tests', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockSelect = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Classroom not found' }
+        error: { message: 'Classroom not found' },
       });
 
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: mockSelect
-          })
-        })
+            single: mockSelect,
+          }),
+        }),
       });
 
       const result = await getClassroomById('nonexistent-class');
@@ -170,21 +171,21 @@ describe('Classroom Management Integration Tests', () => {
       const mockEnrollment = {
         classroom_id: 'class-123',
         student_id: 'student-456',
-        enrolled_at: new Date().toISOString()
+        enrolled_at: new Date().toISOString(),
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: mockEnrollment,
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await addStudentToClassroom('class-123', 'student-456');
@@ -197,15 +198,15 @@ describe('Classroom Management Integration Tests', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Student already enrolled' }
+        error: { message: 'Student already enrolled' },
       });
 
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await addStudentToClassroom('class-123', 'student-456');
@@ -217,16 +218,19 @@ describe('Classroom Management Integration Tests', () => {
     it('should remove student from classroom successfully', async () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockDelete = vi.fn().mockResolvedValue({
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         delete: vi.fn().mockReturnValue({
-          eq: mockDelete
-        })
+          eq: mockDelete,
+        }),
       });
 
-      const result = await removeStudentFromClassroom('class-123', 'student-456');
+      const result = await removeStudentFromClassroom(
+        'class-123',
+        'student-456'
+      );
 
       expect(result.success).toBe(true);
       expect(mockDelete).toHaveBeenCalled();
@@ -235,16 +239,19 @@ describe('Classroom Management Integration Tests', () => {
     it('should handle student removal errors', async () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockDelete = vi.fn().mockResolvedValue({
-        error: { message: 'Student not found in classroom' }
+        error: { message: 'Student not found in classroom' },
       });
 
       (supabase.from as any).mockReturnValue({
         delete: vi.fn().mockReturnValue({
-          eq: mockDelete
-        })
+          eq: mockDelete,
+        }),
       });
 
-      const result = await removeStudentFromClassroom('class-123', 'nonexistent-student');
+      const result = await removeStudentFromClassroom(
+        'class-123',
+        'nonexistent-student'
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Student not found in classroom');
@@ -257,15 +264,15 @@ describe('Classroom Management Integration Tests', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockSelect = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Access denied: Not classroom owner' }
+        error: { message: 'Access denied: Not classroom owner' },
       });
 
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: mockSelect
-          })
-        })
+            single: mockSelect,
+          }),
+        }),
       });
 
       const result = await getClassroomById('class-123');
@@ -283,21 +290,21 @@ describe('Classroom Management Integration Tests', () => {
         student_count: 25,
         concept_map_count: 12,
         submission_count: 48,
-        active_students: 23
+        active_students: 23,
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockSelect = vi.fn().mockResolvedValue({
         data: mockClassroomStats,
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: mockSelect
-          })
-        })
+            single: mockSelect,
+          }),
+        }),
       });
 
       const result = await getClassroomById('class-123');

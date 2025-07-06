@@ -1,8 +1,9 @@
 // src/ai/flows/refine-node-suggestion.ts
 'use server';
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 // 1. Define Input Schema
 export const RefineNodeSuggestionInputSchema = z.object({

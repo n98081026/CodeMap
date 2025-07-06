@@ -1,7 +1,8 @@
 // src/app/api/users/[userId]/change-password/route.ts
-import { NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+
 import type { Database } from '@/types/supabase';
 
 export async function POST(

@@ -3,8 +3,9 @@
  * @fileOverview Flow to answer general questions about the entire concept map.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 // Define focused schemas for node and edge attributes to manage context size
 const MapContextNodeSchema = z.object({

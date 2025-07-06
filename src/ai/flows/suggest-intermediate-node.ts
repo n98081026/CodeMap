@@ -1,7 +1,7 @@
 'use server';
 
-import { genkit, z } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
+import { genkit, z } from 'genkit';
 const ai = genkit({ plugins: [googleAI()] });
 
 // 1. Define Input Schema

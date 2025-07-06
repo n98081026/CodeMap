@@ -7,6 +7,7 @@ import {
   updateClassroom,
   deleteClassroom,
 } from './classroomService'; // Added deleteClassroom
+
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService';
 import { UserRole, type User, type Classroom } from '@/types';
@@ -450,26 +451,20 @@ describe('classroomService', () => {
           if (callCount % 2 !== 0) {
             // Odd call (1st, 3rd, etc.)
             return {
-              select: jest
-                .fn()
-                .mockReturnValue({
-                  eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
-                }),
+              select: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+              }),
             };
           } else {
             // Even call (2nd, 4th, etc.)
             return {
-              update: jest
-                .fn()
-                .mockReturnValue({
-                  eq: jest
+              update: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  select: jest
                     .fn()
-                    .mockReturnValue({
-                      select: jest
-                        .fn()
-                        .mockReturnValue({ single: updateSingleMock }),
-                    }),
+                    .mockReturnValue({ single: updateSingleMock }),
                 }),
+              }),
             };
           }
         }
@@ -490,11 +485,9 @@ describe('classroomService', () => {
         .fn()
         .mockResolvedValue({ data: existingRecord, error: null });
       mockSupabaseFrom.mockImplementationOnce(() => ({
-        select: jest
-          .fn()
-          .mockReturnValue({
-            eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
-          }),
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+        }),
       }));
 
       await expect(
@@ -551,11 +544,9 @@ describe('classroomService', () => {
           );
           if (classroomCalls.length === 1)
             return {
-              select: jest
-                .fn()
-                .mockReturnValue({
-                  eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
-                }),
+              select: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+              }),
             };
           if (classroomCalls.length === 2)
             return {
@@ -583,23 +574,19 @@ describe('classroomService', () => {
     });
 
     it('should throw error if classroom not found for deletion', async () => {
-      const getByIdSingleMock = jest
-        .fn()
-        .mockResolvedValue({
-          data: null,
-          error: {
-            code: 'PGRST116',
-            message: 'Not found',
-            details: '',
-            hint: '',
-          },
-        });
+      const getByIdSingleMock = jest.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: 'PGRST116',
+          message: 'Not found',
+          details: '',
+          hint: '',
+        },
+      });
       mockSupabaseFrom.mockImplementationOnce(() => ({
-        select: jest
-          .fn()
-          .mockReturnValue({
-            eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
-          }),
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+        }),
       }));
       await expect(
         deleteClassroom(classroomId, teacherId, UserRole.TEACHER)
@@ -623,11 +610,9 @@ describe('classroomService', () => {
       mockSupabaseFrom.mockImplementation((tableName: string) => {
         if (tableName === 'classrooms')
           return {
-            select: jest
-              .fn()
-              .mockReturnValue({
-                eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
-              }),
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+            }),
           };
         if (tableName === 'classroom_students')
           return {

@@ -11,7 +11,6 @@
 
 - **目標**: 統一程式碼風格，靜態分析找出潛在錯誤。
 - **核心工具與設定**:
-
   - **`package.json`**:
     - 已確認包含必要的開發依賴：`eslint`, `prettier`, `@typescript-eslint/parser`, `@typescript-eslint/eslint-plugin`, `eslint-config-prettier`, `eslint-plugin-prettier`, `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`, `eslint-config-next`, `@next/eslint-plugin-next`。
     - 相關腳本已定義：`lint`, `lint:fix`, `format`, `format:check`。
@@ -47,7 +46,6 @@
 良好的專案結構有助於可維護性和團隊協作。
 
 - **2.1. 目錄結構檢視**:
-
   - **`src/app`**: App Router 核心，包含頁面、佈局、路由群組 (`(app)`, `(auth)`) 及 API 路由 (`api/`)，結構清晰。
     - **待檢視**: `src/app/application/` 的具體角色及其與 `(app)` 路由群組的關係，確保無冗餘。
   - **`src/components`**: 共享元件，包含 `ui/` (基礎UI) 及按功能/區塊模組化的子目錄，組織良好。
@@ -57,7 +55,6 @@
     - **強烈建議**: 遵循 `TODO.md` 中的計畫，將測試檔案遷移到各自模組下的 `__tests__` 目錄中，以提升結構清晰度。
 
 - **2.2. 檔案與元件命名**:
-
   - 目前風格尚可 (元件 PascalCase，檔案 kebab-case/camelCase)。
   - **建議**: 進一步統一非元件 `.ts`/`.tsx` 檔案的命名風格 (例如，全部使用 kebab-case)。
 

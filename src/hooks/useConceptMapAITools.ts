@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import useConceptMapStore from '@/stores/concept-map-store';
-import {
-  DagreLayoutUtility,
-  type NodeLayoutInput,
-  type EdgeLayoutInput,
-  type DagreLayoutOptions,
-} from '@/lib/dagreLayoutUtility';
+import { useReactFlow } from 'reactflow';
+
+import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
+import type {
+  ConceptMapNode,
+  RFNode,
+  CustomNodeData,
+  ConceptMapData,
+  ConceptMapEdge,
+} from '@/types';
+
 import {
   extractConcepts as aiExtractConcepts,
   type ExtractConceptsInput,
@@ -65,17 +68,16 @@ import {
   type AskQuestionAboutMapContextInput,
   type AskQuestionAboutMapContextOutput,
 } from '@/ai/flows';
-import type {
-  ConceptMapNode,
-  RFNode,
-  CustomNodeData,
-  ConceptMapData,
-  ConceptMapEdge,
-} from '@/types';
-import { getNodePlacement } from '@/lib/layout-utils';
+import { useToast } from '@/hooks/use-toast';
+import {
+  DagreLayoutUtility,
+  type NodeLayoutInput,
+  type EdgeLayoutInput,
+  type DagreLayoutOptions,
+} from '@/lib/dagreLayoutUtility';
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
-import { useReactFlow } from 'reactflow';
-import type { SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
+import { getNodePlacement } from '@/lib/layout-utils';
+import useConceptMapStore from '@/stores/concept-map-store';
 
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;
@@ -1060,13 +1062,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           label: 'summary of',
         })
       );
-      useConceptMapStore
-        .getState()
-        .setStagedMapData({
-          nodes: [summaryNode],
-          edges: edgesToSummarizedNodes,
-          actionType: 'summarizeNodes',
-        });
+      useConceptMapStore.getState().setStagedMapData({
+        nodes: [summaryNode],
+        edges: edgesToSummarizedNodes,
+        actionType: 'summarizeNodes',
+      });
     }
   }, [
     isViewOnlyMode,
@@ -1456,14 +1456,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           target: targetNode.id,
           label: output.labelIntermediateToTarget,
         };
-        useConceptMapStore
-          .getState()
-          .setStagedMapData({
-            nodes: [intermediateNode],
-            edges: [edgeToIntermediate, edgeFromIntermediate],
-            actionType: 'intermediateNode',
-            originalElementId: edge.id,
-          });
+        useConceptMapStore.getState().setStagedMapData({
+          nodes: [intermediateNode],
+          edges: [edgeToIntermediate, edgeFromIntermediate],
+          actionType: 'intermediateNode',
+          originalElementId: edge.id,
+        });
       }
     },
     [mapData, toast, callAIWithStandardFeedback]
@@ -1563,14 +1561,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             };
           }
         );
-        useConceptMapStore
-          .getState()
-          .setStagedMapData({
-            nodes: [stagedParentNode, ...stagedChildNodes],
-            edges: [],
-            actionType: 'aiTidyUpComplete',
-            originalElementIds: nodesToTidy.map((n) => n.id),
-          });
+        useConceptMapStore.getState().setStagedMapData({
+          nodes: [stagedParentNode, ...stagedChildNodes],
+          edges: [],
+          actionType: 'aiTidyUpComplete',
+          originalElementIds: nodesToTidy.map((n) => n.id),
+        });
         toast({
           title: 'AI Tidy Up Suggestion Ready',
           description:

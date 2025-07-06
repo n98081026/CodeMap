@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+
 import { useToast } from './use-toast';
+
+import { useAuth } from '@/contexts/auth-context';
 import {
   BYPASS_AUTH_FOR_TESTING,
   MOCK_STUDENT_USER,

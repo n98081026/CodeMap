@@ -20,31 +20,35 @@ import {
   type Connection,
   useReactFlow,
 } from 'reactflow';
+
+import CustomNodeComponent from './custom-node';
+import GhostNodeComponent from './GhostNodeComponent';
+import { InteractiveCanvas } from './interactive-canvas';
+import OrthogonalEdge, {
+  type OrthogonalEdgeData,
+  getMarkerDefinition,
+} from './orthogonal-edge';
+import SuggestedEdge from './SuggestedEdge';
+import SuggestedGroupOverlayNode from './SuggestedGroupOverlayNode';
+import SuggestedIntermediateNode from './SuggestedIntermediateNode';
+
+import type { CustomNodeData } from './custom-node';
+
+// getNodePlacement is still needed for other AI tools that might use staging area
+// import { getNodePlacement } from '@/lib/layout-utils'; // Already used if needed
+import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
 import type {
   ConceptMapData,
   ConceptMapNode,
   ConceptMapEdge,
   VisualEdgeSuggestion,
 } from '@/types';
-import { InteractiveCanvas } from './interactive-canvas';
-import type { CustomNodeData } from './custom-node';
-import CustomNodeComponent from './custom-node';
-import OrthogonalEdge, {
-  type OrthogonalEdgeData,
-  getMarkerDefinition,
-} from './orthogonal-edge';
-import SuggestedEdge from './SuggestedEdge';
-import SuggestedIntermediateNode from './SuggestedIntermediateNode';
-import SuggestedGroupOverlayNode from './SuggestedGroupOverlayNode';
-import GhostNodeComponent from './GhostNodeComponent';
-import useConceptMapStore from '@/stores/concept-map-store';
-// getNodePlacement is still needed for other AI tools that might use staging area
-// import { getNodePlacement } from '@/lib/layout-utils'; // Already used if needed
-import { calculateSnappedPositionAndLines } from '@/lib/layout-utils'; // Import moved function
 import type { SnapResult, RFLayoutNode } from '@/types/graph-adapter'; // Import moved types
-import { cn } from '@/lib/utils';
+
 import { useToast } from '@/components/ui/use-toast';
-import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
+import { calculateSnappedPositionAndLines } from '@/lib/layout-utils'; // Import moved function
+import { cn } from '@/lib/utils';
+import useConceptMapStore from '@/stores/concept-map-store';
 
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8;

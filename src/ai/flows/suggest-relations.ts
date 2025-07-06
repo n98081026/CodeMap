@@ -8,8 +8,9 @@
  * - SuggestRelationsOutput - The return type for the suggestRelations function.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const SuggestRelationsInputSchema = z.object({
   concepts: z

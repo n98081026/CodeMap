@@ -1,17 +1,5 @@
 'use client';
 
-import { useAuth } from '@/contexts/auth-context';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
   UserCircle,
   Shield,
@@ -21,9 +9,22 @@ import {
   TestTubeDiagonal,
 } from 'lucide-react';
 import Link from 'next/link';
-import { UserRole, type User } from '@/types';
-import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import React, { useState, useCallback, useEffect } from 'react';
+
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { ChangePasswordDialog } from '@/components/profile/change-password-dialog';
+import { EditProfileDialog } from '@/components/profile/edit-profile-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -31,9 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { EditProfileDialog } from '@/components/profile/edit-profile-dialog';
-import { ChangePasswordDialog } from '@/components/profile/change-password-dialog';
+import { UserRole, type User } from '@/types';
 
 export default function ProfilePage() {
   const {

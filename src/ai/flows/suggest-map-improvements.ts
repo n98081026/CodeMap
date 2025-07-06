@@ -1,10 +1,12 @@
 import { defineFlow } from '@genkit-ai/flow';
 import { generate } from 'genkit/ai';
 import { geminiPro } from 'genkitx/googleai';
-import { z } from 'zod';
-import { GraphAdapterUtility } from '../../lib/graphologyAdapter';
-import type { ConceptMapNode, ConceptMapEdge } from '../../types';
 import { connectedComponents } from 'graphology-components'; // For connected components count
+import { z } from 'zod';
+
+import { GraphAdapterUtility } from '../../lib/graphologyAdapter';
+
+import type { ConceptMapNode, ConceptMapEdge } from '../../types';
 
 // Input schema for the flow
 const NodesAndEdgesSchema = z.object({

@@ -6,6 +6,7 @@ export const BYPASS_AUTH_FOR_TESTING = true;
 
 // Define mock user data that can be shared across services when BYPASS_AUTH_FOR_TESTING is true.
 import type { User, Classroom, ConceptMap, ProjectSubmission } from '@/types';
+
 import { UserRole, ProjectSubmissionStatus } from '@/types';
 
 export const MOCK_STUDENT_USER_V3: User = {

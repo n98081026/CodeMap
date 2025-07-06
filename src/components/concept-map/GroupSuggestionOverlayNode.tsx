@@ -1,11 +1,13 @@
 // src/components/concept-map/GroupSuggestionOverlayNode.tsx
+import { CheckCircle2, XCircle } from 'lucide-react'; // Removed Lightbulb as reason is on title
 import React from 'react';
+
 import type { NodeProps } from 'reactflow';
+
 // Handles are not needed for this overlay node type
 // import { Handle, Position } from 'reactflow';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle } from 'lucide-react'; // Removed Lightbulb as reason is on title
+import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 export interface GroupSuggestionOverlayData {

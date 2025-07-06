@@ -1,17 +1,5 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
-import { ReactFlowProvider, useReactFlow } from 'reactflow';
-import dynamic from 'next/dynamic';
-import type {
-  NodeLayoutInput,
-  EdgeLayoutInput,
-  DagreLayoutOptions,
-  LayoutNodeUpdate,
-} from '@/types/graph-adapter';
-import type { ArrangeAction } from '@/components/concept-map/editor-toolbar';
 import {
   AlignLeft,
   AlignCenterHorizontal,
@@ -19,16 +7,6 @@ import {
   AlignTop,
   AlignCenterVertical,
   AlignBottom,
-} from 'lucide-react';
-
-<<<<<<< HEAD
-import { EditorToolbar } from '@/components/concept-map/editor-toolbar';
-import { PropertiesInspector } from '@/components/concept-map/properties-inspector';
-import { AISuggestionPanel } from '@/components/concept-map/ai-suggestion-panel';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import {
   ArrowLeft,
   Compass,
   Share2,
@@ -37,27 +15,18 @@ import {
   HelpCircle,
   Save,
 } from 'lucide-react';
-=======
-import { EditorToolbar } from "@/components/concept-map/editor-toolbar";
-import { PropertiesInspector } from "@/components/concept-map/properties-inspector";
-import { AISuggestionPanel } from "@/components/concept-map/ai-suggestion-panel";
-import { WhimsicalAIAssistant } from '@/components/concept-map/whimsical-ai-assistant';
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft, Compass, Share2, Loader2, EyeOff, HelpCircle, Save } from "lucide-react";
->>>>>>> master
-import {
-  ExtractConceptsModal,
-  SuggestRelationsModal,
-  ExpandConceptModal,
-  AskQuestionModal,
-} from '@/components/concept-map/genai-modals';
-import { QuickClusterModal } from '@/components/concept-map/quick-cluster-modal';
-import { GenerateSnippetModal } from '@/components/concept-map/generate-snippet-modal';
-import { RewriteNodeContentModal } from '@/components/concept-map/rewrite-node-content-modal';
-import { RefineSuggestionModal } from '@/components/concept-map/refine-suggestion-modal';
-import { useToast } from '@/hooks/use-toast';
+import { Info, UserPlus, LogIn } from 'lucide-react'; // For CTA
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { ReactFlowProvider, useReactFlow } from 'reactflow';
+
+import { DagreLayoutUtility } from '../../../../lib/dagreLayoutUtility';
+
+import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
+import type { CustomNodeData } from '@/components/concept-map/custom-node';
+import type { ArrangeAction } from '@/components/concept-map/editor-toolbar';
 import type {
   ConceptMap,
   ConceptMapData,
@@ -65,26 +34,42 @@ import type {
   ConceptMapEdge,
   VisualEdgeSuggestion,
 } from '@/types';
-import { UserRole } from '@/types';
-import { useAuth } from '@/contexts/auth-context';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
-import type { CustomNodeData } from '@/components/concept-map/custom-node';
-import { DagreLayoutUtility } from '../../../../lib/dagreLayoutUtility';
-import ProjectOverviewDisplay from '@/components/concept-map/project-overview-display'; // Import the new component
+import type {
+  NodeLayoutInput,
+  EdgeLayoutInput,
+  DagreLayoutOptions,
+  LayoutNodeUpdate,
+} from '@/types/graph-adapter';
+import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
 
-import useConceptMapStore from '@/stores/concept-map-store';
-import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
-import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
-<<<<<<< HEAD
+import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
 import AISuggestionFloater, {
   type SuggestionAction,
 } from '@/components/concept-map/ai-suggestion-floater';
-=======
-import { useWhimsicalAITools } from '@/hooks/useWhimsicalAITools';
-import AISuggestionFloater, { type SuggestionAction } from '@/components/concept-map/ai-suggestion-floater';
->>>>>>> master
-import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
+import { AISuggestionPanel } from '@/components/concept-map/ai-suggestion-panel';
+import { AskQuestionAboutEdgeModal } from '@/components/concept-map/AskQuestionAboutEdgeModal';
+import { AskQuestionAboutMapModal } from '@/components/concept-map/AskQuestionAboutMapModal'; // Import the new map Q&A modal
+import { EditorToolbar } from '@/components/concept-map/editor-toolbar';
+import {
+  ExtractConceptsModal,
+  SuggestRelationsModal,
+  ExpandConceptModal,
+  AskQuestionModal,
+} from '@/components/concept-map/genai-modals';
+import { GenerateSnippetModal } from '@/components/concept-map/generate-snippet-modal';
+import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar';
+import { MapSummaryModal } from '@/components/concept-map/map-summary-modal';
+import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
+import ProjectOverviewDisplay from '@/components/concept-map/project-overview-display'; // Import the new component
+import { PropertiesInspector } from '@/components/concept-map/properties-inspector';
+import { QuickClusterModal } from '@/components/concept-map/quick-cluster-modal';
+import { RefineSuggestionModal } from '@/components/concept-map/refine-suggestion-modal';
+import { RewriteNodeContentModal } from '@/components/concept-map/rewrite-node-content-modal';
+import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
+import { WhimsicalAIAssistant } from '@/components/concept-map/whimsical-ai-assistant';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import AppTutorial from '@/components/tutorial/app-tutorial'; // Import AppTutorial
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // For CTA
 import {
   AlertDialog,
   AlertDialogAction,
@@ -95,84 +80,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
-import { MapSummaryModal } from '@/components/concept-map/map-summary-modal';
-import { AskQuestionAboutEdgeModal } from '@/components/concept-map/AskQuestionAboutEdgeModal';
-import { AskQuestionAboutMapModal } from '@/components/concept-map/AskQuestionAboutMapModal'; // Import the new map Q&A modal
-import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar';
-import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // For CTA
-import { Info, UserPlus, LogIn } from 'lucide-react'; // For CTA
-import AppTutorial from '@/components/tutorial/app-tutorial'; // Import AppTutorial
-
-const FlowCanvasCore = dynamic(
-  () => import('@/components/concept-map/flow-canvas-core'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className='flex h-full w-full items-center justify-center'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    ),
-  }
-);
-
-const DEFAULT_NODE_WIDTH = 150;
-const DEFAULT_NODE_HEIGHT = 70;
-
-// CTA Banner for Guest viewing an example
-const EditorGuestCtaBanner: React.FC<{ routeMapId: string }> = ({
-  routeMapId,
-}) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const storeIsViewOnlyMode = useConceptMapStore(
-    (state) => state.isViewOnlyMode
-  );
-
-  const isActuallyGuest = !isLoading && !isAuthenticated;
-  const isExampleMap = routeMapId && routeMapId.startsWith('example-');
-
-  if (!isActuallyGuest || !storeIsViewOnlyMode || !isExampleMap) {
-    return null;
-  }
-
-  return (
-    <Alert className='mx-4 my-2 border-primary/50 bg-primary/5 text-primary-foreground text-sm rounded-md'>
-      <Info className='h-4 w-4 !text-primary mr-2' />
-      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
-        <span className='text-primary/90'>
-          You're viewing an example. To create maps, save your work, or use AI
-          tools, please
-        </span>
-        <div className='mt-2 sm:mt-0 sm:ml-4 flex gap-2 flex-shrink-0'>
-          <Button
-            asChild
-            size='xs'
-            variant='outline_primary'
-            className='py-1 px-2 h-auto text-xs'
-          >
-            <Link href='/register'>
-              <UserPlus className='mr-1 h-3 w-3' /> Sign Up
-            </Link>
-          </Button>
-          <Button
-            asChild
-            size='xs'
-            variant='outline_primary'
-            className='py-1 px-2 h-auto text-xs'
-          >
-            <Link href='/login'>
-              <LogIn className='mr-1 h-3 w-3' /> Log In
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </Alert>
-  );
-};
-
-import AppTutorial from '@/components/tutorial/app-tutorial'; // Import AppTutorial
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
+import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
+import { useWhimsicalAITools } from '@/hooks/useWhimsicalAITools';
+import useConceptMapStore from '@/stores/concept-map-store';
 import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
+import { UserRole } from '@/types';
 
 const FlowCanvasCore = dynamic(
   () => import('@/components/concept-map/flow-canvas-core'),
@@ -410,18 +327,10 @@ export default function ConceptMapEditorPage() {
   ]);
 
   const temporalStoreAPI = useConceptMapStore.temporal;
-  const [temporalState, setTemporalState] = useState(
-    temporalStoreAPI.getState()
+  const { handleUndo, handleRedo, canUndo, canRedo } = useTemporalStore(
+    useConceptMapStore.temporal,
+    storeIsViewOnlyMode
   );
-  useEffect(() => {
-    const unsubscribe = temporalStoreAPI.subscribe(
-      setTemporalState,
-      (state) => state
-    );
-    return unsubscribe;
-  }, [temporalStoreAPI]);
-  const canUndo = temporalState.pastStates.length > 0;
-  const canRedo = temporalState.futureStates.length > 0;
 
   const { saveMap, currentSubmissionId } = useConceptMapDataManager({
     routeMapId,
@@ -429,74 +338,7 @@ export default function ConceptMapEditorPage() {
   });
 
   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
-  const {
-    openExtractConceptsModal,
-    handleConceptsExtracted,
-    addExtractedConceptsToMap,
-    openSuggestRelationsModal,
-    handleRelationsSuggested,
-    addSuggestedRelationsToMap,
-    openExpandConceptModal,
-    handleConceptExpanded,
-    openQuickClusterModal, // handleClusterGenerated removed
-    openGenerateSnippetModal, // handleSnippetGenerated removed
-    openAskQuestionModal,
-    handleQuestionAnswered,
-    openRewriteNodeContentModal,
-    handleRewriteNodeContentConfirm,
-    handleSummarizeSelectedNodes,
-    handleMiniToolbarQuickExpand,
-    handleMiniToolbarRewriteConcise,
-    addStoreNode: addNodeFromHook,
-    addStoreEdge: addEdgeFromHook,
-    getPaneSuggestions,
-    getNodeSuggestions,
-    fetchAndSetEdgeLabelSuggestions,
-    fetchAIChildTextSuggestions,
-    aiChildTextSuggestions,
-    isLoadingAiChildTexts,
-    edgeLabelSuggestions,
-    setEdgeLabelSuggestions,
-    conceptExpansionPreview,
-    acceptAllExpansionPreviews,
-    acceptSingleExpansionPreview,
-    clearExpansionPreview,
-    isRefineModalOpen,
-    setIsRefineModalOpen,
-    refineModalInitialData,
-    handleRefineSuggestionConfirm,
-    openRefineSuggestionModal,
-    intermediateNodeSuggestion,
-    handleSuggestIntermediateNodeRequest,
-    confirmAddIntermediateNode,
-    clearIntermediateNodeSuggestion,
-    handleAiTidyUpSelection,
-    handleDagreLayoutSelection,
-    // Map Summary related items from aiToolsHook
-    handleSummarizeMap,
-    isSummarizingMap,
-    mapSummaryResult,
-    isMapSummaryModalOpen,
-    setIsMapSummaryModalOpen,
-    clearMapSummaryResult,
-    // Edge Q&A related items from aiToolsHook
-    openAskQuestionAboutEdgeModal,
-    handleAskQuestionAboutEdge,
-    isEdgeQuestionModalOpen,
-    setIsEdgeQuestionModalOpen,
-    edgeQuestionContext,
-    edgeQuestionAnswer,
-    isAskingAboutEdge,
-    clearEdgeQuestionState,
-    // Map Context Q&A related items from aiToolsHook
-    openAskQuestionAboutMapContextModal,
-    handleAskQuestionAboutMapContext,
-    isMapContextQuestionModalOpen,
-    setIsMapContextQuestionModalOpen,
-    mapContextQuestionAnswer,
-    isAskingAboutMapContext,
-    clearMapContextQuestionState,
-  } = aiToolsHook;
+  const whimsicalAITools = useWhimsicalAITools();
 
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<
     string[]
@@ -539,21 +381,6 @@ export default function ConceptMapEditorPage() {
   const handleSaveMap = useCallback(() => {
     saveMap(storeIsViewOnlyMode);
   }, [saveMap, storeIsViewOnlyMode]);
-  const handleExtractConcepts = useCallback(() => {
-    openExtractConceptsModal(selectedElementId || undefined);
-  }, [openExtractConceptsModal, selectedElementId]);
-  const handleSuggestRelations = useCallback(() => {
-    openSuggestRelationsModal(selectedElementId || undefined);
-  }, [openSuggestRelationsModal, selectedElementId]);
-  const handleExpandConcept = useCallback(() => {
-    openExpandConceptModal(selectedElementId || undefined);
-  }, [openExpandConceptModal, selectedElementId]);
-  const handleQuickCluster = useCallback(() => {
-    openQuickClusterModal();
-  }, [openQuickClusterModal]);
-  const handleGenerateSnippetFromText = useCallback(() => {
-    openGenerateSnippetModal();
-  }, [openGenerateSnippetModal]);
 
   const [isPropertiesInspectorOpen, setIsPropertiesInspectorOpen] =
     useState(false);
@@ -584,13 +411,13 @@ export default function ConceptMapEditorPage() {
     /* ... */
   }, [
     floaterState.contextType,
-    setEdgeLabelSuggestions,
-    clearExpansionPreview,
+    aiToolsHook.setEdgeLabelSuggestions,
+    aiToolsHook.clearExpansionPreview,
   ]);
   useEffect(() => {
     /* for edgeLabelSuggestions */
   }, [
-    edgeLabelSuggestions,
+    aiToolsHook.edgeLabelSuggestions,
     reactFlowInstance,
     updateStoreEdge,
     Floater_handleDismiss,
@@ -605,7 +432,7 @@ export default function ConceptMapEditorPage() {
       storeIsViewOnlyMode,
       toast,
       aiToolsHook.getNodePlacement,
-      addNodeFromHook,
+      aiToolsHook.addStoreNode,
       storeMapData.nodes,
       Floater_handleDismiss,
     ]
@@ -616,7 +443,7 @@ export default function ConceptMapEditorPage() {
     },
     [
       storeIsViewOnlyMode,
-      getPaneSuggestions,
+      aiToolsHook.getPaneSuggestions,
       Floater_handleDismiss,
       contextMenu,
       () => setContextMenu(null),
@@ -631,10 +458,10 @@ export default function ConceptMapEditorPage() {
       contextMenu,
       () => setContextMenu(null),
       Floater_handleDismiss,
-      getNodeSuggestions,
-      fetchAIChildTextSuggestions,
-      isLoadingAiChildTexts,
-      aiChildTextSuggestions,
+      aiToolsHook.getNodeSuggestions,
+      aiToolsHook.fetchAIChildTextSuggestions,
+      aiToolsHook.isLoadingAiChildTexts,
+      aiToolsHook.aiChildTextSuggestions,
     ]
   );
   const handleCommitStagedData = useCallback(() => {
@@ -655,10 +482,10 @@ export default function ConceptMapEditorPage() {
   useEffect(() => {
     /* for conceptExpansionPreview */
   }, [
-    conceptExpansionPreview,
+    aiToolsHook.conceptExpansionPreview,
     reactFlowInstance,
-    acceptAllExpansionPreviews,
-    clearExpansionPreview,
+    aiToolsHook.acceptAllExpansionPreviews,
+    aiToolsHook.clearExpansionPreview,
     floaterState.isVisible,
     floaterState.contextType,
     Floater_handleDismiss,
@@ -666,7 +493,7 @@ export default function ConceptMapEditorPage() {
   const handleConceptSuggestionDrop = useCallback(
     (conceptItem: ExtractedConceptItem, position: { x: number; y: number }) => {
       if (storeIsViewOnlyMode) return;
-      addNodeFromHook({
+      aiToolsHook.addStoreNode({
         text: conceptItem.concept,
         type: 'ai-concept', // Or derive from conceptItem if it has a type
         position,
@@ -682,7 +509,7 @@ export default function ConceptMapEditorPage() {
         description: `"${conceptItem.concept}" added from suggestions.`,
       });
     },
-    [storeIsViewOnlyMode, addNodeFromHook, toast]
+    [storeIsViewOnlyMode, aiToolsHook.addStoreNode, toast]
   );
 
   const handleMapPropertiesChange = useCallback(
@@ -719,12 +546,17 @@ export default function ConceptMapEditorPage() {
     storeIsViewOnlyMode,
     toast,
     aiToolsHook.getNodePlacement,
-    addNodeFromHook,
+    aiToolsHook.addStoreNode,
     storeMapData.nodes,
   ]);
   const handleAddEdgeToData = useCallback(() => {
     /* ... */
-  }, [storeIsViewOnlyMode, toast, addEdgeFromHook, storeMapData.nodes]);
+  }, [
+    storeIsViewOnlyMode,
+    toast,
+    aiToolsHook.addStoreEdge,
+    storeMapData.nodes,
+  ]);
   const getRoleBasedDashboardLink = useCallback(() => {
     return user
       ? `/application/${user.role === 'unknown' ? 'student' : user.role}/dashboard`
@@ -936,7 +768,7 @@ export default function ConceptMapEditorPage() {
     /* ... */
   }, [
     aiDiscoveredGroup,
-    addNodeFromHook,
+    aiToolsHook.addStoreNode,
     updateStoreNode,
     toast,
     addDebugLog,
@@ -960,7 +792,7 @@ export default function ConceptMapEditorPage() {
     aiSemanticGroupSuggestion,
     multiSelectedNodeIds,
     storeMapData.nodes,
-    addNodeFromHook,
+    aiToolsHook.addStoreNode,
     updateStoreNode,
     toast,
     addDebugLog,
@@ -1296,12 +1128,20 @@ export default function ConceptMapEditorPage() {
           isSaving={isStoreSaving}
           onExportMap={handleExportMap}
           onTriggerImport={handleTriggerImport}
-          onExtractConcepts={handleExtractConcepts}
-          onSuggestRelations={handleSuggestRelations}
-          onExpandConcept={handleExpandConcept}
-          onQuickCluster={handleQuickCluster}
-          onGenerateSnippetFromText={handleGenerateSnippetFromText}
-          onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
+          onExtractConcepts={() =>
+            aiToolsHook.openExtractConceptsModal(selectedElementId || undefined)
+          }
+          onSuggestRelations={() =>
+            aiToolsHook.openSuggestRelationsModal(
+              selectedElementId || undefined
+            )
+          }
+          onExpandConcept={() =>
+            aiToolsHook.openExpandConceptModal(selectedElementId || undefined)
+          }
+          onQuickCluster={aiToolsHook.openQuickClusterModal}
+          onGenerateSnippetFromText={aiToolsHook.openGenerateSnippetModal}
+          onSummarizeSelectedNodes={aiToolsHook.handleSummarizeSelectedNodes}
           isViewOnlyMode={storeIsViewOnlyMode}
           onAddNodeToData={handleAddNodeToData}
           onAddEdgeToData={handleAddEdgeToData}
@@ -1326,15 +1166,17 @@ export default function ConceptMapEditorPage() {
           }
           onApplySemanticTidyUp={applySemanticTidyUp}
           isApplyingSemanticTidyUp={isApplyingSemanticTidyUp}
-          onAiTidySelection={handleAiTidyUpSelection}
-          onDagreTidySelection={handleDagreLayoutSelection}
+          onAiTidySelection={aiToolsHook.handleAiTidyUpSelection}
+          onDagreTidySelection={aiToolsHook.handleDagreLayoutSelection}
           isDagreTidying={aiToolsHook.isDagreTidying}
           onToggleOverviewMode={handleToggleOverviewMode} // Pass handler
           isOverviewModeActive={isOverviewModeActive}
-          onSummarizeMap={handleSummarizeMap}
-          isSummarizingMap={isSummarizingMap}
-          onAskQuestionAboutMapContext={openAskQuestionAboutMapContextModal} // Pass handler for map context Q&A
-          isAskingAboutMapContext={isAskingAboutMapContext} // Pass loading state for map context Q&A
+          onSummarizeMap={aiToolsHook.handleSummarizeMap}
+          isSummarizingMap={aiToolsHook.isSummarizingMap}
+          onAskQuestionAboutMapContext={
+            aiToolsHook.openAskQuestionAboutMapContextModal
+          } // Pass handler for map context Q&A
+          isAskingAboutMapContext={aiToolsHook.isAskingAboutMapContext} // Pass loading state for map context Q&A
         />
         <EditorGuestCtaBanner routeMapId={routeMapId} />
         <div
@@ -1381,12 +1223,16 @@ export default function ConceptMapEditorPage() {
               onEdgesDeleteInStore={(edgeId) =>
                 useConceptMapStore.getState().deleteEdge(edgeId)
               }
-              onConnectInStore={addEdgeFromHook}
+              onConnectInStore={aiToolsHook.addStoreEdge}
               onNodeContextMenuRequest={handleNodeContextMenu}
               onPaneContextMenuRequest={handlePaneContextMenuRequest}
               onStagedElementsSelectionChange={setSelectedStagedElementIds}
-              onNewEdgeSuggestLabels={fetchAndSetEdgeLabelSuggestions}
-              onGhostNodeAcceptRequest={acceptSingleExpansionPreview}
+              onNewEdgeSuggestLabels={
+                aiToolsHook.fetchAndSetEdgeLabelSuggestions
+              }
+              onGhostNodeAcceptRequest={
+                aiToolsHook.acceptSingleExpansionPreview
+              }
               onConceptSuggestionDrop={handleConceptSuggestionDrop}
               onNodeAIExpandTriggered={(nodeId) =>
                 aiToolsHook.openExpandConceptModal(nodeId)
@@ -1423,23 +1269,23 @@ export default function ConceptMapEditorPage() {
             onClose={closeContextMenu}
             onDeleteNode={handleDeleteNodeFromContextMenu}
             onExpandConcept={() => {
-              openExpandConceptModal(contextMenu.nodeId!);
+              aiToolsHook.openExpandConceptModal(contextMenu.nodeId!);
               closeContextMenu();
             }}
             onSuggestRelations={() => {
-              openSuggestRelationsModal(contextMenu.nodeId!);
+              aiToolsHook.openSuggestRelationsModal(contextMenu.nodeId!);
               closeContextMenu();
             }}
             onExtractConcepts={() => {
-              openExtractConceptsModal(contextMenu.nodeId!);
+              aiToolsHook.openExtractConceptsModal(contextMenu.nodeId!);
               closeContextMenu();
             }}
             onAskQuestion={() => {
-              openAskQuestionModal(contextMenu.nodeId!);
+              aiToolsHook.openAskQuestionModal(contextMenu.nodeId!);
               closeContextMenu();
             }}
             onRewriteContent={() => {
-              openRewriteNodeContentModal(contextMenu.nodeId!);
+              aiToolsHook.openRewriteNodeContentModal(contextMenu.nodeId!);
               closeContextMenu();
             }}
             isViewOnlyMode={storeIsViewOnlyMode}
@@ -1463,7 +1309,9 @@ export default function ConceptMapEditorPage() {
               onSelectedElementPropertyUpdate={
                 handleSelectedElementPropertyUpdateInspector
               }
-              onSuggestIntermediateNode={handleSuggestIntermediateNodeRequest}
+              onSuggestIntermediateNode={
+                aiToolsHook.handleSuggestIntermediateNodeRequest
+              }
               isNewMapMode={isNewMapMode}
               isViewOnlyMode={storeIsViewOnlyMode}
             />{' '}
@@ -1556,11 +1404,11 @@ export default function ConceptMapEditorPage() {
               onConfirm={aiToolsHook.handleRefineSuggestionConfirm}
             />
           )}
-        {intermediateNodeSuggestion && !storeIsViewOnlyMode && (
+        {aiToolsHook.intermediateNodeSuggestion && !storeIsViewOnlyMode && (
           <AlertDialog
-            open={!!intermediateNodeSuggestion}
+            open={!!aiToolsHook.intermediateNodeSuggestion}
             onOpenChange={(isOpen) => {
-              if (!isOpen) clearIntermediateNodeSuggestion();
+              if (!isOpen) aiToolsHook.clearIntermediateNodeSuggestion();
             }}
           >
             {' '}
@@ -1578,10 +1426,14 @@ export default function ConceptMapEditorPage() {
               </AlertDialogHeader>{' '}
               <AlertDialogFooter>
                 {' '}
-                <AlertDialogCancel onClick={clearIntermediateNodeSuggestion}>
+                <AlertDialogCancel
+                  onClick={aiToolsHook.clearIntermediateNodeSuggestion}
+                >
                   Cancel
                 </AlertDialogCancel>{' '}
-                <AlertDialogAction onClick={confirmAddIntermediateNode}>
+                <AlertDialogAction
+                  onClick={aiToolsHook.confirmAddIntermediateNode}
+                >
                   Confirm
                 </AlertDialogAction>{' '}
               </AlertDialogFooter>{' '}
@@ -1590,28 +1442,28 @@ export default function ConceptMapEditorPage() {
         )}
         {/* Map Summary Modal */}
         <MapSummaryModal
-          isOpen={isMapSummaryModalOpen}
-          onOpenChange={setIsMapSummaryModalOpen}
-          summaryResult={mapSummaryResult}
-          onClose={clearMapSummaryResult}
+          isOpen={aiToolsHook.isMapSummaryModalOpen}
+          onOpenChange={aiToolsHook.setIsMapSummaryModalOpen}
+          summaryResult={aiToolsHook.mapSummaryResult}
+          onClose={aiToolsHook.clearMapSummaryResult}
         />
         <AskQuestionAboutEdgeModal
-          isOpen={isEdgeQuestionModalOpen}
-          onOpenChange={setIsEdgeQuestionModalOpen}
-          edgeContext={edgeQuestionContext}
-          onSubmitQuestion={handleAskQuestionAboutEdge}
-          isLoading={isAskingAboutEdge}
-          answer={edgeQuestionAnswer}
-          onCloseModal={clearEdgeQuestionState}
+          isOpen={aiToolsHook.isEdgeQuestionModalOpen}
+          onOpenChange={aiToolsHook.setIsEdgeQuestionModalOpen}
+          edgeContext={aiToolsHook.edgeQuestionContext}
+          onSubmitQuestion={aiToolsHook.handleAskQuestionAboutEdge}
+          isLoading={aiToolsHook.isAskingAboutEdge}
+          answer={aiToolsHook.edgeQuestionAnswer}
+          onCloseModal={aiToolsHook.clearEdgeQuestionState}
         />
         <AskQuestionAboutMapModal
-          isOpen={isMapContextQuestionModalOpen}
-          onOpenChange={setIsMapContextQuestionModalOpen}
+          isOpen={aiToolsHook.isMapContextQuestionModalOpen}
+          onOpenChange={aiToolsHook.setIsMapContextQuestionModalOpen}
           mapName={mapName}
-          onSubmitQuestion={handleAskQuestionAboutMapContext}
-          isLoading={isAskingAboutMapContext}
-          answer={mapContextQuestionAnswer}
-          onCloseModal={clearMapContextQuestionState}
+          onSubmitQuestion={aiToolsHook.handleAskQuestionAboutMapContext}
+          isLoading={aiToolsHook.isAskingAboutMapContext}
+          answer={aiToolsHook.mapContextQuestionAnswer}
+          onCloseModal={aiToolsHook.clearMapContextQuestionState}
         />
       </ReactFlowProvider>
       {/* AppTutorial is now globally managed via AppLayout and tutorial-store */}

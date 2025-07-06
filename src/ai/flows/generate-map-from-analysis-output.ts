@@ -3,14 +3,16 @@
  * @fileOverview Flow to generate concept map data from pre-analyzed project structure.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import type { ConceptMapData } from '@/types';
+
+import { ai } from '@/ai/genkit';
 import {
   ProjectAnalysisOutputSchema,
   type ProjectAnalysisOutput,
 } from '@/ai/tools/project-analyzer-tool';
 import { ConceptMapDataSchema } from '@/types/zodSchemas'; // Assuming this is the desired output structure
-import type { ConceptMapData } from '@/types';
 
 export const GenerateMapFromAnalysisInputSchema = z.object({
   analysisOutput: ProjectAnalysisOutputSchema.describe(

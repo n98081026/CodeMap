@@ -1,6 +1,6 @@
-import { z } from 'zod';
 import { defineFlow, run } from '@genkit-ai/flow';
 import { geminiPro } from '@genkit-ai/googleai'; // Or your preferred model
+import { z } from 'zod';
 
 // 1a. Define Input/Output Schemas
 export const SuggestEdgeLabelInputSchema = z.object({

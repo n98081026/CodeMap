@@ -1,10 +1,5 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/auth-context';
-import { UserRole } from '@/types';
 import {
   Users,
   Settings,
@@ -12,13 +7,19 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+
+import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
+import { UserRole } from '@/types';
+
 // DashboardHeader, useAdminDashboardMetrics, DashboardLinkCard, MetricState, Loader2, AlertTriangle, Users, Settings, LayoutDashboard
 // are now encapsulated within AdminDashboardView or not directly needed by this page component.
-import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
-// Loader2 might still be needed for the top-level loading state if not handled by AppLayout sufficiently
-import { Loader2 } from 'lucide-react';
 
+// Loader2 might still be needed for the top-level loading state if not handled by AppLayout sufficiently
 
 export default function AdminDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth(); // Use authIsLoading from useAuth
@@ -48,9 +49,9 @@ export default function AdminDashboardPage() {
     // This state should ideally be caught by AppLayout's redirect or the useEffect above.
     // Returning null or a minimal loader avoids rendering content if there's a brief moment before redirect.
     return (
-        <div className='flex h-full items-center justify-center'>
-          <Loader2 className='h-8 w-8 animate-spin text-primary' />
-        </div>
+      <div className='flex h-full items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
     );
   }
 

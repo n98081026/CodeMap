@@ -1,19 +1,11 @@
 'use client';
 
-import type { Classroom } from '@/types';
-import { UserRole } from '@/types';
-import Link from 'next/link';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Users, ArrowRight, Edit, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import React from 'react';
+
+import type { Classroom } from '@/types';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +17,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { UserRole } from '@/types';
 
 interface ClassroomListItemProps {
   classroom: Classroom;

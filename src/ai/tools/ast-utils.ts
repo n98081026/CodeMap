@@ -1,13 +1,14 @@
 // src/ai/tools/ast-utils.ts
+import type {
+  DetailedNode,
+  ExtractedCodeElement,
+} from './project-analyzer-tool';
+
 import {
   summarizeCodeElementPurposeFlow,
   type SummarizeCodeElementInput,
 } from '@/ai/flows';
 // Assuming these types are exported from project-analyzer-tool.ts or a shared types file
-import type {
-  DetailedNode,
-  ExtractedCodeElement,
-} from './project-analyzer-tool';
 
 // Unified Summarization Task Interface
 // We use Omit to avoid issues if astNode types are too different or not needed by the summarizer

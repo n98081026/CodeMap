@@ -1,6 +1,7 @@
 import { defineFlow, generate } from '@genkit-ai/flow';
 import { geminiPro } from '@genkit-ai/googleai';
 import * as z from 'zod';
+
 import { graphologyCommunityDetectionTool } from '../tools'; // Adjusted import path assuming tools/index.ts exports it
 
 // Input Schema: Current map data (remains the same)

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+
 import { useToast } from './use-toast';
+
+import { supabase } from '@/lib/supabaseClient';
 
 interface UseSupabaseStorageUploadOptions {
   bucketName: string;

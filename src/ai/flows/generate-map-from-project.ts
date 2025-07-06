@@ -8,8 +8,9 @@
  * - GenerateMapFromProjectOutput - The return type for the generateMapFromProject function.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 import { projectStructureAnalyzerTool } from '@/ai/tools/project-analyzer-tool';
 
 const GenerateMapFromProjectInputSchema = z.object({

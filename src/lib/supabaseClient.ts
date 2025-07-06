@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+
 import type { Database } from '@/types/supabase'; // Ensure this path is correct
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

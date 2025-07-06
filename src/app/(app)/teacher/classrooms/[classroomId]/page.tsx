@@ -1,17 +1,5 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Classroom, User, ConceptMap, ProjectSubmission } from '@/types';
 import {
   ArrowLeft,
   Users,
@@ -22,16 +10,30 @@ import {
   BookOpen,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import React, { useEffect, useState, useCallback } from 'react';
+
+import type { Classroom, User, ConceptMap, ProjectSubmission } from '@/types';
+
 import { InviteStudentDialog } from '@/components/classrooms/invite-student-dialog';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/auth-context';
 import { EmptyState } from '@/components/layout/empty-state';
 
 // Import new tab components
-import { ClassroomStudentsTab } from '@/components/teacher/classrooms/tabs/ClassroomStudentsTab';
 import { ClassroomMapsTab } from '@/components/teacher/classrooms/tabs/ClassroomMapsTab';
+import { ClassroomStudentsTab } from '@/components/teacher/classrooms/tabs/ClassroomStudentsTab';
 import { ClassroomSubmissionsTab } from '@/components/teacher/classrooms/tabs/ClassroomSubmissionsTab';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ClassroomDetailPage() {
   const paramsHook = useParams();

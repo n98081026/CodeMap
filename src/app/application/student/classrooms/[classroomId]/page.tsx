@@ -1,18 +1,5 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import type { Classroom, ConceptMap } from '@/types';
-import { UserRole } from '@/types';
 import {
   ArrowLeft,
   BookOpen,
@@ -25,10 +12,25 @@ import {
   Users as UsersIcon,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import React, { useEffect, useState, useCallback } from 'react';
+
+import type { Classroom, ConceptMap } from '@/types';
+
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/auth-context';
 import { EmptyState } from '@/components/layout/empty-state';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
+import { UserRole } from '@/types';
 
 export default function StudentClassroomDetailPage() {
   const paramsHook = useParams();

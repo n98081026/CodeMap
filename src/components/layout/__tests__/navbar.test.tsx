@@ -1,7 +1,9 @@
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { Navbar } from '../navbar';
+
 import { useAuth } from '@/contexts/auth-context';
 
 // Mock the auth context
@@ -17,12 +19,12 @@ vi.mock('next-themes', () => ({
 
 // Mock Lucide icons
 vi.mock('lucide-react', () => ({
-  Menu: () => <div data-testid="menu-icon" />,
-  Sun: () => <div data-testid="sun-icon" />,
-  Moon: () => <div data-testid="moon-icon" />,
-  User: () => <div data-testid="user-icon" />,
-  LogOut: () => <div data-testid="logout-icon" />,
-  Settings: () => <div data-testid="settings-icon" />,
+  Menu: () => <div data-testid='menu-icon' />,
+  Sun: () => <div data-testid='sun-icon' />,
+  Moon: () => <div data-testid='moon-icon' />,
+  User: () => <div data-testid='user-icon' />,
+  LogOut: () => <div data-testid='logout-icon' />,
+  Settings: () => <div data-testid='settings-icon' />,
 }));
 
 describe('Navbar', () => {
@@ -50,7 +52,7 @@ describe('Navbar', () => {
       id: 'user-123',
       name: 'John Doe',
       email: 'john@example.com',
-      role: 'student'
+      role: 'student',
     };
 
     (useAuth as any).mockReturnValue({
@@ -84,7 +86,7 @@ describe('Navbar', () => {
       id: 'user-123',
       name: 'John Doe',
       email: 'john@example.com',
-      role: 'student'
+      role: 'student',
     };
 
     (useAuth as any).mockReturnValue({
@@ -111,7 +113,7 @@ describe('Navbar', () => {
       id: 'user-123',
       name: 'Jane Teacher',
       email: 'jane@example.com',
-      role: 'teacher'
+      role: 'teacher',
     };
 
     (useAuth as any).mockReturnValue({

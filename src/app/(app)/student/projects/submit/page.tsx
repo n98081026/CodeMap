@@ -1,6 +1,12 @@
 'use client';
 
+import { FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // Import useCallback
+
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { ProjectUploadForm } from '@/components/projects/project-upload-form';
+import AppTutorial from '@/components/tutorial/app-tutorial';
 import {
   Card,
   CardContent,
@@ -8,26 +14,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { ProjectUploadForm } from '@/components/projects/project-upload-form';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import AppTutorial from '@/components/tutorial/app-tutorial';
-import { FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 
-import { useState, useEffect, useCallback } from 'react'; // Import useCallback
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { ProjectUploadForm } from '@/components/projects/project-upload-form';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 // AppTutorial is now globally managed via AppLayout and tutorial-store
 // import AppTutorial from "@/components/tutorial/app-tutorial";
-import { FileText } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
 import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
 
 export default function SubmitProjectPage() {

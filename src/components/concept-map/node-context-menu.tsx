@@ -1,9 +1,19 @@
-"use client";
+'use client';
+import {
+  Trash2,
+  Brain,
+  Lightbulb,
+  SearchCode,
+  HelpCircle,
+  Sparkles,
+  TextSearch,
+  MessageSquareQuote,
+} from 'lucide-react';
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Brain, Lightbulb, SearchCode, HelpCircle, Sparkles, TextSearch, MessageSquareQuote } from 'lucide-react'; 
 
 interface NodeContextMenuProps {
   x: number;
@@ -14,7 +24,7 @@ interface NodeContextMenuProps {
   onExpandConcept: (nodeId: string) => void;
   onSuggestRelations: (nodeId: string) => void;
   onExtractConcepts: (nodeId: string) => void;
-  onAskQuestion: (nodeId: string) => void; 
+  onAskQuestion: (nodeId: string) => void;
   onRewriteContent: (nodeId: string) => void;
   isViewOnlyMode?: boolean;
 }
@@ -28,7 +38,7 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   onExpandConcept,
   onSuggestRelations,
   onExtractConcepts,
-  onAskQuestion, 
+  onAskQuestion,
   onRewriteContent,
   isViewOnlyMode,
 }) => {
@@ -52,13 +62,13 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     onClose();
   };
 
-  const handleExtract = () => { 
+  const handleExtract = () => {
     if (isViewOnlyMode) return;
     onExtractConcepts(nodeId);
     onClose();
   };
 
-  const handleAsk = () => { 
+  const handleAsk = () => {
     if (isViewOnlyMode) return;
     onAskQuestion(nodeId);
     onClose();
@@ -68,7 +78,7 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     if (isViewOnlyMode) return;
     onRewriteContent(nodeId);
     onClose();
-  }
+  };
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -91,68 +101,68 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   }, [onClose]);
 
   return (
-    <div ref={menuRef} className="absolute z-[100]" style={{ top: y, left: x }}>
-      <Card className="w-64 shadow-xl border bg-popover text-popover-foreground">
-        <CardContent className="p-1 space-y-1">
-           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start px-2 py-1.5 text-sm"
-            onClick={handleExtract} 
+    <div ref={menuRef} className='absolute z-[100]' style={{ top: y, left: x }}>
+      <Card className='w-64 shadow-xl border bg-popover text-popover-foreground'>
+        <CardContent className='p-1 space-y-1'>
+          <Button
+            variant='ghost'
+            size='sm'
+            className='w-full justify-start px-2 py-1.5 text-sm'
+            onClick={handleExtract}
             disabled={isViewOnlyMode}
           >
-            <SearchCode className="mr-2 h-4 w-4 text-blue-500" />
+            <SearchCode className='mr-2 h-4 w-4 text-blue-500' />
             Extract Concepts (AI)
           </Button>
           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start px-2 py-1.5 text-sm"
+            variant='ghost'
+            size='sm'
+            className='w-full justify-start px-2 py-1.5 text-sm'
             onClick={handleExpand}
             disabled={isViewOnlyMode}
           >
-            <Brain className="mr-2 h-4 w-4 text-purple-500" />
+            <Brain className='mr-2 h-4 w-4 text-purple-500' />
             Expand Concept (AI)
           </Button>
           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start px-2 py-1.5 text-sm"
+            variant='ghost'
+            size='sm'
+            className='w-full justify-start px-2 py-1.5 text-sm'
             onClick={handleSuggest}
             disabled={isViewOnlyMode}
           >
-            <Lightbulb className="mr-2 h-4 w-4 text-yellow-500" />
+            <Lightbulb className='mr-2 h-4 w-4 text-yellow-500' />
             Suggest Relations (AI)
           </Button>
-           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start px-2 py-1.5 text-sm"
+          <Button
+            variant='ghost'
+            size='sm'
+            className='w-full justify-start px-2 py-1.5 text-sm'
             onClick={handleAsk}
             disabled={isViewOnlyMode}
           >
-            <HelpCircle className="mr-2 h-4 w-4 text-green-500" />
+            <HelpCircle className='mr-2 h-4 w-4 text-green-500' />
             Ask AI Question...
           </Button>
           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start px-2 py-1.5 text-sm"
+            variant='ghost'
+            size='sm'
+            className='w-full justify-start px-2 py-1.5 text-sm'
             onClick={handleRewrite}
             disabled={isViewOnlyMode}
           >
-            <MessageSquareQuote className="mr-2 h-4 w-4 text-indigo-500" />
+            <MessageSquareQuote className='mr-2 h-4 w-4 text-indigo-500' />
             Rewrite Content (AI)...
           </Button>
           <Separator />
           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start px-2 py-1.5 text-sm text-destructive hover:text-destructive"
+            variant='ghost'
+            size='sm'
+            className='w-full justify-start px-2 py-1.5 text-sm text-destructive hover:text-destructive'
             onClick={handleDelete}
             disabled={isViewOnlyMode}
           >
-            <Trash2 className="mr-2 h-4 w-4" />
+            <Trash2 className='mr-2 h-4 w-4' />
             Delete Node
           </Button>
         </CardContent>

@@ -1,9 +1,5 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   PlusCircle,
   Share2,
@@ -12,12 +8,18 @@ import {
   ArrowLeft,
   ArrowRight,
 } from 'lucide-react'; // Added ArrowLeft, ArrowRight
+import Link from 'next/link';
+import React, { useState, useEffect, useCallback } from 'react';
+
+import type { ConceptMap } from '@/types';
+
+import { ConceptMapListItem } from '@/components/concept-map/concept-map-list-item';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import type { ConceptMap } from '@/types';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { ConceptMapListItem } from '@/components/concept-map/concept-map-list-item';
-import { EmptyState } from '@/components/ui/empty-state';
 
 const MAPS_PER_PAGE = 9; // Or 10, as you prefer
 

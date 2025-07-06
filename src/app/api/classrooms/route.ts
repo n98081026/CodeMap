@@ -1,13 +1,14 @@
 // src/app/api/classrooms/route.ts
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+
 import {
   createClassroom,
   getClassroomsByTeacherId,
   getClassroomsByStudentId,
   getAllClassrooms,
 } from '@/services/classrooms/classroomService';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { UserRole } from '@/types';
 
 export async function POST(request: Request) {

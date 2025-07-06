@@ -1,10 +1,5 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import type { ConceptMap } from '@/types';
-import { UserRole } from '@/types';
 import {
   PlusCircle,
   Share2,
@@ -13,12 +8,19 @@ import {
   Eye,
   Edit,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { useToast } from '@/hooks/use-toast';
-import { EmptyState } from '@/components/layout/empty-state';
+import Link from 'next/link';
+import React, { useEffect, useState, useCallback } from 'react';
+
+import type { ConceptMap } from '@/types';
+
 import { ConceptMapListItem } from '@/components/concept-map/concept-map-list-item';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { EmptyState } from '@/components/layout/empty-state';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
 import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V3 } from '@/lib/config';
+import { UserRole } from '@/types';
 
 export default function StudentConceptMapsPage() {
   const { user } = useAuth();

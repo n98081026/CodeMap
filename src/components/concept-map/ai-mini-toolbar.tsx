@@ -1,12 +1,13 @@
-"use client";
+'use client';
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
 import { SparklesIcon, ZapIcon } from 'lucide-react'; // Using Zap for Quick Expand as an example
+import React from 'react';
+
+import { Button } from '@/components/ui/button';
 
 interface AISuggestionMiniToolbarProps {
   nodeId: string;
-  nodeRect: { x: number, y: number, width: number, height: number } | null;
+  nodeRect: { x: number; y: number; width: number; height: number } | null;
   isVisible: boolean;
   onQuickExpand: (nodeId: string) => void;
   onRewriteConcise: (nodeId: string) => void;
@@ -44,25 +45,29 @@ const AISuggestionMiniToolbar: React.FC<AISuggestionMiniToolbarProps> = ({
   };
 
   return (
-    <div style={style} className="ai-mini-toolbar" data-tutorial-id="ai-mini-toolbar">
+    <div
+      style={style}
+      className='ai-mini-toolbar'
+      data-tutorial-id='ai-mini-toolbar'
+    >
       <Button
-        data-tutorial-id="ai-mini-toolbar-quick-expand-button"
-        variant="ghost"
-        size="sm"
+        data-tutorial-id='ai-mini-toolbar-quick-expand-button'
+        variant='ghost'
+        size='sm'
         onClick={() => onQuickExpand(nodeId)}
-        title="Quick Expand (AI)"
+        title='Quick Expand (AI)'
       >
-        <ZapIcon className="h-4 w-4 mr-1" />
+        <ZapIcon className='h-4 w-4 mr-1' />
         Expand
       </Button>
       <Button
-        data-tutorial-id="ai-mini-toolbar-rewrite-concise-button"
-        variant="ghost"
-        size="sm"
+        data-tutorial-id='ai-mini-toolbar-rewrite-concise-button'
+        variant='ghost'
+        size='sm'
         onClick={() => onRewriteConcise(nodeId)}
-        title="Rewrite Concise (AI)"
+        title='Rewrite Concise (AI)'
       >
-        <SparklesIcon className="h-4 w-4 mr-1" />
+        <SparklesIcon className='h-4 w-4 mr-1' />
         Concise
       </Button>
       {/* Add more buttons here: Summarize, Ask Question, etc. */}

@@ -1,15 +1,16 @@
+import { PlusCircleIcon, CheckCircle, XCircle } from 'lucide-react'; // Added more icons
 import React, { useState } from 'react'; // Added useState
 import { getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
+import { v4 as uuidv4 } from 'uuid';
+
 import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from '@/components/ui/popover';
-import { PlusCircleIcon, CheckCircle, XCircle } from 'lucide-react'; // Added more icons
-import useConceptMapStore from '@/stores/concept-map-store';
-import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast'; // Corrected import path
+import useConceptMapStore from '@/stores/concept-map-store';
 
 // Define the props for SuggestedEdge, extending basic edge props
 interface SuggestedEdgeProps {

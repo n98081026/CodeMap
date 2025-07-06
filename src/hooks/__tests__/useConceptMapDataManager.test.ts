@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import { useConceptMapDataManager } from './useConceptMapDataManager';
+
 import { useAuth } from '@/contexts/auth-context'; // Keep this, but it's mocked
-import { useConceptMapStore } from '@/stores/concept-map-store';
-import * as conceptMapService from '@/services/conceptMaps/conceptMapService';
-import { UserRole } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import * as conceptMapService from '@/services/conceptMaps/conceptMapService';
+import { useConceptMapStore } from '@/stores/concept-map-store';
+import { UserRole } from '@/types';
 
 // Mock Next.js navigation
 const mockRouterPush = vi.fn();

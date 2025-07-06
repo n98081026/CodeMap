@@ -1,13 +1,15 @@
 // src/app/api/users/[userId]/route.ts
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+
+import type { UserRole } from '@/types'; // UserRole is already imported correctly
+
 import {
   getUserById,
   updateUser,
   deleteUser,
 } from '@/services/users/userService';
-import type { UserRole } from '@/types'; // UserRole is already imported correctly
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 // UserRole is already imported from '@/types'
 
 export async function GET(

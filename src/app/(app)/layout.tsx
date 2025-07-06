@@ -1,19 +1,13 @@
 'use client';
-import { MainLayout } from '@/components/layout/main-layout';
-import { useAuth } from '@/contexts/auth-context';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react'; // Import useState
-import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { Loader2 } from 'lucide-react';
-import AppTutorial from '@/components/tutorial/app-tutorial';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import { useEffect, useState } from 'react'; // Import useState
+import { useEffect, useState, useCallback } from 'react'; // Import useCallback
 
 import { MainLayout } from '@/components/layout/main-layout';
-import { useAuth } from '@/contexts/auth-context';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react'; // Import useCallback
-import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import { Loader2 } from 'lucide-react';
 import AppTutorial from '@/components/tutorial/app-tutorial';
+import { useAuth } from '@/contexts/auth-context';
 import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

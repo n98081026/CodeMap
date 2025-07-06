@@ -8,8 +8,9 @@
  * - SummarizeNodesOutput - Output type for the flow.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const SummarizeNodesInputSchema = z.object({
   nodeContents: z

@@ -8,8 +8,9 @@
  * - GenerateQuickClusterOutput - The return type for the generateQuickCluster function.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const GenerateQuickClusterInputSchema = z.object({
   prompt: z

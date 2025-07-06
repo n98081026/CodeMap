@@ -1,10 +1,13 @@
 // src/app/api/classrooms/[classroomId]/students/[studentId]/route.ts
-import { NextResponse } from 'next/server';
-import { removeStudentFromClassroom } from '@/services/classrooms/classroomService';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+
+import {
+  removeStudentFromClassroom,
+  getClassroomById,
+} from '@/services/classrooms/classroomService';
 import { UserRole } from '@/types';
-import { getClassroomById } from '@/services/classrooms/classroomService';
 
 export async function DELETE(
   request: Request,

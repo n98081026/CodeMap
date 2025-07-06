@@ -1,15 +1,16 @@
 // src/app/api/projects/submissions/route.ts
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+
+import { getClassroomById } from '@/services/classrooms/classroomService'; // For checking teacher ownership
 import {
   createSubmission,
   getSubmissionsByStudentId,
   getSubmissionsByClassroomId,
   getAllSubmissions,
 } from '@/services/projectSubmissions/projectSubmissionService';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { UserRole } from '@/types';
-import { getClassroomById } from '@/services/classrooms/classroomService'; // For checking teacher ownership
 
 export async function POST(request: Request) {
   try {

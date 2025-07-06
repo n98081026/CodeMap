@@ -5,8 +5,9 @@
  * 具有上下文感知和教育導向的智能概念提取
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const WhimsicalExtractConceptsInputSchema = z.object({
   text: z.string().describe('要提取概念的文本內容'),

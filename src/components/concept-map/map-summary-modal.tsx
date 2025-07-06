@@ -1,6 +1,9 @@
-"use client";
+'use client';
 
 import React from 'react';
+
+import type { GenerateMapSummaryOutput } from '@/ai/flows/generate-map-summary'; // Adjust path as needed
+
 import {
   AlertDialog,
   AlertDialogContent,
@@ -9,9 +12,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel, // Or AlertDialogAction for "OK"
-} from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import type { GenerateMapSummaryOutput } from '@/ai/flows/generate-map-summary'; // Adjust path as needed
+} from '@/components/ui/alert-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MapSummaryModalProps {
   isOpen: boolean;
@@ -35,22 +37,24 @@ export const MapSummaryModal: React.FC<MapSummaryModalProps> = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-2xl">
+      <AlertDialogContent className='max-w-2xl'>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {summaryResult?.error ? "Map Summary Error" : "AI Generated Map Summary"}
+            {summaryResult?.error
+              ? 'Map Summary Error'
+              : 'AI Generated Map Summary'}
           </AlertDialogTitle>
         </AlertDialogHeader>
         <AlertDialogDescription asChild>
-          <ScrollArea className="max-h-[60vh] pr-4">
+          <ScrollArea className='max-h-[60vh] pr-4'>
             {summaryResult?.error ? (
-              <p className="text-destructive-foreground bg-destructive/10 p-3 rounded-md">
-                {summaryResult.summary || "An unexpected error occurred."}
+              <p className='text-destructive-foreground bg-destructive/10 p-3 rounded-md'>
+                {summaryResult.summary || 'An unexpected error occurred.'}
                 <br />
                 {summaryResult.error}
               </p>
             ) : summaryResult?.summary ? (
-              <p className="whitespace-pre-wrap text-sm text-foreground">
+              <p className='whitespace-pre-wrap text-sm text-foreground'>
                 {summaryResult.summary}
               </p>
             ) : (
@@ -59,7 +63,9 @@ export const MapSummaryModal: React.FC<MapSummaryModalProps> = ({
           </ScrollArea>
         </AlertDialogDescription>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={handleModalClose}>Close</AlertDialogCancel>
+          <AlertDialogCancel onClick={handleModalClose}>
+            Close
+          </AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react"; 
+import type { LucideIcon } from 'lucide-react';
 
 export enum UserRole {
   STUDENT = 'student',
@@ -22,38 +22,38 @@ export interface Classroom {
   studentIds: string[];
   students?: User[];
   inviteCode?: string;
-  subject?: string; 
-  difficulty?: "beginner" | "intermediate" | "advanced"; 
-  enableStudentAiAnalysis?: boolean; 
+  subject?: string;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  enableStudentAiAnalysis?: boolean;
 }
 
 export interface ConceptMapNode {
   id: string;
-  text: string; 
-  type: string; 
+  text: string;
+  type: string;
   details?: string;
-  x?: number; 
-  y?: number; 
+  x?: number;
+  y?: number;
   parentNode?: string; // Added for hierarchy
   childIds?: string[]; // Added for explicit child ordering
-  backgroundColor?: string; 
-  shape?: 'rectangle' | 'ellipse'; 
-  width?: number; 
-  height?: number; 
+  backgroundColor?: string;
+  shape?: 'rectangle' | 'ellipse';
+  width?: number;
+  height?: number;
   highlight?: boolean; // New property
 }
 
 export interface ConceptMapEdge {
-  id:string;
-  source: string; 
-  target: string; 
-  label: string; 
-  sourceHandle?: string | null; 
-  targetHandle?: string | null; 
+  id: string;
+  source: string;
+  target: string;
+  label: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
   color?: string;
   lineType?: 'solid' | 'dashed';
   markerStart?: string; // e.g., "none", "arrow", "arrowclosed"
-  markerEnd?: string;   // e.g., "none", "arrow", "arrowclosed"
+  markerEnd?: string; // e.g., "none", "arrow", "arrowclosed"
 }
 
 export interface ConceptMapData {
@@ -86,12 +86,12 @@ export interface ProjectSubmission {
   classroomId?: string | null;
   originalFileName: string;
   fileSize: number;
-  fileStoragePath?: string | null; 
+  fileStoragePath?: string | null;
   submissionTimestamp: string;
   analysisStatus: ProjectSubmissionStatus;
   analysisError?: string | null;
   generatedConceptMapId?: string | null;
-  generatedConceptMap?: ConceptMap | null; 
+  generatedConceptMap?: ConceptMap | null;
 }
 
 export interface EmptyStateProps {
@@ -112,11 +112,14 @@ export interface DashboardLinkCardProps {
 
 export interface SystemSettings {
   enable_ai_project_analysis: boolean;
-  default_concept_map_visibility: "public" | "private";
+  default_concept_map_visibility: 'public' | 'private';
   max_project_file_size_mb: number;
 }
 
-export type SystemSettingsFromClient = Omit<SystemSettings, 'id' | 'updated_at'>;
+export type SystemSettingsFromClient = Omit<
+  SystemSettings,
+  'id' | 'updated_at'
+>;
 
 // Added VisualEdgeSuggestion interface
 export interface VisualEdgeSuggestion {

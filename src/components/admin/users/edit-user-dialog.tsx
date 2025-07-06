@@ -1,6 +1,10 @@
 'use client';
 
+import { Loader2 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
+
+import type { User } from '@/types';
+
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,15 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import type { User } from '@/types';
-import { UserRole } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   MOCK_ADMIN_USER_V3,
   MOCK_STUDENT_USER_V3,
   MOCK_TEACHER_USER_V3,
 } from '@/lib/config'; // Updated import
+import { UserRole } from '@/types';
 
 interface EditUserDialogProps {
   isOpen: boolean;

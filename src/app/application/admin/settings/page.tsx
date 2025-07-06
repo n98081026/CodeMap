@@ -1,8 +1,16 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Settings, Save, Loader2, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+
+import type { SystemSettings } from '@/types';
+
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -10,7 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -21,7 +28,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -29,13 +35,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Settings, Save, Loader2, AlertTriangle } from 'lucide-react';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import Link from 'next/link';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect, useState, useCallback } from 'react';
-import type { SystemSettings } from '@/types';
 
 const settingsFormSchema = z.object({
   enable_ai_project_analysis: z.boolean().default(true),

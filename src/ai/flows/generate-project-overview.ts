@@ -5,8 +5,9 @@
  * This includes a concise text summary and identification of key modules/components.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 import {
   projectStructureAnalyzerTool,
   type ProjectAnalysisOutput,

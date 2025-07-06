@@ -232,7 +232,6 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
 ## Project Setup & DX Enhancements (Jules & User)
 
 - [ ] **Manual User Tasks (Local Environment):**
-
   - **Action:** In your local environment, please perform the following steps in order and commit the changes:
     1. Ensure all dependencies are installed: `npm install` (or `yarn install`). This is crucial as Jules encountered issues running this in the sandbox.
     2. Run the initial Prettier formatting: `npm run format`. This includes:
@@ -245,7 +244,6 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
   - **Note for Jules:** Once these steps are done and changes are committed, Jules can proceed with reviewing any remaining ESLint issues or other planned tasks.
 
 - [x] **ESLint & Prettier Configuration & Initial Setup (Jules - Partially Blocked by User for full format/lint run):**
-
   - [x] Create `.prettierrc.json` with recommended settings.
   - [x] Create `.prettierignore` (added `*.py`, ensured standard ignores).
   - [x] Update `package.json` with necessary ESLint & Prettier devDependencies and quality-related scripts.
@@ -297,7 +295,6 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
 ## Ongoing: AI Interaction Layer Enhancements & Hook Refactoring (Revised after file restore)
 
 - [ ] **Enhance `callAIWithStandardFeedback` (NEEDS DEVELOPER RE-IMPLEMENTATION & VERIFICATION):**
-
   - [ ] Implement `options.onSuccess?: (output: O, input: I) => void` in function signature and logic.
     - _Purpose_: Allow specific side effects post-AI success, before default toast.
   - [ ] Implement `options.onError?: (error: unknown, input: I) => boolean | void` in function signature and logic.
@@ -306,7 +303,6 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
   - [x] JSDoc for `callAIWithStandardFeedback` has been updated to describe these intended `onSuccess` and `onError` options. (Jules - Done)
 
 - [ ] **Refactor `useConceptMapAITools.ts` (NEEDS DEVELOPER REVIEW & IMPLEMENTATION):**
-
   - [ ] **Extract AI success handlers**: After `onSuccess` is implemented in `callAIWithStandardFeedback`, refactor ALL `handle...` functions (including Q&A handlers) to move their success logic into this callback.
     - _Goal_: Reduce nesting and length of `handle...` functions.
   - [ ] **Isolate simple AI flow calls**: Review handlers that primarily display a toast on success; ensure they leverage `callAIWithStandardFeedback`'s `successDescription` effectively.
@@ -314,7 +310,6 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
   - [ ] **Thoroughly review `useCallback` dependencies**: **CRITICAL - NEEDS DEVELOPER REVIEW & ADJUSTMENT WITH LOCAL LINTER/TESTING.** Ensure all `useCallback` hooks have correct and exhaustive dependencies.
 
 - [ ] **Update relevant AI tool invocation points (NEEDS DEVELOPER IMPLEMENTATION):**
-
   - This task is dependent on the above refactoring.
 
 - [ ] **Documentation**:

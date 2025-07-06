@@ -1,5 +1,6 @@
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 import { ConceptMapNodeSchema, ConceptMapEdgeSchema } from '@/types/zodSchemas'; // Assuming these will be created or exist
 
 // --- Input Schema ---

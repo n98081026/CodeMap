@@ -1,9 +1,10 @@
 // src/ai/tools/graphology-shared-neighbors-edge-tool.ts
 import { defineTool } from '@genkit-ai/tool';
+import Graph from 'graphology'; // For type checking graphInstance if needed
 import { z } from 'zod';
+
 import { GraphAdapterUtility } from '../../lib/graphologyAdapter'; // Adjust path if needed based on project structure
 import { MapDataSchema } from '../flows/suggest-map-improvement'; // Assuming this is the canonical MapDataSchema
-import Graph from 'graphology'; // For type checking graphInstance if needed
 
 export const SharedNeighborsEdgeInputSchema = MapDataSchema.extend({
   jaccardThreshold: z

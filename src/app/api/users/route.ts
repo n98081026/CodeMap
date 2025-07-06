@@ -1,8 +1,9 @@
 // src/app/api/users/route.ts
-import { NextResponse } from 'next/server';
-import { getAllUsers } from '@/services/users/userService';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+
+import { getAllUsers } from '@/services/users/userService';
 import { UserRole } from '@/types';
 
 export async function GET(request: Request) {

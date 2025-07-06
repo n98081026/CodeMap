@@ -1,5 +1,5 @@
-
-import type {Config} from 'tailwindcss';
+import type { Config } from 'tailwindcss';
+import tailwindAnimate from 'tailwindcss-animate';
 
 export default {
   darkMode: ['class'],
@@ -7,14 +7,15 @@ export default {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     // Below path is for Next.js 'pages' router, keep if mixed, remove if only 'app' router.
-    // './src/pages/**/*.{js,ts,jsx,tsx,mdx}', 
+    // './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    container: { // Added container default settings for centering in MainLayout
+    container: {
+      // Added container default settings for centering in MainLayout
       center: true,
-      padding: "2rem",
+      padding: '2rem',
       screens: {
-        "2xl": "1400px",
+        '2xl': '1400px',
       },
     },
     extend: {
@@ -104,5 +105,5 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindAnimate],
 } satisfies Config;

@@ -6,8 +6,7 @@
  */
 
 import type { ConceptMap, ConceptMapData } from '@/types';
-import { supabase } from '@/lib/supabaseClient';
-import { getUserById } from '@/services/users/userService'; // To validate ownerId
+
 import {
   BYPASS_AUTH_FOR_TESTING,
   MOCK_STUDENT_USER_V3,
@@ -15,6 +14,8 @@ import {
   MOCK_CONCEPT_MAPS_STORE,
   MOCK_CLASSROOM_SHARED_V2,
 } from '@/lib/config'; // Use MOCK_CONCEPT_MAPS_STORE
+import { supabase } from '@/lib/supabaseClient';
+import { getUserById } from '@/services/users/userService'; // To validate ownerId
 
 // Mock data store for bypass mode is now primarily from MOCK_CONCEPT_MAPS_STORE in config.ts
 

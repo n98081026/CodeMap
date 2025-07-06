@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/auth-context';
-import { UserRole, type Classroom } from '@/types';
+
 import { useToast } from './use-toast';
+
+import { useAuth } from '@/contexts/auth-context';
 import {
   BYPASS_AUTH_FOR_TESTING,
   MOCK_TEACHER_USER,
   MOCK_CLASSROOM_TEACHER_OWNED,
 } from '@/lib/config';
 import { getClassroomsByTeacherId as getClassroomsService } from '@/services/classrooms/classroomService';
+import { UserRole, type Classroom } from '@/types';
 
 interface MetricState {
   count: number | null;

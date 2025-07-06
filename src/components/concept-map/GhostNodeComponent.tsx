@@ -2,6 +2,7 @@
 'use client';
 import React, { memo } from 'react';
 import { type NodeProps } from 'reactflow';
+
 import { cn } from '@/lib/utils';
 
 // Data for the ghost node should include original dimensions if possible

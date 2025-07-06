@@ -1,19 +1,7 @@
 import { defineFlow } from '@genkit-ai/flow';
+import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
-import {
-  suggestMapImprovementFlow,
-  MapImprovementSuggestionSchema,
-} from './suggest-map-improvement';
-import {
-  suggestNodeGroupCandidatesFlow,
-  NodeGroupSuggestionSchema,
-} from './suggest-node-group-candidates';
-import { suggestGraphologyEnhancedEdgeFlow } from './suggest-graphology-enhanced-edge';
-import { suggestGraphologyIntermediateNodeFlow } from './suggest-graphology-intermediate-node'; // Added new flow
-import {
-  MapDataSchema,
-  NewIntermediateNodeDataSchema as MapImprovementNewIntermediateNodeDataSchema,
-} from './suggest-map-improvement'; // Import specific schema for parsing
+
 import {
   AllStructuralSuggestionsSchema,
   StructuralSuggestionItemSchema,
@@ -21,7 +9,21 @@ import {
   NewIntermediateNodeDataSchema,
   FormGroupDataSchema,
 } from '../../types/ai-suggestions';
-import { v4 as uuidv4 } from 'uuid';
+
+import { suggestGraphologyEnhancedEdgeFlow } from './suggest-graphology-enhanced-edge';
+import { suggestGraphologyIntermediateNodeFlow } from './suggest-graphology-intermediate-node'; // Added new flow
+import {
+  suggestMapImprovementFlow,
+  MapImprovementSuggestionSchema,
+} from './suggest-map-improvement';
+import {
+  MapDataSchema,
+  NewIntermediateNodeDataSchema as MapImprovementNewIntermediateNodeDataSchema,
+} from './suggest-map-improvement'; // Import specific schema for parsing
+import {
+  suggestNodeGroupCandidatesFlow,
+  NodeGroupSuggestionSchema,
+} from './suggest-node-group-candidates';
 
 export const fetchAllStructuralSuggestionsFlow = defineFlow(
   {

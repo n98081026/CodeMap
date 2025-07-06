@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/auth-context';
-import { UserRole } from '@/types';
+
 import { useToast } from './use-toast';
+
+import { useAuth } from '@/contexts/auth-context';
 import {
   BYPASS_AUTH_FOR_TESTING,
   MOCK_ADMIN_USER,
@@ -11,8 +12,9 @@ import {
   MOCK_CLASSROOM_SHARED,
   MOCK_CLASSROOM_TEACHER_OWNED,
 } from '@/lib/config';
-import { getAllUsers as getAllUsersService } from '@/services/users/userService';
 import { getAllClassrooms as getAllClassroomsService } from '@/services/classrooms/classroomService';
+import { getAllUsers as getAllUsersService } from '@/services/users/userService';
+import { UserRole } from '@/types';
 
 interface MetricState {
   count: number | null;

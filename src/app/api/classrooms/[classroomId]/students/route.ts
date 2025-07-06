@@ -1,5 +1,6 @@
 // src/app/api/classrooms/[classroomId]/students/route.ts
 import { NextResponse } from 'next/server';
+
 import { addStudentToClassroom } from '@/services/classrooms/classroomService';
 
 export async function POST(

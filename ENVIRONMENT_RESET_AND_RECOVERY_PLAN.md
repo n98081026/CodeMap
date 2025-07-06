@@ -19,12 +19,10 @@ These issues make it unreliable to proceed with new coding, refactoring, or even
 **Steps:**
 
 1.  **Backup Critical Untracked Files (if any) from the OLD Project Directory:**
-
     - Manually check the _current, old_ project directory for important files not tracked by Git (e.g., `.env`, `.env.local`, personal notes, uncommitted local experiments).
     - Copy these essential untracked files to a safe, temporary location _outside_ the old project directory.
 
 2.  **Create a Brand New Workspace (Crucial Step):**
-
     - Navigate to a directory _outside_ the current project folder (e.g., if the project is in `~/projects/old-project-name`, navigate to `~/projects/`).
     - Clone the repository into a **new folder** with a fresh name:
 
@@ -37,15 +35,12 @@ These issues make it unreliable to proceed with new coding, refactoring, or even
     _(Replace `<main_development_branch>` with the primary branch used for development, e.g., `main`, `develop`, or the specific branch from which recent successful work was based. This should be the branch containing all previously submitted GAI features and planning work.)_
 
 4.  **Install Dependencies:**
-
     - Based on the project's package manager:
-
       - If using `npm`:
 
       - If using `yarn`:
 
 5.  **Initial Verification:**
-
     - Attempt to start the development server:
 
       _(or the project's specific command, e.g., `yarn dev`)_.
@@ -65,11 +60,8 @@ Once the new, clean environment is confirmed to be ready and accessible:
 1.  **Verify Access:** Perform a simple read operation (e.g., `ls` in the new project root, or reading `package.json`) to confirm tools are targeting the new directory.
 
 2.  **Systematic Code Re-application:** The following features and fixes, previously completed and submitted, will be re-applied systematically. Each major feature will be committed separately if possible to isolate changes.
-
     - **Batch 1: Core GAI Features & Foundational Fixes:**
-
       - **A. Core Node Display Fixes:**
-
         - **File:** `src/stores/concept-map-store.ts`
           - In `addNode` action: Define `NODE_DEFAULT_WIDTH = 150`, `NODE_DEFAULT_HEIGHT = 70`.
           - Ensure `newNode` object creation uses these defaults for `width` and `height` if not provided in `options` (e.g., `width: options.width ?? NODE_DEFAULT_WIDTH`).
@@ -83,7 +75,6 @@ Once the new, clean environment is confirmed to be ready and accessible:
             - Ensure flags like `isStaged: true` or `isGhost: true` are correctly applied in the `data` object of respective nodes during mapping.
 
       - **B. AI Contextual Mini-Toolbar:**
-
         - **File:** `src/components/concept-map/ai-mini-toolbar.tsx` (Create if not present)
           - Define component with props: `nodeId`, `nodeRect`, `isVisible`, `onQuickExpand`, `onRewriteConcise`.
           - Layout with buttons for "Quick Expand" and "Rewrite Concise".
@@ -98,7 +89,6 @@ Once the new, clean environment is confirmed to be ready and accessible:
           - Ensure `useConceptMapAITools` is used and its functions are available for `CustomNodeComponent` to call (e.g. by `CustomNodeComponent` using the hook directly).
 
       - **C. AI Quick-Add / Floating AI Suggestions (`AISuggestionFloater`):**
-
         - **File:** `src/components/concept-map/ai-suggestion-floater.tsx` (Create if not present)
           - Define component with props: `isVisible`, `position`, `suggestions: SuggestionAction[]`, `onDismiss`, `title?`.
           - Renders a floating panel with clickable suggestion items. Handles Escape/click-outside for dismissal.
@@ -114,7 +104,6 @@ Once the new, clean environment is confirmed to be ready and accessible:
           - Implement `onPaneContextMenu` and `onNodeContextMenu` handlers.
 
       - **D. AI Staging Area:**
-
         - **File:** `src/stores/concept-map-store.ts`
           - Add state: `stagedMapData`, `isStagingActive`. Actions: `setStagedMapData`, `clearStagedMapData`, `commitStagedMapData`.
         - **File:** `src/hooks/useConceptMapAITools.ts`
@@ -129,7 +118,6 @@ Once the new, clean environment is confirmed to be ready and accessible:
           - Integrate `AIStagingToolbar`. Implement deletion from stage.
 
       - **E. AI-Suggested Relation Labels:**
-
         - **File:** `src/ai/flows/suggest-edge-label.ts` (Create) - `suggestEdgeLabelFlow`.
         - **File:** `src/hooks/useConceptMapAITools.ts`
           - Add `edgeLabelSuggestions` state (e.g. an object with edgeId and labels array). Implement `fetchAndSetEdgeLabelSuggestions`.
@@ -152,7 +140,6 @@ Once the new, clean environment is confirmed to be ready and accessible:
           - Pass `acceptSingleExpansionPreview` as `onGhostNodeAcceptRequest`. `useEffect` on preview state shows `AISuggestionFloater` with Accept All/Clear All actions.
 
     - **Batch 2: Initial Refactoring Plan Code (Interfaces & Store Actions):**
-
       - **A. Create `src/types/graph-adapter.ts`:**
         - Define interfaces for Dagre and GraphAdapter utilities.
       - **B. Implement `applyLayout` Action in `src/stores/concept-map-store.ts`:**
@@ -161,14 +148,12 @@ Once the new, clean environment is confirmed to be ready and accessible:
         - Modify `deleteNode` to use (mocked) `GraphAdapter.getDescendants`.
 
 3.  **Final Verification (Attempt Previously Failed UI Task):**
-
     - **A. Add "Auto-layout Map" Button to `src/components/concept-map/editor-toolbar.tsx`:**
       - Add button, icon, props for `onAutoLayout`.
     - **B. Connect Button in `src/app/(app)/concept-maps/editor/[mapId]/page.tsx`:**
       - Define placeholder `handleAutoLayout`. Pass prop to `EditorToolbar`.
 
 4.  **Submit Restored Work:** (If all successful)
-
     - Commit all changes to a new branch.
 
 5.  # **Await Further Instructions:** Report completion.

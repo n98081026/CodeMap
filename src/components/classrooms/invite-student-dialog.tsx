@@ -1,6 +1,8 @@
 'use client';
 
+import { UserPlus, Loader2 } from 'lucide-react';
 import React, { useState, useCallback } from 'react';
+
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,7 +16,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Loader2 } from 'lucide-react';
 
 interface InviteStudentDialogProps {
   classroomId: string;

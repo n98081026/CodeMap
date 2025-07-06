@@ -1,12 +1,12 @@
 import { renderHook, act } from '@testing-library/react';
+import { useReactFlow, type Node as RFNode } from 'reactflow';
+
 import {
   useConceptMapAITools,
   type ExpandConceptInput,
   type RefineModalData,
 } from './useConceptMapAITools'; // Added RefineModalData
-import { useToast } from '@/hooks/use-toast';
-import useConceptMapStore from '@/stores/concept-map-store';
-import { useReactFlow, type Node as RFNode } from 'reactflow';
+
 import type { CustomNodeData } from './custom-node';
 import type {
   SuggestRelationsOutput,
@@ -25,8 +25,11 @@ import type {
   SuggestedImprovements,
   RefineNodeSuggestionOutput,
 } from '@/ai/flows';
-import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
+
+import { useToast } from '@/hooks/use-toast';
 import { DagreLayoutUtility } from '@/lib/dagreLayoutUtility';
+import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
+import useConceptMapStore from '@/stores/concept-map-store';
 
 // Mock dependencies
 jest.mock('@/hooks/use-toast', () => ({

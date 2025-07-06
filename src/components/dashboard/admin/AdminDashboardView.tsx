@@ -1,7 +1,5 @@
 'use client'; // Keep 'use client' as it uses hooks
 
-import Link from 'next/link';
-import { type User } from '@/types'; // Assuming User type is needed and correctly pathed
 import {
   Users,
   Settings,
@@ -9,13 +7,17 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
+import Link from 'next/link';
+
 // Removed useRouter and useEffect as they are page-level concerns for auth
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardLinkCard } from '@/components/dashboard/dashboard-link-card';
 import { useAdminDashboardMetrics } from '@/hooks/useAdminDashboardMetrics';
+import { type User } from '@/types'; // Assuming User type is needed and correctly pathed
 
 // Renamed from AdminDashboardContent and made default export
-export default function AdminDashboardView({ user }: { user: User }) { // user prop might not be strictly needed if not used directly for display here
+export default function AdminDashboardView({ user }: { user: User }) {
+  // user prop might not be strictly needed if not used directly for display here
   const { users: usersMetric, classrooms: classroomsMetric } =
     useAdminDashboardMetrics();
 

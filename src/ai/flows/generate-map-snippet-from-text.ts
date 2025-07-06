@@ -8,8 +8,9 @@
  * - GenerateMapSnippetOutput - Output type.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const GenerateMapSnippetInputSchema = z.object({
   text: z

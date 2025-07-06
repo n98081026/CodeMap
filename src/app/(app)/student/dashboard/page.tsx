@@ -1,17 +1,5 @@
 'use client';
 
-import React from 'react'; // Ensure React is imported for useMemo if not already via other imports
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/auth-context';
-import { UserRole } from '@/types'; // Import UserRole
 import {
   BookOpen,
   FileText,
@@ -24,21 +12,34 @@ import {
   Users,
   Settings,
 } from 'lucide-react'; // Added Users, Settings
+import { Loader2 } from 'lucide-react'; // For loading state
+import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // For redirection
+import React from 'react'; // Ensure React is imported for useMemo if not already via other imports
+import { useEffect } from 'react'; // For redirection logic
+
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import StudentDashboardView from '@/components/dashboard/student/StudentDashboardView'; // Import the new shared view
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { useAuth } from '@/contexts/auth-context';
 import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics';
+import { UserRole } from '@/types'; // Import UserRole
 // Unused imports like Card, CardContent etc. are removed as StudentDashboardView handles its own UI.
 // Kept Link for Button asChild if needed, but StudentDashboardView handles its internal links.
 // import Link from 'next/link'; // No longer directly used here if StudentDashboardView handles all links
-import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types'; // Import UserRole
-import { Loader2 } from 'lucide-react'; // For loading state
+
 // import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Now in StudentDashboardView
 // import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics'; // Now in StudentDashboardView
 // import { DashboardLinkCard, type MetricState } from '@/components/dashboard/dashboard-link-card'; // Now in StudentDashboardView
 // import { QuickActionsCard } from '@/components/dashboard/quick-actions-card'; // Now in StudentDashboardView
-import StudentDashboardView from '@/components/dashboard/student/StudentDashboardView'; // Import the new shared view
-import { useRouter } from 'next/navigation'; // For redirection
-import { useEffect } from 'react'; // For redirection logic
 
 export default function StudentDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();
@@ -78,7 +79,7 @@ export default function StudentDashboardPage() {
   if (!user || user.role !== UserRole.STUDENT) {
     // Display loading or null while redirecting or if auth state is briefly inconsistent.
     // AppLayout should prevent unauthenticated access. This primarily handles incorrect role access.
-     return (
+    return (
       <div className='flex h-full items-center justify-center'>
         <Loader2 className='h-8 w-8 animate-spin text-primary' />
       </div>

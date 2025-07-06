@@ -1,24 +1,6 @@
 // src/app/(app)/examples/page.tsx
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { exampleProjects, type ExampleProject } from '@/lib/example-data';
-import { useToast } from '@/hooks/use-toast';
-import useConceptMapStore from '@/stores/concept-map-store';
 import {
   Compass,
   Eye,
@@ -31,8 +13,27 @@ import {
   Info,
   Edit3,
 } from 'lucide-react'; // Added Edit3
-import { useAuth } from '@/contexts/auth-context';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React from 'react';
+
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
+import { exampleProjects, type ExampleProject } from '@/lib/example-data';
+import useConceptMapStore from '@/stores/concept-map-store';
 
 const GuestCtaBanner = () => {
   const { isAuthenticated, isLoading } = useAuth();

@@ -3,9 +3,14 @@
  * Tests the complete concept map lifecycle with Supabase
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { createConceptMap, getConceptMapById, updateConceptMap } from '@/services/conceptMaps/conceptMapService';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+import {
+  createConceptMap,
+  getConceptMapById,
+  updateConceptMap,
+} from '@/services/conceptMaps/conceptMapService';
 
 // Mock Supabase client
 vi.mock('@/lib/supabaseClient', () => ({
@@ -13,23 +18,23 @@ vi.mock('@/lib/supabaseClient', () => ({
     from: vi.fn(() => ({
       insert: vi.fn(() => ({
         select: vi.fn(() => ({
-          single: vi.fn()
-        }))
+          single: vi.fn(),
+        })),
       })),
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          single: vi.fn()
-        }))
+          single: vi.fn(),
+        })),
       })),
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn()
-          }))
-        }))
-      }))
-    }))
-  }
+            single: vi.fn(),
+          })),
+        })),
+      })),
+    })),
+  },
 }));
 
 describe('Concept Map Integration Tests', () => {
@@ -51,27 +56,27 @@ describe('Concept Map Integration Tests', () => {
               id: 'node-1',
               type: 'custom',
               data: { label: 'Test Node', type: 'concept' },
-              position: { x: 100, y: 100 }
-            }
+              position: { x: 100, y: 100 },
+            },
           ],
-          edges: []
+          edges: [],
         },
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: mockConceptMap,
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await createConceptMap({
@@ -85,11 +90,11 @@ describe('Concept Map Integration Tests', () => {
               id: 'node-1',
               type: 'custom',
               data: { label: 'Test Node', type: 'concept' },
-              position: { x: 100, y: 100 }
-            }
+              position: { x: 100, y: 100 },
+            },
           ],
-          edges: []
-        }
+          edges: [],
+        },
       });
 
       expect(result.success).toBe(true);
@@ -101,15 +106,15 @@ describe('Concept Map Integration Tests', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Database constraint violation' }
+        error: { message: 'Database constraint violation' },
       });
 
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await createConceptMap({
@@ -117,7 +122,7 @@ describe('Concept Map Integration Tests', () => {
         description: 'A test concept map',
         ownerId: 'user-123',
         classroomId: 'class-123',
-        mapData: { nodes: [], edges: [] }
+        mapData: { nodes: [], edges: [] },
       });
 
       expect(result.success).toBe(false);
@@ -132,21 +137,21 @@ describe('Concept Map Integration Tests', () => {
         title: 'Retrieved Map',
         description: 'A retrieved concept map',
         owner_id: 'user-123',
-        map_data: { nodes: [], edges: [] }
+        map_data: { nodes: [], edges: [] },
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockSelect = vi.fn().mockResolvedValue({
         data: mockConceptMap,
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: mockSelect
-          })
-        })
+            single: mockSelect,
+          }),
+        }),
       });
 
       const result = await getConceptMapById('map-123');
@@ -159,15 +164,15 @@ describe('Concept Map Integration Tests', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockSelect = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'No rows returned' }
+        error: { message: 'No rows returned' },
       });
 
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: mockSelect
-          })
-        })
+            single: mockSelect,
+          }),
+        }),
       });
 
       const result = await getConceptMapById('nonexistent-id');
@@ -185,45 +190,45 @@ describe('Concept Map Integration Tests', () => {
             id: 'node-1',
             type: 'custom',
             data: { label: 'Updated Node', type: 'concept' },
-            position: { x: 150, y: 150 }
-          }
+            position: { x: 150, y: 150 },
+          },
         ],
         edges: [
           {
             id: 'edge-1',
             source: 'node-1',
             target: 'node-2',
-            type: 'default'
-          }
-        ]
+            type: 'default',
+          },
+        ],
       };
 
       const mockUpdatedMap = {
         id: 'map-123',
         title: 'Updated Map',
         map_data: updatedMapData,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockUpdate = vi.fn().mockResolvedValue({
         data: mockUpdatedMap,
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
-              single: mockUpdate
-            })
-          })
-        })
+              single: mockUpdate,
+            }),
+          }),
+        }),
       });
 
       const result = await updateConceptMap('map-123', {
         title: 'Updated Map',
-        mapData: updatedMapData
+        mapData: updatedMapData,
       });
 
       expect(result.success).toBe(true);
@@ -239,21 +244,21 @@ describe('Concept Map Integration Tests', () => {
         id: 'map-123',
         title: 'Private Map',
         owner_id: 'user-456', // Different user
-        classroom_id: null
+        classroom_id: null,
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockSelect = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Access denied' }
+        error: { message: 'Access denied' },
       });
 
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: mockSelect
-          })
-        })
+            single: mockSelect,
+          }),
+        }),
       });
 
       const result = await getConceptMapById('map-123');

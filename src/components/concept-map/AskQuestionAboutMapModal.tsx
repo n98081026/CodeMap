@@ -1,6 +1,9 @@
 'use client';
 
+import { Loader2, HelpCircle, MessageSquare, Search } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,11 +12,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, HelpCircle, MessageSquare, Search } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AskQuestionAboutMapModalProps {
   isOpen: boolean;

@@ -1,30 +1,29 @@
 'use client';
 
+import { Loader2 } from 'lucide-react'; // For loading state
+import { useRouter } from 'next/navigation'; // For redirection
 import React from 'react';
+import { useEffect } from 'react'; // For redirection logic
+
+import TeacherDashboardView from '@/components/dashboard/teacher/TeacherDashboardView'; // Import the shared view
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-// import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // No longer needed
-// import { Button } from '@/components/ui/button'; // No longer needed
-// import Link from 'next/link'; // No longer needed
+} from '@/components/ui/card'; // No longer needed
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
-import { Loader2 } from 'lucide-react'; // For loading state
 // import { BookOpen, Users, LayoutDashboard, AlertTriangle } from 'lucide-react'; // Icons are in TeacherDashboardView
 // import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Now in TeacherDashboardView
 // import { useTeacherDashboardMetrics } from '@/hooks/useTeacherDashboardMetrics'; // Now in TeacherDashboardView
 // import { DashboardLinkCard, type MetricState } from '@/components/dashboard/dashboard-link-card'; // Now in TeacherDashboardView
-import TeacherDashboardView from '@/components/dashboard/teacher/TeacherDashboardView'; // Import the shared view
-import { useRouter } from 'next/navigation'; // For redirection
-import { useEffect } from 'react'; // For redirection logic
 
 export default function TeacherDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
 
- useEffect(() => {
+  useEffect(() => {
     // AppLayout handles general authentication. This page adds role-specific redirection.
     if (!authIsLoading && user) {
       // This page is for TEACHERs. ADMINs might also access it (as per original logic showing Admin Panel link).
@@ -42,7 +41,6 @@ export default function TeacherDashboardPage() {
     // If !user and !authIsLoading, AppLayout should handle the redirect to /login.
   }, [user, authIsLoading, router]);
 
-
   if (authIsLoading) {
     return (
       <div className='flex h-full items-center justify-center'>
@@ -51,7 +49,10 @@ export default function TeacherDashboardPage() {
     );
   }
 
-  if (!user || (user.role !== UserRole.TEACHER && user.role !== UserRole.ADMIN)) {
+  if (
+    !user ||
+    (user.role !== UserRole.TEACHER && user.role !== UserRole.ADMIN)
+  ) {
     // This primarily catches non-teacher, non-admin roles after auth.
     // AppLayout handles unauthenticated.
     return (

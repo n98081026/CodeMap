@@ -12,8 +12,9 @@
  * - ExpandConceptOutput - The return type for the expandConcept function.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const ExpandConceptInputSchema = z.object({
   concept: z.string().describe('The concept to expand upon.'),

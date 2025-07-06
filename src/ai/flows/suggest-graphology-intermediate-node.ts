@@ -2,11 +2,13 @@
 import { defineFlow, generate } from '@genkit-ai/flow';
 import { geminiPro } from '@genkit-ai/googleai'; // Or your preferred model
 import { z } from 'zod';
+
 import {
   graphologyInterCommunityEdgeTool,
   InterCommunityEdgeInputSchema,
   CandidateLocationSchema,
 } from '../tools'; // Assumes index.ts exports these
+
 import {
   MapDataSchema,
   MapImprovementSuggestionSchema,

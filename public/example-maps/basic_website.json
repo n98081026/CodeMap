@@ -3,8 +3,8 @@
     {
       "id": "frontend",
       "type": "custom",
-      "data": { 
-        "label": "Frontend", 
+      "data": {
+        "label": "Frontend",
         "details": "User interface layer handling presentation and user interactions",
         "type": "concept"
       },
@@ -13,8 +13,8 @@
     {
       "id": "html",
       "type": "custom",
-      "data": { 
-        "label": "HTML Structure", 
+      "data": {
+        "label": "HTML Structure",
         "details": "Semantic markup defining content structure and accessibility",
         "type": "concept"
       },
@@ -23,8 +23,8 @@
     {
       "id": "css",
       "type": "custom",
-      "data": { 
-        "label": "CSS Styling", 
+      "data": {
+        "label": "CSS Styling",
         "details": "Visual presentation, layout, and responsive design",
         "type": "concept"
       },
@@ -33,8 +33,8 @@
     {
       "id": "javascript",
       "type": "custom",
-      "data": { 
-        "label": "JavaScript", 
+      "data": {
+        "label": "JavaScript",
         "details": "Client-side interactivity and dynamic behavior",
         "type": "concept"
       },
@@ -43,8 +43,8 @@
     {
       "id": "backend",
       "type": "custom",
-      "data": { 
-        "label": "Backend", 
+      "data": {
+        "label": "Backend",
         "details": "Server-side logic and data processing",
         "type": "concept"
       },
@@ -53,8 +53,8 @@
     {
       "id": "server",
       "type": "custom",
-      "data": { 
-        "label": "Web Server", 
+      "data": {
+        "label": "Web Server",
         "details": "HTTP request handling and response generation",
         "type": "concept"
       },
@@ -63,8 +63,8 @@
     {
       "id": "database",
       "type": "custom",
-      "data": { 
-        "label": "Database", 
+      "data": {
+        "label": "Database",
         "details": "Data storage and retrieval system",
         "type": "concept"
       },
@@ -73,8 +73,8 @@
     {
       "id": "api",
       "type": "custom",
-      "data": { 
-        "label": "API Layer", 
+      "data": {
+        "label": "API Layer",
         "details": "Interface for frontend-backend communication",
         "type": "concept"
       },

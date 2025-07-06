@@ -1,4 +1,8 @@
 'use client';
+import { CodeXml, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
 import { RegisterForm } from '@/components/auth/register-form';
 import {
   Card,
@@ -7,10 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { CodeXml, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { UserRole } from '@/types';
 
 export default function RegisterPage() {

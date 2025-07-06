@@ -5,6 +5,7 @@ import {
   ProjectAnalysisOutputSchema,
 } from './project-analyzer-tool';
 import { supabaseFileFetcherTool } from './supabase-file-fetcher-tool';
+
 import { summarizeCodeElementPurposeFlow } from '@/ai/flows/summarize-code-element-purpose';
 
 // Mock dependencies

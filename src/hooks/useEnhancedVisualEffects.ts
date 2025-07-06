@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import useConceptMapStore from '@/stores/concept-map-store';
+
+import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+
 import {
   EnhancedLayoutEngine,
   type LayoutOptions,
 } from '@/components/concept-map/enhanced-layout-engine';
-import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import useConceptMapStore from '@/stores/concept-map-store';
 
 interface VisualEffect {
   id: string;

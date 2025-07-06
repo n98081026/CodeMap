@@ -1,11 +1,13 @@
 // src/app/api/concept-maps/[mapId]/route.ts
 import { NextResponse } from 'next/server';
+
+import type { ConceptMapData } from '@/types';
+
 import {
   getConceptMapById,
   updateConceptMap,
   deleteConceptMap,
 } from '@/services/conceptMaps/conceptMapService';
-import type { ConceptMapData } from '@/types';
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder for actual auth
 
 export async function GET(

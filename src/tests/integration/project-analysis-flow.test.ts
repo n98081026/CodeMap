@@ -4,7 +4,11 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createSubmission, updateSubmissionStatus } from '@/services/projectSubmissions/projectSubmissionService';
+
+import {
+  createSubmission,
+  updateSubmissionStatus,
+} from '@/services/projectSubmissions/projectSubmissionService';
 
 // Mock Supabase client
 vi.mock('@/lib/supabaseClient', () => ({
@@ -12,36 +16,36 @@ vi.mock('@/lib/supabaseClient', () => ({
     from: vi.fn(() => ({
       insert: vi.fn(() => ({
         select: vi.fn(() => ({
-          single: vi.fn()
-        }))
+          single: vi.fn(),
+        })),
       })),
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn()
-          }))
-        }))
+            single: vi.fn(),
+          })),
+        })),
       })),
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          single: vi.fn()
-        }))
-      }))
+          single: vi.fn(),
+        })),
+      })),
     })),
     storage: {
       from: vi.fn(() => ({
         upload: vi.fn(),
         getPublicUrl: vi.fn(() => ({
-          data: { publicUrl: 'https://example.com/file.zip' }
-        }))
-      }))
-    }
-  }
+          data: { publicUrl: 'https://example.com/file.zip' },
+        })),
+      })),
+    },
+  },
 }));
 
 // Mock AI flows
 vi.mock('@/ai/flows/generate-map-from-project', () => ({
-  generateMapFromProject: vi.fn()
+  generateMapFromProject: vi.fn(),
 }));
 
 describe('Project Analysis Integration Tests', () => {
@@ -60,21 +64,21 @@ describe('Project Analysis Integration Tests', () => {
         status: 'uploaded',
         user_goals: 'Understand project structure',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: mockSubmission,
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await createSubmission({
@@ -82,7 +86,7 @@ describe('Project Analysis Integration Tests', () => {
         classroomId: 'class-123',
         fileName: 'test-project.zip',
         fileStoragePath: 'submissions/test-project.zip',
-        userGoals: 'Understand project structure'
+        userGoals: 'Understand project structure',
       });
 
       expect(result.success).toBe(true);
@@ -94,15 +98,15 @@ describe('Project Analysis Integration Tests', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'File upload failed' }
+        error: { message: 'File upload failed' },
       });
 
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await createSubmission({
@@ -110,7 +114,7 @@ describe('Project Analysis Integration Tests', () => {
         classroomId: 'class-123',
         fileName: 'test-project.zip',
         fileStoragePath: 'submissions/test-project.zip',
-        userGoals: 'Understand project structure'
+        userGoals: 'Understand project structure',
       });
 
       expect(result.success).toBe(false);
@@ -120,8 +124,10 @@ describe('Project Analysis Integration Tests', () => {
 
   describe('AI Analysis Flow', () => {
     it('should process project and generate concept map', async () => {
-      const { generateMapFromProject } = await import('@/ai/flows/generate-map-from-project');
-      
+      const { generateMapFromProject } = await import(
+        '@/ai/flows/generate-map-from-project'
+      );
+
       // Mock successful AI analysis
       (generateMapFromProject as any).mockResolvedValue({
         nodes: [
@@ -129,14 +135,14 @@ describe('Project Analysis Integration Tests', () => {
             id: 'node-1',
             type: 'custom',
             data: { label: 'Main Component', type: 'concept' },
-            position: { x: 100, y: 100 }
+            position: { x: 100, y: 100 },
           },
           {
             id: 'node-2',
             type: 'custom',
             data: { label: 'Helper Function', type: 'concept' },
-            position: { x: 200, y: 200 }
-          }
+            position: { x: 200, y: 200 },
+          },
         ],
         edges: [
           {
@@ -144,14 +150,14 @@ describe('Project Analysis Integration Tests', () => {
             source: 'node-1',
             target: 'node-2',
             type: 'default',
-            data: { label: 'uses' }
-          }
-        ]
+            data: { label: 'uses' },
+          },
+        ],
       });
 
       const result = await generateMapFromProject({
         projectStoragePath: 'submissions/test-project.zip',
-        userGoals: 'Understand project structure'
+        userGoals: 'Understand project structure',
       });
 
       expect(result).toBeDefined();
@@ -159,22 +165,26 @@ describe('Project Analysis Integration Tests', () => {
       expect(result.edges).toHaveLength(1);
       expect(generateMapFromProject).toHaveBeenCalledWith({
         projectStoragePath: 'submissions/test-project.zip',
-        userGoals: 'Understand project structure'
+        userGoals: 'Understand project structure',
       });
     });
 
     it('should handle AI analysis errors', async () => {
-      const { generateMapFromProject } = await import('@/ai/flows/generate-map-from-project');
-      
+      const { generateMapFromProject } = await import(
+        '@/ai/flows/generate-map-from-project'
+      );
+
       // Mock AI analysis error
       (generateMapFromProject as any).mockRejectedValue(
         new Error('AI service unavailable')
       );
 
-      await expect(generateMapFromProject({
-        projectStoragePath: 'submissions/invalid-project.zip',
-        userGoals: 'Understand project structure'
-      })).rejects.toThrow('AI service unavailable');
+      await expect(
+        generateMapFromProject({
+          projectStoragePath: 'submissions/invalid-project.zip',
+          userGoals: 'Understand project structure',
+        })
+      ).rejects.toThrow('AI service unavailable');
     });
   });
 
@@ -184,26 +194,30 @@ describe('Project Analysis Integration Tests', () => {
         id: 'submission-123',
         status: 'completed',
         concept_map_id: 'map-456',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockUpdate = vi.fn().mockResolvedValue({
         data: mockUpdatedSubmission,
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
-              single: mockUpdate
-            })
-          })
-        })
+              single: mockUpdate,
+            }),
+          }),
+        }),
       });
 
-      const result = await updateSubmissionStatus('submission-123', 'completed', 'map-456');
+      const result = await updateSubmissionStatus(
+        'submission-123',
+        'completed',
+        'map-456'
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockUpdatedSubmission);
@@ -213,17 +227,17 @@ describe('Project Analysis Integration Tests', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockUpdate = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Submission not found' }
+        error: { message: 'Submission not found' },
       });
 
       (supabase.from as any).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
-              single: mockUpdate
-            })
-          })
-        })
+              single: mockUpdate,
+            }),
+          }),
+        }),
       });
 
       const result = await updateSubmissionStatus('nonexistent-id', 'failed');
@@ -238,19 +252,19 @@ describe('Project Analysis Integration Tests', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockUpload = vi.fn().mockResolvedValue({
         data: { path: 'submissions/test-project.zip' },
-        error: null
+        error: null,
       });
 
       (supabase.storage.from as any).mockReturnValue({
         upload: mockUpload,
         getPublicUrl: vi.fn(() => ({
-          data: { publicUrl: 'https://example.com/test-project.zip' }
-        }))
+          data: { publicUrl: 'https://example.com/test-project.zip' },
+        })),
       });
 
       // Simulate file upload
       const mockFile = new File(['test content'], 'test-project.zip', {
-        type: 'application/zip'
+        type: 'application/zip',
       });
 
       const uploadResult = await supabase.storage
@@ -259,22 +273,25 @@ describe('Project Analysis Integration Tests', () => {
 
       expect(uploadResult.error).toBeNull();
       expect(uploadResult.data?.path).toBe('submissions/test-project.zip');
-      expect(mockUpload).toHaveBeenCalledWith('submissions/test-project.zip', mockFile);
+      expect(mockUpload).toHaveBeenCalledWith(
+        'submissions/test-project.zip',
+        mockFile
+      );
     });
 
     it('should handle file upload errors', async () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockUpload = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Storage quota exceeded' }
+        error: { message: 'Storage quota exceeded' },
       });
 
       (supabase.storage.from as any).mockReturnValue({
-        upload: mockUpload
+        upload: mockUpload,
       });
 
       const mockFile = new File(['test content'], 'large-project.zip', {
-        type: 'application/zip'
+        type: 'application/zip',
       });
 
       const uploadResult = await supabase.storage

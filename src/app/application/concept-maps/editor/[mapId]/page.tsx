@@ -1,15 +1,5 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import type { Node as RFNode } from 'reactflow';
-import { ReactFlowProvider } from 'reactflow';
-import dynamic from 'next/dynamic';
-
-import { EditorToolbar } from '@/components/concept-map/editor-toolbar';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import {
   ArrowLeft,
   Compass,
@@ -19,8 +9,13 @@ import {
   Save,
   EyeOff,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { ReactFlowProvider } from 'reactflow';
 
-import { useToast } from '@/hooks/use-toast';
+import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import type {
   ConceptMap,
   ConceptMapData,
@@ -28,8 +23,13 @@ import type {
   ConceptMapEdge,
   User,
 } from '@/types';
-import { UserRole } from '@/types';
-import { useAuth } from '@/contexts/auth-context';
+import type { Node as RFNode } from 'reactflow';
+
+import { EditorToolbar } from '@/components/concept-map/editor-toolbar';
+import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar'; // Import GhostPreviewToolbar
+import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
@@ -37,14 +37,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
-import type { CustomNodeData } from '@/components/concept-map/custom-node';
-
-import useConceptMapStore from '@/stores/concept-map-store';
-import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
-import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar'; // Import GhostPreviewToolbar
+import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { getNodePlacement } from '@/lib/layout-utils';
+import useConceptMapStore from '@/stores/concept-map-store';
+import { UserRole } from '@/types';
 
 // Dynamically import components
 const FlowCanvasCore = dynamic(

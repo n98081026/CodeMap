@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
-import AppLayout from './layout'; // Assuming this is the correct export name
-import { useAuth } from '@/contexts/auth-context';
 import { usePathname, useRouter } from 'next/navigation';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import AppLayout from './layout'; // Assuming this is the correct export name
+
+import { useAuth } from '@/contexts/auth-context';
 
 // Mock useAuth
 vi.mock('@/contexts/auth-context');

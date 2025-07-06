@@ -1,14 +1,17 @@
+import { SupabaseClient, User as SupabaseUser } from '@supabase/supabase-js';
+import { act, renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   AuthProvider,
   useAuth,
   __test__handleCopyExampleAction,
 } from './auth-context'; // Import the function for testing
-import { act, renderHook } from '@testing-library/react';
-import { SupabaseClient, User as SupabaseUser } from '@supabase/supabase-js';
-import { useConceptMapStore } from '@/stores/concept-map-store';
-import { exampleProjects as actualExampleProjects } from '@/lib/example-data';
+import { handleCopyExampleAction as __test__handleCopyExampleAction } from './auth-context';
+
 import { useToast } from '@/hooks/use-toast';
+import { exampleProjects as actualExampleProjects } from '@/lib/example-data';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 // Mock Supabase client
 const mockSupabaseAuth = {
@@ -379,4 +382,3 @@ describe('AuthContext - Guest Session State Management', () => {
 // For this exercise, I will assume it's exported as __test__handleCopyExampleAction
 // If not, the test would need to be structured differently or the function refactored out.
 // For now, I'll import it directly.
-import { handleCopyExampleAction as __test__handleCopyExampleAction } from './auth-context';

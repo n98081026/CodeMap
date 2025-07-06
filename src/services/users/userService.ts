@@ -6,8 +6,7 @@
  */
 
 import type { User } from '@/types';
-import { UserRole } from '@/types';
-import { supabase } from '@/lib/supabaseClient';
+
 import {
   BYPASS_AUTH_FOR_TESTING,
   MOCK_USERS,
@@ -15,6 +14,8 @@ import {
   MOCK_TEACHER_USER,
   MOCK_ADMIN_USER,
 } from '@/lib/config';
+import { supabase } from '@/lib/supabaseClient';
+import { UserRole } from '@/types';
 
 /**
  * Creates a user profile in the 'profiles' table.

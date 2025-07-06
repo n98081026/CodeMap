@@ -35,7 +35,7 @@ export function animateNodeAppearance(
 ): Promise<void> {
   return new Promise((resolve) => {
     const { type, duration, easing, delay = 0, parentNode } = options;
-    
+
     // 設置初始狀態
     switch (type) {
       case 'fadeIn':
@@ -47,7 +47,9 @@ export function animateNodeAppearance(
         break;
       case 'slideFromParent':
         if (parentNode) {
-          const parentRect = document.querySelector(`[data-id="${parentNode.id}"]`)?.getBoundingClientRect();
+          const parentRect = document
+            .querySelector(`[data-id="${parentNode.id}"]`)
+            ?.getBoundingClientRect();
           if (parentRect) {
             const nodeRect = nodeElement.getBoundingClientRect();
             const deltaX = parentRect.left - nodeRect.left;
@@ -64,7 +66,7 @@ export function animateNodeAppearance(
     // 執行動畫
     setTimeout(() => {
       nodeElement.style.transition = `all ${duration}ms ${easing}`;
-      
+
       switch (type) {
         case 'fadeIn':
           nodeElement.style.opacity = '1';
@@ -112,7 +114,7 @@ export function animateEdgeDrawing(
 
     setTimeout(() => {
       edgeElement.style.transition = `all ${duration}ms ${easing}`;
-      
+
       switch (type) {
         case 'drawPath':
           edgeElement.style.strokeDashoffset = '0';
@@ -144,14 +146,16 @@ export function animateLayoutTransition(
     let completedAnimations = 0;
 
     newPositions.forEach((position, index) => {
-      const nodeElement = document.querySelector(`[data-id="${position.id}"]`) as HTMLElement;
+      const nodeElement = document.querySelector(
+        `[data-id="${position.id}"]`
+      ) as HTMLElement;
       if (!nodeElement) return;
 
       const delay = stagger * index;
-      
+
       setTimeout(() => {
         nodeElement.style.transition = `transform ${duration}ms ${easing}`;
-        
+
         switch (type) {
           case 'smoothMorph':
             nodeElement.style.transform = `translate(${position.x}px, ${position.y}px)`;
@@ -161,7 +165,7 @@ export function animateLayoutTransition(
             const currentTransform = nodeElement.style.transform;
             const midX = position.x * 0.5;
             const midY = position.y * 0.5 - 50; // 向上彎曲
-            
+
             nodeElement.style.transform = `translate(${midX}px, ${midY}px)`;
             setTimeout(() => {
               nodeElement.style.transform = `translate(${position.x}px, ${position.y}px)`;
@@ -189,7 +193,7 @@ export function animateLayoutTransition(
  */
 export function createSuggestionPulse(element: HTMLElement): void {
   element.classList.add('ai-suggestion-pulse');
-  
+
   // 添加 CSS 動畫類
   const style = document.createElement('style');
   style.textContent = `
@@ -210,7 +214,7 @@ export function createSuggestionPulse(element: HTMLElement): void {
       }
     }
   `;
-  
+
   if (!document.head.querySelector('#ai-animation-styles')) {
     style.id = 'ai-animation-styles';
     document.head.appendChild(style);
@@ -229,7 +233,7 @@ export function removeSuggestionPulse(element: HTMLElement): void {
  */
 export function applyStagedContentStyle(element: HTMLElement): void {
   element.classList.add('ai-staged-content');
-  
+
   const style = document.createElement('style');
   style.textContent = `
     .ai-staged-content {
@@ -251,7 +255,7 @@ export function applyStagedContentStyle(element: HTMLElement): void {
       font-weight: bold;
     }
   `;
-  
+
   if (!document.head.querySelector('#ai-staged-styles')) {
     style.id = 'ai-staged-styles';
     document.head.appendChild(style);

@@ -23,9 +23,10 @@
 // =====================================================================================
 
 import Graph, { MultiGraph, type Attributes } from 'graphology';
-import { bfsFromNode } from 'graphology-traversal';
-import { betweennessCentrality } from 'graphology-metrics/centrality/betweenness';
 import louvain from 'graphology-communities-louvain';
+import { betweennessCentrality } from 'graphology-metrics/centrality/betweenness';
+import { bfsFromNode } from 'graphology-traversal';
+
 import type {
   ConceptMapNode,
   ConceptMapEdge,

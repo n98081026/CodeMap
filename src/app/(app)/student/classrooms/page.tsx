@@ -1,16 +1,18 @@
 'use client';
 
+import { BookOpen, Loader2, AlertTriangle } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
+
+import type { Classroom } from '@/types';
+
+import { ClassroomListItem } from '@/components/classrooms/classroom-list-item';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Classroom } from '@/types';
-import { UserRole } from '@/types';
-import { BookOpen, Loader2, AlertTriangle } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { ClassroomListItem } from '@/components/classrooms/classroom-list-item';
-import { EmptyState } from '@/components/ui/empty-state';
+import { UserRole } from '@/types';
 
 export default function StudentClassroomsPage() {
   const { user } = useAuth();

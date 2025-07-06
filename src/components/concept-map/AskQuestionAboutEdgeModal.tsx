@@ -1,6 +1,11 @@
 'use client';
 
+import { Loader2, HelpCircle, MessageSquare } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+
+import type { AskQuestionAboutEdgeInput } from '@/ai/flows/ask-question-about-edge';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,12 +14,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, HelpCircle, MessageSquare } from 'lucide-react';
-import type { AskQuestionAboutEdgeInput } from '@/ai/flows/ask-question-about-edge';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AskQuestionAboutEdgeModalProps {
   isOpen: boolean;

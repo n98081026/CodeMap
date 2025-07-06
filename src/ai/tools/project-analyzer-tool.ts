@@ -5,27 +5,32 @@
  * including AST-based analysis for JavaScript and TypeScript.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'zod';
-import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
-import type { FileObject } from '@supabase/storage-js'; // For Supabase Storage types
-import AdmZip from 'adm-zip'; // Library for handling ZIP files
-import { supabaseFileFetcherTool } from './supabase-file-fetcher-tool';
-import {
-  summarizeCodeElementPurposeFlow,
-  SummarizeCodeElementInput,
-} from '@/ai/flows';
 import path from 'path';
+
 import * as acorn from 'acorn';
 import * as acornWalk from 'acorn-walk';
-import * as ts from 'typescript';
+import AdmZip from 'adm-zip'; // Library for handling ZIP files
 import { parse as pythonParse, Node as PythonNode } from 'python-parser';
+import * as ts from 'typescript';
+import { z } from 'zod';
+
+import { summarizeGenericFileFlow } from '../flows/summarize-generic-file-flow'; // Import the new flow
+
 import {
   batchSummarizeElements,
   createDetailedNodeFromExtractedElement,
   SummarizationTaskInfo, // This is an interface, so type-only import is fine
 } from './ast-utils';
-import { summarizeGenericFileFlow } from '../flows/summarize-generic-file-flow'; // Import the new flow
+import { supabaseFileFetcherTool } from './supabase-file-fetcher-tool';
+
+import type { FileObject } from '@supabase/storage-js'; // For Supabase Storage types
+
+import {
+  summarizeCodeElementPurposeFlow,
+  SummarizeCodeElementInput,
+} from '@/ai/flows';
+import { ai } from '@/ai/genkit';
+import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
 
 // Input schema remains the same
 export const ProjectAnalysisInputSchema = z.object({
