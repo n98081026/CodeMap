@@ -13,148 +13,151 @@ vi.mock('@/contexts/auth-context');
 vi.mock('@/components/dashboard/dashboard-header', () => ({
   DashboardHeader: ({
     title,
-    subtitle,
+    description, // Corrected from subtitle to description
   }: {
     title: string;
-    subtitle?: string;
+    description?: string; // Corrected from subtitle to description
   }) => (
     <div data-testid='dashboard-header'>
       <h1>{title}</h1>
-      {subtitle && <p>{subtitle}</p>}
+      {description && <p>{description}</p>}
     </div>
   ),
 }));
 
-vi.mock('@/components/concept-map/concept-map-list-item', () => ({
-  // Assuming ExampleProjectCard is similar or uses this
-  ExampleProjectCard: (
-    {
-      project,
-      actionType,
-    }: { project: any; actionType: 'viewAsGuest' | 'loadExample' } // Simplified props
-  ) => (
-    <div
-      data-testid={`example-card-${project.id}`}
-      data-actiontype={actionType}
-    >
-      {project.title}
-    </div>
-  ),
-}));
+// The page uses <Card> and related components directly, not a specific ExampleProjectCard.
+// So, we don't need to mock ExampleProjectCard.
+// We will test for the content rendered by the actual Card components.
 
-vi.mock('@/components/layout/GuestModeCtaBanner', () => ({
-  GuestModeCtaBanner: (
-    { DONT_REDIRECT_ON_LOGIN }: { DONT_REDIRECT_ON_LOGIN?: boolean } // Match expected props
-  ) => (
-    <div
-      data-testid='guest-cta-banner'
-      data-dont-redirect={DONT_REDIRECT_ON_LOGIN}
-    >
-      CTA Banner
-    </div>
-  ),
-}));
-
-// Mock example data
-vi.mock('@/lib/example-data', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/lib/example-data')>();
+vi.mock('@/components/layout/GuestModeCtaBanner', () => {
+  // The actual GuestModeCtaBanner takes no props in its definition in page.tsx
+  // but the test was trying to pass DONT_REDIRECT_ON_LOGIN.
+  // Let's make the mock simpler and just check for its existence.
+  const MockGuestCtaBanner = () => <div data-testid='guest-cta-banner'>CTA Banner</div>;
   return {
-    ...original,
-    exampleProjectsData: [
-      {
-        id: 'ex1',
-        title: 'Example 1',
-        description: 'Desc 1',
-        imageUrl: '',
-        tags: [],
-        lastUpdated: '',
-        estimatedComplexity: '',
-        coreConcepts: [],
-      },
-      {
-        id: 'ex2',
-        title: 'Example 2',
-        description: 'Desc 2',
-        imageUrl: '',
-        tags: [],
-        lastUpdated: '',
-        estimatedComplexity: '',
-        coreConcepts: [],
-      },
-    ],
+    // If GuestModeCtaBanner is a default export from its module:
+    default: MockGuestCtaBanner,
+    // If it's a named export:
+    GuestModeCtaBanner: MockGuestCtaBanner,
   };
 });
+
+
+// Mock example data from '@/lib/example-data'
+// The actual page imports `exampleProjects` not `exampleProjectsData`
+const mockExampleProjectList = [
+  {
+    key: 'ex1', // Changed id to key to match ExampleProject type
+    name: 'Example Project 1', // Changed title to name
+    description: 'Desc 1',
+    imageUrl: '/images/example1.png', // Added an actual path
+    tags: ['React', 'TypeScript'],
+    lastUpdated: '2024-07-28',
+    estimatedComplexity: 'Medium',
+    coreConcepts: ['State Management', 'API Integration'],
+    mapJsonPath: '/example-maps/example1.json', // Added mapJsonPath
+  },
+  {
+    key: 'ex2',
+    name: 'Example Project 2',
+    description: 'Desc 2',
+    imageUrl: '/images/example2.png',
+    tags: ['Python', 'Game'],
+    lastUpdated: '2024-07-27',
+    estimatedComplexity: 'High',
+    coreConcepts: ['Game Loop', 'AI Mocks'],
+    mapJsonPath: '/example-maps/example2.json',
+  },
+];
+
+vi.mock('@/lib/example-data', () => ({
+  exampleProjects: mockExampleProjectList,
+}));
 
 describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Ensure necessary mocks from next/navigation are setup if tests interact with router/params
+    // For this page, useRouter is used.
+    const { __setMockRouter } = vi.hoisted(() => import('@/tests/__mocks__/next/navigation'));
+     __setMockRouter({ push: vi.fn(), replace: vi.fn() });
+
   });
 
   it('should render DashboardHeader and example project cards', () => {
     (useAuth as vi.Mock).mockReturnValue({
       isGuestSession: false, // Authenticated user
+      isAuthenticated: true,
       user: { id: 'test-user' },
+      isLoading: false,
     });
 
     render(<ExamplesPage />);
 
     expect(screen.getByTestId('dashboard-header')).toBeInTheDocument();
-    expect(screen.getByText('Explore Example Projects')).toBeInTheDocument(); // Part of DashboardHeader title
+    // The title is "Example Project Gallery"
+    expect(screen.getByText('Example Project Gallery')).toBeInTheDocument();
 
-    expect(screen.getByTestId('example-card-ex1')).toBeInTheDocument();
-    expect(screen.getByText('Example 1')).toBeInTheDocument();
-    expect(screen.getByTestId('example-card-ex2')).toBeInTheDocument();
-    expect(screen.getByText('Example 2')).toBeInTheDocument();
+    // Check for actual card content based on mockExampleProjectList
+    expect(screen.getByText('Example Project 1')).toBeInTheDocument();
+    expect(screen.getByText('Desc 1')).toBeInTheDocument();
+    expect(screen.getByText('Example Project 2')).toBeInTheDocument();
+    expect(screen.getByText('Desc 2')).toBeInTheDocument();
   });
 
   it('should render GuestModeCtaBanner when in a guest session', () => {
     (useAuth as vi.Mock).mockReturnValue({
       isGuestSession: true,
+      isAuthenticated: false,
       user: null,
+      isLoading: false,
     });
 
     render(<ExamplesPage />);
-
     expect(screen.getByTestId('guest-cta-banner')).toBeInTheDocument();
-    // Check DONT_REDIRECT_ON_LOGIN prop for the banner on this page
-    expect(screen.getByTestId('guest-cta-banner')).toHaveAttribute(
-      'data-dont-redirect',
-      'true'
-    );
   });
 
   it('should NOT render GuestModeCtaBanner when not in a guest session (authenticated user)', () => {
     (useAuth as vi.Mock).mockReturnValue({
       isGuestSession: false,
+      isAuthenticated: true,
       user: { id: 'test-user' },
+      isLoading: false,
     });
 
     render(<ExamplesPage />);
-
     expect(screen.queryByTestId('guest-cta-banner')).toBeNull();
   });
 
-  it('should pass "viewAsGuest" actionType to ExampleProjectCard when in guest session', () => {
+
+  it('should show "View Example" button for all users, and "Copy & Edit" for guests', () => {
     (useAuth as vi.Mock).mockReturnValue({
-      isGuestSession: true,
+      isGuestSession: true, // Guest user
+      isAuthenticated: false,
       user: null,
+      isLoading: false,
     });
 
     render(<ExamplesPage />);
 
-    const card1 = screen.getByTestId('example-card-ex1');
-    expect(card1).toHaveAttribute('data-actiontype', 'viewAsGuest');
+    // For Example 1
+    const card1 = screen.getByText('Example Project 1').closest('[data-testid^="card-"]') || screen.getByText('Example Project 1').closest('div.flex.flex-col');
+    expect(within(card1!).getByRole('button', { name: /view example/i })).toBeInTheDocument();
+    expect(within(card1!).getByRole('button', { name: /copy & edit/i })).toBeInTheDocument();
   });
 
-  it('should pass "loadExample" actionType to ExampleProjectCard when authenticated', () => {
+  it('should show only "View Example" button for authenticated users', () => {
     (useAuth as vi.Mock).mockReturnValue({
-      isGuestSession: false,
+      isGuestSession: false, // Authenticated user
+      isAuthenticated: true,
       user: { id: 'test-user' },
+      isLoading: false,
     });
 
     render(<ExamplesPage />);
 
-    const card1 = screen.getByTestId('example-card-ex1');
-    expect(card1).toHaveAttribute('data-actiontype', 'loadExample');
+    const card1 = screen.getByText('Example Project 1').closest('div.flex.flex-col');
+    expect(within(card1!).getByRole('button', { name: /view example/i })).toBeInTheDocument();
+    expect(within(card1!).queryByRole('button', { name: /copy & edit/i })).toBeNull();
   });
 });

@@ -84,11 +84,11 @@ describe('AISuggestionPanel', () => {
   ];
 
   beforeEach(() => {
-    mockSetDragPreview = jest.fn();
-    mockClearDragPreview = jest.fn();
-    mockSetDraggedRelationPreview = jest.fn();
+    mockSetDragPreview = vi.fn();
+    mockClearDragPreview = vi.fn();
+    mockSetDraggedRelationPreview = vi.fn();
 
-    (useConceptMapStore as unknown as jest.Mock).mockImplementation(
+    (useConceptMapStore as unknown as vi.Mock).mockImplementation(
       (selector: any) => {
         const state = {
           setDragPreview: mockSetDragPreview,
@@ -113,8 +113,8 @@ describe('AISuggestionPanel', () => {
         currentMapNodes={[]}
         extractedConcepts={[]}
         suggestedRelations={[]}
-        onAddExtractedConcepts={jest.fn()}
-        onAddSuggestedRelations={jest.fn()}
+        onAddExtractedConcepts={vi.fn()}
+        onAddSuggestedRelations={vi.fn()}
       />
     );
     expect(screen.getByText('No New Extracted Concepts')).toBeInTheDocument();

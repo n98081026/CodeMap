@@ -52,7 +52,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     if (!isAuthenticated && !isPublicRoute) {
-      router.replace('/login');
+      const redirectUrl = `/login?redirectTo=${encodeURIComponent(pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ''))}`;
+      router.replace(redirectUrl);
     } else if (isAuthenticated && !isLoading) {
       const isDashboardPage =
         pathname.endsWith('/dashboard') ||

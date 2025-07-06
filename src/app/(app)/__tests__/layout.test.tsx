@@ -1,43 +1,48 @@
 import { render, waitFor } from '@testing-library/react';
-import { usePathname, useRouter } from 'next/navigation';
+// Import useRouter, usePathname, useSearchParams from the global mock path
+// to ensure we are using the one that can be controlled by __setMock... helpers
+import {
+  useRouter, // Will come from global mock in setup.ts
+  usePathname, // Will come from global mock in setup.ts
+  useSearchParams, // Will come from global mock in setup.ts
+  __setMockPathname,
+  __setMockRouter,
+  __setMockSearchParams,
+} from '@/tests/__mocks__/next/navigation'; // Adjusted path
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import AppLayout from '../layout'; // Assuming this is the correct export name
+import AppLayout from '../layout';
 
 import { useAuth } from '@/contexts/auth-context';
 
 // Mock useAuth
 vi.mock('@/contexts/auth-context');
 
-// Mock next/navigation
-const mockUseRouter = vi.fn();
-const mockUsePathname = vi.fn();
-const mockUseSearchParams = vi.fn();
-
-vi.mock('next/navigation', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    useRouter: () => mockUseRouter(),
-    usePathname: () => mockUsePathname(),
-    useSearchParams: () => mockUseSearchParams(),
-  };
-});
-
-// Mock MainLayout component as it's a child and not the focus of this test
-vi.mock('@/components/layout/main-layout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid='main-layout'>{children}</div>
-  ),
-}));
+// The global mock for 'next/navigation' is set in `src/tests/setup.ts`.
+// The global mock for '@components/layout/main-layout' is also set in `src/tests/setup.ts`.
+// No need for local vi.mock calls for these if the global ones are working correctly.
 
 describe('AppLayout (/app/(app)/layout.tsx)', () => {
-  let mockRouterPush: vi.Mock;
+  let mockRouterInstance: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRouterPush = vi.fn();
-    mockUseRouter.mockReturnValue({ push: mockRouterPush });
+
+    mockRouterInstance = {
+      push: vi.fn(),
+      replace: vi.fn(),
+      forward: vi.fn(),
+      back: vi.fn(),
+      prefetch: vi.fn(),
+      refresh: vi.fn(),
+      pathname: '/default-pathname',
+      query: {},
+      asPath: '/default-pathname',
+      events: { on: vi.fn(), off: vi.fn(), emit: vi.fn() },
+    };
+    __setMockRouter(mockRouterInstance);
+    __setMockPathname('/default-pathname');
+    __setMockSearchParams(new URLSearchParams());
   });
 
   it('should redirect to /login if not authenticated and not a guest session', async () => {
@@ -48,7 +53,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
       isGuestSession: false,
       isLoading: false,
     });
-    mockUsePathname.mockReturnValue('/student/dashboard'); // A protected route
+    __setMockPathname('/student/dashboard');
 
     render(
       <AppLayout>
@@ -57,7 +62,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     );
 
     await waitFor(() => {
-      expect(mockRouterPush).toHaveBeenCalledWith(
+      expect(mockRouterInstance.replace).toHaveBeenCalledWith(
         '/login?redirectTo=%2Fstudent%2Fdashboard'
       );
     });
@@ -71,7 +76,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
       isGuestSession: false,
       isLoading: false,
     });
-    mockUsePathname.mockReturnValue('/student/dashboard');
+    __setMockPathname('/student/dashboard');
 
     render(
       <AppLayout>
@@ -80,21 +85,21 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     );
 
     await waitFor(() => {
-      // Wait a bit to ensure no redirect is called
       return new Promise((resolve) => setTimeout(resolve, 50));
     });
-    expect(mockRouterPush).not.toHaveBeenCalled();
+    expect(mockRouterInstance.push).not.toHaveBeenCalled();
+    expect(mockRouterInstance.replace).not.toHaveBeenCalled();
   });
 
   it('should redirect guest session to /examples if accessing a protected app route', async () => {
     (useAuth as vi.Mock).mockReturnValue({
       user: null,
       profile: null,
-      isAuthenticated: false, // Guests are not "authenticated" in the traditional sense
+      isAuthenticated: false,
       isGuestSession: true,
       isLoading: false,
     });
-    mockUsePathname.mockReturnValue('/student/dashboard'); // Protected route
+    __setMockPathname('/student/dashboard');
 
     render(
       <AppLayout>
@@ -103,7 +108,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     );
 
     await waitFor(() => {
-      expect(mockRouterPush).toHaveBeenCalledWith('/examples');
+      expect(mockRouterInstance.replace).toHaveBeenCalledWith('/examples');
     });
   });
 
@@ -115,7 +120,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
       isGuestSession: true,
       isLoading: false,
     });
-    mockUsePathname.mockReturnValue('/examples');
+    __setMockPathname('/examples');
 
     render(
       <AppLayout>
@@ -126,7 +131,8 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     await waitFor(() => {
       return new Promise((resolve) => setTimeout(resolve, 50));
     });
-    expect(mockRouterPush).not.toHaveBeenCalled();
+    expect(mockRouterInstance.push).not.toHaveBeenCalled();
+    expect(mockRouterInstance.replace).not.toHaveBeenCalled();
   });
 
   it('should allow guest session to access /concept-maps/editor/example-XYZ (view-only example map)', async () => {
@@ -137,9 +143,9 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
       isGuestSession: true,
       isLoading: false,
     });
-    mockUsePathname.mockReturnValue(
-      '/concept-maps/editor/example-guest-map-123'
-    );
+    __setMockPathname('/concept-maps/editor/example-guest-map-123');
+    __setMockSearchParams(new URLSearchParams('viewOnly=true'));
+
 
     render(
       <AppLayout>
@@ -150,7 +156,8 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     await waitFor(() => {
       return new Promise((resolve) => setTimeout(resolve, 50));
     });
-    expect(mockRouterPush).not.toHaveBeenCalled();
+    expect(mockRouterInstance.push).not.toHaveBeenCalled();
+    expect(mockRouterInstance.replace).not.toHaveBeenCalled();
   });
 
   it('should redirect guest session from /concept-maps/editor/new to /examples', async () => {
@@ -161,7 +168,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
       isGuestSession: true,
       isLoading: false,
     });
-    mockUsePathname.mockReturnValue('/concept-maps/editor/new'); // Attempting to create new map
+    __setMockPathname('/concept-maps/editor/new');
 
     render(
       <AppLayout>
@@ -170,7 +177,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     );
 
     await waitFor(() => {
-      expect(mockRouterPush).toHaveBeenCalledWith('/examples');
+      expect(mockRouterInstance.replace).toHaveBeenCalledWith('/examples');
     });
   });
 
@@ -182,7 +189,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
       isGuestSession: true,
       isLoading: false,
     });
-    mockUsePathname.mockReturnValue('/concept-maps/editor/some-user-map-id');
+    __setMockPathname('/concept-maps/editor/some-user-map-id');
 
     render(
       <AppLayout>
@@ -191,7 +198,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     );
 
     await waitFor(() => {
-      expect(mockRouterPush).toHaveBeenCalledWith('/examples');
+      expect(mockRouterInstance.replace).toHaveBeenCalledWith('/examples');
     });
   });
 
@@ -201,23 +208,17 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
       profile: null,
       isAuthenticated: false,
       isGuestSession: false,
-      isLoading: true, // Auth is loading
+      isLoading: true,
     });
-    mockUsePathname.mockReturnValue('/student/dashboard');
+    __setMockPathname('/student/dashboard');
 
     const { getByTestId } = render(
       <AppLayout>
         <p>Test Child</p>
       </AppLayout>
     );
-
-    // Check for some kind of loading indicator.
-    // Assuming AppLayout renders a specific loader or nothing until isLoading is false.
-    // For this test, we'll just check that MainLayout is NOT rendered yet,
-    // implying a loading state might be active (or null is rendered).
-    // A more robust test would look for a specific data-testid="loading-indicator".
-    // The actual AppLayout returns a full-page loader if auth.isLoading.
     expect(getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(mockRouterPush).not.toHaveBeenCalled(); // No redirect while loading
+    expect(mockRouterInstance.push).not.toHaveBeenCalled();
+    expect(mockRouterInstance.replace).not.toHaveBeenCalled();
   });
 });
