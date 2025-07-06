@@ -501,6 +501,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Lightbulb className='mr-2 h-4 w-4' /> Suggest Relations
             </DropdownMenuItem>
             <DropdownMenuItem
+              data-tutorial-id='ai-tool-expand-concept' // Added tutorial ID
               onClick={() =>
                 handleGenAIClick(onExpandConcept, 'Expand Concept')
               }
