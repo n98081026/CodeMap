@@ -123,8 +123,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     addEdge: addStoreEdge,
     setAiProcessingNodeId,
     setStagedMapData,
-    setConceptExpansionPreview,
-    conceptExpansionPreview,
+    // setConceptExpansionPreview, // Removed from store, managed via stagedMapData
+    // conceptExpansionPreview, // Removed from store
     applyLayout,
   } = useConceptMapStore(
     useCallback(
@@ -144,8 +144,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         addEdge: s.addEdge,
         setAiProcessingNodeId: s.setAiProcessingNodeId,
         setStagedMapData: s.setStagedMapData,
-        setConceptExpansionPreview: s.setConceptExpansionPreview,
-        conceptExpansionPreview: s.conceptExpansionPreview,
+        // setConceptExpansionPreview: s.setConceptExpansionPreview, // Removed
+        // conceptExpansionPreview: s.conceptExpansionPreview, // Removed
         applyLayout: s.applyLayout,
       }),
       []
@@ -307,7 +307,18 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         ) {
           errorMessageForLog = error.message;
           const lowerErrorMessage = error.message.toLowerCase();
-          if (
+
+          // Prioritize error.details if available (often from Genkit)
+          if (error.details) {
+            if (typeof error.details === 'string') {
+              userFriendlyMessage += `Details: ${error.details}`;
+            } else if (typeof error.details === 'object' && 'message' in error.details && typeof error.details.message === 'string') {
+              userFriendlyMessage += `Details: ${error.details.message}`;
+            } else {
+              // Fallback to generic error message if details structure is unexpected
+              userFriendlyMessage += `Details: ${error.message}`;
+            }
+          } else if (
             lowerErrorMessage.includes('deadline_exceeded') ||
             lowerErrorMessage.includes('timeout')
           ) {
@@ -344,11 +355,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             addDebugLog(
               `[AITools] Zod/Schema validation error likely: ${error.message}`
             );
-          } else if (error.details && typeof error.details === 'object' && 'message' in error.details && typeof error.details.message === 'string') {
-            // Handle structured Genkit error details if present
-            userFriendlyMessage += `Details: ${error.details.message}`;
-          } else if (typeof error.details === 'string' && error.details) {
-            userFriendlyMessage += `Details: ${error.details}`;
           } else {
             userFriendlyMessage += `Details: ${error.message}`;
           }
@@ -468,12 +474,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         {
           successDescription: (res) =>
             `${res.concepts.length} concepts found. View in AI Panel.`,
-          onSuccess: (output) => {
+          onSuccess: (output, _input) => { // Added _input to match signature
             if (output) setAiExtractedConcepts(output.concepts);
           },
         }
       );
-      return !!output;
+      return !!output; // Returns true if AI call was successful (output is not null)
     },
     [callAIWithStandardFeedback, setAiExtractedConcepts]
   );
@@ -590,12 +596,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         {
           successDescription: (res) =>
             `${res.length} relations suggested. View in AI Panel.`,
-          onSuccess: (output) => {
+          onSuccess: (output, _input) => { // Added _input
             if (output) setAiSuggestedRelations(output);
           },
         }
       );
-      return !!output;
+      return !!output; // Returns true if AI call was successful
     },
     [callAIWithStandardFeedback, setAiSuggestedRelations]
   );
@@ -774,9 +780,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         successDescription: (res) =>
           `${res.expandedIdeas.length} new ideas suggested. Review them for placement.`,
         processingId: parentNodeId,
-        onSuccess: (output) => {
+        onSuccess: (output, _input) => { // Added _input
           if (output && output.expandedIdeas && output.expandedIdeas.length > 0) {
-            const parentNode = mapData.nodes.find((n) => n.id === parentNodeId);
+            const parentNode = mapData.nodes.find((n) => n.id === parentNodeId); // parentNodeId is from outer scope
             if (!parentNode) {
               toast({
                 title: 'Error',
@@ -826,14 +832,14 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
               actionType: 'expandConcept',
               originalElementId: parentNodeId,
             });
-            setConceptExpansionPreview(null);
+            // setConceptExpansionPreview(null); // Removed as conceptExpansionPreview is removed from store
             // The default successDescription already conveys this, but if a more specific one is needed:
             // toast({
             //   title: 'AI Suggestions Ready',
             //   description: `${stagedNodes.length} new ideas sent to the Staging Area for review.`,
             // });
           } else if (output) { // Case where AI ran but had no expanded ideas
-            setConceptExpansionPreview(null);
+            // setConceptExpansionPreview(null); // Removed as conceptExpansionPreview is removed from store
             toast({
               title: 'Expand Concept',
               description: 'AI did not find any specific concepts to expand with.',
@@ -1000,9 +1006,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           multiSelectedNodeIds.length > 0
             ? multiSelectedNodeIds[0]
             : 'summarize-selection',
-          onSuccess: (output) => {
+          onSuccess: (output, _input) => { // Added _input
             if (output && output.summary && output.summary.text) {
-              const currentSelectedNodes = mapData.nodes.filter((node) =>
+              const currentSelectedNodes = mapData.nodes.filter((node) => // mapData and multiSelectedNodeIds are from outer scope
                 multiSelectedNodeIds.includes(node.id)
               );
               if (currentSelectedNodes.length === 0) return;
@@ -1129,7 +1135,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
               ? 'Review the suggested concept.'
               : 'AI found no specific idea for quick expansion.',
           processingId: nodeId,
-          onSuccess: (output) => {
+          onSuccess: (output, _input) => { // Added _input
             if (output && output.expandedIdeas && output.expandedIdeas.length > 0) {
               const parentNode = sourceNode; // sourceNode is in the outer scope of handleMiniToolbarQuickExpand
               if (!parentNode) {
@@ -1142,7 +1148,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
               }
               const stagedNodes: ConceptMapNode[] = [];
               const stagedEdges: ConceptMapEdge[] = [];
-              const existingNodesForPlacement = [...mapData.nodes];
+              const existingNodesForPlacement = [...mapData.nodes]; // mapData from outer scope
               output.expandedIdeas.forEach((idea, index) => {
                 const newNodeId = `staged-qexp-${parentNode.id}-${Date.now()}-${index}`;
                 const position = getNodePlacement(
@@ -1175,15 +1181,15 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
                   label: idea.relationLabel || 'related to',
                 });
               });
-              setStagedMapData({
+              setStagedMapData({ // setStagedMapData from outer scope
                 nodes: stagedNodes,
                 edges: stagedEdges,
                 actionType: 'expandConcept',
                 originalElementId: parentNode.id,
               });
-              setConceptExpansionPreview(null);
+              // setConceptExpansionPreview(null); // Removed as conceptExpansionPreview is removed from store
             } else if (output) {
-              setConceptExpansionPreview(null);
+              // setConceptExpansionPreview(null); // Removed as conceptExpansionPreview is removed from store
               toast({
                 title: 'Quick Expand',
                 description: 'AI did not find any specific idea for quick expansion.',
@@ -1233,17 +1239,17 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             res.rewrittenText
               ? 'Node content updated.'
               : 'AI could not make it more concise.',
-          hideSuccessToast: !node?.text, // node is in outer scope
+          hideSuccessToast: !node?.text, // node is from outer scope (L1210)
           processingId: nodeId,
-          onSuccess: (output) => {
+          onSuccess: (output, _input) => { // Added _input
             if (output && output.rewrittenText) {
-              updateStoreNode(nodeId, { // nodeId is in outer scope
+              updateStoreNode(nodeId, { // nodeId is from outer scope (L1208)
                 text: output.rewrittenText,
                 details: output.rewrittenDetails,
                 type: 'ai-rewritten-node',
               });
             }
-          }
+          },
         }
       );
     },
@@ -1289,13 +1295,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           loadingMessage: 'AI is thinking of edge labels...',
           successTitle: 'Edge Label Suggestions Ready',
           hideSuccessToast: true,
-          onSuccess: (output) => {
+          onSuccess: (output, _input) => { // Added _input
             if (output && output.suggestedLabels.length > 0) {
-              setEdgeLabelSuggestions({ edgeId, labels: output.suggestedLabels }); // edgeId is in outer scope
-            } else if (output) {
-              setEdgeLabelSuggestions({ edgeId, labels: ['related to'] }); // edgeId is in outer scope
+              setEdgeLabelSuggestions({ edgeId, labels: output.suggestedLabels }); // edgeId is from outer scope (L1273)
+            } else if (output) { // AI ran but no specific suggestions
+              setEdgeLabelSuggestions({ edgeId, labels: ['related to'] }); // edgeId is from outer scope (L1273)
             }
-          }
+          },
         }
       );
     },
@@ -1324,36 +1330,49 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           loadingMessage: 'AI is brainstorming child node ideas...',
           successTitle: 'Child Node Ideas Ready',
           hideSuccessToast: true,
-          processingId: node.id, // node is in outer scope
-          onSuccess: (output) => {
+          processingId: node.id, // node is from outer scope (L1310)
+          onSuccess: (output, _input) => { // Added _input
             if (output) setAiChildTextSuggestions(output.suggestedChildTexts);
-          }
+          },
         }
       );
-      setIsLoadingAiChildTexts(false); // This should remain outside onSuccess
+      setIsLoadingAiChildTexts(false); // This remains outside onSuccess as it's a finally-like action for this handler
     },
     [
       callAIWithStandardFeedback,
-      mapData.nodes,
-      setIsLoadingAiChildTexts,
-      setAiChildTextSuggestions,
+      mapData.nodes, // mapData from outer scope
+      // setIsLoadingAiChildTexts and setAiChildTextSuggestions are state setters, stable
     ]
   );
 
   const handleRefineSuggestionConfirm = useCallback(
     async (nodeId: string, refinementInstruction: string) => {
-      const previewState = conceptExpansionPreview;
-      const nodeToRefine = previewState?.previewNodes.find(
-        (n) => n.id === nodeId
-      );
-      if (!nodeToRefine || !previewState?.parentNodeId) {
+      const currentStagedMapData = useConceptMapStore.getState().stagedMapData;
+      if (!currentStagedMapData || !currentStagedMapData.nodes) {
         toast({
           title: 'Error',
-          description: 'Could not find the suggestion to refine.',
+          description: 'No staged data available to refine.',
           variant: 'destructive',
         });
         return;
       }
+
+      const nodeToRefineIndex = currentStagedMapData.nodes.findIndex(
+        (n) => n.id === nodeId
+      );
+      if (nodeToRefineIndex === -1) {
+        toast({
+          title: 'Error',
+          description: 'Could not find the suggestion in staged data to refine.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const nodeToRefine = currentStagedMapData.nodes[nodeToRefineIndex];
+
+      // originalElementId in stagedData usually refers to the parent/source of the expansion or action
+      // const parentOrOriginalId = currentStagedMapData.originalElementId;
+
       const output = await callAIWithStandardFeedback<
         RefineNodeSuggestionInput,
         RefineNodeSuggestionOutput
@@ -1368,22 +1387,30 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         {
           loadingMessage: 'AI is refining the suggestion...',
           successTitle: 'Suggestion Refined!',
-          processingId: nodeId, // nodeId is in outer scope
-          onSuccess: (output) => {
-            if (output) {
-              useConceptMapStore
-                .getState()
-                .updateConceptExpansionPreviewNode(
-                  nodeId, // nodeId is in outer scope
-                  output.refinedText,
-                  output.refinedDetails
-                );
+          processingId: nodeId,
+          onSuccess: (output, _input) => {
+            if (output && currentStagedMapData) {
+              const updatedNodes = [...currentStagedMapData.nodes];
+              updatedNodes[nodeToRefineIndex] = {
+                ...updatedNodes[nodeToRefineIndex],
+                text: output.refinedText,
+                details: output.refinedDetails,
+                type: 'ai-refined-staged', // Indicate it was refined
+              };
+              useConceptMapStore.getState().setStagedMapData({
+                ...currentStagedMapData,
+                nodes: updatedNodes,
+              });
+              toast({ // Provide feedback that staged item was updated
+                title: 'Staged Suggestion Updated',
+                description: 'The refined suggestion is updated in the staging area.'
+              })
             }
-          }
+          },
         }
       );
     },
-    [conceptExpansionPreview, toast, callAIWithStandardFeedback]
+    [toast, callAIWithStandardFeedback]
   );
 
   const handleSuggestIntermediateNodeRequest = useCallback(
@@ -1417,9 +1444,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           successTitle: 'Intermediate Node Suggested',
           successDescription: (res) =>
             `AI suggests adding '${res.intermediateNodeText}'. Review the details.`,
-          onSuccess: (output) => {
+          onSuccess: (output, _input) => { // Added _input
             if (output) {
-              // sourceNode, targetNode, edge are from the outer scope
+              // sourceNode, targetNode, edge are from the outer scope (L1419-L1421)
               if (!sourceNode || !targetNode || !edge) {
                 toast({
                   title: 'Error',
@@ -1502,13 +1529,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     >(
       'AI Tidy Up Selection',
       aiTidyUpSelectionFlow,
-      { nodes: nodesToTidy, mapLayoutContext: {} }, // nodesToTidy is from outer scope
+      { nodes: nodesToTidy, mapLayoutContext: {} }, // nodesToTidy is from outer scope (L1509)
       {
         loadingMessage: 'AI is tidying up your selection...',
         successTitle: 'Selection Tidied by AI!',
-        onSuccess: (output) => {
+        onSuccess: (output, _input) => { // Added _input
           if (output && output.newPositions) {
-            // nodesToTidy is from outer scope
+            // nodesToTidy is from outer scope (L1509)
             if (!nodesToTidy || nodesToTidy.length === 0) {
               toast({
                 title: 'Error',
@@ -1620,14 +1647,14 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         successTitle: 'Improvement Suggestions Ready!',
         successDescription: (res) =>
           `Found ${res.suggestedEdges.length} edge and ${res.suggestedGroups.length} group suggestions.`,
-        onSuccess: (output) => {
-          if (output) { // Check if output is not null/undefined
+        onSuccess: (output, _input) => { // Added _input
+          if (output) {
             useConceptMapStore.getState().setStructuralSuggestions(output);
           }
         },
       }
     );
-  }, [mapData, callAIWithStandardFeedback]);
+  }, [mapData, callAIWithStandardFeedback]); // mapData from outer scope
 
   // handleDagreLayoutSelection does not call callAIWithStandardFeedback, so no changes needed for onSuccess/onError.
   const handleDagreLayoutSelection = useCallback(async () => {
@@ -1848,7 +1875,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         successTitle: 'Map Summary Ready!',
         hideSuccessToast: true, // Modal will show the summary
         processingId: 'summarize-entire-map',
-        onSuccess: (output) => {
+        onSuccess: (output, _input) => { // Added _input
           if (output) {
             setMapSummaryResult(output);
             setIsMapSummaryModalOpen(true);
@@ -1857,7 +1884,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             toast({ title: 'Map Summary', description: 'AI could not generate a summary.' });
           }
         },
-        onError: (error) => {
+        onError: (error, _input) => { // Added _input
           setMapSummaryResult(null);
           // Default error toast will show, but we ensure state is clean.
           return false; // Allow default error toast
@@ -1869,9 +1896,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     isViewOnlyMode,
     callAIWithStandardFeedback,
     // Omitting mapData from deps as it's read from store inside
-    setIsSummarizingMap,
-    setMapSummaryResult,
-    setIsMapSummaryModalOpen,
+    // setIsSummarizingMap, setMapSummaryResult, setIsMapSummaryModalOpen are state setters, stable
     toast,
   ]);
 
@@ -1935,8 +1960,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         loadingMessage: 'AI is considering your question about the edge...',
         successTitle: 'AI Answer Received', // This will be shown in modal, so toast can be hidden
         hideSuccessToast: true,
-        processingId: `edge-qa-${edgeQuestionContext.edgeId}`,
-        onSuccess: (output) => {
+        processingId: `edge-qa-${edgeQuestionContext.edgeId}`, // edgeQuestionContext from outer scope
+        onSuccess: (output, _input) => { // Added _input
           if (output?.answer) {
             setEdgeQuestionAnswer(output.answer);
           } else if (output?.error) {
@@ -1947,7 +1972,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             );
           }
         },
-        onError: (error) => {
+        onError: (error, _input) => { // Added _input
           setEdgeQuestionAnswer('Failed to get an answer from AI. Please try again.');
           return false; // Allow default error toast
         },
@@ -1956,9 +1981,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     },
     [
       isViewOnlyMode,
-      edgeQuestionContext, // Stable context from state
+      edgeQuestionContext, // Stable context from state (L1963)
       callAIWithStandardFeedback,
-      toast, // For errors if not handled by onError
+      toast, // For errors if not handled by onError, from outer scope
       // setIsAskingAboutEdge and setEdgeQuestionAnswer are state setters, stable
     ]
   );
@@ -1994,8 +2019,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         loadingMessage: 'AI is analyzing the entire map to answer your question...',
         successTitle: 'AI Answer Received', // Modal will show this
         hideSuccessToast: true,
-        processingId: `map-qa-${currentMapIdFromStore || 'current'}`,
-        onSuccess: (output) => {
+        processingId: `map-qa-${currentMapIdFromStore || 'current'}`, // currentMapIdFromStore from outer scope
+        onSuccess: (output, _input) => { // Added _input
           if (output?.answer) {
             setMapContextQuestionAnswer(output.answer);
           } else if (output?.error) {
@@ -2006,7 +2031,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             );
           }
         },
-        onError: (error) => {
+        onError: (error, _input) => { // Added _input
           setMapContextQuestionAnswer('Failed to get an answer from AI about the map. Please try again.');
           return false; // Allow default error toast
         },
@@ -2016,8 +2041,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     [
       isViewOnlyMode,
       callAIWithStandardFeedback,
-      toast, // For errors
-      // State setters are stable
+      toast, // For errors, from outer scope
+      // State setters (setIsAskingAboutMapContext, setMapContextQuestionAnswer) are stable
+      // currentMapDataFromStore, currentMapNameFromStore, currentMapIdFromStore are read fresh via getState()
     ]
   );
 
