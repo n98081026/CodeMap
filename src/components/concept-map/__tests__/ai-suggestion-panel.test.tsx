@@ -10,7 +10,7 @@ jest.mock('@/stores/concept-map-store');
 
 // Mock @tanstack/react-virtual
 jest.mock('@tanstack/react-virtual', () => ({
-  useVirtualizer: jest.fn(options => {
+  useVirtualizer: jest.fn((options) => {
     // Simple mock: just map over the items directly for rendering in tests
     const virtualItems = Array.from({ length: options.count }, (_, index) => ({
       index,
@@ -26,27 +26,25 @@ jest.mock('@tanstack/react-virtual', () => ({
   }),
 }));
 
-
 // Mock Lucide icons
 jest.mock('lucide-react', () => {
   const original = jest.requireActual('lucide-react');
   return {
     ...original,
-    GitFork: () => <svg data-testid="git-fork-icon" />,
-    Brain: () => <svg data-testid="brain-icon" />,
-    SearchCode: () => <svg data-testid="search-code-icon" />,
-    Lightbulb: () => <svg data-testid="lightbulb-icon" />,
-    PlusCircle: () => <svg data-testid="plus-circle-icon" />,
-    Info: () => <svg data-testid="info-icon" />,
-    MessageSquareDashed: () => <svg data-testid="message-square-dashed-icon" />,
-    CheckSquare: () => <svg data-testid="check-square-icon" />,
-    Edit3: () => <svg data-testid="edit3-icon" />,
-    Zap: () => <svg data-testid="zap-icon" />,
-    AlertCircle: () => <svg data-testid="alert-circle-icon" />,
-    Trash2: () => <svg data-testid="trash2-icon" />,
+    GitFork: () => <svg data-testid='git-fork-icon' />,
+    Brain: () => <svg data-testid='brain-icon' />,
+    SearchCode: () => <svg data-testid='search-code-icon' />,
+    Lightbulb: () => <svg data-testid='lightbulb-icon' />,
+    PlusCircle: () => <svg data-testid='plus-circle-icon' />,
+    Info: () => <svg data-testid='info-icon' />,
+    MessageSquareDashed: () => <svg data-testid='message-square-dashed-icon' />,
+    CheckSquare: () => <svg data-testid='check-square-icon' />,
+    Edit3: () => <svg data-testid='edit3-icon' />,
+    Zap: () => <svg data-testid='zap-icon' />,
+    AlertCircle: () => <svg data-testid='alert-circle-icon' />,
+    Trash2: () => <svg data-testid='trash2-icon' />,
   };
 });
-
 
 describe('AISuggestionPanel', () => {
   let mockSetDragPreview: jest.Mock;
@@ -60,14 +58,26 @@ describe('AISuggestionPanel', () => {
   ];
 
   const mockSuggestedRelations: RelationSuggestion[] = [
-    { source: 'Node A', target: 'Node B', relation: 'connects to', reason: 'Reason AB' },
+    {
+      source: 'Node A',
+      target: 'Node B',
+      relation: 'connects to',
+      reason: 'Reason AB',
+    },
     { source: 'Node C', target: 'Node D', relation: 'leads to' },
   ];
 
   const mockCurrentMapNodes = [
-      { id: 'node1', text: 'Existing Concept', type:'concept', x:0, y:0, childIds:[] },
-      { id: 'nodeA', text: 'Node A', type:'concept', x:0, y:0, childIds:[] },
-      // Node B is not on map for one test case
+    {
+      id: 'node1',
+      text: 'Existing Concept',
+      type: 'concept',
+      x: 0,
+      y: 0,
+      childIds: [],
+    },
+    { id: 'nodeA', text: 'Node A', type: 'concept', x: 0, y: 0, childIds: [] },
+    // Node B is not on map for one test case
   ];
 
   beforeEach(() => {
@@ -75,17 +85,19 @@ describe('AISuggestionPanel', () => {
     mockClearDragPreview = jest.fn();
     mockSetDraggedRelationPreview = jest.fn();
 
-    (useConceptMapStore as unknown as jest.Mock).mockImplementation((selector: any) => {
-      const state = {
-        setDragPreview: mockSetDragPreview,
-        clearDragPreview: mockClearDragPreview,
-        setDraggedRelationPreview: mockSetDraggedRelationPreview,
-      };
-      if (typeof selector === 'function') {
-        return selector(state);
+    (useConceptMapStore as unknown as jest.Mock).mockImplementation(
+      (selector: any) => {
+        const state = {
+          setDragPreview: mockSetDragPreview,
+          clearDragPreview: mockClearDragPreview,
+          setDraggedRelationPreview: mockSetDraggedRelationPreview,
+        };
+        if (typeof selector === 'function') {
+          return selector(state);
+        }
+        return state; // Should not happen with useCallback pattern in component
       }
-      return state; // Should not happen with useCallback pattern in component
-    });
+    );
   });
 
   afterEach(() => {
@@ -111,8 +123,8 @@ describe('AISuggestionPanel', () => {
     let mockOnClearExtractedConcepts: jest.Mock;
 
     beforeEach(() => {
-        mockOnAddExtractedConcepts = jest.fn();
-        mockOnClearExtractedConcepts = jest.fn();
+      mockOnAddExtractedConcepts = jest.fn();
+      mockOnClearExtractedConcepts = jest.fn();
     });
 
     test('renders extracted concepts and their statuses', () => {
@@ -129,11 +141,19 @@ describe('AISuggestionPanel', () => {
       expect(screen.getByText('Existing Concept')).toBeInTheDocument();
 
       // Check status icons (simplified check by title)
-      const concept1Item = screen.getByText('Concept 1').closest('div[data-index]');
-      expect(within(concept1Item!).getByTitle('New concept')).toBeInTheDocument();
+      const concept1Item = screen
+        .getByText('Concept 1')
+        .closest('div[data-index]');
+      expect(
+        within(concept1Item!).getByTitle('New concept')
+      ).toBeInTheDocument();
 
-      const existingConceptItem = screen.getByText('Existing Concept').closest('div[data-index]');
-      expect(within(existingConceptItem!).getByTitle('Exact match on map')).toBeInTheDocument();
+      const existingConceptItem = screen
+        .getByText('Existing Concept')
+        .closest('div[data-index]');
+      expect(
+        within(existingConceptItem!).getByTitle('Exact match on map')
+      ).toBeInTheDocument();
     });
 
     test('allows selecting and adding new/similar concepts', () => {
@@ -145,56 +165,63 @@ describe('AISuggestionPanel', () => {
         />
       );
       // Concept 1 is new
-      const checkbox1 = screen.getByLabelText('Concept 1').closest('.flex')?.querySelector('input[type="checkbox"]');
+      const checkbox1 = screen
+        .getByLabelText('Concept 1')
+        .closest('.flex')
+        ?.querySelector('input[type="checkbox"]');
       expect(checkbox1).not.toBeNull();
       fireEvent.click(checkbox1!);
 
       // Existing Concept should be disabled or not selectable for "Add" if it's an exact match
-      const checkboxExisting = screen.getByText('Existing Concept').closest('.flex')?.querySelector('input[type="checkbox"]');
+      const checkboxExisting = screen
+        .getByText('Existing Concept')
+        .closest('.flex')
+        ?.querySelector('input[type="checkbox"]');
       expect(checkboxExisting).toBeDisabled();
-
 
       const addButton = screen.getByRole('button', { name: /Add Selected/i });
       fireEvent.click(addButton);
 
       expect(mockOnAddExtractedConcepts).toHaveBeenCalledWith([
-        mockExtractedConcepts[0] // Only Concept 1
+        mockExtractedConcepts[0], // Only Concept 1
       ]);
     });
 
     test('"Select New/Similar" checkbox works for concepts', () => {
-        render(
-            <AISuggestionPanel
-                currentMapNodes={mockCurrentMapNodes}
-                extractedConcepts={mockExtractedConcepts} // Concept 1, Concept 2 are new/similar, Existing Concept is exact match
-                onAddExtractedConcepts={mockOnAddExtractedConcepts}
-            />
-        );
-        const selectAllNewCheckbox = screen.getByLabelText('Select New/Similar');
-        fireEvent.click(selectAllNewCheckbox); // Check it
+      render(
+        <AISuggestionPanel
+          currentMapNodes={mockCurrentMapNodes}
+          extractedConcepts={mockExtractedConcepts} // Concept 1, Concept 2 are new/similar, Existing Concept is exact match
+          onAddExtractedConcepts={mockOnAddExtractedConcepts}
+        />
+      );
+      const selectAllNewCheckbox = screen.getByLabelText('Select New/Similar');
+      fireEvent.click(selectAllNewCheckbox); // Check it
 
-        const addButton = screen.getByRole('button', { name: /Add Selected/i });
-        fireEvent.click(addButton);
+      const addButton = screen.getByRole('button', { name: /Add Selected/i });
+      fireEvent.click(addButton);
 
-        // Expect only non-exact matches to be passed
-        expect(mockOnAddExtractedConcepts).toHaveBeenCalledWith([
-            mockExtractedConcepts[0], // Concept 1
-            mockExtractedConcepts[1], // Concept 2
-        ]);
+      // Expect only non-exact matches to be passed
+      expect(mockOnAddExtractedConcepts).toHaveBeenCalledWith([
+        mockExtractedConcepts[0], // Concept 1
+        mockExtractedConcepts[1], // Concept 2
+      ]);
     });
 
     test('clear button calls onClearExtractedConcepts', () => {
-        render(
-            <AISuggestionPanel
-                currentMapNodes={mockCurrentMapNodes}
-                extractedConcepts={mockExtractedConcepts}
-                onAddExtractedConcepts={mockOnAddExtractedConcepts}
-                onClearExtractedConcepts={mockOnClearExtractedConcepts}
-            />
-        );
-        const clearButton = screen.getByTitle('Clear all Extracted Concepts suggestions');
-        fireEvent.click(clearButton);
-        expect(mockOnClearExtractedConcepts).toHaveBeenCalled();
+      render(
+        <AISuggestionPanel
+          currentMapNodes={mockCurrentMapNodes}
+          extractedConcepts={mockExtractedConcepts}
+          onAddExtractedConcepts={mockOnAddExtractedConcepts}
+          onClearExtractedConcepts={mockOnClearExtractedConcepts}
+        />
+      );
+      const clearButton = screen.getByTitle(
+        'Clear all Extracted Concepts suggestions'
+      );
+      fireEvent.click(clearButton);
+      expect(mockOnClearExtractedConcepts).toHaveBeenCalled();
     });
   });
 
@@ -203,8 +230,8 @@ describe('AISuggestionPanel', () => {
     let mockOnClearSuggestedRelations: jest.Mock;
 
     beforeEach(() => {
-        mockOnAddSuggestedRelations = jest.fn();
-        mockOnClearSuggestedRelations = jest.fn();
+      mockOnAddSuggestedRelations = jest.fn();
+      mockOnClearSuggestedRelations = jest.fn();
     });
 
     test('renders suggested relations', () => {
@@ -224,9 +251,15 @@ describe('AISuggestionPanel', () => {
 
       // Check node existence indicators
       const relation1Source = screen.getByText('Node A');
-      expect(within(relation1Source).getByTitle('This node exists on the map')).toBeInTheDocument();
+      expect(
+        within(relation1Source).getByTitle('This node exists on the map')
+      ).toBeInTheDocument();
       const relation2Target = screen.getByText('Node D'); // Node D does not exist in mockCurrentMapNodes
-      expect(within(relation2Target).getByTitle('This node does not exist or differs from map')).toBeInTheDocument();
+      expect(
+        within(relation2Target).getByTitle(
+          'This node does not exist or differs from map'
+        )
+      ).toBeInTheDocument();
     });
 
     test('allows selecting and adding relations', () => {
@@ -238,15 +271,20 @@ describe('AISuggestionPanel', () => {
         />
       );
       // Select the first relation
-      const checkbox1 = screen.getByText('Node A').closest('.flex.items-center.text-sm.group')?.querySelector('input[type="checkbox"]');
+      const checkbox1 = screen
+        .getByText('Node A')
+        .closest('.flex.items-center.text-sm.group')
+        ?.querySelector('input[type="checkbox"]');
       expect(checkbox1).not.toBeNull();
       fireEvent.click(checkbox1!);
 
-      const addButton = screen.getAllByRole('button', { name: /Add Selected/i })[1]; // Second add button for relations
+      const addButton = screen.getAllByRole('button', {
+        name: /Add Selected/i,
+      })[1]; // Second add button for relations
       fireEvent.click(addButton);
 
       expect(mockOnAddSuggestedRelations).toHaveBeenCalledWith([
-        mockSuggestedRelations[0]
+        mockSuggestedRelations[0],
       ]);
     });
   });

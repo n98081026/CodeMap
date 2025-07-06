@@ -3,6 +3,7 @@
 ## 🚀 Production Deployment Checklist
 
 ### Prerequisites
+
 - [ ] Supabase project set up
 - [ ] Environment variables configured
 - [ ] Domain name ready (optional)
@@ -11,8 +12,10 @@
 ### 1. Supabase Setup
 
 #### Database Setup
+
 1. Create a new Supabase project at [supabase.com](https://supabase.com)
 2. Run the database migrations:
+
    ```sql
    -- Create profiles table
    CREATE TABLE profiles (
@@ -71,10 +74,12 @@
    ```
 
 #### Storage Setup
+
 1. Create a storage bucket named `project_archives`
 2. Set up RLS policies for secure file access
 
 #### Row Level Security (RLS) Policies
+
 ```sql
 -- Enable RLS on all tables
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -91,7 +96,7 @@ CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.
 CREATE POLICY "Teachers can manage own classrooms" ON classrooms FOR ALL USING (auth.uid() = teacher_id);
 CREATE POLICY "Students can view enrolled classrooms" ON classrooms FOR SELECT USING (
   EXISTS (
-    SELECT 1 FROM classroom_students 
+    SELECT 1 FROM classroom_students
     WHERE classroom_id = classrooms.id AND student_id = auth.uid()
   )
 );
@@ -102,7 +107,9 @@ CREATE POLICY "Students can view enrolled classrooms" ON classrooms FOR SELECT U
 ### 2. Environment Configuration
 
 #### Production Environment Variables
+
 Create a `.env.production` file:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -115,17 +122,20 @@ NEXTAUTH_URL=https://your-domain.com
 ### 3. Deployment Options
 
 #### Option A: Vercel (Recommended)
+
 1. Connect your GitHub repository to Vercel
 2. Set environment variables in Vercel dashboard
 3. Deploy automatically on push to main branch
 
 #### Option B: Netlify
+
 1. Connect repository to Netlify
 2. Set build command: `npm run build`
 3. Set publish directory: `.next`
 4. Configure environment variables
 
 #### Option C: Docker Deployment
+
 ```dockerfile
 FROM node:18-alpine AS deps
 WORKDIR /app
@@ -153,6 +163,7 @@ CMD ["npm", "start"]
 ### 4. Post-Deployment Verification
 
 #### Health Checks
+
 - [ ] Application loads successfully
 - [ ] User registration/login works
 - [ ] Concept map creation works
@@ -160,12 +171,14 @@ CMD ["npm", "start"]
 - [ ] All API endpoints respond correctly
 
 #### Performance Checks
+
 - [ ] Page load times < 3 seconds
 - [ ] Lighthouse score > 90
 - [ ] No console errors
 - [ ] Mobile responsiveness verified
 
 #### Security Checks
+
 - [ ] HTTPS enabled
 - [ ] Environment variables secured
 - [ ] RLS policies working
@@ -174,12 +187,14 @@ CMD ["npm", "start"]
 ### 5. Monitoring and Maintenance
 
 #### Recommended Tools
+
 - **Error Tracking**: Sentry
 - **Analytics**: Google Analytics or Vercel Analytics
 - **Uptime Monitoring**: UptimeRobot
 - **Performance**: Vercel Speed Insights
 
 #### Regular Maintenance
+
 - [ ] Monitor error rates
 - [ ] Review performance metrics
 - [ ] Update dependencies monthly
@@ -189,11 +204,13 @@ CMD ["npm", "start"]
 ### 6. Scaling Considerations
 
 #### Database Optimization
+
 - Add indexes for frequently queried columns
 - Implement connection pooling
 - Consider read replicas for high traffic
 
 #### Application Optimization
+
 - Enable Next.js Image Optimization
 - Implement caching strategies
 - Use CDN for static assets
@@ -202,12 +219,14 @@ CMD ["npm", "start"]
 ### 7. Troubleshooting
 
 #### Common Issues
+
 1. **Build Failures**: Check environment variables and dependencies
 2. **Database Connection**: Verify Supabase URL and keys
 3. **AI Features Not Working**: Check Google AI API key
 4. **File Upload Issues**: Verify storage bucket configuration
 
 #### Debug Commands
+
 ```bash
 # Check build locally
 npm run build

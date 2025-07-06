@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createConceptMap, getConceptMapById, updateConceptMap, deleteConceptMap } from '../../conceptMaps/conceptMapService';
+import {
+  createConceptMap,
+  getConceptMapById,
+  updateConceptMap,
+  deleteConceptMap,
+} from '../../conceptMaps/conceptMapService';
 
 // Mock Supabase client
 vi.mock('@/lib/supabaseClient', () => ({
@@ -7,26 +12,26 @@ vi.mock('@/lib/supabaseClient', () => ({
     from: vi.fn(() => ({
       insert: vi.fn(() => ({
         select: vi.fn(() => ({
-          single: vi.fn()
-        }))
+          single: vi.fn(),
+        })),
       })),
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          single: vi.fn()
-        }))
+          single: vi.fn(),
+        })),
       })),
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn()
-          }))
-        }))
+            single: vi.fn(),
+          })),
+        })),
       })),
       delete: vi.fn(() => ({
-        eq: vi.fn()
-      }))
-    }))
-  }
+        eq: vi.fn(),
+      })),
+    })),
+  },
 }));
 
 describe('conceptMapService', () => {
@@ -44,21 +49,21 @@ describe('conceptMapService', () => {
         classroom_id: 'class-123',
         map_data: { nodes: [], edges: [] },
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: mockConceptMap,
-        error: null
+        error: null,
       });
-      
+
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await createConceptMap({
@@ -66,7 +71,7 @@ describe('conceptMapService', () => {
         description: 'Test Description',
         ownerId: 'user-123',
         classroomId: 'class-123',
-        mapData: { nodes: [], edges: [] }
+        mapData: { nodes: [], edges: [] },
       });
 
       expect(result.success).toBe(true);
@@ -77,15 +82,15 @@ describe('conceptMapService', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockInsert = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Database error' }
+        error: { message: 'Database error' },
       });
-      
+
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       const result = await createConceptMap({
@@ -93,7 +98,7 @@ describe('conceptMapService', () => {
         description: 'Test Description',
         ownerId: 'user-123',
         classroomId: 'class-123',
-        mapData: { nodes: [], edges: [] }
+        mapData: { nodes: [], edges: [] },
       });
 
       expect(result.success).toBe(false);
@@ -108,21 +113,21 @@ describe('conceptMapService', () => {
         title: 'Test Map',
         description: 'Test Description',
         owner_id: 'user-123',
-        map_data: { nodes: [], edges: [] }
+        map_data: { nodes: [], edges: [] },
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
       const mockSelect = vi.fn().mockResolvedValue({
         data: mockConceptMap,
-        error: null
+        error: null,
       });
-      
+
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: mockSelect
-          })
-        })
+            single: mockSelect,
+          }),
+        }),
       });
 
       const result = await getConceptMapById('map-123');
@@ -135,15 +140,15 @@ describe('conceptMapService', () => {
       const { supabase } = await import('@/lib/supabaseClient');
       const mockSelect = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Not found' }
+        error: { message: 'Not found' },
       });
-      
+
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: mockSelect
-          })
-        })
+            single: mockSelect,
+          }),
+        }),
       });
 
       const result = await getConceptMapById('nonexistent-id');

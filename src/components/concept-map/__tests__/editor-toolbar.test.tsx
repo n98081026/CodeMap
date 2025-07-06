@@ -9,19 +9,24 @@ vi.mock('@/stores/concept-map-store');
 // Mock child components like modals that are not directly part of the toolbar's disable logic
 vi.mock('@/components/concept-map/genai-modals', () => ({
   // Mock specific modals if they are direct children or their trigger is tested
-  ExtractConceptsModal: () => <div data-testid="extract-concepts-modal-trigger"></div>,
+  ExtractConceptsModal: () => (
+    <div data-testid='extract-concepts-modal-trigger'></div>
+  ),
   // Add other modals if their triggers are directly in EditorToolbar and tested
 }));
 vi.mock('@/components/concept-map/quick-cluster-modal', () => ({
-  QuickClusterModal: () => <div data-testid="quick-cluster-modal-trigger"></div>,
+  QuickClusterModal: () => (
+    <div data-testid='quick-cluster-modal-trigger'></div>
+  ),
 }));
 vi.mock('@/components/concept-map/generate-snippet-modal', () => ({
-    GenerateSnippetModal: () => <div data-testid="generate-snippet-modal-trigger"></div>,
+  GenerateSnippetModal: () => (
+    <div data-testid='generate-snippet-modal-trigger'></div>
+  ),
 }));
 vi.mock('@/components/concept-map/map-summary-modal', () => ({
-    MapSummaryModal: () => <div data-testid="map-summary-modal-trigger"></div>,
+  MapSummaryModal: () => <div data-testid='map-summary-modal-trigger'></div>,
 }));
-
 
 describe('EditorToolbar (/components/concept-map/editor-toolbar.tsx)', () => {
   const mockUndo = vi.fn();
@@ -70,15 +75,23 @@ describe('EditorToolbar (/components/concept-map/editor-toolbar.tsx)', () => {
   it('should have most action buttons enabled when not in view-only mode', () => {
     render(<EditorToolbar {...defaultProps} isViewOnlyMode={false} />);
 
-    expect(screen.getByRole('button', { name: /save map/i })).not.toBeDisabled();
-    expect(screen.getByRole('button', { name: /add node/i })).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /save map/i })
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /add node/i })
+    ).not.toBeDisabled();
     // Check a few AI tool trigger buttons by accessible name (e.g., tooltip)
     // Tooltips are often used for icon buttons, so need to query by tooltip text if possible, or by test-id if added.
     // For simplicity, let's assume they have aria-labels or accessible names.
     // If they are MenuItems, the query will be different.
     // The actual component uses DropdownMenu, so we test the trigger.
-    expect(screen.getByRole('button', { name: /ai tools/i })).not.toBeDisabled();
-    expect(screen.getByRole('button', { name: /layout tools/i })).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /ai tools/i })
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /layout tools/i })
+    ).not.toBeDisabled();
   });
 
   it('should disable most action buttons when isViewOnlyMode is true (guest viewing example)', () => {
@@ -92,7 +105,9 @@ describe('EditorToolbar (/components/concept-map/editor-toolbar.tsx)', () => {
     // A more thorough test would open the menu and check item states.
     // Based on current code, the AI Tools and Layout Tools dropdown triggers are disabled.
     expect(screen.getByRole('button', { name: /ai tools/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /layout tools/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /layout tools/i })
+    ).toBeDisabled();
 
     // Undo/Redo should also be disabled
     expect(screen.getByRole('button', { name: /undo/i })).toBeDisabled();
@@ -100,11 +115,17 @@ describe('EditorToolbar (/components/concept-map/editor-toolbar.tsx)', () => {
 
     // Non-mutating actions like "New Map" and "Export Map" might still be enabled.
     expect(screen.getByRole('button', { name: /new map/i })).not.toBeDisabled();
-    expect(screen.getByRole('button', { name: /export map/i })).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /export map/i })
+    ).not.toBeDisabled();
 
     // Toggle buttons for side panels should still be enabled
-    expect(screen.getByRole('button', { name: /toggle properties inspector/i })).not.toBeDisabled();
-    expect(screen.getByRole('button', { name: /toggle ai suggestion panel/i })).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /toggle properties inspector/i })
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /toggle ai suggestion panel/i })
+    ).not.toBeDisabled();
   });
 
   it('Undo and Redo buttons should be disabled based on canUndo/canRedo store state when not in view-only mode', () => {

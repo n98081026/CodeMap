@@ -10,46 +10,80 @@ import { z } from 'genkit';
 
 const WhimsicalExtractConceptsInputSchema = z.object({
   text: z.string().describe('要提取概念的文本內容'),
-  existingConcepts: z.array(z.string()).optional().describe('地圖上已存在的概念列表'),
+  existingConcepts: z
+    .array(z.string())
+    .optional()
+    .describe('地圖上已存在的概念列表'),
   userGoals: z.string().optional().describe('用戶的學習目標或意圖'),
   mapContext: z.string().optional().describe('當前概念圖的整體上下文'),
-  difficultyLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional().describe('目標難度級別'),
+  difficultyLevel: z
+    .enum(['beginner', 'intermediate', 'advanced'])
+    .optional()
+    .describe('目標難度級別'),
 });
 
-export type WhimsicalExtractConceptsInput = z.infer<typeof WhimsicalExtractConceptsInputSchema>;
+export type WhimsicalExtractConceptsInput = z.infer<
+  typeof WhimsicalExtractConceptsInputSchema
+>;
 
 const WhimsicalExtractedConceptItemSchema = z.object({
   concept: z.string().describe('提取的關鍵概念'),
   context: z.string().describe('概念的上下文解釋'),
   source: z.string().optional().describe('概念來源的具體文本片段'),
-  difficulty: z.enum(['beginner', 'intermediate', 'advanced']).describe('概念的難度級別'),
-  category: z.enum(['core', 'supporting', 'advanced', 'prerequisite']).describe('概念在學習路徑中的類別'),
-  relationships: z.array(z.string()).optional().describe('與現有概念的潛在關係'),
+  difficulty: z
+    .enum(['beginner', 'intermediate', 'advanced'])
+    .describe('概念的難度級別'),
+  category: z
+    .enum(['core', 'supporting', 'advanced', 'prerequisite'])
+    .describe('概念在學習路徑中的類別'),
+  relationships: z
+    .array(z.string())
+    .optional()
+    .describe('與現有概念的潛在關係'),
   pedagogicalNote: z.string().optional().describe('教學建議或學習提示'),
 });
 
-export type WhimsicalExtractedConceptItem = z.infer<typeof WhimsicalExtractedConceptItemSchema>;
+export type WhimsicalExtractedConceptItem = z.infer<
+  typeof WhimsicalExtractedConceptItemSchema
+>;
 
 const WhimsicalExtractConceptsOutputSchema = z.object({
-  concepts: z.array(WhimsicalExtractedConceptItemSchema).describe('提取的概念列表'),
-  learningPath: z.object({
-    prerequisites: z.array(z.string()).describe('建議的前置概念'),
-    coreSequence: z.array(z.string()).describe('核心學習順序'),
-    extensions: z.array(z.string()).describe('延伸概念'),
-  }).optional().describe('建議的學習路徑'),
-  mapImprovements: z.object({
-    suggestedGroupings: z.array(z.object({
-      title: z.string(),
-      concepts: z.array(z.string()),
-      reasoning: z.string(),
-    })).optional().describe('建議的概念分組'),
-    layoutSuggestion: z.string().optional().describe('佈局建議'),
-  }).optional().describe('地圖改進建議'),
+  concepts: z
+    .array(WhimsicalExtractedConceptItemSchema)
+    .describe('提取的概念列表'),
+  learningPath: z
+    .object({
+      prerequisites: z.array(z.string()).describe('建議的前置概念'),
+      coreSequence: z.array(z.string()).describe('核心學習順序'),
+      extensions: z.array(z.string()).describe('延伸概念'),
+    })
+    .optional()
+    .describe('建議的學習路徑'),
+  mapImprovements: z
+    .object({
+      suggestedGroupings: z
+        .array(
+          z.object({
+            title: z.string(),
+            concepts: z.array(z.string()),
+            reasoning: z.string(),
+          })
+        )
+        .optional()
+        .describe('建議的概念分組'),
+      layoutSuggestion: z.string().optional().describe('佈局建議'),
+    })
+    .optional()
+    .describe('地圖改進建議'),
 });
 
-export type WhimsicalExtractConceptsOutput = z.infer<typeof WhimsicalExtractConceptsOutputSchema>;
+export type WhimsicalExtractConceptsOutput = z.infer<
+  typeof WhimsicalExtractConceptsOutputSchema
+>;
 
-export async function whimsicalExtractConcepts(input: WhimsicalExtractConceptsInput): Promise<WhimsicalExtractConceptsOutput> {
+export async function whimsicalExtractConcepts(
+  input: WhimsicalExtractConceptsInput
+): Promise<WhimsicalExtractConceptsOutput> {
   return whimsicalExtractConceptsFlow(input);
 }
 

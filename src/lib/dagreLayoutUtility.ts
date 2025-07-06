@@ -38,7 +38,10 @@ export class DagreLayoutUtility implements IDagreLayoutUtility {
     options?: DagreLayoutOptions
   ): Promise<NodePositionOutput[]> {
     // Create a new directed graph
-    const dagreGraph = new dagre.graphlib.Graph({ multigraph: true, compound: true });
+    const dagreGraph = new dagre.graphlib.Graph({
+      multigraph: true,
+      compound: true,
+    });
 
     // Set layout options
     dagreGraph.setGraph({
@@ -73,7 +76,9 @@ export class DagreLayoutUtility implements IDagreLayoutUtility {
           // label: edge.label, // If you want edge labels to affect layout (rarely used in basic dagre)
         });
       } else {
-        console.warn(`Dagre layout: edge references non-existent node. Source: ${edge.source}, Target: ${edge.target}`);
+        console.warn(
+          `Dagre layout: edge references non-existent node. Source: ${edge.source}, Target: ${edge.target}`
+        );
       }
     });
 
@@ -87,8 +92,8 @@ export class DagreLayoutUtility implements IDagreLayoutUtility {
           id: nodeId,
           // Dagre provides center x, y. React Flow typically uses top-left x, y.
           // Adjust coordinates: x = dagreNode.x - dagreNode.width / 2, y = dagreNode.y - dagreNode.height / 2
-          x: Math.round(dagreNode.x - (dagreNode.width / 2)),
-          y: Math.round(dagreNode.y - (dagreNode.height / 2)),
+          x: Math.round(dagreNode.x - dagreNode.width / 2),
+          y: Math.round(dagreNode.y - dagreNode.height / 2),
         });
       }
     });

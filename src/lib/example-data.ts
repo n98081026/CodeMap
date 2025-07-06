@@ -14,26 +14,29 @@ export const exampleProjects: ExampleProject[] = [
   {
     key: 'python_game',
     name: 'Python Text Adventure',
-    description: 'Explore the code structure of a simple Python-based text adventure game. Good for beginners learning functions and basic classes.',
+    description:
+      'Explore the code structure of a simple Python-based text adventure game. Good for beginners learning functions and basic classes.',
     mapJsonPath: '/example-maps/python_simple_game.json',
     imageUrl: '/images/examples/python_game_preview.png',
-    tags: ["Python", "Beginner", "Game", "CLI"],
+    tags: ['Python', 'Beginner', 'Game', 'CLI'],
   },
   {
     key: 'basic_website',
     name: 'Simple Static Website',
-    description: 'See how HTML, CSS, and a little JavaScript work together in a basic website. Useful for understanding frontend file relationships.',
+    description:
+      'See how HTML, CSS, and a little JavaScript work together in a basic website. Useful for understanding frontend file relationships.',
     mapJsonPath: '/example-maps/basic_website.json',
     imageUrl: '/images/examples/basic_website_preview.png',
-    tags: ["HTML", "CSS", "JavaScript", "Frontend", "Beginner"],
+    tags: ['HTML', 'CSS', 'JavaScript', 'Frontend', 'Beginner'],
   },
   {
     key: 'markdown_docs',
     name: 'Markdown Documentation Set',
-    description: 'A small collection of Markdown files representing a simple documentation structure. Illustrates how CodeMap can visualize non-code projects.',
+    description:
+      'A small collection of Markdown files representing a simple documentation structure. Illustrates how CodeMap can visualize non-code projects.',
     mapJsonPath: '/example-maps/markdown_docs.json',
     imageUrl: '/images/examples/markdown_docs_preview.png',
-    tags: ["Markdown", "Documentation", "Organization"],
+    tags: ['Markdown', 'Documentation', 'Organization'],
   },
 ];
 

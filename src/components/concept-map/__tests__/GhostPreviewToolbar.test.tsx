@@ -44,26 +44,45 @@ describe('GhostPreviewToolbar', () => {
     render(<GhostPreviewToolbar />);
     // Adjusted query to be more resilient to nested spans
     const textElement = screen.getByText((content, element) => {
-      return element?.tagName.toLowerCase() === 'p' && content.startsWith('Previewing layout for') && content.endsWith('node(s).');
+      return (
+        element?.tagName.toLowerCase() === 'p' &&
+        content.startsWith('Previewing layout for') &&
+        content.endsWith('node(s).')
+      );
     });
     expect(textElement).toBeInTheDocument();
-    expect(textElement.textContent).toMatch(/Previewing layout for 1 node\(s\)/i);
-    expect(screen.getByRole('button', { name: /Accept Layout/i })).toBeInTheDocument();
+    expect(textElement.textContent).toMatch(
+      /Previewing layout for 1 node\(s\)/i
+    );
+    expect(
+      screen.getByRole('button', { name: /Accept Layout/i })
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
   });
 
   it('should display the correct node count', () => {
     (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
-      ghostPreviewData: { nodes: [{ id: 'n1', x: 0, y: 0 }, { id: 'n2', x: 1, y: 1 }] },
+      ghostPreviewData: {
+        nodes: [
+          { id: 'n1', x: 0, y: 0 },
+          { id: 'n2', x: 1, y: 1 },
+        ],
+      },
       acceptGhostPreview: mockAcceptGhostPreview,
       cancelGhostPreview: mockCancelGhostPreview,
     });
     render(<GhostPreviewToolbar />);
     const textElement = screen.getByText((content, element) => {
-      return element?.tagName.toLowerCase() === 'p' && content.startsWith('Previewing layout for') && content.endsWith('node(s).');
+      return (
+        element?.tagName.toLowerCase() === 'p' &&
+        content.startsWith('Previewing layout for') &&
+        content.endsWith('node(s).')
+      );
     });
     expect(textElement).toBeInTheDocument();
-    expect(textElement.textContent).toMatch(/Previewing layout for 2 node\(s\)/i);
+    expect(textElement.textContent).toMatch(
+      /Previewing layout for 2 node\(s\)/i
+    );
   });
 
   it('should call acceptGhostPreview when "Accept Layout" button is clicked', () => {

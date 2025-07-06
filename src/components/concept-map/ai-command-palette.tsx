@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -38,9 +38,10 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
     if (!filterText) {
       return commands;
     }
-    return commands.filter(command =>
-      command.label.toLowerCase().includes(filterText.toLowerCase()) ||
-      command.id.toLowerCase().includes(filterText.toLowerCase())
+    return commands.filter(
+      (command) =>
+        command.label.toLowerCase().includes(filterText.toLowerCase()) ||
+        command.id.toLowerCase().includes(filterText.toLowerCase())
     );
   }, [commands, filterText]);
 
@@ -54,10 +55,13 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        setSelectedIndex(prev => (prev + 1) % filteredCommands.length);
+        setSelectedIndex((prev) => (prev + 1) % filteredCommands.length);
       } else if (event.key === 'ArrowUp') {
         event.preventDefault();
-        setSelectedIndex(prev => (prev - 1 + filteredCommands.length) % filteredCommands.length);
+        setSelectedIndex(
+          (prev) =>
+            (prev - 1 + filteredCommands.length) % filteredCommands.length
+        );
       } else if (event.key === 'Enter') {
         event.preventDefault();
         if (filteredCommands[selectedIndex]) {
@@ -78,7 +82,9 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
   // Scroll selected item into view
   useEffect(() => {
     if (isOpen && paletteRef.current) {
-      const selectedButton = paletteRef.current.querySelector(`[data-command-index="${selectedIndex}"]`) as HTMLElement;
+      const selectedButton = paletteRef.current.querySelector(
+        `[data-command-index="${selectedIndex}"]`
+      ) as HTMLElement;
       if (selectedButton) {
         selectedButton.scrollIntoView({ block: 'nearest' });
       }
@@ -89,8 +95,9 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
     // If no commands match filter, also close or don't show.
     // Or, show a "No results" message if preferred. For now, just don't show.
     // If it was open and filter makes commands empty, call onClose.
-    if (isOpen && filteredCommands.length === 0 && commands.length > 0) { // Check commands.length to avoid closing if initially empty due to no commands prop
-        onClose();
+    if (isOpen && filteredCommands.length === 0 && commands.length > 0) {
+      // Check commands.length to avoid closing if initially empty due to no commands prop
+      onClose();
     }
     return null;
   }
@@ -113,29 +120,33 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
 
   return (
     <div ref={paletteRef} style={paletteStyle}>
-      <Card className="w-72 shadow-xl max-h-72 overflow-y-auto">
-        <CardContent className="p-1">
+      <Card className='w-72 shadow-xl max-h-72 overflow-y-auto'>
+        <CardContent className='p-1'>
           {filteredCommands.map((command, index) => {
             const IconComponent = command.icon;
             return (
               <Button
                 key={command.id}
-                variant="ghost"
-                size="sm"
+                variant='ghost'
+                size='sm'
                 data-command-index={index}
                 className={cn(
-                  "w-full justify-start text-left flex items-center space-x-2",
-                  index === selectedIndex && "bg-accent text-accent-foreground"
+                  'w-full justify-start text-left flex items-center space-x-2',
+                  index === selectedIndex && 'bg-accent text-accent-foreground'
                 )}
                 onClick={() => onSelectCommand(command)}
                 onMouseEnter={() => setSelectedIndex(index)} // Allow mouse hover to change selection
               >
-                {IconComponent && <IconComponent className="h-4 w-4 text-muted-foreground" />}
-                <div className="flex flex-col">
-                    <span className="font-medium">{command.label}</span>
-                    {command.description && (
-                        <span className="text-xs text-muted-foreground">{command.description}</span>
-                    )}
+                {IconComponent && (
+                  <IconComponent className='h-4 w-4 text-muted-foreground' />
+                )}
+                <div className='flex flex-col'>
+                  <span className='font-medium'>{command.label}</span>
+                  {command.description && (
+                    <span className='text-xs text-muted-foreground'>
+                      {command.description}
+                    </span>
+                  )}
                 </div>
               </Button>
             );

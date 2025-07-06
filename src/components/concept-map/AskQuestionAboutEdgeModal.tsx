@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -26,7 +26,9 @@ interface AskQuestionAboutEdgeModalProps {
   onCloseModal?: () => void; // To clear state on close
 }
 
-export const AskQuestionAboutEdgeModal: React.FC<AskQuestionAboutEdgeModalProps> = ({
+export const AskQuestionAboutEdgeModal: React.FC<
+  AskQuestionAboutEdgeModalProps
+> = ({
   isOpen,
   onOpenChange,
   edgeContext,
@@ -35,12 +37,12 @@ export const AskQuestionAboutEdgeModal: React.FC<AskQuestionAboutEdgeModalProps>
   answer,
   onCloseModal,
 }) => {
-  const [userQuestion, setUserQuestion] = useState("");
+  const [userQuestion, setUserQuestion] = useState('');
 
   useEffect(() => {
     // Clear question when context changes (e.g. new edge selected) or modal opens
     if (isOpen) {
-      setUserQuestion("");
+      setUserQuestion('');
     }
   }, [isOpen, edgeContext]);
 
@@ -55,7 +57,7 @@ export const AskQuestionAboutEdgeModal: React.FC<AskQuestionAboutEdgeModalProps>
       if (onCloseModal) {
         onCloseModal();
       }
-      setUserQuestion(""); // Clear question when modal is closed
+      setUserQuestion(''); // Clear question when modal is closed
     }
     onOpenChange(open);
   };
@@ -64,25 +66,33 @@ export const AskQuestionAboutEdgeModal: React.FC<AskQuestionAboutEdgeModalProps>
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className='sm:max-w-lg'>
         <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <HelpCircle className="mr-2 h-5 w-5 text-primary" />
+          <DialogTitle className='flex items-center'>
+            <HelpCircle className='mr-2 h-5 w-5 text-primary' />
             Ask AI About Edge
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground pt-1">
-            Context: Edge {edgeContext.edgeLabel ? `"${edgeContext.edgeLabel}"` : ''}
-            connecting <span className="font-semibold text-foreground">"{edgeContext.sourceNodeText}"</span>
-            and <span className="font-semibold text-foreground">"{edgeContext.targetNodeText}"</span>.
+          <DialogDescription className='text-xs text-muted-foreground pt-1'>
+            Context: Edge{' '}
+            {edgeContext.edgeLabel ? `"${edgeContext.edgeLabel}"` : ''}
+            connecting{' '}
+            <span className='font-semibold text-foreground'>
+              "{edgeContext.sourceNodeText}"
+            </span>
+            and{' '}
+            <span className='font-semibold text-foreground'>
+              "{edgeContext.targetNodeText}"
+            </span>
+            .
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="edge-question">Your Question:</Label>
+        <div className='grid gap-4 py-4'>
+          <div className='grid gap-2'>
+            <Label htmlFor='edge-question'>Your Question:</Label>
             <Textarea
-              id="edge-question"
-              placeholder="e.g., How are these two concepts related in more detail? Why is this connection important?"
+              id='edge-question'
+              placeholder='e.g., How are these two concepts related in more detail? Why is this connection important?'
               value={userQuestion}
               onChange={(e) => setUserQuestion(e.target.value)}
               rows={3}
@@ -91,30 +101,42 @@ export const AskQuestionAboutEdgeModal: React.FC<AskQuestionAboutEdgeModalProps>
           </div>
 
           {answer && !isLoading && (
-            <div className="mt-4">
-              <Label className="flex items-center mb-1">
-                <MessageSquare className="mr-2 h-4 w-4 text-primary" /> AI's Answer:
+            <div className='mt-4'>
+              <Label className='flex items-center mb-1'>
+                <MessageSquare className='mr-2 h-4 w-4 text-primary' /> AI's
+                Answer:
               </Label>
-              <ScrollArea className="h-auto max-h-40 w-full rounded-md border bg-muted/30 p-3">
-                <p className="text-sm text-foreground whitespace-pre-wrap">{answer}</p>
+              <ScrollArea className='h-auto max-h-40 w-full rounded-md border bg-muted/30 p-3'>
+                <p className='text-sm text-foreground whitespace-pre-wrap'>
+                  {answer}
+                </p>
               </ScrollArea>
             </div>
           )}
 
           {isLoading && (
-            <div className="mt-4 flex items-center justify-center text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            <div className='mt-4 flex items-center justify-center text-muted-foreground'>
+              <Loader2 className='mr-2 h-5 w-5 animate-spin' />
               <span>AI is thinking...</span>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleDialogClose(false)} disabled={isLoading}>
+          <Button
+            variant='outline'
+            onClick={() => handleDialogClose(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading || !userQuestion.trim()}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          <Button
+            onClick={handleSubmit}
+            disabled={isLoading || !userQuestion.trim()}
+          >
+            {isLoading ? (
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+            ) : null}
             Submit Question
           </Button>
         </DialogFooter>

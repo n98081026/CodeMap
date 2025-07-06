@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { AuthProvider, useAuth, __test__handleCopyExampleAction } from './auth-context'; // Import the function for testing
+import {
+  AuthProvider,
+  useAuth,
+  __test__handleCopyExampleAction,
+} from './auth-context'; // Import the function for testing
 import { act, renderHook } from '@testing-library/react';
 import { SupabaseClient, User as SupabaseUser } from '@supabase/supabase-js';
 import { useConceptMapStore } from '@/stores/concept-map-store';
@@ -8,11 +12,15 @@ import { useToast } from '@/hooks/use-toast';
 
 // Mock Supabase client
 const mockSupabaseAuth = {
-  onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+  onAuthStateChange: vi
+    .fn()
+    .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
   signOut: vi.fn().mockResolvedValue({ error: null }),
   signInWithPassword: vi.fn(),
   signUp: vi.fn(),
-  getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+  getSession: vi
+    .fn()
+    .mockResolvedValue({ data: { session: null }, error: null }),
   getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
 };
 const mockSupabaseFrom = vi.fn(() => ({
@@ -52,8 +60,16 @@ vi.mock('@/hooks/use-toast', () => ({
 
 // Mock exampleProjects
 const mockExampleProjectsData = [
-  { key: 'example1', name: 'Example Project 1', mapJsonPath: '/example-maps/example1.json' },
-  { key: 'example2', name: 'Example Project 2', mapJsonPath: '/example-maps/example2.json' },
+  {
+    key: 'example1',
+    name: 'Example Project 1',
+    mapJsonPath: '/example-maps/example1.json',
+  },
+  {
+    key: 'example2',
+    name: 'Example Project 2',
+    mapJsonPath: '/example-maps/example2.json',
+  },
 ];
 vi.mock('@/lib/example-data', () => ({
   exampleProjects: mockExampleProjectsData,
@@ -83,22 +99,26 @@ vi.mock('@/stores/concept-map-store', () => ({
   useConceptMapStore: () => mockConceptMapStoreGetState(),
 }));
 
-
 // Mock localStorage (already in the original file, kept for consistency)
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => { store[key] = value.toString(); },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; },
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
   };
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 // Mock global fetch
 global.fetch = vi.fn();
-
 
 describe('AuthContext - handleCopyExampleAction', () => {
   const mockUserId = 'user-test-123';
@@ -115,9 +135,23 @@ describe('AuthContext - handleCopyExampleAction', () => {
 
   it('should successfully copy an example map to user workspace', async () => {
     const exampleKey = 'example1';
-    const exampleProject = mockExampleProjectsData.find(p => p.key === exampleKey)!;
-    const mockExampleMapJsonData = { nodes: [{id: 'n1', text:'Test Node'}], edges: [] };
-    const mockSavedConceptMap = { id: 'new-map-id-123', name: `Copy of ${exampleProject.name}`, ownerId: mockUserId, mapData: mockExampleMapJsonData, isPublic: false, sharedWithClassroomId: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    const exampleProject = mockExampleProjectsData.find(
+      (p) => p.key === exampleKey
+    )!;
+    const mockExampleMapJsonData = {
+      nodes: [{ id: 'n1', text: 'Test Node' }],
+      edges: [],
+    };
+    const mockSavedConceptMap = {
+      id: 'new-map-id-123',
+      name: `Copy of ${exampleProject.name}`,
+      ownerId: mockUserId,
+      mapData: mockExampleMapJsonData,
+      isPublic: false,
+      sharedWithClassroomId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
     // Mock fetch for example JSON
     (fetch as vi.Mock).mockResolvedValueOnce({
@@ -130,34 +164,59 @@ describe('AuthContext - handleCopyExampleAction', () => {
       json: async () => mockSavedConceptMap,
     });
 
-    await __test__handleCopyExampleAction(exampleKey, mockUserId, mockRouter as any, mockToast as any);
+    await __test__handleCopyExampleAction(
+      exampleKey,
+      mockUserId,
+      mockRouter as any,
+      mockToast as any
+    );
 
     expect(fetch).toHaveBeenCalledWith(exampleProject.mapJsonPath); // Check example JSON fetch
     expect(mockInitializeNewMap).toHaveBeenCalledWith(mockUserId);
-    expect(mockSetState).toHaveBeenCalledWith(expect.objectContaining({
-      mapName: `Copy of ${exampleProject.name}`,
-      mapData: mockExampleMapJsonData,
-      isPublic: false,
-    }));
-    expect(fetch).toHaveBeenCalledWith('/api/concept-maps', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({
-        name: `Copy of ${exampleProject.name}`,
-        ownerId: mockUserId,
+    expect(mockSetState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mapName: `Copy of ${exampleProject.name}`,
         mapData: mockExampleMapJsonData,
         isPublic: false,
-        sharedWithClassroomId: null,
       })
-    }));
-    expect(mockToastFn).toHaveBeenCalledWith(expect.objectContaining({ title: "Example Copied" }));
-    expect(mockRouterReplace).toHaveBeenCalledWith(`/application/concept-maps/editor/${mockSavedConceptMap.id}`);
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/concept-maps',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          name: `Copy of ${exampleProject.name}`,
+          ownerId: mockUserId,
+          mapData: mockExampleMapJsonData,
+          isPublic: false,
+          sharedWithClassroomId: null,
+        }),
+      })
+    );
+    expect(mockToastFn).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Example Copied' })
+    );
+    expect(mockRouterReplace).toHaveBeenCalledWith(
+      `/application/concept-maps/editor/${mockSavedConceptMap.id}`
+    );
   });
 
   it('should show error toast and redirect if example project is not found', async () => {
     const exampleKey = 'non-existent-example';
-    await __test__handleCopyExampleAction(exampleKey, mockUserId, mockRouter as any, mockToast as any);
+    await __test__handleCopyExampleAction(
+      exampleKey,
+      mockUserId,
+      mockRouter as any,
+      mockToast as any
+    );
 
-    expect(mockToastFn).toHaveBeenCalledWith(expect.objectContaining({ title: "Error", description: "Example project not found.", variant: "destructive" }));
+    expect(mockToastFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Error',
+        description: 'Example project not found.',
+        variant: 'destructive',
+      })
+    );
     expect(mockRouterReplace).toHaveBeenCalledWith('/examples');
     expect(fetch).not.toHaveBeenCalled(); // No fetch calls should be made
   });
@@ -169,33 +228,65 @@ describe('AuthContext - handleCopyExampleAction', () => {
       statusText: 'Not Found',
     });
 
-    await __test__handleCopyExampleAction(exampleKey, mockUserId, mockRouter as any, mockToast as any);
+    await __test__handleCopyExampleAction(
+      exampleKey,
+      mockUserId,
+      mockRouter as any,
+      mockToast as any
+    );
 
-    expect(fetch).toHaveBeenCalledWith(mockExampleProjectsData.find(p=>p.key===exampleKey)!.mapJsonPath);
-    expect(mockToastFn).toHaveBeenCalledWith(expect.objectContaining({ title: "Copy Failed", description: "Failed to fetch example map data: Not Found", variant: "destructive" }));
+    expect(fetch).toHaveBeenCalledWith(
+      mockExampleProjectsData.find((p) => p.key === exampleKey)!.mapJsonPath
+    );
+    expect(mockToastFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Copy Failed',
+        description: 'Failed to fetch example map data: Not Found',
+        variant: 'destructive',
+      })
+    );
     expect(mockRouterReplace).toHaveBeenCalledWith('/examples');
   });
 
   it('should show error toast and redirect if saving copied map (POST API) fails', async () => {
     const exampleKey = 'example1';
-    const exampleProject = mockExampleProjectsData.find(p => p.key === exampleKey)!;
-    const mockExampleMapJsonData = { nodes: [{id: 'n1', text:'Test Node'}], edges: [] };
+    const exampleProject = mockExampleProjectsData.find(
+      (p) => p.key === exampleKey
+    )!;
+    const mockExampleMapJsonData = {
+      nodes: [{ id: 'n1', text: 'Test Node' }],
+      edges: [],
+    };
 
     (fetch as vi.Mock)
-      .mockResolvedValueOnce({ ok: true, json: async () => mockExampleMapJsonData }) // For example JSON
-      .mockResolvedValueOnce({ // For POST /api/concept-maps
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockExampleMapJsonData,
+      }) // For example JSON
+      .mockResolvedValueOnce({
+        // For POST /api/concept-maps
         ok: false,
         json: async () => ({ message: 'Server error during save' }),
       });
 
-    await __test__handleCopyExampleAction(exampleKey, mockUserId, mockRouter as any, mockToast as any);
+    await __test__handleCopyExampleAction(
+      exampleKey,
+      mockUserId,
+      mockRouter as any,
+      mockToast as any
+    );
 
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(mockToastFn).toHaveBeenCalledWith(expect.objectContaining({ title: "Copy Failed", description: "Server error during save", variant: "destructive" }));
+    expect(mockToastFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Copy Failed',
+        description: 'Server error during save',
+        variant: 'destructive',
+      })
+    );
     expect(mockRouterReplace).toHaveBeenCalledWith('/examples');
   });
 });
-
 
 // Original AuthContext tests (Guest Session State Management)
 // These tests can remain as they test different aspects of the AuthContext
@@ -208,8 +299,14 @@ describe('AuthContext - Guest Session State Management', () => {
       callback('INITIAL_SESSION', null);
       return { data: { subscription: { unsubscribe: vi.fn() } } };
     });
-    mockSupabaseAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
-    mockSupabaseAuth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    mockSupabaseAuth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+    mockSupabaseAuth.getUser.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
   });
 
   // Note: The original tests for isGuestSession, startGuestSession, clearGuestSession
@@ -226,12 +323,30 @@ describe('AuthContext - Guest Session State Management', () => {
   it('login and subsequent onAuthStateChange should set user and clear guest session', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
-    const mockAuthUser = { id: 'user-123', email: 'test@example.com' } as SupabaseUser;
-    const mockSession = { access_token: 'token', user: mockAuthUser, user_metadata: {} };
-    const mockProfile = { id: 'user-123', full_name: 'Test User', email: 'test@example.com', role: 'student' };
+    const mockAuthUser = {
+      id: 'user-123',
+      email: 'test@example.com',
+    } as SupabaseUser;
+    const mockSession = {
+      access_token: 'token',
+      user: mockAuthUser,
+      user_metadata: {},
+    };
+    const mockProfile = {
+      id: 'user-123',
+      full_name: 'Test User',
+      email: 'test@example.com',
+      role: 'student',
+    };
 
-    (mockSupabaseAuth.signInWithPassword as vi.Mock).mockResolvedValueOnce({ data: { user: mockAuthUser, session: mockSession }, error: null });
-    (mockSupabaseFrom().select().eq().single as vi.Mock).mockResolvedValueOnce({ data: mockProfile, error: null });
+    (mockSupabaseAuth.signInWithPassword as vi.Mock).mockResolvedValueOnce({
+      data: { user: mockAuthUser, session: mockSession },
+      error: null,
+    });
+    (mockSupabaseFrom().select().eq().single as vi.Mock).mockResolvedValueOnce({
+      data: mockProfile,
+      error: null,
+    });
 
     // Simulate onAuthStateChange emitting SIGNED_IN after login
     mockSupabaseAuth.onAuthStateChange.mockImplementation((callback) => {
@@ -245,7 +360,9 @@ describe('AuthContext - Guest Session State Management', () => {
     });
 
     // Wait for async operations within onAuthStateChange and fetchAndSetSupabaseUser
-    await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
 
     expect(result.current.user?.id).toBe(mockAuthUser.id);
     expect(result.current.isAuthenticated).toBe(true);

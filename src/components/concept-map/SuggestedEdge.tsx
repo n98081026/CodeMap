@@ -1,7 +1,11 @@
 import React, { useState } from 'react'; // Added useState
 import { getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover';
 import { PlusCircleIcon, CheckCircle, XCircle } from 'lucide-react'; // Added more icons
 import useConceptMapStore from '@/stores/concept-map-store';
 import { v4 as uuidv4 } from 'uuid';
@@ -20,7 +24,8 @@ interface SuggestedEdgeProps {
   targetPosition: string;
   style?: React.CSSProperties;
   markerEnd?: string;
-  data: { // data is now non-optional and structured as per FlowCanvasCore
+  data: {
+    // data is now non-optional and structured as per FlowCanvasCore
     suggestionId: string; // This is the original suggestion ID from the store
     suggestionData: {
       sourceNodeId: string;
@@ -69,14 +74,17 @@ const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
       // type: 'custom', // Or 'orthogonal' or whatever default new edges should be
     });
     removeStructuralSuggestion(data.suggestionId); // Use the original suggestion ID from data
-    toast({ title: "Suggestion applied", description: "Edge added to the map." });
+    toast({
+      title: 'Suggestion applied',
+      description: 'Edge added to the map.',
+    });
     setPopoverOpen(false);
   };
 
   const onDismiss = () => {
     if (!data) return;
     removeStructuralSuggestion(data.suggestionId); // Use the original suggestion ID
-    toast({ title: "Suggestion dismissed" });
+    toast({ title: 'Suggestion dismissed' });
     setPopoverOpen(false);
   };
 
@@ -84,7 +92,11 @@ const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={{ strokeDasharray: '5 5', stroke: '#888', ...style }} />
+      <BaseEdge
+        path={edgePath}
+        markerEnd={markerEnd}
+        style={{ strokeDasharray: '5 5', stroke: '#888', ...style }}
+      />
       <EdgeLabelRenderer>
         <div
           style={{
@@ -92,36 +104,52 @@ const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
           }}
-          className="nodrag nopan"
+          className='nodrag nopan'
         >
           <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger asChild>
               <Button
-                variant="outline"
-                size="icon"
-                className="bg-background hover:bg-secondary rounded-full shadow-md border-dashed border-primary"
+                variant='outline'
+                size='icon'
+                className='bg-background hover:bg-secondary rounded-full shadow-md border-dashed border-primary'
                 style={{ width: '24px', height: '24px' }}
-                title={data.suggestionData.label || data.reason || "Review suggestion"}
+                title={
+                  data.suggestionData.label ||
+                  data.reason ||
+                  'Review suggestion'
+                }
               >
-                <PlusCircleIcon className="h-4 w-4 text-primary" />
+                <PlusCircleIcon className='h-4 w-4 text-primary' />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-60 text-sm" side="bottom">
-              <div className="space-y-2">
-                <p className="font-semibold">Suggested Edge:</p>
+            <PopoverContent className='w-60 text-sm' side='bottom'>
+              <div className='space-y-2'>
+                <p className='font-semibold'>Suggested Edge:</p>
                 <p>"{data.suggestionData.label}"</p>
                 {data.reason && (
                   <>
-                    <p className="font-semibold mt-2">Reason:</p>
-                    <p className="text-xs text-muted-foreground">{data.reason}</p>
+                    <p className='font-semibold mt-2'>Reason:</p>
+                    <p className='text-xs text-muted-foreground'>
+                      {data.reason}
+                    </p>
                   </>
                 )}
-                <div className="flex justify-end space-x-2 pt-2">
-                  <Button variant="outline" size="xs" onClick={onDismiss} title="Dismiss suggestion">
-                    <XCircle className="h-4 w-4 mr-1" /> Dismiss
+                <div className='flex justify-end space-x-2 pt-2'>
+                  <Button
+                    variant='outline'
+                    size='xs'
+                    onClick={onDismiss}
+                    title='Dismiss suggestion'
+                  >
+                    <XCircle className='h-4 w-4 mr-1' /> Dismiss
                   </Button>
-                  <Button variant="default" size="xs" onClick={onAccept} title="Accept suggestion">
-                    <CheckCircle className="h-4 w-4 mr-1" /> Accept
+                  <Button
+                    variant='default'
+                    size='xs'
+                    onClick={onAccept}
+                    title='Accept suggestion'
+                  >
+                    <CheckCircle className='h-4 w-4 mr-1' /> Accept
                   </Button>
                 </div>
               </div>
@@ -129,7 +157,7 @@ const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
           </Popover>
           {data.suggestionData.label && !popoverOpen && (
             <div
-              className="text-xs text-muted-foreground ml-2 mt-1 absolute left-full whitespace-nowrap p-1 bg-background/80 rounded"
+              className='text-xs text-muted-foreground ml-2 mt-1 absolute left-full whitespace-nowrap p-1 bg-background/80 rounded'
               style={{ transform: 'translateY(-50%)', top: '50%' }}
             >
               {data.suggestionData.label}
