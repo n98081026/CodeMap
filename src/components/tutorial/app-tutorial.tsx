@@ -451,9 +451,17 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
             placement: 'left',
           },
           {
+            target: "[data-tutorial-id='suggested-relation-item-0']", // Target the first suggested relation item
+            content:
+              '每一行代表一個AI建議的關係。您可以查看源節點、目標節點和建議的關係標籤。如果關係看起來合理，您可以勾選它以便稍後添加到圖譜中。',
+            title: '檢查單個建議',
+            placement: 'left',
+            // disableBeacon: true, // Optional: if the item itself is small
+          },
+          {
             target: "[data-tutorial-id='add-selected-relations-button']",
             content:
-              '您可以勾選想要添加的關係建議，然後點擊此按鈕將它們作為新的邊添加到您的概念圖中。',
+              '勾選好您想要的關係後，點擊此按鈕，它們就會作為新的連接邊被添加到您的概念圖中。',
             title: '7. 添加選中的關係',
             placement: 'left',
           },
