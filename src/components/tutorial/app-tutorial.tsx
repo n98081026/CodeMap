@@ -25,7 +25,8 @@ export const availableTutorials: TutorialMetaData[] = [
   { key: 'suggestRelationsToolTutorial', title: 'AI工具：建議關係' },
   {
     key: 'expandConceptStagingTutorial',
-    title: 'AI工具：管理擴展概念 (預覽區)',
+    title: 'AI: Espandi Concetto & Gestione Anteprima', // Updated title
+    description: "Impara a usare l'AI per espandere i concetti e a gestire i suggerimenti nell'area di anteprima.", // Added description
   },
   { key: 'ghostPreviewLayoutTutorial', title: '佈局調整：鬼影預覽' },
   // Add more tutorials here as they are created
@@ -474,51 +475,77 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
           },
         ];
       } else if (key === 'expandConceptStagingTutorial') {
-        // This tutorial assumes the "Expand Concept" AI tool has already been run
-        // and suggestions are visible in the staging area.
+        // Combined tutorial: From activating "Expand Concept" to managing in Staging Area
         return [
           {
-            target: "[data-tutorial-id='ai-staging-toolbar']",
-            content:
-              '當您使用「擴展概念」等AI工具後，建議的內容會先出現在這個「AI預覽區」工具條。您可以在這裡決定是否將它們正式加入到您的概念圖中。',
-            placement: 'top',
-            title: 'AI預覽區介紹',
+            target: '.react-flow__pane',
+            content: "Imparariamo come usare l'AI per espandere un concetto esistente e come gestire i suggerimenti nell'Area di Anteprima AI (Staging Area).",
+            placement: 'center',
+            title: 'AI: Espandi Concetto & Anteprima',
             disableBeacon: true,
           },
           {
-            target: ".react-flow__node[data-type='ai-expanded-staged']", // Targets a staged node
-            content:
-              '這些是AI建議的新概念節點，它們暫時以「預覽」狀態顯示在畫布上。您可以查看它們是否符合您的需求。',
-            title: '預覽節點',
-            // Note: This selector might target the first such node. If multiple, it highlights one.
+            target: '.react-flow__node:not([data-type*="staged"]):not([data-type*="ghost"]):first-of-type', // Target a non-staged, non-ghost node
+            content: "Per iniziare, seleziona un nodo sulla mappa che vuoi espandere con nuove idee correlate generate dall'AI. Se non ci sono nodi, per favore aggiungine uno.",
+            title: '1. Seleziona un Concetto',
+            // spotlightClicks: true, // Allow user to click a node
           },
           {
-            target: "[data-tutorial-id='ai-mini-toolbar']", // This will target the mini toolbar if visible for a selected staged node
-            content:
-              '如果您選中一個預覽節點，可能會出現一個迷你工具欄，提供快速操作，如「快速擴展」或「簡化文本」。注意：並非所有預覽元素都有迷你工具欄。',
-            title: '迷你快捷操作 (可選)',
-            // isOptional: true, // Joyride doesn't have this, but it's a conditional step.
-            // This step might not always find a target if no staged node is selected or has a mini-toolbar.
-            // Consider making this step's description more general if the toolbar is not always present.
+            target: "button[aria-label='AI Tools']",
+            content: 'Ora, apri il menu degli Strumenti AI.',
+            title: '2. Apri Menu AI',
+          },
+          {
+            target: "button[data-tutorial-id='ai-tool-expand-concept']",
+            content: "Seleziona 'Expand Selected Concept' dal menu.",
+            title: "3. Scegli 'Espandi Concetto'",
+          },
+          {
+            target: "div[id='tutorial-target-expand-concept-modal']", // Assumes this ID is on DialogContent or Dialog itself
+            content: "Questo è il modale 'Espandi Concetto'. Il concetto del nodo selezionato dovrebbe essere già compilato. Puoi aggiungere un focus specifico per guidare l'AI.",
+            title: '4. Modale Espandi Concetto',
+            placement: 'auto',
+          },
+          {
+            target: "textarea[id='tutorial-target-expand-concept-input']",
+            content: "(Opzionale) Inserisci qui un prompt per raffinare i suggerimenti, ad esempio 'concentrati sugli aspetti tecnici' o 'suggerisci esempi pratici'.",
+            title: 'Focus (Opzionale)',
+          },
+          {
+            target: "button[id='tutorial-target-expand-concept-confirm-button']",
+            content: "Clicca qui per avviare l'AI e generare i suggerimenti.",
+            title: '5. Genera Suggerimenti',
+          },
+          {
+            target: "[data-tutorial-id='ai-staging-toolbar']",
+            content: 'Ottimo! I suggerimenti dell\'AI sono ora visualizzati nell\'Area di Anteprima (Staging Area). Questa toolbar ti permette di gestirli.',
+            placement: 'bottom', // Usually toolbar is at the bottom
+            title: '6. Area di Anteprima AI',
+          },
+          {
+            // Targetting a staged node. The type 'ai-expanded' is assigned in useConceptMapAITools.
+            // If they get a more specific 'staged' type when rendered, that would be better.
+            // For now, we assume it's findable this way or by ID if we can capture it.
+            target: ".react-flow__node[data-type='ai-expanded']:first-of-type",
+            content: "Sulla mappa, vedrai i nuovi nodi e le connessioni suggerite dall'AI. Questi sono ancora in uno stato di 'anteprima'.",
+            title: '7. Anteprima sulla Mappa',
+            // This might be tricky if no suggestions are generated or if they are not immediately visible.
           },
           {
             target: "button[data-tutorial-id='staging-toolbar-accept-all']",
-            content:
-              '如果您對所有預覽的建議都感到滿意，可以點擊「Commit to Map」按鈕，將它們一次性永久添加到您的概念圖中。',
-            title: '全部採納建議',
+            content: "Se tutti i suggerimenti ti sembrano validi, clicca 'Commit to Map' per aggiungerli permanentemente alla tua mappa concettuale.",
+            title: '8. Accetta Tutti i Suggerimenti',
           },
           {
             target: "button[data-tutorial-id='staging-toolbar-clear-all']",
-            content:
-              '如果您不希望保留這些預覽的建議，可以點擊「Discard All」按鈕，將它們從預覽區移除。',
-            title: '全部清除建議',
+            content: "Se preferisci non usare questi suggerimenti, clicca 'Discard All' per rimuoverli dall'area di anteprima.",
+            title: 'Alternativa: Cancella Tutti',
           },
           {
             target: 'body',
-            content:
-              '太棒了！您已經學會了如何使用AI預覽區來管理和確認AI生成的概念擴展。',
+            content: "Hai imparato a usare 'Espandi Concetto' e a gestire i risultati tramite l'Area di Anteprima AI!",
             placement: 'center',
-            title: '教程完成！',
+            title: 'Tutorial Completato!',
           },
         ];
       } else if (key === 'ghostPreviewLayoutTutorial') {
