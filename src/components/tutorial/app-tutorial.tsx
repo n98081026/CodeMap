@@ -28,7 +28,12 @@ export const availableTutorials: TutorialMetaData[] = [
     title: 'AI: Espandi Concetto & Gestione Anteprima', // Updated title
     description: "Impara a usare l'AI per espandere i concetti e a gestire i suggerimenti nell'area di anteprima.", // Added description
   },
-  { key: 'ghostPreviewLayoutTutorial', title: '佈局調整：鬼影預覽' },
+  { key: 'ghostPreviewLayoutTutorial', title: '佈局調整：鬼影預覽 (簡化版)' }, // Clarified existing title slightly
+  {
+    key: 'ghostPreviewsUsageTutorial',
+    title: '佈局：使用鬼影預覽 (完整流程)',
+    description: '學習如何觸發鬼影預覽並使用其工具欄來接受或取消佈局更改。',
+  },
   // Add more tutorials here as they are created
 ];
 
@@ -548,7 +553,7 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
             title: 'Tutorial Completato!',
           },
         ];
-      } else if (key === 'ghostPreviewLayoutTutorial') {
+      } else if (key === 'ghostPreviewLayoutTutorial') { // This is the existing one, maybe rename or merge?
         // This tutorial assumes a ghost preview (e.g., from AI Tidy Up layout only) is active.
         return [
           {
@@ -584,7 +589,62 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
             title: '教程完成！',
           },
         ];
+      } else if (key === 'ghostPreviewsUsageTutorial') { // New, more comprehensive tutorial
+        return [
+          {
+            target: '.react-flow__pane',
+            content: "Questo tutorial ti mostrerà come funzionano i 'Ghost Previews'. Sono anteprime visuali di modifiche al layout proposte dall'AI o da altri strumenti, prima che tu le applichi definitivamente.",
+            title: 'Anteprime Ghost: Introduzione',
+            placement: 'center',
+            disableBeacon: true,
+          },
+          {
+            target: '.react-flow__pane',
+            content: "Per vedere i Ghost Previews in azione, devi prima selezionare almeno due nodi sulla mappa che vuoi riorganizzare. Se non hai nodi, aggiungine alcuni e poi selezionali.",
+            title: '1. Prepara la Selezione',
+            // User needs to perform this action.
+          },
+          {
+            target: "button[aria-label='Layout Tools']",
+            content: "Ora, apri il menu degli Strumenti di Layout.",
+            title: '2. Apri Menu Layout',
+          },
+          {
+            target: "button[data-tutorial-id='layout-tool-dagre-tidy']",
+            content: "Seleziona 'Tidy Selection (Dagre)' per applicare un layout automatico alla tua selezione. Questo attiverà un Ghost Preview.",
+            title: '3. Applica Dagre Tidy',
+          },
+          {
+            target: ".react-flow__node[data-ghost='true']:first-of-type",
+            content: "Ecco i Ghost Previews! I nodi selezionati ora mostrano la loro posizione e dimensione proposte (spesso con uno stile tratteggiato o semi-trasparente). Queste non sono ancora le modifiche finali.",
+            title: '4. Visualizza i Ghost Nodes',
+            placement: 'auto',
+          },
+          {
+            target: "[data-tutorial-id='ghost-preview-toolbar']",
+            content: "Questa toolbar è apparsa per permetterti di gestire l'anteprima. Da qui puoi accettare o rifiutare le modifiche proposte.",
+            title: '5. Toolbar di Anteprima Ghost',
+            placement: 'bottom', // Often toolbars like this are at the bottom or top
+          },
+          {
+            target: "button[data-tutorial-id='ghost-toolbar-accept']",
+            content: "Se il layout proposto ti piace, clicca qui (o 'Accept Layout') per applicare le modifiche in modo permanente alla tua mappa.",
+            title: '6. Accetta Modifiche',
+          },
+          {
+            target: "button[data-tutorial-id='ghost-toolbar-cancel']",
+            content: "Se non vuoi applicare queste modifiche, clicca qui (o 'Cancel') per scartare l'anteprima e mantenere il layout originale.",
+            title: '7. Cancella Anteprima',
+          },
+          {
+            target: 'body',
+            content: "Ottimo! Ora sai come interpretare e utilizzare i Ghost Previews per prendere decisioni informate sulle modifiche di layout proposte.",
+            title: 'Tutorial Completato!',
+            placement: 'center',
+          },
+        ];
       }
+
 
       return []; // Default to no steps
     },

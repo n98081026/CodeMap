@@ -590,6 +590,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             )}
             {onDagreTidySelection && (
               <DropdownMenuItem
+                data-tutorial-id='layout-tool-dagre-tidy' // Added tutorial ID
                 onClick={() =>
                   handleGenAIClick(onDagreTidySelection, 'Dagre Tidy Selection')
                 }
