@@ -123,6 +123,36 @@ The main remaining area for full Supabase connection is:
     - [x] Created `MANUAL_TUTORIAL_TESTING_GUIDE.md`.
     - [x] **CSS Selector Refinement for Tutorials:** All tutorial step `target` selectors require manual verification and potential adjustment. (**Verified & Fixed:** Selectors appear largely stable. `overlayColor` style fix implemented.)
     - [ ] **Full Interactive Tutorial/Onboarding (Advanced):** Further expansion of tutorial coverage. (PENDING)
+    - [ ] **Expand Tutorial Coverage (Phase 2 - Current Focus):**
+        - [ ] **Manual Node/Edge Creation & Editing**:
+            - [x] Tutorial steps for adding a node via toolbar (Basic structure defined, dynamic target implemented via `tutorialTempTargetNodeId` in `conceptMapStore`).
+            - [x] **Refine `manualAddNodeTutorial` for selecting and editing new node**:
+                - [x] Add step to guide user to select the new node (if not auto-selected).
+                - [x] Add step to guide user to open Properties Inspector (if not auto-opened or already open).
+                - [x] Add step to highlight label input in Properties Inspector.
+                - [x] (Optional) Add step for details input.
+            - [x] Tutorial steps for creating an edge by dragging from a source handle to a target handle (Basic structure defined, dynamic target via `tutorialTempTargetEdgeId` in `conceptMapStore`).
+            - [x] **Refine `manualCreateEdgeTutorial` for selecting and editing new edge**:
+                - [x] Add step to guide user to select the new edge.
+                - [x] Add step to guide user to open Properties Inspector.
+                - [x] Add step to highlight label input in Properties Inspector for the edge.
+            - [ ] Tutorial steps for selecting an edge and editing its label/details. <!-- This seems covered by the refinement above. Mark for review/removal if truly duplicate. -->
+        - [ ] **Using AI Tools - "Suggest Relations" (`suggestRelationsToolTutorial`)**:
+            - [x] Define steps for triggering "Suggest Relations" from AI Tools menu.
+            - [x] Explain the modal and how AI uses context.
+            - [x] Guide user to the AI Suggestion Panel to view and apply suggested relations.
+            - [ ] **TODO**: Ensure `button[data-tutorial-id='ai-tool-suggest-relations']` and `[role='dialog'][aria-labelledby='suggest-relations-title']` (and its submit button) have correct `data-tutorial-id` or stable selectors.
+            - [ ] **TODO**: Ensure AI Suggestion Panel items for relations have a stable selector like `.suggestion-type-relation`.
+        - [ ] **Using AI Tools - "Expand Concept" (Advanced/Staging Area Usage)**:
+            - [ ] Focus on Staging Area interaction: accepting/clearing.
+        - [ ] **Using Ghost Previews (e.g., from AI Tidy Up - Layout Only)**:
+            - [ ] Explain Ghost Preview and how to accept/cancel.
+        - [ ] **(Optional) Project Overview Mode Tutorial**.
+    - [ ] **Tutorial System Enhancements & Polish:**
+        - [x] **"Help/Tutorials" Menu**: Allow users to re-trigger tutorials. (Implemented in Navbar using DropdownMenu and `availableTutorials` list. Includes "Reset All" functionality).
+        - [ ] **Review and Refine Tutorial Text**.
+        - [ ] **Visual Polish**.
+        - [ ] **Test on Different Screen Sizes**.
 - [ ] **Onboarding & Initial Experience (Excluding Tutorial):**
     - [ ] **"Guest Mode" or "Try Without Login".** (Higher effort - PENDING)
     - [x] **Clearer "User Goals" Input.**
@@ -246,3 +276,28 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
             - `src/stores/concept-map-store.test.ts` -> `src/stores/__tests__/concept-map-store.test.ts`
             - `src/ai/tools/project-analyzer-tool.test.ts` -> `src/ai/tools/__tests__/project-analyzer-tool.test.ts`
         - **Step 3 (Jules - Blocked by Step 1 & 2):** Verify/Update `vitest.config.ts` to correctly find tests in new locations and ensure tests still pass.
+
+---
+## Ongoing: AI Interaction Layer Enhancements & Hook Refactoring (Revised after file restore)
+
+- [ ] **Enhance `callAIWithStandardFeedback` (NEEDS DEVELOPER RE-IMPLEMENTATION & VERIFICATION):**
+    - [ ] Implement `options.onSuccess?: (output: O, input: I) => void` in function signature and logic.
+        - *Purpose*: Allow specific side effects post-AI success, before default toast.
+    - [ ] Implement `options.onError?: (error: unknown, input: I) => boolean | void` in function signature and logic.
+        - *Purpose*: Enable custom error handling; can suppress default error toast if it returns `true`.
+    - [ ] Implement refined `userFriendlyMessage` generation in `catch` block to better use `error.details` or other structured error info from Genkit.
+    - [x] JSDoc for `callAIWithStandardFeedback` has been updated to describe these intended `onSuccess` and `onError` options. (Jules - Done)
+
+- [ ] **Refactor `useConceptMapAITools.ts` (NEEDS DEVELOPER REVIEW & IMPLEMENTATION):**
+    - [ ] **Extract AI success handlers**: After `onSuccess` is implemented in `callAIWithStandardFeedback`, refactor ALL `handle...` functions (including Q&A handlers) to move their success logic into this callback.
+        - *Goal*: Reduce nesting and length of `handle...` functions.
+    - [ ] **Isolate simple AI flow calls**: Review handlers that primarily display a toast on success; ensure they leverage `callAIWithStandardFeedback`'s `successDescription` effectively.
+    - [ ] **Review and add/update comments**: Add more comments for complex sections throughout the hook.
+    - [ ] **Thoroughly review `useCallback` dependencies**: **CRITICAL - NEEDS DEVELOPER REVIEW & ADJUSTMENT WITH LOCAL LINTER/TESTING.** Ensure all `useCallback` hooks have correct and exhaustive dependencies.
+
+- [ ] **Update relevant AI tool invocation points (NEEDS DEVELOPER IMPLEMENTATION):**
+    - This task is dependent on the above refactoring.
+
+- [ ] **Documentation**:
+    - [x] JSDoc for `callAIWithStandardFeedback` options updated. (Jules - Done)
+    - [ ] Broader documentation for the hook, its patterns, and specific AI handler logic is still pending.

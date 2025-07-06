@@ -44,8 +44,9 @@ const AISuggestionMiniToolbar: React.FC<AISuggestionMiniToolbarProps> = ({
   };
 
   return (
-    <div style={style} className="ai-mini-toolbar">
+    <div style={style} className="ai-mini-toolbar" data-tutorial-id="ai-mini-toolbar">
       <Button
+        data-tutorial-id="ai-mini-toolbar-quick-expand-button"
         variant="ghost"
         size="sm"
         onClick={() => onQuickExpand(nodeId)}
@@ -55,6 +56,7 @@ const AISuggestionMiniToolbar: React.FC<AISuggestionMiniToolbarProps> = ({
         Expand
       </Button>
       <Button
+        data-tutorial-id="ai-mini-toolbar-rewrite-concise-button"
         variant="ghost"
         size="sm"
         onClick={() => onRewriteConcise(nodeId)}

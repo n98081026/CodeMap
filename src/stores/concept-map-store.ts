@@ -166,6 +166,12 @@ interface ConceptMapState {
   // New actions for focus
   setFocusOnNodes: (nodeIds: string[], isOverviewExit?: boolean) => void;
   clearFocusViewTrigger: () => void;
+
+  // For tutorial system to target newly added elements
+  tutorialTempTargetNodeId: string | null;
+  setTutorialTempTargetNodeId: (nodeId: string | null) => void;
+  tutorialTempTargetEdgeId: string | null; // For new edges
+  setTutorialTempTargetEdgeId: (edgeId: string | null) => void; // For new edges
 }
 
 const initialStateBaseOmitKeys = [
@@ -192,6 +198,8 @@ const initialStateBaseOmitKeys = [
   'toggleOverviewMode', 'setProjectOverviewData', 'setIsFetchingOverview', 'fetchProjectOverview',
   'loadExampleMapData',
   'setFocusOnNodes', 'clearFocusViewTrigger',
+  'setTutorialTempTargetNodeId',
+  'setTutorialTempTargetEdgeId', // Added new action
 ] as const;
 type InitialStateBaseOmitType = typeof initialStateBaseOmitKeys[number];
 
@@ -234,6 +242,8 @@ export const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType | 
   isFetchingOverview: false,
   focusViewOnNodeIds: null,
   triggerFocusView: false,
+  tutorialTempTargetNodeId: null,
+  tutorialTempTargetEdgeId: null, // Added new state
 };
 
 type TrackedState = Pick<ConceptMapState,
@@ -393,6 +403,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
           }
           return { mapData: { ...state.mapData, nodes: newNodes } };
         });
+        // After node is added, set it as the temporary target for tutorials
+        get().setTutorialTempTargetNodeId(newNodeId);
+        get().addDebugLog(`[STORE addNode] Node ${newNodeId} added and set as tutorial target.`);
         return newNodeId;
       },
       updateNode: (nodeId, updates) => set((state) => ({ mapData: { ...state.mapData, nodes: state.mapData.nodes.map((node) => node.id === nodeId ? { ...node, ...updates } : node) } })),
@@ -428,6 +441,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
             markerStart: options.markerStart || 'none', markerEnd: options.markerEnd || 'arrowclosed'
         };
         set((state) => ({ mapData: { ...state.mapData, edges: [...state.mapData.edges, newEdge] } }));
+        get().setTutorialTempTargetEdgeId(newEdgeId); // Set temp target for tutorial
+        get().addDebugLog(`[STORE addEdge] Edge ${newEdgeId} added and set as tutorial target.`);
         return newEdgeId;
       },
       updateEdge: (edgeId, updates) => set((state) => ({ mapData: { ...state.mapData, edges: state.mapData.edges.map((edge) => edge.id === edgeId ? { ...edge, ...updates } : edge) } })),
@@ -691,6 +706,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
         // set({ focusViewOnNodeIds: null, triggerFocusView: false });
         get().addDebugLog(`[STORE clearFocusViewTrigger] Focus view trigger cleared.`);
       },
+      setTutorialTempTargetNodeId: (nodeId) => set({ tutorialTempTargetNodeId: nodeId }),
+      setTutorialTempTargetEdgeId: (edgeId) => set({ tutorialTempTargetEdgeId: edgeId }),
     }),
     {
       partialize: (state): TrackedState => {

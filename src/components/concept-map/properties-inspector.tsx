@@ -531,6 +531,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         <Label htmlFor="nodeLabel" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Label (Text)</Label>
         <Input 
             id="nodeLabel"
+            data-tutorial-id="properties-inspector-node-text-input" // Added tutorial ID
             ref={nodeLabelInputRef}
             value={elementLabelValue} 
             onChange={handleElementLabelChange} 
@@ -556,6 +557,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         </div>
         <Textarea 
             id="nodeDetails"
+            data-tutorial-id="properties-inspector-node-details-input" // Added tutorial ID
             ref={textareaDetailsRef}
             value={elementDetailsValue} 
             onChange={handleElementDetailsChangeWithPalette}
@@ -764,6 +766,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         <Label htmlFor="edgeLabel" className={cn(isViewOnlyMode && "text-muted-foreground/70")}>Label</Label>
         <Input 
             id="edgeLabel" 
+            data-tutorial-id="properties-inspector-edge-label-input" // Added tutorial ID
             value={elementLabelValue} 
             onChange={handleElementLabelChange} 
             disabled={isViewOnlyMode} 

@@ -23,6 +23,7 @@ import { fetchAllStructuralSuggestionsFlow } from '@/ai/flows';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import useTutorialStore from '@/stores/tutorial-store';
+import type { AIFetchAllStructuralSuggestionsInput } from '@/types/ai-shared';
 
 export interface ArrangeAction {
   id: string;
@@ -160,6 +161,16 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const { startOrResumeTutorial } = useTutorialStore(
     useCallback(s => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
   );
+
+  // TEMP: Button to test manualAddNodeTutorial
+  const handleTestManualAddNodeTutorial = () => {
+    startOrResumeTutorial('manualAddNodeTutorial', 0, true);
+  };
+
+  // TEMP: Button to test manualCreateEdgeTutorial
+  const handleTestManualCreateEdgeTutorial = () => {
+    startOrResumeTutorial('manualCreateEdgeTutorial', 0, true);
+  };
 
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false); // For the BrainCircuit button
 
@@ -378,12 +389,19 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 setIsLoadingSuggestions(true);
                 try {
                   const currentMapData = store.getState().mapData;
-                  // Prepare mapData in the format expected by the flow (nodes and edges only with required fields)
-                  const flowInput = {
-                    nodes: currentMapData.nodes.map(n => ({ id: n.id, text: n.text, details: n.details || "" })),
-                    edges: currentMapData.edges.map(e => ({ source: e.source, target: e.target, label: e.label || "" })),
+                  const flowInput: AIFetchAllStructuralSuggestionsInput = {
+                    nodes: currentMapData.nodes.map(n => ({
+                      id: n.id,
+                      text: n.text,
+                      details: n.details || ""
+                    })),
+                    edges: currentMapData.edges.map(e => ({
+                      source: e.source,
+                      target: e.target,
+                      label: e.label || ""
+                    })),
                   };
-                  const results = await fetchAllStructuralSuggestionsFlow.run(flowInput as any); // Cast as any if schema mismatch, ensure correct schema
+                  const results = await fetchAllStructuralSuggestionsFlow.run(flowInput);
                   store.getState().setStructuralSuggestions(results);
                   toast({ title: "AI Suggestions", description: `Received ${results.length} structural suggestions.` });
                 } catch (error) {
@@ -475,7 +493,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             <DropdownMenuItem onClick={() => handleGenAIClick(onExtractConcepts, "Extract Concepts")} disabled={isViewOnlyMode}>
               <SearchCode className="mr-2 h-4 w-4" /> Extract Concepts
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleGenAIClick(onSuggestRelations, "Suggest Relations")} disabled={isViewOnlyMode}>
+            <DropdownMenuItem data-tutorial-id="ai-tool-suggest-relations" onClick={() => handleGenAIClick(onSuggestRelations, "Suggest Relations")} disabled={isViewOnlyMode}>
               <Lightbulb className="mr-2 h-4 w-4" /> Suggest Relations
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleGenAIClick(onExpandConcept, "Expand Concept")} disabled={isExpandConceptDisabled}>
@@ -706,6 +724,16 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               {/* <DropdownMenuItem onSelect={() => startOrResumeTutorial('expandConceptToolTutorial', 0, true)}>
                 Using AI: Expand Concept
               </DropdownMenuItem> */}
+               <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={handleTestManualAddNodeTutorial}>
+                Test: Manual Add Node Tutorial
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleTestManualCreateEdgeTutorial}>
+                Test: Manual Create Edge Tutorial
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => startOrResumeTutorial('suggestRelationsToolTutorial', 0, true)}>
+                Test: Suggest Relations Tutorial
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
