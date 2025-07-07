@@ -1,41 +1,31 @@
-import React, { useEffect, useState, useCallback } from 'react'; // Added useCallback
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Joyride, { CallBackProps, STATUS, Step, EVENTS } from 'react-joyride';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
-import type { LucideIcon } from 'lucide-react'; // For potential icons in metadata
+import type { LucideIcon } from 'lucide-react';
 
 import { useAuth } from '@/contexts/auth-context';
-import useConceptMapStore from '@/stores/concept-map-store'; // Import concept map store
+import useConceptMapStore from '@/stores/concept-map-store';
 import useTutorialStore from '@/stores/tutorial-store';
 
+// TutorialMetaData remains the same, but its instances will be constructed using t()
 export interface TutorialMetaData {
   key: string;
-  title: string;
-  description?: string;
-  icon?: LucideIcon; // Optional: for future use in a richer menu
+  title: string; // This will be populated by t()
+  description?: string; // This will be populated by t()
+  icon?: LucideIcon;
 }
 
-// Define this metadata where it's accessible, e.g., here or in a separate definitions file.
-export const availableTutorials: TutorialMetaData[] = [
-  { key: 'dashboardTutorial', title: '儀表板導覽' },
-  { key: 'projectUploadTutorial', title: '專案上傳與AI分析指引' },
-  { key: 'editorTutorial', title: '編輯器基礎操作' },
-  { key: 'extractConceptsToolTutorial', title: 'AI工具：提取概念' },
-  { key: 'manualAddNodeTutorial', title: '手動添加節點與編輯' },
-  { key: 'manualCreateEdgeTutorial', title: '手動創建連接邊' },
-  { key: 'suggestRelationsToolTutorial', title: 'AI工具：建議關係' },
-  {
-    key: 'expandConceptStagingTutorial',
-    title: 'AI工具：管理擴展概念 (預覽區)',
-  },
-  { key: 'ghostPreviewLayoutTutorial', title: '佈局調整：鬼影預覽' },
-  // Add more tutorials here as they are created
-];
+// availableTutorials will now be a function that takes t and returns the array,
+// or it will be constructed inside the component where t is available.
+// For now, we will define it inside the component.
 
 interface AppTutorialProps {
   // Props are not used as state is managed by stores
 }
 
 const AppTutorial: React.FC<AppTutorialProps> = () => {
+  const { t } = useTranslation(); // Initialize useTranslation
   const { user, loading } = useAuth();
   const [steps, setSteps] = useState<Step[]>([]);
 
@@ -66,501 +56,206 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
   );
   const tutorialTempTargetEdgeId = useConceptMapStore(
     (state) => state.tutorialTempTargetEdgeId
-  ); // Get new state
+  );
   const clearTutorialTempTargetEdgeId = useConceptMapStore(
     (state) => state.setTutorialTempTargetEdgeId
-  ); // Get new action
+  );
+
+  // Construct availableTutorials using t()
+  // useMemo is used to prevent re-creating this array on every render unless t changes (language change)
+  const availableTutorials = useMemo((): TutorialMetaData[] => [
+    {
+      key: 'dashboardTutorial',
+      title: t('availableTutorials.dashboardTutorial.title'),
+      description: t('availableTutorials.dashboardTutorial.description')
+    },
+    {
+      key: 'projectUploadTutorial',
+      title: t('availableTutorials.projectUploadTutorial.title'),
+      description: t('availableTutorials.projectUploadTutorial.description')
+    },
+    {
+      key: 'editorTutorial',
+      title: t('availableTutorials.editorTutorial.title'),
+      description: t('availableTutorials.editorTutorial.description')
+    },
+    {
+      key: 'extractConceptsToolTutorial',
+      title: t('availableTutorials.extractConceptsToolTutorial.title'),
+      description: t('availableTutorials.extractConceptsToolTutorial.description')
+    },
+    {
+      key: 'manualAddNodeTutorial',
+      title: t('availableTutorials.manualAddNodeTutorial.title'),
+      description: t('availableTutorials.manualAddNodeTutorial.description')
+    },
+    {
+      key: 'manualCreateEdgeTutorial',
+      title: t('availableTutorials.manualCreateEdgeTutorial.title'),
+      description: t('availableTutorials.manualCreateEdgeTutorial.description')
+    },
+    {
+      key: 'suggestRelationsToolTutorial',
+      title: t('availableTutorials.suggestRelationsToolTutorial.title'),
+      description: t('availableTutorials.suggestRelationsToolTutorial.description')
+    },
+    {
+      key: 'expandConceptStagingTutorial',
+      title: t('availableTutorials.expandConceptStagingTutorial.title'),
+      description: t('availableTutorials.expandConceptStagingTutorial.description')
+    },
+    {
+      key: 'ghostPreviewLayoutTutorial',
+      title: t('availableTutorials.ghostPreviewLayoutTutorial.title'),
+      description: t('availableTutorials.ghostPreviewLayoutTutorial.description')
+    },
+    {
+      key: 'ghostPreviewsUsageTutorial',
+      title: t('availableTutorials.ghostPreviewsUsageTutorial.title'),
+      description: t('availableTutorials.ghostPreviewsUsageTutorial.description')
+    },
+    {
+      key: 'projectOverviewTutorial',
+      title: t('availableTutorials.projectOverviewTutorial.title'),
+      description: t('availableTutorials.projectOverviewTutorial.description')
+    },
+  ], [t]);
+
+  // This export is problematic if `t` is needed at module scope.
+  // For now, `availableTutorials` is used internally or passed down from a component that can use the hook.
+  // If it needs to be exported, it should be a function `getAvailableTutorials(tFunction)`
+  // For the purpose of this component, constructing it with useMemo is fine.
+
 
   const getStepsForTutorial = useCallback(
     (
-      key: string,
+      tutorialKey: string, // Renamed 'key' to 'tutorialKey' to avoid conflict with React key prop
       dynamicNodeId?: string | null,
-      dynamicEdgeId?: string | null // Add dynamicEdgeId
+      dynamicEdgeId?: string | null
     ): Step[] => {
-      // console.log(`getStepsForTutorial called for key: ${key}, dynamicNodeId: ${dynamicNodeId}, dynamicEdgeId: ${dynamicEdgeId}`);
       const commonWelcomeStep: Step = {
         target: 'body',
-        content: '歡迎使用 CodeMap！這是一個幫助您理解和可視化代碼結構的工具。',
+        content: t('tutorialSteps.common.welcomeContent'),
         placement: 'center',
-        title: '歡迎！',
+        title: t('tutorialSteps.common.welcomeTitle'),
         disableBeacon: true,
       };
 
       const commonNavSteps: Step[] = [
         {
-          target: '.sidebar-nav-container', // Updated placeholder
-          content: '這裡是主導航欄，您可以根據您的角色訪問不同功能區。',
+          target: '.sidebar-nav-container',
+          content: t('tutorialSteps.common.navBarContent'),
           placement: 'right',
-          title: '導航欄',
+          title: t('tutorialSteps.common.navBarTitle'),
         },
         {
-          target: '.main-layout-content-area', // Updated placeholder
-          content: '這個區域將顯示您選擇的功能頁面和主要內容。',
+          target: '.main-layout-content-area',
+          content: t('tutorialSteps.common.mainContentAreaContent'),
           placement: 'auto',
-          title: '主內容區',
+          title: t('tutorialSteps.common.mainContentAreaTitle'),
         },
         {
-          target: '.navbar-user-button', // Updated placeholder
-          content: '點擊這裡可以管理您的個人資料或登出。',
+          target: '.navbar-user-button',
+          content: t('tutorialSteps.common.userMenuContent'),
           placement: 'bottom-end',
-          title: '用戶菜單',
+          title: t('tutorialSteps.common.userMenuTitle'),
         },
       ];
 
-      if (key === 'dashboardTutorial') {
+      // Helper to create steps from an array of key indexes for a given tutorialKey
+      // E.g., getSteps('dashboardTutorial', [0, 1])
+      const mapStepKeys = (baseKey: string, count: number): Step[] => {
+        return Array.from({ length: count }, (_, i) => ({
+          target: t(`tutorialSteps.${baseKey}.${i}.target` as const, '') || 'body', // Provide default for target
+          content: t(`tutorialSteps.${baseKey}.${i}.content` as const),
+          title: t(`tutorialSteps.${baseKey}.${i}.title` as const),
+          placement: t(`tutorialSteps.${baseKey}.${i}.placement` as const, 'auto') as Step['placement'],
+          disableBeacon: t(`tutorialSteps.${baseKey}.${i}.disableBeacon` as const, undefined as unknown as boolean) || undefined, // Handle boolean
+          spotlightClicks: t(`tutorialSteps.${baseKey}.${i}.spotlightClicks` as const, undefined as unknown as boolean) || undefined,
+          isOptional: t(`tutorialSteps.${baseKey}.${i}.isOptional` as const, undefined as unknown as boolean) || undefined,
+        }));
+      };
+
+      // Specific handling for dynamic content in manualAddNodeTutorial step 2
+      const getManualAddNodeStep2Content = () => {
+        if (dynamicNodeId) {
+          // Assuming 'Concept' is the default label if not specified, or make it part of translation
+          return t('tutorialSteps.manualAddNodeTutorial.2.content_dynamic', { nodeLabel: 'Concept' });
+        }
+        return t('tutorialSteps.manualAddNodeTutorial.2.content_static');
+      };
+
+      // Specific handling for dynamic content in manualCreateEdgeTutorial step 3
+      const getManualCreateEdgeStep3Content = () => {
+        if (dynamicEdgeId) {
+          return t('tutorialSteps.manualCreateEdgeTutorial.3.content_dynamic');
+        }
+        return t('tutorialSteps.manualCreateEdgeTutorial.3.content_static');
+      };
+
+
+      if (tutorialKey === 'dashboardTutorial') {
         let roleSpecificSteps: Step[] = [];
+        const baseKey = 'tutorialSteps.dashboardTutorial';
         if (user?.role === 'STUDENT') {
           roleSpecificSteps = [
-            {
-              target: "a[href='/student/concept-maps']", // More specific selector
-              content: '在這裡您可以查看和管理您的概念圖。',
-              title: '我的概念圖',
-            },
-            {
-              target: "a[href='/student/projects/submit']", // More specific selector
-              content: '點擊此處上傳您的專案並通過AI自動生成概念圖。',
-              title: '提交專案',
-            },
+            { target: "a[href='/student/concept-maps']", title: t(`${baseKey}.0.title`), content: t(`${baseKey}.0.content`) },
+            { target: "a[href='/student/projects/submit']", title: t(`${baseKey}.1.title`), content: t(`${baseKey}.1.content`) },
           ];
         } else if (user?.role === 'TEACHER') {
           roleSpecificSteps = [
-            {
-              target: "a[href='/teacher/classrooms']", // More specific selector
-              content: '在這裡您可以管理您的教室和學生。',
-              title: '管理教室',
-            },
+            { target: "a[href='/teacher/classrooms']", title: t(`${baseKey}.2.title`), content: t(`${baseKey}.2.content`) },
           ];
         } else if (user?.role === 'ADMIN') {
           roleSpecificSteps = [
-            {
-              target: "a[href='/admin/users']", // More specific selector
-              content: '管理平台的所有用戶。',
-              title: '用戶管理',
-            },
-            {
-              target: "a[href='/admin/settings']", // More specific selector
-              content: '配置系統級別的設定。',
-              title: '系統設定',
-            },
+            { target: "a[href='/admin/users']", title: t(`${baseKey}.3.title`), content: t(`${baseKey}.3.content`) },
+            { target: "a[href='/admin/settings']", title: t(`${baseKey}.4.title`), content: t(`${baseKey}.4.content`) },
           ];
         }
         return [commonWelcomeStep, ...commonNavSteps, ...roleSpecificSteps];
-      } else if (key === 'projectUploadTutorial') {
-        return [
-          {
-            target: '.project-upload-form-container', // Placeholder for the main form container
-            content:
-              '歡迎來到專案提交頁面！在這裡，您可以上傳您的代碼專案，CodeMap將通過AI分析幫助您生成概念圖。',
-            placement: 'center',
-            title: '專案上傳與分析',
-            disableBeacon: true,
-          },
-          {
-            target: '.file-upload-dropzone', // Placeholder for the file dropzone area
-            content:
-              '點擊或拖拽您的專案壓縮文件（如 .zip, .rar）到這裡。請確保壓縮包內包含您的源代碼。',
-            title: '選擇專案文件',
-          },
-          {
-            target: "textarea[name='userGoals']", // Assuming 'userGoals' is the name attribute
-            content:
-              '請在這裡簡要描述您希望通過AI分析達成的目標，例如：‘理解專案主要模塊’或‘梳理核心業務邏輯’。這將幫助AI更好地為您生成概念圖。',
-            title: '您的分析目標',
-          },
-          {
-            target: "button[type='submit'].submit-project-button", // Placeholder, make more specific if possible
-            content: '填寫完成後，點擊這裡開始上傳和分析您的專案。',
-            title: '開始分析',
-          },
-          // Optional: Step for AI Analysis Confirmation Dialog (if applicable and feasible to target)
-          // {
-          //   target: '.ai-confirmation-dialog', // Placeholder
-          //   content: '提交後，系統會請求您確認啟動AI分析。請確認以繼續生成概念圖。',
-          //   title: '確認AI分析',
-          // },
-        ];
-      } else if (key === 'editorTutorial') {
-        return [
-          {
-            target: '.concept-map-editor-container',
-            content:
-              '歡迎來到概念地圖編輯器！在這裡，您可以創建、編輯和組織您的概念圖。',
-            placement: 'center',
-            title: '概念地圖編輯器',
-            disableBeacon: true,
-          },
-          {
-            target: "button[data-tutorial-id='editor-save-map']",
-            content: '完成編輯後，記得點擊這裡保存您的地圖。',
-            title: '保存地圖',
-          },
-          {
-            target: "button[data-tutorial-id='editor-add-node']",
-            content: '點擊此按鈕在畫布上添加一個新的概念節點。',
-            title: '添加節點',
-          },
-          {
-            target: "button[data-tutorial-id='editor-add-edge']",
-            content: '使用此按鈕或拖拽節點連接樁來連接兩個節點。',
-            title: '添加邊',
-          },
-          {
-            target: "button[aria-label='AI Tools']",
-            content:
-              '這裡集成了多種AI工具，可以幫助您提取概念、建議關係、擴展想法等。',
-            title: 'AI 助手',
-          },
-          {
-            target: '.react-flow__pane',
-            content:
-              '這是您的畫布區域。您可以在這裡自由拖動、排列節點和邊，創建您的概念圖結構。',
-            title: '畫布區域',
-          },
-          {
-            target: '#tutorial-target-toggle-properties-button',
-            content:
-              '點擊此按鈕打開屬性面板。當您選中一個節點或邊時，可以在屬性面板中編輯其標籤、詳細信息、樣式等。',
-            title: '屬性檢查器',
-          },
-        ];
-      } else if (key === 'extractConceptsToolTutorial') {
-        return [
-          {
-            target: '.react-flow__pane', // Target a general area in the editor
-            content: '現在來學習如何使用 AI 從節點文本中提取關鍵概念。',
-            placement: 'center',
-            title: 'AI工具：提取概念',
-            disableBeacon: true,
-          },
-          {
-            target: '.custom-node.selected', // Placeholder: ReactFlow adds 'selected' class to selected nodes
-            content:
-              '首先，請確保您已選中一個包含一些文本內容的節點。AI將從這個節點的標籤或詳細信息中提取概念。如果當前沒有選中的節點，請先選擇一個。',
-            title: '1. 選擇節點',
-          },
-          {
-            target: "button[aria-label='AI Tools']",
-            content: '點擊AI工具按鈕，打開AI功能菜單。',
-            title: '2. 打開AI菜單',
-          },
-          {
-            // Assuming 'Extract Concepts' is a DropdownMenuItem. We'll need a specific selector for it.
-            // PREFERRED: Add data-tutorial-id="ai-tool-extract-concepts" to the DropdownMenuItem
-            target: "button[data-tutorial-id='ai-tool-extract-concepts']",
-            content: '然後，從菜單中選擇「提取概念」。',
-            title: '3. 選擇提取概念',
-          },
-          {
-            target: "[role='dialog'][aria-labelledby='extract-concepts-title']", // Example: Target modal by role and aria-label
-            content:
-              '這是提取概念的對話框。AI會分析選中節點的文本。您可以直接點擊「Extract Concepts」按鈕。',
-            title: '4. 確認提取',
-            placement: 'auto',
-          },
-          {
-            target:
-              "button[type='submit'][data-tutorial-id='extract-concepts-submit']", // Placeholder for modal submit
-            content: '點擊此按鈕開始提取。',
-            title: '開始提取',
-          },
-          {
-            target: "button[data-tutorial-id='editor-toggle-ai-panel']",
-            content:
-              '提取完成後，AI生成的概念會顯示在AI建議面板中。點擊此按鈕（如果面板未打開）或查看已打開的面板。',
-            title: '5. 查看結果',
-          },
-          {
-            target: '.ai-suggestion-panel', // Placeholder for the main AI suggestion panel wrapper
-            content:
-              '在這裡，您可以看到提取出的概念列表。您可以選擇將它們添加到您的概念圖中。',
-            title: 'AI建議面板',
-            placement: 'top',
-          },
-          {
-            target: 'body',
-            content:
-              '太棒了！您已經學會了如何使用AI提取概念。嘗試對其他節點使用此功能，或探索更多AI工具！',
-            placement: 'center',
-            title: '教程完成',
-          },
-        ];
-      } else if (key === 'manualAddNodeTutorial') {
-        return [
-          {
-            target: '.concept-map-editor-container',
-            content: '現在我們來學習如何手動添加一個新的概念節點到畫布上。',
-            placement: 'center',
-            title: '手動添加節點',
-            disableBeacon: true,
-          },
-          {
-            target: "button[data-tutorial-id='editor-add-node']",
-            content:
-              '請點擊工具欄上的這個「添加節點」按鈕。一個新的節點將會出現在畫布中央。',
-            title: '1. 點擊添加節點按鈕',
-            // disableOverlayClicks: true, // Prevent clicking elsewhere during this step
-          },
-          {
-            target: dynamicNodeId
-              ? `[data-id='${dynamicNodeId}']`
-              : '.react-flow__pane',
-            content: dynamicNodeId
-              ? '太棒了！一個新的「概念」節點已經添加到畫布上 (它已被高亮)。您可以拖動它來改變位置。'
-              : '一個新的「概念」節點已經添加到畫布中央。請找到它。',
-            title: '2. 新節點已添加',
-            spotlightClicks: true, // Allow clicking on the new node to select it
-          },
-          {
-            target: '#tutorial-target-toggle-properties-button',
-            content:
-              '很好！節點通常在添加後會自動選中。如果屬性面板沒有自動打開，請點擊此按鈕打開它。',
-            title: '3. 打開屬性面板',
-          },
-          {
-            target:
-              "input[data-tutorial-id='properties-inspector-node-text-input']",
-            content:
-              '在屬性面板中，您可以在這個輸入框裡修改節點的名稱或標籤。試著輸入一些文字吧！',
-            title: '4. 修改節點標籤',
-            // Consider adding: event: 'input' and then checking if value changed, but that's more complex.
-            // For now, just informational.
-          },
-          {
-            target:
-              "textarea[data-tutorial-id='properties-inspector-node-details-input']", // Assuming this ID will be added
-            content:
-              '您還可以在「Details」區域為節點添加更詳細的描述或筆記。這對理解複雜概念很有幫助。',
-            title: '5. (可選) 添加詳細信息',
-            isOptional: true, // Joyride doesn't have a built-in 'isOptional' visual, but good for our logic
-          },
-          {
-            target: 'body',
-            content:
-              '太棒了！您已經掌握了添加節點並編輯其基本信息的方法。繼續探索，嘗試創建更多節點和它們之間的聯繫吧！',
-            placement: 'center',
-            title: '教程完成！',
-          },
-        ];
-      }
-      // Add other tutorial definitions above this line
-      else if (key === 'manualCreateEdgeTutorial') {
-        return [
-          {
-            target: '.react-flow__pane',
-            content:
-              '現在我們來學習如何手動連接兩個節點以創建一條邊。請確保您的畫布上至少有兩個節點。',
-            placement: 'center',
-            title: '手動創建邊',
-            disableBeacon: true,
-          },
-          {
-            target: '.react-flow__node:nth-of-type(1) .react-flow__handle', // Targets a handle of the first node, adjust if too generic
-            content:
-              '將鼠標懸停在一個節點上，您會看到邊緣出現一些小的連接樁 (Handle)。點擊並按住其中一個 Handle 開始拖拽。',
-            title: '1. 開始拖拽連接線',
-            spotlightClicks: true, // Allows interaction with handles
-          },
-          {
-            target: '.react-flow__node:nth-of-type(2) .react-flow__handle', // Targets a handle of a second node
-            content:
-              '將連接線拖拽到另一個節點的任意 Handle 上，然後鬆開鼠標按鈕。',
-            title: '2. 連接到目標節點',
-            spotlightClicks: true,
-          },
-          {
-            target: dynamicEdgeId
-              ? `.react-flow__edge[id='${dynamicEdgeId}']`
-              : '.react-flow__pane',
-            content: dynamicEdgeId
-              ? '太棒了！您已經成功創建了一條連接線（邊），它已被高亮顯示。'
-              : '一條新的連接線（邊）已經被創建。',
-            title: '3. 邊已創建',
-            spotlightClicks: true, // Allow clicking the new edge
-          },
-          {
-            target: '#tutorial-target-toggle-properties-button',
-            content:
-              '現在，請點擊選中剛剛創建的邊（如果它還沒有被選中）。然後，如果屬性面板未打開，請點擊此按鈕打開它。',
-            title: '4. 選中邊並打開屬性面板',
-          },
-          {
-            target:
-              "input[data-tutorial-id='properties-inspector-edge-label-input']",
-            content:
-              '在屬性面板中，您可以為這條邊輸入一個描述性的標籤，例如「導致」、「屬於」或「相關於」。',
-            title: '5. 編輯邊的標籤',
-          },
-          {
-            target: 'body',
-            content: '非常好！您現在知道如何創建邊並為其添加標籤了。',
-            placement: 'center',
-            title: '教程完成！',
-          },
-        ];
-      } else if (key === 'suggestRelationsToolTutorial') {
-        return [
-          {
-            target: '.react-flow__pane',
-            content:
-              '現在來學習如何使用 AI 根據您地圖中的現有概念建議它們之間的潛在關係。',
-            placement: 'center',
-            title: 'AI工具：建議關係',
-            disableBeacon: true,
-          },
-          {
-            target: "button[aria-label='AI Tools']", // Or specific node context menu trigger if applicable
-            content:
-              '首先，打開AI工具菜單。您通常可以在編輯器工具欄找到它。如果選中了一個節點，也可以在節點的右鍵菜單中找到相關AI選項。',
-            title: '1. 打開AI菜單',
-          },
-          {
-            target: "button[data-tutorial-id='ai-tool-suggest-relations']", // Ensure this ID exists on the menu item
-            content: '從菜單中選擇「建議關係」。',
-            title: '2. 選擇建議關係工具',
-          },
-          {
-            target: "[data-tutorial-id='suggest-relations-modal']",
-            content:
-              'AI會自動分析您圖譜中的概念（或者您選中的概念及其鄰近概念）來提出關係建議。您可以選擇性地提供額外的情境提示，或直接點擊「Suggest Relations」按鈕。',
-            title: '3. 建議關係對話框',
-            placement: 'auto',
-          },
-          {
-            target:
-              "[data-tutorial-id='suggest-relations-custom-prompt-input']",
-            content:
-              '（可選）如果您想引導AI的建議方向，可以在這裡輸入提示，例如「專注於因果關係」。',
-            title: '提供額外提示',
-          },
-          {
-            target: "button[data-tutorial-id='suggest-relations-submit']",
-            content: '準備好後，點擊此按鈕開始分析並獲取建議。',
-            title: '4. 開始建議',
-          },
-          {
-            target: "button[data-tutorial-id='editor-toggle-ai-panel']",
-            content:
-              '建議生成後，會顯示在AI建議面板中。如果面板未打開，請點擊此按鈕（通常在編輯器右側）查看。',
-            title: '5. 查看建議的關係',
-          },
-          {
-            target: "[data-tutorial-id='suggested-relations-section']",
-            content:
-              '在建議面板的「建議關係」區域，您會看到AI建議的關係列表。每個建議通常包含源概念、目標概念和它們之間的關係標籤。',
-            title: '6. AI建議面板中的關係',
-            placement: 'left',
-          },
-          {
-            target: "[data-tutorial-id='add-selected-relations-button']",
-            content:
-              '您可以勾選想要添加的關係建議，然後點擊此按鈕將它們作為新的邊添加到您的概念圖中。',
-            title: '7. 添加選中的關係',
-            placement: 'left',
-          },
-          {
-            target: 'body',
-            content:
-              '非常好！現在您知道如何利用AI來發現和建立概念之間的新聯繫了。',
-            placement: 'center',
-            title: '教程完成！',
-          },
-        ];
-      } else if (key === 'expandConceptStagingTutorial') {
-        // This tutorial assumes the "Expand Concept" AI tool has already been run
-        // and suggestions are visible in the staging area.
-        return [
-          {
-            target: "[data-tutorial-id='ai-staging-toolbar']",
-            content:
-              '當您使用「擴展概念」等AI工具後，建議的內容會先出現在這個「AI預覽區」工具條。您可以在這裡決定是否將它們正式加入到您的概念圖中。',
-            placement: 'top',
-            title: 'AI預覽區介紹',
-            disableBeacon: true,
-          },
-          {
-            target: ".react-flow__node[data-type='ai-expanded-staged']", // Targets a staged node
-            content:
-              '這些是AI建議的新概念節點，它們暫時以「預覽」狀態顯示在畫布上。您可以查看它們是否符合您的需求。',
-            title: '預覽節點',
-            // Note: This selector might target the first such node. If multiple, it highlights one.
-          },
-          {
-            target: "[data-tutorial-id='ai-mini-toolbar']", // This will target the mini toolbar if visible for a selected staged node
-            content:
-              '如果您選中一個預覽節點，可能會出現一個迷你工具欄，提供快速操作，如「快速擴展」或「簡化文本」。注意：並非所有預覽元素都有迷你工具欄。',
-            title: '迷你快捷操作 (可選)',
-            // isOptional: true, // Joyride doesn't have this, but it's a conditional step.
-            // This step might not always find a target if no staged node is selected or has a mini-toolbar.
-            // Consider making this step's description more general if the toolbar is not always present.
-          },
-          {
-            target: "button[data-tutorial-id='staging-toolbar-accept-all']",
-            content:
-              '如果您對所有預覽的建議都感到滿意，可以點擊「Commit to Map」按鈕，將它們一次性永久添加到您的概念圖中。',
-            title: '全部採納建議',
-          },
-          {
-            target: "button[data-tutorial-id='staging-toolbar-clear-all']",
-            content:
-              '如果您不希望保留這些預覽的建議，可以點擊「Discard All」按鈕，將它們從預覽區移除。',
-            title: '全部清除建議',
-          },
-          {
-            target: 'body',
-            content:
-              '太棒了！您已經學會了如何使用AI預覽區來管理和確認AI生成的概念擴展。',
-            placement: 'center',
-            title: '教程完成！',
-          },
-        ];
-      } else if (key === 'ghostPreviewLayoutTutorial') {
-        // This tutorial assumes a ghost preview (e.g., from AI Tidy Up layout only) is active.
-        return [
-          {
-            target: ".react-flow__node[data-ghost='true']", // Target a ghost node
-            content:
-              '當您使用某些AI佈局調整功能時，系統會首先顯示一個「鬼影預覽」。這些高亮的元素展示了建議的更改，但尚未永久生效。',
-            placement: 'auto',
-            title: '鬼影預覽介紹',
-            disableBeacon: true,
-          },
-          {
-            target: "[data-tutorial-id='ghost-preview-toolbar']",
-            content: '這個工具欄讓您可以決定是否接受這些預覽中的佈局更改。',
-            title: '預覽工具欄',
-            placement: 'top',
-          },
-          {
-            target: "button[data-tutorial-id='ghost-toolbar-accept']",
-            content:
-              '如果您喜歡預覽的佈局，請點擊「接受佈局」按鈕。這些更改將被應用到您的概念圖上。',
-            title: '接受更改',
-          },
-          {
-            target: "button[data-tutorial-id='ghost-toolbar-cancel']",
-            content:
-              '如果您不想應用這些佈局更改，請點擊「取消」按鈕。您的地圖將恢復到調整前的狀態。',
-            title: '取消更改',
-          },
-          {
-            target: 'body',
-            content: '您已了解如何使用鬼影預覽來管理AI提出的佈局建議！',
-            placement: 'center',
-            title: '教程完成！',
-          },
-        ];
+      } else if (tutorialKey === 'projectUploadTutorial') {
+        return mapStepKeys('projectUploadTutorial', 4);
+      } else if (tutorialKey === 'editorTutorial') {
+        return mapStepKeys('editorTutorial', 7);
+      } else if (tutorialKey === 'extractConceptsToolTutorial') {
+        return mapStepKeys('extractConceptsToolTutorial', 9);
+      } else if (tutorialKey === 'manualAddNodeTutorial') {
+        const steps = mapStepKeys('manualAddNodeTutorial', 7);
+        // Update step 2 (index 2) for dynamic content and target
+        if (steps[2]) { // Check if step exists
+          steps[2].content = getManualAddNodeStep2Content();
+          steps[2].target = dynamicNodeId ? `[data-id='${dynamicNodeId}']` : '.react-flow__pane';
+        }
+        return steps;
+      } else if (tutorialKey === 'manualCreateEdgeTutorial') {
+         const steps = mapStepKeys('manualCreateEdgeTutorial', 7);
+        // Update step 3 (index 3) for dynamic content and target
+        if (steps[3]) { // Check if step exists
+            steps[3].content = getManualCreateEdgeStep3Content();
+            steps[3].target = dynamicEdgeId ? `.react-flow__edge[id='${dynamicEdgeId}']` : '.react-flow__pane';
+        }
+        return steps;
+      } else if (tutorialKey === 'suggestRelationsToolTutorial') {
+        return mapStepKeys('suggestRelationsToolTutorial', 10);
+      } else if (tutorialKey === 'expandConceptStagingTutorial') {
+        return mapStepKeys('expandConceptStagingTutorial', 11);
+      } else if (tutorialKey === 'ghostPreviewLayoutTutorial') {
+        return mapStepKeys('ghostPreviewLayoutTutorial', 5);
+      } else if (tutorialKey === 'ghostPreviewsUsageTutorial') {
+        return mapStepKeys('ghostPreviewsUsageTutorial', 8);
+      } else if (tutorialKey === 'projectOverviewTutorial') {
+        return mapStepKeys('projectOverviewTutorial', 5);
       }
 
       return []; // Default to no steps
     },
-    [user]
+    [user, t] // Added t to dependency array
   );
 
   useEffect(() => {
     if (user && !loading && activeTutorialKey) {
       const tutorialHasBeenSeen =
         localStorage.getItem(activeTutorialKey) === 'true';
-      // Pass both dynamic IDs to getStepsForTutorial
       const newSteps = getStepsForTutorial(
         activeTutorialKey,
         tutorialTempTargetNodeId,
@@ -592,8 +287,8 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
     activeTutorialKey,
     setRunTutorialState,
     tutorialTempTargetNodeId,
-    tutorialTempTargetEdgeId, // Added edgeId
-    getStepsForTutorial,
+    tutorialTempTargetEdgeId,
+    getStepsForTutorial, // getStepsForTutorial will change if 't' or 'user' changes
     steps.length,
   ]);
 
@@ -616,23 +311,31 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
         clearTutorialTempTargetNodeId(null);
       }
       if (activeTutorialKey === 'manualCreateEdgeTutorial') {
-        // Clear edge ID for its tutorial
         clearTutorialTempTargetEdgeId(null);
       }
     } else if (
       type === EVENTS.STEP_AFTER &&
       activeTutorialKey === 'manualAddNodeTutorial' &&
-      step.title === '2. 新節點已添加'
+      step.title === t('tutorialSteps.manualAddNodeTutorial.2.title') // Compare with translated title
     ) {
       // Logic for specific step handling if needed
     } else if (
       type === EVENTS.STEP_AFTER &&
       activeTutorialKey === 'manualCreateEdgeTutorial' &&
-      step.title === '3. 邊已創建'
+      step.title === t('tutorialSteps.manualCreateEdgeTutorial.3.title') // Compare with translated title
     ) {
       // Logic for specific step handling if needed
     }
   };
+
+  // Memoize joyrideLocale to prevent re-renders if t function hasn't changed
+  const joyrideLocale = useMemo(() => ({
+    back: t('joyride.back'),
+    close: t('joyride.close'),
+    last: t('joyride.last'),
+    next: t('joyride.next'),
+    skip: t('joyride.skip'),
+  }), [t]);
 
   if (
     loading ||
@@ -644,25 +347,25 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
     return null;
   }
 
+  // Export availableTutorials constructed with t, if needed by other components.
+  // This is slightly unconventional as it's instance-specific due to the hook.
+  // A better pattern for external use might be a dedicated context or selector.
+  // For now, if another component needs this, it should also use useTranslation.
+  // AppTutorial.availableTutorials = availableTutorials; // This line is problematic for static export
+
   return (
     <Joyride
       steps={steps}
-      run={runTutorial} // Use runTutorial from store
-      stepIndex={currentStepIndex} // Control step index from store
+      run={runTutorial}
+      stepIndex={currentStepIndex}
       continuous
       showProgress
       showSkipButton
       callback={handleJoyrideCallback}
-      locale={{
-        back: '上一步',
-        close: '關閉',
-        last: '完成',
-        next: '下一步',
-        skip: '跳過',
-      }}
+      locale={joyrideLocale} // Use memoized locale
       styles={{
         options: {
-          zIndex: 10000, // Keep high z-index
+          zIndex: 10000,
           arrowColor: 'hsl(var(--card-values))',
           backgroundColor: 'hsl(var(--card-values))',
           primaryColor: 'hsl(var(--primary-values))',
@@ -727,13 +430,19 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
           // already handled by overlayColor in options
         },
         spotlight: {
-          // Styles for the highlighted area
-          borderRadius: 'var(--radius-sm)', // make spotlight have slight rounded corners
+          borderRadius: 'var(--radius-sm)',
         },
       }}
       // debug
     />
   );
 };
+
+// If `availableTutorials` needs to be exported and is dependent on `t`,
+// it should be exported as a function that accepts `t`.
+// export const getTranslatedAvailableTutorials = (t: TFunction): TutorialMetaData[] => { ... }
+// However, since AppTutorial is the main consumer and it now constructs it internally,
+// this static export is removed.
+// export { availableTutorials }; // Remove this static export
 
 export default AppTutorial;

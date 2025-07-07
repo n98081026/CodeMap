@@ -1,8 +1,9 @@
 'use client';
-import { CodeXml } from 'lucide-react'; // For potential logo in sidebar header
+import { CodeXml } from 'lucide-react';
 
 import { Navbar } from './navbar';
 import { SidebarNav } from './sidebar-nav';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher'; // Import LanguageSwitcher
 
 import type { ReactNode } from 'react';
 
@@ -52,6 +53,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             </main>
           </SidebarInset>
         </div>
+        <LanguageSwitcher /> {/* Added LanguageSwitcher here */}
       </div>
     </SidebarProvider>
   );

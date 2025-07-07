@@ -719,6 +719,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           cardClassName
         )}
         style={{ minHeight: 200 }}
+        data-tutorial-id={sectionId} // Added data-tutorial-id here as well
       >
         {' '}
         {/* Ensure card can shrink/grow */}

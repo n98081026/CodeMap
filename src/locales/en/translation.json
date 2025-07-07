@@ -1,0 +1,419 @@
+{
+  "joyride": {
+    "back": "Back",
+    "close": "Close",
+    "last": "Finish",
+    "next": "Next",
+    "skip": "Skip"
+  },
+  "availableTutorials": {
+    "dashboardTutorial": {
+      "title": "Dashboard Overview",
+      "description": "Learn how to navigate the main dashboard features."
+    },
+    "projectUploadTutorial": {
+      "title": "Project Upload & AI Analysis",
+      "description": "Guide to uploading your project for AI-powered concept map generation."
+    },
+    "editorTutorial": {
+      "title": "Editor Basics",
+      "description": "Discover the fundamental operations of the concept map editor."
+    },
+    "extractConceptsToolTutorial": {
+      "title": "AI Tool: Extract Concepts",
+      "description": "Learn to use the AI tool to extract key concepts from text."
+    },
+    "manualAddNodeTutorial": {
+      "title": "Manual Node Creation & Editing",
+      "description": "How to manually add new nodes and edit their properties."
+    },
+    "manualCreateEdgeTutorial": {
+      "title": "Manual Edge Creation",
+      "description": "How to manually create edges to connect nodes."
+    },
+    "suggestRelationsToolTutorial": {
+      "title": "AI Tool: Suggest Relations",
+      "description": "Use AI to get suggestions for relations between concepts."
+    },
+    "expandConceptStagingTutorial": {
+      "title": "AI Tool: Expand Concept & Staging Area",
+      "description": "Learn to expand concepts with AI and manage suggestions in the staging area."
+    },
+    "ghostPreviewLayoutTutorial": {
+      "title": "Layout: Ghost Previews (Simplified)",
+      "description": "Understand how to use ghost previews for layout adjustments (basic flow)."
+    },
+    "ghostPreviewsUsageTutorial": {
+      "title": "Layout: Using Ghost Previews (Full Flow)",
+      "description": "Learn to trigger ghost previews and use the toolbar to accept or cancel layout changes."
+    },
+    "projectOverviewTutorial": {
+      "title": "Project Overview Mode",
+      "description": "Learn to use the AI-generated project overview to understand its high-level structure."
+    }
+  },
+  "tutorialSteps": {
+    "common": {
+      "welcomeTitle": "Welcome!",
+      "welcomeContent": "Welcome to CodeMap! This tool helps you understand and visualize code structures.",
+      "navBarTitle": "Navigation Bar",
+      "navBarContent": "This is the main navigation bar. Access different feature areas based on your role.",
+      "mainContentAreaTitle": "Main Content Area",
+      "mainContentAreaContent": "This area will display your selected feature pages and main content.",
+      "userMenuTitle": "User Menu",
+      "userMenuContent": "Click here to manage your profile or log out."
+    },
+    "dashboardTutorial": [
+      {
+        "title": "My Concept Maps",
+        "content": "Here you can view and manage your concept maps."
+      },
+      {
+        "title": "Submit Project",
+        "content": "Click here to upload your project and automatically generate a concept map using AI."
+      },
+      {
+        "title": "Manage Classrooms",
+        "content": "Here you can manage your classrooms and students."
+      },
+      {
+        "title": "User Management",
+        "content": "Manage all users on the platform."
+      },
+      {
+        "title": "System Settings",
+        "content": "Configure system-level settings."
+      }
+    ],
+    "projectUploadTutorial": [
+      {
+        "title": "Project Upload & Analysis",
+        "content": "Welcome to the Project Submission page! Here, you can upload your code project, and CodeMap will help you generate a concept map through AI analysis."
+      },
+      {
+        "title": "Select Project File",
+        "content": "Click or drag your project archive file (e.g., .zip) here. Please ensure the archive contains your source code."
+      },
+      {
+        "title": "Your Analysis Goals",
+        "content": "Briefly describe your goals for the AI analysis, e.g., 'understand main project modules' or 'outline core business logic'. This will help the AI generate a more relevant concept map."
+      },
+      {
+        "title": "Start Analysis",
+        "content": "Once completed, click here to start uploading and analyzing your project."
+      }
+    ],
+    "editorTutorial": [
+      {
+        "title": "Concept Map Editor",
+        "content": "Welcome to the Concept Map Editor! Here you can create, edit, and organize your concept maps."
+      },
+      {
+        "title": "Save Map",
+        "content": "After editing, remember to click here to save your map."
+      },
+      {
+        "title": "Add Node",
+        "content": "Click this button to add a new concept node to the canvas."
+      },
+      {
+        "title": "Add Edge",
+        "content": "Use this button or drag from node handles to connect two nodes with an edge."
+      },
+      {
+        "title": "AI Assistant",
+        "content": "Various AI tools are integrated here to help you extract concepts, suggest relations, expand ideas, and more."
+      },
+      {
+        "title": "Canvas Area",
+        "content": "This is your canvas area. You can freely drag, arrange nodes and edges, and build your concept map structure here."
+      },
+      {
+        "title": "Properties Inspector",
+        "content": "Click this button to open the Properties Panel. When a node or edge is selected, you can edit its label, details, style, etc., in this panel."
+      }
+    ],
+    "extractConceptsToolTutorial": [
+      {
+        "title": "AI Tool: Extract Concepts",
+        "content": "Let's learn how to use AI to extract key concepts from a node's text."
+      },
+      {
+        "title": "1. Select a Node",
+        "content": "First, ensure you have selected a node containing some text. The AI will extract concepts from this node's label or details. If no node is currently selected, please select one first."
+      },
+      {
+        "title": "2. Open AI Menu",
+        "content": "Click the AI Tools button to open the AI features menu."
+      },
+      {
+        "title": "3. Choose Extract Concepts",
+        "content": "Then, select 'Extract Concepts' from the menu."
+      },
+      {
+        "title": "4. Confirm Extraction",
+        "content": "This is the Extract Concepts dialog. The AI will analyze the selected node's text. You can directly click the 'Extract Concepts' button."
+      },
+      {
+        "title": "Start Extraction",
+        "content": "Click this button to start the extraction."
+      },
+      {
+        "title": "5. View Results",
+        "content": "Once extraction is complete, the AI-generated concepts will appear in the AI Suggestion Panel. Click this button (if the panel is not open) or check the already open panel."
+      },
+      {
+        "title": "AI Suggestion Panel",
+        "content": "Here, you can see the list of extracted concepts. You can choose to add them to your concept map."
+      },
+      {
+        "title": "Tutorial Complete",
+        "content": "Great! You've learned how to use AI to extract concepts. Try this feature on other nodes or explore more AI tools!"
+      }
+    ],
+    "manualAddNodeTutorial": [
+      {
+        "title": "Manually Add Node",
+        "content": "Now let's learn how to manually add a new concept node to the canvas."
+      },
+      {
+        "title": "1. Click Add Node Button",
+        "content": "Please click this 'Add Node' button on the toolbar. A new node will appear in the center of the canvas."
+      },
+      {
+        "title": "2. New Node Added",
+        "content_dynamic": "Great! A new '{{nodeLabel}}' node has been added to the canvas (it's highlighted). You can drag it to change its position.",
+        "content_static": "A new 'Concept' node has been added to the center of the canvas. Please find it."
+      },
+      {
+        "title": "3. Open Properties Panel",
+        "content": "Good! Nodes are usually selected automatically after being added. If the Properties Panel didn't open automatically, please click this button to open it."
+      },
+      {
+        "title": "4. Modify Node Label",
+        "content": "In the Properties Panel, you can change the node's name or label in this input field. Try typing some text!"
+      },
+      {
+        "title": "5. (Optional) Add Details",
+        "content": "You can also add a more detailed description or notes for the node in the 'Details' area. This is helpful for understanding complex concepts."
+      },
+      {
+        "title": "Tutorial Complete!",
+        "content": "Excellent! You've mastered adding a node and editing its basic information. Continue exploring and try creating more nodes and connections!"
+      }
+    ],
+    "manualCreateEdgeTutorial": [
+      {
+        "title": "Manually Create Edge",
+        "content": "Now let's learn how to manually connect two nodes to create an edge. Please ensure you have at least two nodes on your canvas."
+      },
+      {
+        "title": "1. Start Dragging a Connection",
+        "content": "Hover over a node, and you will see small connection points (handles) appear on its border. Click and hold one of these handles to start dragging."
+      },
+      {
+        "title": "2. Connect to Target Node",
+        "content": "Drag the connection line to any handle on another node, then release the mouse button."
+      },
+      {
+        "title": "3. Edge Created",
+        "content_dynamic": "Great! You've successfully created an edge (it's highlighted).",
+        "content_static": "A new edge has been created."
+      },
+      {
+        "title": "4. Select Edge & Open Properties",
+        "content": "Now, please select the newly created edge (if it's not already selected). Then, if the Properties Panel is not open, click this button to open it."
+      },
+      {
+        "title": "5. Edit Edge Label",
+        "content": "In the Properties Panel, you can enter a descriptive label for this edge, such as 'leads to', 'belongs to', or 'related to'."
+      },
+      {
+        "title": "Tutorial Complete!",
+        "content": "Very good! You now know how to create edges and label them."
+      }
+    ],
+    "suggestRelationsToolTutorial": [
+      {
+        "title": "AI Tool: Suggest Relations",
+        "content": "Let's learn how to use AI to suggest potential relationships between existing concepts on your map."
+      },
+      {
+        "title": "1. Open AI Menu",
+        "content": "First, open the AI Tools menu. You can usually find it in the editor toolbar. If a node is selected, relevant AI options might also be in the node's context menu."
+      },
+      {
+        "title": "2. Choose Suggest Relations Tool",
+        "content": "From the menu, select 'Suggest Relations'."
+      },
+      {
+        "title": "3. Suggest Relations Dialog",
+        "content": "The AI will analyze concepts on your map (or your selected concepts and their neighbors) to propose relations. You can optionally provide an additional context prompt or directly click 'Suggest Relations'."
+      },
+      {
+        "title": "Provide Additional Context",
+        "content": "(Optional) If you want to guide the AI's suggestions, you can enter a prompt here, e.g., 'focus on causal relationships'."
+      },
+      {
+        "title": "4. Start Suggesting",
+        "content": "When ready, click this button to start the analysis and get suggestions."
+      },
+      {
+        "title": "5. View Suggested Relations",
+        "content": "Once suggestions are generated, they will appear in the AI Suggestion Panel. If the panel is not open, click its toggle button (usually on the right side of the editor) to view them."
+      },
+      {
+        "title": "6. Relations in AI Panel",
+        "content": "In the 'Suggested Relations' section of the AI panel, you'll see a list of AI-proposed relationships. Each suggestion typically includes a source concept, a target concept, and a label for their relationship."
+      },
+      {
+        "title": "7. Review Individual Suggestions",
+        "content": "Each row represents a suggested relation. You can review the source, target, and label. If a relation seems appropriate, you can check its box to add it to the map later."
+      },
+      {
+        "title": "8. Add Selected Relations",
+        "content": "After checking the relations you want, click this button. They will be added as new edges to your concept map."
+      },
+      {
+        "title": "Tutorial Complete!",
+        "content": "Excellent! You now know how to use AI to discover and establish new connections between your concepts."
+      }
+    ],
+    "expandConceptStagingTutorial": [
+      {
+        "title": "AI: Expand Concept & Staging Area",
+        "content": "Let's learn how to use AI to expand an existing concept and manage the suggestions in the AI Staging Area."
+      },
+      {
+        "title": "1. Select a Concept",
+        "content": "To begin, select a node on the map that you want to expand with new, AI-generated related ideas. If there are no nodes, please add one first."
+      },
+      {
+        "title": "2. Open AI Menu",
+        "content": "Now, open the AI Tools menu."
+      },
+      {
+        "title": "3. Choose 'Expand Concept'",
+        "content": "Select 'Expand Selected Concept' from the menu."
+      },
+      {
+        "title": "4. Expand Concept Modal",
+        "content": "This is the 'Expand Concept' modal. The selected node's concept should already be filled in. You can add a specific focus to guide the AI."
+      },
+      {
+        "title": "Focus (Optional)",
+        "content": "(Optional) Enter a prompt here to refine the suggestions, e.g., 'focus on technical aspects' or 'suggest practical examples'."
+      },
+      {
+        "title": "5. Generate Suggestions",
+        "content": "Click here to start the AI and generate suggestions."
+      },
+      {
+        "title": "6. AI Staging Area",
+        "content": "Great! The AI's suggestions are now displayed in the Staging Area. This toolbar allows you to manage them."
+      },
+      {
+        "title": "7. Preview on Map",
+        "content": "On the map, you'll see the new nodes and connections suggested by the AI. These are still in a 'preview' state."
+      },
+      {
+        "title": "8. Accept All Suggestions",
+        "content": "If all suggestions look good, click 'Commit to Map' to permanently add them to your concept map."
+      },
+      {
+        "title": "Alternative: Discard All",
+        "content": "If you prefer not to use these suggestions, click 'Discard All' to remove them from the staging area."
+      },
+      {
+        "title": "Tutorial Complete!",
+        "content": "You've learned how to use 'Expand Concept' and manage the results via the AI Staging Area!"
+      }
+    ],
+    "ghostPreviewLayoutTutorial": [
+      {
+        "title": "Ghost Preview Introduction",
+        "content": "When you use certain AI layout adjustment features, the system will first display a 'Ghost Preview'. These highlighted elements show the suggested changes but haven't been permanently applied yet."
+      },
+      {
+        "title": "Preview Toolbar",
+        "content": "This toolbar allows you to decide whether to accept these previewed layout changes."
+      },
+      {
+        "title": "Accept Changes",
+        "content": "If you like the proposed layout, click the 'Accept Layout' button. These changes will be applied to your concept map."
+      },
+      {
+        "title": "Cancel Changes",
+        "content": "If you don't want to apply these layout changes, click the 'Cancel' button. Your map will revert to its state before the adjustment."
+      },
+      {
+        "title": "Tutorial Complete!",
+        "content": "You've learned how to use Ghost Previews to manage AI-proposed layout suggestions!"
+      }
+    ],
+    "ghostPreviewsUsageTutorial": [
+      {
+        "title": "Ghost Previews: Introduction",
+        "content": "This tutorial will show you how 'Ghost Previews' work. They are visual previews of layout changes proposed by AI or other tools before you permanently apply them."
+      },
+      {
+        "title": "1. Prepare Your Selection",
+        "content": "To see Ghost Previews in action, first select at least two nodes on the map that you want to reorganize. If you don't have any nodes, please add some and then select them."
+      },
+      {
+        "title": "2. Open Layout Menu",
+        "content": "Now, open the Layout Tools menu."
+      },
+      {
+        "title": "3. Apply Dagre Tidy",
+        "content": "Select 'Tidy Selection (Dagre)' to apply an automatic layout to your selection. This will trigger a Ghost Preview."
+      },
+      {
+        "title": "4. View Ghost Nodes",
+        "content": "Here are the Ghost Previews! The selected nodes now show their proposed positions and sizes (often with a dashed or semi-transparent style). These are not the final changes yet."
+      },
+      {
+        "title": "5. Ghost Preview Toolbar",
+        "content": "This toolbar has appeared to let you manage the preview. From here, you can accept or reject the proposed changes."
+      },
+      {
+        "title": "6. Accept Changes",
+        "content": "If you like the proposed layout, click here (or 'Accept Layout') to permanently apply the changes to your map."
+      },
+      {
+        "title": "7. Cancel Preview",
+        "content": "If you don't want to apply these changes, click here (or 'Cancel') to discard the preview and keep the original layout."
+      },
+      {
+        "title": "Tutorial Complete!",
+        "content": "Great! You now know how to interpret and use Ghost Previews to make informed decisions about proposed layout changes."
+      }
+    ],
+    "projectOverviewTutorial": [
+      {
+        "title": "Project Overview Mode: Introduction",
+        "content": "This tutorial introduces the Project Overview Mode, a high-level summary of your project's structure, generated by AI."
+      },
+      {
+        "title": "1. Activate Overview Mode",
+        "content": "Click the 'Eye' icon on the toolbar to activate Project Overview Mode. The AI will generate and display a summary if it hasn't already."
+      },
+      {
+        "title": "2. Understanding the Overview",
+        "content": "This view shows a general summary of your project and a grid of its key modules or components as identified by the AI. Lines between modules represent their relationships."
+      },
+      {
+        "title": "3. Explore Key Modules",
+        "content": "Each card represents a key module. You can see its description and connections. Clicking a module card will take you back to the detailed map, focusing on nodes related to that module's files (if available)."
+      },
+      {
+        "title": "4. Exit Overview Mode",
+        "content": "To return to the detailed concept map view, click the 'Eye Off' icon on the toolbar."
+      },
+      {
+        "title": "Tutorial Complete!",
+        "content": "You've learned how to use the Project Overview Mode to get a high-level understanding of your project structure!"
+      }
+    ]
+  }
+}

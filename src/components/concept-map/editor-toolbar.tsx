@@ -501,6 +501,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               <Lightbulb className='mr-2 h-4 w-4' /> Suggest Relations
             </DropdownMenuItem>
             <DropdownMenuItem
+              data-tutorial-id='ai-tool-expand-concept' // Added tutorial ID
               onClick={() =>
                 handleGenAIClick(onExpandConcept, 'Expand Concept')
               }
@@ -589,6 +590,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             )}
             {onDagreTidySelection && (
               <DropdownMenuItem
+                data-tutorial-id='layout-tool-dagre-tidy' // Added tutorial ID
                 onClick={() =>
                   handleGenAIClick(onDagreTidySelection, 'Dagre Tidy Selection')
                 }
@@ -937,6 +939,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                data-tutorial-id="toolbar-toggle-project-overview" // Added tutorial ID
                 variant='ghost'
                 size='icon'
                 onClick={onToggleOverviewMode}

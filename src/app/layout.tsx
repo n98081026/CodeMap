@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context';
+import I18nInitializer from '@/components/common/I18nInitializer'; // Import the initializer
 
 export const metadata: Metadata = {
   title: 'CodeMap',
@@ -30,6 +31,7 @@ export default function RootLayout({
         />
       </head>
       <body className='font-body antialiased'>
+        <I18nInitializer /> {/* Add the initializer here */}
         <AuthProvider>
           {children}
           <Toaster />
