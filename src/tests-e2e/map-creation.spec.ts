@@ -1,43 +1,30 @@
 import { test, expect } from '@playwright/test';
+import { ensureDashboard, navigateToCreateNewMap } from './utils/map-setup.utils';
 
 test.describe('Map Creation and Editing Flow', () => {
-  // Il login è ora gestito globalmente tramite global.setup.ts e storageState nel playwright.config.ts
-  // Il blocco test.beforeEach per il login è stato rimosso.
+  // Il login è gestito globalmente tramite global.setup.ts e storageState.
   // I test in questo describe inizieranno con l'utente già autenticato.
 
   test('should allow a user to create a new map, add and edit a node, and save', async ({ page }) => {
-    // L'utente dovrebbe essere già sulla dashboard o su una pagina post-login.
-    // Se global.setup.ts reindirizza a /dashboard, partiamo da lì.
-    // Se no, potremmo dover aggiungere un page.goto('/student/dashboard') o simile qui,
-    // ma idealmente global.setup.ts lascia l'utente sulla pagina iniziale post-login.
-    // Per ora, assumiamo che l'URL iniziale sia /student/dashboard come da flusso di login.
-    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 10000 }); // Verifica di essere sulla dashboard
-    console.log(`Starting map creation test from page: ${page.url()}`);
+    // Assicurarsi di essere sulla dashboard e navigare per creare una nuova mappa
+    await ensureDashboard(page);
+    await navigateToCreateNewMap(page); // Questa funzione attende anche il caricamento dell'editor
 
-    // Dalla dashboard, naviga alla pagina delle mappe concettuali dello studente
-    // Questo presuppone che l'utente sia uno studente. Adattare se il ruolo è diverso.
-    // Esempio: cliccare un link "Le mie mappe" o "Concept Maps"
-    // Usiamo getByRole per un selettore più semantico e robusto.
-    await page.getByRole('link', { name: /concept maps|my maps|le mie mappe/i }).first().click();
-    await expect(page).toHaveURL(/.*\/student\/concept-maps/, { timeout: 10000 });
-    console.log(`Navigated to student concept maps page. Current URL: ${page.url()}`);
+    console.log("Starting map creation test from editor page.");
 
-    // Cliccare il pulsante "Crea Nuova Mappa" (o simile)
-    // Adattare il selettore al testo/ruolo effettivo del pulsante
-    await page.getByRole('button', { name: /create new map|new map|crea nuova mappa|nuova mappa/i }).click();
-    console.log(`"Create New Map" button clicked. Current URL: ${page.url()}`);
-
-    // Attendi il caricamento dell'editor. Un buon indicatore è la visibilità della toolbar.
+    // Selettori per elementi dell'editor
     const addNodeButton = page.locator("button[data-tutorial-id='editor-add-node']");
-    await expect(addNodeButton).toBeVisible({ timeout: 25000 }); // Timeout aumentato per caricamento editor + potenziale creazione mappa backend
-    console.log("Editor toolbar visible.");
+    const nodesOnCanvas = page.locator('.react-flow__node');
+    const nodeTextInput = page.locator("input[data-tutorial-id='properties-inspector-node-text-input']");
+    const saveMapButton = page.locator("button[data-tutorial-id='editor-save-map']");
+    const propertiesToggleButton = page.locator('#tutorial-target-toggle-properties-button');
+
 
     // Cliccare "Aggiungi Nodo"
     await addNodeButton.click();
     console.log("Add Node button clicked.");
 
     // Verificare che un nodo sia presente sulla canvas.
-    const nodesOnCanvas = page.locator('.react-flow__node');
     await expect(nodesOnCanvas).toHaveCount(1, { timeout: 10000 });
     console.log("Node count verified (1).");
 
@@ -47,10 +34,11 @@ test.describe('Map Creation and Editing Flow', () => {
     console.log("First node clicked (selected).");
 
     // Attendere che il pannello delle proprietà sia visibile e l'input del testo del nodo sia pronto
-    const nodeTextInput = page.locator("input[data-tutorial-id='properties-inspector-node-text-input']");
-    // Potrebbe essere necessario prima aprire il pannello proprietà se non è auto-aperto
-    // await page.locator('#tutorial-target-toggle-properties-button').click(); // Se necessario
-    await expect(nodeTextInput).toBeVisible({ timeout: 10000 });
+    // Aprire il pannello proprietà se non è già visibile
+    if (!await nodeTextInput.isVisible({ timeout: 2000 })) {
+        await propertiesToggleButton.click();
+        await expect(nodeTextInput).toBeVisible({ timeout: 5000 });
+    }
     console.log("Properties inspector text input visible.");
 
     // Modificare il testo del nodo
@@ -60,25 +48,26 @@ test.describe('Map Creation and Editing Flow', () => {
     console.log("Node text input filled.");
 
     // Deseleziona il campo di input per assicurarsi che il valore sia "committato" prima del salvataggio
-    await page.locator("button[data-tutorial-id='editor-save-map']").focus();
+    await saveMapButton.focus();
 
 
     // Cliccare "Salva Mappa"
-    await page.locator("button[data-tutorial-id='editor-save-map']").click();
+    await saveMapButton.click();
     console.log("Save Map button clicked.");
 
     // Verificare il toast di successo.
-    const successToast = page.locator('li[data-sonner-toast][data-type="success"] div[data-description]'); // Selettore più specifico per Sonner toasts
+    const successToast = page.locator('li[data-sonner-toast][data-type="success"] div[data-description]');
     await expect(successToast).toBeVisible({ timeout: 15000 });
-    await expect(successToast).toContainText(/Map saved successfully|Map content saved|Map updated/i); // Testo del toast più flessibile
+    await expect(successToast).toContainText(/Map saved successfully|Map content saved|Map updated/i);
     console.log("Success toast verified.");
 
     // Verificare che l'URL cambi da /new (o il precedente) a /editor/[mapId]
     await expect(page).toHaveURL(/.*\/concept-maps\/editor\/[a-zA-Z0-9-_]+(?<!\/new)$/, { timeout: 15000 });
     console.log(`Map saved, URL changed to: ${page.url()}`);
 
-    // (Opzionale avanzato) Verificare che il testo del nodo sia stato salvato correttamente
-    // Questo potrebbe richiedere di ricaricare la pagina o di trovare il nodo e verificarne il testo di nuovo.
-    // Per ora, ci fidiamo del toast e del cambio URL.
+    // Considerazioni Future:
+    // - Usare `data-testid` per selettori più robusti.
+    // - Aggiungere test per casi di errore (es. fallimento del salvataggio).
+    // - Testare la persistenza effettiva dei dati ricaricando la mappa o verificando tramite API se possibile.
   });
 });
