@@ -1,73 +1,54 @@
 import { test, expect } from '@playwright/test';
 import { ensureDashboard, navigateToCreateNewMap } from './utils/map-setup.utils';
+import { EditorPage } from './pom/EditorPage';
 
 test.describe('Map Creation and Editing Flow', () => {
-  // Il login è gestito globalmente tramite global.setup.ts e storageState.
-  // I test in questo describe inizieranno con l'utente già autenticato.
+  // Login is handled globally via global.setup.ts and storageState.
+  // Tests in this describe will start with the user already authenticated.
 
   test('should allow a user to create a new map, add and edit a node, and save', async ({ page }) => {
-    // Assicurarsi di essere sulla dashboard e navigare per creare una nuova mappa
+    const editorPage = new EditorPage(page);
+
+    // Ensure on dashboard and navigate to create a new map
     await ensureDashboard(page);
-    await navigateToCreateNewMap(page); // Questa funzione attende anche il caricamento dell'editor
+    await navigateToCreateNewMap(page); // This function also waits for the editor to load
 
-    console.log("Starting map creation test from editor page.");
+    console.log("POM: Starting map creation test from editor page.");
 
-    // Selettori per elementi dell'editor
-    const addNodeButton = page.locator("button[data-tutorial-id='editor-add-node']");
-    const nodesOnCanvas = page.locator('.react-flow__node');
-    const nodeTextInput = page.locator("input[data-tutorial-id='properties-inspector-node-text-input']");
-    const saveMapButton = page.locator("button[data-tutorial-id='editor-save-map']");
-    const propertiesToggleButton = page.locator('#tutorial-target-toggle-properties-button');
+    // Click "Add Node" using POM
+    await editorPage.clickAddNode();
 
-
-    // Cliccare "Aggiungi Nodo"
-    await addNodeButton.click();
-    console.log("Add Node button clicked.");
-
-    // Verificare che un nodo sia presente sulla canvas.
+    // Verify that one node is present on the canvas using POM
+    const nodesOnCanvas = await editorPage.getNodesOnCanvas();
     await expect(nodesOnCanvas).toHaveCount(1, { timeout: 10000 });
-    console.log("Node count verified (1).");
+    console.log("POM: Node count verified (1).");
 
-    // Selezionare il primo (e unico) nodo per modificarlo
-    const firstNode = nodesOnCanvas.first();
+    // Select the first (and only) node to edit it using POM
+    const firstNode = await editorPage.getFirstNode();
     await firstNode.click();
-    console.log("First node clicked (selected).");
+    console.log("POM: First node clicked (selected).");
 
-    // Attendere che il pannello delle proprietà sia visibile e l'input del testo del nodo sia pronto
-    // Aprire il pannello proprietà se non è già visibile
-    if (!await nodeTextInput.isVisible({ timeout: 2000 })) {
-        await propertiesToggleButton.click();
-        await expect(nodeTextInput).toBeVisible({ timeout: 5000 });
-    }
-    console.log("Properties inspector text input visible.");
+    // Ensure properties panel is visible and set node text using POM
+    const newNodeText = 'Test Node E2E - Automated POM';
+    await editorPage.setNodeText(newNodeText); // This POM method handles visibility and filling
 
-    // Modificare il testo del nodo
-    const newNodeText = 'Test Node E2E - Automated';
-    await nodeTextInput.fill(newNodeText);
-    await expect(nodeTextInput).toHaveValue(newNodeText);
-    console.log("Node text input filled.");
+    // Click "Save Map" using POM
+    await editorPage.clickSaveMap();
 
-    // Deseleziona il campo di input per assicurarsi che il valore sia "committato" prima del salvataggio
-    await saveMapButton.focus();
-
-
-    // Cliccare "Salva Mappa"
-    await saveMapButton.click();
-    console.log("Save Map button clicked.");
-
-    // Verificare il toast di successo.
+    // Verify the success toast.
+    // Note: Toast is a global element, might not strictly belong to EditorPage POM,
+    // but for now, we'll keep its locator here. Could be moved to a more global POM or utility.
     const successToast = page.locator('li[data-sonner-toast][data-type="success"] div[data-description]');
     await expect(successToast).toBeVisible({ timeout: 15000 });
     await expect(successToast).toContainText(/Map saved successfully|Map content saved|Map updated/i);
-    console.log("Success toast verified.");
+    console.log("POM: Success toast verified.");
 
-    // Verificare che l'URL cambi da /new (o il precedente) a /editor/[mapId]
+    // Verify that the URL changes from /new (or previous) to /editor/[mapId]
     await expect(page).toHaveURL(/.*\/concept-maps\/editor\/[a-zA-Z0-9-_]+(?<!\/new)$/, { timeout: 15000 });
-    console.log(`Map saved, URL changed to: ${page.url()}`);
+    console.log(`POM: Map saved, URL changed to: ${page.url()}`);
 
-    // Considerazioni Future:
-    // - Usare `data-testid` per selettori più robusti.
-    // - Aggiungere test per casi di errore (es. fallimento del salvataggio).
-    // - Testare la persistenza effettiva dei dati ricaricando la mappa o verificando tramite API se possibile.
+    // Future Considerations:
+    // - Add tests for error cases (e.g., save failure).
+    // - Test actual data persistence by reloading the map or verifying via API if possible.
   });
 });

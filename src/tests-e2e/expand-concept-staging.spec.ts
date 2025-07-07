@@ -1,170 +1,107 @@
 import { test, expect } from '@playwright/test';
+import { EditorPage } from './pom/EditorPage';
+import { ensureDashboard, navigateToCreateNewMap, addNodeToMap } from './utils/map-setup.utils';
 
 test.describe('Expand Concept with Staging Area Flow', () => {
   const INITIAL_NODE_TEXT = 'Artificial Intelligence';
-  const EXPAND_PROMPT_FOCUS = 'Applications in education';
+  const EXPAND_PROMPT_FOCUS_COMMIT = 'Applications in education';
+  const EXPAND_PROMPT_FOCUS_DISCARD = 'Ethical considerations';
+  let editorPage: EditorPage;
 
   test.beforeEach(async ({ page }) => {
-    // Assicurarsi di essere sulla dashboard (post-login globale)
-    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
-    console.log(`Starting "Expand Concept (Staging)" test from page: ${page.url()}`);
+    editorPage = new EditorPage(page);
+    await ensureDashboard(page);
+    await navigateToCreateNewMap(page);
 
-    // Naviga per creare una nuova mappa
-    await page.getByRole('link', { name: /concept maps|my maps|le mie mappe/i }).first().click();
-    await expect(page).toHaveURL(/.*\/student\/concept-maps/, { timeout: 10000 });
-    await page.getByRole('button', { name: /create new map|new map|crea nuova mappa|nuova mappa/i }).click();
-
-    const editorToolbarAddNodeButton = page.locator("button[data-tutorial-id='editor-add-node']");
-    await expect(editorToolbarAddNodeButton).toBeVisible({ timeout: 25000 });
-    console.log("Editor loaded for new map.");
-
-    // Aggiungi un nodo iniziale
-    const propertiesToggleButton = page.locator('#tutorial-target-toggle-properties-button');
-    const nodeTextInput = page.locator("input[data-tutorial-id='properties-inspector-node-text-input']");
-
-    await editorToolbarAddNodeButton.click();
-    const firstNode = page.locator('.react-flow__node').nth(0);
-    await firstNode.click();
-    if (!await nodeTextInput.isVisible({ timeout: 2000 })) {
-        await propertiesToggleButton.click();
-        await expect(nodeTextInput).toBeVisible({ timeout: 5000 });
-    }
-    await nodeTextInput.fill(INITIAL_NODE_TEXT);
-    await expect(nodeTextInput).toHaveValue(INITIAL_NODE_TEXT);
-    await editorToolbarAddNodeButton.focus();
-    console.log(`Initial node "${INITIAL_NODE_TEXT}" added.`);
-    await expect(page.locator('.react-flow__node')).toHaveCount(1, { timeout: 10000 });
+    // Add an initial node using the utility function
+    await addNodeToMap(page, INITIAL_NODE_TEXT, 0); // addNodeToMap uses page.locator, needs POM update later if desired
+    const nodes = await editorPage.getNodesOnCanvas();
+    await expect(nodes).toHaveCount(1, { timeout: 10000 });
+    console.log(`POM: Initial node "${INITIAL_NODE_TEXT}" added.`);
   });
 
   test('should expand a node, show suggestions in staging, allow commit, and verify changes', async ({ page }) => {
-    // --- Selettori ---
-    const firstNode = page.locator('.react-flow__node').first(); // Il nodo creato nel beforeEach
-    const aiToolsMenuButton = page.locator("button[aria-label='AI Tools']");
-    const expandConceptMenuItem = page.locator("button[data-tutorial-id='ai-tool-expand-concept']");
-    const expandConceptModal = page.locator("div[id='tutorial-target-expand-concept-modal']");
-    const conceptToExpandInput = expandConceptModal.locator('input[name="conceptToExpand"]'); // Basato su formField name
-    const refinementInput = expandConceptModal.locator("textarea[id='tutorial-target-expand-concept-input']");
-    const confirmExpandButton = expandConceptModal.locator("button[id='tutorial-target-expand-concept-confirm-button']");
-    const stagingToolbar = page.locator("div[data-tutorial-id='ai-staging-toolbar']");
-    const commitAllButton = stagingToolbar.locator("button[data-tutorial-id='staging-toolbar-accept-all']");
-    // const discardAllButton = stagingToolbar.locator("button[data-tutorial-id='staging-toolbar-clear-all']"); // Per un test di discard
-
-    // 1. Selezionare il nodo iniziale
+    // 1. Select the initial node (already done by addNodeToMap, but re-click for safety)
+    const firstNode = await editorPage.getFirstNode();
     await firstNode.click();
-    console.log(`Node "${INITIAL_NODE_TEXT}" selected.`);
-    // (Opzionale) Verifica selezione: await expect(firstNode).toHaveClass(/selected/);
+    console.log(`POM: Node "${INITIAL_NODE_TEXT}" selected.`);
 
-    // 2. Attivare "Expand Concept"
-    await aiToolsMenuButton.click();
-    console.log("AI Tools menu clicked.");
-    await expandConceptMenuItem.click();
-    console.log("'Expand Selected Concept' tool selected.");
+    // 2. Activate "Expand Concept" using POM
+    await editorPage.selectAITool('Expand Concept');
 
-    // 3. Interagire con il Modale "Expand Concept"
-    await expect(expandConceptModal).toBeVisible({ timeout: 10000 });
-    console.log("Expand Concept modal visible.");
+    // 3. Interact with the "Expand Concept" Modal using POM
+    await editorPage.submitExpandConceptModal(INITIAL_NODE_TEXT, EXPAND_PROMPT_FOCUS_COMMIT);
 
-    // Verifica precompilazione (dovrebbe essere il testo del nodo selezionato)
-    await expect(conceptToExpandInput).toHaveValue(INITIAL_NODE_TEXT, {timeout: 5000});
-    console.log("Modal concept input pre-filled with selected node's text.");
+    // 4. Verify the appearance of the Staging Toolbar and staged nodes/edges using POM
+    await expect(editorPage.stagingToolbar).toBeVisible({ timeout: 20000 });
+    console.log("POM: AI Staging Toolbar is visible.");
 
-    await refinementInput.fill(EXPAND_PROMPT_FOCUS);
-    await expect(refinementInput).toHaveValue(EXPAND_PROMPT_FOCUS);
-    console.log(`Refinement prompt filled with: "${EXPAND_PROMPT_FOCUS}"`);
-
-    await confirmExpandButton.click();
-    console.log("Expand Concept modal submitted.");
-    // Attendere la chiusura del modale e l'elaborazione AI che popola lo staging
-    await expect(expandConceptModal).not.toBeVisible({ timeout: 30000 }); // Timeout più lungo per AI
-    console.log("Expand Concept modal closed.");
-
-    // 4. Verificare la comparsa della Staging Toolbar e dei nodi/archi staged
-    await expect(stagingToolbar).toBeVisible({ timeout: 20000 }); // Dare tempo per l'apparizione post-AI
-    console.log("AI Staging Toolbar is visible.");
-
-    // Verificare che ci siano nuovi nodi "staged" (tipo 'ai-expanded')
-    const stagedNodes = page.locator(".react-flow__node[data-type='ai-expanded']");
+    const stagedNodes = page.locator(".react-flow__node[data-type='ai-expanded']"); // Keep specific locator for 'ai-expanded' type
     await expect(stagedNodes.first()).toBeVisible({ timeout: 20000 });
 
-    const initialNodeCountOnCanvas = 1; // Il nodo originale
+    const initialNodeCountOnCanvas = 1;
     const stagedNodesCount = await stagedNodes.count();
-    expect(stagedNodesCount).toBeGreaterThan(0); // Almeno un suggerimento
-    console.log(`${stagedNodesCount} staged 'ai-expanded' nodes appeared on canvas.`);
+    expect(stagedNodesCount).toBeGreaterThan(0);
+    console.log(`POM: ${stagedNodesCount} staged 'ai-expanded' nodes appeared on canvas.`);
 
-    // Il numero totale di nodi visibili (originale + staged)
-    await expect(page.locator('.react-flow__node')).toHaveCount(initialNodeCountOnCanvas + stagedNodesCount, {timeout: 5000});
+    const allNodes = await editorPage.getNodesOnCanvas();
+    await expect(allNodes).toHaveCount(initialNodeCountOnCanvas + stagedNodesCount, {timeout: 5000});
 
-    // 5. Cliccare "Commit to Map" / "Accept All"
-    await expect(commitAllButton).toBeEnabled();
-    await commitAllButton.click();
-    console.log("Commit All button on staging toolbar clicked.");
+    // 5. Click "Commit to Map" / "Accept All" using POM
+    await editorPage.commitStagedItems();
 
-    // 6. Verifiche Post-Commit
-    await expect(stagingToolbar).not.toBeVisible({ timeout: 10000 });
-    console.log("AI Staging Toolbar is hidden after commit.");
+    // 6. Post-Commit Verifications using POM
+    await expect(editorPage.stagingToolbar).not.toBeVisible({ timeout: 10000 });
+    console.log("POM: AI Staging Toolbar is hidden after commit.");
 
-    // Il conteggio totale dei nodi dovrebbe rimanere lo stesso di prima del commit,
-    // ma ora sono nodi "reali" e non più solo staged (il loro data-type potrebbe cambiare o no,
-    // ma non dovrebbero avere uno stato speciale 'staged' se esisteva).
-    // Per questo test, il tipo 'ai-expanded' rimane dopo il commit.
-    await expect(page.locator('.react-flow__node')).toHaveCount(initialNodeCountOnCanvas + stagedNodesCount, {timeout: 5000});
-    console.log(`Total node count is still ${initialNodeCountOnCanvas + stagedNodesCount} after commit.`);
+    const nodesAfterCommit = await editorPage.getNodesOnCanvas();
+    await expect(nodesAfterCommit).toHaveCount(initialNodeCountOnCanvas + stagedNodesCount, {timeout: 5000});
+    console.log(`POM: Total node count is still ${initialNodeCountOnCanvas + stagedNodesCount} after commit.`);
 
-    // Verifichiamo che i nodi di tipo 'ai-expanded' siano ancora lì (ora committati)
     await expect(page.locator(".react-flow__node[data-type='ai-expanded']").count()).toBe(stagedNodesCount);
-
-    console.log("Expand Concept with Staging Area (Commit flow) test completed.");
+    console.log("POM: Expand Concept with Staging Area (Commit flow) test completed.");
   });
 
   test('should expand a node, show suggestions in staging, and allow discard', async ({ page }) => {
-    // Selettori (alcuni duplicati per chiarezza del test individuale)
-    const firstNode = page.locator('.react-flow__node').first();
-    const aiToolsMenuButton = page.locator("button[aria-label='AI Tools']");
-    const expandConceptMenuItem = page.locator("button[data-tutorial-id='ai-tool-expand-concept']");
-    const expandConceptModal = page.locator("div[id='tutorial-target-expand-concept-modal']");
-    const refinementInput = expandConceptModal.locator("textarea[id='tutorial-target-expand-concept-input']");
-    const confirmExpandButton = expandConceptModal.locator("button[id='tutorial-target-expand-concept-confirm-button']");
-    const stagingToolbar = page.locator("div[data-tutorial-id='ai-staging-toolbar']");
-    const discardAllButton = stagingToolbar.locator("button[data-tutorial-id='staging-toolbar-clear-all']");
-
-    // 1. Selezionare il nodo e attivare "Expand Concept"
+    // 1. Select the initial node
+    const firstNode = await editorPage.getFirstNode();
     await firstNode.click();
-    await aiToolsMenuButton.click();
-    await expandConceptMenuItem.click();
-    await expect(expandConceptModal).toBeVisible({ timeout: 10000 });
-    await refinementInput.fill("Alternative ideas");
-    await confirmExpandButton.click();
-    await expect(expandConceptModal).not.toBeVisible({ timeout: 25000 });
-    await expect(stagingToolbar).toBeVisible({ timeout: 20000 });
-    console.log("Staging toolbar visible for discard flow.");
 
-    // Verificare che ci siano nodi staged
-    const stagedNodes = page.locator(".react-flow__node[data-type='ai-expanded']");
-    const stagedNodesCountBeforeDiscard = await stagedNodes.count();
+    // Activate "Expand Concept"
+    await editorPage.selectAITool('Expand Concept');
+
+    // Interact with modal
+    await editorPage.submitExpandConceptModal(INITIAL_NODE_TEXT, EXPAND_PROMPT_FOCUS_DISCARD);
+
+    // Verify staging toolbar
+    await expect(editorPage.stagingToolbar).toBeVisible({ timeout: 20000 });
+    console.log("POM: Staging toolbar visible for discard flow.");
+
+    // Verify staged nodes are present
+    const stagedNodesLocator = page.locator(".react-flow__node[data-type='ai-expanded']");
+    const stagedNodesCountBeforeDiscard = await stagedNodesLocator.count();
     expect(stagedNodesCountBeforeDiscard).toBeGreaterThan(0);
-    const totalNodesBeforeDiscard = await page.locator('.react-flow__node').count();
-    console.log(`${stagedNodesCountBeforeDiscard} staged nodes present before discard.`);
+    console.log(`POM: ${stagedNodesCountBeforeDiscard} staged nodes present before discard.`);
 
-    // 2. Cliccare "Discard All"
-    await expect(discardAllButton).toBeEnabled();
-    await discardAllButton.click();
-    console.log("Discard All button on staging toolbar clicked.");
+    // 2. Click "Discard All" using POM
+    await editorPage.discardStagedItems();
 
-    // 3. Verifiche Post-Discard
-    await expect(stagingToolbar).not.toBeVisible({ timeout: 10000 });
-    console.log("AI Staging Toolbar is hidden after discard.");
+    // 3. Post-Discard Verifications
+    await expect(editorPage.stagingToolbar).not.toBeVisible({ timeout: 10000 });
+    console.log("POM: AI Staging Toolbar is hidden after discard.");
 
-    // Il numero di nodi 'ai-expanded' (staged) dovrebbe tornare a 0
-    await expect(page.locator(".react-flow__node[data-type='ai-expanded']")).toHaveCount(0, {timeout: 5000});
+    await expect(stagedNodesLocator).toHaveCount(0, {timeout: 5000});
 
-    // Il numero totale di nodi dovrebbe tornare a quello iniziale (solo il nodo originale)
     const initialNodeCountOnCanvas = 1;
-    await expect(page.locator('.react-flow__node')).toHaveCount(initialNodeCountOnCanvas, {timeout: 5000});
-    console.log(`Total node count is ${initialNodeCountOnCanvas} after discard, as expected.`);
+    const nodesAfterDiscard = await editorPage.getNodesOnCanvas();
+    await expect(nodesAfterDiscard).toHaveCount(initialNodeCountOnCanvas, {timeout: 5000});
+    console.log(`POM: Total node count is ${initialNodeCountOnCanvas} after discard, as expected.`);
 
-    // Assicurarsi che il nodo originale sia ancora lì
-    await expect(page.locator(`.react-flow__node:has-text("${INITIAL_NODE_TEXT}")`)).toBeVisible();
-    console.log("Original node still present after discard.");
-    console.log("Expand Concept with Staging Area (Discard flow) test completed.");
+    const originalNode = await editorPage.getNodesOnCanvas(); // Should be just the one
+    // Check if the original node (identifiable by its text) is still visible
+    const originalNodeWithText = page.locator(`.react-flow__node:has-text("${INITIAL_NODE_TEXT}")`);
+    await expect(originalNodeWithText).toBeVisible();
+    console.log("POM: Original node still present after discard.");
+    console.log("POM: Expand Concept with Staging Area (Discard flow) test completed.");
   });
 });
