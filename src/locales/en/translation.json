@@ -55,6 +55,10 @@
       "title": "Layout: Using Ghost Previews (Full Flow)",
       "description": "Learn to trigger ghost previews and use the toolbar to accept or cancel layout changes."
     },
+      "ghostPreviewsUsageTutorial_OLD": {
+        "title": "OLD - Layout: Using Ghost Previews (Full Flow)",
+        "description": "Learn to trigger ghost previews and use the toolbar to accept or cancel layout changes."
+      },
     "projectOverviewTutorial": {
       "title": "Project Overview Mode",
       "description": "Learn to use the AI-generated project overview to understand its high-level structure."
@@ -285,6 +289,44 @@
       {
         "title": "Tutorial Complete!",
         "content": "Excellent! You now know how to use AI to discover and establish new connections between your concepts."
+      }
+    ],
+    "ghostPreviewsUsageTutorial_OLD": [
+      {
+        "title": "Ghost Previews: Introduction",
+        "content": "This tutorial will show you how 'Ghost Previews' work. They are visual previews of layout changes proposed by AI or other tools before you permanently apply them."
+      },
+      {
+        "title": "1. Prepare Your Selection",
+        "content": "To see Ghost Previews in action, first select at least two nodes on the map that you want to reorganize. If you don't have any nodes, please add some and then select them."
+      },
+      {
+        "title": "2. Open Layout Menu",
+        "content": "Now, open the Layout Tools menu."
+      },
+      {
+        "title": "3. Apply Dagre Tidy",
+        "content": "Select 'Tidy Selection (Dagre)' to apply an automatic layout to your selection. This will trigger a Ghost Preview."
+      },
+      {
+        "title": "4. View Ghost Nodes",
+        "content": "Here are the Ghost Previews! The selected nodes now show their proposed positions and sizes (often with a dashed or semi-transparent style). These are not the final changes yet."
+      },
+      {
+        "title": "5. Ghost Preview Toolbar",
+        "content": "This toolbar has appeared to let you manage the preview. From here, you can accept or reject the proposed changes."
+      },
+      {
+        "title": "6. Accept Changes",
+        "content": "If you like the proposed layout, click here (or 'Accept Layout') to permanently apply the changes to your map."
+      },
+      {
+        "title": "7. Cancel Preview",
+        "content": "If you don't want to apply these changes, click here (or 'Cancel') to discard the preview and keep the original layout."
+      },
+      {
+        "title": "Tutorial Complete!",
+        "content": "Great! You now know how to interpret and use Ghost Previews to make informed decisions about proposed layout changes."
       }
     ],
     "tutorialSteps": {
