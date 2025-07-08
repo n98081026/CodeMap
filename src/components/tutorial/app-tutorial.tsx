@@ -236,61 +236,93 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
         }
         return steps;
       } else if (tutorialKey === 'suggestRelationsToolTutorial') {
-        // Directly define steps for suggestRelationsToolTutorial to ensure correct targets
-        const baseKey = 'suggestRelationsToolTutorial';
-        const totalSteps = 10; // As specified by mapStepKeys before
-        const generatedSteps = mapStepKeys(baseKey, totalSteps);
-
-        // Override targets based on our data-tutorial-id attributes
-        // Assuming translation files provide titles, content, placements etc.
-        // We are primarily concerned with the 'target' selector here.
-        const updatedSteps: Step[] = [
-          { // Step 0: Intro (Usually target: 'body' or a general container)
-            ...generatedSteps[0],
-            target: generatedSteps[0]?.target || 'body', // Keep original or default to body
+        const baseKey = 'tutorialSteps.suggestRelationsToolTutorial';
+        return [
+          // Step 0: Intro
+          {
+            target: 'body',
+            content: t(`${baseKey}.0.content`),
+            title: t(`${baseKey}.0.title`),
+            placement: 'center',
+            disableBeacon: true,
           },
-          { // Step 1: Open AI Menu
-            ...generatedSteps[1],
+          // Step 1: Click AI Tools Menu in Editor Toolbar
+          {
             target: "[data-tutorial-id='editor-toolbar-ai-tools-button']",
+            content: t(`${baseKey}.1.content`),
+            title: t(`${baseKey}.1.title`),
+            placement: 'bottom',
+            spotlightClicks: true,
           },
-          { // Step 2: Choose Suggest Relations Tool
-            ...generatedSteps[2],
+          // Step 2: Select "Suggest Relations" from dropdown
+          {
             target: "[data-tutorial-id='ai-tool-suggest-relations']",
+            content: t(`${baseKey}.2.content`),
+            title: t(`${baseKey}.2.title`),
+            placement: 'right',
+            spotlightClicks: true,
           },
-          { // Step 3: Suggest Relations Dialog
-            ...generatedSteps[3],
-            target: "[data-tutorial-id='suggest-relations-modal']", // Or [role='dialog'][aria-labelledby='suggest-relations-title']
+          // Step 3: Explain the "Suggest Relations" modal
+          {
+            target: "[data-tutorial-id='suggest-relations-modal']",
+            content: t(`${baseKey}.3.content`),
+            title: t(`${baseKey}.3.title`),
+            placement: 'auto',
           },
-          { // Step 4: (Optional) Provide Additional Context
-            ...generatedSteps[4],
+          // Step 4: (Optional) Point to custom prompt input
+          {
             target: "[data-tutorial-id='suggest-relations-custom-prompt-input']",
+            content: t(`${baseKey}.4.content`),
+            title: t(`${baseKey}.4.title`),
+            placement: 'top',
+            isOptional: true, // Mark as optional if it can be skipped
           },
-          { // Step 5: Start Suggesting (Click Modal Submit)
-            ...generatedSteps[5],
+          // Step 5: Click "Suggest Relations" button in modal
+          {
             target: "[data-tutorial-id='suggest-relations-submit-button']",
+            content: t(`${baseKey}.5.content`),
+            title: t(`${baseKey}.5.title`),
+            placement: 'top',
+            spotlightClicks: true,
           },
-          { // Step 6: View Suggested Relations (AI Panel section)
-            ...generatedSteps[6],
-            target: "[data-tutorial-id='suggested-relations-section']", // Or specific panel toggle button
+          // Step 6: AI Suggestion Panel opens/updates - point to it
+          {
+            target: "[data-tutorial-id='ai-suggestion-panel']",
+            content: t(`${baseKey}.6.content`),
+            title: t(`${baseKey}.6.title`),
+            placement: 'left',
           },
-          { // Step 7: Relations in AI Panel (Focus on one item)
-            ...generatedSteps[7],
-            // This target will point to the first item.
-            // If no items, Joyride might show "target not found" or skip.
-            // Good to have fallback content in translation if no items.
-            target: "[data-tutorial-id='suggested-relation-item-0']",
+          // Step 7: Point to the "Suggested Relations" section within the panel
+          {
+            target: "[data-tutorial-id='suggested-relations-section']",
+            content: t(`${baseKey}.7.content`),
+            title: t(`${baseKey}.7.title`),
+            placement: 'auto', // Or 'top-start' if panel is on right
           },
-          { // Step 8: Review Individual Suggestions (Could be same as above or general to the list)
-             ...generatedSteps[8],
-             target: "[data-tutorial-id='suggested-relations-section']", // Or a specific part of the list
+          // Step 8: Highlight a specific suggested relation item (e.g., the first one)
+          {
+            target: "[data-tutorial-id='suggested-relation-item-0']", // Ensure this ID exists on items
+            content: t(`${baseKey}.8.content`),
+            title: t(`${baseKey}.8.title`),
+            placement: 'auto',
+            // Add note in translation: "If no suggestions, this step might be skipped or show default."
           },
-          { // Step 9: Add Selected Relations
-            ...generatedSteps[9],
-            target: "[data-tutorial-id='add-selected-relations-button']", // Or 'add-all-new-relations-button' depending on flow
+          // Step 9: Point to "Add Selected" or "Add All" button for relations
+          {
+            target: "[data-tutorial-id='add-selected-relations-button']", // Or 'add-all-new-relations-button'
+            content: t(`${baseKey}.9.content`),
+            title: t(`${baseKey}.9.title`),
+            placement: 'top',
+            spotlightClicks: true,
           },
-          // Ensure we don't exceed the original number of steps if generatedSteps is shorter
+          // Step 10: Concluding step
+          {
+            target: 'body',
+            content: t(`${baseKey}.10.content`),
+            title: t(`${baseKey}.10.title`),
+            placement: 'center',
+          },
         ];
-        return updatedSteps.slice(0, totalSteps);
       } else if (tutorialKey === 'expandConceptStagingTutorial') {
         return mapStepKeys('expandConceptStagingTutorial', 11);
       } else if (tutorialKey === 'ghostPreviewLayoutTutorial') {

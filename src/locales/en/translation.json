@@ -35,6 +35,10 @@
       "title": "AI Tool: Suggest Relations",
       "description": "Use AI to get suggestions for relations between concepts."
     },
+      "suggestRelationsToolTutorial_OLD": {
+        "title": "OLD - AI Tool: Suggest Relations",
+        "description": "Use AI to get suggestions for relations between concepts."
+      },
     "expandConceptStagingTutorial": {
       "title": "AI Tool: Expand Concept & Staging Area",
       "description": "Learn to expand concepts with AI and manage suggestions in the staging area."
@@ -279,6 +283,82 @@
         "content": "Excellent! You now know how to use AI to discover and establish new connections between your concepts."
       }
     ],
+    "tutorialSteps": {
+      "suggestRelationsToolTutorial": [
+        {
+          "target": "body",
+          "content": "Let's learn how to use AI to suggest potential relationships between existing concepts on your map.",
+          "title": "AI Tool: Suggest Relations",
+          "placement": "center",
+          "disableBeacon": true
+        },
+        {
+          "target": "[data-tutorial-id='editor-toolbar-ai-tools-button']",
+          "content": "First, open the AI Tools menu. You can usually find it in the editor toolbar.",
+          "title": "1. Open AI Menu",
+          "placement": "bottom",
+          "spotlightClicks": true
+        },
+        {
+          "target": "[data-tutorial-id='ai-tool-suggest-relations']",
+          "content": "From the menu, select 'Suggest Relations'.",
+          "title": "2. Choose Suggest Relations Tool",
+          "placement": "right",
+          "spotlightClicks": true
+        },
+        {
+          "target": "[data-tutorial-id='suggest-relations-modal']",
+          "content": "The AI will analyze concepts on your map (or your selected concepts and their neighbors) to propose relations. You can optionally provide an additional context prompt or directly click 'Suggest Relations'.",
+          "title": "3. Suggest Relations Dialog",
+          "placement": "auto"
+        },
+        {
+          "target": "[data-tutorial-id='suggest-relations-custom-prompt-input']",
+          "content": "(Optional) If you want to guide the AI's suggestions, you can enter a prompt here, e.g., 'focus on causal relationships'.",
+          "title": "Provide Additional Context",
+          "placement": "top",
+          "isOptional": true
+        },
+        {
+          "target": "[data-tutorial-id='suggest-relations-submit-button']",
+          "content": "When ready, click this button to start the analysis and get suggestions.",
+          "title": "4. Start Suggesting",
+          "placement": "top",
+          "spotlightClicks": true
+        },
+        {
+          "target": "[data-tutorial-id='ai-suggestion-panel']",
+          "content": "Once suggestions are generated, they will appear in the AI Suggestion Panel. If the panel is not open, click its toggle button (usually on the right side of the editor) to view them.",
+          "title": "5. View Suggested Relations",
+          "placement": "left"
+        },
+        {
+          "target": "[data-tutorial-id='suggested-relations-section']",
+          "content": "In the 'Suggested Relations' section of the AI panel, you'll see a list of AI-proposed relationships. Each suggestion typically includes a source concept, a target concept, and a label for their relationship.",
+          "title": "6. Relations in AI Panel",
+          "placement": "auto"
+        },
+        {
+          "target": "[data-tutorial-id='suggested-relation-item-0']",
+          "content": "Each row represents a suggested relation. You can review the source, target, and label. If a relation seems appropriate, you can check its box to add it to the map later. (If no suggestions, this step might be skipped or show default.)",
+          "title": "7. Review Individual Suggestions",
+          "placement": "auto"
+        },
+        {
+          "target": "[data-tutorial-id='add-selected-relations-button']",
+          "content": "After checking the relations you want, click this button. They will be added as new edges to your concept map.",
+          "title": "8. Add Selected Relations",
+          "placement": "top",
+          "spotlightClicks": true
+        },
+        {
+          "target": "body",
+          "content": "Excellent! You now know how to use AI to discover and establish new connections between your concepts.",
+          "title": "Tutorial Complete!",
+          "placement": "center"
+        }
+      ]
+    },
     "expandConceptStagingTutorial": [
       {
         "title": "AI: Expand Concept & Staging Area",
