@@ -1,9 +1,10 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { Compass, Loader2, LogIn, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+import { CardLink } from '@/components/common/CardLink';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 
@@ -12,30 +13,27 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated && user) {
-        // User is authenticated, redirect to their respective dashboard
-        switch (user.role) {
-          case UserRole.ADMIN:
-            router.replace('/application/admin/dashboard');
-            break;
-          case UserRole.TEACHER:
-            router.replace('/application/teacher/dashboard');
-            break;
-          case UserRole.STUDENT:
-            router.replace('/application/student/dashboard');
-            break;
-          default:
-            // Fallback if role is somehow unknown, go to login
-            console.warn(
-              'Authenticated user with unknown role, redirecting to login.'
-            );
-            router.replace('/login'); // Assuming /login is the public auth page
-        }
-      } else {
-        // Not authenticated and not loading, this is a guest. Do nothing here, let the page render guest content.
-        // console.log("Guest user on HomePage");
-      }
+    if (isLoading || !isAuthenticated || !user) {
+      return;
+    }
+
+    // User is authenticated, redirect to their respective dashboard
+    switch (user.role) {
+      case UserRole.ADMIN:
+        router.replace('/application/admin/dashboard');
+        break;
+      case UserRole.TEACHER:
+        router.replace('/application/teacher/dashboard');
+        break;
+      case UserRole.STUDENT:
+        router.replace('/application/student/dashboard');
+        break;
+      default:
+        // Fallback if role is somehow unknown, go to login
+        console.warn(
+          'Authenticated user with unknown role, redirecting to login.'
+        );
+        router.replace('/login'); // Assuming /login is the public auth page
     }
   }, [isLoading, isAuthenticated, user, router]);
 
@@ -104,36 +102,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-// Helper component for links on the guest landing page
-import Link from 'next/link';
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-import { Compass, UserPlus, LogIn } from 'lucide-react'; // Ensure these are imported if not already
-
-interface CardLinkProps {
-  href: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-}
-
-const CardLink: React.FC<CardLinkProps> = ({
-  href,
-  title,
-  description,
-  icon,
-}) => (
-  <Link href={href} passHref>
-    <Card className='h-full transform cursor-pointer overflow-hidden rounded-xl bg-card text-card-foreground shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-primary/20'>
-      <CardHeader className='items-center text-center'>
-        {icon}
-        <CardTitle className='text-xl font-semibold'>{title}</CardTitle>
-      </CardHeader>
-      <CardContent className='text-center text-sm text-muted-foreground'>
-        <p>{description}</p>
-      </CardContent>
-    </Card>
-  </Link>
-);
