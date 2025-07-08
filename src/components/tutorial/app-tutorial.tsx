@@ -560,75 +560,81 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
       locale={joyrideLocale} // Use memoized locale
       styles={{
         options: {
-          zIndex: 10000,
-          arrowColor: 'hsl(var(--card-values))',
-          backgroundColor: 'hsl(var(--card-values))',
-          primaryColor: 'hsl(var(--primary-values))',
-          textColor: 'hsl(var(--card-foreground-values))',
-          overlayColor: `hsla(var(--background-values), 0.7)`,
+          zIndex: 10000, // Keep high z-index
+          arrowColor: 'hsl(var(--popover-values))', // Match popover arrow
+          backgroundColor: 'hsl(var(--popover-values))', // Match popover background
+          primaryColor: 'hsl(var(--primary-values))', // Keep primary for main action buttons
+          textColor: 'hsl(var(--popover-foreground-values))', // Match popover text
+          overlayColor: 'hsla(var(--background-values), 0.85)', // Slightly darker overlay
         },
-        tooltip: {
-          borderRadius: 'var(--radius)',
-          padding: '1rem',
-          boxShadow: 'var(--shadow-lg)',
+        tooltip: { // Overall tooltip container
+          borderRadius: 'var(--radius-lg)', // Larger radius, common in ShadCN
+          padding: '1rem', // Keep padding
+          boxShadow: 'var(--shadow-xl)', // More pronounced shadow
           border: '1px solid hsl(var(--border-values))',
         },
-        tooltipContainer: {
+        tooltipContainer: { // Inner container for content
           textAlign: 'left',
         },
-        tooltipTitle: {
+        tooltipTitle: { // Title style
           margin: 0,
-          fontSize: '1.125rem',
-          fontWeight: '600',
-          paddingBottom: '0.5rem',
+          fontSize: '1.25rem', // Slightly larger title
+          fontWeight: '600', // Standard semi-bold
+          paddingBottom: '0.75rem', // More space below title
           borderBottom: '1px solid hsl(var(--border-values))',
-          marginBottom: '0.75rem',
+          marginBottom: '1rem', // More space above content
         },
-        tooltipContent: {
-          fontSize: '0.875rem',
-          lineHeight: '1.4',
+        tooltipContent: { // Content text style
+          fontSize: '0.9rem', // Slightly larger content text
+          lineHeight: '1.6', // Increased line height for readability
         },
-        buttonNext: {
+        buttonNext: { // "Next" / "Finish" button
           backgroundColor: 'hsl(var(--primary-values))',
           color: 'hsl(var(--primary-foreground-values))',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.5rem 1rem',
-          fontSize: '0.875rem',
-          textTransform: 'none',
+          borderRadius: 'var(--radius-md)', // Consistent medium radius
+          padding: '0.6rem 1.2rem', // Slightly larger padding
+          fontSize: '0.9rem',
+          textTransform: 'none', // No uppercase
+          fontWeight: '500', // Medium weight
         },
-        buttonBack: {
+        buttonBack: { // "Back" button
           backgroundColor: 'hsl(var(--secondary-values))',
           color: 'hsl(var(--secondary-foreground-values))',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.5rem 1rem',
-          fontSize: '0.875rem',
-          marginRight: '0.5rem',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.6rem 1.2rem',
+          fontSize: '0.9rem',
+          marginRight: '0.75rem', // Slightly more space
           textTransform: 'none',
+          fontWeight: '500',
         },
-        buttonSkip: {
+        buttonSkip: { // "Skip" link
           color: 'hsl(var(--muted-foreground-values))',
-          fontSize: '0.8rem',
+          fontSize: '0.85rem', // Slightly larger skip text
           textTransform: 'none',
+          textDecoration: 'underline', // Add underline for clarity as a link
         },
-        buttonClose: {
-          top: '10px',
-          right: '10px',
-          height: '1rem',
-          width: '1rem',
+        buttonClose: { // Close (X) button
+          top: '12px', // Adjust position slightly
+          right: '12px',
+          height: '1.25rem', // Slightly larger
+          width: '1.25rem',
           color: 'hsl(var(--muted-foreground-values))',
+          transition: 'color 0.2s ease-in-out',
         },
-        beacon: {
-          outlineColor: 'hsl(var(--primary-values))',
+        // buttonClose:hover: { // Cannot directly style hover states here, would need CSS or a custom component
+        //   color: 'hsl(var(--foreground-values))',
+        // },
+        beacon: { // Pulsing beacon for a step
+          outlineOffset: '2px', // Add small offset to make it stand out more
+          outlineColor: 'hsla(var(--primary-values), 0.5)', // Softer outline
           backgroundColor: 'hsl(var(--primary-values))',
         },
-        overlay: {
-          // already handled by overlayColor in options
-        },
-        spotlight: {
-          borderRadius: 'var(--radius-sm)',
+        spotlight: { // Highlighted area around the target element
+          borderRadius: 'var(--radius-md)', // Consistent medium radius for spotlight
+          boxShadow: '0 0 0 9999px hsla(var(--background-values), 0.85), 0 0 15px hsla(var(--primary-values), 0.5)', // Overlay, then subtle glow
         },
       }}
-      // debug
+      // debug // Keep debug off for production, can be enabled for local testing
     />
   );
 };
