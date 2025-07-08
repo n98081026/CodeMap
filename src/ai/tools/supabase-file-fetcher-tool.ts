@@ -1,7 +1,7 @@
 // src/ai/tools/supabase-file-fetcher-tool.ts
 import path from 'path'; // For extracting filename
 
-import { defineTool } from '@genkit-ai/tool';
+import { defineTool } from 'genkit/core'; // Changed from genkit to genkit/core
 import { z } from 'zod';
 
 import { supabase } from '../../lib/supabaseClient'; // Adjust path if needed
