@@ -503,6 +503,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         aiExtractConcepts,
         { text },
         {
+          loadingMessage: "AI 正在從您的文本中提取概念...",
           successDescription: (res) =>
             `${res.concepts.length} concepts found. View in AI Panel.`,
           onSuccess: (output, _input) => { // _input is available if needed
@@ -651,6 +652,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         aiSuggestRelations,
         { concepts },
         {
+          loadingMessage: "AI 正在分析概念以建議關係...",
           successDescription: (res) =>
             `${res.length} relations suggested. View in AI Panel.`,
           onSuccess: (output, _input) => { // _input is available if needed
@@ -858,7 +860,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         ExpandConceptInput,
         ExpandConceptOutput
       >('Expand Concept', aiExpandConcept, input, {
-        loadingMessage: `AI is expanding on "${input.concept}"...`,
+        loadingMessage: `AI 正在擴展概念 "${input.concept}"...`,
         successTitle: 'AI Suggestions Ready',
         successDescription: (res) =>
           `${res.expandedIdeas.length} new ideas suggested. Review them for placement.`,
@@ -1125,7 +1127,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         })),
       },
       {
-        loadingMessage: `AI is summarizing ${selectedNodes.length} selected node(s)...`,
+        loadingMessage: "AI 正在總結您選擇的節點...",
         successTitle: 'AI Summary Created!',
         successDescription: (res) =>
           res.summary?.text
@@ -1247,7 +1249,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           userRefinementPrompt: 'Generate one concise, directly related child idea. Focus on a primary sub-topic or component.',
         },
         {
-          loadingMessage: `AI is quickly expanding on "${sourceNode.text}"...`,
+          loadingMessage: `AI 正在快速擴展 "${sourceNode.text || '節點'}"...`,
           successTitle: 'AI Suggestion Ready',
           successDescription: (res) =>
             res.expandedIdeas?.length > 0
@@ -1333,7 +1335,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         aiRewriteNodeContent,
         { currentText: node.text, currentDetails: node.details, targetTone: 'concise' },
         {
-          loadingMessage: `AI is making "${node.text}" more concise...`,
+          loadingMessage: `AI 正在簡化 "${node.text || '節點內容'}"...`,
           successTitle: 'Content Rewritten Concisely!',
           successDescription: (res) => res.rewrittenText ? 'Node content updated.' : 'AI could not make it more concise.',
           hideSuccessToast: !node?.text, // Effectively, always show toast unless text was empty
@@ -1400,7 +1402,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           existingLabel,
         },
         {
-          loadingMessage: 'AI is thinking of edge labels...',
+          loadingMessage: "AI 正在為邊建議標籤...",
           successTitle: 'Edge Label Suggestions Ready',
           hideSuccessToast: true, // Suggestions are typically shown in a dropdown or similar UI
           onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
@@ -1447,7 +1449,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
               .filter(Boolean) as string[]) || [],
         },
         {
-          loadingMessage: 'AI is brainstorming child node ideas...',
+          loadingMessage: `AI 正在為 "${node.data.label || '節點'}" 建議子節點文本...`,
           successTitle: 'Child Node Ideas Ready',
           hideSuccessToast: true, // Suggestions displayed in UI, not toast
           processingId: node.id,
@@ -1501,7 +1503,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           refinementInstruction,
         },
         {
-          loadingMessage: 'AI is refining the suggestion...',
+          loadingMessage: `AI 正在優化建議 "${nodeToRefine?.text || '內容'}"...`,
           successTitle: 'Suggestion Refined!',
           processingId: nodeId, // ID of the staged node being processed
           onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
@@ -1576,7 +1578,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           existingEdgeLabel: edge.label,
         },
         {
-          loadingMessage: 'AI is thinking of an intermediate concept...',
+          loadingMessage: "AI 正在建議中間節點...",
           successTitle: 'Intermediate Node Suggested',
           successDescription: (res) => `AI suggests adding '${res.intermediateNodeText}'. Review in staging area.`,
           onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
@@ -1674,7 +1676,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       aiTidyUpSelectionFlow,
       { nodes: nodesToTidy, mapLayoutContext: {} },
       {
-        loadingMessage: 'AI is tidying up your selection...',
+        loadingMessage: "AI 正在整理您選擇的節點佈局...",
         successTitle: 'Selection Tidied by AI!', // General title, specific toasts in onSuccess
         hideSuccessToast: true, // Suppress default toast as onSuccess has specific ones
         onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
@@ -1805,7 +1807,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       suggestMapImprovementsFlow,
       { nodes: currentNodes, edges: currentEdges },
       {
-        loadingMessage: 'AI is analyzing your map for improvements...',
+        loadingMessage: "AI 正在分析您的概念圖以尋找改進建議...",
         successTitle: 'Improvement Suggestions Ready!',
         successDescription: (res) =>
           `Found ${res.suggestedEdges.length} edge and ${res.suggestedGroups.length} group suggestions.`,
@@ -2062,7 +2064,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       generateMapSummaryFlow,
       { nodes: currentMapData.nodes, edges: currentMapData.edges },
       {
-        loadingMessage: 'AI is analyzing and summarizing your map...',
+        loadingMessage: "AI 正在分析和總結您的整個概念圖...",
         successTitle: 'Map Summary Ready!',
         hideSuccessToast: true, // Modal will show the summary
         processingId: 'summarize-entire-map',
@@ -2157,7 +2159,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         AskQuestionAboutEdgeInput,
         AskQuestionAboutEdgeOutput
       >('Ask AI About Edge', askQuestionAboutEdgeFlow, input, {
-        loadingMessage: 'AI is considering your question about the edge...',
+        loadingMessage: "AI 正在思考您關於邊的問題...",
         successTitle: 'AI Answer Received', // This will be shown in modal, so toast can be hidden
         hideSuccessToast: true,
         processingId: `edge-qa-${edgeQuestionContext.edgeId}`, // edgeQuestionContext from outer scope
@@ -2221,7 +2223,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         AskQuestionAboutMapContextInput,
         AskQuestionAboutMapContextOutput
       >('Ask AI About Map', askQuestionAboutMapContextFlow, input, {
-        loadingMessage: 'AI is analyzing the entire map to answer your question...',
+        loadingMessage: "AI 正在分析整個概念圖以回答您的問題...",
         successTitle: 'AI Answer Received', // Modal will show this
         hideSuccessToast: true,
         processingId: `map-qa-${currentMapIdFromStore || 'current'}`,
