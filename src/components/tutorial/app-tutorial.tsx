@@ -236,7 +236,61 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
         }
         return steps;
       } else if (tutorialKey === 'suggestRelationsToolTutorial') {
-        return mapStepKeys('suggestRelationsToolTutorial', 10);
+        // Directly define steps for suggestRelationsToolTutorial to ensure correct targets
+        const baseKey = 'suggestRelationsToolTutorial';
+        const totalSteps = 10; // As specified by mapStepKeys before
+        const generatedSteps = mapStepKeys(baseKey, totalSteps);
+
+        // Override targets based on our data-tutorial-id attributes
+        // Assuming translation files provide titles, content, placements etc.
+        // We are primarily concerned with the 'target' selector here.
+        const updatedSteps: Step[] = [
+          { // Step 0: Intro (Usually target: 'body' or a general container)
+            ...generatedSteps[0],
+            target: generatedSteps[0]?.target || 'body', // Keep original or default to body
+          },
+          { // Step 1: Open AI Menu
+            ...generatedSteps[1],
+            target: "[data-tutorial-id='editor-toolbar-ai-tools-button']",
+          },
+          { // Step 2: Choose Suggest Relations Tool
+            ...generatedSteps[2],
+            target: "[data-tutorial-id='ai-tool-suggest-relations']",
+          },
+          { // Step 3: Suggest Relations Dialog
+            ...generatedSteps[3],
+            target: "[data-tutorial-id='suggest-relations-modal']", // Or [role='dialog'][aria-labelledby='suggest-relations-title']
+          },
+          { // Step 4: (Optional) Provide Additional Context
+            ...generatedSteps[4],
+            target: "[data-tutorial-id='suggest-relations-custom-prompt-input']",
+          },
+          { // Step 5: Start Suggesting (Click Modal Submit)
+            ...generatedSteps[5],
+            target: "[data-tutorial-id='suggest-relations-submit-button']",
+          },
+          { // Step 6: View Suggested Relations (AI Panel section)
+            ...generatedSteps[6],
+            target: "[data-tutorial-id='suggested-relations-section']", // Or specific panel toggle button
+          },
+          { // Step 7: Relations in AI Panel (Focus on one item)
+            ...generatedSteps[7],
+            // This target will point to the first item.
+            // If no items, Joyride might show "target not found" or skip.
+            // Good to have fallback content in translation if no items.
+            target: "[data-tutorial-id='suggested-relation-item-0']",
+          },
+          { // Step 8: Review Individual Suggestions (Could be same as above or general to the list)
+             ...generatedSteps[8],
+             target: "[data-tutorial-id='suggested-relations-section']", // Or a specific part of the list
+          },
+          { // Step 9: Add Selected Relations
+            ...generatedSteps[9],
+            target: "[data-tutorial-id='add-selected-relations-button']", // Or 'add-all-new-relations-button' depending on flow
+          },
+          // Ensure we don't exceed the original number of steps if generatedSteps is shorter
+        ];
+        return updatedSteps.slice(0, totalSteps);
       } else if (tutorialKey === 'expandConceptStagingTutorial') {
         return mapStepKeys('expandConceptStagingTutorial', 11);
       } else if (tutorialKey === 'ghostPreviewLayoutTutorial') {

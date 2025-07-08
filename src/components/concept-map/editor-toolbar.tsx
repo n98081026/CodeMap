@@ -453,6 +453,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   size='icon'
                   disabled={isViewOnlyMode || showCopyButton}
                   aria-label='AI Tools'
+                  data-tutorial-id='editor-toolbar-ai-tools-button' // Added tutorial ID
                 >
                   <Sparkles className='h-5 w-5' />
                 </Button>
