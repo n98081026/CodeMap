@@ -774,9 +774,9 @@ export function SuggestRelationsModal({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className='sm:max-w-md'>
+      <DialogContent className='sm:max-w-md' data-tutorial-id='suggest-relations-modal'>
         <DialogHeader>
-          <DialogTitle>AI 幫你連連看 (Suggest Relations)</DialogTitle>
+          <DialogTitle id='suggest-relations-title'>AI 幫你連連看 (Suggest Relations)</DialogTitle>
           <DialogDescription>
             輸入一些相關的詞彙或想法（例如從選中的節點來的），AI
             會試著找出它們之間可能存在的關聯，並在「AI 建議」面板中給你建議。
@@ -805,6 +805,7 @@ export function SuggestRelationsModal({
             </Label>
             <Textarea
               id='custom-prompt-sr'
+              data-tutorial-id='suggest-relations-custom-prompt-input' // Added tutorial ID
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               placeholder='e.g., focus on causal relationships, or data flow'
@@ -823,6 +824,7 @@ export function SuggestRelationsModal({
             Cancel
           </Button>
           <Button
+            data-tutorial-id='suggest-relations-submit-button' // Added tutorial ID
             onClick={handleSuggest}
             disabled={isLoading || conceptsInput.trim().length === 0}
           >
