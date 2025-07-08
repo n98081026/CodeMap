@@ -560,81 +560,85 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
       locale={joyrideLocale} // Use memoized locale
       styles={{
         options: {
-          zIndex: 10000, // Keep high z-index
-          arrowColor: 'hsl(var(--popover-values))', // Match popover arrow
-          backgroundColor: 'hsl(var(--popover-values))', // Match popover background
-          primaryColor: 'hsl(var(--primary-values))', // Keep primary for main action buttons
-          textColor: 'hsl(var(--popover-foreground-values))', // Match popover text
-          overlayColor: 'hsla(var(--background-values), 0.85)', // Slightly darker overlay
+          zIndex: 10000,
+          arrowColor: 'hsl(var(--popover-values))',
+          backgroundColor: 'hsl(var(--popover-values))',
+          primaryColor: 'hsl(var(--primary-values))',
+          textColor: 'hsl(var(--popover-foreground-values))',
+          overlayColor: 'hsla(var(--background-values), 0.85)',
         },
-        tooltip: { // Overall tooltip container
-          borderRadius: 'var(--radius-lg)', // Larger radius, common in ShadCN
-          padding: '1rem', // Keep padding
-          boxShadow: 'var(--shadow-xl)', // More pronounced shadow
+        tooltip: {
+          borderRadius: 'var(--radius-lg)',
+          padding: '1rem', // Maintained padding
+          boxShadow: 'var(--shadow-xl)',
           border: '1px solid hsl(var(--border-values))',
+          maxWidth: 'calc(100vw - 32px)', // Ensure tooltip does not exceed viewport width minus some margin
+          width: 'auto', // Allow shrinking
+          boxSizing: 'border-box',
         },
-        tooltipContainer: { // Inner container for content
+        tooltipContainer: {
           textAlign: 'left',
+          // Joyride might handle internal scrolling if content overflows the tooltip's height.
+          // We ensure the tooltip itself doesn't get too wide.
         },
-        tooltipTitle: { // Title style
+        tooltipTitle: {
           margin: 0,
-          fontSize: '1.25rem', // Slightly larger title
-          fontWeight: '600', // Standard semi-bold
-          paddingBottom: '0.75rem', // More space below title
+          fontSize: '1.15rem', // Slightly reduced from 1.25rem for smaller screens
+          fontWeight: '600',
+          paddingBottom: '0.6rem', // Adjusted padding
           borderBottom: '1px solid hsl(var(--border-values))',
-          marginBottom: '1rem', // More space above content
+          marginBottom: '0.85rem', // Adjusted margin
         },
-        tooltipContent: { // Content text style
-          fontSize: '0.9rem', // Slightly larger content text
-          lineHeight: '1.6', // Increased line height for readability
+        tooltipContent: {
+          fontSize: '0.875rem', // Slightly reduced from 0.9rem
+          lineHeight: '1.5', // Adjusted line height
         },
-        buttonNext: { // "Next" / "Finish" button
+        buttonNext: {
           backgroundColor: 'hsl(var(--primary-values))',
           color: 'hsl(var(--primary-foreground-values))',
-          borderRadius: 'var(--radius-md)', // Consistent medium radius
-          padding: '0.6rem 1.2rem', // Slightly larger padding
-          fontSize: '0.9rem',
-          textTransform: 'none', // No uppercase
-          fontWeight: '500', // Medium weight
-        },
-        buttonBack: { // "Back" button
-          backgroundColor: 'hsl(var(--secondary-values))',
-          color: 'hsl(var(--secondary-foreground-values))',
           borderRadius: 'var(--radius-md)',
-          padding: '0.6rem 1.2rem',
-          fontSize: '0.9rem',
-          marginRight: '0.75rem', // Slightly more space
+          padding: '0.5rem 1rem', // Reduced padding for smaller screens
+          fontSize: '0.875rem', // Reduced font size
           textTransform: 'none',
           fontWeight: '500',
         },
-        buttonSkip: { // "Skip" link
-          color: 'hsl(var(--muted-foreground-values))',
-          fontSize: '0.85rem', // Slightly larger skip text
+        buttonBack: {
+          backgroundColor: 'hsl(var(--secondary-values))',
+          color: 'hsl(var(--secondary-foreground-values))',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.5rem 1rem', // Reduced padding
+          fontSize: '0.875rem', // Reduced font size
+          marginRight: '0.5rem', // Reduced margin
           textTransform: 'none',
-          textDecoration: 'underline', // Add underline for clarity as a link
+          fontWeight: '500',
         },
-        buttonClose: { // Close (X) button
-          top: '12px', // Adjust position slightly
-          right: '12px',
-          height: '1.25rem', // Slightly larger
+        buttonSkip: {
+          color: 'hsl(var(--muted-foreground-values))',
+          fontSize: '0.8rem', // Reduced font size
+          textTransform: 'none',
+          textDecoration: 'underline',
+        },
+        buttonClose: {
+          top: '10px', // Maintained position
+          right: '10px',
+          height: '1.25rem',
           width: '1.25rem',
           color: 'hsl(var(--muted-foreground-values))',
           transition: 'color 0.2s ease-in-out',
+          // For better touch target, consider a wrapper if Joyride allows, or rely on its default.
         },
-        // buttonClose:hover: { // Cannot directly style hover states here, would need CSS or a custom component
-        //   color: 'hsl(var(--foreground-values))',
-        // },
-        beacon: { // Pulsing beacon for a step
-          outlineOffset: '2px', // Add small offset to make it stand out more
-          outlineColor: 'hsla(var(--primary-values), 0.5)', // Softer outline
+        beacon: {
+          outlineOffset: '2px',
+          outlineColor: 'hsla(var(--primary-values), 0.5)',
           backgroundColor: 'hsl(var(--primary-values))',
         },
-        spotlight: { // Highlighted area around the target element
-          borderRadius: 'var(--radius-md)', // Consistent medium radius for spotlight
-          boxShadow: '0 0 0 9999px hsla(var(--background-values), 0.85), 0 0 15px hsla(var(--primary-values), 0.5)', // Overlay, then subtle glow
+        spotlight: {
+          borderRadius: 'var(--radius-md)',
+          // The boxShadow for overlay effect is good, keep as is.
+          boxShadow: '0 0 0 9999px hsla(var(--background-values), 0.85), 0 0 15px hsla(var(--primary-values), 0.5)',
         },
       }}
-      // debug // Keep debug off for production, can be enabled for local testing
+      // debug
     />
   );
 };
