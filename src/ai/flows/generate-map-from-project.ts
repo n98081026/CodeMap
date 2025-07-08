@@ -35,7 +35,9 @@ const GenerateMapFromProjectOutputSchema = z.object({
     .string()
     .describe(
       'The concept map data in a well-formed JSON string format, representing nodes and edges. Node IDs must be unique strings.'
-    ),
+    )
+    .optional(),
+  error: z.string().optional(),
 });
 export type GenerateMapFromProjectOutput = z.infer<
   typeof GenerateMapFromProjectOutputSchema
@@ -156,19 +158,33 @@ const generateMapFromProjectFlow = ai.defineFlow(
     // We just need to pass the input to the prompt.
     const { output } = await prompt(input);
 
+    if (!output) {
+      return {
+        error: 'AI model did not produce any output.',
+      };
+    }
+
     // Basic validation attempt
     try {
-      JSON.parse(output!.conceptMapData);
+      if (output.conceptMapData) {
+        JSON.parse(output.conceptMapData);
+      }
+      // If conceptMapData is missing but there's no error from the model, something is wrong.
+      else if (!output.error) {
+        return {
+          error: 'AI model returned empty output without an error message.',
+        };
+      }
     } catch (e) {
       console.error(
         'Generated conceptMapData is not valid JSON:',
-        output?.conceptMapData
+        output.conceptMapData
       );
-      // Potentially throw or attempt to fix.
-      // For now, rely on schema validation by Genkit if strict enough.
-      // Or return a structured error in outputSchema if that's preferred.
-      throw new Error('AI failed to generate valid JSON for the concept map.');
+      return {
+        conceptMapData: output.conceptMapData, // Return the invalid data for debugging
+        error: 'AI failed to generate valid JSON for the concept map.',
+      };
     }
-    return output!;
+    return output;
   }
 );
