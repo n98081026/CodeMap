@@ -1,13 +1,6 @@
 import { defineFlow, runFlow } from '@genkit-ai/flow';
-// Attempting to use googleAI plugin as a placeholder for 'modelos'
-// This is speculative and might need adjustment based on how 'modelos' is truly configured and used.
-// import { googleAI } from '@genkit-ai/googleai'; // Temporarily commented out
+import { modelos } from 'generative-ai'; // Assuming 'modelos' is your configured Genkit model provider
 import { z } from 'zod';
-
-// Assuming 'modelos' was intended to be an instance of a configured model.
-// For now, let's create a dummy or default instance if possible, or adjust its usage.
-// This line is a placeholder and likely incorrect for direct usage as 'modelos.generate'
-// const modelos = googleAI('gemini-pro'); // Placeholder, actual model name might differ or be configured elsewhere. // Temporarily commented out
 
 // import { projectAnalysisToolSchema } from './project-analysis-flow'; // Removed unused import
 import { projectAnalysisToolSchema } from './project-analysis-flow'; // Assuming this is where common schemas might live, or create a new one
@@ -73,25 +66,23 @@ export const summarizeGenericFileFlow = defineFlow(
     `;
 
     try {
-      // Temporarily comment out the actual LLM call to isolate import issues
-      // const llmResponse = await modelos.generate({
-      //   prompt: prompt,
-      //   temperature: 0.2, // Lower temperature for more factual summary
-      //   maxOutputTokens: 100, // Max length for the summary sentence
-      //   stopSequences: ['\n\n'], // Stop if it tries to generate more paragraphs
-      // });
+      const llmResponse = await modelos.generate({
+        prompt: prompt,
+        temperature: 0.2, // Lower temperature for more factual summary
+        maxOutputTokens: 100, // Max length for the summary sentence
+        stopSequences: ['\n\n'], // Stop if it tries to generate more paragraphs
+      });
 
-      // const summaryText = llmResponse.text()?.trim();
+      const summaryText = llmResponse.text()?.trim();
 
-      // if (!summaryText) {
-      //   return {
-      //     summary: `Could not generate a summary for '${fileName}'. The AI response was empty.`,
-      //     error: 'Empty AI response.',
-      //   };
-      // }
+      if (!summaryText) {
+        return {
+          summary: `Could not generate a summary for '${fileName}'. The AI response was empty.`,
+          error: 'Empty AI response.',
+        };
+      }
 
-      // return { summary: summaryText };
-      return { summary: `Summary for ${fileName} (mocked due to import testing)` }; // Mocked response
+      return { summary: summaryText };
     } catch (err: any) {
       console.error(
         `[summarizeGenericFileFlow] Error summarizing ${fileName}:`,
