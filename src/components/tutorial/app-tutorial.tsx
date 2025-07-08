@@ -394,7 +394,52 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
       } else if (tutorialKey === 'ghostPreviewsUsageTutorial') {
         return mapStepKeys('ghostPreviewsUsageTutorial', 8);
       } else if (tutorialKey === 'projectOverviewTutorial') {
-        return mapStepKeys('projectOverviewTutorial', 5);
+        // Directly define steps for projectOverviewTutorial
+        const baseKey = 'tutorialSteps.projectOverviewTutorial';
+        return [
+          { // Step 0: Intro
+            target: 'body',
+            content: t(`${baseKey}.0.content`),
+            title: t(`${baseKey}.0.title`),
+            placement: 'center',
+            disableBeacon: true,
+          },
+          { // Step 1: Activate Overview Mode
+            target: "[data-tutorial-id='toolbar-toggle-project-overview']",
+            content: t(`${baseKey}.1.content`),
+            title: t(`${baseKey}.1.title`),
+            placement: 'bottom',
+            spotlightClicks: true,
+          },
+          { // Step 2: Understanding the Overview (target the main container)
+            target: "[data-tutorial-id='project-overview-display-container']",
+            content: t(`${baseKey}.2.content`),
+            title: t(`${baseKey}.2.title`),
+            placement: 'auto',
+          },
+          { // Step 3: Explore Key Modules (target the first module card)
+            // This selector might need to be more robust if the grid structure changes
+            // or if a specific data-tutorial-id can be added to module cards.
+            target: ".grid > div:first-child",
+            content: t(`${baseKey}.3.content`),
+            title: t(`${baseKey}.3.title`),
+            placement: 'auto',
+            spotlightClicks: true, // If clicking the card is part of the tutorial action
+          },
+          { // Step 4: Exit Overview Mode
+            target: "[data-tutorial-id='toolbar-toggle-project-overview']", // Same button, icon changes
+            content: t(`${baseKey}.4.content`),
+            title: t(`${baseKey}.4.title`),
+            placement: 'bottom',
+            spotlightClicks: true,
+          },
+          { // Step 5: Conclusion
+            target: 'body',
+            content: t(`${baseKey}.5.content`), // Assuming 6 steps total (0-5) based on json
+            title: t(`${baseKey}.5.title`),
+            placement: 'center',
+          },
+        ];
       }
 
       return []; // Default to no steps
