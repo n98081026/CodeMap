@@ -43,6 +43,10 @@
       "title": "AI Tool: Expand Concept & Staging Area",
       "description": "Learn to expand concepts with AI and manage suggestions in the staging area."
     },
+      "expandConceptStagingTutorial_OLD": {
+        "title": "OLD - AI Tool: Expand Concept & Staging Area",
+        "description": "Learn to expand concepts with AI and manage suggestions in the staging area."
+      },
     "ghostPreviewLayoutTutorial": {
       "title": "Layout: Ghost Previews (Simplified)",
       "description": "Understand how to use ghost previews for layout adjustments (basic flow)."
@@ -359,7 +363,85 @@
         }
       ]
     },
-    "expandConceptStagingTutorial": [
+    "tutorialSteps": {
+      "expandConceptStagingTutorial": [
+        {
+          "target": "body",
+          "content": "Let's learn how to use AI to expand an existing concept and manage the suggestions in the AI Staging Area.",
+          "title": "AI Tool: Expand Concept & Staging",
+          "placement": "center",
+          "disableBeacon": true
+        },
+        {
+          "target": ".react-flow__node-custom.selected, .react-flow__node-default.selected, .react-flow__node-input.selected, .react-flow__node-output.selected",
+          "content": "To begin, select a node on the map that you want to expand with new, AI-generated related ideas. If there are no nodes, please add one first. If a node is already selected, that's great!",
+          "title": "1. Select a Concept",
+          "placement": "auto"
+        },
+        {
+          "target": "[data-tutorial-id='editor-toolbar-ai-tools-button']",
+          "content": "Now, open the AI Tools menu from the editor toolbar.",
+          "title": "2. Open AI Menu",
+          "placement": "bottom",
+          "spotlightClicks": true
+        },
+        {
+          "target": "[data-tutorial-id='ai-tool-expand-concept']",
+          "content": "Select 'Expand Selected Concept' from the menu. This option is active if you have a single node selected.",
+          "title": "3. Choose 'Expand Concept'",
+          "placement": "right",
+          "spotlightClicks": true
+        },
+        {
+          "target": "[role='dialog'][aria-labelledby='expand-concept-title']",
+          "content": "This is the 'Expand Concept' modal. The selected node's concept should already be filled in. You can add a specific focus to guide the AI.",
+          "title": "4. Expand Concept Modal",
+          "placement": "auto"
+        },
+        {
+          "target": "textarea[name='userRefinementPrompt']",
+          "content": "(Optional) Enter a prompt here to refine the suggestions, e.g., 'focus on technical aspects' or 'suggest practical examples'.",
+          "title": "Focus (Optional)",
+          "placement": "top",
+          "isOptional": true
+        },
+        {
+          "target": "button[type='submit']",
+          "content": "Click here to start the AI and generate suggestions.",
+          "title": "5. Generate Suggestions",
+          "placement": "top",
+          "spotlightClicks": true
+        },
+        {
+          "target": "[data-tutorial-id='ai-staging-toolbar']",
+          "content": "Great! The AI's suggestions are now displayed in the Staging Area. This toolbar allows you to manage them. You'll also see the new nodes and connections previewed on the map.",
+          "title": "6. AI Staging Area & Preview",
+          "placement": "bottom"
+        },
+        {
+          "target": "[data-tutorial-id='staging-toolbar-accept-all']",
+          "content": "If all suggestions look good, click 'Commit to Map' to permanently add them to your concept map.",
+          "title": "7. Accept All Suggestions",
+          "placement": "top",
+          "spotlightClicks": true
+        },
+        {
+          "target": "[data-tutorial-id='staging-toolbar-clear-all']",
+          "content": "Alternatively, if you prefer not to use these suggestions, click 'Discard All' to remove them from the staging area. (For this tutorial, you can choose either action or skip to finish).",
+          "title": "Alternative: Discard All",
+          "placement": "top",
+          "spotlightClicks": true,
+          "isOptional": true
+        },
+        {
+          "target": "body",
+          "content": "You've learned how to use 'Expand Concept' and manage the results via the AI Staging Area! Remember, you can also refine individual staged items before committing.",
+          "title": "Tutorial Complete!",
+          "placement": "center"
+        }
+      ]
+    },
+    "expandConceptStagingTutorial_OLD": [
       {
         "title": "AI: Expand Concept & Staging Area",
         "content": "Let's learn how to use AI to expand an existing concept and manage the suggestions in the AI Staging Area."

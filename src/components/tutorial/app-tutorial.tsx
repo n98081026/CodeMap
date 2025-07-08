@@ -238,7 +238,6 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
       } else if (tutorialKey === 'suggestRelationsToolTutorial') {
         const baseKey = 'tutorialSteps.suggestRelationsToolTutorial';
         return [
-          // Step 0: Intro
           {
             target: 'body',
             content: t(`${baseKey}.0.content`),
@@ -246,7 +245,6 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
             placement: 'center',
             disableBeacon: true,
           },
-          // Step 1: Click AI Tools Menu in Editor Toolbar
           {
             target: "[data-tutorial-id='editor-toolbar-ai-tools-button']",
             content: t(`${baseKey}.1.content`),
@@ -254,7 +252,6 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
             placement: 'bottom',
             spotlightClicks: true,
           },
-          // Step 2: Select "Suggest Relations" from dropdown
           {
             target: "[data-tutorial-id='ai-tool-suggest-relations']",
             content: t(`${baseKey}.2.content`),
@@ -262,22 +259,19 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
             placement: 'right',
             spotlightClicks: true,
           },
-          // Step 3: Explain the "Suggest Relations" modal
           {
             target: "[data-tutorial-id='suggest-relations-modal']",
             content: t(`${baseKey}.3.content`),
             title: t(`${baseKey}.3.title`),
             placement: 'auto',
           },
-          // Step 4: (Optional) Point to custom prompt input
           {
             target: "[data-tutorial-id='suggest-relations-custom-prompt-input']",
             content: t(`${baseKey}.4.content`),
             title: t(`${baseKey}.4.title`),
             placement: 'top',
-            isOptional: true, // Mark as optional if it can be skipped
+            isOptional: true,
           },
-          // Step 5: Click "Suggest Relations" button in modal
           {
             target: "[data-tutorial-id='suggest-relations-submit-button']",
             content: t(`${baseKey}.5.content`),
@@ -285,37 +279,31 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
             placement: 'top',
             spotlightClicks: true,
           },
-          // Step 6: AI Suggestion Panel opens/updates - point to it
           {
             target: "[data-tutorial-id='ai-suggestion-panel']",
             content: t(`${baseKey}.6.content`),
             title: t(`${baseKey}.6.title`),
             placement: 'left',
           },
-          // Step 7: Point to the "Suggested Relations" section within the panel
           {
             target: "[data-tutorial-id='suggested-relations-section']",
             content: t(`${baseKey}.7.content`),
             title: t(`${baseKey}.7.title`),
-            placement: 'auto', // Or 'top-start' if panel is on right
+            placement: 'auto',
           },
-          // Step 8: Highlight a specific suggested relation item (e.g., the first one)
           {
-            target: "[data-tutorial-id='suggested-relation-item-0']", // Ensure this ID exists on items
+            target: "[data-tutorial-id='suggested-relation-item-0']",
             content: t(`${baseKey}.8.content`),
             title: t(`${baseKey}.8.title`),
             placement: 'auto',
-            // Add note in translation: "If no suggestions, this step might be skipped or show default."
           },
-          // Step 9: Point to "Add Selected" or "Add All" button for relations
           {
-            target: "[data-tutorial-id='add-selected-relations-button']", // Or 'add-all-new-relations-button'
+            target: "[data-tutorial-id='add-selected-relations-button']",
             content: t(`${baseKey}.9.content`),
             title: t(`${baseKey}.9.title`),
             placement: 'top',
             spotlightClicks: true,
           },
-          // Step 10: Concluding step
           {
             target: 'body',
             content: t(`${baseKey}.10.content`),
@@ -324,7 +312,83 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
           },
         ];
       } else if (tutorialKey === 'expandConceptStagingTutorial') {
-        return mapStepKeys('expandConceptStagingTutorial', 11);
+        const baseKey = 'tutorialSteps.expandConceptStagingTutorial';
+        return [
+          {
+            target: 'body',
+            content: t(`${baseKey}.0.content`),
+            title: t(`${baseKey}.0.title`),
+            placement: 'center',
+            disableBeacon: true,
+          },
+          {
+            target: ".react-flow__node-custom.selected, .react-flow__node-default.selected, .react-flow__node-input.selected, .react-flow__node-output.selected",
+            content: t(`${baseKey}.1.content`),
+            title: t(`${baseKey}.1.title`),
+            placement: 'auto',
+          },
+          {
+            target: "[data-tutorial-id='editor-toolbar-ai-tools-button']",
+            content: t(`${baseKey}.2.content`),
+            title: t(`${baseKey}.2.title`),
+            placement: 'bottom',
+            spotlightClicks: true,
+          },
+          {
+            target: "[data-tutorial-id='ai-tool-expand-concept']",
+            content: t(`${baseKey}.3.content`),
+            title: t(`${baseKey}.3.title`),
+            placement: 'right',
+            spotlightClicks: true,
+          },
+          {
+            target: "[role='dialog'][aria-labelledby='expand-concept-title']",
+            content: t(`${baseKey}.4.content`),
+            title: t(`${baseKey}.4.title`),
+            placement: 'auto',
+          },
+          {
+            target: "textarea[name='userRefinementPrompt']",
+            content: t(`${baseKey}.5.content`),
+            title: t(`${baseKey}.5.title`),
+            placement: 'top',
+            isOptional: true,
+          },
+          {
+            target: "button[type='submit']",
+            content: t(`${baseKey}.6.content`),
+            title: t(`${baseKey}.6.title`),
+            placement: 'top',
+            spotlightClicks: true,
+          },
+          {
+            target: "[data-tutorial-id='ai-staging-toolbar']",
+            content: t(`${baseKey}.7.content`),
+            title: t(`${baseKey}.7.title`),
+            placement: 'bottom',
+          },
+          {
+            target: "[data-tutorial-id='staging-toolbar-accept-all']",
+            content: t(`${baseKey}.8.content`),
+            title: t(`${baseKey}.8.title`),
+            placement: 'top',
+            spotlightClicks: true,
+          },
+          {
+            target: "[data-tutorial-id='staging-toolbar-clear-all']",
+            content: t(`${baseKey}.9.content`),
+            title: t(`${baseKey}.9.title`),
+            placement: 'top',
+            spotlightClicks: true,
+            isOptional: true,
+          },
+          {
+            target: 'body',
+            content: t(`${baseKey}.10.content`),
+            title: t(`${baseKey}.10.title`),
+            placement: 'center',
+          },
+        ];
       } else if (tutorialKey === 'ghostPreviewLayoutTutorial') {
         return mapStepKeys('ghostPreviewLayoutTutorial', 5);
       } else if (tutorialKey === 'ghostPreviewsUsageTutorial') {
