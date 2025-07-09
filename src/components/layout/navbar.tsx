@@ -15,9 +15,11 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react'; // Added useMemo
+import { useTranslation } from 'react-i18next'; // Added i18next
 
-import { availableTutorials } from '@/components/tutorial/app-tutorial'; // Import defined tutorials
+// Import the function to get translated tutorials and the metadata type
+import { getAvailableTutorials, TutorialMetaData } from '@/components/tutorial/app-tutorial';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -49,6 +51,10 @@ export const Navbar = React.memo(function Navbar() {
     )
   );
   const { toast } = useToast();
+  const { t } = useTranslation(); // For translating tutorial titles/descriptions
+
+  // Memoize availableTutorials to prevent re-fetching on every render unless t changes
+  const availableTutorials = useMemo(() => getAvailableTutorials(t), [t]);
 
   useEffect(() => {
     setMounted(true);
