@@ -1,6 +1,6 @@
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { initReactI18next } from 'react-i18next';
 
 // Import your translation files (or setup backend loading)
 // For now, we'll assume resources are imported directly or handled by a loader later

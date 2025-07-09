@@ -1,9 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest'; // Added beforeEach
 
-import AIStagingToolbar, {
-  AIStagingToolbarProps,
-} from '../ai-staging-toolbar';
+import AIStagingToolbar, { AIStagingToolbarProps } from '../ai-staging-toolbar';
 
 describe('AIStagingToolbar', () => {
   const mockOnCommit = vi.fn();

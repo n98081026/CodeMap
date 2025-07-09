@@ -227,7 +227,10 @@ describe('useConceptMapStore', () => {
         type: 'old-type',
         position: { x: 0, y: 0 },
       });
-      store.updateNode(nodeId, { text: 'New Text', backgroundColor: '#FF0000' });
+      store.updateNode(nodeId, {
+        text: 'New Text',
+        backgroundColor: '#FF0000',
+      });
       const updatedNode = useConceptMapStore
         .getState()
         .mapData.nodes.find((n) => n.id === nodeId);
@@ -650,7 +653,9 @@ describe('useConceptMapStore', () => {
         type: 't',
         position: { x: 0, y: 0 },
       });
-      store.setGhostPreview([{ id: nodeId, x: 200, y: 250, width: 150, height: 70 }]);
+      store.setGhostPreview([
+        { id: nodeId, x: 200, y: 250, width: 150, height: 70 },
+      ]);
       store.acceptGhostPreview();
       const state = useConceptMapStore.getState();
       expect(state.ghostPreviewData).toBeNull();
@@ -665,7 +670,9 @@ describe('useConceptMapStore', () => {
         type: 't',
         position: { x: 10, y: 10 },
       });
-      store.setGhostPreview([{ id: nodeId, x: 300, y: 350, width: 150, height: 70 }]);
+      store.setGhostPreview([
+        { id: nodeId, x: 300, y: 350, width: 150, height: 70 },
+      ]);
       store.cancelGhostPreview();
       const state = useConceptMapStore.getState();
       expect(state.ghostPreviewData).toBeNull();
@@ -677,7 +684,11 @@ describe('useConceptMapStore', () => {
   describe('Layout and View Actions', () => {
     it('applyLayout: should update node positions and trigger fitView', () => {
       const store = useConceptMapStore.getState();
-      const n1 = store.addNode({ text: 'N1', type: 't', position: { x: 0, y: 0 } });
+      const n1 = store.addNode({
+        text: 'N1',
+        type: 't',
+        position: { x: 0, y: 0 },
+      });
       const updates: LayoutNodeUpdate[] = [{ id: n1, x: 100, y: 110 }];
       store.applyLayout(updates);
       const state = useConceptMapStore.getState();
@@ -748,7 +759,10 @@ describe('useConceptMapStore', () => {
         type: 't',
         position: { x: 0, y: 0 },
       });
-      const newGroupId = store.applyFormGroupSuggestion([childId1], 'Test Group');
+      const newGroupId = store.applyFormGroupSuggestion(
+        [childId1],
+        'Test Group'
+      );
       const state = useConceptMapStore.getState();
       const groupNode = state.mapData.nodes.find((n) => n.id === newGroupId);
       expect(groupNode?.text).toBe('Test Group');

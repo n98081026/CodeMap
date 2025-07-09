@@ -198,7 +198,7 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
   return (
     <ScrollArea
       className='h-full w-full p-4 md:p-6 bg-background'
-      data-tutorial-id="project-overview-display-container" // Added tutorial ID
+      data-tutorial-id='project-overview-display-container' // Added tutorial ID
     >
       <div className='max-w-4xl mx-auto space-y-6'>
         <Card className='shadow-lg border-border/60'>

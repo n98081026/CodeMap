@@ -118,7 +118,8 @@ GOOGLE_AI_API_KEY=your_google_ai_api_key # For Genkit/AI features
 # NEXTAUTH_SECRET=your_nextauth_secret # If using NextAuth.js
 # NEXTAUTH_URL=https://your-domain.com # If using NextAuth.js
 ```
-*For local development, you can create a `.env.local` file in the project root and place these variables there.*
+
+_For local development, you can create a `.env.local` file in the project root and place these variables there._
 
 ### 3. Deployment Options
 
@@ -127,16 +128,16 @@ GOOGLE_AI_API_KEY=your_google_ai_api_key # For Genkit/AI features
 Vercel is the recommended platform for deploying this Next.js application. You have two main approaches:
 
 1.  **Vercel for GitHub (Automatic Git Integration)**:
-    *   Connect your GitHub repository to your Vercel project via the Vercel dashboard.
-    *   Vercel will automatically build and deploy your project upon pushes to the configured production branch (e.g., `main`) and generate preview deployments for other branches/PRs.
-    *   Ensure all **Application Environment Variables** (listed in section 2) are configured in your Vercel project settings (Dashboard > Project > Settings > Environment Variables).
+    - Connect your GitHub repository to your Vercel project via the Vercel dashboard.
+    - Vercel will automatically build and deploy your project upon pushes to the configured production branch (e.g., `main`) and generate preview deployments for other branches/PRs.
+    - Ensure all **Application Environment Variables** (listed in section 2) are configured in your Vercel project settings (Dashboard > Project > Settings > Environment Variables).
 
 2.  **GitHub Actions CI/CD with Vercel CLI (Advanced Control)**:
-    *   This project's `.github/workflows/ci.yml` file is pre-configured to use this method. It provides more control over the build and test process before deploying via Vercel CLI.
-    *   To use this method, you need to:
-        *   **Disable Vercel's automatic Git deployments** for this project if you previously enabled them, to avoid double deployments.
-        *   Set the **Application Environment Variables** in your Vercel project settings as described above.
-        *   Configure the **GitHub Repository Secrets** listed in the next section.
+    - This project's `.github/workflows/ci.yml` file is pre-configured to use this method. It provides more control over the build and test process before deploying via Vercel CLI.
+    - To use this method, you need to:
+      - **Disable Vercel's automatic Git deployments** for this project if you previously enabled them, to avoid double deployments.
+      - Set the **Application Environment Variables** in your Vercel project settings as described above.
+      - Configure the **GitHub Repository Secrets** listed in the next section.
 
 ### GitHub Actions CI/CD with Vercel CLI: Required Secrets
 
@@ -145,38 +146,39 @@ If you are using the Vercel CLI deployment method via GitHub Actions (as configu
 **Core Vercel CLI Secrets:**
 
 1.  **`VERCEL_TOKEN`**:
-    *   **Purpose**: Allows GitHub Actions to authenticate with your Vercel account and manage deployments using the Vercel CLI.
-    *   **How to obtain**: Create an Access Token from your Vercel account settings ([https://vercel.com/account/tokens](https://vercel.com/account/tokens)).
+    - **Purpose**: Allows GitHub Actions to authenticate with your Vercel account and manage deployments using the Vercel CLI.
+    - **How to obtain**: Create an Access Token from your Vercel account settings ([https://vercel.com/account/tokens](https://vercel.com/account/tokens)).
 2.  **`VERCEL_ORG_ID`**:
-    *   **Purpose**: Identifies your Vercel organization or personal account.
-    *   **How to obtain**: After linking your local project (`vercel link`), find this in the generated `.vercel/project.json` file.
+    - **Purpose**: Identifies your Vercel organization or personal account.
+    - **How to obtain**: After linking your local project (`vercel link`), find this in the generated `.vercel/project.json` file.
 3.  **`VERCEL_PROJECT_ID`**:
-    *   **Purpose**: Identifies the specific Vercel project.
-    *   **How to obtain**: Also found in `.vercel/project.json` after `vercel link`.
+    - **Purpose**: Identifies the specific Vercel project.
+    - **How to obtain**: Also found in `.vercel/project.json` after `vercel link`.
 
 **Application & CI Build Secrets:**
 
 These secrets are needed by various CI jobs (like `test`, `build-app`, `e2e-test`) or might be required during the `npm run build` process if not solely handled by `vercel build` pulling from Vercel's environment. It's generally recommended to have these in GitHub Secrets for CI consistency and also configured in Vercel Project Settings for runtime.
 
 4.  **`NEXT_PUBLIC_SUPABASE_URL`**:
-    *   **Purpose**: Supabase project URL, used by the application at build time and runtime.
-    *   **Source**: Your Supabase project settings.
+    - **Purpose**: Supabase project URL, used by the application at build time and runtime.
+    - **Source**: Your Supabase project settings.
 5.  **`NEXT_PUBLIC_SUPABASE_ANON_KEY`**:
-    *   **Purpose**: Supabase anonymous key, used by the application at build time and runtime.
-    *   **Source**: Your Supabase project settings.
+    - **Purpose**: Supabase anonymous key, used by the application at build time and runtime.
+    - **Source**: Your Supabase project settings.
 6.  **`GOOGLE_AI_API_KEY`**:
-    *   **Purpose**: API key for Google AI services (Genkit), potentially used at build time or runtime.
-    *   **Source**: Your Google Cloud project / AI service credentials.
+    - **Purpose**: API key for Google AI services (Genkit), potentially used at build time or runtime.
+    - **Source**: Your Google Cloud project / AI service credentials.
 7.  **`E2E_TEST_USER_EMAIL`**:
-    *   **Purpose**: Email address for the test user account used in E2E tests (Playwright `global.setup.ts`).
-    *   **Source**: Define a dedicated test user in your authentication system.
+    - **Purpose**: Email address for the test user account used in E2E tests (Playwright `global.setup.ts`).
+    - **Source**: Define a dedicated test user in your authentication system.
 8.  **`E2E_TEST_USER_PASSWORD`**:
-    *   **Purpose**: Password for the E2E test user account.
-    *   **Source**: Password for the dedicated test user.
+    - **Purpose**: Password for the E2E test user account.
+    - **Source**: Password for the dedicated test user.
 
 **Important Note on Environment Variables:**
-*   **Vercel Project Settings**: All variables required for the application to *run* correctly after deployment (e.g., `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GOOGLE_AI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) **MUST** be configured in your Vercel project's Environment Variables settings (Dashboard > Project > Settings > Environment Variables). The `vercel pull` command in the CI workflow fetches these for `vercel build`.
-*   **GitHub Secrets**: The secrets listed above are used by the GitHub Actions workflow itself, either to authenticate with Vercel CLI or to provide build-time/test-time configuration to steps like `npm run build` or `npm run test:e2e`.
+
+- **Vercel Project Settings**: All variables required for the application to _run_ correctly after deployment (e.g., `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GOOGLE_AI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) **MUST** be configured in your Vercel project's Environment Variables settings (Dashboard > Project > Settings > Environment Variables). The `vercel pull` command in the CI workflow fetches these for `vercel build`.
+- **GitHub Secrets**: The secrets listed above are used by the GitHub Actions workflow itself, either to authenticate with Vercel CLI or to provide build-time/test-time configuration to steps like `npm run build` or `npm run test:e2e`.
 
 With these GitHub secrets and the Vercel project environment variables configured, the CI pipeline (including E2E tests) will run, and the `deploy-staging` (for the `develop` branch) and `deploy-production` (for the `main` branch) jobs will deploy your application.
 
@@ -192,35 +194,39 @@ The CI/CD pipeline automatically deploys to staging when changes are merged/push
     git push origin develop
     ```
 2.  **Monitor GitHub Actions**:
-    *   Go to the "Actions" tab in your GitHub repository.
-    *   Observe the workflow run. Ensure all jobs (`test`, `build-app`, `e2e-test`, `deploy-staging`) pass.
-    *   Check the `deploy-staging` job logs for the Vercel preview URL.
+    - Go to the "Actions" tab in your GitHub repository.
+    - Observe the workflow run. Ensure all jobs (`test`, `build-app`, `e2e-test`, `deploy-staging`) pass.
+    - Check the `deploy-staging` job logs for the Vercel preview URL.
 3.  **Check Vercel Dashboard**:
-    *   Log in to Vercel and navigate to your project.
-    *   Confirm a new deployment for the `develop` branch is "Ready".
-    *   Note the deployment URL.
+    - Log in to Vercel and navigate to your project.
+    - Confirm a new deployment for the `develop` branch is "Ready".
+    - Note the deployment URL.
 4.  **Access Staging URL**:
-    *   Open the preview URL in your browser.
+    - Open the preview URL in your browser.
 5.  **Manual Verification**:
-    *   Perform key user flows (login, map creation, AI features).
-    *   Check browser console for errors.
-    *   Ensure connection to correct backend services.
+    - Perform key user flows (login, map creation, AI features).
+    - Check browser console for errors.
+    - Ensure connection to correct backend services.
 6.  **Troubleshooting**:
-    *   Start with GitHub Actions logs for failures in tests or `npm run build`.
-    *   For Vercel-specific build or deployment issues, check Vercel's build logs.
-    *   For runtime issues on the deployed app, check Vercel's function logs.
+    - Start with GitHub Actions logs for failures in tests or `npm run build`.
+    - For Vercel-specific build or deployment issues, check Vercel's build logs.
+    - For runtime issues on the deployed app, check Vercel's function logs.
 
 Production deployments to `main` follow a similar verification process.
 
 #### Option B: Netlify
+
 (This section remains as is)
+
 1. Connect repository to Netlify
 2. Set build command: `npm run build`
 3. Set publish directory: `.next`
 4. Configure environment variables
 
 #### Option C: Docker Deployment
+
 (This section remains as is)
+
 ```dockerfile
 FROM node:18-alpine AS deps
 WORKDIR /app
@@ -246,6 +252,7 @@ CMD ["npm", "start"]
 ```
 
 ### 4. Post-Deployment Verification
+
 (This section remains as is)
 
 #### Health Checks
@@ -271,6 +278,7 @@ CMD ["npm", "start"]
 - [ ] No sensitive data exposed
 
 ### 5. Monitoring and Maintenance
+
 (This section remains as is)
 
 #### Recommended Tools
@@ -289,6 +297,7 @@ CMD ["npm", "start"]
 - [ ] Review and update RLS policies
 
 ### 6. Scaling Considerations
+
 (This section remains as is)
 
 #### Database Optimization
@@ -305,6 +314,7 @@ CMD ["npm", "start"]
 - Consider serverless functions for AI processing
 
 ### 7. Troubleshooting
+
 (This section remains as is)
 
 #### Common Issues
@@ -333,6 +343,7 @@ npm run typecheck
 ---
 
 ## 🎯 Quick Deployment Commands
+
 (This section remains as is)
 
 ```bash

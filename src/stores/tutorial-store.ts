@@ -110,7 +110,8 @@ const useTutorialStore = create<TutorialStoreState>((set, get) => ({
       }
     } else {
       // Reset all known tutorials
-      TUTORIAL_KEYS.forEach((key) => { // Iterate over the imported TUTORIAL_KEYS array
+      TUTORIAL_KEYS.forEach((key) => {
+        // Iterate over the imported TUTORIAL_KEYS array
         localStorage.removeItem(`${key}_completed`);
         localStorage.removeItem(`${key}_stepIndex`);
       });

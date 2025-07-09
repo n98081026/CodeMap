@@ -35,18 +35,18 @@
       "title": "AI Tool: Suggest Relations",
       "description": "Use AI to get suggestions for relations between concepts."
     },
-      "suggestRelationsToolTutorial_OLD": {
-        "title": "OLD - AI Tool: Suggest Relations",
-        "description": "Use AI to get suggestions for relations between concepts."
-      },
+    "suggestRelationsToolTutorial_OLD": {
+      "title": "OLD - AI Tool: Suggest Relations",
+      "description": "Use AI to get suggestions for relations between concepts."
+    },
     "expandConceptStagingTutorial": {
       "title": "AI Tool: Expand Concept & Staging Area",
       "description": "Learn to expand concepts with AI and manage suggestions in the staging area."
     },
-      "expandConceptStagingTutorial_OLD": {
-        "title": "OLD - AI Tool: Expand Concept & Staging Area",
-        "description": "Learn to expand concepts with AI and manage suggestions in the staging area."
-      },
+    "expandConceptStagingTutorial_OLD": {
+      "title": "OLD - AI Tool: Expand Concept & Staging Area",
+      "description": "Learn to expand concepts with AI and manage suggestions in the staging area."
+    },
     "ghostPreviewLayoutTutorial": {
       "title": "Layout: Ghost Previews (Simplified)",
       "description": "Understand how to use ghost previews for layout adjustments (basic flow)."
@@ -55,10 +55,10 @@
       "title": "Layout: Using Ghost Previews (Full Flow)",
       "description": "Learn to trigger ghost previews and use the toolbar to accept or cancel layout changes."
     },
-      "ghostPreviewsUsageTutorial_OLD": {
-        "title": "OLD - Layout: Using Ghost Previews (Full Flow)",
-        "description": "Learn to trigger ghost previews and use the toolbar to accept or cancel layout changes."
-      },
+    "ghostPreviewsUsageTutorial_OLD": {
+      "title": "OLD - Layout: Using Ghost Previews (Full Flow)",
+      "description": "Learn to trigger ghost previews and use the toolbar to accept or cancel layout changes."
+    },
     "projectOverviewTutorial": {
       "title": "Project Overview Mode",
       "description": "Learn to use the AI-generated project overview to understand its high-level structure."

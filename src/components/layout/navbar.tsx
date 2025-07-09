@@ -19,7 +19,10 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react'; // Add
 import { useTranslation } from 'react-i18next'; // Added i18next
 
 // Import the function to get translated tutorials and the metadata type
-import { getAvailableTutorials, TutorialMetaData } from '@/components/tutorial/app-tutorial';
+import {
+  getAvailableTutorials,
+  TutorialMetaData,
+} from '@/components/tutorial/app-tutorial';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

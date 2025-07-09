@@ -1,5 +1,6 @@
-import { chromium, FullConfig } from '@playwright/test';
 import * as path from 'path';
+
+import { chromium, FullConfig } from '@playwright/test';
 
 // Percorso del file dove verrà salvato lo stato di autenticazione
 // Usiamo una directory .auth dentro la directory dei test e2e per tenerla organizzata
@@ -35,7 +36,6 @@ async function globalSetup(config: FullConfig) {
     // Questo include cookies, localStorage, sessionStorage, ecc.
     await page.context().storageState({ path: AUTH_FILE });
     console.log(`Authentication state saved to ${AUTH_FILE}`);
-
   } catch (error) {
     console.error('Error during global setup authentication:', error);
     // Se il login fallisce, potresti voler far fallire l'intero setup

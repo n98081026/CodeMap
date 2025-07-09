@@ -121,7 +121,15 @@ export interface RawASTImport {
 
 export interface RawASTExport {
   name: string;
-  type: 'function' | 'class' | 'variable' | 'interface' | 'enum' | 'type_alias' | 're-export' | 'unknown';
+  type:
+    | 'function'
+    | 'class'
+    | 'variable'
+    | 'interface'
+    | 'enum'
+    | 'type_alias'
+    | 're-export'
+    | 'unknown';
   isDefaultExport?: boolean;
   reExportedFrom?: string; // For `export ... from` statements
   sourceFile: string;
