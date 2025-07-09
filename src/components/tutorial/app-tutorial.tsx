@@ -127,183 +127,128 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
   // For the purpose of this component, constructing it with useMemo is fine.
 
 
+import { getCommonTutorialSteps } from './flows/commonTutorialSteps';
+import { getDashboardTutorialSteps } from './flows/dashboardTutorialSteps';
+import { getEditorTutorialSteps } from './flows/editorTutorialSteps';
+import { getExpandConceptStagingTutorialSteps } from './flows/expandConceptStagingTutorialSteps';
+import { getExtractConceptsToolTutorialSteps } from './flows/extractConceptsToolTutorialSteps';
+import { getGhostPreviewLayoutTutorialSteps } from './flows/ghostPreviewLayoutTutorialSteps';
+import { getGhostPreviewsUsageTutorialSteps } from './flows/ghostPreviewsUsageTutorialSteps';
+import { getManualAddNodeTutorialSteps } from './flows/manualAddNodeTutorialSteps';
+import { getManualCreateEdgeTutorialSteps } from './flows/manualCreateEdgeTutorialSteps';
+import { getProjectOverviewTutorialSteps } from './flows/projectOverviewTutorialSteps';
+import { getProjectUploadTutorialSteps } from './flows/projectUploadTutorialSteps';
+import { getSuggestRelationsToolTutorialSteps } from './flows/suggestRelationsToolTutorialSteps';
+
+
+// TutorialMetaData remains the same
+export interface TutorialMetaData {
+  key: string;
+  title: string;
+  description?: string;
+  icon?: LucideIcon;
+}
+
+// This will be a static list of keys, titles and descriptions will be fetched via i18n in Navbar
+export const TUTORIAL_KEYS = [
+  'dashboardTutorial',
+  'projectUploadTutorial',
+  'editorTutorial',
+  'extractConceptsToolTutorial',
+  'manualAddNodeTutorial',
+  'manualCreateEdgeTutorial',
+  'suggestRelationsToolTutorial',
+  'expandConceptStagingTutorial',
+  'ghostPreviewLayoutTutorial', // This might be deprecated or merged
+  'ghostPreviewsUsageTutorial',
+  'projectOverviewTutorial',
+];
+
+// Function to get metadata, to be used in Navbar
+export const getAvailableTutorials = (t: TFunction): TutorialMetaData[] =>
+  TUTORIAL_KEYS.map((key) => ({
+    key,
+    title: t(`availableTutorials.${key}.title`),
+    description: t(`availableTutorials.${key}.description`),
+    // Icon can be mapped here if needed, or handled in Navbar directly
+  }));
+
+
+interface AppTutorialProps {}
+
+const AppTutorial: React.FC<AppTutorialProps> = () => {
+  const { t } = useTranslation();
+  const { user, loading } = useAuth();
+  const [steps, setSteps] = useState<Step[]>([]);
+
+  const {
+    activeTutorialKey,
+    runTutorial,
+    currentStepIndex,
+    setRunTutorialState,
+    setStepIndex,
+  } = useTutorialStore(
+    useCallback(
+      (s) => ({
+        activeTutorialKey: s.activeTutorialKey,
+        runTutorial: s.runTutorial,
+        currentStepIndex: s.currentStepIndex,
+        setRunTutorialState: s.setRunTutorialState,
+        setStepIndex: s.setStepIndex,
+      }),
+      []
+    )
+  );
+
+  const tutorialTempTargetNodeId = useConceptMapStore(
+    (state) => state.tutorialTempTargetNodeId
+  );
+  const clearTutorialTempTargetNodeId = useConceptMapStore(
+    (state) => state.setTutorialTempTargetNodeId
+  );
+  const tutorialTempTargetEdgeId = useConceptMapStore(
+    (state) => state.tutorialTempTargetEdgeId
+  );
+  const clearTutorialTempTargetEdgeId = useConceptMapStore(
+    (state) => state.setTutorialTempTargetEdgeId
+  );
+
   const getStepsForTutorial = useCallback(
     (
-      tutorialKey: string, // Renamed 'key' to 'tutorialKey' to avoid conflict with React key prop
+      tutorialKey: string,
       dynamicNodeId?: string | null,
       dynamicEdgeId?: string | null
     ): Step[] => {
-      const commonWelcomeStep: Step = {
-        target: 'body',
-        content: t('tutorialSteps.common.welcomeContent'),
-        placement: 'center',
-        title: t('tutorialSteps.common.welcomeTitle'),
-        disableBeacon: true,
-      };
+      const { commonWelcomeStep, commonNavSteps } = getCommonTutorialSteps(t);
 
-      const commonNavSteps: Step[] = [
-        {
-          target: '.sidebar-nav-container',
-          content: t('tutorialSteps.common.navBarContent'),
-          placement: 'right',
-          title: t('tutorialSteps.common.navBarTitle'),
-        },
-        {
-          target: '.main-layout-content-area',
-          content: t('tutorialSteps.common.mainContentAreaContent'),
-          placement: 'auto',
-          title: t('tutorialSteps.common.mainContentAreaTitle'),
-        },
-        {
-          target: '.navbar-user-button',
-          content: t('tutorialSteps.common.userMenuContent'),
-          placement: 'bottom-end',
-          title: t('tutorialSteps.common.userMenuTitle'),
-        },
-      ];
-
-      // Helper to create steps from an array of key indexes for a given tutorialKey
-      // E.g., getSteps('dashboardTutorial', [0, 1])
-      const mapStepKeys = (baseKey: string, count: number): Step[] => {
-        return Array.from({ length: count }, (_, i) => ({
-          target: t(`tutorialSteps.${baseKey}.${i}.target` as const, '') || 'body', // Provide default for target
-          content: t(`tutorialSteps.${baseKey}.${i}.content` as const),
-          title: t(`tutorialSteps.${baseKey}.${i}.title` as const),
-          placement: t(`tutorialSteps.${baseKey}.${i}.placement` as const, 'auto') as Step['placement'],
-          disableBeacon: t(`tutorialSteps.${baseKey}.${i}.disableBeacon` as const, undefined as unknown as boolean) || undefined, // Handle boolean
-          spotlightClicks: t(`tutorialSteps.${baseKey}.${i}.spotlightClicks` as const, undefined as unknown as boolean) || undefined,
-          isOptional: t(`tutorialSteps.${baseKey}.${i}.isOptional` as const, undefined as unknown as boolean) || undefined,
-        }));
-      };
-
-      // Specific handling for dynamic content in manualAddNodeTutorial step 2
-      const getManualAddNodeStep2Content = () => {
-        if (dynamicNodeId) {
-          // Assuming 'Concept' is the default label if not specified, or make it part of translation
-          return t('tutorialSteps.manualAddNodeTutorial.2.content_dynamic', { nodeLabel: 'Concept' });
-        }
-        return t('tutorialSteps.manualAddNodeTutorial.2.content_static');
-      };
-
-      // Specific handling for dynamic content in manualCreateEdgeTutorial step 3
-      const getManualCreateEdgeStep3Content = () => {
-        if (dynamicEdgeId) {
-          return t('tutorialSteps.manualCreateEdgeTutorial.3.content_dynamic');
-        }
-        return t('tutorialSteps.manualCreateEdgeTutorial.3.content_static');
-      };
-
-
-      if (tutorialKey === 'dashboardTutorial') {
-        let roleSpecificSteps: Step[] = [];
-        const baseKey = 'tutorialSteps.dashboardTutorial';
-        if (user?.role === 'STUDENT') {
-          roleSpecificSteps = [
-            { target: "a[href='/student/concept-maps']", title: t(`${baseKey}.0.title`), content: t(`${baseKey}.0.content`) },
-            { target: "a[href='/student/projects/submit']", title: t(`${baseKey}.1.title`), content: t(`${baseKey}.1.content`) },
-          ];
-        } else if (user?.role === 'TEACHER') {
-          roleSpecificSteps = [
-            { target: "a[href='/teacher/classrooms']", title: t(`${baseKey}.2.title`), content: t(`${baseKey}.2.content`) },
-          ];
-        } else if (user?.role === 'ADMIN') {
-          roleSpecificSteps = [
-            { target: "a[href='/admin/users']", title: t(`${baseKey}.3.title`), content: t(`${baseKey}.3.content`) },
-            { target: "a[href='/admin/settings']", title: t(`${baseKey}.4.title`), content: t(`${baseKey}.4.content`) },
-          ];
-        }
-        return [commonWelcomeStep, ...commonNavSteps, ...roleSpecificSteps];
-      } else if (tutorialKey === 'projectUploadTutorial') {
-        return mapStepKeys('projectUploadTutorial', 4);
-      } else if (tutorialKey === 'editorTutorial') {
-        return mapStepKeys('editorTutorial', 7);
-      } else if (tutorialKey === 'extractConceptsToolTutorial') {
-        return mapStepKeys('extractConceptsToolTutorial', 9);
-      } else if (tutorialKey === 'manualAddNodeTutorial') {
-        const steps = mapStepKeys('manualAddNodeTutorial', 7);
-        // Update step 2 (index 2) for dynamic content and target
-        if (steps[2]) { // Check if step exists
-          steps[2].content = getManualAddNodeStep2Content();
-          steps[2].target = dynamicNodeId ? `[data-id='${dynamicNodeId}']` : '.react-flow__pane';
-        }
-        return steps;
-      } else if (tutorialKey === 'manualCreateEdgeTutorial') {
-         const steps = mapStepKeys('manualCreateEdgeTutorial', 7);
-        // Update step 3 (index 3) for dynamic content and target
-        if (steps[3]) { // Check if step exists
-            steps[3].content = getManualCreateEdgeStep3Content();
-            steps[3].target = dynamicEdgeId ? `.react-flow__edge[id='${dynamicEdgeId}']` : '.react-flow__pane';
-        }
-        return steps;
-      } else if (tutorialKey === 'suggestRelationsToolTutorial') {
-        // Directly define steps for suggestRelationsToolTutorial to ensure correct targets
-        const baseKey = 'suggestRelationsToolTutorial';
-        const totalSteps = 10; // As specified by mapStepKeys before
-        const generatedSteps = mapStepKeys(baseKey, totalSteps);
-
-        // Override targets based on our data-tutorial-id attributes
-        // Assuming translation files provide titles, content, placements etc.
-        // We are primarily concerned with the 'target' selector here.
-        const updatedSteps: Step[] = [
-          { // Step 0: Intro (Usually target: 'body' or a general container)
-            ...generatedSteps[0],
-            target: generatedSteps[0]?.target || 'body', // Keep original or default to body
-          },
-          { // Step 1: Open AI Menu
-            ...generatedSteps[1],
-            target: "[data-tutorial-id='editor-toolbar-ai-tools-button']",
-          },
-          { // Step 2: Choose Suggest Relations Tool
-            ...generatedSteps[2],
-            target: "[data-tutorial-id='ai-tool-suggest-relations']",
-          },
-          { // Step 3: Suggest Relations Dialog
-            ...generatedSteps[3],
-            target: "[data-tutorial-id='suggest-relations-modal']", // Or [role='dialog'][aria-labelledby='suggest-relations-title']
-          },
-          { // Step 4: (Optional) Provide Additional Context
-            ...generatedSteps[4],
-            target: "[data-tutorial-id='suggest-relations-custom-prompt-input']",
-          },
-          { // Step 5: Start Suggesting (Click Modal Submit)
-            ...generatedSteps[5],
-            target: "[data-tutorial-id='suggest-relations-submit-button']",
-          },
-          { // Step 6: View Suggested Relations (AI Panel section)
-            ...generatedSteps[6],
-            target: "[data-tutorial-id='suggested-relations-section']", // Or specific panel toggle button
-          },
-          { // Step 7: Relations in AI Panel (Focus on one item)
-            ...generatedSteps[7],
-            // This target will point to the first item.
-            // If no items, Joyride might show "target not found" or skip.
-            // Good to have fallback content in translation if no items.
-            target: "[data-tutorial-id='suggested-relation-item-0']",
-          },
-          { // Step 8: Review Individual Suggestions (Could be same as above or general to the list)
-             ...generatedSteps[8],
-             target: "[data-tutorial-id='suggested-relations-section']", // Or a specific part of the list
-          },
-          { // Step 9: Add Selected Relations
-            ...generatedSteps[9],
-            target: "[data-tutorial-id='add-selected-relations-button']", // Or 'add-all-new-relations-button' depending on flow
-          },
-          // Ensure we don't exceed the original number of steps if generatedSteps is shorter
-        ];
-        return updatedSteps.slice(0, totalSteps);
-      } else if (tutorialKey === 'expandConceptStagingTutorial') {
-        return mapStepKeys('expandConceptStagingTutorial', 11);
-      } else if (tutorialKey === 'ghostPreviewLayoutTutorial') {
-        return mapStepKeys('ghostPreviewLayoutTutorial', 5);
-      } else if (tutorialKey === 'ghostPreviewsUsageTutorial') {
-        return mapStepKeys('ghostPreviewsUsageTutorial', 8);
-      } else if (tutorialKey === 'projectOverviewTutorial') {
-        return mapStepKeys('projectOverviewTutorial', 5);
+      switch (tutorialKey) {
+        case 'dashboardTutorial':
+          return getDashboardTutorialSteps(t, user, commonWelcomeStep, commonNavSteps);
+        case 'projectUploadTutorial':
+          return getProjectUploadTutorialSteps(t);
+        case 'editorTutorial':
+          return getEditorTutorialSteps(t);
+        case 'extractConceptsToolTutorial':
+          return getExtractConceptsToolTutorialSteps(t);
+        case 'manualAddNodeTutorial':
+          return getManualAddNodeTutorialSteps(t, dynamicNodeId);
+        case 'manualCreateEdgeTutorial':
+          return getManualCreateEdgeTutorialSteps(t, dynamicEdgeId);
+        case 'suggestRelationsToolTutorial':
+          return getSuggestRelationsToolTutorialSteps(t);
+        case 'expandConceptStagingTutorial':
+          return getExpandConceptStagingTutorialSteps(t);
+        case 'ghostPreviewLayoutTutorial':
+          return getGhostPreviewLayoutTutorialSteps(t);
+        case 'ghostPreviewsUsageTutorial':
+          return getGhostPreviewsUsageTutorialSteps(t);
+        case 'projectOverviewTutorial':
+          return getProjectOverviewTutorialSteps(t);
+        default:
+          return [];
       }
-
-      return []; // Default to no steps
     },
-    [user, t] // Added t to dependency array
+    [user, t]
   );
 
   useEffect(() => {
@@ -420,71 +365,81 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
       styles={{
         options: {
           zIndex: 10000,
-          arrowColor: 'hsl(var(--card-values))',
-          backgroundColor: 'hsl(var(--card-values))',
+          arrowColor: 'hsl(var(--popover-values))',
+          backgroundColor: 'hsl(var(--popover-values))',
           primaryColor: 'hsl(var(--primary-values))',
-          textColor: 'hsl(var(--card-foreground-values))',
-          overlayColor: `hsla(var(--background-values), 0.7)`,
+          textColor: 'hsl(var(--popover-foreground-values))',
+          overlayColor: 'hsla(var(--background-values), 0.85)',
         },
         tooltip: {
-          borderRadius: 'var(--radius)',
-          padding: '1rem',
-          boxShadow: 'var(--shadow-lg)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1rem', // Maintained padding
+          boxShadow: 'var(--shadow-xl)',
           border: '1px solid hsl(var(--border-values))',
+          maxWidth: 'calc(100vw - 32px)', // Ensure tooltip does not exceed viewport width minus some margin
+          width: 'auto', // Allow shrinking
+          boxSizing: 'border-box',
         },
         tooltipContainer: {
           textAlign: 'left',
+          // Joyride might handle internal scrolling if content overflows the tooltip's height.
+          // We ensure the tooltip itself doesn't get too wide.
         },
         tooltipTitle: {
           margin: 0,
-          fontSize: '1.125rem',
+          fontSize: '1.15rem', // Slightly reduced from 1.25rem for smaller screens
           fontWeight: '600',
-          paddingBottom: '0.5rem',
+          paddingBottom: '0.6rem', // Adjusted padding
           borderBottom: '1px solid hsl(var(--border-values))',
-          marginBottom: '0.75rem',
+          marginBottom: '0.85rem', // Adjusted margin
         },
         tooltipContent: {
-          fontSize: '0.875rem',
-          lineHeight: '1.4',
+          fontSize: '0.875rem', // Slightly reduced from 0.9rem
+          lineHeight: '1.5', // Adjusted line height
         },
         buttonNext: {
           backgroundColor: 'hsl(var(--primary-values))',
           color: 'hsl(var(--primary-foreground-values))',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.5rem 1rem',
-          fontSize: '0.875rem',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.5rem 1rem', // Reduced padding for smaller screens
+          fontSize: '0.875rem', // Reduced font size
           textTransform: 'none',
+          fontWeight: '500',
         },
         buttonBack: {
           backgroundColor: 'hsl(var(--secondary-values))',
           color: 'hsl(var(--secondary-foreground-values))',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.5rem 1rem',
-          fontSize: '0.875rem',
-          marginRight: '0.5rem',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.5rem 1rem', // Reduced padding
+          fontSize: '0.875rem', // Reduced font size
+          marginRight: '0.5rem', // Reduced margin
           textTransform: 'none',
+          fontWeight: '500',
         },
         buttonSkip: {
           color: 'hsl(var(--muted-foreground-values))',
-          fontSize: '0.8rem',
+          fontSize: '0.8rem', // Reduced font size
           textTransform: 'none',
+          textDecoration: 'underline',
         },
         buttonClose: {
-          top: '10px',
+          top: '10px', // Maintained position
           right: '10px',
-          height: '1rem',
-          width: '1rem',
+          height: '1.25rem',
+          width: '1.25rem',
           color: 'hsl(var(--muted-foreground-values))',
+          transition: 'color 0.2s ease-in-out',
+          // For better touch target, consider a wrapper if Joyride allows, or rely on its default.
         },
         beacon: {
-          outlineColor: 'hsl(var(--primary-values))',
+          outlineOffset: '2px',
+          outlineColor: 'hsla(var(--primary-values), 0.5)',
           backgroundColor: 'hsl(var(--primary-values))',
         },
-        overlay: {
-          // already handled by overlayColor in options
-        },
         spotlight: {
-          borderRadius: 'var(--radius-sm)',
+          borderRadius: 'var(--radius-md)',
+          // The boxShadow for overlay effect is good, keep as is.
+          boxShadow: '0 0 0 9999px hsla(var(--background-values), 0.85), 0 0 15px hsla(var(--primary-values), 0.5)',
         },
       }}
       // debug

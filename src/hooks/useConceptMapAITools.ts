@@ -254,10 +254,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       options?: {
         loadingMessage?: string;
         successTitle?: string;
-        successDescription?: (output: O) => string;
+        successDescription?: (output: O, input: I) => string; // Added input to successDescription
         hideSuccessToast?: boolean;
         processingId?: string | null;
-        onSuccess?: (output: O, input: I) => void; // Added input to onSuccess
+        onSuccess?: (output: O, input: I) => void;
         onError?: (error: unknown, input: I) => boolean | void;
       }
     ): Promise<O | null> => {
@@ -298,7 +298,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           toast({
             title: options?.successTitle || `${aiFunctionName} Successful!`,
             description: options?.successDescription
-              ? options.successDescription(result)
+              ? options.successDescription(result, input) // Pass input to successDescription
               : 'AI operation completed.',
           });
         }
@@ -504,14 +504,14 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         { text },
         {
           loadingMessage: "AI 正在從您的文本中提取概念...",
-          successDescription: (res) =>
+          successDescription: (res, _input) => // _input is available if needed for description
             `${res.concepts.length} concepts found. View in AI Panel.`,
-          onSuccess: (output, _input) => { // _input is available if needed
+          onSuccess: (output, _input) => {
             if (output) setAiExtractedConcepts(output.concepts);
           },
         }
       );
-      return !!output; // Returns true if AI call was successful (output is not null)
+      return !!output;
     },
     [callAIWithStandardFeedback, setAiExtractedConcepts] // setAiExtractedConcepts is stable
   );
@@ -653,14 +653,14 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         { concepts },
         {
           loadingMessage: "AI 正在分析概念以建議關係...",
-          successDescription: (res) =>
+          successDescription: (res, _input) => // _input is available if needed for description
             `${res.length} relations suggested. View in AI Panel.`,
-          onSuccess: (output, _input) => { // _input is available if needed
+          onSuccess: (output, _input) => {
             if (output) setAiSuggestedRelations(output);
           },
         }
       );
-      return !!output; // Returns true if AI call was successful
+      return !!output;
     },
     [callAIWithStandardFeedback, setAiSuggestedRelations] // setAiSuggestedRelations is stable
   );
@@ -862,10 +862,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       >('Expand Concept', aiExpandConcept, input, {
         loadingMessage: `AI 正在擴展概念 "${input.concept}"...`,
         successTitle: 'AI Suggestions Ready',
-        successDescription: (res) =>
+        successDescription: (res, _input) => // _input is available if needed for description
           `${res.expandedIdeas.length} new ideas suggested. Review them for placement.`,
         processingId: parentNodeId,
-        onSuccess: (output, _input_success) => { // Renamed _input to _input_success to avoid conflict
+        onSuccess: (output, _input_success) => {
           if (output && output.expandedIdeas && output.expandedIdeas.length > 0) {
             // parentNodeId is from the outer scope of handleConceptExpanded
             const parentNode = mapData.nodes.find((n) => n.id === parentNodeId);
@@ -1120,7 +1120,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       'Summarize Selection',
       aiSummarizeNodes,
       {
-        nodes: selectedNodes.map((n) => ({ // selectedNodes from current scope
+          nodes: selectedNodes.map((n) => ({
           id: n.id,
           text: n.text,
           details: n.details,
@@ -1129,7 +1129,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       {
         loadingMessage: "AI 正在總結您選擇的節點...",
         successTitle: 'AI Summary Created!',
-        successDescription: (res) =>
+          successDescription: (res, _input) => // _input is available if needed for description
           res.summary?.text
             ? 'A new node with the summary has been added to staging.'
             : 'AI could not generate a specific summary for the selection.',
@@ -1137,7 +1137,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           multiSelectedNodeIds.length > 0
             ? multiSelectedNodeIds[0]
             : 'summarize-selection',
-        onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+          onSuccess: (output_success, _input_success) => {
           if (output_success && output_success.summary && output_success.summary.text) {
             // Use fresh data from store for staging logic
             const currentMapNodes = useConceptMapStore.getState().mapData.nodes;
@@ -1251,12 +1251,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         {
           loadingMessage: `AI 正在快速擴展 "${sourceNode.text || '節點'}"...`,
           successTitle: 'AI Suggestion Ready',
-          successDescription: (res) =>
+          successDescription: (res, _input) => // _input is available if needed for description
             res.expandedIdeas?.length > 0
               ? 'Review the suggested concept in the staging area.'
               : 'AI found no specific idea for quick expansion.',
           processingId: nodeId,
-          onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+          onSuccess: (output_success, _input_success) => {
             if (output_success && output_success.expandedIdeas && output_success.expandedIdeas.length > 0) {
               // sourceNode is captured in the outer scope of handleMiniToolbarQuickExpand
               // It should be stable for the duration of this specific AI call.
@@ -1337,10 +1337,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         {
           loadingMessage: `AI 正在簡化 "${node.text || '節點內容'}"...`,
           successTitle: 'Content Rewritten Concisely!',
-          successDescription: (res) => res.rewrittenText ? 'Node content updated.' : 'AI could not make it more concise.',
+          successDescription: (res, _input) => // _input is available if needed for description
+            res.rewrittenText ? 'Node content updated.' : 'AI could not make it more concise.',
           hideSuccessToast: !node?.text, // Effectively, always show toast unless text was empty
           processingId: nodeId,
-          onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+          onSuccess: (output_success, _input_success) => {
             if (output_success && output_success.rewrittenText) {
               // nodeId is from the outer scope of handleMiniToolbarRewriteConcise
               // updateStoreNode is from the hook's setup, safe to call
@@ -1580,8 +1581,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         {
           loadingMessage: "AI 正在建議中間節點...",
           successTitle: 'Intermediate Node Suggested',
-          successDescription: (res) => `AI suggests adding '${res.intermediateNodeText}'. Review in staging area.`,
-          onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+          successDescription: (res, _input) => // _input is available if needed for description
+            `AI suggests adding '${res.intermediateNodeText}'. Review in staging area.`,
+          onSuccess: (output_success, _input_success) => {
             if (output_success) {
               // sourceNodeId, targetNodeId, edge.id are from the outer scope of handleSuggestIntermediateNodeRequest
               // Fetch fresh node data from store for position calculation to be safe
@@ -1679,7 +1681,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         loadingMessage: "AI 正在整理您選擇的節點佈局...",
         successTitle: 'Selection Tidied by AI!', // General title, specific toasts in onSuccess
         hideSuccessToast: true, // Suppress default toast as onSuccess has specific ones
-        onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+          onSuccess: (output_success, _input_success) => {
           if (output_success && output_success.newPositions) {
             // nodesToTidy is from the outer scope of handleAiTidyUpSelection
             // It should be stable for this AI call's success handler.
@@ -1809,9 +1811,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       {
         loadingMessage: "AI 正在分析您的概念圖以尋找改進建議...",
         successTitle: 'Improvement Suggestions Ready!',
-        successDescription: (res) =>
+          successDescription: (res, _input) => // _input is available if needed for description
           `Found ${res.suggestedEdges.length} edge and ${res.suggestedGroups.length} group suggestions.`,
-        onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+          onSuccess: (output_success, _input_success) => {
           if (output_success) {
             useConceptMapStore.getState().setStructuralSuggestions(output_success);
           }
@@ -2068,7 +2070,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         successTitle: 'Map Summary Ready!',
         hideSuccessToast: true, // Modal will show the summary
         processingId: 'summarize-entire-map',
-        onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+          onSuccess: (output_success, _input_success) => {
           if (output_success) {
             setMapSummaryResult(output_success);
             setIsMapSummaryModalOpen(true);

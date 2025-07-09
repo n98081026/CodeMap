@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-import { availableTutorials } from '@/components/tutorial/app-tutorial'; // Import to access all tutorial keys
+// Import the static list of keys instead of the t-dependent function/object
+import { TUTORIAL_KEYS } from '@/components/tutorial/app-tutorial';
 
 interface TutorialStoreState {
   activeTutorialKey: string | null;
@@ -109,9 +110,9 @@ const useTutorialStore = create<TutorialStoreState>((set, get) => ({
       }
     } else {
       // Reset all known tutorials
-      availableTutorials.forEach((t) => {
-        localStorage.removeItem(`${t.key}_completed`);
-        localStorage.removeItem(`${t.key}_stepIndex`);
+      TUTORIAL_KEYS.forEach((key) => { // Iterate over the imported TUTORIAL_KEYS array
+        localStorage.removeItem(`${key}_completed`);
+        localStorage.removeItem(`${key}_stepIndex`);
       });
       console.log('Progress for all tutorials reset.');
       set({ runTutorial: false, activeTutorialKey: null, currentStepIndex: 0 });
