@@ -1,4 +1,5 @@
 // src/tests/setup.ts
+import React from 'react'; // Import React
 import * as matchers from '@testing-library/jest-dom/matchers';
 import { expect } from 'vitest';
 

@@ -23,6 +23,7 @@ export default [
       'playwright.config.ts', // Added playwright config
       'postcss.config.mjs', // Added postcss config
       'src/ai/tools/python_ast_parser.py', // Ignore python script
+      'src/stores/concept-map-store.js', // Specifically ignore this .js file from typed linting
       // Add other generated files or specific directories if needed
     ],
     languageOptions: {

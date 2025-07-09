@@ -263,7 +263,7 @@ export const SuggestRelationsModal: React.FC<
           </Button>
           <Button
             data-tutorial-id='suggest-relations-submit-button' // Tutorial target
-            onClick={handleSuggest} // Changed from type='submit' to onClick
+            onClick={handleSuggest}
             disabled={isLoading || conceptsInput.trim().length === 0}
           >
             {isLoading && (
@@ -274,10 +274,8 @@ export const SuggestRelationsModal: React.FC<
                 <Lightbulb className='mr-2 h-4 w-4' /> Suggest Relations
               </>
             )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+           </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -1107,7 +1105,6 @@ export function AskQuestionModal({
     <Dialog
       open={true}
       onOpenChange={(isOpenValue) => {
-        // Changed param name to avoid conflict
         if (!isOpenValue) setQuestion('');
         onOpenChange(isOpenValue);
       }}

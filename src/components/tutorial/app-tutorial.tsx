@@ -1,12 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import Joyride, { CallBackProps, STATUS, Step, EVENTS } from 'react-joyride';
 import { useTranslation } from 'react-i18next'; // Import useTranslation
-
-import type { LucideIcon } from 'lucide-react';
-
-import { useAuth } from '@/contexts/auth-context';
-import useConceptMapStore from '@/stores/concept-map-store';
-import useTutorialStore from '@/stores/tutorial-store';
+import Joyride, { CallBackProps, STATUS, Step, EVENTS } from 'react-joyride';
 
 // TutorialMetaData remains the same, but its instances will be constructed using t()
 export interface TutorialMetaData {
@@ -15,117 +9,6 @@ export interface TutorialMetaData {
   description?: string; // This will be populated by t()
   icon?: LucideIcon;
 }
-
-// availableTutorials will now be a function that takes t and returns the array,
-// or it will be constructed inside the component where t is available.
-// For now, we will define it inside the component.
-
-interface AppTutorialProps {
-  // Props are not used as state is managed by stores
-}
-
-const AppTutorial: React.FC<AppTutorialProps> = () => {
-  const { t } = useTranslation(); // Initialize useTranslation
-  const { user, loading } = useAuth();
-  const [steps, setSteps] = useState<Step[]>([]);
-
-  const {
-    activeTutorialKey,
-    runTutorial,
-    currentStepIndex,
-    setRunTutorialState,
-    setStepIndex,
-  } = useTutorialStore(
-    useCallback(
-      (s) => ({
-        activeTutorialKey: s.activeTutorialKey,
-        runTutorial: s.runTutorial,
-        currentStepIndex: s.currentStepIndex,
-        setRunTutorialState: s.setRunTutorialState,
-        setStepIndex: s.setStepIndex,
-      }),
-      []
-    )
-  );
-
-  const tutorialTempTargetNodeId = useConceptMapStore(
-    (state) => state.tutorialTempTargetNodeId
-  );
-  const clearTutorialTempTargetNodeId = useConceptMapStore(
-    (state) => state.setTutorialTempTargetNodeId
-  );
-  const tutorialTempTargetEdgeId = useConceptMapStore(
-    (state) => state.tutorialTempTargetEdgeId
-  );
-  const clearTutorialTempTargetEdgeId = useConceptMapStore(
-    (state) => state.setTutorialTempTargetEdgeId
-  );
-
-  // Construct availableTutorials using t()
-  // useMemo is used to prevent re-creating this array on every render unless t changes (language change)
-  const availableTutorials = useMemo((): TutorialMetaData[] => [
-    {
-      key: 'dashboardTutorial',
-      title: t('availableTutorials.dashboardTutorial.title'),
-      description: t('availableTutorials.dashboardTutorial.description')
-    },
-    {
-      key: 'projectUploadTutorial',
-      title: t('availableTutorials.projectUploadTutorial.title'),
-      description: t('availableTutorials.projectUploadTutorial.description')
-    },
-    {
-      key: 'editorTutorial',
-      title: t('availableTutorials.editorTutorial.title'),
-      description: t('availableTutorials.editorTutorial.description')
-    },
-    {
-      key: 'extractConceptsToolTutorial',
-      title: t('availableTutorials.extractConceptsToolTutorial.title'),
-      description: t('availableTutorials.extractConceptsToolTutorial.description')
-    },
-    {
-      key: 'manualAddNodeTutorial',
-      title: t('availableTutorials.manualAddNodeTutorial.title'),
-      description: t('availableTutorials.manualAddNodeTutorial.description')
-    },
-    {
-      key: 'manualCreateEdgeTutorial',
-      title: t('availableTutorials.manualCreateEdgeTutorial.title'),
-      description: t('availableTutorials.manualCreateEdgeTutorial.description')
-    },
-    {
-      key: 'suggestRelationsToolTutorial',
-      title: t('availableTutorials.suggestRelationsToolTutorial.title'),
-      description: t('availableTutorials.suggestRelationsToolTutorial.description')
-    },
-    {
-      key: 'expandConceptStagingTutorial',
-      title: t('availableTutorials.expandConceptStagingTutorial.title'),
-      description: t('availableTutorials.expandConceptStagingTutorial.description')
-    },
-    {
-      key: 'ghostPreviewLayoutTutorial',
-      title: t('availableTutorials.ghostPreviewLayoutTutorial.title'),
-      description: t('availableTutorials.ghostPreviewLayoutTutorial.description')
-    },
-    {
-      key: 'ghostPreviewsUsageTutorial',
-      title: t('availableTutorials.ghostPreviewsUsageTutorial.title'),
-      description: t('availableTutorials.ghostPreviewsUsageTutorial.description')
-    },
-    {
-      key: 'projectOverviewTutorial',
-      title: t('availableTutorials.projectOverviewTutorial.title'),
-      description: t('availableTutorials.projectOverviewTutorial.description')
-    },
-  ], [t]);
-
-  // This export is problematic if `t` is needed at module scope.
-  // For now, `availableTutorials` is used internally or passed down from a component that can use the hook.
-  // If it needs to be exported, it should be a function `getAvailableTutorials(tFunction)`
-  // For the purpose of this component, constructing it with useMemo is fine.
-
 
 import { getCommonTutorialSteps } from './flows/commonTutorialSteps';
 import { getDashboardTutorialSteps } from './flows/dashboardTutorialSteps';
@@ -140,6 +23,11 @@ import { getProjectOverviewTutorialSteps } from './flows/projectOverviewTutorial
 import { getProjectUploadTutorialSteps } from './flows/projectUploadTutorialSteps';
 import { getSuggestRelationsToolTutorialSteps } from './flows/suggestRelationsToolTutorialSteps';
 
+import type { LucideIcon } from 'lucide-react';
+
+import { useAuth } from '@/contexts/auth-context';
+import useConceptMapStore from '@/stores/concept-map-store';
+import useTutorialStore from '@/stores/tutorial-store';
 
 // TutorialMetaData remains the same
 export interface TutorialMetaData {
@@ -172,7 +60,6 @@ export const getAvailableTutorials = (t: TFunction): TutorialMetaData[] =>
     description: t(`availableTutorials.${key}.description`),
     // Icon can be mapped here if needed, or handled in Navbar directly
   }));
-
 
 interface AppTutorialProps {}
 
@@ -223,7 +110,12 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
 
       switch (tutorialKey) {
         case 'dashboardTutorial':
-          return getDashboardTutorialSteps(t, user, commonWelcomeStep, commonNavSteps);
+          return getDashboardTutorialSteps(
+            t,
+            user,
+            commonWelcomeStep,
+            commonNavSteps
+          );
         case 'projectUploadTutorial':
           return getProjectUploadTutorialSteps(t);
         case 'editorTutorial':
@@ -328,13 +220,16 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
   };
 
   // Memoize joyrideLocale to prevent re-renders if t function hasn't changed
-  const joyrideLocale = useMemo(() => ({
-    back: t('joyride.back'),
-    close: t('joyride.close'),
-    last: t('joyride.last'),
-    next: t('joyride.next'),
-    skip: t('joyride.skip'),
-  }), [t]);
+  const joyrideLocale = useMemo(
+    () => ({
+      back: t('joyride.back'),
+      close: t('joyride.close'),
+      last: t('joyride.last'),
+      next: t('joyride.next'),
+      skip: t('joyride.skip'),
+    }),
+    [t]
+  );
 
   if (
     loading ||
@@ -439,7 +334,8 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
         spotlight: {
           borderRadius: 'var(--radius-md)',
           // The boxShadow for overlay effect is good, keep as is.
-          boxShadow: '0 0 0 9999px hsla(var(--background-values), 0.85), 0 0 15px hsla(var(--primary-values), 0.5)',
+          boxShadow:
+            '0 0 0 9999px hsla(var(--background-values), 0.85), 0 0 15px hsla(var(--primary-values), 0.5)',
         },
       }}
       // debug
