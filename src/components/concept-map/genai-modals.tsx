@@ -1105,7 +1105,6 @@ export function AskQuestionModal({
     <Dialog
       open={true}
       onOpenChange={(isOpenValue) => {
-        // Changed param name to avoid conflict
         if (!isOpenValue) setQuestion('');
         onOpenChange(isOpenValue);
       }}
