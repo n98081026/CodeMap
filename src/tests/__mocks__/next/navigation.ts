@@ -45,7 +45,9 @@ export const permanentRedirect = vi.fn((path: string) => {
 });
 
 // Function to allow tests to set specific router values
-export const __setMockRouter = (newRouterValues: Partial<typeof mockRouter>) => {
+export const __setMockRouter = (
+  newRouterValues: Partial<typeof mockRouter>
+) => {
   mockRouter = { ...mockRouter, ...newRouterValues };
 };
 

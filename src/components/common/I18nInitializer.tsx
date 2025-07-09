@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // This component's sole purpose is to ensure the i18n configuration is imported
 // and initialized on the client side when the application loads.

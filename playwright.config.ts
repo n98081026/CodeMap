@@ -57,7 +57,7 @@ export default defineConfig({
       // In questo caso, dato che globalSetup è a livello root, la dipendenza è implicita
       // se Playwright esegue globalSetup prima di tutti i progetti.
       // Per maggiore chiarezza con `globalSetup` a livello root, `dependencies` non è strettamente necessario qui.
-      testMatch: /.*\.spec\.ts/,      // Esegue tutti i file .spec.ts
+      testMatch: /.*\.spec\.ts/, // Esegue tutti i file .spec.ts
       testIgnore: /global\.setup\.ts/, // Assicura che il file di setup non venga eseguito come test regolare
     },
 
@@ -71,7 +71,6 @@ export default defineConfig({
     //   },
     //   testMatch: /auth\.spec\.ts/, // Esegui solo i test di autenticazione
     // },
-
 
     // Esempi per altri browser, possono essere decommentati.
     // Anch'essi dovrebbero usare lo storageState e dipendere da 'setup' se si usa quel pattern.
@@ -106,9 +105,12 @@ export default defineConfig({
     timeout: 120 * 1000, // Timeout per l'avvio del server (120 secondi)
     stdout: 'pipe',
     stderr: 'pipe',
-    env: { // Passa variabili d'ambiente necessarie al server di sviluppo
-        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key',
-    }
+    env: {
+      // Passa variabili d'ambiente necessarie al server di sviluppo
+      NEXT_PUBLIC_SUPABASE_URL:
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key',
+    },
   },
 });

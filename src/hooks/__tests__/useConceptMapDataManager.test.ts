@@ -107,7 +107,6 @@ vi.mock('@/stores/concept-map-store', async (importOriginal) => {
   // If `useConceptMapStore.temporal` is accessed directly
   storeHookMock.temporal = mockTemporal;
 
-
   return {
     ...actual,
     useConceptMapStore: storeHookMock,

@@ -30,7 +30,8 @@ export class LoginPage {
    * @param password La password dell'utente.
    */
   async login(email: string, password?: string) {
-    const finalPassword = password || process.env.TEST_USER_PASSWORD || 'password123';
+    const finalPassword =
+      password || process.env.TEST_USER_PASSWORD || 'password123';
     await this.emailInput.fill(email);
     await this.passwordInput.fill(finalPassword);
     await this.loginButton.click();
@@ -50,6 +51,8 @@ export class LoginPage {
 
     // Verifica il reindirizzamento alla dashboard
     await expect(this.page).toHaveURL(/.*\/dashboard/, { timeout: 20000 });
-    console.log(`LoginAsDefaultUser successful. Current page: ${this.page.url()}`);
+    console.log(
+      `LoginAsDefaultUser successful. Current page: ${this.page.url()}`
+    );
   }
 }

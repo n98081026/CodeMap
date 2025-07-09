@@ -1,10 +1,11 @@
-import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
+import type { Metadata } from 'next';
+
 import './globals.css';
+import I18nInitializer from '@/components/common/I18nInitializer'; // Import the initializer
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context';
-import I18nInitializer from '@/components/common/I18nInitializer'; // Import the initializer
 
 const inter = Inter({
   subsets: ['latin'],

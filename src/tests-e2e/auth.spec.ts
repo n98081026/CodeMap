@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+
 import { LoginPage } from './pom/LoginPage'; // Import the LoginPage Page Object
 
 test.describe('Authentication Flows', () => {
@@ -9,7 +10,9 @@ test.describe('Authentication Flows', () => {
     await loginPage.navigate(); // Naviga alla pagina di login prima di ogni test in questo describe
   });
 
-  test('should allow a user to log in successfully with default credentials', async ({ page }) => {
+  test('should allow a user to log in successfully with default credentials', async ({
+    page,
+  }) => {
     // TODO: Idealmente, questo test dovrebbe usare credenziali specifiche per il test di login,
     // non necessariamente le stesse del global.setup se quelle sono "super utenti".
     // Per ora, riutilizza la logica di loginAsDefaultUser ma verifica esplicitamente la UI.
@@ -21,14 +24,18 @@ test.describe('Authentication Flows', () => {
 
     // Verifica il reindirizzamento alla dashboard
     await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 20000 }); // Timeout aumentato
-    console.log(`Test 'should allow a user to log in successfully' passed. User redirected to: ${page.url()}`);
+    console.log(
+      `Test 'should allow a user to log in successfully' passed. User redirected to: ${page.url()}`
+    );
 
     // (Opzionale) Verifica un elemento specifico della dashboard
     // Ad esempio, se la dashboard ha un titolo H1 specifico:
     // await expect(page.getByRole('heading', { name: /dashboard/i, level: 1 })).toBeVisible();
   });
 
-  test('should show an error message for invalid credentials', async ({ page }) => {
+  test('should show an error message for invalid credentials', async ({
+    page,
+  }) => {
     await loginPage.login('wrong@example.com', 'wrongpassword');
 
     // Identificare il selettore per il messaggio di errore.
@@ -40,7 +47,9 @@ test.describe('Authentication Flows', () => {
 
     await expect(errorMessage.first()).toBeVisible({ timeout: 5000 });
     // Adattare il testo dell'errore al messaggio effettivo mostrato dall'applicazione
-    await expect(errorMessage.first()).toContainText(/Invalid login credentials|Invalid email or password|Credenziali non valide/i);
+    await expect(errorMessage.first()).toContainText(
+      /Invalid login credentials|Invalid email or password|Credenziali non valide/i
+    );
     console.log('Test for invalid credentials passed, error message shown.');
   });
 });

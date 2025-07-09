@@ -310,7 +310,11 @@ export async function deleteUser(userId: string): Promise<boolean> {
       throw new Error('Pre-defined test user profiles cannot be deleted.');
     }
     const initialLength = MOCK_USERS.length;
-    MOCK_USERS = MOCK_USERS.filter((u) => u.id !== userId);
+    // MOCK_USERS = MOCK_USERS.filter((u) => u.id !== userId); // Original problematic line
+    const userIndex = MOCK_USERS.findIndex(u => u.id === userId);
+    if (userIndex > -1) {
+      MOCK_USERS.splice(userIndex, 1); // Modify in place
+    }
     return MOCK_USERS.length < initialLength;
   }
 
