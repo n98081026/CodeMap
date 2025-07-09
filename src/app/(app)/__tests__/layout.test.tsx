@@ -146,7 +146,6 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
     __setMockPathname('/concept-maps/editor/example-guest-map-123');
     __setMockSearchParams(new URLSearchParams('viewOnly=true'));
 
-
     render(
       <AppLayout>
         <p>Test Child</p>

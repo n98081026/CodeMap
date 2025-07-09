@@ -40,7 +40,11 @@ vi.mock('@/components/layout/main-layout', async () => {
 vi.mock('lucide-react', async () => {
   const actual = await vi.importActual('lucide-react');
   const createIcon = (displayName: string) => {
-    const IconComponent = (props: any) => React.createElement('svg', { 'data-testid': `icon-${displayName.toLowerCase()}`, ...props });
+    const IconComponent = (props: any) =>
+      React.createElement('svg', {
+        'data-testid': `icon-${displayName.toLowerCase()}`,
+        ...props,
+      });
     IconComponent.displayName = displayName;
     return IconComponent;
   };
@@ -95,7 +99,6 @@ vi.mock('lucide-react', async () => {
     // Add any other icons that might be used across the application
   };
 });
-
 
 // Mock window.matchMedia for JSDOM environment (used by next-themes and potentially other UI libraries)
 Object.defineProperty(window, 'matchMedia', {

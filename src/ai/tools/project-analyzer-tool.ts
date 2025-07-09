@@ -360,6 +360,34 @@ async function analyzeJavaScriptAST(
         }
       });
     },
+
+  // Create a combined summary
+  let finalAnalysisSummary = `JavaScript file '${fileName}' analyzed. Found ${localDefinitions.length} local definitions, ${rawImportsOutput.length} imports, ${rawExportsOutput.length} exports.`;
+  if (summarizedElements.some(el => el.error)) {
+    finalAnalysisSummary += " Some elements could not be summarized.";
+  }
+
+  // Populate detailedNodesOutput from summarizedElements
+  // Ensure createDetailedNodeFromExtractedElement can handle potentially undefined summary/error/codeSnippet from task
+  for (const task of summarizedElements) {
+    detailedNodesOutput.push(
+      createDetailedNodeFromExtractedElement(
+        task.originalNodeInfo,
+        task.uniqueId,
+        task.summary || (task.error ? `Error: ${task.error}` : 'No summary.'),
+        task.error,
+        task.inputForFlow.codeSnippet // Ensure this path is correct and codeSnippet is available
+      )
+    );
+  }
+
+  return {
+    analysisSummary: finalAnalysisSummary,
+    detailedNodes: detailedNodesOutput,
+    rawImports: rawImportsOutput,
+    rawExports: rawExportsOutput,
+    // error: any top-level error string if one occurred within analyzeJavaScriptAST directly
+  };
     ClassDeclaration(node: any, ancestors: any[]) {
       const parent = ancestors[ancestors.length - 2];
       const isExported = parent.type === 'ExportNamedDeclaration' || parent.type === 'ExportDefaultDeclaration';

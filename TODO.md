@@ -2,6 +2,33 @@
 
 # CodeMap TODO List
 
+## 🔴 CRITICAL: Manual Fixes Required for Core Functionality
+
+The following files contain syntax/parsing errors that prevent ESLint and TypeScript from functioning correctly across the project. These **must be fixed manually by a developer** before automated linting, type checking, and further development can reliably proceed.
+
+- **`src/ai/tools/project-analyzer-tool.ts`**:
+  - **Issue**: Likely missing `return` statement at the end of the `analyzeJavaScriptAST` function. The function is asynchronous and promises a specific return type, but the control flow might not guarantee a return in all paths.
+  - **Impact**: This is a very large file, and this error prevents its proper analysis, which may hide other issues within it.
+- **`src/components/concept-map/genai-modals.tsx`**:
+  - **Issue**: ESLint/Prettier reported "Expected corresponding JSX closing tag for 'DialogContent'".
+  - **Impact**: JSX syntax error breaks rendering and linting for this file.
+- **`src/components/tutorial/app-tutorial.tsx`**:
+  - **Issue**: ESLint/Prettier reported "'}' expected".
+  - **Impact**: Syntax error breaks this file.
+- **`src/hooks/__tests__/useAdminDashboardMetrics.test.ts`**:
+  - **Issue**: ESLint/Prettier reported "Unterminated regular expression literal".
+  - **Impact**: Test file syntax error.
+- **`src/hooks/__tests__/useStudentDashboardMetrics.test.ts`**:
+  - **Issue**: ESLint/Prettier reported "Unterminated regular expression literal".
+  - **Impact**: Test file syntax error.
+- **`src/hooks/__tests__/useTeacherDashboardMetrics.test.ts`**:
+  - **Issue**: ESLint/Prettier reported "Unterminated regular expression literal".
+  - **Impact**: Test file syntax error.
+
+**Action Required:** A developer needs to manually inspect these files, correct the syntax errors, and ensure they are parsable.
+
+---
+
 ## Core Functionality & Backend Integration
 
 - [x] **User Authentication (Backend):** (Supabase)
@@ -315,3 +342,5 @@ The "Key Priorities" section has been updated to emphasize immediate testing nee
 - [ ] **Documentation**:
   - [x] JSDoc for `callAIWithStandardFeedback` options updated. (Jules - Done)
   - [ ] Broader documentation for the hook, its patterns, and specific AI handler logic is still pending.
+
+[end of TODO.md]

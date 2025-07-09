@@ -200,10 +200,7 @@ export default [
       'src/types/**/*.{ts,tsx}',
       'src/ai/**/*.{ts,tsx}',
     ],
-    ignores: [
-      '**/__tests__/**',
-      'src/stores/concept-map-store.js',
-    ],
+    ignores: ['**/__tests__/**', 'src/stores/concept-map-store.js'],
     plugins: {
       '@next/next': nextPlugin,
     },

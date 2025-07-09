@@ -17,29 +17,29 @@ vi.mock('@/lib/supabaseClient', () => ({
       signOut: vi.fn(),
       getSession: vi.fn(),
       onAuthStateChange: vi.fn(() => ({
-        data: { subscription: { unsubscribe: vi.fn() } }
-      }))
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
     },
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          single: vi.fn()
-        }))
+          single: vi.fn(),
+        })),
       })),
       insert: vi.fn(() => ({
         select: vi.fn(() => ({
-          single: vi.fn()
-        }))
-      }))
-    }))
-  }
+          single: vi.fn(),
+        })),
+      })),
+    })),
+  },
 }));
 
 // Test component that uses auth context
 function TestAuthComponent() {
   return (
     <AuthProvider>
-      <div data-testid="auth-test">Auth Test Component</div>
+      <div data-testid='auth-test'>Auth Test Component</div>
     </AuthProvider>
   );
 }
@@ -58,18 +58,18 @@ describe('Authentication Integration Tests', () => {
       const mockUser = {
         id: 'user-123',
         email: 'test@example.com',
-        user_metadata: { name: 'Test User' }
+        user_metadata: { name: 'Test User' },
       };
 
       const mockSession = {
         user: mockUser,
-        access_token: 'mock-token'
+        access_token: 'mock-token',
       };
 
       // Mock successful signup
       (supabase.auth.signUp as any).mockResolvedValue({
         data: { user: mockUser, session: mockSession },
-        error: null
+        error: null,
       });
 
       // Mock profile creation
@@ -81,12 +81,12 @@ describe('Authentication Integration Tests', () => {
                 id: 'user-123',
                 name: 'Test User',
                 email: 'test@example.com',
-                role: 'student'
+                role: 'student',
               },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       render(<TestAuthComponent />);
@@ -98,7 +98,7 @@ describe('Authentication Integration Tests', () => {
       // Mock signup error
       (supabase.auth.signUp as any).mockResolvedValue({
         data: { user: null, session: null },
-        error: { message: 'Email already registered' }
+        error: { message: 'Email already registered' },
       });
 
       render(<TestAuthComponent />);
@@ -111,18 +111,18 @@ describe('Authentication Integration Tests', () => {
     it('should handle successful login', async () => {
       const mockUser = {
         id: 'user-123',
-        email: 'test@example.com'
+        email: 'test@example.com',
       };
 
       const mockSession = {
         user: mockUser,
-        access_token: 'mock-token'
+        access_token: 'mock-token',
       };
 
       // Mock successful login
       (supabase.auth.signInWithPassword as any).mockResolvedValue({
         data: { user: mockUser, session: mockSession },
-        error: null
+        error: null,
       });
 
       // Mock profile fetch
@@ -134,12 +134,12 @@ describe('Authentication Integration Tests', () => {
                 id: 'user-123',
                 name: 'Test User',
                 email: 'test@example.com',
-                role: 'student'
+                role: 'student',
               },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       render(<TestAuthComponent />);
@@ -151,7 +151,7 @@ describe('Authentication Integration Tests', () => {
       // Mock login error
       (supabase.auth.signInWithPassword as any).mockResolvedValue({
         data: { user: null, session: null },
-        error: { message: 'Invalid credentials' }
+        error: { message: 'Invalid credentials' },
       });
 
       render(<TestAuthComponent />);
@@ -164,18 +164,18 @@ describe('Authentication Integration Tests', () => {
     it('should restore session on app load', async () => {
       const mockUser = {
         id: 'user-123',
-        email: 'test@example.com'
+        email: 'test@example.com',
       };
 
       const mockSession = {
         user: mockUser,
-        access_token: 'mock-token'
+        access_token: 'mock-token',
       };
 
       // Mock existing session
       (supabase.auth.getSession as any).mockResolvedValue({
         data: { session: mockSession },
-        error: null
+        error: null,
       });
 
       // Mock profile fetch
@@ -187,12 +187,12 @@ describe('Authentication Integration Tests', () => {
                 id: 'user-123',
                 name: 'Test User',
                 email: 'test@example.com',
-                role: 'student'
+                role: 'student',
               },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       render(<TestAuthComponent />);
@@ -203,7 +203,7 @@ describe('Authentication Integration Tests', () => {
     it('should handle logout', async () => {
       // Mock successful logout
       (supabase.auth.signOut as any).mockResolvedValue({
-        error: null
+        error: null,
       });
 
       render(<TestAuthComponent />);
@@ -217,13 +217,13 @@ describe('Authentication Integration Tests', () => {
       const mockUser = {
         id: 'user-123',
         email: 'test@example.com',
-        user_metadata: { name: 'Test User' }
+        user_metadata: { name: 'Test User' },
       };
 
       // Mock successful signup
       (supabase.auth.signUp as any).mockResolvedValue({
         data: { user: mockUser, session: { user: mockUser } },
-        error: null
+        error: null,
       });
 
       // Mock profile creation
@@ -232,17 +232,17 @@ describe('Authentication Integration Tests', () => {
           id: 'user-123',
           name: 'Test User',
           email: 'test@example.com',
-          role: 'student'
+          role: 'student',
         },
-        error: null
+        error: null,
       });
 
       (supabase.from as any).mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: mockInsert
-          })
-        })
+            single: mockInsert,
+          }),
+        }),
       });
 
       render(<TestAuthComponent />);

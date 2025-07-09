@@ -33,7 +33,9 @@ vi.mock('@/components/layout/GuestModeCtaBanner', () => {
   // The actual GuestModeCtaBanner takes no props in its definition in page.tsx
   // but the test was trying to pass DONT_REDIRECT_ON_LOGIN.
   // Let's make the mock simpler and just check for its existence.
-  const MockGuestCtaBanner = () => <div data-testid='guest-cta-banner'>CTA Banner</div>;
+  const MockGuestCtaBanner = () => (
+    <div data-testid='guest-cta-banner'>CTA Banner</div>
+  );
   return {
     // If GuestModeCtaBanner is a default export from its module:
     default: MockGuestCtaBanner,
@@ -41,7 +43,6 @@ vi.mock('@/components/layout/GuestModeCtaBanner', () => {
     GuestModeCtaBanner: MockGuestCtaBanner,
   };
 });
-
 
 // Mock example data from '@/lib/example-data'
 // The actual page imports `exampleProjects` not `exampleProjectsData`
@@ -79,9 +80,10 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
     vi.clearAllMocks();
     // Ensure necessary mocks from next/navigation are setup if tests interact with router/params
     // For this page, useRouter is used.
-    const { __setMockRouter } = vi.hoisted(() => import('@/tests/__mocks__/next/navigation'));
-     __setMockRouter({ push: vi.fn(), replace: vi.fn() });
-
+    const { __setMockRouter } = vi.hoisted(
+      () => import('@/tests/__mocks__/next/navigation')
+    );
+    __setMockRouter({ push: vi.fn(), replace: vi.fn() });
   });
 
   it('should render DashboardHeader and example project cards', () => {
@@ -129,7 +131,6 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
     expect(screen.queryByTestId('guest-cta-banner')).toBeNull();
   });
 
-
   it('should show "View Example" button for all users, and "Copy & Edit" for guests', () => {
     (useAuth as vi.Mock).mockReturnValue({
       isGuestSession: true, // Guest user
@@ -141,9 +142,15 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
     render(<ExamplesPage />);
 
     // For Example 1
-    const card1 = screen.getByText('Example Project 1').closest('[data-testid^="card-"]') || screen.getByText('Example Project 1').closest('div.flex.flex-col');
-    expect(within(card1!).getByRole('button', { name: /view example/i })).toBeInTheDocument();
-    expect(within(card1!).getByRole('button', { name: /copy & edit/i })).toBeInTheDocument();
+    const card1 =
+      screen.getByText('Example Project 1').closest('[data-testid^="card-"]') ||
+      screen.getByText('Example Project 1').closest('div.flex.flex-col');
+    expect(
+      within(card1!).getByRole('button', { name: /view example/i })
+    ).toBeInTheDocument();
+    expect(
+      within(card1!).getByRole('button', { name: /copy & edit/i })
+    ).toBeInTheDocument();
   });
 
   it('should show only "View Example" button for authenticated users', () => {
@@ -156,8 +163,14 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
 
     render(<ExamplesPage />);
 
-    const card1 = screen.getByText('Example Project 1').closest('div.flex.flex-col');
-    expect(within(card1!).getByRole('button', { name: /view example/i })).toBeInTheDocument();
-    expect(within(card1!).queryByRole('button', { name: /copy & edit/i })).toBeNull();
+    const card1 = screen
+      .getByText('Example Project 1')
+      .closest('div.flex.flex-col');
+    expect(
+      within(card1!).getByRole('button', { name: /view example/i })
+    ).toBeInTheDocument();
+    expect(
+      within(card1!).queryByRole('button', { name: /copy & edit/i })
+    ).toBeNull();
   });
 });

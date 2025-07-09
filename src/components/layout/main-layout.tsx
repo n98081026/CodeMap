@@ -3,10 +3,10 @@ import { CodeXml } from 'lucide-react';
 
 import { Navbar } from './navbar';
 import { SidebarNav } from './sidebar-nav';
-import LanguageSwitcher from '@/components/common/LanguageSwitcher'; // Import LanguageSwitcher
 
 import type { ReactNode } from 'react';
 
+import LanguageSwitcher from '@/components/common/LanguageSwitcher'; // Import LanguageSwitcher
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   SidebarProvider,

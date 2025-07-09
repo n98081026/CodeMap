@@ -328,7 +328,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           if (error.details) {
             if (typeof error.details === 'string') {
               userFriendlyMessage += `Details: ${error.details}`;
-            } else if (typeof error.details === 'object' && 'message' in error.details && typeof error.details.message === 'string') {
+            } else if (
+              typeof error.details === 'object' &&
+              'message' in error.details &&
+              typeof error.details.message === 'string'
+            ) {
               userFriendlyMessage += `Details: ${error.details.message}`;
             } else {
               // Fallback to generic error message if details structure is unexpected
@@ -386,12 +390,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             typeof error === 'object' &&
             'message' in error &&
             typeof error.message === 'string' &&
-            (
-              error.message.toLowerCase().includes('api key not valid') ||
+            (error.message.toLowerCase().includes('api key not valid') ||
               error.message.toLowerCase().includes('safety settings') ||
               error.message.toLowerCase().includes('policy violation') ||
-              error.message.toLowerCase().includes('permission_denied')
-            )
+              error.message.toLowerCase().includes('permission_denied'))
           )
         ) {
           userFriendlyMessage +=
@@ -477,10 +479,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     [
       isViewOnlyMode,
       resetAiSuggestions, // Store action (stable)
-      mapData.nodes,        // Store state
-      selectedElementId,    // Store state
+      mapData.nodes, // Store state
+      selectedElementId, // Store state
       multiSelectedNodeIds, // Store state
-      toast,                // Hook return (stable)
+      toast, // Hook return (stable)
       setTextForExtraction, // Local useState setter (stable)
       setIsExtractConceptsModalOpen, // Local useState setter (stable)
     ]
@@ -503,9 +505,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         aiExtractConcepts,
         { text },
         {
-          loadingMessage: "AI 正在從您的文本中提取概念...",
-          successDescription: (res, _input) => // _input is available if needed for description
-            `${res.concepts.length} concepts found. View in AI Panel.`,
+          loadingMessage: 'AI 正在從您的文本中提取概念...',
+          successDescription: (
+            res,
+            _input // _input is available if needed for description
+          ) => `${res.concepts.length} concepts found. View in AI Panel.`,
           onSuccess: (output, _input) => {
             if (output) setAiExtractedConcepts(output.concepts);
           },
@@ -535,8 +539,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           position: getNodePlacement(
             currentNodes,
             'generic', // Placement strategy
-            null,      // No specific parent for generic placement
-            null,      // No specific anchor
+            null, // No specific parent for generic placement
+            null, // No specific anchor
             GRID_SIZE_FOR_AI_PLACEMENT
           ),
           details: conceptItem.context
@@ -628,9 +632,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       isViewOnlyMode,
       resetAiSuggestions, // Store action (stable)
       mapData, // Store state (for nodes & edges)
-      selectedElementId,    // Store state
+      selectedElementId, // Store state
       multiSelectedNodeIds, // Store state
-      toast,                // Hook return (stable)
+      toast, // Hook return (stable)
       setConceptsForRelationSuggestion, // Local useState setter (stable)
       setIsSuggestRelationsModalOpen, // Local useState setter (stable)
     ]
@@ -652,9 +656,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         aiSuggestRelations,
         { concepts },
         {
-          loadingMessage: "AI 正在分析概念以建議關係...",
-          successDescription: (res, _input) => // _input is available if needed for description
-            `${res.length} relations suggested. View in AI Panel.`,
+          loadingMessage: 'AI 正在分析概念以建議關係...',
+          successDescription: (
+            res,
+            _input // _input is available if needed for description
+          ) => `${res.length} relations suggested. View in AI Panel.`,
           onSuccess: (output, _input) => {
             if (output) setAiSuggestedRelations(output);
           },
@@ -687,15 +693,21 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             node.text.toLowerCase().trim() === rel.source.toLowerCase().trim()
         );
         if (!sourceNode) {
-          const newSourceNodeId = addStoreNode({ // addStoreNode will use fresh mapData via its own getState()
+          const newSourceNodeId = addStoreNode({
+            // addStoreNode will use fresh mapData via its own getState()
             text: rel.source,
             type: 'ai-concept',
             position: getNodePlacement(
               useConceptMapStore.getState().mapData.nodes, // Use latest nodes for placement
-              'generic', null, null, GRID_SIZE_FOR_AI_PLACEMENT
+              'generic',
+              null,
+              null,
+              GRID_SIZE_FOR_AI_PLACEMENT
             ),
           });
-          sourceNode = useConceptMapStore.getState().mapData.nodes.find((node) => node.id === newSourceNodeId); // Re-fetch node after adding
+          sourceNode = useConceptMapStore
+            .getState()
+            .mapData.nodes.find((node) => node.id === newSourceNodeId); // Re-fetch node after adding
           if (sourceNode) conceptsAddedFromRelationsCount++;
           else return; // Should not happen if addNode is successful
         }
@@ -711,10 +723,15 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             type: 'ai-concept',
             position: getNodePlacement(
               useConceptMapStore.getState().mapData.nodes, // Use latest nodes
-              'generic', null, null, GRID_SIZE_FOR_AI_PLACEMENT
+              'generic',
+              null,
+              null,
+              GRID_SIZE_FOR_AI_PLACEMENT
             ),
           });
-          targetNode = useConceptMapStore.getState().mapData.nodes.find((node) => node.id === newTargetNodeId);
+          targetNode = useConceptMapStore
+            .getState()
+            .mapData.nodes.find((node) => node.id === newTargetNodeId);
           if (targetNode) conceptsAddedFromRelationsCount++;
           else return;
         }
@@ -723,14 +740,16 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         if (
           sourceNode &&
           targetNode &&
-          !currentMapEdges.some( // Check against the snapshot of edges at the start of this function call
+          !currentMapEdges.some(
+            // Check against the snapshot of edges at the start of this function call
             (edge) =>
               edge.source === sourceNode!.id &&
               edge.target === targetNode!.id &&
               edge.label === rel.relation
           )
         ) {
-          addStoreEdge({ // addStoreEdge will use fresh mapData
+          addStoreEdge({
+            // addStoreEdge will use fresh mapData
             source: sourceNode!.id,
             target: targetNode!.id,
             label: rel.relation,
@@ -825,8 +844,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     [
       isViewOnlyMode,
       mapData, // Store state (for nodes & edges)
-      selectedElementId,    // Store state
-      toast,                // Hook return (stable)
+      selectedElementId, // Store state
+      toast, // Hook return (stable)
       setConceptToExpandDetails, // Local useState setter (stable)
       setMapContextForExpansion, // Local useState setter (stable)
       setIsExpandConceptModalOpen, // Local useState setter (stable)
@@ -845,11 +864,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       if (
         isViewOnlyMode ||
         !conceptToExpandDetails || // Ensure we have details of the concept to expand
-        !conceptToExpandDetails.id   // Crucially, we need the ID of an existing node on the map to attach expanded concepts
+        !conceptToExpandDetails.id // Crucially, we need the ID of an existing node on the map to attach expanded concepts
       ) {
         toast({
           title: 'Error',
-          description: 'Cannot expand concept without a source node on the map.',
+          description:
+            'Cannot expand concept without a source node on the map.',
           variant: 'destructive',
         });
         return null;
@@ -862,17 +882,25 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       >('Expand Concept', aiExpandConcept, input, {
         loadingMessage: `AI 正在擴展概念 "${input.concept}"...`,
         successTitle: 'AI Suggestions Ready',
-        successDescription: (res, _input) => // _input is available if needed for description
+        successDescription: (
+          res,
+          _input // _input is available if needed for description
+        ) =>
           `${res.expandedIdeas.length} new ideas suggested. Review them for placement.`,
         processingId: parentNodeId,
         onSuccess: (output, _input_success) => {
-          if (output && output.expandedIdeas && output.expandedIdeas.length > 0) {
+          if (
+            output &&
+            output.expandedIdeas &&
+            output.expandedIdeas.length > 0
+          ) {
             // parentNodeId is from the outer scope of handleConceptExpanded
             const parentNode = mapData.nodes.find((n) => n.id === parentNodeId);
             if (!parentNode) {
               toast({
                 title: 'Error',
-                description: 'Parent node for expansion not found after AI call. This should not happen.',
+                description:
+                  'Parent node for expansion not found after AI call. This should not happen.',
                 variant: 'destructive',
               });
               return;
@@ -883,7 +911,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             const stagedEdges: ConceptMapEdge[] = [];
             // Use fresh nodes from store for placement, as mapData in hook scope might be stale
             // if multiple expansions happen quickly or other updates occur.
-            const currentNodesForPlacement = [...useConceptMapStore.getState().mapData.nodes];
+            const currentNodesForPlacement = [
+              ...useConceptMapStore.getState().mapData.nodes,
+            ];
 
             output.expandedIdeas.forEach((idea, index) => {
               const newNodeId = `staged-exp-${parentNodeId}-${Date.now()}-${index}`;
@@ -927,10 +957,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             });
             // `conceptExpansionPreview` state is removed from the store.
             // UI relying on it would now use `stagedMapData`.
-          } else if (output) { // AI ran but had no expanded ideas
+          } else if (output) {
+            // AI ran but had no expanded ideas
             toast({
               title: 'Expand Concept',
-              description: 'AI did not find any specific concepts to expand with.',
+              description:
+                'AI did not find any specific concepts to expand with.',
               variant: 'default',
             });
           }
@@ -943,9 +975,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       isViewOnlyMode,
       toast,
       conceptToExpandDetails, // Local state
-      mapData.nodes,          // Store state
+      mapData.nodes, // Store state
       callAIWithStandardFeedback,
-      setStagedMapData,       // Store action (stable)
+      setStagedMapData, // Store action (stable)
     ]
   );
 
@@ -977,8 +1009,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     },
     [
       isViewOnlyMode,
-      mapData.nodes,    // Store state
-      toast,            // Hook return (stable)
+      mapData.nodes, // Store state
+      toast, // Hook return (stable)
       setNodeContextForQuestion, // Local useState setter (stable)
       setIsAskQuestionModalOpen, // Local useState setter (stable)
     ]
@@ -1052,8 +1084,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     },
     [
       isViewOnlyMode,
-      mapData.nodes,    // Store state
-      toast,            // Hook return (stable)
+      mapData.nodes, // Store state
+      toast, // Hook return (stable)
       setNodeContentToRewrite, // Local useState setter (stable)
       setIsRewriteNodeContentModalOpen, // Local useState setter (stable)
     ]
@@ -1101,7 +1133,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
    * On success, a new summary node and connecting edges are added to `stagedMapData`.
    */
   const handleSummarizeSelectedNodes = useCallback(async () => {
-    const selectedNodes = mapData.nodes.filter( // mapData from hook scope
+    const selectedNodes = mapData.nodes.filter(
+      // mapData from hook scope
       (node) => multiSelectedNodeIds.includes(node.id) // multiSelectedNodeIds from hook scope
     );
     if (selectedNodes.length === 0 && !isViewOnlyMode) {
@@ -1120,16 +1153,19 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       'Summarize Selection',
       aiSummarizeNodes,
       {
-          nodes: selectedNodes.map((n) => ({
+        nodes: selectedNodes.map((n) => ({
           id: n.id,
           text: n.text,
           details: n.details,
         })),
       },
       {
-        loadingMessage: "AI 正在總結您選擇的節點...",
+        loadingMessage: 'AI 正在總結您選擇的節點...',
         successTitle: 'AI Summary Created!',
-          successDescription: (res, _input) => // _input is available if needed for description
+        successDescription: (
+          res,
+          _input // _input is available if needed for description
+        ) =>
           res.summary?.text
             ? 'A new node with the summary has been added to staging.'
             : 'AI could not generate a specific summary for the selection.',
@@ -1137,20 +1173,28 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           multiSelectedNodeIds.length > 0
             ? multiSelectedNodeIds[0]
             : 'summarize-selection',
-          onSuccess: (output_success, _input_success) => {
-          if (output_success && output_success.summary && output_success.summary.text) {
+        onSuccess: (output_success, _input_success) => {
+          if (
+            output_success &&
+            output_success.summary &&
+            output_success.summary.text
+          ) {
             // Use fresh data from store for staging logic
             const currentMapNodes = useConceptMapStore.getState().mapData.nodes;
-            const currentMultiSelectedNodeIds = useConceptMapStore.getState().multiSelectedNodeIds;
+            const currentMultiSelectedNodeIds =
+              useConceptMapStore.getState().multiSelectedNodeIds;
 
-            const currentSelectedNodesForStaging = currentMapNodes.filter((node) =>
-              currentMultiSelectedNodeIds.includes(node.id)
+            const currentSelectedNodesForStaging = currentMapNodes.filter(
+              (node) => currentMultiSelectedNodeIds.includes(node.id)
             );
             if (currentSelectedNodesForStaging.length === 0) return;
 
             // Calculate central point for placing the summary node
             const centralPoint = currentSelectedNodesForStaging.reduce(
-              (acc, node) => ({ x: acc.x + (node.x || 0), y: acc.y + (node.y || 0) }),
+              (acc, node) => ({
+                x: acc.x + (node.x || 0),
+                y: acc.y + (node.y || 0),
+              }),
               { x: 0, y: 0 }
             );
             centralPoint.x /= currentSelectedNodesForStaging.length;
@@ -1160,7 +1204,15 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
               currentMapNodes, // Use current map nodes for context
               'generic',
               null,
-              { id: 'summary-center', x: centralPoint.x, y: centralPoint.y, width: 0, height: 0, text: '', type: '' },
+              {
+                id: 'summary-center',
+                x: centralPoint.x,
+                y: centralPoint.y,
+                width: 0,
+                height: 0,
+                text: '',
+                type: '',
+              },
               GRID_SIZE_FOR_AI_PLACEMENT
             );
 
@@ -1174,20 +1226,21 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
               type: 'ai-summary-node',
               position: {
                 x: summaryNodePosition.x,
-                y: summaryNodePosition.y - (currentSelectedNodesForStaging.length > 1 ? 100 : 0), // Offset if many nodes
+                y:
+                  summaryNodePosition.y -
+                  (currentSelectedNodesForStaging.length > 1 ? 100 : 0), // Offset if many nodes
               },
               width: 200,
               height: 100,
               childIds: [],
             };
-            const edgesToSummarizedNodes: ConceptMapEdge[] = currentSelectedNodesForStaging.map(
-              (node) => ({
+            const edgesToSummarizedNodes: ConceptMapEdge[] =
+              currentSelectedNodesForStaging.map((node) => ({
                 id: `staged-summaryedge-${node.id}-${Date.now()}`,
                 source: tempSummaryNodeId,
                 target: node.id,
                 label: 'summary of',
-              })
-            );
+              }));
             // Add to staging area for user review
             useConceptMapStore.getState().setStagedMapData({
               nodes: [summaryNode],
@@ -1234,11 +1287,19 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         aiExpandConcept,
         {
           concept: sourceNode.text,
-          existingMapContext: (() => { // Gather minimal context
+          existingMapContext: (() => {
+            // Gather minimal context
             const graphAdapter = new GraphAdapterUtility();
-            const graphInstance = graphAdapter.fromArrays(mapData.nodes, mapData.edges);
+            const graphInstance = graphAdapter.fromArrays(
+              mapData.nodes,
+              mapData.edges
+            );
             if (graphInstance.hasNode(sourceNode.id)) {
-              const neighborNodeIds = graphAdapter.getNeighborhood(graphInstance, sourceNode.id, { depth: 1, direction: 'all' });
+              const neighborNodeIds = graphAdapter.getNeighborhood(
+                graphInstance,
+                sourceNode.id,
+                { depth: 1, direction: 'all' }
+              );
               return neighborNodeIds
                 .map((id) => mapData.nodes.find((n) => n.id === id)?.text)
                 .filter((text): text is string => !!text)
@@ -1246,57 +1307,86 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             }
             return [];
           })(),
-          userRefinementPrompt: 'Generate one concise, directly related child idea. Focus on a primary sub-topic or component.',
+          userRefinementPrompt:
+            'Generate one concise, directly related child idea. Focus on a primary sub-topic or component.',
         },
         {
           loadingMessage: `AI 正在快速擴展 "${sourceNode.text || '節點'}"...`,
           successTitle: 'AI Suggestion Ready',
-          successDescription: (res, _input) => // _input is available if needed for description
+          successDescription: (
+            res,
+            _input // _input is available if needed for description
+          ) =>
             res.expandedIdeas?.length > 0
               ? 'Review the suggested concept in the staging area.'
               : 'AI found no specific idea for quick expansion.',
           processingId: nodeId,
           onSuccess: (output_success, _input_success) => {
-            if (output_success && output_success.expandedIdeas && output_success.expandedIdeas.length > 0) {
+            if (
+              output_success &&
+              output_success.expandedIdeas &&
+              output_success.expandedIdeas.length > 0
+            ) {
               // sourceNode is captured in the outer scope of handleMiniToolbarQuickExpand
               // It should be stable for the duration of this specific AI call.
               const parentNode = sourceNode;
-              if (!parentNode) { /* Should not happen due to check above in outer scope */ return; }
+              if (!parentNode) {
+                /* Should not happen due to check above in outer scope */ return;
+              }
 
               const stagedNodes: ConceptMapNode[] = [];
               const stagedEdges: ConceptMapEdge[] = [];
               // Use fresh nodes from store for placement context
-              const currentNodesForPlacement = [...useConceptMapStore.getState().mapData.nodes];
+              const currentNodesForPlacement = [
+                ...useConceptMapStore.getState().mapData.nodes,
+              ];
 
-              output_success.expandedIdeas.forEach((idea, index) => { // Usually one idea for quick expand
+              output_success.expandedIdeas.forEach((idea, index) => {
+                // Usually one idea for quick expand
                 const newNodeId = `staged-qexp-${parentNode.id}-${Date.now()}-${index}`;
                 const position = getNodePlacement(
-                  currentNodesForPlacement, 'child', parentNode, null,
-                  GRID_SIZE_FOR_AI_PLACEMENT, index, output_success.expandedIdeas.length
+                  currentNodesForPlacement,
+                  'child',
+                  parentNode,
+                  null,
+                  GRID_SIZE_FOR_AI_PLACEMENT,
+                  index,
+                  output_success.expandedIdeas.length
                 );
                 const newNode: ConceptMapNode = {
-                  id: newNodeId, text: idea.text,
-                  details: idea.reasoning ? `AI Rationale: ${idea.reasoning}` : idea.details || '',
-                  type: 'ai-expanded', position,
-                  width: DEFAULT_NODE_WIDTH, height: DEFAULT_NODE_HEIGHT, childIds: [],
+                  id: newNodeId,
+                  text: idea.text,
+                  details: idea.reasoning
+                    ? `AI Rationale: ${idea.reasoning}`
+                    : idea.details || '',
+                  type: 'ai-expanded',
+                  position,
+                  width: DEFAULT_NODE_WIDTH,
+                  height: DEFAULT_NODE_HEIGHT,
+                  childIds: [],
                 };
                 stagedNodes.push(newNode);
                 currentNodesForPlacement.push(newNode); // Add to placement context for next iteration
                 stagedEdges.push({
                   id: `staged-qexp-edge-${parentNode.id}-${newNodeId}-${Date.now()}`,
-                  source: parentNode.id, target: newNodeId,
+                  source: parentNode.id,
+                  target: newNodeId,
                   label: idea.relationLabel || 'related to',
                 });
               });
               // setStagedMapData is from the hook's setup, safe to call
               setStagedMapData({
-                nodes: stagedNodes, edges: stagedEdges,
-                actionType: 'expandConcept', originalElementId: parentNode.id,
+                nodes: stagedNodes,
+                edges: stagedEdges,
+                actionType: 'expandConcept',
+                originalElementId: parentNode.id,
               });
-            } else if (output_success) { // AI ran but no ideas
+            } else if (output_success) {
+              // AI ran but no ideas
               toast({
                 title: 'Quick Expand',
-                description: 'AI did not find any specific idea for quick expansion.',
+                description:
+                  'AI did not find any specific idea for quick expansion.',
                 variant: 'default',
               });
             }
@@ -1323,7 +1413,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     async (nodeId: string) => {
       const node = mapData.nodes.find((n) => n.id === nodeId);
       if (!node) {
-        toast({ title: 'Error', description: 'Node not found for rewrite.', variant: 'destructive' });
+        toast({
+          title: 'Error',
+          description: 'Node not found for rewrite.',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -1333,12 +1427,21 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       >(
         'Concise Rewrite',
         aiRewriteNodeContent,
-        { currentText: node.text, currentDetails: node.details, targetTone: 'concise' },
+        {
+          currentText: node.text,
+          currentDetails: node.details,
+          targetTone: 'concise',
+        },
         {
           loadingMessage: `AI 正在簡化 "${node.text || '節點內容'}"...`,
           successTitle: 'Content Rewritten Concisely!',
-          successDescription: (res, _input) => // _input is available if needed for description
-            res.rewrittenText ? 'Node content updated.' : 'AI could not make it more concise.',
+          successDescription: (
+            res,
+            _input // _input is available if needed for description
+          ) =>
+            res.rewrittenText
+              ? 'Node content updated.'
+              : 'AI could not make it more concise.',
           hideSuccessToast: !node?.text, // Effectively, always show toast unless text was empty
           processingId: nodeId,
           onSuccess: (output_success, _input_success) => {
@@ -1359,8 +1462,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     [
       isViewOnlyMode,
       toast,
-      mapData.nodes,    // Store state
-      updateStoreNode,  // Store action (stable)
+      mapData.nodes, // Store state
+      updateStoreNode, // Store action (stable)
       callAIWithStandardFeedback,
     ]
   );
@@ -1385,7 +1488,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       if (!sourceNode || !targetNode) {
         toast({
           title: 'Error',
-          description: 'Source or target node not found for edge label suggestion.',
+          description:
+            'Source or target node not found for edge label suggestion.',
           variant: 'destructive',
         });
         return;
@@ -1403,14 +1507,19 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           existingLabel,
         },
         {
-          loadingMessage: "AI 正在為邊建議標籤...",
+          loadingMessage: 'AI 正在為邊建議標籤...',
           successTitle: 'Edge Label Suggestions Ready',
           hideSuccessToast: true, // Suggestions are typically shown in a dropdown or similar UI
-          onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+          onSuccess: (output_success, _input_success) => {
+            // Renamed to avoid conflict
             // edgeId is from the outer scope of fetchAndSetEdgeLabelSuggestions
             if (output_success && output_success.suggestedLabels.length > 0) {
-              setEdgeLabelSuggestions({ edgeId, labels: output_success.suggestedLabels });
-            } else if (output_success) { // AI ran but no specific suggestions
+              setEdgeLabelSuggestions({
+                edgeId,
+                labels: output_success.suggestedLabels,
+              });
+            } else if (output_success) {
+              // AI ran but no specific suggestions
               setEdgeLabelSuggestions({ edgeId, labels: ['related to'] }); // Provide a default
             }
           },
@@ -1454,8 +1563,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           successTitle: 'Child Node Ideas Ready',
           hideSuccessToast: true, // Suggestions displayed in UI, not toast
           processingId: node.id,
-          onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
-            if (output_success) setAiChildTextSuggestions(output_success.suggestedChildTexts);
+          onSuccess: (output_success, _input_success) => {
+            // Renamed to avoid conflict
+            if (output_success)
+              setAiChildTextSuggestions(output_success.suggestedChildTexts);
           },
           // No specific onError needed
         }
@@ -1481,13 +1592,24 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     async (nodeId: string, refinementInstruction: string) => {
       const currentStagedMapData = useConceptMapStore.getState().stagedMapData;
       if (!currentStagedMapData || !currentStagedMapData.nodes) {
-        toast({ title: 'Error', description: 'No staged data available to refine.', variant: 'destructive' });
+        toast({
+          title: 'Error',
+          description: 'No staged data available to refine.',
+          variant: 'destructive',
+        });
         return;
       }
 
-      const nodeToRefineIndex = currentStagedMapData.nodes.findIndex(n => n.id === nodeId);
+      const nodeToRefineIndex = currentStagedMapData.nodes.findIndex(
+        (n) => n.id === nodeId
+      );
       if (nodeToRefineIndex === -1) {
-        toast({ title: 'Error', description: 'Could not find the suggestion in staged data to refine.', variant: 'destructive' });
+        toast({
+          title: 'Error',
+          description:
+            'Could not find the suggestion in staged data to refine.',
+          variant: 'destructive',
+        });
         return;
       }
       const nodeToRefine = currentStagedMapData.nodes[nodeToRefineIndex];
@@ -1507,20 +1629,32 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           loadingMessage: `AI 正在優化建議 "${nodeToRefine?.text || '內容'}"...`,
           successTitle: 'Suggestion Refined!',
           processingId: nodeId, // ID of the staged node being processed
-          onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+          onSuccess: (output_success, _input_success) => {
+            // Renamed to avoid conflict
             // currentStagedMapData, nodeToRefineIndex are from the outer scope of handleRefineSuggestionConfirm
             // These should be stable for this specific AI call's success handler.
             // However, for safety, re-fetch staged data if there's a concern about intervening updates,
             // though typically this modal interaction would be atomic.
-            const freshStagedMapData = useConceptMapStore.getState().stagedMapData;
+            const freshStagedMapData =
+              useConceptMapStore.getState().stagedMapData;
             if (!freshStagedMapData || !freshStagedMapData.nodes) {
-              toast({ title: 'Error', description: 'Staged data disappeared during refinement.', variant: 'destructive' });
+              toast({
+                title: 'Error',
+                description: 'Staged data disappeared during refinement.',
+                variant: 'destructive',
+              });
               return;
             }
-            const freshNodeToRefineIndex = freshStagedMapData.nodes.findIndex(n => n.id === nodeId);
+            const freshNodeToRefineIndex = freshStagedMapData.nodes.findIndex(
+              (n) => n.id === nodeId
+            );
             if (freshNodeToRefineIndex === -1) {
-               toast({ title: 'Error', description: 'Refined node not found in fresh staged data.', variant: 'destructive' });
-               return;
+              toast({
+                title: 'Error',
+                description: 'Refined node not found in fresh staged data.',
+                variant: 'destructive',
+              });
+              return;
             }
 
             if (output_success && freshStagedMapData) {
@@ -1538,7 +1672,8 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
               });
               toast({
                 title: 'Staged Suggestion Updated',
-                description: 'The refined suggestion is updated in the staging area.'
+                description:
+                  'The refined suggestion is updated in the staging area.',
               });
             }
           },
@@ -1563,7 +1698,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       const targetNode = mapData.nodes.find((n) => n.id === targetNodeId);
       const edge = mapData.edges.find((e) => e.id === edgeId);
       if (!sourceNode || !targetNode || !edge) {
-        toast({ title: 'Error', description: 'Edge context not found for intermediate node suggestion.', variant: 'destructive' });
+        toast({
+          title: 'Error',
+          description:
+            'Edge context not found for intermediate node suggestion.',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -1574,28 +1714,43 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         'Suggest Intermediate Node',
         suggestIntermediateNodeFlow,
         {
-          sourceNodeText: sourceNode.text, sourceNodeDetails: sourceNode.details,
-          targetNodeText: targetNode.text, targetNodeDetails: targetNode.details,
+          sourceNodeText: sourceNode.text,
+          sourceNodeDetails: sourceNode.details,
+          targetNodeText: targetNode.text,
+          targetNodeDetails: targetNode.details,
           existingEdgeLabel: edge.label,
         },
         {
-          loadingMessage: "AI 正在建議中間節點...",
+          loadingMessage: 'AI 正在建議中間節點...',
           successTitle: 'Intermediate Node Suggested',
-          successDescription: (res, _input) => // _input is available if needed for description
+          successDescription: (
+            res,
+            _input // _input is available if needed for description
+          ) =>
             `AI suggests adding '${res.intermediateNodeText}'. Review in staging area.`,
           onSuccess: (output_success, _input_success) => {
             if (output_success) {
               // sourceNodeId, targetNodeId, edge.id are from the outer scope of handleSuggestIntermediateNodeRequest
               // Fetch fresh node data from store for position calculation to be safe
-              const currentMapNodes = useConceptMapStore.getState().mapData.nodes;
-              const currentSourceNode = currentMapNodes.find(n => n.id === sourceNodeId);
-              const currentTargetNode = currentMapNodes.find(n => n.id === targetNodeId);
-              const originalEdge = useConceptMapStore.getState().mapData.edges.find(e => e.id === edgeId);
-
+              const currentMapNodes =
+                useConceptMapStore.getState().mapData.nodes;
+              const currentSourceNode = currentMapNodes.find(
+                (n) => n.id === sourceNodeId
+              );
+              const currentTargetNode = currentMapNodes.find(
+                (n) => n.id === targetNodeId
+              );
+              const originalEdge = useConceptMapStore
+                .getState()
+                .mapData.edges.find((e) => e.id === edgeId);
 
               if (!currentSourceNode || !currentTargetNode || !originalEdge) {
-                  toast({ title: 'Error', description: 'Context nodes or original edge vanished.', variant: 'destructive' });
-                  return;
+                toast({
+                  title: 'Error',
+                  description: 'Context nodes or original edge vanished.',
+                  variant: 'destructive',
+                });
+                return;
               }
 
               const tempNodeId = `staged-intermediate-${Date.now()}`;
@@ -1609,19 +1764,29 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
               const midY = (sourceY + targetY) / 2;
 
               const intermediateNodeData: ConceptMapNode = {
-                id: tempNodeId, text: output_success.intermediateNodeText,
+                id: tempNodeId,
+                text: output_success.intermediateNodeText,
                 details: output_success.intermediateNodeDetails
                   ? `${output_success.intermediateNodeDetails}${output_success.reasoning ? `\n\nAI Rationale: ${output_success.reasoning}` : ''}`
-                  : output_success.reasoning ? `AI Rationale: ${output_success.reasoning}` : '',
-                type: 'ai-intermediate', position: { x: midX, y: midY + 30 }, // Offset slightly for visibility
-                width: DEFAULT_NODE_WIDTH, height: DEFAULT_NODE_HEIGHT, childIds: [],
+                  : output_success.reasoning
+                    ? `AI Rationale: ${output_success.reasoning}`
+                    : '',
+                type: 'ai-intermediate',
+                position: { x: midX, y: midY + 30 }, // Offset slightly for visibility
+                width: DEFAULT_NODE_WIDTH,
+                height: DEFAULT_NODE_HEIGHT,
+                childIds: [],
               };
               const edgeToIntermediate: ConceptMapEdge = {
-                id: `staged-edge1-${Date.now()}`, source: currentSourceNode.id, target: tempNodeId,
+                id: `staged-edge1-${Date.now()}`,
+                source: currentSourceNode.id,
+                target: tempNodeId,
                 label: output_success.labelSourceToIntermediate,
               };
               const edgeFromIntermediate: ConceptMapEdge = {
-                id: `staged-edge2-${Date.now()}`, source: tempNodeId, target: currentTargetNode.id,
+                id: `staged-edge2-${Date.now()}`,
+                source: tempNodeId,
+                target: currentTargetNode.id,
                 label: output_success.labelIntermediateToTarget,
               };
 
@@ -1678,17 +1843,18 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       aiTidyUpSelectionFlow,
       { nodes: nodesToTidy, mapLayoutContext: {} },
       {
-        loadingMessage: "AI 正在整理您選擇的節點佈局...",
+        loadingMessage: 'AI 正在整理您選擇的節點佈局...',
         successTitle: 'Selection Tidied by AI!', // General title, specific toasts in onSuccess
         hideSuccessToast: true, // Suppress default toast as onSuccess has specific ones
-          onSuccess: (output_success, _input_success) => {
+        onSuccess: (output_success, _input_success) => {
           if (output_success && output_success.newPositions) {
             // nodesToTidy is from the outer scope of handleAiTidyUpSelection
             // It should be stable for this AI call's success handler.
             if (!nodesToTidy || nodesToTidy.length === 0) {
               toast({
                 title: 'Error',
-                description: 'Nodes to tidy are missing in AI Tidy Up onSuccess.',
+                description:
+                  'Nodes to tidy are missing in AI Tidy Up onSuccess.',
                 variant: 'destructive',
               });
               return;
@@ -1700,9 +1866,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
                 maxX = -Infinity,
                 maxY = -Infinity;
               output_success.newPositions.forEach((p) => {
-                const originalNode = nodesToTidy.find(
-                  (n) => n.id === p.id
-                );
+                const originalNode = nodesToTidy.find((n) => n.id === p.id);
                 const w = originalNode?.width || DEFAULT_NODE_WIDTH;
                 const h = originalNode?.height || DEFAULT_NODE_HEIGHT;
                 minX = Math.min(minX, p.x);
@@ -1718,15 +1882,16 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
               const stagedParentNode: ConceptMapNode = {
                 id: newParentNodeId,
                 text: output_success.suggestedParentNode.text,
-                type: output_success.suggestedParentNode.type || 'ai-group-parent',
+                type:
+                  output_success.suggestedParentNode.type || 'ai-group-parent',
                 position: { x: parentX, y: parentY },
                 width: parentWidth,
                 height: parentHeight,
                 details: `AI suggested parent for ${nodesToTidy.length} nodes.`,
                 childIds: output_success.newPositions.map((p) => p.id),
               };
-              const stagedChildNodes: ConceptMapNode[] = output_success.newPositions.map(
-                (p) => {
+              const stagedChildNodes: ConceptMapNode[] =
+                output_success.newPositions.map((p) => {
                   const originalNode = nodesToTidy.find((n) => n.id === p.id);
                   return {
                     ...(originalNode as ConceptMapNode), // Type assertion
@@ -1737,8 +1902,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
                     width: originalNode?.width || DEFAULT_NODE_WIDTH,
                     height: originalNode?.height || DEFAULT_NODE_HEIGHT,
                   };
-                }
-              );
+                });
               useConceptMapStore.getState().setStagedMapData({
                 nodes: [stagedParentNode, ...stagedChildNodes],
                 edges: [],
@@ -1750,31 +1914,36 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
                 description:
                   'Review the proposed grouping and layout in the staging area.',
               });
-            } else { // Only new positions, no new parent
-              const layoutUpdatesWithDimensions = output_success.newPositions.map((lu) => {
-                const originalNode = nodesToTidy.find((n) => n.id === lu.id);
-                return {
-                  id: lu.id,
-                  x: lu.x,
-                  y: lu.y,
-                  width: originalNode?.width || DEFAULT_NODE_WIDTH,
-                  height: originalNode?.height || DEFAULT_NODE_HEIGHT,
-                };
-              });
+            } else {
+              // Only new positions, no new parent
+              const layoutUpdatesWithDimensions =
+                output_success.newPositions.map((lu) => {
+                  const originalNode = nodesToTidy.find((n) => n.id === lu.id);
+                  return {
+                    id: lu.id,
+                    x: lu.x,
+                    y: lu.y,
+                    width: originalNode?.width || DEFAULT_NODE_WIDTH,
+                    height: originalNode?.height || DEFAULT_NODE_HEIGHT,
+                  };
+                });
               useConceptMapStore
                 .getState()
                 .setGhostPreview(layoutUpdatesWithDimensions);
               toast({
                 title: 'Layout Preview Ready',
-                description: 'AI Tidy Up proposes new layout. Accept or Cancel.',
+                description:
+                  'AI Tidy Up proposes new layout. Accept or Cancel.',
               });
             }
-          } else if (output_success) { // AI ran but no new positions
-             toast({
-                title: 'AI Tidy Up',
-                description: 'AI did not suggest any changes for the current selection.',
-                variant: 'default',
-              });
+          } else if (output_success) {
+            // AI ran but no new positions
+            toast({
+              title: 'AI Tidy Up',
+              description:
+                'AI did not suggest any changes for the current selection.',
+              variant: 'default',
+            });
           }
         },
         // No specific onError needed
@@ -1782,7 +1951,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     );
   }, [
     multiSelectedNodeIds, // Store state
-    mapData.nodes,        // Store state
+    mapData.nodes, // Store state
     callAIWithStandardFeedback,
     toast,
   ]);
@@ -1809,13 +1978,18 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       suggestMapImprovementsFlow,
       { nodes: currentNodes, edges: currentEdges },
       {
-        loadingMessage: "AI 正在分析您的概念圖以尋找改進建議...",
+        loadingMessage: 'AI 正在分析您的概念圖以尋找改進建議...',
         successTitle: 'Improvement Suggestions Ready!',
-          successDescription: (res, _input) => // _input is available if needed for description
+        successDescription: (
+          res,
+          _input // _input is available if needed for description
+        ) =>
           `Found ${res.suggestedEdges.length} edge and ${res.suggestedGroups.length} group suggestions.`,
-          onSuccess: (output_success, _input_success) => {
+        onSuccess: (output_success, _input_success) => {
           if (output_success) {
-            useConceptMapStore.getState().setStructuralSuggestions(output_success);
+            useConceptMapStore
+              .getState()
+              .setStructuralSuggestions(output_success);
           }
         },
         // No specific onError needed
@@ -1995,10 +2169,10 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     reactFlowInstance,
     applyLayout, // applyLayout is from useConceptMapStore, not mapData directly
     // Explicitly list mapData dependencies if needed, or ensure they are stable / correctly memoized by parent
-    mapData.nodes,        // Store state
-    mapData.edges,        // Store state
+    mapData.nodes, // Store state
+    mapData.edges, // Store state
     multiSelectedNodeIds, // Store state
-    setIsDagreTidying,    // Local useState setter (stable)
+    setIsDagreTidying, // Local useState setter (stable)
   ]);
 
   const getPaneSuggestions = useCallback((): SuggestionAction[] => [], []);
@@ -2016,23 +2190,30 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     (_previewNodeId: string, _parentNodeId: string) => {
       // This would need to find the item in stagedMapData and populate the refine modal
       // For now, it's a placeholder.
-      const stagedItem = useConceptMapStore.getState().stagedMapData?.nodes.find(n => n.id === _previewNodeId);
+      const stagedItem = useConceptMapStore
+        .getState()
+        .stagedMapData?.nodes.find((n) => n.id === _previewNodeId);
       if (stagedItem) {
         setRefineModalInitialData({
           nodeId: stagedItem.id,
-          parentNodeId: useConceptMapStore.getState().stagedMapData?.originalElementId || _parentNodeId, // Fallback
+          parentNodeId:
+            useConceptMapStore.getState().stagedMapData?.originalElementId ||
+            _parentNodeId, // Fallback
           text: stagedItem.text,
-          details: stagedItem.details
+          details: stagedItem.details,
         });
         setIsRefineModalOpen(true);
       } else {
-        toast({title: "Error", description: "Could not find item in staging area to refine."})
+        toast({
+          title: 'Error',
+          description: 'Could not find item in staging area to refine.',
+        });
       }
     },
     [
       toast,
       setRefineModalInitialData, // Local useState setter (stable)
-      setIsRefineModalOpen,      // Local useState setter (stable)
+      setIsRefineModalOpen, // Local useState setter (stable)
     ]
   );
 
@@ -2066,20 +2247,24 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       generateMapSummaryFlow,
       { nodes: currentMapData.nodes, edges: currentMapData.edges },
       {
-        loadingMessage: "AI 正在分析和總結您的整個概念圖...",
+        loadingMessage: 'AI 正在分析和總結您的整個概念圖...',
         successTitle: 'Map Summary Ready!',
         hideSuccessToast: true, // Modal will show the summary
         processingId: 'summarize-entire-map',
-          onSuccess: (output_success, _input_success) => {
+        onSuccess: (output_success, _input_success) => {
           if (output_success) {
             setMapSummaryResult(output_success);
             setIsMapSummaryModalOpen(true);
           } else {
             setMapSummaryResult(null); // Explicitly set to null if AI returns nothing
-            toast({ title: 'Map Summary', description: 'AI could not generate a summary.' });
+            toast({
+              title: 'Map Summary',
+              description: 'AI could not generate a summary.',
+            });
           }
         },
-        onError: (_error, _input_error) => { // Renamed to avoid conflict
+        onError: (_error, _input_error) => {
+          // Renamed to avoid conflict
           setMapSummaryResult(null);
           // Default error toast will show (as we return false), but we ensure state is clean.
           return false; // Allow default error toast
@@ -2091,9 +2276,9 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     isViewOnlyMode,
     callAIWithStandardFeedback,
     toast,
-      setIsSummarizingMap,
-      setMapSummaryResult,
-      setIsMapSummaryModalOpen,
+    setIsSummarizingMap,
+    setMapSummaryResult,
+    setIsMapSummaryModalOpen,
   ]);
 
   const openAskQuestionAboutEdgeModal = useCallback(
@@ -2148,8 +2333,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleAskQuestionAboutEdge = useCallback(
     async (question: string) => {
-      if (isViewOnlyMode) { /* ... */ return; }
-      if (!edgeQuestionContext) { /* ... */ return; }
+      if (isViewOnlyMode) {
+        /* ... */ return;
+      }
+      if (!edgeQuestionContext) {
+        /* ... */ return;
+      }
 
       setIsAskingAboutEdge(true);
       const input: AskQuestionAboutEdgeInput = {
@@ -2161,11 +2350,12 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         AskQuestionAboutEdgeInput,
         AskQuestionAboutEdgeOutput
       >('Ask AI About Edge', askQuestionAboutEdgeFlow, input, {
-        loadingMessage: "AI 正在思考您關於邊的問題...",
+        loadingMessage: 'AI 正在思考您關於邊的問題...',
         successTitle: 'AI Answer Received', // This will be shown in modal, so toast can be hidden
         hideSuccessToast: true,
         processingId: `edge-qa-${edgeQuestionContext.edgeId}`, // edgeQuestionContext from outer scope
-        onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+        onSuccess: (output_success, _input_success) => {
+          // Renamed to avoid conflict
           if (output_success?.answer) {
             setEdgeQuestionAnswer(output_success.answer);
           } else if (output_success?.error) {
@@ -2176,8 +2366,11 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
             );
           }
         },
-        onError: (_error, _input_error) => { // Renamed to avoid conflict
-          setEdgeQuestionAnswer('Failed to get an answer from AI. Please try again.');
+        onError: (_error, _input_error) => {
+          // Renamed to avoid conflict
+          setEdgeQuestionAnswer(
+            'Failed to get an answer from AI. Please try again.'
+          );
           return false; // Allow default error toast
         },
       });
@@ -2187,13 +2380,15 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       isViewOnlyMode,
       edgeQuestionContext, // Local state
       callAIWithStandardFeedback,
-      setEdgeQuestionAnswer,    // Local useState setter (stable)
-      setIsAskingAboutEdge,     // Local useState setter (stable)
+      setEdgeQuestionAnswer, // Local useState setter (stable)
+      setIsAskingAboutEdge, // Local useState setter (stable)
     ]
   );
 
   const openAskQuestionAboutMapContextModal = useCallback(() => {
-    if (isViewOnlyMode) { /* ... */ return; }
+    if (isViewOnlyMode) {
+      /* ... */ return;
+    }
     setMapContextQuestionAnswer(null); // Clear previous answer
     setIsMapContextQuestionModalOpen(true);
   }, [
@@ -2205,17 +2400,25 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const handleAskQuestionAboutMapContext = useCallback(
     async (question: string) => {
-      if (isViewOnlyMode) { /* ... */ return; }
+      if (isViewOnlyMode) {
+        /* ... */ return;
+      }
       const currentMapDataFromStore = useConceptMapStore.getState().mapData;
       const currentMapNameFromStore = useConceptMapStore.getState().mapName;
       const currentMapIdFromStore = useConceptMapStore.getState().mapId;
-      if (currentMapDataFromStore.nodes.length === 0) { /* ... */ return; }
+      if (currentMapDataFromStore.nodes.length === 0) {
+        /* ... */ return;
+      }
 
       setIsAskingAboutMapContext(true);
-      const simplifiedNodes = currentMapDataFromStore.nodes.map((n) => ({ /* ... */ }));
-      const simplifiedEdges = currentMapDataFromStore.edges.map((e) => ({ /* ... */ }));
-      const input: AskQuestionAboutMapContextInput = { /* ... */
-        nodes: simplifiedNodes,
+      const simplifiedNodes = currentMapDataFromStore.nodes.map((n) => ({
+        /* ... */
+      }));
+      const simplifiedEdges = currentMapDataFromStore.edges.map((e) => ({
+        /* ... */
+      }));
+      const input: AskQuestionAboutMapContextInput = {
+        /* ... */ nodes: simplifiedNodes,
         edges: simplifiedEdges,
         userQuestion: question,
         mapName: currentMapNameFromStore,
@@ -2225,23 +2428,29 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
         AskQuestionAboutMapContextInput,
         AskQuestionAboutMapContextOutput
       >('Ask AI About Map', askQuestionAboutMapContextFlow, input, {
-        loadingMessage: "AI 正在分析整個概念圖以回答您的問題...",
+        loadingMessage: 'AI 正在分析整個概念圖以回答您的問題...',
         successTitle: 'AI Answer Received', // Modal will show this
         hideSuccessToast: true,
         processingId: `map-qa-${currentMapIdFromStore || 'current'}`,
-        onSuccess: (output_success, _input_success) => { // Renamed to avoid conflict
+        onSuccess: (output_success, _input_success) => {
+          // Renamed to avoid conflict
           if (output_success?.answer) {
             setMapContextQuestionAnswer(output_success.answer);
           } else if (output_success?.error) {
-            setMapContextQuestionAnswer(`Error from AI: ${output_success.error}`);
+            setMapContextQuestionAnswer(
+              `Error from AI: ${output_success.error}`
+            );
           } else {
             setMapContextQuestionAnswer(
               'AI could not provide an answer for this question about the map.'
             );
           }
         },
-        onError: (_error, _input_error) => { // Renamed to avoid conflict
-          setMapContextQuestionAnswer('Failed to get an answer from AI about the map. Please try again.');
+        onError: (_error, _input_error) => {
+          // Renamed to avoid conflict
+          setMapContextQuestionAnswer(
+            'Failed to get an answer from AI about the map. Please try again.'
+          );
           return false; // Allow default error toast
         },
       });
@@ -2252,7 +2461,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       callAIWithStandardFeedback,
       toast, // Hook return (stable)
       setMapContextQuestionAnswer, // Local useState setter (stable)
-      setIsAskingAboutMapContext,  // Local useState setter (stable)
+      setIsAskingAboutMapContext, // Local useState setter (stable)
     ]
   );
 

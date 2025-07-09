@@ -940,7 +940,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                data-tutorial-id="toolbar-toggle-project-overview" // Added tutorial ID
+                data-tutorial-id='toolbar-toggle-project-overview' // Added tutorial ID
                 variant='ghost'
                 size='icon'
                 onClick={onToggleOverviewMode}
