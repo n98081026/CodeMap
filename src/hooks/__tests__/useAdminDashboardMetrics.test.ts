@@ -31,9 +31,8 @@ vi.mock('@/contexts/auth-context', async () => {
 
 // Wrapper component that includes the AuthProvider
 const createWrapper = () => {
-  return ({ children }: { children: React.ReactNode }) => (
-    <AuthProvider>{children}</AuthProvider>
-  );
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(AuthProvider, null, children);
 };
 
 describe('useAdminDashboardMetrics', () => {

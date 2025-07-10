@@ -49,3 +49,9 @@ export const ConceptMapSchema = z.object({
     message: 'updatedAt must be a valid ISO string date',
   }),
 });
+
+// Add missing schema for genai-modals.tsx
+export const askQuestionAboutSelectedNodeSchema = z.object({
+  question: z.string().min(1, 'Question cannot be empty.'),
+  context: z.string().optional(),
+});

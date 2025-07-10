@@ -243,7 +243,7 @@ export async function updateUser(
     }
   }
 
-  const profileUpdates: any = {};
+  const profileUpdates: Record<string, any> = {};
   if (updates.name !== undefined && updates.name !== userToUpdate.name)
     profileUpdates.name = updates.name;
   if (updates.role !== undefined && updates.role !== userToUpdate.role)
@@ -311,7 +311,7 @@ export async function deleteUser(userId: string): Promise<boolean> {
     }
     const initialLength = MOCK_USERS.length;
     // MOCK_USERS = MOCK_USERS.filter((u) => u.id !== userId); // Original problematic line
-    const userIndex = MOCK_USERS.findIndex(u => u.id === userId);
+    const userIndex = MOCK_USERS.findIndex((u) => u.id === userId);
     if (userIndex > -1) {
       MOCK_USERS.splice(userIndex, 1); // Modify in place
     }

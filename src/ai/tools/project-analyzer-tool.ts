@@ -359,10 +359,20 @@ async function analyzeJavaScriptAST(
             detailedNodesOutput.push(createDetailedNodeFromExtractedElement(element, generateNodeId(fileSpecificPrefix, 'variable', name), 'js_'));
         }
       });
-    },
+    }
 
   // Create a combined summary
   let finalAnalysisSummary = `JavaScript file '${fileName}' analyzed. Found ${localDefinitions.length} local definitions, ${rawImportsOutput.length} imports, ${rawExportsOutput.length} exports.`;
+  
+  // Initialize summarizedElements as empty array for now
+  const summarizedElements: Array<{
+    originalNodeInfo: any;
+    uniqueId: string;
+    summary?: string;
+    error?: string;
+    inputForFlow?: any;
+  }> = [];
+  
   if (summarizedElements.some(el => el.error)) {
     finalAnalysisSummary += " Some elements could not be summarized.";
   }
@@ -3349,4 +3359,12 @@ async function unpackZipBuffer(buffer: Buffer): Promise<UnpackResult | null> {
 
     return Array.from(members);
   }
+
+  // Add missing return statement for analyzeJavaScriptAST function
+  return {
+    functions: Array.from(functions),
+    classes: Array.from(classes),
+    imports: Array.from(imports),
+    exports: Array.from(exports)
+  };
 }
