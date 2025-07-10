@@ -95,7 +95,7 @@ vi.mock('lucide-react', async () => {
     AlertCircle: createIcon('AlertCircle'),
     GitFork: createIcon('GitFork'),
     Brain: createIcon('Brain'),
-    SearchCode: createIcon('SearchCode'),
+    Search: createIcon('Search'),
     PlusCircle: createIcon('PlusCircle'),
     // Add any other icons that might be used across the application
   };

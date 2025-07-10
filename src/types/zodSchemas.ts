@@ -50,8 +50,22 @@ export const ConceptMapSchema = z.object({
   }),
 });
 
-// Add missing schema for genai-modals.tsx
+// Add missing schemas for genai-modals.tsx
 export const askQuestionAboutSelectedNodeSchema = z.object({
   question: z.string().min(1, 'Question cannot be empty.'),
   context: z.string().optional(),
+});
+
+export const extractConceptsSchema = z.object({
+  textToExtract: z.string().min(1, 'Text cannot be empty.'),
+  extractionFocus: z.string().optional(),
+});
+
+export const suggestRelationsSchema = z.object({
+  customPrompt: z.string().optional(),
+});
+
+export const expandConceptSchema = z.object({
+  conceptToExpand: z.string().min(1, 'Concept cannot be empty.'),
+  userRefinementPrompt: z.string().optional(),
 });

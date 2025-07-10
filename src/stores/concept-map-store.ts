@@ -402,14 +402,10 @@ export const useConceptMapStore = create<ConceptMapState>()(
         newText,
         newDetails
       ) => {
-        /* Removed, no-op or error */ console.warn(
-          'updateConceptExpansionPreviewNode called but feature is removed'
-        );
+        // Feature removed: conceptExpansionPreview functionality has been replaced with stagedMapData
       },
       setConceptExpansionPreview: (preview) => {
-        /* Removed, no-op or error */ console.warn(
-          'setConceptExpansionPreview called but feature is removed'
-        );
+        // Feature removed: conceptExpansionPreview functionality has been replaced with stagedMapData
       },
 
       setMapId: (id) => set({ mapId: id }),

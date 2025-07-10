@@ -19,9 +19,10 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    allowedDevOrigins: [
-      'https://6000-firebase-studio-1748759442381.cluster-zkm2jrwbnbd4awuedc2alqxrpk.cloudworkstations.dev',
-    ],
+    // Remove hardcoded dev origins - use environment variables instead
+    allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS 
+      ? process.env.ALLOWED_DEV_ORIGINS.split(',')
+      : [],
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {

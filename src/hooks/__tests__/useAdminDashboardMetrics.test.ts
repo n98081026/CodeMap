@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { useAdminDashboardMetrics } from '../useAdminDashboardMetrics';
 
-import { AuthProvider } from '@/contexts/auth-context'; // Import AuthProvider
+import { AuthProvider } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 
 // Mock the fetch function
@@ -24,7 +24,6 @@ vi.mock('@/contexts/auth-context', async () => {
       },
       isAuthenticated: true,
       isLoading: false,
-      // Add other mock functions/values from AuthContextType if needed by the hook indirectly
     }),
   };
 });

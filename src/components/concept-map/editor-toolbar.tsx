@@ -15,7 +15,7 @@ import {
   LayoutGrid,
   ScanSearch,
   Wand2, // 合併所有 icon
-  SearchCode,
+  Search,
   Lightbulb,
   Brain,
   Loader2,
@@ -490,7 +490,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               }
               disabled={isViewOnlyMode}
             >
-              <SearchCode className='mr-2 h-4 w-4' /> Extract Concepts
+              <Search className='mr-2 h-4 w-4' /> Extract Concepts
             </DropdownMenuItem>
             <DropdownMenuItem
               data-tutorial-id='ai-tool-suggest-relations'

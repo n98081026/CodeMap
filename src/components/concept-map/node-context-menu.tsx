@@ -3,7 +3,7 @@ import {
   Trash2,
   Brain,
   Lightbulb,
-  SearchCode,
+  Search,
   HelpCircle,
   Sparkles,
   TextSearch,
@@ -111,7 +111,7 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             onClick={handleExtract}
             disabled={isViewOnlyMode}
           >
-            <SearchCode className='mr-2 h-4 w-4 text-blue-500' />
+            <Search className='mr-2 h-4 w-4 text-blue-500' />
             Extract Concepts (AI)
           </Button>
           <Button

@@ -4,7 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'; // Import useVirtualiz
 import {
   GitFork,
   Brain,
-  SearchCode,
+  Search,
   Lightbulb,
   PlusCircle,
   Info,
@@ -971,7 +971,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         {onAddExtractedConcepts &&
           renderSuggestionSection(
             'Extracted Concepts',
-            SearchCode,
+            Search,
             editableExtracted,
             selectedExtractedIndices,
             'extracted-concept',

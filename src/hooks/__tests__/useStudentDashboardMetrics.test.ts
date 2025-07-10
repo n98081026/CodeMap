@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { useStudentDashboardMetrics } from '../useStudentDashboardMetrics';
 
-import { AuthProvider } from '@/contexts/auth-context'; // Import AuthProvider
+import { AuthProvider } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 
 // Mock the fetch function
@@ -17,7 +17,7 @@ vi.mock('@/contexts/auth-context', async () => {
     ...actual,
     useAuth: () => ({
       user: {
-        id: 'student-user-id', // Or use the mockUserId passed to the hook
+        id: 'student-user-id',
         name: 'Student User',
         email: 'student@example.com',
         role: UserRole.STUDENT,

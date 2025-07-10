@@ -3,7 +3,7 @@
 import {
   Loader2,
   HelpCircle,
-  Search as SearchCode,
+  Search,
   Lightbulb,
   Brain,
   Send,
@@ -37,6 +37,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Import the hook
+import { 
+  extractConceptsSchema, 
+  suggestRelationsSchema, 
+  expandConceptSchema,
+  askQuestionAboutSelectedNodeSchema 
+} from '@/types/zodSchemas';
 
 // Define common props for AI modals that use useConceptMapAITools
 interface GenAIModalProps {
@@ -156,19 +162,16 @@ export const SuggestRelationsModal: React.FC<
   // The SuggestRelationsModal in the provided code uses its own local isLoading state
   // and directly calls the AI flow, not using isProcessingRelations from useConceptMapAITools.
   // I will ensure the data-tutorial-id attributes are correctly placed based on this structure.
-  const [conceptsInput, setConceptsInput] = useState(
-    initialConcepts.join(', ')
-  );
+  const [conceptsInput, setConceptsInput] = useState('');
   const [customPrompt, setCustomPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-
   useEffect(() => {
-    // Reset local state when modal opens or initialConcepts change
-    setConceptsInput(initialConcepts.join(', '));
+    // Reset local state when modal opens
+    setConceptsInput('');
     setCustomPrompt('');
-  }, [initialConcepts, isOpen, onOpenChange]); // Added isOpen to deps as per original logic
+  }, [isOpen, setIsOpen]); // Fixed deps
 
   const handleSuggest = async () => {
     const concepts = conceptsInput
@@ -273,7 +276,7 @@ export const SuggestRelationsModal: React.FC<
                 <Lightbulb className='mr-2 h-4 w-4' /> Suggest Relations
               </>
             )}
-           </Button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -432,7 +435,7 @@ export const ExpandConceptModal: React.FC<
 };
 
 // Assuming AskQuestionModalProps and the schema are defined elsewhere or similarly structured
-import { askQuestionAboutSelectedNodeSchema } from '@/types/zodSchemas';
+// askQuestionAboutSelectedNodeSchema is now imported at the top
 
 export const AskQuestionModal: React.FC<
   GenAIModalProps & { nodeContextText?: string; nodeContextDetails?: string }
@@ -554,20 +557,7 @@ export const AskQuestionModal: React.FC<
   );
 };
 
-// Define schemas locally since they may not exist in types/zodSchemas yet
-const extractConceptsSchema = z.object({
-  textToExtract: z.string().min(1, 'Text cannot be empty.'),
-  extractionFocus: z.string().optional(),
-});
-
-const suggestRelationsSchema = z.object({
-  customPrompt: z.string().optional(),
-});
-
-const expandConceptSchema = z.object({
-  conceptToExpand: z.string().min(1, 'Concept cannot be empty.'),
-  userRefinementPrompt: z.string().optional(),
-});
+// Schemas are now imported from types/zodSchemas.ts
 
 // Note: Removed the old, non-hook based modals as they are superseded by the ones using useConceptMapAITools and react-hook-form.
 // The new modals are more aligned with the zod schemas and centralized AI logic.
@@ -629,11 +619,9 @@ const expandConceptSchema = z.object({
 // They DO NOT use `isProcessingXYZ` from `useConceptMapAITools`.
 // My changes will respect this and add loading indicators + disabled states based on their local `isLoading`.
 
-// Remove duplicate schemas - they are already defined above
-
 // Define missing types and interfaces
 interface ExtractConceptsModalProps {
-  onConceptsExtracted?: (concepts: any[]) => void;
+  onConceptsExtracted?: (concepts: string[]) => void;
   initialText?: string;
   onOpenChange: (isOpen: boolean) => void;
 }
@@ -645,7 +633,7 @@ interface SuggestRelationsModalProps {
 }
 
 interface ExpandConceptModalProps {
-  onConceptExpanded?: (result: any) => void;
+  onConceptExpanded?: (result: { expandedConcepts: string[] }) => void;
   initialConceptText?: string;
   existingMapContext?: string[];
   onOpenChange: (isOpen: boolean) => void;
@@ -653,7 +641,7 @@ interface ExpandConceptModalProps {
 
 interface AskQuestionModalProps {
   nodeContext?: { text: string; details?: string };
-  onQuestionAnswered?: (question: string, context: any) => void;
+  onQuestionAnswered?: (question: string, context: { text: string; details?: string }) => void;
   onOpenChange: (isOpen: boolean) => void;
 }
 
@@ -686,11 +674,15 @@ export function ExtractConceptsModal({
     }
     setIsLoading(true);
     try {
-      // Mock AI call - replace with actual implementation
-      const result = { concepts: [] };
+      // Call the real AI flow
+      const { extractConcepts } = await import('@/ai/flows/extract-concepts');
+      const result = await extractConcepts({
+        text,
+        focus: extractionFocus || undefined,
+      });
       toast({
         title: 'AI: Concepts Ready',
-        description: `Concepts found. View them in the AI Suggestions panel.`,
+        description: `${result.concepts.length} concepts found. View them in the AI Suggestions panel.`,
       });
       onConceptsExtracted?.(result.concepts);
       onOpenChange(false);
@@ -769,7 +761,7 @@ export function ExtractConceptsModal({
             {isLoading ? (
               <Loader2 className='mr-2 h-4 w-4 animate-spin' />
             ) : (
-              <SearchCode className='mr-2 h-4 w-4' />
+              <Search className='mr-2 h-4 w-4' />
             )}
             {isLoading ? 'Extracting...' : '開始提取重點'}
           </Button>
@@ -819,11 +811,15 @@ export function SuggestRelationsModal({
     }
     setIsLoading(true);
     try {
-      // Mock AI call - replace with actual implementation
-      const result = [];
+      // Call the real AI flow
+      const { suggestRelations } = await import('@/ai/flows/suggest-relations');
+      const result = await suggestRelations({
+        concepts,
+        customPrompt: customPrompt || undefined,
+      });
       toast({
         title: 'AI: Relations Ready',
-        description: `Relations suggested. View them in the AI Suggestions panel.`,
+        description: `${result.length} relations suggested. View them in the AI Suggestions panel.`,
       });
       onRelationsSuggested?.(result);
       onOpenChange(false);
@@ -943,8 +939,13 @@ export function ExpandConceptModal({
     }
     setIsLoading(true);
     try {
-      // Mock AI call - replace with actual implementation
-      const result = { expandedConcepts: [] };
+      // Call the real AI flow
+      const { expandConcept } = await import('@/ai/flows/expand-concept');
+      const result = await expandConcept({
+        concept,
+        existingMapContext,
+        userRefinementPrompt: refinementPrompt.trim() || undefined,
+      });
       if (onConceptExpanded) {
         await onConceptExpanded(result);
       }
@@ -1173,4 +1174,4 @@ export function AskQuestionModal({
       </DialogContent>
     </Dialog>
   );
-}
+};
