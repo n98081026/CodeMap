@@ -1,20 +1,5 @@
 import { z } from 'zod';
 
-// Schema for individual suggestion items
-export const StructuralSuggestionItemSchema = z.object({
-  id: z.string().uuid(),
-  type: z.enum(['ADD_EDGE', 'NEW_INTERMEDIATE_NODE', 'FORM_GROUP']),
-  data: z.any(), // The flow will ensure data structure corresponds to 'type'.
-  // Client-side will interpret 'data' based on 'type'.
-  reason: z.string().optional(),
-  status: z.enum(['pending', 'accepted', 'dismissed']),
-});
-
-// Schema for the array of suggestions
-export const AllStructuralSuggestionsSchema = z.array(
-  StructuralSuggestionItemSchema
-);
-
 // Specific data schemas for each suggestion type, to be used by the orchestrating flow
 // and potentially by the client for type assertion/parsing if needed.
 
@@ -39,3 +24,18 @@ export const FormGroupDataSchema = z.object({
   nodeIdsToGroup: z.array(z.string()),
   suggestedParentName: z.string(), // Made suggestedParentName mandatory
 });
+
+// Schema for individual suggestion items
+export const StructuralSuggestionItemSchema = z.object({
+  id: z.string().uuid(),
+  type: z.enum(['ADD_EDGE', 'NEW_INTERMEDIATE_NODE', 'FORM_GROUP']),
+  data: z.union([AddEdgeDataSchema, NewIntermediateNodeDataSchema, FormGroupDataSchema]), // The flow will ensure data structure corresponds to 'type'.
+  // Client-side will interpret 'data' based on 'type'.
+  reason: z.string().optional(),
+  status: z.enum(['pending', 'accepted', 'dismissed']),
+});
+
+// Schema for the array of suggestions
+export const AllStructuralSuggestionsSchema = z.array(
+  StructuralSuggestionItemSchema
+);

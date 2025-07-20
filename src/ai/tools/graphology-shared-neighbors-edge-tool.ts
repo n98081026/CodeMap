@@ -116,11 +116,11 @@ export const graphologySharedNeighborsEdgeTool = defineTool(
       const topCandidates = rawCandidateEdges.slice(0, maxCandidates);
 
       return { candidateEdges: topCandidates };
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Error in graphologySharedNeighborsEdgeTool:', e);
       return {
         candidateEdges: [],
-        error: `Failed to detect shared neighbor edges: ${e.message}`,
+        error: `Failed to detect shared neighbor edges: ${e instanceof Error ? e.message : 'Unknown error'}`,
       };
     }
   }

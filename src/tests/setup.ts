@@ -41,7 +41,7 @@ vi.mock('@/components/layout/main-layout', async () => {
 vi.mock('lucide-react', async () => {
   const actual = await vi.importActual('lucide-react');
   const createIcon = (displayName: string) => {
-    const IconComponent = (props: any) =>
+    const IconComponent = (props: React.SVGProps<SVGSVGElement>) =>
       React.createElement('svg', {
         'data-testid': `icon-${displayName.toLowerCase()}`,
         ...props,

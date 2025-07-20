@@ -179,7 +179,7 @@ const suggestGraphologyIntermediateNode = async (
       );
       return null;
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Error in suggestGraphologyIntermediateNodeFlow:', e);
     return null;
   }

@@ -363,7 +363,7 @@ describe('AuthContext - Guest Session State Management', () => {
     // Simulate onAuthStateChange emitting SIGNED_IN after login
     mockSupabaseAuth.onAuthStateChange.mockImplementation((callback) => {
       callback('INITIAL_SESSION', null);
-      setTimeout(() => callback('SIGNED_IN', mockSession as any), 0); // Cast to any to satisfy Supabase Session type
+      setTimeout(() => callback('SIGNED_IN', mockSession as Session), 0); // Cast to Session type
       return { data: { subscription: { unsubscribe: vi.fn() } } };
     });
 

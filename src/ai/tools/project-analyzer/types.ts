@@ -56,7 +56,7 @@ export interface ExtractedCodeElement {
   isAsync?: boolean;
   comments?: string;
   parentName?: string; // For methods, the class name
-  astNode?: any; // Reference to the original AST node (to be removed before final output)
+  astNode?: ts.Node; // Reference to the original AST node (to be removed before final output)
 
   // Function/Method specific
   params?: ExtractedParam[];

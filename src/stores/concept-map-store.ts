@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { temporal } from 'zundo';
 import { create } from 'zustand';
 
-import { GraphAdapterUtility } from '../../lib/graphologyAdapter';
+import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 
 import type { ConceptMap, ConceptMapData } from '@/types';
 import type {
@@ -1007,7 +1007,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
             throw new Error(overviewData.error);
           }
           set({ projectOverviewData: overviewData, isFetchingOverview: false });
-        } catch (e: any) {
+        } catch (e: unknown) {
           set({
             projectOverviewData: {
               overallSummary: 'Failed to generate overview.',

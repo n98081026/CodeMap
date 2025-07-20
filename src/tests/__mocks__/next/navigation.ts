@@ -86,13 +86,10 @@ for (const key in actualNav) {
     key !== 'redirect' &&
     key !== 'permanentRedirect'
   ) {
-    // @ts-ignore
-    if (typeof actualNav[key] === 'function') {
-      // @ts-ignore
-      exports[key] = vi.fn(actualNav[key]);
+    if (typeof (actualNav as any)[key] === 'function') {
+      (exports as any)[key] = vi.fn((actualNav as any)[key]);
     } else {
-      // @ts-ignore
-      exports[key] = actualNav[key];
+      (exports as any)[key] = (actualNav as any)[key];
     }
   }
 }

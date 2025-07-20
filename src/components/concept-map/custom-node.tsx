@@ -65,7 +65,7 @@ const NODE_MAX_WIDTH = 400;
 const NODE_MIN_HEIGHT = 70;
 const NODE_DETAILS_MAX_HEIGHT = 200;
 
-const TYPE_ICONS: { [key: string]: any } = {
+const TYPE_ICONS: { [key: string]: React.ComponentType<{ className?: string }> } = {
   default: Settings2,
   'manual-node': Type,
   key_feature: Star,
@@ -150,8 +150,8 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
     [aiTools, id]
   );
   const handleAISuggestRelationsForToolbar = useCallback(() => {
-    if ((aiTools as any).handleMenuSuggestRelations) {
-      (aiTools as any).handleMenuSuggestRelations(id);
+    if ('handleMenuSuggestRelations' in aiTools && typeof aiTools.handleMenuSuggestRelations === 'function') {
+      aiTools.handleMenuSuggestRelations(id);
     } else {
       aiTools.openSuggestRelationsModal(id);
     }

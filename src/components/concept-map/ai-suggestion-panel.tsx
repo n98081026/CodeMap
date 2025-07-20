@@ -281,7 +281,7 @@ const RenderEditableRelationLabel: React.FC<{
     if (item.isEditing && item.editingField === field && !isViewOnlyMode) {
       return (
         <Input
-          value={(item.current as any)[field] || ''}
+          value={String((item.current as Record<string, unknown>)[field] || '')}
           onChange={(e) => onInputChange(index, e.target.value, field)}
           className='h-7 text-xs px-1 py-0.5 mx-0.5 inline-block w-auto min-w-[60px] max-w-[120px]'
           autoFocus
@@ -301,7 +301,7 @@ const RenderEditableRelationLabel: React.FC<{
           !isViewOnlyMode && 'cursor-pointer'
         )}
       >
-        {(item.current as any)[field]}
+        {String((item.current as Record<string, unknown>)[field])}
         {nodeExists && field !== 'relation' && (
           <CheckSquare
             className='h-3 w-3 ml-1 text-green-600 inline-block'
@@ -486,7 +486,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                   editingField: field || null,
                 };
               return { ...item, isEditing: false, editingField: null }; // Close other edits
-            }) as any
+            }) as EditableExtractedConcept[] | EditableRelationSuggestion[]
         ); // Type assertion needed due to generic items array
       },
     [isViewOnlyMode, editableExtracted, editableRelations]
@@ -517,7 +517,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                   current: { ...item.current, [field]: value },
                 };
               return item;
-            }) as any
+            }) as EditableExtractedConcept[] | EditableRelationSuggestion[]
         );
       },
     []
@@ -595,12 +595,12 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     selectedIndicesSet: Set<number>,
     itemKeyPrefix: string,
     // renderItemContent is now specific to each type
-    onAddSelectedItems: ((selectedItems: any[]) => void) | undefined,
+    onAddSelectedItems: ((selectedItems: ExtractedConceptItem[] | RelationSuggestion[]) => void) | undefined,
     onClearCategory?: () => void,
     cardClassName?: string,
     titleClassName?: string,
     parentRef: React.RefObject<HTMLDivElement>, // For virtualizer
-    rowVirtualizerInstance: any // Instance of useVirtualizer
+    rowVirtualizerInstance: ReturnType<typeof useVirtualizer> // Instance of useVirtualizer
   ) => {
     const isRelationsSection = itemKeyPrefix.startsWith('relation-');
     const sectionId = isRelationsSection
@@ -835,7 +835,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                           disabled={
                             (itemStatus === 'exact-match' &&
                               itemKeyPrefix.startsWith('extracted-')) ||
-                            (item as any).isEditing ||
+                            (item as EditableExtractedConcept | EditableRelationSuggestion).isEditing ||
                             isViewOnlyMode
                           }
                         />
@@ -917,10 +917,21 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                 size='sm'
                 variant='default'
                 onClick={() => {
-                  /* TODO: Implement Add All New/Similar functionality more directly */
-                  handleSelectAllNewOrSimilar(true); // Select all new/similar first
-                  // Timeout to allow state update before clicking add, or refactor handleAddSelected
-                  setTimeout(() => handleAddSelected(), 0);
+                  // Implement Add All New/Similar functionality directly
+                  const toAdd = items
+                    .map((item) => item.current)
+                    .filter((itemValue) => {
+                      const status = itemKeyPrefix.startsWith('extracted-')
+                        ? getConceptStatus(itemValue as ExtractedConceptItem)
+                        : 'new';
+                      return (
+                        status !== 'exact-match' || itemKeyPrefix.startsWith('relation-')
+                      );
+                    });
+                  if (toAdd.length > 0) {
+                    onAddSelectedItems(toAdd);
+                    clearSelectionForCategory();
+                  }
                 }}
                 disabled={isViewOnlyMode || countOfAllNewOrSimilar === 0}
                 className='w-full sm:w-auto'

@@ -174,7 +174,7 @@ const suggestGraphologyEnhancedEdge = async (
       );
       return null;
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Error in suggestGraphologyEnhancedEdgeFlow:', e);
     return null; // Return null on error as per output schema
   }

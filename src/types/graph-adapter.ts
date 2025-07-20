@@ -163,7 +163,7 @@ export interface LayoutNodeInfo {
   // we allow 'data' to be 'any'. A stricter approach would be to define exactly what
   // sub-properties of 'data' are needed by the snapping function if any.
   // For now, assuming the snapping function primarily uses position and dimensions.
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 // Type for React Flow nodes that use LayoutNodeInfo for their data property.

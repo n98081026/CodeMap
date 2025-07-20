@@ -1028,12 +1028,12 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     const newSuggestionEdges = (structuralSuggestions || [])
       .filter((suggestion) => suggestion.type === 'ADD_EDGE')
       .map((suggestion) => {
-        const edgeData = suggestion.data as any;
+        const edgeData = suggestion.data as Record<string, unknown>;
         return {
           id: `suggestion-${suggestion.id}`,
-          source: edgeData.sourceNodeId,
-          target: edgeData.targetNodeId,
-          label: edgeData.label,
+          source: edgeData.sourceNodeId as string,
+          target: edgeData.targetNodeId as string,
+          label: edgeData.label as string,
           type: 'suggested-edge',
           data: {
             suggestionId: suggestion.id,

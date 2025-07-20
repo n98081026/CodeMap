@@ -28,15 +28,15 @@ export async function batchSummarizeElements(
 ): Promise<Map<string, string>> {
   const summarizationPromises = tasks.map((task) =>
     summarizeCodeElementPurposeFlow.run(task.inputForFlow)
-      .then((summaryResult: any) => ({
+      .then((summaryResult: { summary?: string }) => ({
         uniqueId: task.uniqueId,
         semanticSummary:
           summaryResult.summary ||
           'Purpose unclear from available data.',
       }))
-      .catch((error: any) => {
+      .catch((error: unknown) => {
         console.warn(
-          `[AST Utils] Error summarizing ${task.nodeType} ${task.originalNodeInfo.name} in ${task.inputForFlow.filePath || fileName}: ${error.message}`
+          `[AST Utils] Error summarizing ${task.nodeType} ${task.originalNodeInfo.name} in ${task.inputForFlow.filePath || fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
         return {
           uniqueId: task.uniqueId,
@@ -45,7 +45,7 @@ export async function batchSummarizeElements(
       })
   );
   const allSummaryResults = await Promise.all(summarizationPromises);
-  return new Map(allSummaryResults.map((r: any) => [r.uniqueId, r.semanticSummary]));
+  return new Map(allSummaryResults.map((r: { uniqueId: string; semanticSummary: string }) => [r.uniqueId, r.semanticSummary]));
 }
 
 export function createDetailedNodeFromExtractedElement(

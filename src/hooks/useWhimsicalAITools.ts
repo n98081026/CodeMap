@@ -170,7 +170,7 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
             variant: 'default',
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Whimsical AI 提取錯誤:', error);
         toast({
           title: 'AI 分析失敗',

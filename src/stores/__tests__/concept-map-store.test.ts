@@ -747,7 +747,7 @@ describe('useConceptMapStore', () => {
       reason: 'Reason 1',
     };
     it('addStructuralSuggestion: should add a suggestion', () => {
-      useConceptMapStore.getState().addStructuralSuggestion(suggestion1 as any);
+      useConceptMapStore.getState().addStructuralSuggestion(suggestion1 as StructuralSuggestionItem);
       expect(
         useConceptMapStore.getState().structuralSuggestions
       ).toContainEqual(suggestion1);

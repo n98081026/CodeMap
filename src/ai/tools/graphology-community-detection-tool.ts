@@ -57,16 +57,16 @@ export const graphologyCommunityDetectionTool = defineTool(
       });
 
       const communityMap: Record<string, number> = {};
-      graphInstance.forEachNode((nodeId: string, attributes: any) => {
+      graphInstance.forEachNode((nodeId: string, attributes: Record<string, unknown>) => {
         communityMap[nodeId] = communities[nodeId];
       });
 
       return { communities: communityMap };
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Error in graphologyCommunityDetectionTool:', e);
       return {
         communities: {},
-        error: `Failed to detect communities: ${e.message}`,
+        error: `Failed to detect communities: ${e instanceof Error ? e.message : 'Unknown error'}`,
       };
     }
   }

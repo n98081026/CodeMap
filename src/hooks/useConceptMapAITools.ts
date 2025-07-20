@@ -306,7 +306,7 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
           `[AITools] Success: ${aiFunctionName} (ID: ${currentProcessingId})`
         );
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         loadingToast.dismiss();
         console.error(
           `Error in ${aiFunctionName} (ID: ${currentProcessingId}):`,

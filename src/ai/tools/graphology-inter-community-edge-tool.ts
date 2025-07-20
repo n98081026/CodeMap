@@ -86,11 +86,11 @@ export const graphologyInterCommunityEdgeTool = defineTool(
       );
 
       return { candidateLocations };
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Error in graphologyInterCommunityEdgeTool:', e);
       return {
         candidateLocations: [],
-        error: `Failed to find inter-community edges: ${e.message}`,
+        error: `Failed to find inter-community edges: ${e instanceof Error ? e.message : 'Unknown error'}`,
       };
     }
   }

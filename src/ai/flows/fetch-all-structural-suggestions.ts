@@ -6,7 +6,7 @@ import {
   AllStructuralSuggestionsSchema,
   StructuralSuggestionItemSchema,
   AddEdgeDataSchema,
-  NewIntermediateNodeDataSchema,
+  NewIntermediateNodeDataSchema as AISuggestionsNewIntermediateNodeDataSchema,
   FormGroupDataSchema,
 } from '../../types/ai-suggestions';
 
@@ -44,7 +44,7 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
         mapDataWithCoords
       );
       if (improvementSuggestion) {
-        let validatedData: any;
+        let validatedData: z.infer<typeof AddEdgeDataSchema> | z.infer<typeof AISuggestionsNewIntermediateNodeDataSchema> | z.infer<typeof FormGroupDataSchema>;
         // Validate and parse the data based on the type
         if (improvementSuggestion.type === 'ADD_EDGE') {
           validatedData = AddEdgeDataSchema.parse(improvementSuggestion.data);
@@ -54,14 +54,14 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
             ...improvementSuggestion.data,
             // newNodeText: improvementSuggestion.data.intermediateNodeText, // if there's a mismatch
           };
-          validatedData = NewIntermediateNodeDataSchema.parse(intermediateData);
+          validatedData = AISuggestionsNewIntermediateNodeDataSchema.parse(intermediateData);
         } else if (improvementSuggestion.type === 'FORM_GROUP') {
           validatedData = FormGroupDataSchema.parse(improvementSuggestion.data);
         } else {
           // Should not happen if MapImprovementSuggestionSchema is correctly defined and followed
           console.warn(
             `Unknown suggestion type from suggestMapImprovementFlow: ${
-              (improvementSuggestion as any).type
+              improvementSuggestion.type
             }`
           );
           return suggestionsList; // Or handle error appropriately
@@ -95,8 +95,8 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
             (s) =>
               s.type === 'FORM_GROUP' &&
               s.data &&
-              Array.isArray((s.data as any).nodeIds) && // Changed from nodeIdsToGroup
-              JSON.stringify((s.data as any).nodeIds.slice().sort()) ===
+              Array.isArray((s.data as Record<string, unknown>).nodeIds) && // Changed from nodeIdsToGroup
+              JSON.stringify(((s.data as Record<string, unknown>).nodeIds as string[]).slice().sort()) ===
                 JSON.stringify(group.nodeIds.slice().sort())
           );
 
@@ -129,9 +129,9 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
         const isDuplicateEdge = suggestionsList.some(
           (s) =>
             s.type === 'ADD_EDGE' &&
-            (s.data as any).sourceNodeId ===
+            (s.data as Record<string, unknown>).sourceNodeId ===
               enhancedEdgeResult.data.sourceNodeId &&
-            (s.data as any).targetNodeId ===
+            (s.data as Record<string, unknown>).targetNodeId ===
               enhancedEdgeResult.data.targetNodeId
         );
         if (!isDuplicateEdge) {
@@ -162,7 +162,7 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
         intermediateNodeSuggestion.type === 'NEW_INTERMEDIATE_NODE'
       ) {
         // Parse with the schema from suggest-map-improvement which includes originalEdgeId
-        const parsedData = NewIntermediateNodeDataSchema.parse(
+        const parsedData = MapImprovementNewIntermediateNodeDataSchema.parse(
           intermediateNodeSuggestion.data
         );
 
@@ -171,15 +171,15 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
           isDuplicateIntermediate = suggestionsList.some(
             (s) =>
               s.type === 'NEW_INTERMEDIATE_NODE' &&
-              (s.data as any).originalEdgeId === parsedData.originalEdgeId
+              (s.data as Record<string, unknown>).originalEdgeId === parsedData.originalEdgeId
           );
         } else {
           // Fallback if no originalEdgeId: check source/target
           isDuplicateIntermediate = suggestionsList.some(
             (s) =>
               s.type === 'NEW_INTERMEDIATE_NODE' &&
-              (s.data as any).sourceNodeId === parsedData.sourceNodeId &&
-              (s.data as any).targetNodeId === parsedData.targetNodeId
+              (s.data as Record<string, unknown>).sourceNodeId === parsedData.sourceNodeId &&
+              (s.data as Record<string, unknown>).targetNodeId === parsedData.targetNodeId
           );
         }
 

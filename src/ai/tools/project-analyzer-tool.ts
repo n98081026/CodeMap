@@ -67,7 +67,11 @@ export const ExtractedCodeElementSchema = z.object({
     isExported: z.boolean(),
     isDefaultExport: z.boolean(),
     isAsync: z.boolean(),
-    params: z.array(z.any()).optional(),
+    params: z.array(z.object({
+        name: z.string(),
+        type: z.string().optional(),
+        defaultValue: z.string().optional()
+    })).optional(),
     returnType: z.string().optional(),
     superClass: z.string().optional(),
     implementedInterfaces: z.array(z.string()).optional(),
@@ -76,8 +80,13 @@ export const ExtractedCodeElementSchema = z.object({
     dataType: z.string().optional(),
     value: z.string().optional(),
     comments: z.string().optional(),
-    astNode: z.any().optional(),
-    localCalls: z.array(z.any()).optional(),
+    astNode: z.unknown().optional(),
+    localCalls: z.array(z.object({
+        targetName: z.string(),
+        targetType: z.string(),
+        targetParentName: z.string().optional(),
+        line: z.number()
+    })).optional(),
     semanticPurpose: z.string().optional(),
 });
 
