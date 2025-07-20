@@ -117,7 +117,7 @@ const suggestGraphologyIntermediateNode = async (
         Please perform the following:
         1. Suggest a concise concept, process, or relationship that could act as a meaningful intermediate step or bridge between 'Source Node' and 'Target Node'. This will be the text for the new intermediate node.
         2. Provide a short text label (max 5 words) for this new intermediate node based on your suggestion in step 1.
-        3. Evaluate if inserting this specific intermediate node (with your suggested text from step 2) would significantly clarify the relationship or map structure (respond true/false for "isValidSuggestion").
+        3. Evaluate if inserting this specific intermediate node (with your suggested text from step 2) would significantly clarify the map structure (respond true/false for "isValidSuggestion").
         4. Provide a brief reason for why this intermediate node (with your suggested text) would be a good addition, or why it might not be suitable.
 
         Output a single, well-formed JSON object with the following exact keys:
@@ -127,21 +127,15 @@ const suggestGraphologyIntermediateNode = async (
       `;
 
     // Step 4: Call LLM
-    const llmResponse = await generate(
-      {
-        model: gemini10Pro,
-        prompt: suggestIntermediateNodeContentPromptText,
-        output: {
-          format: 'json',
-          schema: LlmIntermediateNodeResponseSchema,
-        },
-        config: { temperature: 0.5 },
+    const llmResponse = await generate({
+      model: gemini10Pro,
+      prompt: suggestIntermediateNodeContentPromptText,
+      output: {
+        format: 'json',
+        schema: LlmIntermediateNodeResponseSchema,
       },
-      {
-        // Explicitly pass the tool to the LLM
-        tools: [graphologyInterCommunityEdgeTool],
-      }
-    );
+      config: { temperature: 0.5 },
+    });
 
     const validationResult = llmResponse.output();
 

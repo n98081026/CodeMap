@@ -1,6 +1,6 @@
 import { defineFlow } from '@genkit-ai/flow';
 import { generate } from '@genkit-ai/ai';
-import { gemini10Pro } from '@genkit-ai/googleai';
+import { DEFAULT_MODEL } from '../../config/genkit';
 import * as z from 'zod';
 
 // Define the list of valid action IDs that the AI can suggest
@@ -118,7 +118,7 @@ export const suggestArrangementActionFlow = defineFlow(
 
     const llmResponse = await generate(
       {
-        model: gemini10Pro,
+        model: DEFAULT_MODEL,
         prompt: prompt,
         config: {
           temperature: 0.3, // Low temperature for more deterministic suggestions
@@ -128,13 +128,10 @@ export const suggestArrangementActionFlow = defineFlow(
           format: 'json',
           schema: SuggestArrangementActionOutputSchema, // This validates the top-level structure
         },
-      },
-      {
-        tools: [],
       }
     );
 
-    const outputData = llmResponse.output();
+    const outputData = llmResponse.output;
 
     if (
       !outputData ||

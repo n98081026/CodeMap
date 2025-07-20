@@ -1,6 +1,6 @@
 import { defineFlow } from '@genkit-ai/flow';
 import { generate } from '@genkit-ai/ai';
-import { gemini10Pro } from '@genkit-ai/googleai'; // Or your preferred model
+import { DEFAULT_MODEL } from '../../config/genkit';
 import { z } from 'zod';
 
 // 1a. Define Input/Output Schemas
@@ -40,8 +40,6 @@ Return up to 3-5 suggestions as a JSON array of strings.
 Source Node Text: ${sourceNode.text}
 ${sourceNode.details ? `Source Node Details: ${sourceNode.details}\n` : ''}
 Target Node Text: ${targetNode.text}
-${sourceNode.details ? `Source Node Details: ${sourceNode.details}\n` : ''}
-Target Node Text: ${targetNode.text}
 ${targetNode.details ? `Target Node Details: ${targetNode.details}\n` : ''}
 ${existingLabel ? `The user has already started typing: "${existingLabel}". Consider this context and provide completions or related suggestions.\n` : ''}
 Consider the direction of the relationship from the Source Node to the Target Node.
@@ -50,14 +48,16 @@ The labels should be short, ideally 1-3 words, and clearly describe the relation
 
 JSON Array of Suggested Labels:`;
 
-    const llmResponse = await generate({
-      model: gemini10Pro,
-      prompt: prompt,
-      output: { format: 'json', schema: z.array(z.string()) },
-      config: { temperature: 0.4 }, // Slightly lower temperature for more deterministic suggestions
-    });
+    const llmResponse = await generate(
+      DEFAULT_MODEL,
+      {
+        prompt: prompt,
+        output: { format: 'json', schema: z.array(z.string()) },
+        config: { temperature: 0.4 }, // Slightly lower temperature for more deterministic suggestions
+      }
+    );
 
-    const suggestions = llmResponse.output();
+    const suggestions = llmResponse.output;
 
     if (suggestions && Array.isArray(suggestions)) {
       return { suggestedLabels: suggestions.slice(0, 5) };

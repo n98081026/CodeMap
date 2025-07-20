@@ -1,107 +1,67 @@
 import { defineFlow } from '@genkit-ai/flow';
-import { ai } from '@genkit-ai/ai';
+import { generate } from '@genkit-ai/ai';
+import { DEFAULT_MODEL } from '../../config/genkit';
 import * as z from 'zod';
 
-// Define Zod schema for the input
-export const SummarizeCodeElementInputSchema = z.object({
-  elementType: z.enum(['function', 'class']),
+export const SummarizeCodeElementPurposeInputSchema = z.object({
+  code: z.string(),
   elementName: z.string(),
-  signature: z
-    .string()
-    .optional()
-    .describe(
-      'e.g., for a function: (price: number, quantity: number): number, for a class: extends BaseService implements IOrderable'
-    ),
-  filePath: z.string(),
-  comments: z.string().optional().describe('JSDoc or other extracted comments'),
-  isExported: z.boolean().optional(),
-  // For classes:
-  classMethods: z
-    .array(z.string())
-    .optional()
-    .describe(
-      'Array of method signatures or names, e.g., ["processOrder(order: Order): boolean", "getHistory(): Order[]"]'
-    ),
-  classProperties: z
-    .array(z.string())
-    .optional()
-    .describe(
-      'Array of property signatures, e.g., ["orderQueue: Queue<Order>", "maxRetries: number (private)"]'
-    ),
-});
-export type SummarizeCodeElementInput = z.infer<
-  typeof SummarizeCodeElementInputSchema
->;
-
-// Define Zod schema for the output
-export const SummarizeCodeElementOutputSchema = z.object({
-  semanticSummary: z
-    .string()
-    .describe(
-      "1-2 sentence summary of the element's purpose, or 'Purpose unclear from available data.'"
-    ),
-});
-export type SummarizeCodeElementOutput = z.infer<
-  typeof SummarizeCodeElementOutputSchema
->;
-
-// Define the LLM Prompt
-const summarizeCodeElementPurposePrompt = ai.definePrompt({
-  name: 'summarizeCodeElementPurposePrompt',
-  input: { schema: SummarizeCodeElementInputSchema },
-  output: { schema: SummarizeCodeElementOutputSchema },
-  prompt: `You are an expert software developer documentation writer. Your task is to generate a concise (1-2 sentence) semantic summary of the purpose or responsibility of a given code element (function or class) based on its signature, associated comments, and other metadata.
-
-Code Element Details:
-- Type: {{{elementType}}}
-- Name: {{{elementName}}}
-{{#if signature}}- Signature/Context: {{{signature}}}{{/if}}
-- File Path: {{{filePath}}}
-{{#if isExported}}- Exported: Yes{{else}}- Exported: No{{/if}}
-{{#if comments}}
-- Associated Comments:
-{{{comments}}}
-{{/if}}
-{{#if classMethods}}
-- Class Methods (if applicable):
-  {{#each classMethods}}- {{{this}}}{{/each}}
-{{/if}}
-{{#if classProperties}}
-- Class Properties (if applicable):
-  {{#each classProperties}}- {{{this}}}{{/each}}
-{{/if}}
-
-Based on all the provided information:
-1.  Infer the primary purpose or responsibility of this {{{elementType}}} named '{{{elementName}}}'.
-2.  Describe this purpose in 1-2 concise sentences.
-3.  Focus on what it *does* or *manages*.
-4.  If the name, comments, or signature strongly suggest a common architectural role (e.g., 'Controller', 'Service', 'Repository', 'Utility', 'Configuration'), briefly mention it as part of the purpose. For example, "This service class manages user profile data..." or "Utility function to format date strings."
-5.  Avoid simply re-stating the signature or comments if possible; synthesize their meaning.
-6.  If the purpose is genuinely unclear from the provided information (e.g., only a name is available with no comments or indicative signature), respond with the phrase "Purpose unclear from available data."
-
-Output your 1-2 sentence summary directly as a plain string for the 'semanticSummary' field of the JSON output. If unclear, use "Purpose unclear from available data." for 'semanticSummary'.
-Ensure the output is a valid JSON object matching the defined output schema. Example: {"semanticSummary": "This service class is responsible for handling user authentication requests."}
-`,
+  elementType: z.enum(['function', 'class', 'variable']),
+  filePath: z.string().optional(),
 });
 
-// Define the Flow
+export const SummarizeCodeElementPurposeOutputSchema = z.object({
+  summary: z.string(),
+});
+
 export const summarizeCodeElementPurposeFlow = defineFlow(
   {
     name: 'summarizeCodeElementPurposeFlow',
-    inputSchema: SummarizeCodeElementInputSchema,
-    outputSchema: SummarizeCodeElementOutputSchema,
+    inputSchema: SummarizeCodeElementPurposeInputSchema,
+    outputSchema: SummarizeCodeElementPurposeOutputSchema,
   },
-  async (input: SummarizeCodeElementInput) => {
-    const llmResponse = await summarizeCodeElementPurposePrompt.generate({
-      input,
-      temperature: 0.4,
-    }); // Adjust temperature as needed
-    const output = llmResponse.output();
-    if (!output) {
-      // This case should ideally be handled by Genkit's schema validation or prompt erroring
-      // but as a fallback if output is null/undefined unexpectedly.
-      return { semanticSummary: 'Purpose unclear due to generation error.' };
+  async (input) => {
+    const { code, elementName, elementType, filePath } = input;
+
+    const prompt = `
+      You are an expert at analyzing source code and explaining its purpose.
+      Given the following code snippet for a ${elementType} named "${elementName}" from the file "${filePath || 'unknown'}", provide a concise, one-sentence summary of its primary role or responsibility.
+
+      Code:
+      \`\`\`
+      ${code}
+      \`\`\`
+
+      Focus on what it *does* from a functional perspective.
+      Example for a function: "This function authenticates a user by validating their credentials against the database."
+      Example for a class: "This class manages the application's user state, including login and logout actions."
+
+      Return your answer as a JSON object with the single key "summary".
+    `;
+
+    try {
+      const llmResponse = await generate({
+        model: DEFAULT_MODEL,
+        prompt: prompt,
+        output: {
+          format: 'json',
+          schema: SummarizeCodeElementPurposeOutputSchema,
+        },
+        config: {
+          temperature: 0.2,
+        },
+      });
+
+      const result = llmResponse.output();
+      if (!result) {
+        throw new Error('LLM returned no output for code summary.');
+      }
+      return { summary: result.summary };
+    } catch (error) {
+      console.error('Error summarizing code element:', error);
+      return {
+        summary: 'An error occurred while summarizing the code.',
+      };
     }
-    return output; // Already matches SummarizeCodeElementOutputSchema
   }
 );

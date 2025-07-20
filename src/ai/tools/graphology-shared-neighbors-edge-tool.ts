@@ -1,10 +1,11 @@
 // src/ai/tools/graphology-shared-neighbors-edge-tool.ts
-import { defineTool } from '@genkit-ai/tool';
+import { defineTool } from '@genkit-ai/core';
 import Graph from 'graphology'; // For type checking graphInstance if needed
 import { z } from 'zod';
 
 import { GraphAdapterUtility } from '../../lib/graphologyAdapter'; // Adjust path if needed based on project structure
 import { MapDataSchema } from '../flows/suggest-map-improvement'; // Assuming this is the canonical MapDataSchema
+import { ConceptMapEdge, ConceptMapNode } from '../../types';
 
 export const SharedNeighborsEdgeInputSchema = MapDataSchema.extend({
   jaccardThreshold: z
@@ -59,7 +60,7 @@ export const graphologySharedNeighborsEdgeTool = defineTool(
 
       const graphAdapter = new GraphAdapterUtility();
       // Ensure fromArrays can handle potentially undefined or empty edges
-      const graphInstance: Graph = graphAdapter.fromArrays(nodes, edges || []);
+      const graphInstance: Graph = graphAdapter.fromArrays(nodes as ConceptMapNode[], edges as ConceptMapEdge[] || []);
 
       if (graphInstance.order < 2) {
         // graphInstance.order is the number of nodes

@@ -1,38 +1,15 @@
-import { defineFlow, runFlow } from '@genkit-ai/flow';
+import { defineFlow } from '@genkit-ai/flow';
 import { generate } from '@genkit-ai/ai';
-import { gemini10Pro } from '@genkit-ai/googleai';
-import { z } from 'zod';
+import { DEFAULT_MODEL } from '../../config/genkit';
+import * as z from 'zod';
 
 export const SummarizeGenericFileInputSchema = z.object({
-  fileName: z.string().describe('The name of the file to be summarized.'),
-  fileContentSnippet: z
-    .string()
-    .describe(
-      'A snippet of the file content (e.g., first N lines or M characters).'
-    ),
-  fileType: z
-    .string()
-    .optional()
-    .describe(
-      'The identified type of the file (e.g., dockerfile, shell_script, xml_config). This helps the LLM tailor the summary.'
-    ),
+  fileContent: z.string().min(10), // Require some content
 });
-type SummarizeGenericFileInput = z.infer<
-  typeof SummarizeGenericFileInputSchema
->;
 
 export const SummarizeGenericFileOutputSchema = z.object({
-  summary: z
-    .string()
-    .describe("A brief summary of the file's purpose or key content."),
-  error: z
-    .string()
-    .optional()
-    .describe('Any error that occurred during summarization.'),
+  summary: z.string(),
 });
-type SummarizeGenericFileOutput = z.infer<
-  typeof SummarizeGenericFileOutputSchema
->;
 
 export const summarizeGenericFileFlow = defineFlow(
   {
@@ -40,79 +17,49 @@ export const summarizeGenericFileFlow = defineFlow(
     inputSchema: SummarizeGenericFileInputSchema,
     outputSchema: SummarizeGenericFileOutputSchema,
   },
-  async (input: SummarizeGenericFileInput) => {
-    const { fileName, fileContentSnippet, fileType } = input;
-
-    if (!fileContentSnippet.trim()) {
-      return {
-        summary: `File '${fileName}' appears to be empty or contains only whitespace.`,
-        error: 'Empty content snippet.',
-      };
-    }
+  async (input) => {
+    const { fileContent } = input;
 
     const prompt = `
-      Analyze the following file snippet and provide a concise, one-sentence summary of its primary purpose or key content.
-      File Name: ${fileName}
-      ${fileType ? `Identified File Type: ${fileType}` : ''}
+      You are an expert code and text analyst.
+      Analyze the following file content and provide a concise, one-paragraph summary (3-5 sentences) of its primary purpose and functionality.
+      Focus on the high-level goal of the file. For code, this means what it does, not a line-by-line explanation. For text, it means the main argument or topic.
+      Do not describe the code structure (e.g., "it imports X, defines Y"). Instead, explain the 'what' and 'why'.
 
-      Content Snippet (first 100 lines or 4000 characters):
+      File Content to Summarize:
       \`\`\`
-      ${fileContentSnippet}
+      ${fileContent.substring(0, 10000)}
       \`\`\`
 
-      Summary (one sentence):
+      Return your answer as a JSON object with the single key "summary".
     `;
 
     try {
       const llmResponse = await generate(
         {
-          model: gemini10Pro,
+          model: DEFAULT_MODEL,
           prompt: prompt,
-          config: {
-            temperature: 0.2, // Lower temperature for more factual summary
+          output: {
+            format: 'json',
+            schema: SummarizeGenericFileOutputSchema,
           },
-        },
-        {
-          tools: [],
+          config: {
+            temperature: 0.2,
+          },
         }
       );
 
-      const summaryText = llmResponse.text();
-
-      if (!summaryText) {
-        return {
-          summary: `Could not generate a summary for '${fileName}'. The AI response was empty.`,
-          error: 'Empty AI response.',
-        };
+      const result = llmResponse.output();
+      if (!result) {
+        throw new Error('LLM returned no output for summary.');
       }
-
-      return { summary: summaryText };
-    } catch (err: any) {
-      console.error(
-        `[summarizeGenericFileFlow] Error summarizing ${fileName}:`,
-        err
-      );
+      return { summary: result.summary };
+    } catch (error) {
+      console.error('Error summarizing generic file:', error);
+      // Return a generic error summary
       return {
-        summary: `Failed to generate summary for '${fileName}'.`,
-        error:
-          err.message ||
-          'An unexpected error occurred during AI summarization.',
+        summary: 'An error occurred while summarizing the file content.',
       };
     }
   }
 );
-
-// Helper function to run this flow (optional, but good for testing or direct use)
-export async function runSummarizeGenericFile(
-  input: SummarizeGenericFileInput
-): Promise<SummarizeGenericFileOutput> {
-  try {
-    return await runFlow(summarizeGenericFileFlow, input);
-  } catch (error: any) {
-    console.error('Error running summarizeGenericFileFlow:', error);
-    return {
-      summary: `Error invoking summarization flow for '${input.fileName}'.`,
-      error: error.message || 'Unknown error running flow.',
-    };
-  }
-}

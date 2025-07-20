@@ -1,4 +1,4 @@
-// src/ai/tools/ast-utils.ts
+import { z } from 'zod';
 import type {
   DetailedNode,
   ExtractedCodeElement,
@@ -6,7 +6,7 @@ import type {
 
 import {
   summarizeCodeElementPurposeFlow,
-  type SummarizeCodeElementInput,
+  SummarizeCodeElementPurposeInputSchema,
 } from '@/ai/flows';
 // Assuming these types are exported from project-analyzer-tool.ts or a shared types file
 
@@ -14,7 +14,7 @@ import {
 // We use Omit to avoid issues if astNode types are too different or not needed by the summarizer
 export interface SummarizationTaskInfo {
   uniqueId: string;
-  inputForFlow: SummarizeCodeElementInput;
+  inputForFlow: z.infer<typeof SummarizeCodeElementPurposeInputSchema>;
   originalNodeInfo: Omit<
     ExtractedCodeElement,
     'astNode' | 'localCalls' | 'semanticPurpose'
@@ -27,11 +27,11 @@ export async function batchSummarizeElements(
   fileName: string // fileName is part of task.inputForFlow.filePath, consider removing if redundant
 ): Promise<Map<string, string>> {
   const summarizationPromises = tasks.map((task) =>
-    summarizeCodeElementPurposeFlow(task.inputForFlow)
+    summarizeCodeElementPurposeFlow.run(task.inputForFlow)
       .then((summaryResult: any) => ({
         uniqueId: task.uniqueId,
         semanticSummary:
-          summaryResult.semanticSummary ||
+          summaryResult.summary ||
           'Purpose unclear from available data.',
       }))
       .catch((error: any) => {
@@ -98,6 +98,10 @@ export function createDetailedNodeFromExtractedElement(
     label: `${element.name} (${element.kind})`,
     type: `${languagePrefix}_${element.kind}`,
     details: details.trim(),
-    structuredInfo: structuredInfoForNode,
+    code: '',
+    summary: '',
+    filePath: '',
+    startLine: 0,
+    endLine: 0,
   };
 }

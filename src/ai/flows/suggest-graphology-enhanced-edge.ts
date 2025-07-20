@@ -135,20 +135,10 @@ const suggestGraphologyEnhancedEdge = async (
       `;
 
     // Step 4: Call LLM for validation and labeling
-    const llmResponse = await generate(
-      {
-        model: gemini10Pro, // Or your preferred model
-        prompt: validateAndLabelEdgePromptText, // Pass the constructed string
-        output: {
-          format: 'json',
-          schema: LlmEdgeValidationResponseSchema,
-        },
-        config: { temperature: 0.3 },
-      },
-      {
-        tools: [],
-      }
-    );
+    const llmResponse = await generate({
+      model: gemini10Pro,
+      prompt: validateAndLabelEdgePromptText, // Pass the constructed string
+      output: {
         format: 'json',
         schema: LlmEdgeValidationResponseSchema,
       },

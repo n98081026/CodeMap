@@ -1,6 +1,6 @@
 import { defineFlow } from '@genkit-ai/flow';
 import { generate } from '@genkit-ai/ai';
-import { gemini10Pro } from '@genkit-ai/googleai';
+import { DEFAULT_MODEL } from '../../config/genkit';
 import * as z from 'zod';
 
 // Input Schema: Current map data
@@ -119,7 +119,7 @@ const suggestMapImprovement = async (input: z.infer<typeof MapDataSchema>) => {
 
   const llmResponse = await generate(
     {
-      model: gemini10Pro,
+      model: DEFAULT_MODEL,
       prompt: prompt,
       config: {
         temperature: 0.5,
@@ -129,9 +129,6 @@ const suggestMapImprovement = async (input: z.infer<typeof MapDataSchema>) => {
         format: 'json',
         schema: MapImprovementSuggestionSchema, // Zod schema for the union type
       },
-    },
-    {
-      tools: [],
     }
   );
 

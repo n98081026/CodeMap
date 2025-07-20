@@ -1,86 +1,56 @@
 import { ProjectAnalysisOutput } from './project-analyzer-tool';
 
-export const FIXED_MOCK_PROJECT_A_ANALYSIS: ProjectAnalysisOutput = {
-  projectName: 'Mock E-Commerce API',
-  inferredLanguagesFrameworks: [
-    { name: 'Node.js', confidence: 'high' },
-    { name: 'JavaScript', confidence: 'high' },
-  ],
-  projectSummary:
-    'This is a fixed mock analysis for a standard E-Commerce API project. It includes typical components like User Service, Product Service, Order Service, and a Payment Gateway integration.',
-  dependencies: { npm: ['express', 'lodash', 'jsonwebtoken'] },
-  directoryStructureSummary: [
-    { path: 'src', fileCounts: { '.js': 20 }, inferredPurpose: 'Source Code' },
+export const MOCK_PROJECT_ANALYSIS_OUTPUT: ProjectAnalysisOutput = {
+  overallSummary:
+    'This project is a simple web server that provides a REST API for managing a list of users.',
+  nodes: [
     {
-      path: 'src/services',
-      fileCounts: { '.js': 4 },
-      inferredPurpose: 'Service Layer',
-    },
-    { path: 'tests', fileCounts: { '.js': 10 }, inferredPurpose: 'Tests' },
-  ],
-  keyFiles: [
-    {
-      filePath: 'src/services/UserService.js',
-      type: 'service_definition',
-      briefDescription: 'Handles user authentication and profile management.',
-      extractedSymbols: ['UserService', 'login', 'register'],
-    },
-    {
-      filePath: 'src/services/ProductService.js',
-      type: 'service_definition',
-      briefDescription: 'Manages product catalog and inventory.',
-      extractedSymbols: ['ProductService', 'listProducts'],
-    },
-    {
-      filePath: 'package.json',
-      type: 'manifest',
-      briefDescription: 'Node.js project manifest.',
-    },
-  ],
-  potentialArchitecturalComponents: [
-    {
-      name: 'User Service Component',
-      type: 'service',
-      relatedFiles: ['src/services/UserService.js'],
-    },
-    {
-      name: 'Product Service Component',
-      type: 'service',
-      relatedFiles: ['src/services/ProductService.js'],
-    },
-  ],
-  analyzedFileName: 'mock-ecommerce-api.zip',
-  effectiveFileType: 'zip',
-  contentType: 'application/zip',
-  fileSize: 123456,
-  isBinary: true, // ZIP is binary
-  analysisSummary: 'Mock analysis completed for mock-ecommerce-api.zip.', // More generic summary here
-  detailedNodes: [
-    {
-      id: 'mock_service_user_class',
-      label: 'UserService (class from UserService.js)',
-      type: 'js_class',
+      id: 'src/index.ts-function-startServer',
+      label: 'startServer (function)',
+      type: 'ts_function',
       details:
-        'Handles user authentication and profile management. (Mock Detail)',
-      lineNumbers: '20-80',
-      structuredInfo: {
-        name: 'UserService',
-        kind: 'class',
-        methods: ['login', 'register', 'getProfile'],
-      },
+        'This function starts the Express server on a specified port. It also applies middleware for JSON parsing and CORS.',
+      code: 'function startServer() { ... }',
+      summary: 'Starts the Express server.',
+      filePath: 'src/index.ts',
+      startLine: 10,
+      endLine: 25,
     },
     {
-      id: 'mock_service_product_class',
-      label: 'ProductService (class from ProductService.js)',
-      type: 'js_class',
-      details: 'Manages product catalog and inventory. (Mock Detail)',
-      lineNumbers: '81-150',
-      structuredInfo: {
-        name: 'ProductService',
-        kind: 'class',
-        methods: ['listProducts', 'addProduct', 'removeProduct'],
-      },
+      id: 'src/routes/users.ts-function-getUsers',
+      label: 'getUsers (function)',
+      type: 'ts_function',
+      details:
+        'This function handles GET requests to /api/users, returning a list of all users.',
+      code: 'function getUsers(req, res) { ... }',
+      summary: 'Returns all users.',
+      filePath: 'src/routes/users.ts',
+      startLine: 5,
+      endLine: 12,
+    },
+    {
+      id: 'src/routes/users.ts-function-addUser',
+      label: 'addUser (function)',
+      type: 'ts_function',
+      details:
+        'This function handles POST requests to /api/users, adding a new user to the list.',
+      code: 'function addUser(req, res) { ... }',
+      summary: 'Adds a new user.',
+      filePath: 'src/routes/users.ts',
+      startLine: 15,
+      endLine: 22,
     },
   ],
-  parsingErrors: [],
+  edges: [
+    {
+      source: 'src/index.ts-function-startServer',
+      target: 'src/routes/users.ts-function-getUsers',
+      label: 'registers route',
+    },
+    {
+      source: 'src/index.ts-function-startServer',
+      target: 'src/routes/users.ts-function-addUser',
+      label: 'registers route',
+    },
+  ],
 };
