@@ -20,10 +20,8 @@ import {
   MapDataSchema,
   NewIntermediateNodeDataSchema as MapImprovementNewIntermediateNodeDataSchema,
 } from './suggest-map-improvement'; // Import specific schema for parsing
-import {
-  suggestNodeGroupCandidatesFlow,
-  NodeGroupSuggestionSchema,
-} from './suggest-node-group-candidates';
+import { suggestNodeGroupCandidatesFlow } from './suggest-node-group-candidates';
+import { NodeGroupSuggestionSchema } from './schemas';
 
 export const fetchAllStructuralSuggestionsFlow = defineFlow(
   {
@@ -37,9 +35,13 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
 
     // 1. Call suggestMapImprovementFlow
     try {
+      const mapDataWithCoords = {
+        ...mapData,
+        nodes: mapData.nodes.map(node => ({ ...node, x: 0, y: 0 })),
+      };
       const improvementSuggestion = await runFlow(
         suggestMapImprovementFlow,
-        mapData
+        mapDataWithCoords
       );
       if (improvementSuggestion) {
         let validatedData: any;
@@ -87,33 +89,31 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
         suggestNodeGroupCandidatesFlow,
         mapData
       );
-      if (
-        groupCandidate &&
-        groupCandidate.nodeIdsToGroup &&
-        groupCandidate.suggestedParentName
-      ) {
-        const isDuplicateGroupSuggestion = suggestionsList.some(
-          (s) =>
-            s.type === 'FORM_GROUP' &&
-            s.data &&
-            Array.isArray((s.data as any).nodeIdsToGroup) && // Added type assertion for data
-            JSON.stringify((s.data as any).nodeIdsToGroup.slice().sort()) ===
-              JSON.stringify(groupCandidate.nodeIdsToGroup.slice().sort())
-        );
+      if (groupCandidate && groupCandidate.suggestedGroups) {
+        groupCandidate.suggestedGroups.forEach((group) => {
+          const isDuplicateGroupSuggestion = suggestionsList.some(
+            (s) =>
+              s.type === 'FORM_GROUP' &&
+              s.data &&
+              Array.isArray((s.data as any).nodeIds) && // Changed from nodeIdsToGroup
+              JSON.stringify((s.data as any).nodeIds.slice().sort()) ===
+                JSON.stringify(group.nodeIds.slice().sort())
+          );
 
-        if (!isDuplicateGroupSuggestion) {
-          const groupData = FormGroupDataSchema.parse({
-            nodeIdsToGroup: groupCandidate.nodeIdsToGroup,
-            suggestedParentName: groupCandidate.suggestedParentName,
-          });
-          suggestionsList.push({
-            id: uuidv4(),
-            type: 'FORM_GROUP',
-            data: groupData,
-            reason: groupCandidate.reason,
-            status: 'pending',
-          });
-        }
+          if (!isDuplicateGroupSuggestion) {
+            const groupData = FormGroupDataSchema.parse({
+              nodeIds: group.nodeIds, // Changed from nodeIdsToGroup
+              groupLabel: group.groupLabel, // Changed from suggestedParentName
+            });
+            suggestionsList.push({
+              id: uuidv4(),
+              type: 'FORM_GROUP',
+              data: groupData,
+              reason: group.reason,
+              status: 'pending',
+            });
+          }
+        });
       }
     } catch (error) {
       console.error('Error running suggestNodeGroupCandidatesFlow:', error);

@@ -27,7 +27,7 @@ export async function batchSummarizeElements(
   fileName: string // fileName is part of task.inputForFlow.filePath, consider removing if redundant
 ): Promise<Map<string, string>> {
   const summarizationPromises = tasks.map((task) =>
-    summarizeCodeElementPurposeFlow(task.inputForFlow)
+    summarizeCodeElementPurposeFlow.run(task.inputForFlow)
       .then((summaryResult: any) => ({
         uniqueId: task.uniqueId,
         semanticSummary:

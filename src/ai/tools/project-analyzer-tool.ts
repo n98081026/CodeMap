@@ -6,9 +6,9 @@ import {
   createDetailedNodeFromExtractedElement,
   SummarizationTaskInfo,
 } from './ast-utils';
-import { pythonAstParserTool } from './python_ast_parser';
+// import { pythonAstParserTool } from './python_ast_parser';
 import { supabaseFileFetcherTool } from './supabase-file-fetcher-tool';
-import { tsAstParserTool } from './ts_ast_parser';
+// import { tsAstParserTool } from './ts_ast_parser';
 
 export const ProjectAnalysisInputSchema = z.object({
   supabasePath: z.string(),
