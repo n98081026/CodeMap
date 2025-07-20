@@ -1,4 +1,4 @@
-import { defineFlow } from '@genkit-ai/flow';
+import { defineFlow, runFlow } from '@genkit-ai/flow';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
@@ -37,8 +37,10 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
 
     // 1. Call suggestMapImprovementFlow
     try {
-      const improvementSuggestion =
-        await suggestMapImprovementFlow.run(mapData);
+      const improvementSuggestion = await runFlow(
+        suggestMapImprovementFlow,
+        mapData
+      );
       if (improvementSuggestion) {
         let validatedData: any;
         // Validate and parse the data based on the type
@@ -56,7 +58,9 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
         } else {
           // Should not happen if MapImprovementSuggestionSchema is correctly defined and followed
           console.warn(
-            `Unknown suggestion type from suggestMapImprovementFlow: ${improvementSuggestion.type}`
+            `Unknown suggestion type from suggestMapImprovementFlow: ${
+              (improvementSuggestion as any).type
+            }`
           );
           return suggestionsList; // Or handle error appropriately
         }
@@ -79,7 +83,10 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
 
     // 2. Call suggestNodeGroupCandidatesFlow
     try {
-      const groupCandidate = await suggestNodeGroupCandidatesFlow.run(mapData);
+      const groupCandidate = await runFlow(
+        suggestNodeGroupCandidatesFlow,
+        mapData
+      );
       if (
         groupCandidate &&
         groupCandidate.nodeIdsToGroup &&
@@ -114,8 +121,10 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
 
     // 3. Call suggestGraphologyEnhancedEdgeFlow
     try {
-      const enhancedEdgeResult =
-        await suggestGraphologyEnhancedEdgeFlow.run(mapData);
+      const enhancedEdgeResult = await runFlow(
+        suggestGraphologyEnhancedEdgeFlow,
+        mapData
+      );
       if (enhancedEdgeResult && enhancedEdgeResult.type === 'ADD_EDGE') {
         const isDuplicateEdge = suggestionsList.some(
           (s) =>
@@ -144,19 +153,21 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
 
     // 4. Call suggestGraphologyIntermediateNodeFlow
     try {
-      const intermediateNodeSuggestion =
-        await suggestGraphologyIntermediateNodeFlow.run(mapData);
+      const intermediateNodeSuggestion = await runFlow(
+        suggestGraphologyIntermediateNodeFlow,
+        mapData
+      );
       if (
         intermediateNodeSuggestion &&
         intermediateNodeSuggestion.type === 'NEW_INTERMEDIATE_NODE'
       ) {
         // Parse with the schema from suggest-map-improvement which includes originalEdgeId
-        const parsedData = MapImprovementNewIntermediateNodeDataSchema.parse(
+        const parsedData = NewIntermediateNodeDataSchema.parse(
           intermediateNodeSuggestion.data
         );
 
         let isDuplicateIntermediate = false;
-        if (parsedData.originalEdgeId) {
+        if ('originalEdgeId' in parsedData && parsedData.originalEdgeId) {
           isDuplicateIntermediate = suggestionsList.some(
             (s) =>
               s.type === 'NEW_INTERMEDIATE_NODE' &&
@@ -190,6 +201,7 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
     }
 
     // Ensure the final list conforms to the output schema
-    return AllStructuralSuggestionsSchema.parse(suggestionsList);
+    const result = AllStructuralSuggestionsSchema.parse(suggestionsList);
+    return result;
   }
 );

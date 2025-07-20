@@ -1,5 +1,6 @@
-import { defineFlow, generate } from '@genkit-ai/flow';
-import { geminiPro } from '@genkit-ai/googleai';
+import { defineFlow } from '@genkit-ai/flow';
+import { generate } from '@genkit-ai/ai';
+import { gemini10Pro } from '@genkit-ai/googleai';
 import * as z from 'zod';
 
 // Input Schema: Current map data
@@ -16,6 +17,7 @@ export const MapDataSchema = z.object({
     .min(2, 'Map must have at least 2 nodes for improvement suggestions.'), // Require min nodes
   edges: z.array(
     z.object({
+      id: z.string(),
       source: z.string(),
       target: z.string(),
       label: z.string().optional(),
@@ -30,7 +32,7 @@ const AddEdgeDataSchema = z.object({
   label: z.string(),
 });
 
-const NewIntermediateNodeDataSchema = z.object({
+export const NewIntermediateNodeDataSchema = z.object({
   sourceNodeId: z.string(),
   targetNodeId: z.string(), // This is the original target
   intermediateNodeText: z.string(),
@@ -65,34 +67,32 @@ export const MapImprovementSuggestionSchema = z
   ])
   .nullable();
 
-export const suggestMapImprovementFlow = defineFlow(
-  {
-    name: 'suggestMapImprovementFlow',
-    inputSchema: MapDataSchema,
-    outputSchema: MapImprovementSuggestionSchema,
-  },
-  async (input) => {
-    const { nodes, edges } = input;
+const suggestMapImprovement = async (input: z.infer<typeof MapDataSchema>) => {
+  const { nodes, edges } = input;
 
-    if (nodes.length < 3 && edges.length < 1) {
-      // Need enough elements for meaningful suggestions
-      return null;
-    }
+  if (nodes.length < 3 && edges.length < 1) {
+    // Need enough elements for meaningful suggestions
+    return null;
+  }
 
-    const nodesSummary = nodes
-      .map(
-        (n) =>
-          `Node(id="${n.id}", text="${n.text}"${n.details ? `, details_preview="${n.details.substring(0, 50)}..."` : ''})`
-      )
-      .join(', ');
-    const edgesSummary = edges
-      .map(
-        (e) =>
-          `Edge(source="${e.source}", target="${e.target}"${e.label ? `, label="${e.label}"` : ''})`
-      )
-      .join(', ');
+  const nodesSummary = nodes
+    .map(
+      (n) =>
+        `Node(id="${n.id}", text="${n.text}"${
+          n.details ? `, details_preview="${n.details.substring(0, 50)}..."` : ''
+        })`
+    )
+    .join(', ');
+  const edgesSummary = edges
+    .map(
+      (e) =>
+        `Edge(source="${e.source}", target="${e.target}"${
+          e.label ? `, label="${e.label}"` : ''
+        })`
+    )
+    .join(', ');
 
-    const prompt = `
+  const prompt = `
       You are an expert concept map analyst and knowledge structurer.
       Analyze the provided concept map data (nodes and edges). Your goal is to suggest ONE high-impact structural improvement.
       The types of improvements you can suggest are:
@@ -117,8 +117,9 @@ export const suggestMapImprovementFlow = defineFlow(
       { "type": "NEW_INTERMEDIATE_NODE", "data": { "sourceNodeId": "nodeA", "targetNodeId": "nodeC", "intermediateNodeText": "Bridge Concept B", "labelToIntermediate": "leads to", "labelFromIntermediate": "then to", "originalEdgeId": "edge_AC_original" }, "reason": "Concept B clarifies the path from A to C." }
     `;
 
-    const llmResponse = await generate({
-      model: geminiPro,
+  const llmResponse = await generate(
+    {
+      model: gemini10Pro,
       prompt: prompt,
       config: {
         temperature: 0.5,
@@ -128,42 +129,54 @@ export const suggestMapImprovementFlow = defineFlow(
         format: 'json',
         schema: MapImprovementSuggestionSchema, // Zod schema for the union type
       },
-    });
+    },
+    {
+      tools: [],
+    }
+  );
 
-    const outputData = llmResponse.output();
+  const outputData = llmResponse.output();
 
-    // Basic validation for suggested IDs (can be enhanced)
-    if (outputData) {
-      const inputNodeIds = new Set(nodes.map((n) => n.id));
+  // Basic validation for suggested IDs (can be enhanced)
+  if (outputData) {
+    const inputNodeIds = new Set(nodes.map((n) => n.id));
+    if (
+      outputData.type === 'ADD_EDGE' ||
+      outputData.type === 'NEW_INTERMEDIATE_NODE'
+    ) {
       if (
-        outputData.type === 'ADD_EDGE' ||
-        outputData.type === 'NEW_INTERMEDIATE_NODE'
+        !inputNodeIds.has(outputData.data.sourceNodeId) ||
+        !inputNodeIds.has(outputData.data.targetNodeId)
       ) {
-        if (
-          !inputNodeIds.has(outputData.data.sourceNodeId) ||
-          !inputNodeIds.has(outputData.data.targetNodeId)
-        ) {
-          console.warn(
-            'AI suggested an edge or intermediate node involving non-existent node IDs. Clearing suggestion.'
-          );
-          return null;
-        }
-      } else if (outputData.type === 'FORM_GROUP') {
-        const allGroupIdsValid = outputData.data.nodeIdsToGroup.every((id) =>
-          inputNodeIds.has(id)
+        console.warn(
+          'AI suggested an edge or intermediate node involving non-existent node IDs. Clearing suggestion.'
         );
-        if (
-          !allGroupIdsValid ||
-          new Set(outputData.data.nodeIdsToGroup).size !==
-            outputData.data.nodeIdsToGroup.length
-        ) {
-          console.warn(
-            'AI suggested grouping with invalid or duplicate node IDs. Clearing suggestion.'
-          );
-          return null;
-        }
+        return null;
+      }
+    } else if (outputData.type === 'FORM_GROUP') {
+      const allGroupIdsValid = outputData.data.nodeIdsToGroup.every(
+        (id: string) => inputNodeIds.has(id)
+      );
+      if (
+        !allGroupIdsValid ||
+        new Set(outputData.data.nodeIdsToGroup).size !==
+          outputData.data.nodeIdsToGroup.length
+      ) {
+        console.warn(
+          'AI suggested grouping with invalid or duplicate node IDs. Clearing suggestion.'
+        );
+        return null;
       }
     }
-    return outputData;
   }
+  return outputData;
+};
+
+export const suggestMapImprovementFlow = defineFlow(
+  {
+    name: 'suggestMapImprovementFlow',
+    inputSchema: MapDataSchema,
+    outputSchema: MapImprovementSuggestionSchema,
+  },
+  suggestMapImprovement
 );

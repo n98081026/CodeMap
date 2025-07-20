@@ -1,6 +1,6 @@
 import { defineFlow } from '@genkit-ai/flow';
-import { generate } from 'genkit/ai';
-import { geminiPro } from 'genkitx/googleai'; // Or your configured LLM
+import { generate } from '@genkit-ai/ai';
+import { gemini10Pro } from '@genkit-ai/googleai'; // Or your configured LLM
 import { z } from 'zod';
 
 export const SuggestChildNodesRequestSchema = z.object({
@@ -85,12 +85,17 @@ Ensure the "text" for each child is not empty. Default "relationLabel" to "relat
       console.log(
         `[suggestChildNodesFlow] Requesting ${maxSuggestions} child suggestions for parent: "${parentNodeText}"`
       );
-      const llmResponse = await generate({
-        model: geminiPro,
-        prompt: prompt,
-        output: { format: 'json', schema: SuggestChildNodesResponseSchema },
-        config: { temperature: 0.5, maxOutputTokens: 300 * maxSuggestions }, // Adjusted max tokens based on suggestions
-      });
+      const llmResponse = await generate(
+        {
+          model: gemini10Pro,
+          prompt: prompt,
+          output: { format: 'json', schema: SuggestChildNodesResponseSchema },
+          config: { temperature: 0.5, maxOutputTokens: 300 * maxSuggestions }, // Adjusted max tokens based on suggestions
+        },
+        {
+          tools: [],
+        }
+      );
 
       const suggestions = llmResponse.output();
 

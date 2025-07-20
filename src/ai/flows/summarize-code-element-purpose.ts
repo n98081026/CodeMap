@@ -1,4 +1,5 @@
-import { defineFlow, ai } from 'genkit/flow';
+import { defineFlow } from '@genkit-ai/flow';
+import { ai } from '@genkit-ai/ai';
 import * as z from 'zod';
 
 // Define Zod schema for the input
@@ -90,7 +91,7 @@ export const summarizeCodeElementPurposeFlow = defineFlow(
     inputSchema: SummarizeCodeElementInputSchema,
     outputSchema: SummarizeCodeElementOutputSchema,
   },
-  async (input) => {
+  async (input: SummarizeCodeElementInput) => {
     const llmResponse = await summarizeCodeElementPurposePrompt.generate({
       input,
       temperature: 0.4,

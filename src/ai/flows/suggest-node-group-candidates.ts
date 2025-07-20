@@ -1,5 +1,6 @@
-import { defineFlow, generate } from '@genkit-ai/flow';
-import { geminiPro } from '@genkit-ai/googleai';
+import { defineFlow } from '@genkit-ai/flow';
+import { generate } from '@genkit-ai/ai';
+import { gemini10Pro } from '@genkit-ai/googleai';
 import * as z from 'zod';
 
 import { graphologyCommunityDetectionTool } from '../tools'; // Adjusted import path assuming tools/index.ts exports it
@@ -59,63 +60,60 @@ const LlmGroupValidationResponseSchema = z.object({
     ),
 });
 
-export const suggestNodeGroupCandidatesFlow = defineFlow(
-  {
-    name: 'suggestNodeGroupCandidatesFlow',
-    inputSchema: MapDataSchema,
-    outputSchema: NodeGroupSuggestionSchema,
-  },
-  async (mapData) => {
-    if (!mapData.nodes || mapData.nodes.length < 2) {
-      return null; // Not enough nodes to form a group or for community detection
-    }
+const suggestNodeGroupCandidates = async (
+  mapData: z.infer<typeof MapDataSchema>
+) => {
+  if (!mapData.nodes || mapData.nodes.length < 2) {
+    return null; // Not enough nodes to form a group or for community detection
+  }
 
-    // Step 1: Graphology Community Detection
-    const communityDetectionResult =
-      await graphologyCommunityDetectionTool.run(mapData);
+  // Step 1: Graphology Community Detection
+  const communityDetectionResult = await graphologyCommunityDetectionTool.run(
+    mapData
+  );
 
-    if (
-      communityDetectionResult.error ||
-      !communityDetectionResult.detectedCommunities ||
-      communityDetectionResult.detectedCommunities.length === 0
-    ) {
-      console.log(
-        '[SuggestNodeGroup] No communities found by graphology tool or error occurred.',
-        communityDetectionResult.error
-      );
-      return null;
-    }
-
-    // Take the first valid community (already filtered by size 2-5 in the tool)
-    const firstCommunity = communityDetectionResult.detectedCommunities[0];
-    if (!firstCommunity || firstCommunity.nodeIds.length < 2) {
-      // Should be redundant due to tool's filtering
-      console.log(
-        '[SuggestNodeGroup] First community is invalid or too small.'
-      );
-      return null;
-    }
-
-    // Step 2: LLM Refinement & Naming
-    const nodesInCommunity = mapData.nodes.filter((node) =>
-      firstCommunity.nodeIds.includes(node.id)
+  if (
+    communityDetectionResult.error ||
+    !communityDetectionResult.detectedCommunities ||
+    communityDetectionResult.detectedCommunities.length === 0
+  ) {
+    console.log(
+      '[SuggestNodeGroup] No communities found by graphology tool or error occurred.',
+      communityDetectionResult.error
     );
+    return null;
+  }
 
-    if (nodesInCommunity.length !== firstCommunity.nodeIds.length) {
-      console.warn(
-        '[SuggestNodeGroup] Mismatch between community node IDs and found nodes. Aborting.'
-      );
-      return null;
-    }
+  // Take the first valid community (already filtered by size 2-5 in the tool)
+  const firstCommunity = communityDetectionResult.detectedCommunities[0];
+  if (!firstCommunity || firstCommunity.nodeIds.length < 2) {
+    // Should be redundant due to tool's filtering
+    console.log('[SuggestNodeGroup] First community is invalid or too small.');
+    return null;
+  }
 
-    const communityNodesSummary = nodesInCommunity
-      .map(
-        (n) =>
-          `Node(id="${n.id}", text="${n.text}"${n.details ? `, details_preview="${n.details.substring(0, 70)}..."` : ''})`
-      )
-      .join('; ');
+  // Step 2: LLM Refinement & Naming
+  const nodesInCommunity = mapData.nodes.filter((node) =>
+    firstCommunity.nodeIds.includes(node.id)
+  );
 
-    const validateAndNamePrompt = `
+  if (nodesInCommunity.length !== firstCommunity.nodeIds.length) {
+    console.warn(
+      '[SuggestNodeGroup] Mismatch between community node IDs and found nodes. Aborting.'
+    );
+    return null;
+  }
+
+  const communityNodesSummary = nodesInCommunity
+    .map(
+      (n) =>
+        `Node(id="${n.id}", text="${n.text}"${
+          n.details ? `, details_preview="${n.details.substring(0, 70)}..."` : ''
+        })`
+    )
+    .join('; ');
+
+  const validateAndNamePrompt = `
       You are an expert knowledge organizer. A community detection algorithm has identified the following group of nodes from a concept map:
       [${communityNodesSummary}]
 
@@ -145,8 +143,9 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
       }
     `;
 
-    const llmResponse = await generate({
-      model: geminiPro,
+  const llmResponse = await generate(
+    {
+      model: gemini10Pro,
       prompt: validateAndNamePrompt,
       output: {
         format: 'json',
@@ -155,40 +154,52 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
       config: {
         temperature: 0.5, // Moderate temperature for creative but relevant naming
       },
-    });
-
-    const validationOutput = llmResponse.output();
-
-    if (!validationOutput) {
-      console.warn(
-        '[SuggestNodeGroup] LLM validation/naming returned no output.'
-      );
-      return null;
+    },
+    {
+      tools: [],
     }
+  );
 
-    if (validationOutput.isCoherent && validationOutput.suggestedParentName) {
-      // Ensure the output matches NodeGroupSuggestionSchema
-      const finalSuggestion = {
-        nodeIdsToGroup: firstCommunity.nodeIds.sort(), // Ensure sorted order
-        suggestedParentName: validationOutput.suggestedParentName,
-        reason: validationOutput.reason || undefined, // Convert null to undefined if that's what schema expects for optional
-      };
-      // Validate with the final output schema before returning
-      const parsedResult = NodeGroupSuggestionSchema.safeParse(finalSuggestion);
-      if (parsedResult.success) {
-        return parsedResult.data;
-      } else {
-        console.warn(
-          '[SuggestNodeGroup] LLM output for coherent group failed final schema validation:',
-          parsedResult.error
-        );
-        return null;
-      }
-    } else {
-      console.log(
-        '[SuggestNodeGroup] LLM deemed the community not coherent or failed to provide a name.'
-      );
-      return null;
-    }
+  const validationOutput = llmResponse.output();
+
+  if (!validationOutput) {
+    console.warn(
+      '[SuggestNodeGroup] LLM validation/naming returned no output.'
+    );
+    return null;
   }
+
+  if (validationOutput.isCoherent && validationOutput.suggestedParentName) {
+    // Ensure the output matches NodeGroupSuggestionSchema
+    const finalSuggestion = {
+      nodeIdsToGroup: firstCommunity.nodeIds.sort(), // Ensure sorted order
+      suggestedParentName: validationOutput.suggestedParentName,
+      reason: validationOutput.reason || undefined, // Convert null to undefined if that's what schema expects for optional
+    };
+    // Validate with the final output schema before returning
+    const parsedResult = NodeGroupSuggestionSchema.safeParse(finalSuggestion);
+    if (parsedResult.success) {
+      return parsedResult.data;
+    } else {
+      console.warn(
+        '[SuggestNodeGroup] LLM output for coherent group failed final schema validation:',
+        parsedResult.error
+      );
+      return null;
+    }
+  } else {
+    console.log(
+      '[SuggestNodeGroup] LLM deemed the community not coherent or failed to provide a name.'
+    );
+    return null;
+  }
+};
+
+export const suggestNodeGroupCandidatesFlow = defineFlow(
+  {
+    name: 'suggestNodeGroupCandidatesFlow',
+    inputSchema: MapDataSchema,
+    outputSchema: NodeGroupSuggestionSchema,
+  },
+  suggestNodeGroupCandidates
 );

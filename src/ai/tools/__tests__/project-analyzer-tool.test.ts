@@ -1,15 +1,18 @@
+/// <reference types="jest" />
 // src/ai/tools/project-analyzer-tool.test.ts
 import {
   projectStructureAnalyzerTool,
   ProjectAnalysisInput,
   ProjectAnalysisOutputSchema,
 } from '../project-analyzer-tool';
+import { z } from 'zod';
 import { supabaseFileFetcherTool } from '../supabase-file-fetcher-tool';
 
 import { summarizeCodeElementPurposeFlow } from '@/ai/flows/summarize-code-element-purpose';
 
+import { jest } from '@jest/globals';
 // Mock dependencies
-jest.mock('./supabase-file-fetcher-tool', () => ({
+jest.mock('../supabase-file-fetcher-tool', () => ({
   supabaseFileFetcherTool: {
     run: jest.fn(),
   },
@@ -23,6 +26,25 @@ jest.mock('@/ai/flows/summarize-code-element-purpose', () => ({
 
 const mockedSupabaseFileFetcher = supabaseFileFetcherTool.run as jest.Mock;
 const mockedSummarizeFlow = summarizeCodeElementPurposeFlow.run as jest.Mock;
+
+const mockJsFileContentFixture = `
+function calculateTotalPrice(price, quantity) {
+  const total = price * quantity;
+  return applyDiscount(total);
+}
+
+function applyDiscount(amount) {
+  return amount * 0.9;
+}
+`;
+
+const mockPyFileContentFixture = `
+def add(a, b):
+  return a + b
+
+def subtract(a, b):
+  return a - b
+`;
 
 describe('projectStructureAnalyzerTool', () => {
   beforeEach(() => {
@@ -66,6 +88,9 @@ class MyClass(BaseClass):
   def __init__(self, value: int):
     self.instance_var = value
     super().__init__()
+
+class BaseClass:
+    pass
 
   def method_one(self, multiplier: float) -> float:
     """Multiplies instance_var."""

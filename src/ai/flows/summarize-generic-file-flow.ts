@@ -1,9 +1,7 @@
 import { defineFlow, runFlow } from '@genkit-ai/flow';
-import { modelos } from 'generative-ai'; // Assuming 'modelos' is your configured Genkit model provider
+import { generate } from '@genkit-ai/ai';
+import { gemini10Pro } from '@genkit-ai/googleai';
 import { z } from 'zod';
-
-// import { projectAnalysisToolSchema } from './project-analysis-flow'; // Removed unused import
-import { projectAnalysisToolSchema } from './project-analysis-flow'; // Assuming this is where common schemas might live, or create a new one
 
 export const SummarizeGenericFileInputSchema = z.object({
   fileName: z.string().describe('The name of the file to be summarized.'),
@@ -66,14 +64,20 @@ export const summarizeGenericFileFlow = defineFlow(
     `;
 
     try {
-      const llmResponse = await modelos.generate({
-        prompt: prompt,
-        temperature: 0.2, // Lower temperature for more factual summary
-        maxOutputTokens: 100, // Max length for the summary sentence
-        stopSequences: ['\n\n'], // Stop if it tries to generate more paragraphs
-      });
+      const llmResponse = await generate(
+        {
+          model: gemini10Pro,
+          prompt: prompt,
+          config: {
+            temperature: 0.2, // Lower temperature for more factual summary
+          },
+        },
+        {
+          tools: [],
+        }
+      );
 
-      const summaryText = llmResponse.text()?.trim();
+      const summaryText = llmResponse.text();
 
       if (!summaryText) {
         return {

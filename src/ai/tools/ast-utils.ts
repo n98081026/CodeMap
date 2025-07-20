@@ -27,15 +27,14 @@ export async function batchSummarizeElements(
   fileName: string // fileName is part of task.inputForFlow.filePath, consider removing if redundant
 ): Promise<Map<string, string>> {
   const summarizationPromises = tasks.map((task) =>
-    summarizeCodeElementPurposeFlow
-      .run(task.inputForFlow)
-      .then((summaryResult) => ({
+    summarizeCodeElementPurposeFlow(task.inputForFlow)
+      .then((summaryResult: any) => ({
         uniqueId: task.uniqueId,
         semanticSummary:
           summaryResult.semanticSummary ||
           'Purpose unclear from available data.',
       }))
-      .catch((error) => {
+      .catch((error: any) => {
         console.warn(
           `[AST Utils] Error summarizing ${task.nodeType} ${task.originalNodeInfo.name} in ${task.inputForFlow.filePath || fileName}: ${error.message}`
         );
@@ -46,7 +45,7 @@ export async function batchSummarizeElements(
       })
   );
   const allSummaryResults = await Promise.all(summarizationPromises);
-  return new Map(allSummaryResults.map((r) => [r.uniqueId, r.semanticSummary]));
+  return new Map(allSummaryResults.map((r: any) => [r.uniqueId, r.semanticSummary]));
 }
 
 export function createDetailedNodeFromExtractedElement(
@@ -83,9 +82,6 @@ export function createDetailedNodeFromExtractedElement(
       details += `Exported: ${element.isExported}. `;
   }
 
-  if (element.decorators && element.decorators.length > 0) {
-    details += `Decorators: ${element.decorators.join(', ')}. `;
-  }
   if (element.comments)
     details += `Docstring/Comments: Present (see structuredInfo).`;
   else details += `Docstring/Comments: None.`;
@@ -102,10 +98,6 @@ export function createDetailedNodeFromExtractedElement(
     label: `${element.name} (${element.kind})`,
     type: `${languagePrefix}_${element.kind}`,
     details: details.trim(),
-    lineNumbers:
-      element.startLine && element.endLine
-        ? `${element.startLine}-${element.endLine}`
-        : undefined,
     structuredInfo: structuredInfoForNode,
   };
 }
