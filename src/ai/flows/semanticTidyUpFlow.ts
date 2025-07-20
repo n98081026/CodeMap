@@ -106,6 +106,7 @@ The origin (0,0) for your new layout should be considered the top-left of the bo
         `[semanticTidyUpFlow] Sending ${nodesToTidy.length} nodes to LLM for tidying.`
       );
       const llmResponse = await generate({
+        model: gemini10Pro,
         prompt: prompt,
         output: { format: 'json', schema: SemanticTidyUpResponseSchema },
         config: { temperature: 0.4 },

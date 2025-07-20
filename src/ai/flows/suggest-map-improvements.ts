@@ -1,7 +1,7 @@
 import { defineFlow } from '@genkit-ai/flow';
 import { generate } from '@genkit-ai/ai';
 import { gemini10Pro } from '@genkit-ai/googleai';
-import { connectedComponents } from 'graphology-metrics'; // For connected components count
+import { connectedComponents } from 'graphology-components'; // For connected components count
 import { z } from 'zod';
 
 import { GraphAdapterUtility } from '../../lib/graphologyAdapter';

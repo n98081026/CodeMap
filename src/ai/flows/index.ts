@@ -12,10 +12,8 @@ export * from './suggest-relations';
 export * from './suggest-semantic-parent';
 export * from './summarize-nodes-flow';
 export * from './suggest-arrangement-action';
-export {
-  suggestNodeGroupCandidatesFlow,
-  NodeGroupSuggestionSchema,
-} from './suggest-node-group-candidates';
+export { suggestNodeGroupCandidatesFlow } from './suggest-node-group-candidates';
+export { NodeGroupSuggestionSchema } from './schemas';
 export * from './suggest-map-improvement';
 export * from './suggest-map-improvements';
 export * from './fetch-all-structural-suggestions';
