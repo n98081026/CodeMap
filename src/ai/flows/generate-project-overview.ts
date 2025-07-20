@@ -5,11 +5,13 @@
  * This includes a concise text summary and identification of key modules/components.
  */
 
+import { defineFlow } from '@genkit-ai/flow';
 import { z } from 'genkit';
 
 import { ai } from '@/ai/genkit';
 import {
   projectStructureAnalyzerTool,
+  ProjectAnalysisOutputSchema,
   type ProjectAnalysisOutput,
 } from '@/ai/tools/project-analyzer-tool';
 
@@ -30,23 +32,6 @@ export const GenerateProjectOverviewInputSchema = z.object({
 export type GenerateProjectOverviewInput = z.infer<
   typeof GenerateProjectOverviewInputSchema
 >;
-
-// --- Output Schema ---
-const KeyModuleSchema = z.object({
-  name: z.string().describe('Name of the identified key module or component.'),
-  description: z
-    .string()
-    .describe(
-      "A concise, plain-language description of this module's purpose or functionality."
-    ),
-  filePaths: z
-    .array(z.string())
-    .optional()
-    .describe(
-      'Optional: List of 1-3 key file paths primarily constituting this module.'
-    ),
-});
-export type KeyModule = z.infer<typeof KeyModuleSchema>;
 
 // --- Output Schema ---
 const KeyModuleSchema = z.object({
@@ -173,7 +158,7 @@ Example for 'keyModules' and 'moduleConnections':
 });
 
 // --- Genkit Flow ---
-export const generateProjectOverviewFlow = ai.defineFlow(
+export const generateProjectOverviewFlow = defineFlow(
   {
     name: 'generateProjectOverviewFlow',
     inputSchema: GenerateProjectOverviewInputSchema,
@@ -184,20 +169,23 @@ export const generateProjectOverviewFlow = ai.defineFlow(
     try {
       // Step 1: Analyze the project structure using the existing tool.
       projectAnalysis = await projectStructureAnalyzerTool.run({
-        projectStoragePath: input.projectStoragePath,
-        userHint: input.userGoals, // Pass userGoals as a hint to the analyzer
+        supabasePath: input.projectStoragePath,
       });
 
       if (
-        projectAnalysis.error &&
-        (!projectAnalysis.detailedNodes ||
-          projectAnalysis.detailedNodes.length < 3)
+        (projectAnalysis as any).error &&
+        (!(projectAnalysis as any).detailedNodes ||
+          (projectAnalysis as any).detailedNodes.length < 3)
       ) {
         // If analysis itself failed significantly, reflect this in the overview output.
         return {
-          overallSummary: `Could not generate a project overview due to issues analyzing the project structure: ${projectAnalysis.error}.`,
+          overallSummary: `Could not generate a project overview due to issues analyzing the project structure: ${
+            (projectAnalysis as any).error
+          }.`,
           keyModules: [],
-          error: `Project structure analysis failed: ${projectAnalysis.error}`,
+          error: `Project structure analysis failed: ${
+            (projectAnalysis as any).error
+          }`,
         };
       }
     } catch (e: any) {
@@ -231,13 +219,16 @@ export const generateProjectOverviewFlow = ai.defineFlow(
       // Ensure keyModules has at least 2 items if no error, otherwise fulfill schema with empty or error indication
       if (!output.error && output.keyModules.length < 2) {
         if (
-          projectAnalysis.detailedNodes &&
-          projectAnalysis.detailedNodes.length > 0
+          (projectAnalysis as any).detailedNodes &&
+          (projectAnalysis as any).detailedNodes.length > 0
         ) {
           // Attempt to create generic modules if LLM failed to provide enough
-          output.keyModules = projectAnalysis.detailedNodes
-            .slice(0, Math.min(2, projectAnalysis.detailedNodes.length))
-            .map((node) => ({
+          output.keyModules = (projectAnalysis as any).detailedNodes
+            .slice(
+              0,
+              Math.min(2, (projectAnalysis as any).detailedNodes.length)
+            )
+            .map((node: any) => ({
               name: node.label.split('(')[0].trim() || 'Unnamed Module',
               description: node.details || 'A component of the project.',
             }));

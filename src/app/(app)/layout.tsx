@@ -2,8 +2,7 @@
 import { Loader2 } from 'lucide-react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import { useEffect, useState } from 'react'; // Import useState
-import { useEffect, useState, useCallback } from 'react'; // Import useCallback
+import { useEffect, useState, useCallback } from 'react';
 
 import { MainLayout } from '@/components/layout/main-layout';
 import AppTutorial from '@/components/tutorial/app-tutorial';

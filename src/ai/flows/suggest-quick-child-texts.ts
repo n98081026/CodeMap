@@ -1,5 +1,6 @@
-import { defineFlow, generate } from '@genkit-ai/flow';
-import { geminiPro } from '@genkit-ai/googleai'; // Assuming geminiPro is standard
+import { defineFlow } from '@genkit-ai/flow';
+import { generate } from '@genkit-ai/ai';
+import { gemini10Pro } from '@genkit-ai/googleai'; // Assuming geminiPro is standard
 import * as z from 'zod';
 
 // Define the input schema for the flow
@@ -39,18 +40,23 @@ export const suggestQuickChildTextsFlow = defineFlow(
       ["Child Idea 1", "Child Idea 2", "Another Child Concept"]
     `;
 
-    const llmResponse = await generate({
-      model: geminiPro,
-      prompt: prompt,
-      config: {
-        temperature: 0.5, // Moderate temperature for some creativity but still focused
-        maxOutputTokens: 100, // Max tokens for the suggestions array
+    const llmResponse = await generate(
+      {
+        model: gemini10Pro,
+        prompt: prompt,
+        config: {
+          temperature: 0.5, // Moderate temperature for some creativity but still focused
+          maxOutputTokens: 100, // Max tokens for the suggestions array
+        },
+        output: {
+          format: 'json', // Expect JSON output directly
+          schema: SuggestQuickChildTextsOutputSchema, // Validate against output schema
+        },
       },
-      output: {
-        format: 'json', // Expect JSON output directly
-        schema: SuggestQuickChildTextsOutputSchema, // Validate against output schema
-      },
-    });
+      {
+        tools: [],
+      }
+    );
 
     const outputData = llmResponse.output();
     if (!outputData) {

@@ -127,12 +127,14 @@ export const generateMapFromAnalysisOutputFlow = ai.defineFlow(
   },
   async (input) => {
     if (
-      input.analysisOutput.error &&
-      (!input.analysisOutput.detailedNodes ||
-        input.analysisOutput.detailedNodes.length === 0)
+      'error' in input.analysisOutput &&
+      (input.analysisOutput as any).error &&
+      (!('detailedNodes' in input.analysisOutput) ||
+        !(input.analysisOutput as any).detailedNodes ||
+        (input.analysisOutput as any).detailedNodes.length === 0)
     ) {
       // If the input analysis itself has a significant error, reflect that.
-      const errorNodeId = `error_${input.analysisOutput.analyzedFileName.replace(/[^a-zA-Z0-9_]/g, '_') || 'general'}`;
+      const errorNodeId = `error_${('analyzedFileName' in input.analysisOutput && (input.analysisOutput as any).analyzedFileName.replace(/[^a-zA-Z0-9_]/g, '_')) || 'general'}`;
       return {
         conceptMapData: {
           nodes: [
@@ -140,12 +142,12 @@ export const generateMapFromAnalysisOutputFlow = ai.defineFlow(
               id: errorNodeId,
               text: 'File Analysis Error',
               type: 'error_node',
-              details: input.analysisOutput.error,
+              details: (input.analysisOutput as any).error,
             },
           ],
           edges: [],
         },
-        error: `Upstream analysis error: ${input.analysisOutput.error}`,
+        error: `Upstream analysis error: ${(input.analysisOutput as any).error}`,
       };
     }
 

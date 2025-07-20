@@ -1,7 +1,7 @@
 import { defineFlow } from '@genkit-ai/flow';
-import { generate } from 'genkit/ai';
-import { geminiPro } from 'genkitx/googleai';
-import { connectedComponents } from 'graphology-components'; // For connected components count
+import { generate } from '@genkit-ai/ai';
+import { gemini10Pro } from '@genkit-ai/googleai';
+import { connectedComponents } from 'graphology-metrics'; // For connected components count
 import { z } from 'zod';
 
 import { GraphAdapterUtility } from '../../lib/graphologyAdapter';
@@ -102,9 +102,9 @@ export const suggestMapImprovementsFlow = defineFlow(
         }
 
         // Degree Centrality
-        const degrees = graphAdapter.getDegreeCentrality?.(graphInstance) || {}; // Use optional chaining if method might not exist
+        const degrees = graphAdapter.getDegreeCentrality(graphInstance);
         const sortedDegree = Object.entries(degrees)
-          .sort(([, a], [, b]) => b - a)
+          .sort(([, a]: [string, any], [, b]: [string, any]) => b - a)
           .slice(0, 5);
         if (sortedDegree.length > 0) {
           graphAnalysisInsights += `- Top 5 High Degree Centrality Nodes (hubs): ${sortedDegree.map(([id, score]) => `${mapData.nodes.find((n) => n.id === id)?.text || id} (degree: ${score})`).join(', ')}\n`;
@@ -224,12 +224,17 @@ Provide only the JSON object as your output. Focus on quality and relevance over
 `;
 
     try {
-      const llmResponse = await generate({
-        model: geminiPro,
-        prompt: prompt,
-        output: { format: 'json', schema: SuggestedImprovementsSchema },
-        config: { temperature: 0.5 }, // Slightly higher temp for more creative interpretation of metrics
-      });
+      const llmResponse = await generate(
+        {
+          model: gemini10Pro,
+          prompt: prompt,
+          output: { format: 'json', schema: SuggestedImprovementsSchema },
+          config: { temperature: 0.5 }, // Slightly higher temp for more creative interpretation of metrics
+        },
+        {
+          tools: [],
+        }
+      );
       const output = llmResponse.output();
       // ... (rest of post-processing logic as before)
       const rawEdges = output?.suggestedEdges || [];
@@ -248,24 +253,26 @@ Provide only the JSON object as your output. Focus on quality and relevance over
 
       const validEdgeSuggestions = rawEdges
         .filter(
-          (s) => existingNodeIds.has(s.source) && existingNodeIds.has(s.target)
+          (s: SuggestedEdge) =>
+            existingNodeIds.has(s.source) && existingNodeIds.has(s.target)
         )
-        .filter((s) => s.source !== s.target)
+        .filter((s: SuggestedEdge) => s.source !== s.target)
         .filter(
-          (s) =>
+          (s: SuggestedEdge) =>
             !existingEdgesSet.has(`${s.source}-${s.target}`) &&
             !existingEdgesReverseSet.has(`${s.source}-${s.target}`)
         );
 
       const validGroupSuggestions = rawGroups
         .filter(
-          (g) => g.nodeIds && Array.isArray(g.nodeIds) && g.nodeIds.length >= 2
+          (g: SuggestedGroup) =>
+            g.nodeIds && Array.isArray(g.nodeIds) && g.nodeIds.length >= 2
         )
-        .map((g) => ({
+        .map((g: SuggestedGroup) => ({
           ...g,
-          nodeIds: g.nodeIds.filter((id) => existingNodeIds.has(id)),
+          nodeIds: g.nodeIds.filter((id: string) => existingNodeIds.has(id)),
         }))
-        .filter((g) => g.nodeIds.length >= 2);
+        .filter((g: SuggestedGroup) => g.nodeIds.length >= 2);
 
       console.log(
         `[suggestMapImprovementsFlow] Returning ${validEdgeSuggestions.length} valid edge suggestions and ${validGroupSuggestions.length} valid group suggestions after filtering.`

@@ -1,5 +1,6 @@
-import { defineFlow, run } from '@genkit-ai/flow';
-import { geminiPro } from '@genkit-ai/googleai'; // Or your preferred model
+import { defineFlow } from '@genkit-ai/flow';
+import { generate } from '@genkit-ai/ai';
+import { gemini10Pro } from '@genkit-ai/googleai'; // Or your preferred model
 import { z } from 'zod';
 
 // 1a. Define Input/Output Schemas
@@ -49,13 +50,12 @@ The labels should be short, ideally 1-3 words, and clearly describe the relation
 
 JSON Array of Suggested Labels:`;
 
-    const llmResponse = await run('generate-edge-labels', async () =>
-      geminiPro.generate({
-        prompt: prompt,
-        output: { format: 'json', schema: z.array(z.string()) },
-        config: { temperature: 0.4 }, // Slightly lower temperature for more deterministic suggestions
-      })
-    );
+    const llmResponse = await generate({
+      model: gemini10Pro,
+      prompt: prompt,
+      output: { format: 'json', schema: z.array(z.string()) },
+      config: { temperature: 0.4 }, // Slightly lower temperature for more deterministic suggestions
+    });
 
     const suggestions = llmResponse.output();
 

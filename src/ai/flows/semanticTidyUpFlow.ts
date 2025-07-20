@@ -1,6 +1,6 @@
 import { defineFlow } from '@genkit-ai/flow';
-import { generate } from 'genkit/ai';
-import { geminiPro } from 'genkitx/googleai'; // Or your configured LLM
+import { generate } from '@genkit-ai/ai';
+import { gemini10Pro } from '@genkit-ai/googleai'; // Or your configured LLM
 import { z } from 'zod';
 
 // Input: Array of nodes with their content and current layout
@@ -106,7 +106,6 @@ The origin (0,0) for your new layout should be considered the top-left of the bo
         `[semanticTidyUpFlow] Sending ${nodesToTidy.length} nodes to LLM for tidying.`
       );
       const llmResponse = await generate({
-        model: geminiPro,
         prompt: prompt,
         output: { format: 'json', schema: SemanticTidyUpResponseSchema },
         config: { temperature: 0.4 },

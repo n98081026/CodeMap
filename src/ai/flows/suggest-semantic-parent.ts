@@ -1,5 +1,6 @@
-import { defineFlow, generate } from '@genkit-ai/flow';
-import { geminiPro } from '@genkit-ai/googleai';
+import { defineFlow } from '@genkit-ai/flow';
+import { generate } from '@genkit-ai/ai';
+import { gemini10Pro } from '@genkit-ai/googleai';
 import * as z from 'zod';
 
 // Input Schema: An array of objects, each representing a selected node
@@ -64,18 +65,23 @@ export const suggestSemanticParentNodeFlow = defineFlow(
       }
     `;
 
-    const llmResponse = await generate({
-      model: geminiPro,
-      prompt: prompt,
-      config: {
-        temperature: 0.5,
-        maxOutputTokens: 150,
+    const llmResponse = await generate(
+      {
+        model: gemini10Pro,
+        prompt: prompt,
+        config: {
+          temperature: 0.5,
+          maxOutputTokens: 150,
+        },
+        output: {
+          format: 'json',
+          schema: SuggestSemanticParentOutputSchema,
+        },
       },
-      output: {
-        format: 'json',
-        schema: SuggestSemanticParentOutputSchema,
-      },
-    });
+      {
+        tools: [],
+      }
+    );
 
     const outputData = llmResponse.output();
     if (!outputData) {
