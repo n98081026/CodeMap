@@ -30,64 +30,59 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
     outputSchema: AllStructuralSuggestionsSchema,
   },
   async (mapData) => {
-    const suggestionsList: z.infer<typeof StructuralSuggestionItemSchema>[] = [];
+    const suggestionsList: z.infer<typeof StructuralSuggestionItemSchema>[] =
+      [];
 
     // 1. Call suggestMapImprovementFlow
     try {
-      const mapDataWithCoords = {
-        ...mapData,
-        nodes: mapData.nodes.map(node => ({ ...node, x: 0, y: 0 })),
-      };
       const improvementSuggestion = await runFlow(
         suggestMapImprovementFlow,
-        mapDataWithCoords
+        mapData
       );
       if (improvementSuggestion) {
-        if (improvementSuggestion) {
-          const suggestion = improvementSuggestion as z.infer<
-            typeof MapImprovementSuggestionSchema
-          >;
-          if (suggestion) {
-            let validatedData:
-              | z.infer<typeof AddEdgeDataSchema>
-              | z.infer<typeof AISuggestionsNewIntermediateNodeDataSchema>
-              | z.infer<typeof FormGroupDataSchema>;
-            // Validate and parse the data based on the type
-            if (suggestion.type === 'ADD_EDGE') {
-              validatedData = AddEdgeDataSchema.parse(suggestion.data);
-            } else if (suggestion.type === 'NEW_INTERMEDIATE_NODE') {
-              // Ensure field names match before parsing
-              const intermediateData = {
-                ...suggestion.data,
-                // newNodeText: suggestion.data.intermediateNodeText, // if there's a mismatch
-              };
-              validatedData =
-                AISuggestionsNewIntermediateNodeDataSchema.parse(
-                  intermediateData
-                );
-            } else if (suggestion.type === 'FORM_GROUP') {
-              validatedData = FormGroupDataSchema.parse(suggestion.data);
-            } else {
-              // Should not happen if MapImprovementSuggestionSchema is correctly defined and followed
-              console.warn(
-                `Unknown suggestion type from suggestMapImprovementFlow: ${
-                  (suggestion as any).type
-                }`
+        const suggestion = improvementSuggestion as z.infer<
+          typeof MapImprovementSuggestionSchema
+        >;
+        if (suggestion) {
+          let validatedData:
+            | z.infer<typeof AddEdgeDataSchema>
+            | z.infer<typeof AISuggestionsNewIntermediateNodeDataSchema>
+            | z.infer<typeof FormGroupDataSchema>;
+          // Validate and parse the data based on the type
+          if (suggestion.type === 'ADD_EDGE') {
+            validatedData = AddEdgeDataSchema.parse(suggestion.data);
+          } else if (suggestion.type === 'NEW_INTERMEDIATE_NODE') {
+            // Ensure field names match before parsing
+            const intermediateData = {
+              ...suggestion.data,
+              // newNodeText: suggestion.data.intermediateNodeText, // if there's a mismatch
+            };
+            validatedData =
+              AISuggestionsNewIntermediateNodeDataSchema.parse(
+                intermediateData
               );
-              return suggestionsList; // Or handle error appropriately
-            }
-
-            suggestionsList.push({
-              id: uuidv4(),
-              type: suggestion.type as
-                | 'ADD_EDGE'
-                | 'NEW_INTERMEDIATE_NODE'
-                | 'FORM_GROUP',
-              data: validatedData,
-              reason: suggestion.reason,
-              status: 'pending',
-            });
+          } else if (suggestion.type === 'FORM_GROUP') {
+            validatedData = FormGroupDataSchema.parse(suggestion.data);
+          } else {
+            // Should not happen if MapImprovementSuggestionSchema is correctly defined and followed
+            console.warn(
+              `Unknown suggestion type from suggestMapImprovementFlow: ${
+                (suggestion as any).type
+              }`
+            );
+            return suggestionsList; // Or handle error appropriately
           }
+
+          suggestionsList.push({
+            id: uuidv4(),
+            type: suggestion.type as
+              | 'ADD_EDGE'
+              | 'NEW_INTERMEDIATE_NODE'
+              | 'FORM_GROUP',
+            data: validatedData,
+            reason: suggestion.reason,
+            status: 'pending',
+          });
         }
       }
     } catch (error) {

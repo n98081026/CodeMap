@@ -20,8 +20,8 @@ jest.mock('../supabase-file-fetcher-tool');
 const mockedSummarizeFlow = jest.fn();
 const mockedSupabaseFileFetcher = jest.fn();
 
-jest.mocked(summarizeCodeElementPurposeFlow).mockImplementation(mockedSummarizeFlow);
-jest.mocked(supabaseFileFetcherTool).mockImplementation(mockedSupabaseFileFetcher);
+(summarizeCodeElementPurposeFlow as any).mockImplementation(mockedSummarizeFlow);
+(supabaseFileFetcherTool as any).mockImplementation(mockedSupabaseFileFetcher);
 
 const mockJsFileContentFixture = `
 function calculateTotalPrice(price, quantity) {
@@ -102,9 +102,9 @@ def another_top_level_function():
     top_level_function(1, "test") # local call
 `;
       mockedSupabaseFileFetcher.mockResolvedValue(
-        createMockFileFetcherOutput('test_script.py', pythonContent)
+        createMockFileFetcherOutput('test_script.py', pythonContent) as any
       );
-      mockedSummarizeFlow.mockImplementation(async (input) => ({
+      mockedSummarizeFlow.mockImplementation(async (input: any) => ({
         semanticSummary: `Mocked summary for ${input.elementType} ${input.elementName}`,
       }));
 
@@ -112,7 +112,7 @@ def another_top_level_function():
         supabasePath: 'user/project/test_script.py',
         isMock: true,
       };
-      const result = await runFlow(projectStructureAnalyzerTool, input);
+      const result = await runFlow(projectStructureAnalyzerTool, input as any);
 
       expect(result.error).toBeUndefined();
       expect(result.analyzedFileName).toBe('test_script.py');
@@ -128,7 +128,7 @@ def another_top_level_function():
       const detailedNodes = result.detailedNodes || [];
       // Verify top_level_function
       const funcNode = detailedNodes.find(
-        (n) => n.label === 'top_level_function (function)'
+        (n: any) => n.label === 'top_level_function (function)'
       );
       expect(funcNode).toBeDefined();
       expect(funcNode?.type).toBe('py_function');
@@ -144,7 +144,7 @@ def another_top_level_function():
 
       // Verify MyClass
       const classNode = detailedNodes.find(
-        (n) => n.label === 'MyClass (class)'
+        (n: any) => n.label === 'MyClass (class)'
       );
       expect(classNode).toBeDefined();
       expect(classNode?.type).toBe('py_class');
@@ -156,7 +156,7 @@ def another_top_level_function():
 
       // Verify __init__ method
       const initMethodNode = detailedNodes.find(
-        (n) =>
+        (n: any) =>
           n.structuredInfo.name === '__init__' &&
           n.structuredInfo.parentName === 'MyClass'
       );
@@ -170,7 +170,7 @@ def another_top_level_function():
 
       // Verify method_one
       const methodOneNode = detailedNodes.find(
-        (n) =>
+        (n: any) =>
           n.structuredInfo.name === 'method_one' &&
           n.structuredInfo.parentName === 'MyClass'
       );
@@ -192,7 +192,7 @@ def another_top_level_function():
 
       // Verify another_method
       const anotherMethodNode = detailedNodes.find(
-        (n) =>
+        (n: any) =>
           n.structuredInfo.name === 'another_method' &&
           n.structuredInfo.parentName === 'MyClass'
       );
@@ -205,7 +205,7 @@ def another_top_level_function():
 
       // Verify another_top_level_function and its call
       const anotherFuncNode = detailedNodes.find(
-        (n) => n.label === 'another_top_level_function (function)'
+        (n: any) => n.label === 'another_top_level_function (function)'
       );
       expect(anotherFuncNode).toBeDefined();
       expect(anotherFuncNode?.details).toContain(
@@ -214,11 +214,11 @@ def another_top_level_function():
 
       // Verify imports
       const importOs = detailedNodes.find(
-        (n) => n.type === 'py_import' && n.details === 'Import os'
+        (n: any) => n.type === 'py_import' && n.details === 'Import os'
       );
       expect(importOs).toBeDefined();
       const importMath = detailedNodes.find(
-        (n) => n.type === 'py_import' && n.details === 'From math import sqrt'
+        (n: any) => n.type === 'py_import' && n.details === 'From math import sqrt'
       );
       expect(importMath).toBeDefined();
 
@@ -234,47 +234,47 @@ from . import local_module
 from ..parent import parent_module
       `;
       mockedSupabaseFileFetcher.mockResolvedValue(
-        createMockFileFetcherOutput('imports_test.py', pythonContent)
+        createMockFileFetcherOutput('imports_test.py', pythonContent) as any
       );
       mockedSummarizeFlow.mockResolvedValue({
         semanticSummary: 'Mock summary',
-      }); // Generic summary for any element
+      } as any); // Generic summary for any element
 
       const input: ProjectAnalysisInput = {
         supabasePath: 'user/project/imports_test.py',
         isMock: true,
       };
-      const result = await runFlow(projectStructureAnalyzerTool, input);
+      const result = await runFlow(projectStructureAnalyzerTool, input as any);
 
       expect(result.error).toBeUndefined();
       const detailedNodes = result.detailedNodes || [];
 
       expect(
         detailedNodes.find(
-          (n) => n.type === 'py_import' && n.details === 'Import sys'
+          (n: any) => n.type === 'py_import' && n.details === 'Import sys'
         )
       ).toBeDefined();
       expect(
         detailedNodes.find(
-          (n) => n.type === 'py_import' && n.details === 'Import os.path'
+          (n: any) => n.type === 'py_import' && n.details === 'Import os.path'
         )
       ).toBeDefined();
       expect(
         detailedNodes.find(
-          (n) =>
+          (n: any) =>
             n.type === 'py_import' &&
             n.details === 'From collections import Counter, defaultdict as dd'
         )
       ).toBeDefined();
       expect(
         detailedNodes.find(
-          (n) =>
+          (n: any) =>
             n.type === 'py_import' && n.details === 'From . import local_module'
         )
       ).toBeDefined();
       expect(
         detailedNodes.find(
-          (n) =>
+          (n: any) =>
             n.type === 'py_import' &&
             n.details === 'From ..parent import parent_module'
         )
@@ -284,13 +284,13 @@ from ..parent import parent_module
 
     it('should handle an empty Python file', async () => {
       mockedSupabaseFileFetcher.mockResolvedValue(
-        createMockFileFetcherOutput('empty.py', '')
+        createMockFileFetcherOutput('empty.py', '') as any
       );
       const input: ProjectAnalysisInput = {
         supabasePath: 'user/project/empty.py',
         isMock: true,
       };
-      const result = await runFlow(projectStructureAnalyzerTool, input);
+      const result = await runFlow(projectStructureAnalyzerTool, input as any);
 
       expect(result.error).toBeUndefined();
       expect(result.analyzedFileName).toBe('empty.py');
@@ -311,13 +311,13 @@ class MyBrokenClass
   pass
       `; // Missing colons
       mockedSupabaseFileFetcher.mockResolvedValue(
-        createMockFileFetcherOutput('syntax_error.py', pythonContentSyntaxError)
+        createMockFileFetcherOutput('syntax_error.py', pythonContentSyntaxError) as any
       );
       const input: ProjectAnalysisInput = {
         supabasePath: 'user/project/syntax_error.py',
         isMock: true,
       };
-      const result = await runFlow(projectStructureAnalyzerTool, input);
+      const result = await runFlow(projectStructureAnalyzerTool, input as any);
 
       expect(result.error).toBeDefined();
       expect(result.error).toContain('Python AST parsing failed');
@@ -331,7 +331,7 @@ class MyBrokenClass
       // Regex fallback should still produce some nodes
       expect(result.detailedNodes?.length).toBeGreaterThan(0);
       const funcNode = result.detailedNodes?.find(
-        (n) =>
+        (n: any) =>
           n.label === 'python File (Regex)' && n.type === 'python_file_regex'
       );
       expect(funcNode).toBeDefined();
@@ -373,12 +373,12 @@ class MyBrokenClass
       contentType: null,
       isBinary: false,
       error: 'Supabase fetch failed',
-    });
+    } as any);
     const input: ProjectAnalysisInput = {
       supabasePath: 'user/project/error_file.py',
       isMock: true,
     };
-    const result = await runFlow(projectStructureAnalyzerTool, input);
+    const result = await runFlow(projectStructureAnalyzerTool, input as any);
 
     expect(result.error).toBe('File fetch failed: Supabase fetch failed');
     expect(result.analysisSummary).toContain(
@@ -390,19 +390,19 @@ class MyBrokenClass
   it('should handle summarization flow errors gracefully', async () => {
     const pythonContent = `def simple_func(): pass`;
     mockedSupabaseFileFetcher.mockResolvedValue(
-      createMockFileFetcherOutput('summarize_error.py', pythonContent)
+      createMockFileFetcherOutput('summarize_error.py', pythonContent) as any
     );
-    mockedSummarizeFlow.mockRejectedValue(new Error('LLM unavailable'));
+    mockedSummarizeFlow.mockRejectedValue(new Error('LLM unavailable') as any);
 
     const input: ProjectAnalysisInput = {
       supabasePath: 'user/project/summarize_error.py',
       isMock: true,
     };
-    const result = await runFlow(projectStructureAnalyzerTool, input);
+    const result = await runFlow(projectStructureAnalyzerTool, input as any);
 
     expect(result.error).toBeUndefined(); // The tool itself shouldn't fail, but summary will be affected
     const funcNode = result.detailedNodes?.find(
-      (n) => n.label === 'simple_func (function)'
+      (n: any) => n.label === 'simple_func (function)'
     );
     expect(funcNode).toBeDefined();
     expect(funcNode?.details).toContain('Error during semantic summarization.');
