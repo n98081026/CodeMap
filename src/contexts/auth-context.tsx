@@ -118,12 +118,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             // Delegate to a new function to handle the copy logic
             // This function will be defined outside or imported
-            await handleCopyExampleAction(
-              exampleKey,
-              profile.id,
-              router,
-              toast
-            );
+            await handleCopyExampleAction(exampleKey, profile.id, router, {
+              toast,
+            });
           }
         } else if (!isRegistering) {
           console.warn(
@@ -544,7 +541,7 @@ async function handleCopyExampleAction(
   exampleKey: string,
   userId: string,
   router: ReturnType<typeof useRouter>, // Use NextRouterInstance for type
-  toast: ReturnType<typeof useToast> // Use ToastFunction for type
+  toast: { toast: (options: any) => void } // Use ToastFunction for type
 ) {
   console.log(
     `Handling copyExample action for key: ${exampleKey}, user: ${userId}`
@@ -617,16 +614,16 @@ async function handleCopyExampleAction(
       const errorData = await saveResponse.json();
       throw new Error(errorData.message || 'Failed to save copied map');
     }
-    const savedMap: ConceptMap = await saveResponse.json();
+    const savedMap = await saveResponse.json();
 
-    toast({
+    toast.toast({
       title: 'Example Copied',
       description: `"${savedMap.name}" has been copied to your workspace.`,
     });
     router.replace(`/application/concept-maps/editor/${savedMap.id}`);
   } catch (error) {
     console.error('Failed to copy example map:', error);
-    toast({
+    toast.toast({
       title: 'Copy Failed',
       description: (error as Error).message,
       variant: 'destructive',

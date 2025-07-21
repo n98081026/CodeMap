@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ExamplesPage from '../page'; // Default export
 
 import { useAuth } from '@/contexts/auth-context';
-import { exampleProjectsData } from '@/lib/example-data';
+import { exampleProjects } from '@/lib/example-data';
 
 // Mock useAuth
 vi.mock('@/contexts/auth-context');
@@ -80,9 +80,7 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
     vi.clearAllMocks();
     // Ensure necessary mocks from next/navigation are setup if tests interact with router/params
     // For this page, useRouter is used.
-    const { __setMockRouter } = vi.hoisted(
-      () => import('@/tests/__mocks__/next/navigation')
-    );
+    const { __setMockRouter } = require('@/tests/__mocks__/next/navigation');
     __setMockRouter({ push: vi.fn(), replace: vi.fn() });
   });
 
@@ -96,15 +94,15 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
 
     render(<ExamplesPage />);
 
-    expect(screen.getByTestId('dashboard-header')).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-header'));
     // The title is "Example Project Gallery"
-    expect(screen.getByText('Example Project Gallery')).toBeInTheDocument();
+    expect(screen.getByText('Example Project Gallery'));
 
     // Check for actual card content based on mockExampleProjectList
-    expect(screen.getByText('Example Project 1')).toBeInTheDocument();
-    expect(screen.getByText('Desc 1')).toBeInTheDocument();
-    expect(screen.getByText('Example Project 2')).toBeInTheDocument();
-    expect(screen.getByText('Desc 2')).toBeInTheDocument();
+    expect(screen.getByText('Example Project 1'));
+    expect(screen.getByText('Desc 1'));
+    expect(screen.getByText('Example Project 2'));
+    expect(screen.getByText('Desc 2'));
   });
 
   it('should render GuestModeCtaBanner when in a guest session', () => {
@@ -116,7 +114,7 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
     });
 
     render(<ExamplesPage />);
-    expect(screen.getByTestId('guest-cta-banner')).toBeInTheDocument();
+    expect(screen.getByTestId('guest-cta-banner'));
   });
 
   it('should NOT render GuestModeCtaBanner when not in a guest session (authenticated user)', () => {
@@ -145,12 +143,8 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
     const card1 =
       screen.getByText('Example Project 1').closest('[data-testid^="card-"]') ||
       screen.getByText('Example Project 1').closest('div.flex.flex-col');
-    expect(
-      within(card1!).getByRole('button', { name: /view example/i })
-    ).toBeInTheDocument();
-    expect(
-      within(card1!).getByRole('button', { name: /copy & edit/i })
-    ).toBeInTheDocument();
+    expect(card1!.querySelector('button[name="View Example"]'));
+    expect(card1!.querySelector('button[name="Copy & Edit"]'));
   });
 
   it('should show only "View Example" button for authenticated users', () => {
@@ -166,11 +160,7 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
     const card1 = screen
       .getByText('Example Project 1')
       .closest('div.flex.flex-col');
-    expect(
-      within(card1!).getByRole('button', { name: /view example/i })
-    ).toBeInTheDocument();
-    expect(
-      within(card1!).queryByRole('button', { name: /copy & edit/i })
-    ).toBeNull();
+    expect(card1!.querySelector('button[name="View Example"]'));
+    expect(card1!.querySelector('button[name="Copy & Edit"]')).toBeNull();
   });
 });

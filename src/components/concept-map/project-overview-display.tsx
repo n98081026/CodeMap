@@ -30,6 +30,7 @@ import useConceptMapStore from '@/stores/concept-map-store';
 interface ProjectOverviewDisplayProps {
   overviewData: GenerateProjectOverviewOutput | null;
   isLoading: boolean;
+  onModuleClick: (moduleName: string) => void;
 }
 
 interface LineData {
@@ -44,6 +45,7 @@ interface LineData {
 const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
   overviewData,
   isLoading,
+  onModuleClick,
 }) => {
   const { setFocusOnNodes, mapData, addDebugLog } = useConceptMapStore((s) => ({
     setFocusOnNodes: s.setFocusOnNodes,
@@ -147,7 +149,7 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
           typeof node.text === 'string' ? node.text.trim() : null;
         const nodePath2 =
           typeof node.data?.filePath === 'string'
-            ? node.data.filePath.trim()
+            ? node.data?.filePath.trim()
             : null;
         return (
           (nodePath1 && moduleFilePathsSet.has(nodePath1)) ||

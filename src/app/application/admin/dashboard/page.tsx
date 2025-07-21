@@ -14,7 +14,6 @@ import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Kept for context, though AdminDashboardView also imports it
 // import { DashboardLinkCard } from '@/components/dashboard/dashboard-link-card'; // Now part of AdminDashboardView
 // import { useAdminDashboardMetrics } from '@/hooks/useAdminDashboardMetrics'; // Now part of AdminDashboardView
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole, type User } from '@/types';
 

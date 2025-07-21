@@ -9,11 +9,7 @@ import { create } from 'zustand';
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 
 import type { ConceptMap, ConceptMapData } from '@/types';
-import type {
-  LayoutNodeUpdate,
-  ConceptMapNode,
-  ConceptMapEdge,
-} from '@/types/graph-adapter';
+import type { LayoutNodeUpdate } from '@/types/graph-adapter';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
 
 import {
@@ -321,12 +317,7 @@ const initialStateBaseOmitKeys = [
 ] as const;
 type InitialStateBaseOmitType = (typeof initialStateBaseOmitKeys)[number];
 
-export const initialStateBase: Omit<
-  ConceptMapState,
-  | InitialStateBaseOmitType
-  | 'conceptExpansionPreview'
-  | 'updateConceptExpansionPreviewNode'
-> = {
+export const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> = {
   // Added removed types here
   mapId: null,
   mapName: 'Untitled Concept Map',
@@ -397,17 +388,6 @@ export const useConceptMapStore = create<ConceptMapState>()(
       ...initialStateBase,
       // Ensure all functions from ConceptMapState (that are actions) are implemented
       // For properties that were removed from ConceptMapState, ensure their setters are also removed or handled
-      updateConceptExpansionPreviewNode: (
-        previewNodeId,
-        newText,
-        newDetails
-      ) => {
-        // Feature removed: conceptExpansionPreview functionality has been replaced with stagedMapData
-      },
-      setConceptExpansionPreview: (preview) => {
-        // Feature removed: conceptExpansionPreview functionality has been replaced with stagedMapData
-      },
-
       setMapId: (id) => set({ mapId: id }),
       setMapName: (name) => set({ mapName: name }),
       setCurrentMapOwnerId: (ownerId) => set({ currentMapOwnerId: ownerId }),
@@ -1003,19 +983,19 @@ export const useConceptMapStore = create<ConceptMapState>()(
         });
         try {
           const overviewData = await generateProjectOverviewFlow(input);
-          if (overviewData.error) {
-            throw new Error(overviewData.error);
-          }
-          set({ projectOverviewData: overviewData, isFetchingOverview: false });
+          set({
+            projectOverviewData: overviewData,
+            isFetchingOverview: false,
+          });
         } catch (e: unknown) {
           set({
             projectOverviewData: {
               overallSummary: 'Failed to generate overview.',
               keyModules: [],
-              error: e.message,
+              error: (e as Error).message,
             },
             isFetchingOverview: false,
-            error: `Overview Error: ${e.message}`,
+            error: `Overview Error: ${(e as Error).message}`,
           });
         }
       },

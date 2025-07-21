@@ -40,23 +40,18 @@ export const suggestQuickChildTextsFlow = defineFlow(
       ["Child Idea 1", "Child Idea 2", "Another Child Concept"]
     `;
 
-    const llmResponse = await generate(
-      {
-        model: gemini10Pro,
-        prompt: prompt,
-        config: {
-          temperature: 0.5, // Moderate temperature for some creativity but still focused
-          maxOutputTokens: 100, // Max tokens for the suggestions array
-        },
-        output: {
-          format: 'json', // Expect JSON output directly
-          schema: SuggestQuickChildTextsOutputSchema, // Validate against output schema
-        },
+    const llmResponse = await generate({
+      model: gemini10Pro,
+      prompt: prompt,
+      config: {
+        temperature: 0.5, // Moderate temperature for some creativity but still focused
+        maxOutputTokens: 100, // Max tokens for the suggestions array
       },
-      {
-        tools: [],
-      }
-    );
+      output: {
+        format: 'json', // Expect JSON output directly
+        schema: SuggestQuickChildTextsOutputSchema, // Validate against output schema
+      },
+    });
 
     const outputData = llmResponse.output();
     if (!outputData) {

@@ -43,8 +43,8 @@ describe('Navbar', () => {
 
     render(<Navbar />);
 
-    expect(screen.getByText('CodeMap')).toBeInTheDocument();
-    expect(screen.getByTestId('sun-icon')).toBeInTheDocument(); // Theme toggle
+    expect(screen.getByText('CodeMap'));
+    expect(screen.getByTestId('sun-icon')); // Theme toggle
   });
 
   it('should render user dropdown when authenticated', () => {
@@ -63,9 +63,9 @@ describe('Navbar', () => {
 
     render(<Navbar />);
 
-    expect(screen.getByText('CodeMap')).toBeInTheDocument();
-    expect(screen.getByText('John Doe')).toBeInTheDocument();
-    expect(screen.getByTestId('user-icon')).toBeInTheDocument();
+    expect(screen.getByText('CodeMap'));
+    expect(screen.getByText('John Doe'));
+    expect(screen.getByTestId('user-icon'));
   });
 
   it('should show login and register links when not authenticated', () => {
@@ -77,8 +77,8 @@ describe('Navbar', () => {
 
     render(<Navbar />);
 
-    expect(screen.getByText('Login')).toBeInTheDocument();
-    expect(screen.getByText('Register')).toBeInTheDocument();
+    expect(screen.getByText('Login'));
+    expect(screen.getByText('Register'));
   });
 
   it('should call logout when logout button is clicked', () => {
@@ -124,6 +124,6 @@ describe('Navbar', () => {
 
     render(<Navbar />);
 
-    expect(screen.getByText('Teacher')).toBeInTheDocument();
+    expect(screen.getByText('Teacher'));
   });
 });

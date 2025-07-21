@@ -53,12 +53,12 @@ const GuestCtaBanner = () => {
         maps, save your work, or access personalized features, please sign up or
         log in.
         <div className='mt-3 flex gap-3'>
-          <Button asChild size='sm' variant='outline_primary'>
+          <Button asChild size='sm' variant='outline'>
             <Link href='/register'>
               <UserPlus className='mr-2 h-4 w-4' /> Sign Up
             </Link>
           </Button>
-          <Button asChild size='sm' variant='outline_primary'>
+          <Button asChild size='sm' variant='outline'>
             <Link href='/login'>
               <LogIn className='mr-2 h-4 w-4' /> Log In
             </Link>
@@ -103,7 +103,7 @@ export default function ExamplesPage() {
 
       // Create a mock ConceptMap object to pass to setLoadedMap
       // In a real scenario, this data would be more complete or come from a DB
-      const mockConceptMap: ConceptMap = {
+      const mockConceptMap = {
         id: `example-${example.key}`, // Create a unique ID for the example session
         name: `${example.name} (Example)`,
         ownerId: 'example-user', // Generic owner for examples
@@ -209,7 +209,7 @@ export default function ExamplesPage() {
                 </Button>
                 {!authIsLoading && !isAuthenticated && (
                   <Button
-                    variant='outline_primary'
+                    variant='outline'
                     className='w-full sm:flex-1'
                     onClick={() => handleCopyToWorkspace(example.key)}
                   >

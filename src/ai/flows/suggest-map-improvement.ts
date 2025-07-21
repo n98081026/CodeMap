@@ -117,20 +117,18 @@ const suggestMapImprovement = async (input: z.infer<typeof MapDataSchema>) => {
       { "type": "NEW_INTERMEDIATE_NODE", "data": { "sourceNodeId": "nodeA", "targetNodeId": "nodeC", "intermediateNodeText": "Bridge Concept B", "labelToIntermediate": "leads to", "labelFromIntermediate": "then to", "originalEdgeId": "edge_AC_original" }, "reason": "Concept B clarifies the path from A to C." }
     `;
 
-  const llmResponse = await generate(
-    {
-      model: DEFAULT_MODEL,
-      prompt: prompt,
-      config: {
-        temperature: 0.5,
-        maxOutputTokens: 300,
-      },
-      output: {
-        format: 'json',
-        schema: MapImprovementSuggestionSchema, // Zod schema for the union type
-      },
-    }
-  );
+  const llmResponse = await generate({
+    model: DEFAULT_MODEL,
+    prompt: prompt,
+    config: {
+      temperature: 0.5,
+      maxOutputTokens: 300,
+    },
+    output: {
+      format: 'json',
+      schema: MapImprovementSuggestionSchema, // Zod schema for the union type
+    },
+  });
 
   const outputData = llmResponse.output();
 

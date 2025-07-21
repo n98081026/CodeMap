@@ -54,7 +54,7 @@ export async function GET(
     }
 
     const userRole = user.user_metadata?.role as UserRole;
-    if (userRole !== UserRole.ADMIN && user.id !== classroom.teacher_id) {
+    if (userRole !== UserRole.ADMIN && user.id !== classroom.teacherId) {
       // Students enrolled in the class might need access too, this would require checking enrollment.
       // For now, only admin or the classroom's teacher can fetch directly by classroom ID.
       return NextResponse.json(
@@ -125,7 +125,7 @@ export async function PUT(
     const userRole = user.user_metadata?.role as UserRole;
     if (
       userRole !== UserRole.ADMIN &&
-      user.id !== classroomToUpdate.teacher_id
+      user.id !== classroomToUpdate.teacherId
     ) {
       return NextResponse.json(
         {
@@ -204,7 +204,7 @@ export async function DELETE(
     const userRole = user.user_metadata?.role as UserRole;
     if (
       userRole !== UserRole.ADMIN &&
-      user.id !== classroomToDelete.teacher_id
+      user.id !== classroomToDelete.teacherId
     ) {
       return NextResponse.json(
         {

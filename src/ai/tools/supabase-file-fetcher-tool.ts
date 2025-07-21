@@ -1,5 +1,5 @@
 // src/ai/tools/supabase-file-fetcher-tool.ts
-import { defineTool } from '@genkit-ai/core';
+import { defineTool } from '@genkit-ai/flow';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { SupabaseClient } from '@supabase/supabase-js';

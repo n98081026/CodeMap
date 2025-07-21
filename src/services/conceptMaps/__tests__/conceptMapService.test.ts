@@ -67,16 +67,14 @@ describe('conceptMapService', () => {
         }),
       });
 
-      const result = await createConceptMap({
-        title: 'Test Map',
-        description: 'Test Description',
-        ownerId: 'user-123',
-        classroomId: 'class-123',
-        mapData: { nodes: [], edges: [] },
-      });
+      const result = await createConceptMap(
+        'Test Map',
+        'user-123',
+        { nodes: [], edges: [] },
+        'class-123'
+      );
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockConceptMap);
+      expect(result).toEqual(mockConceptMap);
     });
 
     it('should handle creation errors', async () => {
@@ -94,16 +92,14 @@ describe('conceptMapService', () => {
         }),
       });
 
-      const result = await createConceptMap({
-        title: 'Test Map',
-        description: 'Test Description',
-        ownerId: 'user-123',
-        classroomId: 'class-123',
-        mapData: { nodes: [], edges: [] },
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Database error');
+      await expect(
+        createConceptMap(
+          'Test Map',
+          'user-123',
+          { nodes: [], edges: [] },
+          'class-123'
+        )
+      ).rejects.toThrow('Database error');
     });
   });
 
@@ -133,8 +129,7 @@ describe('conceptMapService', () => {
 
       const result = await getConceptMapById('map-123');
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockConceptMap);
+      expect(result).toEqual(mockConceptMap);
     });
 
     it('should handle not found errors', async () => {
@@ -154,8 +149,7 @@ describe('conceptMapService', () => {
 
       const result = await getConceptMapById('nonexistent-id');
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Not found');
+      expect(result).toBeNull();
     });
   });
 });

@@ -1,5 +1,5 @@
 // src/ai/tools/project-analyzer-tool.ts
-import { defineTool } from '@genkit-ai/core';
+import { defineTool } from '@genkit-ai/flow';
 import { z } from 'zod';
 import {
   batchSummarizeElements,

@@ -138,7 +138,7 @@ const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
                 <div className='flex justify-end space-x-2 pt-2'>
                   <Button
                     variant='outline'
-                    size='xs'
+                    size='sm'
                     onClick={onDismiss}
                     title='Dismiss suggestion'
                   >
@@ -146,7 +146,7 @@ const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
                   </Button>
                   <Button
                     variant='default'
-                    size='xs'
+                    size='sm'
                     onClick={onAccept}
                     title='Accept suggestion'
                   >

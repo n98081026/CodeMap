@@ -173,8 +173,8 @@ export function EnhancedEdge({
   }, []);
 
   // 計算路徑
-  const path = `M ${sourceNode.x + (sourceNode.width || 150) / 2} ${sourceNode.y + (sourceNode.height || 70) / 2} 
-                L ${targetNode.x + (targetNode.width || 150) / 2} ${targetNode.y + (targetNode.height || 70) / 2}`;
+  const path = `M ${sourceNode.x || 0 + (sourceNode.width || 150) / 2} ${sourceNode.y || 0 + (sourceNode.height || 70) / 2}
+                L ${targetNode.x || 0 + (targetNode.width || 150) / 2} ${targetNode.y || 0 + (targetNode.height || 70) / 2}`;
 
   return (
     <AnimatePresence>

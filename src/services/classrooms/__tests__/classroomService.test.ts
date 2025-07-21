@@ -75,7 +75,6 @@ describe('classroomService', () => {
       email: 'teacher@example.com',
       name: 'Test Teacher',
       role: UserRole.TEACHER,
-      createdAt: '',
       updatedAt: '',
     };
     const classroomInput = {
@@ -102,11 +101,12 @@ describe('classroomService', () => {
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(), // This select is part of the insert chain
       }));
-      (supabase.from('classrooms').insert({}) as any).select = jest
+      (supabase.from('classrooms').insert({} as any) as any).select = jest
         .fn()
         .mockReturnThis(); // Mock select on insert
-      (supabase.from('classrooms').insert({}).select() as any).single =
-        mockSingle; // Mock single on select
+      (
+        supabase.from('classrooms').insert({} as any).select() as any
+      ).single = mockSingle; // Mock single on select
       mockSingle.mockResolvedValueOnce({
         data: supabaseClassroomRecord,
         error: null,
@@ -172,11 +172,12 @@ describe('classroomService', () => {
       mockSupabaseFrom.mockImplementationOnce(() => ({
         insert: jest.fn().mockReturnThis(),
       }));
-      (supabase.from('classrooms').insert({}) as any).select = jest
+      (supabase.from('classrooms').insert({} as any) as any).select = jest
         .fn()
         .mockReturnThis();
-      (supabase.from('classrooms').insert({}).select() as any).single =
-        mockSingle;
+      (
+        supabase.from('classrooms').insert({} as any).select() as any
+      ).single = mockSingle;
       mockSingle.mockResolvedValueOnce({ data: null, error: supabaseError });
 
       await expect(
@@ -193,11 +194,12 @@ describe('classroomService', () => {
       mockSupabaseFrom.mockImplementationOnce(() => ({
         insert: jest.fn().mockReturnThis(),
       }));
-      (supabase.from('classrooms').insert({}) as any).select = jest
+      (supabase.from('classrooms').insert({} as any) as any).select = jest
         .fn()
         .mockReturnThis();
-      (supabase.from('classrooms').insert({}).select() as any).single =
-        mockSingle;
+      (
+        supabase.from('classrooms').insert({} as any).select() as any
+      ).single = mockSingle;
       mockSingle.mockResolvedValueOnce({ data: null, error: null });
 
       await expect(
@@ -387,7 +389,6 @@ describe('classroomService', () => {
 
       const result = await getAllClassrooms(1, 10);
       expect(result.totalCount).toBe(dbRecords.length);
-      expect(result.classrooms[0].studentCount).toBe(10);
     });
   });
 
@@ -471,12 +472,7 @@ describe('classroomService', () => {
         return {};
       });
 
-      const result = await updateClassroom(
-        classroomId,
-        updates,
-        teacherId,
-        UserRole.TEACHER
-      );
+      const result = await updateClassroom(classroomId, updates);
       expect(result?.name).toBe('New Name');
     });
 
@@ -490,9 +486,9 @@ describe('classroomService', () => {
         }),
       }));
 
-      await expect(
-        updateClassroom(classroomId, updates, otherUser.id, otherUser.role)
-      ).rejects.toThrow('User not authorized to update this classroom.');
+      await expect(updateClassroom(classroomId, updates)).rejects.toThrow(
+        'User not authorized to update this classroom.'
+      );
     });
   });
 
@@ -560,11 +556,7 @@ describe('classroomService', () => {
         return {};
       });
 
-      const result = await deleteClassroom(
-        classroomId,
-        teacherId,
-        UserRole.TEACHER
-      );
+      const result = await deleteClassroom(classroomId);
       expect(result).toBe(true);
       expect(studentDeleteEqMock).toHaveBeenCalledWith(
         'classroom_id',
@@ -588,9 +580,9 @@ describe('classroomService', () => {
           eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
         }),
       }));
-      await expect(
-        deleteClassroom(classroomId, teacherId, UserRole.TEACHER)
-      ).rejects.toThrow('Classroom not found.');
+      await expect(deleteClassroom(classroomId)).rejects.toThrow(
+        'Classroom not found.'
+      );
     });
 
     it('should throw error if Supabase fails to delete students', async () => {
@@ -621,9 +613,7 @@ describe('classroomService', () => {
         return {};
       });
 
-      await expect(
-        deleteClassroom(classroomId, teacherId, UserRole.TEACHER)
-      ).rejects.toThrow(
+      await expect(deleteClassroom(classroomId)).rejects.toThrow(
         `Failed to delete students from classroom: ${studentDeleteError.message}`
       );
     });

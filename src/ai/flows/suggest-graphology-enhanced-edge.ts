@@ -57,7 +57,7 @@ const suggestGraphologyEnhancedEdge = async (
       jaccardThreshold: 0.25, // Example threshold, could be configurable
       maxCandidates: 1, // We only want the top candidate for LLM validation
     };
-    const toolResult = await graphologySharedNeighborsEdgeTool.run(toolInput);
+    const toolResult = await runFlow(graphologySharedNeighborsEdgeTool, toolInput);
 
     if (
       toolResult.error ||

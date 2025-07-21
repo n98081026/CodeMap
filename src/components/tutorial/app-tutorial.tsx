@@ -10,18 +10,18 @@ export interface TutorialMetaData {
   icon?: LucideIcon;
 }
 
-import { getCommonTutorialSteps } from './flows/commonTutorialSteps';
-import { getDashboardTutorialSteps } from './flows/dashboardTutorialSteps';
-import { getEditorTutorialSteps } from './flows/editorTutorialSteps';
-import { getExpandConceptStagingTutorialSteps } from './flows/expandConceptStagingTutorialSteps';
-import { getExtractConceptsToolTutorialSteps } from './flows/extractConceptsToolTutorialSteps';
-import { getGhostPreviewLayoutTutorialSteps } from './flows/ghostPreviewLayoutTutorialSteps';
-import { getGhostPreviewsUsageTutorialSteps } from './flows/ghostPreviewsUsageTutorialSteps';
-import { getManualAddNodeTutorialSteps } from './flows/manualAddNodeTutorialSteps';
-import { getManualCreateEdgeTutorialSteps } from './flows/manualCreateEdgeTutorialSteps';
-import { getProjectOverviewTutorialSteps } from './flows/projectOverviewTutorialSteps';
-import { getProjectUploadTutorialSteps } from './flows/projectUploadTutorialSteps';
-import { getSuggestRelationsToolTutorialSteps } from './flows/suggestRelationsToolTutorialSteps';
+import { getCommonTutorialSteps } from './flows/common-tutorial-steps';
+import { getDashboardTutorialSteps } from './flows/dashboard-tutorial-steps';
+import { getEditorTutorialSteps } from './flows/editor-tutorial-steps';
+import { getExpandConceptStagingTutorialSteps } from './flows/expand-concept-staging-tutorial-steps';
+import { getExtractConceptsToolTutorialSteps } from './flows/extract-concepts-tool-tutorial-steps';
+import { getGhostPreviewLayoutTutorialSteps } from './flows/ghost-preview-layout-tutorial-steps';
+import { getGhostPreviewsUsageTutorialSteps } from './flows/ghost-previews-usage-tutorial-steps';
+import { getManualAddNodeTutorialSteps } from './flows/manual-add-node-tutorial-steps';
+import { getManualCreateEdgeTutorialSteps } from './flows/manual-create-edge-tutorial-steps';
+import { getProjectOverviewTutorialSteps } from './flows/project-overview-tutorial-steps';
+import { getProjectUploadTutorialSteps } from './flows/project-upload-tutorial-steps';
+import { getSuggestRelationsToolTutorialSteps } from './flows/suggest-relations-tool-tutorial-steps';
 
 import type { LucideIcon } from 'lucide-react';
 
@@ -53,7 +53,7 @@ export const TUTORIAL_KEYS = [
 ];
 
 // Function to get metadata, to be used in Navbar
-export const getAvailableTutorials = (t: TFunction): TutorialMetaData[] =>
+export const getAvailableTutorials = (t: any): TutorialMetaData[] =>
   TUTORIAL_KEYS.map((key) => ({
     key,
     title: t(`availableTutorials.${key}.title`),

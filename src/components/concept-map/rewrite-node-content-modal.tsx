@@ -8,7 +8,7 @@ import type { NodeContentToRewrite } from '@/hooks/useConceptMapAITools';
 import {
   rewriteNodeContent as aiRewriteNodeContent,
   type RewriteNodeContentOutput,
-} from '@/ai/flows/rewrite-node-content-logic.ts';
+} from '@/ai/flows/rewrite-node-content-logic';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

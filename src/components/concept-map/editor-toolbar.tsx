@@ -25,7 +25,7 @@ import {
   TextSearch,
   ListCollapse,
   ScrollText,
-  SearchPlus,
+  Search,
   TestTube2,
   type LucideIcon,
   Eye,
@@ -164,8 +164,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   onAIDiscoverGroup,
   isAIDiscoveringGroup,
   mapNodeCount,
-  onAISuggestImprovement,
-  isAISuggestingImprovement,
   onTestEdgeOverlay,
   onToggleOverviewMode,
   isOverviewModeActive,
@@ -243,7 +241,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   };
 
   const numMultiSelectedNodeIds = useConceptMapStore(
-    (s) => s.selectedNodeIds
+    (s) => s.multiSelectedNodeIds
   ).length;
 
   const handleCopyToWorkspace = () => {
@@ -277,7 +275,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant='outline_primary'
+                  variant='outline'
                   size='sm'
                   onClick={handleCopyToWorkspace}
                   className='mr-2'
@@ -689,10 +687,11 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                         label: e.label || '',
                       })),
                     };
-                    const results = await fetchAllStructuralSuggestionsFlow.run(
+                    const results = await runFlow(
+                      fetchAllStructuralSuggestionsFlow,
                       flowInput as any
                     );
-                    store.getState().setStructuralSuggestions(results);
+                    store.setStructuralSuggestions(results);
                     toast({
                       title: 'AI Suggestions',
                       description: `Received ${results.length} structural suggestions.`,
@@ -707,7 +706,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                       description: 'Failed to fetch AI structural suggestions.',
                       variant: 'destructive',
                     });
-                    store.getState().clearStructuralSuggestions();
+                    store.clearStructuralSuggestions();
                   } finally {
                     setIsLoadingSuggestions(false);
                   }

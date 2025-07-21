@@ -13,12 +13,11 @@ import ReactFlow, {
   type OnEdgesChange,
   type OnNodesDelete,
   type OnEdgesDelete,
-  type SelectionChanges,
+  type NodeSelectionChange as SelectionChanges,
   type Connection,
   type NodeTypes,
   type EdgeTypes,
   useReactFlow,
-  type OnPaneDoubleClick,
   type Viewport,
   type ReactFlowProps, // Import ReactFlowProps
 } from 'reactflow';
@@ -74,9 +73,9 @@ interface InteractiveCanvasProps {
     node: Node<CustomNodeData>,
     nodes: Node<CustomNodeData>[]
   ) => void;
-  onPaneDoubleClick?: OnPaneDoubleClick;
+  onPaneDoubleClick?: (event: React.MouseEvent) => void;
   onPaneContextMenu?: (event: React.MouseEvent) => void;
-  onNodeClick?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
+  onNodeClick?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
   onDragOver?: (event: React.DragEvent) => void;
   onDrop?: (event: React.DragEvent) => void;
   onDragLeave?: (event: React.DragEvent) => void; // Added onDragLeave
@@ -110,7 +109,7 @@ interface InteractiveCanvasProps {
   onRejectVisualEdge?: (suggestionId: string) => void;
   // Edge types and node drop
   edgeTypes?: EdgeTypes; // Prop to pass custom edge types
-  onNodeDrop?: (event: React.DragEvent, node: RFNode) => void; // New prop for node drop
+  onNodeDrop?: (event: React.DragEvent, node: Node) => void; // New prop for node drop
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -199,12 +198,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
 
     if (
       !currentViewport ||
-      typeof currentViewport.width !== 'number' ||
-      currentViewport.width <= 0 ||
-      isNaN(currentViewport.width) ||
-      typeof currentViewport.height !== 'number' ||
-      currentViewport.height <= 0 ||
-      isNaN(currentViewport.height) ||
       typeof currentViewport.zoom !== 'number' ||
       currentViewport.zoom <= 0 ||
       isNaN(currentViewport.zoom)
@@ -216,8 +209,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       return;
     }
 
-    const currentVpWidth = currentViewport.width;
-    const currentVpHeight = currentViewport.height;
     const currentVpZoom = currentViewport.zoom;
 
     if (nodes.length === 0) {
@@ -263,35 +254,13 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     const contentWidthWithPadding = maxX - minX + 2 * PADDING_FLOW;
     const contentHeightWithPadding = maxY - minY + 2 * PADDING_FLOW;
 
-    const maxVpX =
-      contentWidthWithPadding < currentVpWidth / currentVpZoom
-        ? minX -
-          PADDING_FLOW -
-          (currentVpWidth / currentVpZoom - contentWidthWithPadding) / 2
-        : minX - PADDING_FLOW;
+    const maxVpX = minX - PADDING_FLOW;
 
-    const minVpX =
-      contentWidthWithPadding < currentVpWidth / currentVpZoom
-        ? minX -
-          PADDING_FLOW +
-          (currentVpWidth / currentVpZoom - contentWidthWithPadding) / 2 -
-          currentVpWidth / currentVpZoom
-        : maxX + PADDING_FLOW - currentVpWidth / currentVpZoom;
+    const minVpX = maxX + PADDING_FLOW;
 
-    const maxVpY =
-      contentHeightWithPadding < currentVpHeight / currentVpZoom
-        ? minY -
-          PADDING_FLOW -
-          (currentVpHeight / currentVpZoom - contentHeightWithPadding) / 2
-        : minY - PADDING_FLOW;
+    const maxVpY = minY - PADDING_FLOW;
 
-    const minVpY =
-      contentHeightWithPadding < currentVpHeight / currentVpZoom
-        ? minY -
-          PADDING_FLOW +
-          (currentVpHeight / currentVpZoom - contentHeightWithPadding) / 2 -
-          currentVpHeight / currentVpZoom
-        : maxY + PADDING_FLOW - currentVpHeight / currentVpZoom;
+    const minVpY = maxY + PADDING_FLOW;
 
     const newExtent: [[number, number], [number, number]] = [
       [-minVpX, -minVpY],
@@ -316,7 +285,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     }
 
     setCalculatedTranslateExtent(newExtent);
-  }, [nodes, viewport, getViewport]);
+  }, [nodes, getViewport]);
 
   // Construct props for ReactFlow conditionally
   const reactFlowProps: ReactFlowProps = {
@@ -345,7 +314,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onDragOver: onDragOver,
     onDrop: onDrop,
     onDragLeave: onCanvasDragLeave || onDragLeave,
-    onNodeDrop: onNodeDrop, // Pass onNodeDrop to ReactFlow
+    onNodeDragStop: onNodeDrop, // Pass onNodeDrop to ReactFlow
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode
@@ -360,7 +329,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   };
 
   if (!isViewOnlyMode && onPaneDoubleClick) {
-    reactFlowProps.onPaneDoubleClick = onPaneDoubleClick;
+    reactFlowProps.onDoubleClick = onPaneDoubleClick;
   }
   if (!isViewOnlyMode && typeof onPaneDoubleClick === 'function') {
     // Re-added type check for safety with conditional
@@ -491,7 +460,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
               {/* The div for the label has been removed. React Flow will render the label on the temporary edge. */}
               <Button
                 variant='outline'
-                size='iconSm'
+                size='icon'
                 style={{
                   position: 'absolute',
                   left: acceptButtonScreenPos.x,
@@ -511,7 +480,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
               </Button>
               <Button
                 variant='outline'
-                size='iconSm'
+                size='icon'
                 style={{
                   position: 'absolute',
                   left: rejectButtonScreenPos.x,

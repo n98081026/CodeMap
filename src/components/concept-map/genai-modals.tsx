@@ -35,7 +35,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import {
   extractConceptsSchema,
@@ -60,7 +60,7 @@ export const ExtractConceptsModal: React.FC<
     resolver: zodResolver(extractConceptsSchema),
     defaultValues: { textToExtract: initialText || '', extractionFocus: '' },
   });
-  const { isProcessingExtraction } = useConceptMapAITools();
+  const { isProcessing: isProcessingExtraction } = useConceptMapAITools();
 
   useEffect(() => {
     if (isOpen) {
@@ -160,11 +160,11 @@ export const SuggestRelationsModal: React.FC<
     resolver: zodResolver(suggestRelationsSchema),
     defaultValues: { concepts: concepts, customPrompt: '' },
   });
-  const { isProcessingRelations } = useConceptMapAITools();
+  const { isProcessing: isProcessingRelations } = useConceptMapAITools();
 
   useEffect(() => {
     if (isOpen) {
-      form.reset({ concepts: concepts, customPrompt: '' });
+      form.reset({ customPrompt: '' });
     }
   }, [concepts, form, isOpen]);
 
@@ -265,7 +265,7 @@ export const ExpandConceptModal: React.FC<
       userRefinementPrompt: '',
     },
   });
-  const { isProcessingExpansion } = useConceptMapAITools();
+  const { isProcessing: isProcessingExpansion } = useConceptMapAITools();
 
   useEffect(() => {
     if (isOpen) {
@@ -390,7 +390,7 @@ export const AskQuestionModal: React.FC<
     resolver: zodResolver(askQuestionAboutSelectedNodeSchema),
     defaultValues: { question: '', context: '' },
   });
-  const { isProcessingQuestion } = useConceptMapAITools();
+  const { isProcessing: isProcessingQuestion } = useConceptMapAITools();
 
   useEffect(() => {
     if (isOpen) {

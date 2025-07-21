@@ -7,10 +7,10 @@ import { useToast } from './use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import {
   BYPASS_AUTH_FOR_TESTING,
-  MOCK_ADMIN_USER,
+  MOCK_ADMIN_USER_V3,
   MOCK_USERS,
-  MOCK_CLASSROOM_SHARED,
-  MOCK_CLASSROOM_TEACHER_OWNED,
+  MOCK_CLASSROOM_SHARED_V3,
+  MOCK_CLASSROOM_TEACHER_OWNED_V3,
 } from '@/lib/config';
 import { getAllClassrooms as getAllClassroomsService } from '@/services/classrooms/classroomService';
 import { getAllUsers as getAllUsersService } from '@/services/users/userService';
@@ -58,14 +58,17 @@ export function useAdminDashboardMetrics(): AdminDashboardMetrics {
       return;
     }
 
-    if (BYPASS_AUTH_FOR_TESTING && user.id === MOCK_ADMIN_USER.id) {
+    if (BYPASS_AUTH_FOR_TESTING && user.id === MOCK_ADMIN_USER_V3.id) {
       setUsersMetric({
         count: MOCK_USERS.length,
         isLoading: false,
         error: null,
       });
       setClassroomsMetric({
-        count: [MOCK_CLASSROOM_SHARED, MOCK_CLASSROOM_TEACHER_OWNED].length,
+        count: [
+          MOCK_CLASSROOM_SHARED_V3,
+          MOCK_CLASSROOM_TEACHER_OWNED_V3,
+        ].length,
         isLoading: false,
         error: null,
       });

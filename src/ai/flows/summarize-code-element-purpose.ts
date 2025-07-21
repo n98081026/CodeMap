@@ -19,6 +19,7 @@ export const summarizeCodeElementPurposeFlow = defineFlow(
     name: 'summarizeCodeElementPurposeFlow',
     inputSchema: SummarizeCodeElementPurposeInputSchema,
     outputSchema: SummarizeCodeElementPurposeOutputSchema,
+    authPolicy: (auth, input) => {},
   },
   async (input) => {
     const { code, elementName, elementType, filePath } = input;

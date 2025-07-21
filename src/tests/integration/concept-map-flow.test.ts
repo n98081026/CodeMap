@@ -79,12 +79,10 @@ describe('Concept Map Integration Tests', () => {
         }),
       });
 
-      const result = await createConceptMap({
-        title: 'Test Concept Map',
-        description: 'A test concept map',
-        ownerId: 'user-123',
-        classroomId: 'class-123',
-        mapData: {
+      const result = await createConceptMap(
+        'Test Concept Map',
+        'user-123',
+        {
           nodes: [
             {
               id: 'node-1',
@@ -95,10 +93,11 @@ describe('Concept Map Integration Tests', () => {
           ],
           edges: [],
         },
-      });
+        true,
+        'class-123'
+      );
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockConceptMap);
+      expect(result).toEqual(mockConceptMap);
       expect(mockInsert).toHaveBeenCalled();
     });
 
@@ -117,16 +116,15 @@ describe('Concept Map Integration Tests', () => {
         }),
       });
 
-      const result = await createConceptMap({
-        title: 'Test Concept Map',
-        description: 'A test concept map',
-        ownerId: 'user-123',
-        classroomId: 'class-123',
-        mapData: { nodes: [], edges: [] },
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Database constraint violation');
+      await expect(
+        createConceptMap(
+          'Test Concept Map',
+          'user-123',
+          { nodes: [], edges: [] },
+          true,
+          'class-123'
+        )
+      ).rejects.toThrow('Database constraint violation');
     });
   });
 
@@ -156,8 +154,7 @@ describe('Concept Map Integration Tests', () => {
 
       const result = await getConceptMapById('map-123');
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockConceptMap);
+      expect(result).toEqual(mockConceptMap);
     });
 
     it('should handle concept map not found', async () => {
@@ -177,8 +174,7 @@ describe('Concept Map Integration Tests', () => {
 
       const result = await getConceptMapById('nonexistent-id');
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('No rows returned');
+      expect(result).toBeNull();
     });
   });
 
@@ -227,12 +223,12 @@ describe('Concept Map Integration Tests', () => {
       });
 
       const result = await updateConceptMap('map-123', {
-        title: 'Updated Map',
+        name: 'Updated Map',
         mapData: updatedMapData,
+        ownerId: 'user-123',
       });
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockUpdatedMap);
+      expect(result).toEqual(mockUpdatedMap);
     });
   });
 
@@ -263,8 +259,7 @@ describe('Concept Map Integration Tests', () => {
 
       const result = await getConceptMapById('map-123');
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Access denied');
+      expect(result).toBeNull();
     });
   });
 });

@@ -15,8 +15,6 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { useTeacherDashboardMetrics } from '@/hooks/useTeacherDashboardMetrics';
 import { UserRole, type User } from '@/types';
-// Necessary imports for page-level logic
-import { UserRole, type User } from '@/types';
 
 // Removed imports that are now encapsulated in TeacherDashboardView:
 // import { Button } from "@/components/ui/button";

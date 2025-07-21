@@ -65,23 +65,18 @@ export const suggestSemanticParentNodeFlow = defineFlow(
       }
     `;
 
-    const llmResponse = await generate(
-      {
-        model: gemini10Pro,
-        prompt: prompt,
-        config: {
-          temperature: 0.5,
-          maxOutputTokens: 150,
-        },
-        output: {
-          format: 'json',
-          schema: SuggestSemanticParentOutputSchema,
-        },
+    const llmResponse = await generate({
+      model: gemini10Pro,
+      prompt: prompt,
+      config: {
+        temperature: 0.5,
+        maxOutputTokens: 150,
       },
-      {
-        tools: [],
-      }
-    );
+      output: {
+        format: 'json',
+        schema: SuggestSemanticParentOutputSchema,
+      },
+    });
 
     const outputData = llmResponse.output();
     if (!outputData) {

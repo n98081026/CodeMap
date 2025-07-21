@@ -125,7 +125,7 @@ export async function GET(request: Request) {
       if (userRole !== UserRole.ADMIN) {
         try {
           const classroom = await getClassroomById(classroomIdParam);
-          if (!classroom || classroom.teacher_id !== user.id) {
+          if (!classroom || classroom.teacherId !== user.id) {
             return NextResponse.json(
               {
                 message:

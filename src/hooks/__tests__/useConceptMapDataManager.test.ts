@@ -82,8 +82,7 @@ const mockStoreState = {
   },
 };
 
-vi.mock('@/stores/concept-map-store', async (importOriginal) => {
-  const actual = await importOriginal();
+vi.mock('@/stores/concept-map-store', async () => {
   const mockTemporal = {
     getState: () => ({
       clear: vi.fn(),
@@ -92,14 +91,12 @@ vi.mock('@/stores/concept-map-store', async (importOriginal) => {
 
   // This will be the function returned by `useConceptMapStore`
   const storeHookMock = () => ({
-    ...(actual.useConceptMapStore ? actual.useConceptMapStore.getState() : {}), // Spread initial state from actual store if possible
     ...mockStoreState, // Apply our defined mock state and actions
     temporal: mockTemporal,
   });
 
   // If `useConceptMapStore.getState()` is used directly
   storeHookMock.getState = () => ({
-    ...(actual.useConceptMapStore ? actual.useConceptMapStore.getState() : {}),
     ...mockStoreState,
     temporal: mockTemporal,
   });
@@ -108,7 +105,6 @@ vi.mock('@/stores/concept-map-store', async (importOriginal) => {
   storeHookMock.temporal = mockTemporal;
 
   return {
-    ...actual,
     useConceptMapStore: storeHookMock,
     // Handling if the store is imported as default: `import useStore from '...'`
     // and then `useStore.getState()` or `useStore.temporal` is used.
@@ -197,9 +193,8 @@ describe('useConceptMapDataManager', () => {
       });
 
       const { rerender } = renderHook(
-        ({ routeMapIdFromProps, user }) =>
-          useConceptMapDataManager({ routeMapIdFromProps, user }),
-        { initialProps: { routeMapIdFromProps: routeMapId, user: null } } // Simulate guest initially
+        ({ routeMapId, user }) => useConceptMapDataManager({ routeMapId, user }),
+        { initialProps: { routeMapId: routeMapId, user: null } } // Simulate guest initially
       );
 
       // Wait for useEffect to run and async operations to complete
@@ -242,9 +237,8 @@ describe('useConceptMapDataManager', () => {
       }));
 
       const { rerender } = renderHook(
-        ({ routeMapIdFromProps, user }) =>
-          useConceptMapDataManager({ routeMapIdFromProps, user }),
-        { initialProps: { routeMapIdFromProps: routeMapId, user: null } }
+        ({ routeMapId, user }) => useConceptMapDataManager({ routeMapId, user }),
+        { initialProps: { routeMapId: routeMapId, user: null } }
       );
 
       await act(async () => {
@@ -292,9 +286,8 @@ describe('useConceptMapDataManager', () => {
       }));
 
       const { rerender } = renderHook(
-        ({ routeMapIdFromProps, user }) =>
-          useConceptMapDataManager({ routeMapIdFromProps, user }),
-        { initialProps: { routeMapIdFromProps: routeMapId, user: null } }
+        ({ routeMapId, user }) => useConceptMapDataManager({ routeMapId, user }),
+        { initialProps: { routeMapId: routeMapId, user: null } }
       );
 
       await act(async () => {
@@ -326,11 +319,11 @@ describe('useConceptMapDataManager', () => {
     it('should not attempt to save if in view-only mode', async () => {
       // Simulate store being in view-only mode
       mockStoreState.isViewOnlyMode = true;
-      mockStoreState.mapId = 'example-somekey'; // Simulate an example map ID
+      mockStoreState.mapId = null; // Simulate an example map ID
 
       const { result } = renderHook(() =>
         useConceptMapDataManager({
-          routeMapIdFromProps: 'example-somekey',
+          routeMapId: 'example-somekey',
           user: null,
         })
       );

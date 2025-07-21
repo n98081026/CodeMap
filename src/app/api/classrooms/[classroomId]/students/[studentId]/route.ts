@@ -55,7 +55,7 @@ export async function DELETE(
               { status: 404 }
             );
           }
-          if (classroom.teacher_id !== user.id) {
+          if (classroom.teacherId !== user.id) {
             return NextResponse.json(
               {
                 message:

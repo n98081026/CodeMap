@@ -4,6 +4,7 @@ import type {
   ExtractedCodeElement,
 } from './project-analyzer-tool';
 
+import { runFlow } from '@genkit-ai/flow';
 import {
   summarizeCodeElementPurposeFlow,
   SummarizeCodeElementPurposeInputSchema,
@@ -27,7 +28,7 @@ export async function batchSummarizeElements(
   fileName: string // fileName is part of task.inputForFlow.filePath, consider removing if redundant
 ): Promise<Map<string, string>> {
   const summarizationPromises = tasks.map((task) =>
-    summarizeCodeElementPurposeFlow.run(task.inputForFlow)
+    runFlow(summarizeCodeElementPurposeFlow, task.inputForFlow)
       .then((summaryResult: { summary?: string }) => ({
         uniqueId: task.uniqueId,
         semanticSummary:

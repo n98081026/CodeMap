@@ -47,6 +47,8 @@ describe('getNodePlacement', () => {
         parent,
         null,
         gridSize,
+        0,
+        1,
         'right'
       ); // Corrected call
       expect(x).toBe(Math.round(expectedX / gridSize) * gridSize);
@@ -63,6 +65,8 @@ describe('getNodePlacement', () => {
         parent,
         null,
         gridSize,
+        0,
+        1,
         'left'
       ); // Corrected call
       expect(x).toBe(Math.round(expectedX / gridSize) * gridSize);
@@ -80,6 +84,8 @@ describe('getNodePlacement', () => {
         parent,
         null,
         gridSize,
+        0,
+        1,
         'top'
       ); // Corrected call
       expect(x).toBe(Math.round(expectedX / gridSize) * gridSize);
@@ -96,6 +102,8 @@ describe('getNodePlacement', () => {
         parent,
         null,
         gridSize,
+        0,
+        1,
         'bottom'
       ); // Corrected call
       expect(x).toBe(Math.round(expectedX / gridSize) * gridSize);

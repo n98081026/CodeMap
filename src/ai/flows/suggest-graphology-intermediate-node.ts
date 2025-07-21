@@ -55,7 +55,7 @@ const suggestGraphologyIntermediateNode = async (
   try {
     // Step 1: Call graphologyInterCommunityEdgeTool
     // The input for this tool is MapDataSchema, which matches the flow's input.
-    const toolResult = await graphologyInterCommunityEdgeTool.run(mapData);
+    const toolResult = await runFlow(graphologyInterCommunityEdgeTool, mapData);
 
     if (
       toolResult.error ||

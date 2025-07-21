@@ -48,14 +48,12 @@ The labels should be short, ideally 1-3 words, and clearly describe the relation
 
 JSON Array of Suggested Labels:`;
 
-    const llmResponse = await generate(
-      DEFAULT_MODEL,
-      {
-        prompt: prompt,
-        output: { format: 'json', schema: z.array(z.string()) },
-        config: { temperature: 0.4 }, // Slightly lower temperature for more deterministic suggestions
-      }
-    );
+    const llmResponse = await generate({
+      model: DEFAULT_MODEL,
+      prompt: prompt,
+      output: { format: 'json', schema: z.array(z.string()) },
+      config: { temperature: 0.4 }, // Slightly lower temperature for more deterministic suggestions
+    });
 
     const suggestions = llmResponse.output;
 

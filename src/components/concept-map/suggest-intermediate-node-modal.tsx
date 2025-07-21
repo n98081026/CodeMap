@@ -3,7 +3,7 @@
 import { ArrowRight, Info, Lightbulb } from 'lucide-react'; // Added Lightbulb and Info
 import React from 'react';
 
-import type { SuggestIntermediateNodeOutputSchema as IntermediateNodeSuggestionResponse } from '@/ai/flows/suggest-intermediate-node';
+import { type SuggestIntermediateNodeOutputSchema as IntermediateNodeSuggestionResponse } from '@/ai/flows/suggest-intermediate-node';
 
 import {
   AlertDialog,

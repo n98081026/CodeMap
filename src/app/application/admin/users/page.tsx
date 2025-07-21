@@ -382,20 +382,19 @@ export default function AdminUsersPage() {
                           <Edit className='h-4 w-4' />
                         </Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              title={
-                                isRestricted
-                                  ? 'Cannot delete this user'
-                                  : 'Delete user'
-                              }
-                              disabled={isRestricted}
-                            >
-                              <Trash2 className='h-4 w-4 text-destructive' />
-                            </Button>
-                          </AlertDialogTrigger>
+                          <Button
+                            asChild
+                            variant='ghost'
+                            size='icon'
+                            title={
+                              isRestricted
+                                ? 'Cannot delete this user'
+                                : 'Delete user'
+                            }
+                            disabled={isRestricted}
+                          >
+                            <Trash2 className='h-4 w-4 text-destructive' />
+                          </Button>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Are you sure?</AlertDialogTitle>

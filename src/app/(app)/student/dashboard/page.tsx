@@ -12,7 +12,6 @@ import {
   Users,
   Settings,
 } from 'lucide-react'; // Added Users, Settings
-import { Loader2 } from 'lucide-react'; // For loading state
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; // For redirection
 import React from 'react'; // Ensure React is imported for useMemo if not already via other imports
@@ -30,10 +29,6 @@ import {
 } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics';
-import { UserRole } from '@/types'; // Import UserRole
-// Unused imports like Card, CardContent etc. are removed as StudentDashboardView handles its own UI.
-// Kept Link for Button asChild if needed, but StudentDashboardView handles its internal links.
-// import Link from 'next/link'; // No longer directly used here if StudentDashboardView handles all links
 import { UserRole } from '@/types'; // Import UserRole
 
 // import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Now in StudentDashboardView

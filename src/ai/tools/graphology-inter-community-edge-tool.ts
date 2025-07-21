@@ -1,5 +1,5 @@
 // src/ai/tools/graphology-inter-community-edge-tool.ts
-import { defineTool } from '@genkit-ai/core';
+import { defineTool } from '@genkit-ai/flow';
 import Graph from 'graphology';
 import louvain from 'graphology-communities-louvain';
 import { z } from 'zod';

@@ -36,11 +36,11 @@ const SuggestionEdge: React.FC<EdgeProps<SuggestionEdgeData>> = ({
   data,
 }) => {
   // const { setEdges } = useReactFlow(); // Not using this as actions directly modify store, which updates edges
-  const acceptStructuralEdgeSuggestion = useConceptMapStore(
-    (s) => s.acceptStructuralEdgeSuggestion
+  const acceptStructuralSuggestion = useConceptMapStore(
+    (s) => s.acceptStructuralSuggestion
   );
-  const dismissStructuralEdgeSuggestion = useConceptMapStore(
-    (s) => s.dismissStructuralEdgeSuggestion
+  const dismissStructuralSuggestion = useConceptMapStore(
+    (s) => s.dismissStructuralSuggestion
   );
 
   const [edgePath, labelX, labelY] = getBezierPath({
@@ -54,12 +54,12 @@ const SuggestionEdge: React.FC<EdgeProps<SuggestionEdgeData>> = ({
 
   const handleAccept = (event: React.MouseEvent) => {
     event.stopPropagation();
-    acceptStructuralEdgeSuggestion(id);
+    acceptStructuralSuggestion(id);
   };
 
   const handleDismiss = (event: React.MouseEvent) => {
     event.stopPropagation();
-    dismissStructuralEdgeSuggestion(id);
+    dismissStructuralSuggestion(id);
   };
 
   return (
@@ -107,11 +107,10 @@ const SuggestionEdge: React.FC<EdgeProps<SuggestionEdgeData>> = ({
               {data?.reason && (
                 <Lightbulb
                   className='h-3.5 w-3.5 text-purple-500 dark:text-purple-400'
-                  title={data.reason}
                 />
               )}
               <Button
-                size='iconSm' // Using iconSm, assuming it's defined or similar to h-6 w-6 p-0.5
+                size='icon' // Using iconSm, assuming it's defined or similar to h-6 w-6 p-0.5
                 variant='ghost'
                 className='h-6 w-6 p-0.5 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-700 dark:text-green-400 dark:hover:text-green-300'
                 onClick={handleAccept}
@@ -120,7 +119,7 @@ const SuggestionEdge: React.FC<EdgeProps<SuggestionEdgeData>> = ({
                 <CheckCircle2 className='h-4 w-4' />
               </Button>
               <Button
-                size='iconSm'
+                size='icon'
                 variant='ghost'
                 className='h-6 w-6 p-0.5 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-700 dark:text-red-400 dark:hover:text-red-300'
                 onClick={handleDismiss}

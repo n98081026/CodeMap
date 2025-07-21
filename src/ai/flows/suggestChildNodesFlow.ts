@@ -85,17 +85,12 @@ Ensure the "text" for each child is not empty. Default "relationLabel" to "relat
       console.log(
         `[suggestChildNodesFlow] Requesting ${maxSuggestions} child suggestions for parent: "${parentNodeText}"`
       );
-      const llmResponse = await generate(
-        {
-          model: gemini10Pro,
-          prompt: prompt,
-          output: { format: 'json', schema: SuggestChildNodesResponseSchema },
-          config: { temperature: 0.5, maxOutputTokens: 300 * maxSuggestions }, // Adjusted max tokens based on suggestions
-        },
-        {
-          tools: [],
-        }
-      );
+      const llmResponse = await generate({
+        model: gemini10Pro,
+        prompt: prompt,
+        output: { format: 'json', schema: SuggestChildNodesResponseSchema },
+        config: { temperature: 0.5, maxOutputTokens: 300 * maxSuggestions }, // Adjusted max tokens based on suggestions
+      });
 
       const suggestions = llmResponse.output();
 

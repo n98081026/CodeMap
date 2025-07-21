@@ -12,20 +12,16 @@ import { summarizeCodeElementPurposeFlow } from '@/ai/flows/summarize-code-eleme
 
 import { jest } from '@jest/globals';
 // Mock dependencies
-jest.mock('../supabase-file-fetcher-tool', () => ({
-  supabaseFileFetcherTool: {
-    run: jest.fn(),
-  },
-}));
+import { runFlow } from '@genkit-ai/flow';
 
-jest.mock('@/ai/flows/summarize-code-element-purpose', () => ({
-  summarizeCodeElementPurposeFlow: {
-    run: jest.fn(),
-  },
-}));
+jest.mock('@/ai/flows/summarize-code-element-purpose');
+jest.mock('../supabase-file-fetcher-tool');
 
-const mockedSupabaseFileFetcher = supabaseFileFetcherTool.run as jest.Mock;
-const mockedSummarizeFlow = summarizeCodeElementPurposeFlow.run as jest.Mock;
+const mockedSummarizeFlow = jest.fn();
+const mockedSupabaseFileFetcher = jest.fn();
+
+jest.mocked(summarizeCodeElementPurposeFlow).mockImplementation(mockedSummarizeFlow);
+jest.mocked(supabaseFileFetcherTool).mockImplementation(mockedSupabaseFileFetcher);
 
 const mockJsFileContentFixture = `
 function calculateTotalPrice(price, quantity) {
@@ -113,9 +109,10 @@ def another_top_level_function():
       }));
 
       const input: ProjectAnalysisInput = {
-        projectStoragePath: 'user/project/test_script.py',
+        supabasePath: 'user/project/test_script.py',
+        isMock: true,
       };
-      const result = await projectStructureAnalyzerTool.run(input);
+      const result = await runFlow(projectStructureAnalyzerTool, input);
 
       expect(result.error).toBeUndefined();
       expect(result.analyzedFileName).toBe('test_script.py');
@@ -244,9 +241,10 @@ from ..parent import parent_module
       }); // Generic summary for any element
 
       const input: ProjectAnalysisInput = {
-        projectStoragePath: 'user/project/imports_test.py',
+        supabasePath: 'user/project/imports_test.py',
+        isMock: true,
       };
-      const result = await projectStructureAnalyzerTool.run(input);
+      const result = await runFlow(projectStructureAnalyzerTool, input);
 
       expect(result.error).toBeUndefined();
       const detailedNodes = result.detailedNodes || [];
@@ -289,9 +287,10 @@ from ..parent import parent_module
         createMockFileFetcherOutput('empty.py', '')
       );
       const input: ProjectAnalysisInput = {
-        projectStoragePath: 'user/project/empty.py',
+        supabasePath: 'user/project/empty.py',
+        isMock: true,
       };
-      const result = await projectStructureAnalyzerTool.run(input);
+      const result = await runFlow(projectStructureAnalyzerTool, input);
 
       expect(result.error).toBeUndefined();
       expect(result.analyzedFileName).toBe('empty.py');
@@ -315,9 +314,10 @@ class MyBrokenClass
         createMockFileFetcherOutput('syntax_error.py', pythonContentSyntaxError)
       );
       const input: ProjectAnalysisInput = {
-        projectStoragePath: 'user/project/syntax_error.py',
+        supabasePath: 'user/project/syntax_error.py',
+        isMock: true,
       };
-      const result = await projectStructureAnalyzerTool.run(input);
+      const result = await runFlow(projectStructureAnalyzerTool, input);
 
       expect(result.error).toBeDefined();
       expect(result.error).toContain('Python AST parsing failed');
@@ -351,9 +351,10 @@ class MyBrokenClass
       createMockFileFetcherOutput('notes.txt', textContent, 'text/plain')
     );
     const input: ProjectAnalysisInput = {
-      projectStoragePath: 'user/project/notes.txt',
+      supabasePath: 'user/project/notes.txt',
+      isMock: true,
     };
-    const result = await projectStructureAnalyzerTool.run(input);
+    const result = await runFlow(projectStructureAnalyzerTool, input);
 
     expect(result.error).toBeUndefined();
     expect(result.analyzedFileName).toBe('notes.txt');
@@ -374,9 +375,10 @@ class MyBrokenClass
       error: 'Supabase fetch failed',
     });
     const input: ProjectAnalysisInput = {
-      projectStoragePath: 'user/project/error_file.py',
+      supabasePath: 'user/project/error_file.py',
+      isMock: true,
     };
-    const result = await projectStructureAnalyzerTool.run(input);
+    const result = await runFlow(projectStructureAnalyzerTool, input);
 
     expect(result.error).toBe('File fetch failed: Supabase fetch failed');
     expect(result.analysisSummary).toContain(
@@ -393,9 +395,10 @@ class MyBrokenClass
     mockedSummarizeFlow.mockRejectedValue(new Error('LLM unavailable'));
 
     const input: ProjectAnalysisInput = {
-      projectStoragePath: 'user/project/summarize_error.py',
+      supabasePath: 'user/project/summarize_error.py',
+      isMock: true,
     };
-    const result = await projectStructureAnalyzerTool.run(input);
+    const result = await runFlow(projectStructureAnalyzerTool, input);
 
     expect(result.error).toBeUndefined(); // The tool itself shouldn't fail, but summary will be affected
     const funcNode = result.detailedNodes?.find(

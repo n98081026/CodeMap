@@ -12,7 +12,7 @@ import {
   MOCK_STUDENT_USER_V3,
   MOCK_TEACHER_USER_V3,
   MOCK_CONCEPT_MAPS_STORE,
-  MOCK_CLASSROOM_SHARED_V2,
+  MOCK_CLASSROOM_SHARED_V3,
 } from '@/lib/config'; // Use MOCK_CONCEPT_MAPS_STORE
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService'; // To validate ownerId
@@ -60,7 +60,7 @@ export async function createConceptMap(
     .insert({
       name,
       owner_id: ownerId,
-      map_data: mapData || { nodes: [], edges: [] },
+      map_data: (mapData || { nodes: [], edges: [] }) as any,
       is_public: isPublic,
       shared_with_classroom_id: sharedWithClassroomId || null,
     })
@@ -77,7 +77,7 @@ export async function createConceptMap(
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: data.map_data as ConceptMapData,
+    mapData: data.map_data,
     isPublic: data.is_public,
     sharedWithClassroomId: data.shared_with_classroom_id,
     createdAt: data.created_at,
@@ -133,7 +133,7 @@ export async function getConceptMapById(
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: (data.map_data as ConceptMapData) || { nodes: [], edges: [] },
+    mapData: data.map_data || { nodes: [], edges: [] },
     isPublic: data.is_public ?? false,
     sharedWithClassroomId: data.shared_with_classroom_id ?? null,
     createdAt: data.created_at,
@@ -252,7 +252,7 @@ export async function getConceptMapsByOwnerId(
         id: m.id,
         name: m.name,
         ownerId: m.owner_id,
-        mapData: (m.map_data as ConceptMapData) || { nodes: [], edges: [] },
+        mapData: m.map_data || { nodes: [], edges: [] },
         isPublic: m.is_public ?? false,
         sharedWithClassroomId: m.shared_with_classroom_id ?? null,
         createdAt: m.created_at,
@@ -375,7 +375,7 @@ export async function getConceptMapsByClassroomId(
         id: m.id,
         name: m.name,
         ownerId: m.owner_id,
-        mapData: (m.map_data as ConceptMapData) || { nodes: [], edges: [] },
+        mapData: m.map_data || { nodes: [], edges: [] },
         isPublic: m.is_public ?? false,
         sharedWithClassroomId: m.shared_with_classroom_id ?? null,
         createdAt: m.created_at,
@@ -452,7 +452,7 @@ export async function updateConceptMap(
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: (data.map_data as ConceptMapData) || { nodes: [], edges: [] },
+    mapData: data.map_data || { nodes: [], edges: [] },
     isPublic: data.is_public ?? false,
     sharedWithClassroomId: data.shared_with_classroom_id ?? null,
     createdAt: data.created_at,

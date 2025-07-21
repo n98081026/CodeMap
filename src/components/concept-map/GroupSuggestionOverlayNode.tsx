@@ -22,17 +22,17 @@ const GroupSuggestionOverlayNode: React.FC<
   NodeProps<GroupSuggestionOverlayData>
 > = ({ data }) => {
   const { width, height, label, reason, suggestionId } = data;
-  const { acceptStructuralGroupSuggestion, dismissStructuralGroupSuggestion } =
+  const { acceptStructuralSuggestion, dismissStructuralSuggestion } =
     useConceptMapStore.getState();
 
   const handleAccept = (event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent node selection or other underlying interactions
-    acceptStructuralGroupSuggestion(suggestionId, { createParentNode: true });
+    acceptStructuralSuggestion(suggestionId, { createParentNode: true });
   };
 
   const handleDismiss = (event: React.MouseEvent) => {
     event.stopPropagation();
-    dismissStructuralGroupSuggestion(suggestionId);
+    dismissStructuralSuggestion(suggestionId);
   };
 
   return (
@@ -65,7 +65,7 @@ const GroupSuggestionOverlayNode: React.FC<
         // style={{ pointerEvents: 'auto' }}
       >
         <Button
-          size='iconSm'
+          size='icon'
           variant='ghost'
           className='h-5 w-5 p-0 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-800 dark:text-green-500 dark:hover:text-green-400'
           onClick={handleAccept}
@@ -74,7 +74,7 @@ const GroupSuggestionOverlayNode: React.FC<
           <CheckCircle2 className='h-4 w-4' />
         </Button>
         <Button
-          size='iconSm'
+          size='icon'
           variant='ghost'
           className='h-5 w-5 p-0 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-800 dark:text-red-500 dark:hover:text-red-400'
           onClick={handleDismiss}

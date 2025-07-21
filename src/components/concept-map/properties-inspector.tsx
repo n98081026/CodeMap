@@ -23,7 +23,7 @@ import {
   AlertTriangle as AlertTriangleIcon,
   Send,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import * as z from 'zod';
 
 import AICommandPalette, { type AICommand } from './ai-command-palette';
@@ -740,9 +740,13 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     }
 
     const edge = selectedElement as ConceptMapEdge;
-    const { nodes, setStagedMapData } = useConceptMapStore.getState(); // Get setStagedMapData
-    const sourceNode = nodes.find((n) => n.id === edge.source);
-    const targetNode = nodes.find((n) => n.id === edge.target);
+    const { setStagedMapData } = useConceptMapStore.getState(); // Get setStagedMapData
+    const sourceNode = useConceptMapStore
+      .getState()
+      .nodes.find((n) => n.id === edge.source);
+    const targetNode = useConceptMapStore
+      .getState()
+      .nodes.find((n) => n.id === edge.target);
 
     if (!sourceNode || !targetNode) {
       toast({
@@ -787,10 +791,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             result.intermediateNodeDetails ||
             (result.reasoning ? `AI Rationale: ${result.reasoning}` : ''),
           type: 'ai-intermediate',
-          position: {
-            x: midX - DEFAULT_NODE_WIDTH / 2,
-            y: midY - DEFAULT_NODE_HEIGHT / 2 + 50,
-          }, // Offset slightly
           width: DEFAULT_NODE_WIDTH,
           height: DEFAULT_NODE_HEIGHT,
           childIds: [],
@@ -814,13 +814,11 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           actionType: 'intermediateNode', // To inform the commit logic what to do (e.g., delete original edge)
           originalElementId: edge.id, // Pass original edge ID for deletion on commit
         });
-        toast.dismiss(loadingToastId);
         toast({
           title: 'AI Suggestion Ready',
           description: 'Review the new intermediate node in the staging area.',
         });
       } else {
-        toast.dismiss(loadingToastId);
         toast({
           title: 'AI Suggestion',
           description: 'AI could not suggest an intermediate node.',
@@ -829,7 +827,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       }
     } catch (error) {
       console.error('Error suggesting intermediate node:', error);
-      if (loadingToastId) toast.dismiss(loadingToastId);
       toast({
         title: 'AI Error',
         description:
@@ -980,7 +977,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         />
         <AICommandPalette
           isOpen={isPaletteOpen && !isViewOnlyMode}
-          targetRect={paletteTargetRect}
+          targetRect={paletteTargetRect || undefined}
           commands={aiCommands}
           filterText={commandFilterText}
           onSelectCommand={handleSelectCommand}

@@ -11,9 +11,6 @@ import type {
   ConceptMap,
   ConceptMapNode,
   ConceptMapEdge,
-  StagedMapDataWithContext,
-  LayoutNodeUpdate,
-  GenerateProjectOverviewOutput,
 } from '@/types';
 
 // Mocking uuid
@@ -408,7 +405,7 @@ describe('useConceptMapStore', () => {
     it('setStagedMapData: should set stagedMapData and clear ghost data', () => {
       const store = useConceptMapStore.getState();
       store.setGhostPreview([{ id: 'g1', x: 0, y: 0, width: 100, height: 50 }]); // Ensure ghost data is present
-      const stagedData: StagedMapDataWithContext = {
+      const stagedData = {
         nodes: [sampleStagedNode],
         edges: [sampleStagedEdge],
         actionType: 'quickCluster',
@@ -709,15 +706,14 @@ describe('useConceptMapStore', () => {
     });
 
     it('fetchProjectOverview: should set overview data on success', async () => {
-      const mockOverview: GenerateProjectOverviewOutput = {
+      const mockOverview = {
         overallSummary: 'Summary',
         keyModules: [],
       };
       mockGenerateProjectOverviewFlow.mockResolvedValue(mockOverview);
       const store = useConceptMapStore.getState();
       await store.fetchProjectOverview({
-        mapId: 'map-1',
-        mapData: { nodes: [], edges: [] },
+        projectStoragePath: 'path/to/project',
       });
       const state = useConceptMapStore.getState();
       expect(state.isFetchingOverview).toBe(false);
@@ -747,7 +743,7 @@ describe('useConceptMapStore', () => {
       reason: 'Reason 1',
     };
     it('addStructuralSuggestion: should add a suggestion', () => {
-      useConceptMapStore.getState().addStructuralSuggestion(suggestion1 as StructuralSuggestionItem);
+      useConceptMapStore.getState().addStructuralSuggestion(suggestion1 as any);
       expect(
         useConceptMapStore.getState().structuralSuggestions
       ).toContainEqual(suggestion1);
