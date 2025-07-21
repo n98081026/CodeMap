@@ -26,16 +26,15 @@ import dagre from 'dagre';
 
 import type {
   DagreLayoutUtility as IDagreLayoutUtility,
-  NodeLayoutInput, // Represents a node for Dagre layout (id, width, height)
-  EdgeLayoutInput, // Represents an edge for Dagre layout (source, target)
+  DagreLayoutInput,
   DagreLayoutOptions,
   NodePositionOutput, // Represents the output from Dagre (id, x, y) - will be top-left
 } from '../types/graph-adapter'; // Path to where these interfaces are defined
 
 export class DagreLayoutUtility implements IDagreLayoutUtility {
   async layout(
-    nodes: NodeLayoutInput[],
-    edges: EdgeLayoutInput[],
+    nodes: DagreLayoutInput['nodes'],
+    edges: DagreLayoutInput['edges'],
     options?: DagreLayoutOptions
   ): Promise<NodePositionOutput[]> {
     // Create a new directed graph
@@ -47,25 +46,20 @@ export class DagreLayoutUtility implements IDagreLayoutUtility {
     // Set layout options
     dagreGraph.setGraph({
       rankdir: options?.direction || 'TB',
-      ranksep: options?.ranksep === undefined ? 50 : options.ranksep, // Default if undefined
-      nodesep: options?.nodesep === undefined ? 50 : options.nodesep, // Default if undefined
-      edgesep: options?.edgesep === undefined ? 10 : options.edgesep, // Default if undefined
-      marginx: options?.marginx === undefined ? 20 : options.marginx, // Default if undefined
-      marginy: options?.marginy === undefined ? 20 : options.marginy, // Default if undefined
-      align: options?.align, // 'UL', 'UR', 'DL', or 'DR'
-      acyclicer: options?.acyclicer, // 'greedy' or undefined
-      ranker: options?.ranker, // 'network-simplex', 'tight-tree' or 'longest-path'
+      ranksep: options?.rankSep === undefined ? 50 : options.rankSep, // Default if undefined
+      nodesep: options?.nodeSep === undefined ? 50 : options.nodeSep, // Default if undefined
+      edgesep: options?.edgeSep === undefined ? 10 : options.edgeSep, // Default if undefined
     });
 
     // Default node dimensions if not provided, Dagre requires width and height.
-    const defaultWidth = options?.defaultNodeWidth || 150;
-    const defaultHeight = options?.defaultNodeHeight || 40;
+    const defaultWidth = 150;
+    const defaultHeight = 40;
 
     nodes.forEach((node) => {
       dagreGraph.setNode(node.id, {
         width: node.width || defaultWidth,
         height: node.height || defaultHeight,
-        label: node.label || node.id, // Dagre uses label for debug/display, not strictly for layout
+        label: node.text || node.id, // Dagre uses label for debug/display, not strictly for layout
       });
     });
 

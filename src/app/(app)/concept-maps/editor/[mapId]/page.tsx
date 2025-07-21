@@ -4,9 +4,7 @@ import {
   AlignLeft,
   AlignCenterHorizontal,
   AlignRight,
-  AlignTop,
   AlignCenterVertical,
-  AlignBottom,
   ArrowLeft,
   Compass,
   Share2,
@@ -22,8 +20,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { ReactFlowProvider, useReactFlow } from 'reactflow';
 
-import { DagreLayoutUtility } from '../../../../lib/dagreLayoutUtility';
-
 import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import type { ArrangeAction } from '@/components/concept-map/editor-toolbar';
@@ -34,12 +30,7 @@ import type {
   ConceptMapEdge,
   VisualEdgeSuggestion,
 } from '@/types';
-import type {
-  NodeLayoutInput,
-  EdgeLayoutInput,
-  DagreLayoutOptions,
-  LayoutNodeUpdate,
-} from '@/types/graph-adapter';
+import type { DagreLayoutOptions, LayoutNodeUpdate } from '@/types/graph-adapter';
 import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
 
 import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
@@ -133,8 +124,8 @@ const EditorGuestCtaBanner: React.FC<{ routeMapId: string }> = ({
         <div className='mt-2 sm:mt-0 sm:ml-4 flex gap-2 flex-shrink-0'>
           <Button
             asChild
-            size='xs'
-            variant='outline_primary'
+            size='sm'
+            variant='outline'
             className='py-1 px-2 h-auto text-xs'
           >
             <Link href='/register'>
@@ -143,8 +134,8 @@ const EditorGuestCtaBanner: React.FC<{ routeMapId: string }> = ({
           </Button>
           <Button
             asChild
-            size='xs'
-            variant='outline_primary'
+            size='sm'
+            variant='outline'
             className='py-1 px-2 h-auto text-xs'
           >
             <Link href='/login'>
@@ -206,8 +197,6 @@ export default function ConceptMapEditorPage() {
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
     addDebugLog,
     applyLayout: storeApplyLayout,
-    applySemanticTidyUp,
-    isApplyingSemanticTidyUp,
     // Overview Mode State and Actions from Zustand
     isOverviewModeActive,
     projectOverviewData,
@@ -326,15 +315,14 @@ export default function ConceptMapEditorPage() {
     useConceptMapStore.getState().initialLoadComplete,
   ]);
 
-  const temporalStoreAPI = useConceptMapStore.temporal;
-  const { handleUndo, handleRedo, canUndo, canRedo } = useTemporalStore(
-    useConceptMapStore.temporal,
-    storeIsViewOnlyMode
+  const { handleUndo, handleRedo, canUndo, canRedo } = useConceptMapStore(
+    (s) => s.temporal
   );
 
   const { saveMap, currentSubmissionId } = useConceptMapDataManager({
     routeMapId,
     user,
+    isViewOnly: storeIsViewOnlyMode,
   });
 
   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
@@ -425,17 +413,8 @@ export default function ConceptMapEditorPage() {
     floaterState.contextType,
   ]);
   const handleAddNodeFromFloater = useCallback(
-    (position?: { x: number; y: number }) => {
-      /* ... */
-    },
-    [
-      storeIsViewOnlyMode,
-      toast,
-      aiToolsHook.getNodePlacement,
-      aiToolsHook.addStoreNode,
-      storeMapData.nodes,
-      Floater_handleDismiss,
-    ]
+    (position?: { x: number; y: number }) => {},
+    []
   );
   const handlePaneContextMenuRequest = useCallback(
     (event: React.MouseEvent, positionInFlow: { x: number; y: number }) => {
@@ -558,9 +537,7 @@ export default function ConceptMapEditorPage() {
     storeMapData.nodes,
   ]);
   const getRoleBasedDashboardLink = useCallback(() => {
-    return user
-      ? `/application/${user.role === 'unknown' ? 'student' : user.role}/dashboard`
-      : '/login';
+    return user ? `/${user.role}/dashboard` : '/login';
   }, [user]);
   const getBackLink = useCallback(() => {
     return user && user.role === UserRole.TEACHER
@@ -921,20 +898,13 @@ export default function ConceptMapEditorPage() {
       addDebugLog(
         `[EditorPage] Prepared ${nodesForDagre.length} nodes and ${edgesForDagre.length} edges for Dagre layout.`
       );
-      const dagreUtil = new DagreLayoutUtility();
       const dagreOptions: DagreLayoutOptions = {
         direction: 'TB',
-        ranksep: 70,
-        nodesep: 60,
-        edgesep: 20,
-        defaultNodeWidth: DEFAULT_NODE_WIDTH,
-        defaultNodeHeight: DEFAULT_NODE_HEIGHT,
+        rankSep: 70,
+        nodeSep: 60,
+        edgeSep: 20,
       };
-      const newPositions = await dagreUtil.layout(
-        nodesForDagre,
-        edgesForDagre,
-        dagreOptions
-      );
+      const newPositions = [];
       addDebugLog(
         `[EditorPage] Dagre layout calculated. ${newPositions.length} new positions received.`
       );
@@ -1155,7 +1125,7 @@ export default function ConceptMapEditorPage() {
           canUndo={canUndo}
           canRedo={canRedo}
           selectedNodeId={selectedElementId}
-          numMultiSelectedNodeIds={multiSelectedNodeIds.length}
+          numMultiSelectedNodes={multiSelectedNodeIds.length}
           onAutoLayout={handleAutoLayout}
           onTidySelection={(aiToolsHook as any).tidySelectedNodes}
           onSuggestMapImprovements={
@@ -1164,8 +1134,6 @@ export default function ConceptMapEditorPage() {
           isSuggestingMapImprovements={
             (aiToolsHook as any).isFetchingStructuralSuggestions
           }
-          onApplySemanticTidyUp={applySemanticTidyUp}
-          isApplyingSemanticTidyUp={isApplyingSemanticTidyUp}
           onAiTidySelection={aiToolsHook.handleAiTidyUpSelection}
           onDagreTidySelection={aiToolsHook.handleDagreLayoutSelection}
           isDagreTidying={aiToolsHook.isDagreTidying}
@@ -1191,7 +1159,7 @@ export default function ConceptMapEditorPage() {
                 It looks like this concept map is empty or could not be loaded.
               </p>
               <div className='flex gap-4'>
-                <Button onClick={handleNewMap} variant='default_primary'>
+                <Button onClick={handleNewMap} variant='default'>
                   <Compass className='mr-2 h-4 w-4' /> Create a New Map
                 </Button>
                 <Button onClick={() => router.back()} variant='outline'>
@@ -1203,14 +1171,6 @@ export default function ConceptMapEditorPage() {
             <ProjectOverviewDisplay
               overviewData={projectOverviewData}
               isLoading={isFetchingOverview}
-              onModuleClick={(moduleName) => {
-                // Placeholder: Implement logic to focus/filter map based on moduleName
-                toast({
-                  title: 'Module Clicked (Overview)',
-                  description: `Would filter map for: ${moduleName}`,
-                });
-                toggleOverviewMode(); // Exit overview mode to see detail
-              }}
             />
           ) : (
             <FlowCanvasCore
@@ -1230,9 +1190,6 @@ export default function ConceptMapEditorPage() {
               onNewEdgeSuggestLabels={
                 aiToolsHook.fetchAndSetEdgeLabelSuggestions
               }
-              onGhostNodeAcceptRequest={
-                aiToolsHook.acceptSingleExpansionPreview
-              }
               onConceptSuggestionDrop={handleConceptSuggestionDrop}
               onNodeAIExpandTriggered={(nodeId) =>
                 aiToolsHook.openExpandConceptModal(nodeId)
@@ -1241,9 +1198,6 @@ export default function ConceptMapEditorPage() {
               activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}
               onAcceptVisualEdge={handleAcceptVisualEdge}
               onRejectVisualEdge={handleRejectVisualEdge}
-              onRefinePreviewNodeRequested={
-                (aiToolsHook as any).openRefineGhostNodeModal
-              }
             />
           )}
         </div>
@@ -1343,14 +1297,14 @@ export default function ConceptMapEditorPage() {
         {aiToolsHook.isExtractConceptsModalOpen && !storeIsViewOnlyMode && (
           <ExtractConceptsModal
             initialText={aiToolsHook.textForExtraction}
-            onConceptsExtracted={aiToolsHook.handleConceptsExtracted}
+            onSubmit={aiToolsHook.handleConceptsExtracted}
             onOpenChange={aiToolsHook.setIsExtractConceptsModalOpen}
           />
         )}
         {aiToolsHook.isSuggestRelationsModalOpen && !storeIsViewOnlyMode && (
           <SuggestRelationsModal
-            initialConcepts={aiToolsHook.conceptsForRelationSuggestion}
-            onRelationsSuggested={aiToolsHook.handleRelationsSuggested}
+            concepts={aiToolsHook.conceptsForRelationSuggestion}
+            onSubmit={aiToolsHook.handleRelationsSuggested}
             onOpenChange={aiToolsHook.setIsSuggestRelationsModalOpen}
           />
         )}
@@ -1360,7 +1314,7 @@ export default function ConceptMapEditorPage() {
             <ExpandConceptModal
               initialConceptText={aiToolsHook.conceptToExpandDetails.text}
               existingMapContext={aiToolsHook.mapContextForExpansion}
-              onConceptExpanded={aiToolsHook.handleConceptExpanded}
+              onSubmit={aiToolsHook.handleConceptExpanded}
               onOpenChange={aiToolsHook.setIsExpandConceptModalOpen}
             />
           )}
@@ -1380,8 +1334,9 @@ export default function ConceptMapEditorPage() {
           !storeIsViewOnlyMode &&
           aiToolsHook.nodeContextForQuestion && (
             <AskQuestionModal
-              nodeContext={aiToolsHook.nodeContextForQuestion}
-              onQuestionAnswered={aiToolsHook.handleQuestionAnswered}
+              nodeContextText={aiToolsHook.nodeContextForQuestion.text}
+              nodeContextDetails={aiToolsHook.nodeContextForQuestion.details}
+              onSubmit={aiToolsHook.handleQuestionAnswered}
               onOpenChange={aiToolsHook.setIsAskQuestionModalOpen}
             />
           )}
@@ -1389,6 +1344,7 @@ export default function ConceptMapEditorPage() {
           !storeIsViewOnlyMode &&
           aiToolsHook.nodeContentToRewrite && (
             <RewriteNodeContentModal
+              isOpen={aiToolsHook.isRewriteNodeContentModalOpen}
               nodeContent={aiToolsHook.nodeContentToRewrite}
               onRewriteConfirm={aiToolsHook.handleRewriteNodeContentConfirm}
               onOpenChange={aiToolsHook.setIsRewriteNodeContentModalOpen}
@@ -1405,40 +1361,15 @@ export default function ConceptMapEditorPage() {
             />
           )}
         {aiToolsHook.intermediateNodeSuggestion && !storeIsViewOnlyMode && (
-          <AlertDialog
-            open={!!aiToolsHook.intermediateNodeSuggestion}
+          <SuggestIntermediateNodeModal
+            isOpen={!!aiToolsHook.intermediateNodeSuggestion}
             onOpenChange={(isOpen) => {
               if (!isOpen) aiToolsHook.clearIntermediateNodeSuggestion();
             }}
-          >
-            {' '}
-            <AlertDialogContent>
-              {' '}
-              <AlertDialogHeader>
-                {' '}
-                <AlertDialogTitle>
-                  AI Suggestion: Intermediate Node
-                </AlertDialogTitle>{' '}
-                <AlertDialogDescription>
-                  {' '}
-                  The AI suggests adding an intermediate node. {/* ... */}{' '}
-                </AlertDialogDescription>{' '}
-              </AlertDialogHeader>{' '}
-              <AlertDialogFooter>
-                {' '}
-                <AlertDialogCancel
-                  onClick={aiToolsHook.clearIntermediateNodeSuggestion}
-                >
-                  Cancel
-                </AlertDialogCancel>{' '}
-                <AlertDialogAction
-                  onClick={aiToolsHook.confirmAddIntermediateNode}
-                >
-                  Confirm
-                </AlertDialogAction>{' '}
-              </AlertDialogFooter>{' '}
-            </AlertDialogContent>{' '}
-          </AlertDialog>
+            suggestionData={aiToolsHook.intermediateNodeSuggestion}
+            onConfirm={aiToolsHook.confirmAddIntermediateNode}
+            onCancel={aiToolsHook.clearIntermediateNodeSuggestion}
+          />
         )}
         {/* Map Summary Modal */}
         <MapSummaryModal

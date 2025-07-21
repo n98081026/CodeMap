@@ -36,13 +36,16 @@ export const SuggestedGroupSchema = z.object({
   reason: z.string(),
 });
 
-export const SuggestNodeGroupCandidatesOutputSchema = NodeGroupSuggestionSchema;
+export const SuggestNodeGroupCandidatesOutputSchema = z.object({
+  suggestedGroups: z.array(NodeGroupSuggestionSchema),
+});
 
 export const suggestNodeGroupCandidatesFlow = defineFlow(
   {
     name: 'suggestNodeGroupCandidatesFlow',
     inputSchema: SuggestNodeGroupCandidatesInputSchema,
     outputSchema: SuggestNodeGroupCandidatesOutputSchema,
+    authPolicy: (auth, input) => {},
   },
   async (input) => {
     const { nodes } = input;
@@ -98,18 +101,20 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
     `;
 
     try {
-      const llmResponse = await generate({
-        model: DEFAULT_MODEL,
-        prompt: prompt,
-        config: {
-          temperature: 0.4,
-          maxOutputTokens: 800,
-        },
-        output: {
-          format: 'json',
-          schema: SuggestNodeGroupCandidatesOutputSchema,
-        },
-      });
+      const llmResponse = await generate(
+        {
+          model: DEFAULT_MODEL,
+          prompt: prompt,
+          config: {
+            temperature: 0.4,
+            maxOutputTokens: 800,
+          },
+          output: {
+            format: 'json',
+            schema: SuggestNodeGroupCandidatesOutputSchema,
+          },
+        }
+      );
 
       const result = llmResponse.output();
 
@@ -122,11 +127,11 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
       // (e.g., groups with node IDs not present in the input)
       const inputNodeIds = new Set(nodes.map((n) => n.id));
       const validatedGroups = result.suggestedGroups
-        .map((group) => ({
+        .map((group: any) => ({
           ...group,
-          nodeIds: group.nodeIds.filter((id) => inputNodeIds.has(id)),
+          nodeIds: group.nodeIds.filter((id: any) => inputNodeIds.has(id)),
         }))
-        .filter((group) => group.nodeIds.length >= 2);
+        .filter((group: any) => group.nodeIds.length >= 2);
 
       return { suggestedGroups: validatedGroups };
     } catch (error) {

@@ -18,7 +18,6 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { SubmissionListItem } from '@/components/projects/submission-list-item';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 
@@ -105,14 +104,19 @@ export default function MySubmissionsPage() {
 
     if (error) {
       return (
-        <EmptyState
-          icon={<AlertTriangle className='h-12 w-12 text-destructive' />}
-          title='Error Loading Submissions'
-          description={error}
-          action={
-            <Button onClick={() => fetchSubmissions(currentPage)}>Retry</Button>
-          }
-        />
+        <div className='flex flex-col items-center justify-center h-64'>
+          <AlertTriangle className='h-12 w-12 text-destructive' />
+          <h2 className='mt-4 text-xl font-semibold'>
+            Error Loading Submissions
+          </h2>
+          <p className='mt-2 text-muted-foreground'>{error}</p>
+          <Button
+            onClick={() => fetchSubmissions(currentPage)}
+            className='mt-4'
+          >
+            Retry
+          </Button>
+        </div>
       );
     }
 

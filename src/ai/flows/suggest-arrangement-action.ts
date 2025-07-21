@@ -126,17 +126,20 @@ export const suggestArrangementActionFlow = defineFlow(
         },
         output: {
           format: 'json',
-          schema: SuggestArrangementActionOutputSchema, // This validates the top-level structure
+          schema: z.object({
+            actionId: ArrangementActionIdEnum,
+            reason: z.string().optional(),
+          }),
         },
       }
     );
 
-    const outputData = llmResponse.output;
+    const outputData = llmResponse.output();
 
     if (
       !outputData ||
-      !outputData.suggestion ||
-      !ArrangementActionIdEnum.safeParse(outputData.suggestion.actionId).success
+      !outputData.actionId ||
+      !ArrangementActionIdEnum.safeParse(outputData.actionId).success
     ) {
       // Fallback if AI fails to provide a valid actionId or output
       console.error(
@@ -151,6 +154,6 @@ export const suggestArrangementActionFlow = defineFlow(
       };
     }
 
-    return { suggestion: outputData.suggestion };
+    return { suggestion: outputData };
   }
 );

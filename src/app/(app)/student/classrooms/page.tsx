@@ -9,7 +9,6 @@ import { ClassroomListItem } from '@/components/classrooms/classroom-list-item';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { UserRole } from '@/types';
@@ -76,12 +75,16 @@ export default function StudentClassroomsPage() {
 
     if (error) {
       return (
-        <EmptyState
-          icon={<AlertTriangle className='h-12 w-12 text-destructive' />}
-          title='Error Loading Classrooms'
-          description={error}
-          action={<Button onClick={fetchEnrolledClassrooms}>Retry</Button>}
-        />
+        <div className='flex flex-col items-center justify-center h-64'>
+          <AlertTriangle className='h-12 w-12 text-destructive' />
+          <h2 className='mt-4 text-xl font-semibold'>
+            Error Loading Classrooms
+          </h2>
+          <p className='mt-2 text-muted-foreground'>{error}</p>
+          <Button onClick={fetchEnrolledClassrooms} className='mt-4'>
+            Retry
+          </Button>
+        </div>
       );
     }
 

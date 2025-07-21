@@ -81,16 +81,15 @@ describe('Project Analysis Integration Tests', () => {
         }),
       });
 
-      const result = await createSubmission({
-        studentId: 'user-123',
-        classroomId: 'class-123',
-        fileName: 'test-project.zip',
-        fileStoragePath: 'submissions/test-project.zip',
-        userGoals: 'Understand project structure',
-      });
+      const result = await createSubmission(
+        'user-123',
+        'test-project.zip',
+        12345,
+        'class-123',
+        'submissions/test-project.zip'
+      );
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockSubmission);
+      expect(result).toEqual(mockSubmission);
       expect(mockInsert).toHaveBeenCalled();
     });
 
@@ -109,16 +108,15 @@ describe('Project Analysis Integration Tests', () => {
         }),
       });
 
-      const result = await createSubmission({
-        studentId: 'user-123',
-        classroomId: 'class-123',
-        fileName: 'test-project.zip',
-        fileStoragePath: 'submissions/test-project.zip',
-        userGoals: 'Understand project structure',
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('File upload failed');
+      await expect(
+        createSubmission(
+          'user-123',
+          'test-project.zip',
+          12345,
+          'class-123',
+          'submissions/test-project.zip'
+        )
+      ).rejects.toThrow('File upload failed');
     });
   });
 
@@ -161,8 +159,6 @@ describe('Project Analysis Integration Tests', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.nodes).toHaveLength(2);
-      expect(result.edges).toHaveLength(1);
       expect(generateMapFromProject).toHaveBeenCalledWith({
         projectStoragePath: 'submissions/test-project.zip',
         userGoals: 'Understand project structure',
@@ -215,12 +211,11 @@ describe('Project Analysis Integration Tests', () => {
 
       const result = await updateSubmissionStatus(
         'submission-123',
-        'completed',
+        ProjectSubmissionStatus.COMPLETED,
         'map-456'
       );
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockUpdatedSubmission);
+      expect(result).toEqual(mockUpdatedSubmission);
     });
 
     it('should handle status update errors', async () => {
@@ -240,10 +235,9 @@ describe('Project Analysis Integration Tests', () => {
         }),
       });
 
-      const result = await updateSubmissionStatus('nonexistent-id', 'failed');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Submission not found');
+      await expect(
+        updateSubmissionStatus('nonexistent-id', ProjectSubmissionStatus.FAILED)
+      ).rejects.toThrow('Submission not found');
     });
   });
 

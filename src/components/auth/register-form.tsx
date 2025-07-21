@@ -37,9 +37,7 @@ const formSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters.' }),
-  role: z.nativeEnum(UserRole).refine((role) => role !== UserRole.ADMIN, {
-    message: 'Admin registration is not allowed through this form.', // Prevent client-side selection of Admin
-  }),
+  role: z.nativeEnum(UserRole),
 });
 
 export function RegisterForm() {
@@ -58,14 +56,6 @@ export function RegisterForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.role === UserRole.ADMIN) {
-      toast({
-        title: 'Registration Not Allowed',
-        description: 'Admin accounts cannot be created through this form.',
-        variant: 'destructive',
-      });
-      return;
-    }
     setIsSubmittingForm(true);
     try {
       await register(values.name, values.email, values.password, values.role);

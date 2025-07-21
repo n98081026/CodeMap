@@ -202,18 +202,8 @@ function ConceptMapEditorPageContent({
   }, [isViewOnlyModeQueryParam, setStoreIsViewOnlyMode]);
 
   const temporalStoreAPI = useConceptMapStore.temporal;
-  const [temporalState, setTemporalState] = useState(
-    temporalStoreAPI.getState()
-  );
-  useEffect(() => {
-    const unsubscribe = temporalStoreAPI.subscribe(
-      setTemporalState,
-      (state) => state
-    );
-    return unsubscribe;
-  }, [temporalStoreAPI]);
-  const canUndo = temporalState.pastStates.length > 0;
-  const canRedo = temporalState.futureStates.length > 0;
+  const canUndo = temporalStoreAPI.getState().pastStates.length > 0;
+  const canRedo = temporalStoreAPI.getState().futureStates.length > 0;
 
   const { saveMap } = useConceptMapDataManager({
     routeMapIdFromProps: routeMapId,
@@ -243,11 +233,9 @@ function ConceptMapEditorPageContent({
     isQuickClusterModalOpen,
     setIsQuickClusterModalOpen,
     openQuickClusterModal,
-    handleClusterGenerated,
     isGenerateSnippetModalOpen,
     setIsGenerateSnippetModalOpen,
     openGenerateSnippetModal,
-    handleSnippetGenerated,
     isAskQuestionModalOpen,
     setIsAskQuestionModalOpen,
     nodeContextForQuestion,
@@ -858,7 +846,7 @@ function ConceptMapEditorPageContent({
             onNodesDeleteInStore={deleteStoreNode}
             onEdgesDeleteInStore={handleEdgesDeleteCallback}
             onConnectInStore={addEdgeFromHook}
-            onNodeContextMenu={handleNodeContextMenu}
+            onNodeContextMenuRequest={handleNodeContextMenu}
             onAddChildNodeRequestCallback={handleAddChildNodeFromHover}
             panActivationKeyCode='Space'
           />
@@ -949,14 +937,14 @@ function ConceptMapEditorPageContent({
         {isExtractConceptsModalOpen && !storeIsViewOnlyMode && (
           <DynamicExtractConceptsModal
             initialText={textForExtraction}
-            onConceptsExtracted={handleConceptsExtracted}
+            onSubmit={handleConceptsExtracted}
             onOpenChange={setIsExtractConceptsModalOpen}
           />
         )}
         {isSuggestRelationsModalOpen && !storeIsViewOnlyMode && (
           <DynamicSuggestRelationsModal
-            initialConcepts={conceptsForRelationSuggestion}
-            onRelationsSuggested={handleRelationsSuggested}
+            concepts={conceptsForRelationSuggestion}
+            onSubmit={handleRelationsSuggested}
             onOpenChange={setIsSuggestRelationsModalOpen}
           />
         )}
@@ -966,7 +954,7 @@ function ConceptMapEditorPageContent({
             <DynamicExpandConceptModal
               initialConceptText={conceptToExpandDetails.text}
               existingMapContext={mapContextForExpansion}
-              onConceptExpanded={handleConceptExpanded}
+              onSubmit={handleConceptExpanded}
               onOpenChange={setIsExpandConceptModalOpen}
             />
           )}
@@ -974,22 +962,21 @@ function ConceptMapEditorPageContent({
           <DynamicQuickClusterModal
             isOpen={isQuickClusterModalOpen}
             onOpenChange={setIsQuickClusterModalOpen}
-            onClusterGenerated={handleClusterGenerated}
           />
         )}
         {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && (
           <DynamicGenerateSnippetModal
             isOpen={isGenerateSnippetModalOpen}
             onOpenChange={setIsGenerateSnippetModalOpen}
-            onSnippetGenerated={handleSnippetGenerated}
           />
         )}
         {isAskQuestionModalOpen &&
           !storeIsViewOnlyMode &&
           nodeContextForQuestion && (
             <DynamicAskQuestionModal
-              nodeContext={nodeContextForQuestion}
-              onQuestionAnswered={handleQuestionAnswered}
+              nodeContextText={nodeContextForQuestion.text}
+              nodeContextDetails={nodeContextForQuestion.details}
+              onSubmit={handleQuestionAnswered}
               onOpenChange={setIsAskQuestionModalOpen}
             />
           )}
@@ -997,6 +984,7 @@ function ConceptMapEditorPageContent({
           !storeIsViewOnlyMode &&
           nodeContentToRewrite && (
             <DynamicRewriteNodeContentModal
+              isOpen={isRewriteNodeContentModalOpen}
               nodeContent={nodeContentToRewrite}
               onRewriteConfirm={handleRewriteNodeContentConfirm}
               onOpenChange={setIsRewriteNodeContentModalOpen}

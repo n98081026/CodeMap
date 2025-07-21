@@ -91,7 +91,7 @@ describe('Authentication Integration Tests', () => {
 
       render(<TestAuthComponent />);
 
-      expect(screen.getByTestId('auth-test')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-test'));
     });
 
     it('should handle registration errors', async () => {
@@ -103,7 +103,7 @@ describe('Authentication Integration Tests', () => {
 
       render(<TestAuthComponent />);
 
-      expect(screen.getByTestId('auth-test')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-test'));
     });
   });
 
@@ -144,7 +144,7 @@ describe('Authentication Integration Tests', () => {
 
       render(<TestAuthComponent />);
 
-      expect(screen.getByTestId('auth-test')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-test'));
     });
 
     it('should handle login errors', async () => {
@@ -156,7 +156,7 @@ describe('Authentication Integration Tests', () => {
 
       render(<TestAuthComponent />);
 
-      expect(screen.getByTestId('auth-test')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-test'));
     });
   });
 
@@ -197,7 +197,7 @@ describe('Authentication Integration Tests', () => {
 
       render(<TestAuthComponent />);
 
-      expect(screen.getByTestId('auth-test')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-test'));
     });
 
     it('should handle logout', async () => {
@@ -208,7 +208,7 @@ describe('Authentication Integration Tests', () => {
 
       render(<TestAuthComponent />);
 
-      expect(screen.getByTestId('auth-test')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-test'));
     });
   });
 
@@ -247,7 +247,7 @@ describe('Authentication Integration Tests', () => {
 
       render(<TestAuthComponent />);
 
-      expect(screen.getByTestId('auth-test')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-test'));
     });
   });
 });

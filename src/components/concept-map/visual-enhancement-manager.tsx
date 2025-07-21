@@ -130,8 +130,8 @@ export function VisualEnhancementManager({
       addVisualEffect({
         type: 'pulse',
         position: {
-          x: node.x + (node.width || 150) / 2,
-          y: node.y + (node.height || 70) / 2,
+              x: (node.x || 0) + (node.width || 150) / 2,
+              y: (node.y || 0) + (node.height || 70) / 2,
         },
         isActive: true,
         duration: 1000,
@@ -151,8 +151,8 @@ export function VisualEnhancementManager({
           addVisualEffect({
             type: 'aura',
             position: {
-              x: node.x + (node.width || 150) / 2,
-              y: node.y + (node.height || 70) / 2,
+              x: (node.x || 0) + (node.width || 150) / 2,
+              y: (node.y || 0) + (node.height || 70) / 2,
             },
             isActive: true,
             duration: 2000,
@@ -204,8 +204,8 @@ export function VisualEnhancementManager({
                 addVisualEffect({
                   type: 'connection',
                   position: {
-                    x: node.x + (node.width || 150) / 2,
-                    y: node.y + (node.height || 70) / 2,
+                    x: (node.x || 0) + (node.width || 150) / 2,
+                    y: (node.y || 0) + (node.height || 70) / 2,
                   },
                   isActive: true,
                   duration: 800,

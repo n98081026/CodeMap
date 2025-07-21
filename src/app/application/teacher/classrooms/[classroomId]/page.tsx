@@ -303,6 +303,9 @@ export default function ClassroomDetailPage() {
                 maps={classroomMaps}
                 enrolledStudents={enrolledStudents}
                 onFetchRetry={fetchClassroomMaps}
+                currentPage={1}
+                totalPages={1}
+                onPageChange={() => {}}
               />
             </CardContent>
           </Card>
@@ -323,6 +326,9 @@ export default function ClassroomDetailPage() {
                 submissions={classroomSubmissions}
                 enrolledStudents={enrolledStudents}
                 onFetchRetry={fetchClassroomSubmissions}
+                currentPage={1}
+                totalPages={1}
+                onPageChange={() => {}}
               />
             </CardContent>
           </Card>

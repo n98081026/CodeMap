@@ -1,7 +1,6 @@
 'use client';
 
 import { FileText } from 'lucide-react';
-import { useState, useEffect } from 'react';
 import { useState, useEffect, useCallback } from 'react'; // Import useCallback
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';

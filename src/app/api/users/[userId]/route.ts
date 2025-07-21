@@ -3,7 +3,7 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-import type { UserRole } from '@/types'; // UserRole is already imported correctly
+import { UserRole } from '@/types'; // UserRole is already imported correctly
 
 import {
   getUserById,

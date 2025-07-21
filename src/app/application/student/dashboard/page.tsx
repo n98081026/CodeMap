@@ -9,7 +9,6 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
-import { Loader2 } from 'lucide-react'; // Keep Loader2 for the page-level spinner
 import Link from 'next/link';
 
 import type { User } from '@/types';

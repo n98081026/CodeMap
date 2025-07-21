@@ -247,7 +247,6 @@ export function ProjectUploadForm() {
 
         toast.update(loadingToastId, {
           description: 'Step 1/3: Analyzing project structure...',
-          icon: <Workflow className='h-4 w-4 animate-spin' />,
         });
         const projectStoragePath = submission.fileStoragePath;
         if (!projectStoragePath) {
@@ -278,7 +277,6 @@ export function ProjectUploadForm() {
 
         toast.update(loadingToastId, {
           description: 'Step 2/3: Generating concept map from structure...',
-          icon: <Brain className='h-4 w-4 animate-pulse' />,
         });
         // Stage 2: Generate map from analysis output
         const mapGenerationResult = await generateMapFromAnalysisOutputFlow({
@@ -305,7 +303,6 @@ export function ProjectUploadForm() {
         toast.update(loadingToastId, {
           description:
             'Step 3/3: Finalizing and saving your new concept map...',
-          icon: <Loader2 className='h-4 w-4 animate-spin' />,
         });
         const newMapPayload = {
           name: `AI Map for ${submission.originalFileName.split('.')[0]}`, // Consider using analysisOutput.analyzedFileName
@@ -639,9 +636,9 @@ export function ProjectUploadForm() {
             }
           >
             {isUploadingFileWithHook ? (
-              <FileUp className='mr-2 h-4 w-4 animate-pulse' />
+              <FileUp className='mr-2 h-4 w-4' />
             ) : isSubmittingMetadata ? (
-              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              <Loader2 className='mr-2 h-4 w-4' />
             ) : (
               <UploadCloud className='mr-2 h-4 w-4' />
             )}
@@ -696,9 +693,6 @@ export function ProjectUploadForm() {
                 onClick={handleConfirmAIGeneration}
                 disabled={isProcessingAIInDialog}
               >
-                {isProcessingAIInDialog && (
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                )}
                 {isProcessingAIInDialog ? 'Generating...' : 'Yes, Generate Map'}
               </AlertDialogAction>
             </AlertDialogFooter>

@@ -49,42 +49,19 @@ The labels should be short, ideally 1-3 words, and clearly describe the relation
 JSON Array of Suggested Labels:`;
 
     const llmResponse = await generate(
-      DEFAULT_MODEL,
       {
+        model: DEFAULT_MODEL,
         prompt: prompt,
         output: { format: 'json', schema: z.array(z.string()) },
         config: { temperature: 0.4 }, // Slightly lower temperature for more deterministic suggestions
       }
     );
 
-    const suggestions = llmResponse.output;
+    const suggestions = llmResponse.output();
 
     if (suggestions && Array.isArray(suggestions)) {
       return { suggestedLabels: suggestions.slice(0, 5) };
-    } else {
-      // Fallback or error handling if JSON parsing/generation by LLM failed or was not an array
-      console.error(
-        'LLM did not return a valid array of suggestions for edge labels. Output:',
-        suggestions
-      );
-      // Attempt to parse if it's a stringified array (less ideal)
-      if (typeof suggestions === 'string') {
-        try {
-          const parsed = JSON.parse(suggestions as string);
-          if (
-            Array.isArray(parsed) &&
-            parsed.every((s) => typeof s === 'string')
-          ) {
-            return { suggestedLabels: parsed.slice(0, 5) };
-          }
-        } catch (e) {
-          console.error(
-            'Failed to parse string output from LLM for edge labels:',
-            e
-          );
-        }
-      }
-      return { suggestedLabels: [] }; // Return empty on failure or unexpected format
     }
+    return { suggestedLabels: [] }; // Return empty on failure or unexpected format
   }
 );

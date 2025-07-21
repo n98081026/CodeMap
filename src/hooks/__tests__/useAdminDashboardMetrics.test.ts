@@ -50,8 +50,8 @@ describe('useAdminDashboardMetrics', () => {
     });
 
     expect(result.current.isLoading).toBe(true);
-    expect(result.current.userCount).toBe(0);
-    expect(result.current.classroomCount).toBe(0);
+    expect(result.current.metrics.userCount).toBe(0);
+    expect(result.current.metrics.classroomCount).toBe(0);
     expect(result.current.error).toBeNull();
   });
 
@@ -70,8 +70,8 @@ describe('useAdminDashboardMetrics', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.userCount).toBe(15);
-    expect(result.current.classroomCount).toBe(8);
+    expect(result.current.metrics.userCount).toBe(15);
+    expect(result.current.metrics.classroomCount).toBe(8);
     expect(result.current.error).toBeNull();
   });
 
@@ -86,8 +86,8 @@ describe('useAdminDashboardMetrics', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.userCount).toBe(0);
-    expect(result.current.classroomCount).toBe(0);
+    expect(result.current.metrics.userCount).toBe(0);
+    expect(result.current.metrics.classroomCount).toBe(0);
     expect(result.current.error).toBe('Failed to fetch admin metrics');
   });
 

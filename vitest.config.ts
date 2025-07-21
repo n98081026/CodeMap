@@ -16,7 +16,6 @@ export default defineConfig({
     // Vitest uses Tinypool which runs tests in worker threads. Disabling this might help with OOM.
     // The CLI option is --no-threads. In config, it's `threads: false` or specific pool options.
     // Also, setting minThreads and maxThreads to 1 can achieve a similar effect.
-    threads: false, // Attempt to run tests serially to reduce memory overhead
     include: [
       'src/**/*.test.{ts,tsx}',
       'src/**/__tests__/**/*.{ts,tsx}',

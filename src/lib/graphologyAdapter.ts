@@ -22,10 +22,10 @@
 // review has been marked as complete.
 // =====================================================================================
 
-import Graph, { MultiGraph, type Attributes } from 'graphology';
+import Graph, { MultiGraph } from 'graphology';
 import louvain from 'graphology-communities-louvain';
-import { betweennessCentrality } from 'graphology-metrics/centrality/betweenness';
-import { bfsFromNode } from 'graphology-traversal';
+import { betweennessCentrality } from 'graphology-metrics/centrality';
+import { bfsFromNode } from 'graphology-traversal/bfs';
 
 import type {
   ConceptMapNode,
@@ -91,7 +91,7 @@ export class GraphAdapterUtility implements GraphAdapter {
     graphInstance.forEachNode((nodeId, attributes) => {
       nodes.push({
         id: nodeId,
-        label: attributes.label || '',
+        text: attributes.label || '',
         x: attributes.x || 0,
         y: attributes.y || 0,
         type: attributes.type || 'unknown',
@@ -113,7 +113,6 @@ export class GraphAdapterUtility implements GraphAdapter {
         source: source,
         target: target,
         label: attributes.label || '',
-        type: attributes.type || 'custom',
         color: attributes.color,
         lineType: attributes.lineType || 'solid',
         markerStart: attributes.markerStart,
@@ -314,7 +313,7 @@ export class GraphAdapterUtility implements GraphAdapter {
       // Louvain algorithm assigns community IDs as node attributes.
       // It also returns the number of communities found or a map.
       // We'll use the assignment and then extract it.
-      louvain.assign(graphInstance, { attribute: communityAttribute });
+      louvain.assign(graphInstance, { attributes: communityAttribute });
 
       const communities: Record<string, number> = {};
       graphInstance.forEachNode((nodeId, attrs) => {

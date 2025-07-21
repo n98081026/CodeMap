@@ -209,15 +209,9 @@ export function calculateSnappedPositionAndLines(
   ];
 
   let minDeltaX = Infinity;
-  let bestSnapXInfo: {
-    position: number;
-    line: SnapResult['activeSnapLines'][0];
-  } | null = null;
+  let bestSnapXInfo: any | null = null;
   let minDeltaY = Infinity;
-  let bestSnapYInfo: {
-    position: number;
-    line: SnapResult['activeSnapLines'][0];
-  } | null = null;
+  let bestSnapYInfo: any | null = null;
 
   effectiveNodesToSnapAgainst.forEach((otherNode) => {
     // Use otherNode.width and otherNode.height directly if RFLayoutNode ensures they are numbers or null

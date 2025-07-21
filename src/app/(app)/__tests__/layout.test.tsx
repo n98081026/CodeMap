@@ -26,19 +26,19 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
   let mockRouterInstance: any;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    (useAuth as jest.Mock).mockClear();
 
     mockRouterInstance = {
-      push: vi.fn(),
-      replace: vi.fn(),
-      forward: vi.fn(),
-      back: vi.fn(),
-      prefetch: vi.fn(),
-      refresh: vi.fn(),
+      push: jest.fn(),
+      replace: jest.fn(),
+      forward: jest.fn(),
+      back: jest.fn(),
+      prefetch: jest.fn(),
+      refresh: jest.fn(),
       pathname: '/default-pathname',
       query: {},
       asPath: '/default-pathname',
-      events: { on: vi.fn(), off: vi.fn(), emit: vi.fn() },
+      events: { on: jest.fn(), off: jest.fn(), emit: jest.fn() },
     };
     __setMockRouter(mockRouterInstance);
     __setMockPathname('/default-pathname');
@@ -46,7 +46,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
   });
 
   it('should redirect to /login if not authenticated and not a guest session', async () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as jest.Mock).mockReturnValue({
       user: null,
       profile: null,
       isAuthenticated: false,
@@ -69,7 +69,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
   });
 
   it('should NOT redirect if authenticated', async () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as jest.Mock).mockReturnValue({
       user: { id: 'test-user' },
       profile: { role: 'student' },
       isAuthenticated: true,
@@ -92,7 +92,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
   });
 
   it('should redirect guest session to /examples if accessing a protected app route', async () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as jest.Mock).mockReturnValue({
       user: null,
       profile: null,
       isAuthenticated: false,
@@ -113,7 +113,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
   });
 
   it('should allow guest session to access /examples', async () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as jest.Mock).mockReturnValue({
       user: null,
       profile: null,
       isAuthenticated: false,
@@ -136,7 +136,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
   });
 
   it('should allow guest session to access /concept-maps/editor/example-XYZ (view-only example map)', async () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as jest.Mock).mockReturnValue({
       user: null,
       profile: null,
       isAuthenticated: false,
@@ -160,7 +160,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
   });
 
   it('should redirect guest session from /concept-maps/editor/new to /examples', async () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as jest.Mock).mockReturnValue({
       user: null,
       profile: null,
       isAuthenticated: false,
@@ -181,7 +181,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
   });
 
   it('should redirect guest session from /concept-maps/editor/user-map-id (non-example) to /examples', async () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as jest.Mock).mockReturnValue({
       user: null,
       profile: null,
       isAuthenticated: false,
@@ -202,7 +202,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
   });
 
   it('should show loading state if auth isLoading is true', () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as jest.Mock).mockReturnValue({
       user: null,
       profile: null,
       isAuthenticated: false,
@@ -216,7 +216,7 @@ describe('AppLayout (/app/(app)/layout.tsx)', () => {
         <p>Test Child</p>
       </AppLayout>
     );
-    expect(getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(getByTestId('loading-indicator'));
     expect(mockRouterInstance.push).not.toHaveBeenCalled();
     expect(mockRouterInstance.replace).not.toHaveBeenCalled();
   });

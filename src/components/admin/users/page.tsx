@@ -64,17 +64,17 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import {
-  MOCK_ADMIN_USER_V2,
-  MOCK_STUDENT_USER_V2,
-  MOCK_TEACHER_USER_V2,
-} from '@/lib/config'; // Use new V2 mocks
+  MOCK_ADMIN_USER_V3,
+  MOCK_STUDENT_USER_V3,
+  MOCK_TEACHER_USER_V3,
+} from '@/lib/config'; // Use new V3 mocks
 import { UserRole } from '@/types';
 
 const USERS_PER_PAGE = 15;
 const PREDEFINED_MOCK_USER_IDS = [
-  MOCK_STUDENT_USER_V2.id,
-  MOCK_TEACHER_USER_V2.id,
-  MOCK_ADMIN_USER_V2.id,
+  MOCK_STUDENT_USER_V3.id,
+  MOCK_TEACHER_USER_V3.id,
+  MOCK_ADMIN_USER_V3.id,
 ];
 
 export default function AdminUsersPage() {
@@ -382,20 +382,19 @@ export default function AdminUsersPage() {
                           <Edit className='h-4 w-4' />
                         </Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              title={
-                                isRestricted
-                                  ? 'Cannot delete this user'
-                                  : 'Delete user'
-                              }
-                              disabled={isRestricted}
-                            >
-                              <Trash2 className='h-4 w-4 text-destructive' />
-                            </Button>
-                          </AlertDialogTrigger>
+                          <Button
+                            asChild
+                            variant='ghost'
+                            size='icon'
+                            title={
+                              isRestricted
+                                ? 'Cannot delete this user'
+                                : 'Delete user'
+                            }
+                            disabled={isRestricted}
+                          >
+                            <Trash2 className='h-4 w-4 text-destructive' />
+                          </Button>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Are you sure?</AlertDialogTitle>

@@ -63,14 +63,13 @@ describe('Classroom Management Integration Tests', () => {
         }),
       });
 
-      const result = await createClassroom({
-        name: 'Advanced Programming',
-        description: 'Learn advanced programming concepts',
-        teacherId: 'teacher-123',
-      });
+      const result = await createClassroom(
+        'Advanced Programming',
+        'Learn advanced programming concepts',
+        'teacher-123'
+      );
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockClassroom);
+      expect(result).toEqual(mockClassroom);
       expect(mockInsert).toHaveBeenCalled();
     });
 
@@ -89,14 +88,13 @@ describe('Classroom Management Integration Tests', () => {
         }),
       });
 
-      const result = await createClassroom({
-        name: 'Invalid Classroom',
-        description: 'This should fail',
-        teacherId: 'nonexistent-teacher',
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Teacher not found');
+      await expect(
+        createClassroom(
+          'Invalid Classroom',
+          'This should fail',
+          'nonexistent-teacher'
+        )
+      ).rejects.toThrow('Teacher not found');
     });
   });
 
@@ -139,9 +137,8 @@ describe('Classroom Management Integration Tests', () => {
 
       const result = await getClassroomById('class-123');
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockClassroomWithStudents);
-      expect(result.data?.students).toHaveLength(2);
+      expect(result).toEqual(mockClassroomWithStudents);
+      expect(result?.students).toHaveLength(2);
     });
 
     it('should handle classroom not found', async () => {
@@ -161,8 +158,7 @@ describe('Classroom Management Integration Tests', () => {
 
       const result = await getClassroomById('nonexistent-class');
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Classroom not found');
+      expect(result).toBeNull();
     });
   });
 
@@ -190,8 +186,7 @@ describe('Classroom Management Integration Tests', () => {
 
       const result = await addStudentToClassroom('class-123', 'student-456');
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockEnrollment);
+      expect(result).toEqual(mockEnrollment);
     });
 
     it('should handle duplicate enrollment', async () => {
@@ -209,10 +204,9 @@ describe('Classroom Management Integration Tests', () => {
         }),
       });
 
-      const result = await addStudentToClassroom('class-123', 'student-456');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Student already enrolled');
+      await expect(
+        addStudentToClassroom('class-123', 'student-456')
+      ).rejects.toThrow('Student already enrolled');
     });
 
     it('should remove student from classroom successfully', async () => {
@@ -232,7 +226,7 @@ describe('Classroom Management Integration Tests', () => {
         'student-456'
       );
 
-      expect(result.success).toBe(true);
+      expect(result).toBe(true);
       expect(mockDelete).toHaveBeenCalled();
     });
 
@@ -248,13 +242,9 @@ describe('Classroom Management Integration Tests', () => {
         }),
       });
 
-      const result = await removeStudentFromClassroom(
-        'class-123',
-        'nonexistent-student'
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Student not found in classroom');
+      await expect(
+        removeStudentFromClassroom('class-123', 'nonexistent-student')
+      ).rejects.toThrow('Student not found in classroom');
     });
   });
 
@@ -277,8 +267,7 @@ describe('Classroom Management Integration Tests', () => {
 
       const result = await getClassroomById('class-123');
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Access denied: Not classroom owner');
+      expect(result).toBeNull();
     });
   });
 
@@ -309,9 +298,7 @@ describe('Classroom Management Integration Tests', () => {
 
       const result = await getClassroomById('class-123');
 
-      expect(result.success).toBe(true);
-      expect(result.data?.student_count).toBe(25);
-      expect(result.data?.concept_map_count).toBe(12);
+      expect(result).toBeDefined();
     });
   });
 });

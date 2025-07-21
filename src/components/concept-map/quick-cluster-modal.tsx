@@ -2,12 +2,9 @@
 'use client';
 
 import { Loader2, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
-import {
-  generateQuickCluster,
-  type GenerateQuickClusterOutput,
-} from '@/ai/flows/generate-quick-cluster';
+import { generateQuickCluster } from '@/ai/flows/generate-quick-cluster';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,10 +30,7 @@ export function QuickClusterModal({
 }: QuickClusterModalProps) {
   const [promptText, setPromptText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { setStagedMapData } = useConceptMapStore(
-    // Get action from store
-    useCallback((s) => ({ setStagedMapData: s.setStagedMapData }), [])
-  );
+  const setStagedMapData = useConceptMapStore((s) => s.setStagedMapData);
   const { toast } = useToast();
 
   const handleGenerateCluster = async () => {

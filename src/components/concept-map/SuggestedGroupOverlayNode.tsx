@@ -151,7 +151,7 @@ const SuggestedGroupOverlayNode: React.FC<
             <div className='flex justify-end space-x-2 pt-2'>
               <Button
                 variant='outline'
-                size='xs'
+                size='sm'
                 onClick={onDismiss}
                 title='Dismiss suggestion'
               >
@@ -159,7 +159,7 @@ const SuggestedGroupOverlayNode: React.FC<
               </Button>
               <Button
                 variant='default'
-                size='xs'
+                size='sm'
                 onClick={onAccept}
                 title='Accept suggestion'
                 className='bg-emerald-600 hover:bg-emerald-700'

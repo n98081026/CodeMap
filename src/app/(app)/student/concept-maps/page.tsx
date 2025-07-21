@@ -17,7 +17,6 @@ import { ConceptMapListItem } from '@/components/concept-map/concept-map-list-it
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,11 +34,6 @@ const StudentConceptMapCard: React.FC<StudentConceptMapCardProps> = React.memo(
       <Card className='flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300'>
         <CardHeader>
           <CardTitle className='text-xl'>{map.name}</CardTitle>
-          <CardDescription>
-            {map.isPublic ? 'Public' : 'Private'}
-            {map.sharedWithClassroomId &&
-              ` | Shared with Classroom ID: ${map.sharedWithClassroomId}`}
-          </CardDescription>
         </CardHeader>
         <CardContent className='flex-grow'>
           <p className='text-sm text-muted-foreground'>
@@ -47,28 +41,6 @@ const StudentConceptMapCard: React.FC<StudentConceptMapCardProps> = React.memo(
           </p>
           {/* Add more details like node/edge count if available */}
         </CardContent>
-        <CardFooter className='grid grid-cols-3 gap-2'>
-          <Button asChild variant='outline' size='sm'>
-            <Link href={`/concept-maps/editor/${map.id}`}>
-              <Eye className='mr-1 h-4 w-4 sm:mr-2' />{' '}
-              <span className='hidden sm:inline'>View</span>
-            </Link>
-          </Button>
-          <Button asChild variant='outline' size='sm'>
-            <Link href={`/concept-maps/editor/${map.id}?edit=true`}>
-              <Edit className='mr-1 h-4 w-4 sm:mr-2' />{' '}
-              <span className='hidden sm:inline'>Edit</span>
-            </Link>
-          </Button>
-          <Button
-            variant='destructive'
-            size='sm'
-            onClick={() => onDelete(map.id, map.name)}
-          >
-            <Trash2 className='mr-1 h-4 w-4 sm:mr-2' />{' '}
-            <span className='hidden sm:inline'>Delete</span>
-          </Button>
-        </CardFooter>
       </Card>
     );
   }
@@ -190,16 +162,19 @@ export default function StudentConceptMapsPage() {
 
     if (error) {
       return (
-        <EmptyState
-          icon={<AlertTriangle className='h-12 w-12 text-destructive' />}
-          title='Error Loading Concept Maps'
-          description={error}
-          action={
-            <Button onClick={() => fetchStudentConceptMaps(currentPage)}>
-              Retry
-            </Button>
-          }
-        />
+        <div className='flex flex-col items-center justify-center h-64'>
+          <AlertTriangle className='h-12 w-12 text-destructive' />
+          <h2 className='mt-4 text-xl font-semibold'>
+            Error Loading Concept Maps
+          </h2>
+          <p className='mt-2 text-muted-foreground'>{error}</p>
+          <Button
+            onClick={() => fetchStudentConceptMaps(currentPage)}
+            className='mt-4'
+          >
+            Retry
+          </Button>
+        </div>
       );
     }
 

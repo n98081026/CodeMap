@@ -25,7 +25,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { UserRole } from '@/types';
@@ -52,7 +51,6 @@ const TeacherClassroomDisplayCard: React.FC<TeacherClassroomDisplayCardProps> =
         </CardHeader>
         <CardContent className='flex-grow'>
           <div className='flex items-center text-sm text-muted-foreground'>
-            <Users className='mr-2 h-4 w-4' />
             <span>{classroom.studentIds.length} Students</span>
           </div>
           {/* Add more details like last activity, number of maps/submissions */}
@@ -193,33 +191,36 @@ export default function TeacherClassroomsPage() {
 
     if (error) {
       return (
-        <EmptyState
-          icon={<AlertTriangle className='h-12 w-12 text-destructive' />}
-          title='Error Loading Classrooms'
-          description={error}
-          action={
-            <Button onClick={() => fetchTeacherClassrooms(currentPage)}>
-              Retry
-            </Button>
-          }
-        />
+        <div className='flex flex-col items-center justify-center h-64'>
+          <AlertTriangle className='h-12 w-12 text-destructive' />
+          <h2 className='mt-4 text-xl font-semibold'>
+            Error Loading Classrooms
+          </h2>
+          <p className='mt-2 text-muted-foreground'>{error}</p>
+          <Button
+            onClick={() => fetchTeacherClassrooms(currentPage)}
+            className='mt-4'
+          >
+            Retry
+          </Button>
+        </div>
       );
     }
 
     if (classrooms.length === 0) {
       return (
-        <EmptyState
-          icon={<BookOpen className='h-12 w-12 text-muted-foreground' />}
-          title='No Classrooms Yet'
-          description="You haven't created or been assigned to any classrooms."
-          action={
-            <Button asChild>
-              <Link href='/teacher/classrooms/new'>
-                <PlusCircle className='mr-2 h-4 w-4' /> Create Classroom
-              </Link>
-            </Button>
-          }
-        />
+        <div className='flex flex-col items-center justify-center h-64'>
+          <BookOpen className='h-12 w-12 text-muted-foreground' />
+          <h2 className='mt-4 text-xl font-semibold'>No Classrooms Yet</h2>
+          <p className='mt-2 text-muted-foreground'>
+            You haven&apos;t created or been assigned to any classrooms.
+          </p>
+          <Button asChild className='mt-4'>
+            <Link href='/teacher/classrooms/new'>
+              <PlusCircle className='mr-2 h-4 w-4' /> Create Classroom
+            </Link>
+          </Button>
+        </div>
       );
     }
 
@@ -281,10 +282,10 @@ export default function TeacherClassroomsPage() {
 
       {isEditModalOpen && editingClassroom && (
         <EditClassroomDialog
-          isOpen={isEditModalOpen}
+          isOpen
           onOpenChange={setIsEditModalOpen}
           classroomToEdit={editingClassroom}
-          onActionCompleted={() => {
+          onSuccess={() => {
             setIsEditModalOpen(false); // Close modal first
             fetchTeacherClassrooms(currentPage); // Then refetch
           }}

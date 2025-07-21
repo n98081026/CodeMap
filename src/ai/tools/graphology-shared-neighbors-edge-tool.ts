@@ -1,5 +1,6 @@
 // src/ai/tools/graphology-shared-neighbors-edge-tool.ts
-import { defineTool } from '@genkit-ai/core';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import Graph from 'graphology'; // For type checking graphInstance if needed
 import { z } from 'zod';
 

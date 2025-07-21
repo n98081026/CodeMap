@@ -102,7 +102,7 @@ export const suggestMapImprovementsFlow = defineFlow(
         }
 
         // Degree Centrality
-        const degrees = graphAdapter.getDegreeCentrality(graphInstance);
+        const degrees = graphAdapter.getBetweennessCentrality(graphInstance);
         const sortedDegree = Object.entries(degrees)
           .sort(([, a]: [string, any], [, b]: [string, any]) => b - a)
           .slice(0, 5);
@@ -224,17 +224,12 @@ Provide only the JSON object as your output. Focus on quality and relevance over
 `;
 
     try {
-      const llmResponse = await generate(
-        {
-          model: gemini10Pro,
-          prompt: prompt,
-          output: { format: 'json', schema: SuggestedImprovementsSchema },
-          config: { temperature: 0.5 }, // Slightly higher temp for more creative interpretation of metrics
-        },
-        {
-          tools: [],
-        }
-      );
+      const llmResponse = await generate({
+        model: gemini10Pro,
+        prompt: prompt,
+        output: { format: 'json', schema: SuggestedImprovementsSchema },
+        config: { temperature: 0.5 }, // Slightly higher temp for more creative interpretation of metrics
+      });
       const output = llmResponse.output();
       // ... (rest of post-processing logic as before)
       const rawEdges = output?.suggestedEdges || [];

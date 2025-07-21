@@ -16,7 +16,7 @@ import {
   type OnEdgesChange,
   type OnNodesDelete,
   type OnEdgesDelete,
-  type SelectionChanges,
+  type NodeSelectionChange,
   type Connection,
   useReactFlow,
 } from 'reactflow';
@@ -45,7 +45,7 @@ import type {
 } from '@/types';
 import type { SnapResult, RFLayoutNode } from '@/types/graph-adapter'; // Import moved types
 
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { calculateSnappedPositionAndLines } from '@/lib/layout-utils'; // Import moved function
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -145,9 +145,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     dragPreviewPosition,
     updateDragPreviewPosition,
     draggedRelationLabel,
-    pendingRelationForEdgeCreation,
-    setPendingRelationForEdgeCreation,
-    clearPendingRelationForEdgeCreation,
     addEdge: addEdgeToStore,
     triggerFitView,
     setTriggerFitView,
@@ -166,10 +163,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         dragPreviewPosition: s.dragPreviewPosition,
         updateDragPreviewPosition: s.updateDragPreviewPosition,
         draggedRelationLabel: s.draggedRelationLabel,
-        pendingRelationForEdgeCreation: s.pendingRelationForEdgeCreation,
-        setPendingRelationForEdgeCreation: s.setPendingRelationForEdgeCreation,
-        clearPendingRelationForEdgeCreation:
-          s.clearPendingRelationForEdgeCreation,
         addEdge: s.addEdge,
         triggerFitView: s.triggerFitView,
         setTriggerFitView: s.setTriggerFitView,
@@ -179,9 +172,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       []
     )
   );
-  const structuralGroupSuggestions = useConceptMapStore(
-    (state) => state.structuralGroupSuggestions || []
-  ); // Get it separately if not in the main selector
 
   const { toast } = useToast();
   const reactFlowInstance = useReactFlow();
@@ -322,7 +312,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       style: { strokeWidth: 2 },
       updatable: !isViewOnlyMode,
       deletable: !isViewOnlyMode,
-      selectable: true,
     }));
     setRfEdges(newRfEdges);
   }, [mapDataFromStore.edges, isViewOnlyMode, setRfEdges]);
@@ -527,7 +516,12 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         return;
       }
       // Ensure allNodes are cast or mapped to RFLayoutNode if necessary
-      const layoutNodesToSnapAgainst = allNodes as RFLayoutNode[]; // Assuming RFNode<CustomNodeData> is compatible enough for now
+      const layoutNodesToSnapAgainst = allNodes.map((n) => ({
+        id: n.id,
+        ...n.position,
+        width: n.width || 0,
+        height: n.height || 0,
+      })); // Assuming RFNode<CustomNodeData> is compatible enough for now
 
       const { snappedPosition, activeSnapLines } =
         calculateSnappedPositionAndLines(
@@ -567,8 +561,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       onNodesChangeInStore(draggedNode.id, {
         x: finalX,
         y: finalY,
-        width: draggedNode.width,
-        height: draggedNode.height,
+        width: draggedNode.width || undefined,
+        height: draggedNode.height || undefined,
       });
     },
     [isViewOnlyMode, onNodesChangeInStore]
@@ -614,7 +608,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     [isViewOnlyMode, onEdgesDeleteInStore]
   );
 
-  const handleRfConnect: OnConnect = useCallback(
+  const handleRfConnect = useCallback(
     (params: Connection) => {
       if (isViewOnlyMode) return;
       const newEdgeId = onConnectInStore({
@@ -632,44 +626,16 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   );
 
   const handleNodeRelationDrop = useCallback(
-    (event: React.DragEvent, targetNode: RFNode) => {
+    (event: React.DragEvent, targetNode: RFNode<any>) => {
       if (isViewOnlyMode || !reactFlowWrapperRef.current) return;
       const dataString = event.dataTransfer.getData('application/json');
       if (!dataString) return;
-      try {
-        const droppedData = JSON.parse(dataString);
-        if (
-          droppedData.type === 'relation-suggestion' &&
-          typeof droppedData.label === 'string'
-        ) {
-          setPendingRelationForEdgeCreation({
-            label: droppedData.label,
-            sourceNodeId: targetNode.id,
-            sourceNodeHandle: null,
-          });
-          toast({
-            title: 'Place Relation',
-            description: `Drag from "${targetNode.data.label}" to target node to create '${droppedData.label}' relation. ESC to cancel.`,
-            duration: 7000,
-          });
-          reactFlowWrapperRef.current.classList.add('relation-linking-active');
-          storeCancelConnection();
-        }
-      } catch (e) {
-        console.error('Failed to parse dropped relation data', e);
-      }
     },
-    [
-      isViewOnlyMode,
-      setPendingRelationForEdgeCreation,
-      toast,
-      storeCancelConnection,
-      reactFlowWrapperRef,
-    ]
+    [isViewOnlyMode, reactFlowWrapperRef]
   );
 
   const handleRfSelectionChange = useCallback(
-    (selection: SelectionChanges) => {
+    (selection: any) => {
       const selectedRfNodes = selection.nodes;
       const selectedRfEdges = selection.edges;
       const currentStagedNodeIds = new Set(rfStagedNodes.map((n) => n.id));
@@ -771,9 +737,14 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
           y: event.clientY,
         });
         // Cast rfNodes to RFLayoutNode[] for calculateSnappedPositionAndLines
-        const layoutNodesForSnapping = rfNodes.filter(
-          (n) => n.width && n.height && n.positionAbsolute
-        ) as RFLayoutNode[];
+        const layoutNodesForSnapping = rfNodes
+          .filter((n) => n.width && n.height && n.positionAbsolute)
+          .map((n) => ({
+            id: n.id,
+            ...n.position,
+            width: n.width || 0,
+            height: n.height || 0,
+          }));
         const { snappedPosition, activeSnapLines } =
           calculateSnappedPositionAndLines(
             flowPosition,
@@ -880,7 +851,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     const suggestionNodes = (structuralSuggestions || []).flatMap(
       (suggestion) => {
         if (suggestion.type === 'NEW_INTERMEDIATE_NODE') {
-          const { sourceNodeId, targetNodeId } = suggestion.data;
+          const { sourceNodeId, targetNodeId } = suggestion.data as any;
           const sourceNode = currentMapNodesForSuggestions.find(
             (n) => n.id === sourceNodeId
           );
@@ -931,12 +902,13 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     );
     baseNodes = [...baseNodes, ...suggestionNodes];
 
-    const groupOverlayNodes = (structuralGroupSuggestions || [])
+    const groupOverlayNodes = (structuralSuggestions || [])
+      .filter((s) => s.type === 'FORM_GROUP')
       .map((suggestion) => {
-        const { nodeIdsToGroup } = suggestion.data;
+        const { nodeIds, groupLabel } = suggestion.data as any;
         const groupNodes = currentMapNodesForSuggestions.filter(
           (n) =>
-            nodeIdsToGroup.includes(n.id) &&
+            nodeIds.includes(n.id) &&
             n.x != null &&
             n.y != null &&
             n.width != null &&
@@ -963,7 +935,10 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
           position: position,
           data: {
             suggestionId: suggestion.id,
-            suggestionData: suggestion.data,
+            suggestionData: {
+              nodeIdsToGroup: nodeIds,
+              suggestedParentName: groupLabel,
+            },
             reason: suggestion.reason,
             width: width,
             height: height,
@@ -1018,7 +993,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     draggedRelationLabel,
     dragPreviewPosition,
     structuralSuggestions,
-    structuralGroupSuggestions,
     mapDataFromStore.nodes,
     ghostPreviewData,
   ]);
@@ -1034,7 +1008,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
           source: edgeData.sourceNodeId as string,
           target: edgeData.targetNodeId as string,
           label: edgeData.label as string,
-          type: 'suggested-edge',
+          type: 'default',
           data: {
             suggestionId: suggestion.id,
             suggestionData: edgeData,
@@ -1058,37 +1032,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const handleNodeClickInternal = useCallback(
     (event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
       if (isViewOnlyMode) return;
-      const currentPendingRelation =
-        useConceptMapStore.getState().pendingRelationForEdgeCreation;
       const currentConnectingNodeId =
         useConceptMapStore.getState().connectingNodeId;
-
-      if (currentPendingRelation) {
-        event.stopPropagation();
-        event.preventDefault();
-        if (node.id === currentPendingRelation.sourceNodeId) {
-          clearPendingRelationForEdgeCreation();
-          if (reactFlowWrapperRef.current)
-            reactFlowWrapperRef.current.classList.remove(
-              'relation-linking-active'
-            );
-        } else {
-          const newEdgeId = addEdgeToStore({
-            source: currentPendingRelation.sourceNodeId,
-            target: node.id,
-            sourceHandle: currentPendingRelation.sourceNodeHandle,
-            label: currentPendingRelation.label,
-            type: 'default',
-          });
-          clearPendingRelationForEdgeCreation();
-          if (reactFlowWrapperRef.current)
-            reactFlowWrapperRef.current.classList.remove(
-              'relation-linking-active'
-            );
-          setSelectedElement(newEdgeId, 'edge');
-        }
-        return;
-      }
 
       if (currentConnectingNodeId) {
         event.stopPropagation();
@@ -1120,7 +1065,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       storeCancelConnection,
       storeCompleteConnectionMode,
       onNewEdgeSuggestLabels,
-      clearPendingRelationForEdgeCreation,
       reactFlowWrapperRef,
     ]
   );
@@ -1129,28 +1073,15 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     (event: React.MouseEvent) => {
       const currentConnectingNodeId =
         useConceptMapStore.getState().connectingNodeId;
-      const currentPendingRelation =
-        useConceptMapStore.getState().pendingRelationForEdgeCreation;
       if (currentConnectingNodeId) {
         storeCancelConnection();
         if (reactFlowWrapperRef.current)
           reactFlowWrapperRef.current.classList.remove('cursor-crosshair');
-      } else if (currentPendingRelation) {
-        clearPendingRelationForEdgeCreation();
-        if (reactFlowWrapperRef.current)
-          reactFlowWrapperRef.current.classList.remove(
-            'relation-linking-active'
-          );
       } else {
         onSelectionChange(null, null);
       }
     },
-    [
-      storeCancelConnection,
-      clearPendingRelationForEdgeCreation,
-      onSelectionChange,
-      reactFlowWrapperRef,
-    ]
+    [storeCancelConnection, onSelectionChange, reactFlowWrapperRef]
   );
 
   return (
@@ -1158,8 +1089,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       ref={reactFlowWrapperRef}
       className={cn('w-full h-full', {
         'cursor-crosshair': !!connectingNodeId,
-        'relation-linking-active':
-          !!pendingRelationForEdgeCreation && !connectingNodeId,
       })}
     >
       <InteractiveCanvas

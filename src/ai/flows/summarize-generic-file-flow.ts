@@ -16,6 +16,7 @@ export const summarizeGenericFileFlow = defineFlow(
     name: 'summarizeGenericFileFlow',
     inputSchema: SummarizeGenericFileInputSchema,
     outputSchema: SummarizeGenericFileOutputSchema,
+    authPolicy: (auth, input) => {},
   },
   async (input) => {
     const { fileContent } = input;

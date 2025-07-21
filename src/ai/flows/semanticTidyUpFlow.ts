@@ -38,13 +38,6 @@ export const semanticTidyUpFlow = defineFlow(
     name: 'semanticTidyUpFlow',
     inputSchema: SemanticTidyUpRequestSchema,
     outputSchema: SemanticTidyUpResponseSchema,
-    authPolicy: (auth, input) => {
-      // Example auth policy, adjust as needed
-      // Allow if user is authenticated, or implement more specific checks
-      // if (!auth) {
-      //   throw new Error('Authentication required.');
-      // }
-    },
   },
   async (nodesToTidy) => {
     if (!nodesToTidy || nodesToTidy.length < 2) {

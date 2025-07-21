@@ -1,5 +1,6 @@
 // src/ai/tools/project-analyzer-tool.ts
-import { defineTool } from '@genkit-ai/core';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
 import {
   batchSummarizeElements,
@@ -44,7 +45,7 @@ export type ProjectAnalysisInput = z.infer<typeof ProjectAnalysisInputSchema>;
 export type ProjectAnalysisOutput = z.infer<typeof ProjectAnalysisOutputSchema>;
 export type DetailedNode = z.infer<typeof DetailedNodeSchema>;
 
-export const projectStructureAnalyzerTool = defineTool(
+export const projectStructureAnalyzerTool = ai.defineTool(
   {
     name: 'projectStructureAnalyzer',
     description: 'Analyzes a project to extract its structure and components.',

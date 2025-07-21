@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React from 'react'; // Added this line
 
-import type { UserRole } from '@/types';
+import { UserRole } from '@/types';
 import type { LucideIcon } from 'lucide-react';
 
 import { useAuth } from '@/contexts/auth-context';
@@ -38,7 +38,7 @@ const navItems: NavItem[] = [
     href: '/application/student/dashboard',
     label: 'My Dashboard',
     icon: LayoutDashboard,
-    roles: ['student', 'teacher', 'admin', 'unknown'],
+    roles: [UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN],
     exact: true,
     separatorAfter: true,
   }, // Default dashboard
@@ -46,19 +46,19 @@ const navItems: NavItem[] = [
     href: '/application/student/concept-maps',
     label: 'My Concept Maps',
     icon: Share2,
-    roles: ['student', 'teacher', 'admin', 'unknown'],
+    roles: [UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN],
   },
   {
     href: '/application/student/projects/submit',
     label: 'Analyze Project',
     icon: FileText,
-    roles: ['student', 'teacher', 'admin', 'unknown'],
+    roles: [UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN],
   },
   {
     href: '/application/student/projects/submissions',
     label: 'My Analyses',
     icon: FolderKanban,
-    roles: ['student', 'teacher', 'admin', 'unknown'],
+    roles: [UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN],
     separatorAfter: true,
   },
 
@@ -67,8 +67,7 @@ const navItems: NavItem[] = [
     href: '/application/student/classrooms',
     label: 'My Classrooms',
     icon: BookOpen,
-    roles: ['student'],
-    condition: (user) => user.role === 'student',
+    roles: [UserRole.STUDENT],
     separatorAfter: true,
   },
 
@@ -77,15 +76,13 @@ const navItems: NavItem[] = [
     href: '/application/teacher/dashboard',
     label: 'Teacher Dashboard',
     icon: LayoutDashboard,
-    roles: ['teacher', 'admin'],
-    condition: (user) => user.role === 'teacher' || user.role === 'admin',
+    roles: [UserRole.TEACHER, UserRole.ADMIN],
   },
   {
     href: '/application/teacher/classrooms',
     label: 'Manage Classrooms',
     icon: BookOpen,
-    roles: ['teacher', 'admin'],
-    condition: (user) => user.role === 'teacher' || user.role === 'admin',
+    roles: [UserRole.TEACHER, UserRole.ADMIN],
     separatorAfter: true,
   },
 
@@ -94,22 +91,19 @@ const navItems: NavItem[] = [
     href: '/application/admin/dashboard',
     label: 'Admin Panel',
     icon: Settings,
-    roles: ['admin'],
-    condition: (user) => user.role === 'admin',
+    roles: [UserRole.ADMIN],
   },
   {
     href: '/application/admin/users',
     label: 'User Management',
     icon: Users,
-    roles: ['admin'],
-    condition: (user) => user.role === 'admin',
+    roles: [UserRole.ADMIN],
   },
   {
     href: '/application/admin/settings',
     label: 'System Settings',
     icon: Settings,
-    roles: ['admin'],
-    condition: (user) => user.role === 'admin',
+    roles: [UserRole.ADMIN],
     separatorAfter: true,
   },
 
@@ -118,7 +112,7 @@ const navItems: NavItem[] = [
     href: '/application/profile',
     label: 'My Profile',
     icon: UserCircle,
-    roles: ['student', 'teacher', 'admin', 'unknown'],
+    roles: [UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN],
     exact: true,
     separatorAfter: true,
   },
@@ -127,8 +121,8 @@ const navItems: NavItem[] = [
   {
     href: '/application/examples',
     label: 'Examples',
-    icon: BookCopy,
-    roles: ['student', 'teacher', 'admin', 'unknown'],
+    icon: Compass,
+    roles: [UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN],
     exact: true,
   },
 ];
@@ -140,15 +134,11 @@ export const SidebarNav = React.memo(function SidebarNav() {
   if (!user) return null;
 
   // Determine effective role, defaulting to 'unknown' if not standard or null
-  const effectiveRole =
-    user.role && ['student', 'teacher', 'admin'].includes(user.role)
-      ? user.role
-      : 'unknown';
+  const effectiveRole = user.role;
 
   const filteredNavItems = navItems.filter((item) => {
     const roleMatch = item.roles.includes(effectiveRole);
-    const conditionMatch = item.condition ? item.condition(user) : true;
-    return roleMatch && conditionMatch;
+    return roleMatch;
   });
 
   return (

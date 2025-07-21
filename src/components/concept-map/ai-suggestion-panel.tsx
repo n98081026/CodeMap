@@ -183,19 +183,16 @@ const RenderEditableConceptLabel: React.FC<{
           {itemStatus === 'exact-match' && (
             <CheckSquare
               className='h-4 w-4 mr-2 text-green-600 flex-shrink-0'
-              title='Exact match on map'
             />
           )}
           {itemStatus === 'similar-match' && (
             <Zap
               className='h-4 w-4 mr-2 text-yellow-600 dark:text-yellow-400 flex-shrink-0'
-              title='Similar concept on map'
             />
           )}
           {itemStatus === 'new' && (
             <PlusCircle
               className='h-4 w-4 mr-2 text-blue-500 flex-shrink-0'
-              title='New concept'
             />
           )}
           {item.current.concept}
@@ -305,13 +302,11 @@ const RenderEditableRelationLabel: React.FC<{
         {nodeExists && field !== 'relation' && (
           <CheckSquare
             className='h-3 w-3 ml-1 text-green-600 inline-block'
-            title='This node exists on the map'
           />
         )}
         {!nodeExists && field !== 'relation' && (
           <AlertCircle
             className='h-3 w-3 ml-1 text-orange-500 inline-block'
-            title='This node does not exist or differs from map'
           />
         )}
       </span>
@@ -476,18 +471,26 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         const items =
           type === 'extracted' ? editableExtracted : editableRelations;
 
-        setStateAction(
-          (prevItems) =>
-            prevItems.map((item, idx) => {
-              if (idx === index)
-                return {
-                  ...item,
-                  isEditing: !item.isEditing,
-                  editingField: field || null,
-                };
-              return { ...item, isEditing: false, editingField: null }; // Close other edits
-            }) as EditableExtractedConcept[] | EditableRelationSuggestion[]
-        ); // Type assertion needed due to generic items array
+        const setState =
+          type === 'extracted'
+            ? (setEditableExtracted as React.Dispatch<
+                React.SetStateAction<EditableExtractedConcept[]>
+              >)
+            : (setEditableRelations as React.Dispatch<
+                React.SetStateAction<EditableRelationSuggestion[]>
+              >);
+
+        setState((prevItems: any) =>
+          prevItems.map((item: any, idx: number) => {
+            if (idx === index)
+              return {
+                ...item,
+                isEditing: !item.isEditing,
+                editingField: field || null,
+              };
+            return { ...item, isEditing: false, editingField: null }; // Close other edits
+          })
+        );
       },
     [isViewOnlyMode, editableExtracted, editableRelations]
   );
@@ -508,16 +511,23 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         const setStateAction =
           type === 'extracted' ? setEditableExtracted : setEditableRelations;
 
-        setStateAction(
-          (prevItems) =>
-            prevItems.map((item, idx) => {
-              if (idx === index)
-                return {
-                  ...item,
-                  current: { ...item.current, [field]: value },
-                };
-              return item;
-            }) as EditableExtractedConcept[] | EditableRelationSuggestion[]
+        const setState =
+          type === 'extracted'
+            ? (setEditableExtracted as React.Dispatch<
+                React.SetStateAction<EditableExtractedConcept[]>
+              >)
+            : (setEditableRelations as React.Dispatch<
+                React.SetStateAction<EditableRelationSuggestion[]>
+              >);
+        setState((prevItems: any) =>
+          prevItems.map((item: any, idx: number) => {
+            if (idx === index)
+              return {
+                ...item,
+                current: { ...item.current, [field]: value },
+              };
+            return item;
+          })
         );
       },
     []
@@ -595,7 +605,9 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     selectedIndicesSet: Set<number>,
     itemKeyPrefix: string,
     // renderItemContent is now specific to each type
-    onAddSelectedItems: ((selectedItems: ExtractedConceptItem[] | RelationSuggestion[]) => void) | undefined,
+    onAddSelectedItems: (
+      selectedItems: (ExtractedConceptItem | RelationSuggestion)[]
+    ) => void,
     onClearCategory?: () => void,
     cardClassName?: string,
     titleClassName?: string,
@@ -660,7 +672,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           );
         });
       if (toAdd.length > 0) {
-        onAddSelectedItems(toAdd);
+        onAddSelectedItems(toAdd as ExtractedConceptItem[] & RelationSuggestion[]);
         clearSelectionForCategory();
       }
     };
@@ -773,7 +785,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
         <CardContent className='flex-grow overflow-hidden p-0'>
           {' '}
           {/* p-0 for ScrollArea child */}
-          <ScrollArea className='h-full' viewportRef={parentRef}>
+          <ScrollArea className='h-full'>
             {' '}
             {/* Use ScrollArea's viewportRef */}
             {virtualItems.length > 0 ? (
@@ -841,7 +853,21 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                         />
                       )}
                       <div className='flex-grow'>
-                        {itemKeyPrefix.startsWith('extracted-') ? (
+                        {isRelationsSection ? (
+                          <RenderEditableRelationLabel
+                            item={item as EditableRelationSuggestion}
+                            index={virtualRow.index}
+                            isViewOnlyMode={isViewOnlyMode}
+                            relationNodeExistence={relationNodeExistence}
+                            onToggleEdit={handleToggleEditFactory('relation')}
+                            onInputChange={handleInputChangeFactory('relation')}
+                            onConfirmEdit={handleConfirmEditFactory('relation')}
+                            setDraggedRelationPreview={
+                              setDraggedRelationPreview
+                            }
+                            clearDragPreview={clearDragPreview}
+                          />
+                        ) : (
                           <RenderEditableConceptLabel
                             item={item as EditableExtractedConcept}
                             index={virtualRow.index}
@@ -855,20 +881,6 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                               'extracted'
                             )}
                             setDragPreview={setDragPreview}
-                            clearDragPreview={clearDragPreview}
-                          />
-                        ) : (
-                          <RenderEditableRelationLabel
-                            item={item as EditableRelationSuggestion}
-                            index={virtualRow.index}
-                            isViewOnlyMode={isViewOnlyMode}
-                            relationNodeExistence={relationNodeExistence}
-                            onToggleEdit={handleToggleEditFactory('relation')}
-                            onInputChange={handleInputChangeFactory('relation')}
-                            onConfirmEdit={handleConfirmEditFactory('relation')}
-                            setDraggedRelationPreview={
-                              setDraggedRelationPreview
-                            }
                             clearDragPreview={clearDragPreview}
                           />
                         )}
@@ -929,7 +941,9 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                       );
                     });
                   if (toAdd.length > 0) {
-                    onAddSelectedItems(toAdd);
+                    onAddSelectedItems(
+                      toAdd as ExtractedConceptItem[] & RelationSuggestion[]
+                    );
                     clearSelectionForCategory();
                   }
                 }}
