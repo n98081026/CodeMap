@@ -148,7 +148,7 @@ const suggestGraphologyEnhancedEdge = async (
       config: { temperature: 0.3 },
     });
 
-    const validationResult = llmResponse.output();
+    const validationResult = llmResponse.output;
 
     if (!validationResult) {
       console.warn(

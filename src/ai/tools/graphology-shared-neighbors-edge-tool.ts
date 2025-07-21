@@ -1,6 +1,5 @@
 // src/ai/tools/graphology-shared-neighbors-edge-tool.ts
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { genkit as ai } from 'genkit';
 import Graph from 'graphology'; // For type checking graphInstance if needed
 import { z } from 'zod';
 
@@ -43,7 +42,7 @@ export const SharedNeighborsEdgeOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export const graphologySharedNeighborsEdgeTool = defineTool(
+export const graphologySharedNeighborsEdgeTool = ai.defineTool(
   {
     name: 'graphologySharedNeighborsEdgeDetector',
     description:

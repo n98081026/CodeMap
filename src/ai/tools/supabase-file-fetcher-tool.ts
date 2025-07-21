@@ -1,6 +1,5 @@
 // src/ai/tools/supabase-file-fetcher-tool.ts
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { genkit as ai } from 'genkit';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { SupabaseClient } from '@supabase/supabase-js';

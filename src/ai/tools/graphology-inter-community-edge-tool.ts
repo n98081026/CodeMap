@@ -1,4 +1,5 @@
 // src/ai/tools/graphology-inter-community-edge-tool.ts
+import { genkit as ai } from 'genkit';
 import Graph from 'graphology';
 import louvain from 'graphology-communities-louvain';
 import { z } from 'zod';
@@ -25,7 +26,7 @@ export const InterCommunityEdgeOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export const graphologyInterCommunityEdgeTool = defineTool(
+export const graphologyInterCommunityEdgeTool = ai.defineTool(
   {
     name: 'graphologyInterCommunityEdgeFinder',
     description:

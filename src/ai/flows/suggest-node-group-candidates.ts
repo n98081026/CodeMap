@@ -116,7 +116,7 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
         }
       );
 
-      const result = llmResponse.output();
+      const result = llmResponse.output;
 
       if (!result || !Array.isArray(result.suggestedGroups)) {
         console.error('AI response was not in the expected format.');

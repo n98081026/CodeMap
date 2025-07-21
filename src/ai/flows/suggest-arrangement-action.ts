@@ -134,7 +134,7 @@ export const suggestArrangementActionFlow = defineFlow(
       }
     );
 
-    const outputData = llmResponse.output();
+    const outputData = llmResponse.output;
 
     if (
       !outputData ||

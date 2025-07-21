@@ -78,7 +78,7 @@ export const suggestSemanticParentNodeFlow = defineFlow(
       },
     });
 
-    const outputData = llmResponse.output();
+    const outputData = llmResponse.output;
     if (!outputData) {
       throw new Error(
         'No output data received from LLM for semantic parent suggestion.'

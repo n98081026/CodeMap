@@ -57,7 +57,7 @@ JSON Array of Suggested Labels:`;
       }
     );
 
-    const suggestions = llmResponse.output();
+    const suggestions = llmResponse.output;
 
     if (suggestions && Array.isArray(suggestions)) {
       return { suggestedLabels: suggestions.slice(0, 5) };

@@ -92,7 +92,7 @@ Ensure the "text" for each child is not empty. Default "relationLabel" to "relat
         config: { temperature: 0.5, maxOutputTokens: 300 * maxSuggestions }, // Adjusted max tokens based on suggestions
       });
 
-      const suggestions = llmResponse.output();
+      const suggestions = llmResponse.output;
 
       if (!suggestions || !Array.isArray(suggestions)) {
         console.error(
