@@ -1,5 +1,5 @@
 // src/ai/flows/suggest-graphology-intermediate-node.ts
-import { defineFlow } from '@genkit-ai/flow';
+import { defineFlow, runFlow } from '@genkit-ai/flow';
 import { gemini10Pro } from '@genkit-ai/googleai'; // Or your preferred model
 import { z } from 'zod';
 
@@ -55,7 +55,7 @@ const suggestGraphologyIntermediateNode = async (
   try {
     // Step 1: Call graphologyInterCommunityEdgeTool
     // The input for this tool is MapDataSchema, which matches the flow's input.
-    const toolResult = await runFlow(graphologyInterCommunityEdgeTool, mapData);
+    const toolResult = await runFlow(graphologyInterCommunityEdgeTool, mapData,);
 
     if (
       toolResult.error ||

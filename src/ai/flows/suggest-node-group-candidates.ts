@@ -113,9 +113,6 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
             format: 'json',
             schema: SuggestNodeGroupCandidatesOutputSchema,
           },
-        },
-        {
-          tools: [],
         }
       );
 
@@ -130,11 +127,11 @@ export const suggestNodeGroupCandidatesFlow = defineFlow(
       // (e.g., groups with node IDs not present in the input)
       const inputNodeIds = new Set(nodes.map((n) => n.id));
       const validatedGroups = result.suggestedGroups
-        .map((group) => ({
+        .map((group: any) => ({
           ...group,
-          nodeIds: group.nodeIds.filter((id) => inputNodeIds.has(id)),
+          nodeIds: group.nodeIds.filter((id: any) => inputNodeIds.has(id)),
         }))
-        .filter((group) => group.nodeIds.length >= 2);
+        .filter((group: any) => group.nodeIds.length >= 2);
 
       return { suggestedGroups: validatedGroups };
     } catch (error) {

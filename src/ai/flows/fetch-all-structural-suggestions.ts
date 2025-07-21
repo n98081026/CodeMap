@@ -30,8 +30,7 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
     outputSchema: AllStructuralSuggestionsSchema,
   },
   async (mapData) => {
-    const suggestionsList: z.infer<typeof StructuralSuggestionItemSchema>[] =
-      [];
+    const suggestionsList: z.infer<typeof StructuralSuggestionItemSchema>[] = [];
 
     // 1. Call suggestMapImprovementFlow
     try {
@@ -44,40 +43,52 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
         mapDataWithCoords
       );
       if (improvementSuggestion) {
-        let validatedData: z.infer<typeof AddEdgeDataSchema> | z.infer<typeof AISuggestionsNewIntermediateNodeDataSchema> | z.infer<typeof FormGroupDataSchema>;
-        // Validate and parse the data based on the type
-        const suggestion = improvementSuggestion as z.infer<typeof MapImprovementSuggestionSchema>;
-        if (suggestion.type === 'ADD_EDGE') {
-          validatedData = AddEdgeDataSchema.parse(suggestion.data);
-        } else if (suggestion.type === 'NEW_INTERMEDIATE_NODE') {
-          // Ensure field names match before parsing
-          const intermediateData = {
-            ...suggestion.data,
-            // newNodeText: suggestion.data.intermediateNodeText, // if there's a mismatch
-          };
-          validatedData = AISuggestionsNewIntermediateNodeDataSchema.parse(intermediateData);
-        } else if (suggestion.type === 'FORM_GROUP') {
-          validatedData = FormGroupDataSchema.parse(suggestion.data);
-        } else {
-          // Should not happen if MapImprovementSuggestionSchema is correctly defined and followed
-          console.warn(
-            `Unknown suggestion type from suggestMapImprovementFlow: ${
-              (suggestion as any).type
-            }`
-          );
-          return suggestionsList; // Or handle error appropriately
-        }
+        if (improvementSuggestion) {
+          const suggestion = improvementSuggestion as z.infer<
+            typeof MapImprovementSuggestionSchema
+          >;
+          if (suggestion) {
+            let validatedData:
+              | z.infer<typeof AddEdgeDataSchema>
+              | z.infer<typeof AISuggestionsNewIntermediateNodeDataSchema>
+              | z.infer<typeof FormGroupDataSchema>;
+            // Validate and parse the data based on the type
+            if (suggestion.type === 'ADD_EDGE') {
+              validatedData = AddEdgeDataSchema.parse(suggestion.data);
+            } else if (suggestion.type === 'NEW_INTERMEDIATE_NODE') {
+              // Ensure field names match before parsing
+              const intermediateData = {
+                ...suggestion.data,
+                // newNodeText: suggestion.data.intermediateNodeText, // if there's a mismatch
+              };
+              validatedData =
+                AISuggestionsNewIntermediateNodeDataSchema.parse(
+                  intermediateData
+                );
+            } else if (suggestion.type === 'FORM_GROUP') {
+              validatedData = FormGroupDataSchema.parse(suggestion.data);
+            } else {
+              // Should not happen if MapImprovementSuggestionSchema is correctly defined and followed
+              console.warn(
+                `Unknown suggestion type from suggestMapImprovementFlow: ${
+                  (suggestion as any).type
+                }`
+              );
+              return suggestionsList; // Or handle error appropriately
+            }
 
-        suggestionsList.push({
-          id: uuidv4(),
-          type: suggestion.type as
-            | 'ADD_EDGE'
-            | 'NEW_INTERMEDIATE_NODE'
-            | 'FORM_GROUP',
-          data: validatedData,
-          reason: suggestion.reason,
-          status: 'pending',
-        });
+            suggestionsList.push({
+              id: uuidv4(),
+              type: suggestion.type as
+                | 'ADD_EDGE'
+                | 'NEW_INTERMEDIATE_NODE'
+                | 'FORM_GROUP',
+              data: validatedData,
+              reason: suggestion.reason,
+              status: 'pending',
+            });
+          }
+        }
       }
     } catch (error) {
       console.error('Error running suggestMapImprovementFlow:', error);

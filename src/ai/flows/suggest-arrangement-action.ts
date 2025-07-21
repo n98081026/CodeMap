@@ -116,28 +116,30 @@ export const suggestArrangementActionFlow = defineFlow(
       }
     `;
 
-    const llmResponse = await generate({
-      model: DEFAULT_MODEL,
-      prompt: prompt,
-      config: {
-        temperature: 0.3, // Low temperature for more deterministic suggestions
-        maxOutputTokens: 100,
-      },
-      output: {
-        format: 'json',
-        schema: z.object({
-          actionId: ArrangementActionIdEnum,
-          reason: z.string().optional(),
-        }),
-      },
-    });
+    const llmResponse = await generate(
+      {
+        model: DEFAULT_MODEL,
+        prompt: prompt,
+        config: {
+          temperature: 0.3, // Low temperature for more deterministic suggestions
+          maxOutputTokens: 100,
+        },
+        output: {
+          format: 'json',
+          schema: z.object({
+            actionId: ArrangementActionIdEnum,
+            reason: z.string().optional(),
+          }),
+        },
+      }
+    );
 
-    const outputData = llmResponse.output;
+    const outputData = llmResponse.output();
 
     if (
       !outputData ||
-      !outputData.suggestion ||
-      !ArrangementActionIdEnum.safeParse(outputData.suggestion.actionId).success
+      !outputData.actionId ||
+      !ArrangementActionIdEnum.safeParse(outputData.actionId).success
     ) {
       // Fallback if AI fails to provide a valid actionId or output
       console.error(
@@ -152,6 +154,6 @@ export const suggestArrangementActionFlow = defineFlow(
       };
     }
 
-    return { suggestion: outputData.suggestion };
+    return { suggestion: outputData };
   }
 );

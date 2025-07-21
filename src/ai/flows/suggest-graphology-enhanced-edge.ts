@@ -1,5 +1,5 @@
 // src/ai/flows/suggest-graphology-enhanced-edge.ts
-import { defineFlow } from '@genkit-ai/flow';
+import { defineFlow, runFlow } from '@genkit-ai/flow';
 import { generate } from '@genkit-ai/ai';
 import { gemini10Pro } from '@genkit-ai/googleai'; // Or your preferred model
 import { z } from 'zod';
@@ -57,10 +57,13 @@ const suggestGraphologyEnhancedEdge = async (
       jaccardThreshold: 0.25, // Example threshold, could be configurable
       maxCandidates: 1, // We only want the top candidate for LLM validation
     };
-    const toolResult = await runFlow(graphologySharedNeighborsEdgeTool, toolInput);
+    const toolResult = await runFlow(
+      graphologySharedNeighborsEdgeTool,
+      toolInput,
+    );
 
     if (
-      toolResult.error ||
+      !toolResult ||
       !toolResult.candidateEdges ||
       toolResult.candidateEdges.length === 0
     ) {
