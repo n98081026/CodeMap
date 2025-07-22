@@ -14,8 +14,6 @@ import { vi } from 'vitest';
 import { runFlow } from '@genkit-ai/flow';
 
 
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
-process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
 const mockJsFileContentFixture = `
 function calculateTotalPrice(price, quantity) {
@@ -94,10 +92,10 @@ class BaseClass:
 def another_top_level_function():
     top_level_function(1, "test") # local call
 `;
-      vi.mocked(supabaseFileFetcherTool).mockResolvedValue(
+      mockedSupabaseFileFetcher.mockResolvedValue(
         createMockFileFetcherOutput('test_script.py', pythonContent) as any
       );
-      vi.mocked(summarizeCodeElementPurposeFlow).mockImplementation(async (input: any) => ({
+      mockedSummarizeFlow.mockImplementation(async (input: any) => ({
         semanticSummary: `Mocked summary for ${input.elementType} ${input.elementName}`,
       }));
 
