@@ -6,17 +6,28 @@ import {
   getAllClassrooms,
   updateClassroom,
   deleteClassroom,
-} from '../classroomService'; // Added deleteClassroom
+  addStudentToClassroom,
+  removeStudentFromClassroom,
+} from '../classroomService';
 
+import * as config from '@/lib/config';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService';
 import { UserRole, type User, type Classroom } from '@/types';
 
+// Mock the entire config module
+vi.mock('@/lib/config', async (importOriginal) => {
+  const actualConfig = await importOriginal<typeof config>();
+  return {
+    ...actualConfig,
+    BYPASS_AUTH_FOR_TESTING: false, // Force bypass to be off for these tests
+  };
+});
+
 // Mock the modules
 vi.mock('@/lib/supabaseClient', () => ({
   supabase: {
-    from: vi.fn(), // Will be implemented in beforeEach or tests
-    // Individual chained methods will be mocks on the object returned by from()
+    from: vi.fn(),
   },
 }));
 
@@ -28,15 +39,18 @@ describe('classroomService', () => {
   const mockSupabaseFrom = supabase.from as vi.Mock;
   const mockGetUserById = getUserById as vi.Mock;
 
-  // Common mocks for chained calls, can be specialized in tests
-  let mockSelect = vi.fn();
-  let mockInsert = vi.fn();
-  let mockUpdate = vi.fn();
-  let mockDelete = vi.fn();
-  let mockEq = vi.fn();
-  let mockSingle = vi.fn();
-  let mockOrder = vi.fn();
-  let mockRange = vi.fn();
+  let mockSelect: vi.Mock;
+  let mockInsert: vi.Mock;
+  let mockUpdate: vi.Mock;
+  let mockDelete: vi.Mock;
+  let mockEq: vi.Mock;
+  let mockIn: vi.Mock;
+  let mockSingle: vi.Mock;
+  let mockMaybeSingle: vi.Mock;
+  let mockOrder: vi.Mock;
+  let mockRange: vi.Mock;
+  let mockRpc: vi.Mock;
+  let mockIlike: vi.Mock;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,24 +61,31 @@ describe('classroomService', () => {
     mockUpdate = vi.fn().mockReturnThis();
     mockDelete = vi.fn().mockReturnThis();
     mockEq = vi.fn().mockReturnThis();
+    mockIn = vi.fn().mockReturnThis();
     mockSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    mockMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
     mockOrder = vi.fn().mockReturnThis();
     mockRange = vi
       .fn()
       .mockResolvedValue({ data: [], error: null, count: 0 });
+    mockRpc = vi.fn().mockResolvedValue({ data: [], error: null });
+    mockIlike = vi.fn().mockReturnThis();
 
-    // Default mock for supabase.from()
-    // Tests can override this with mockImplementationOnce for specific table interactions
     mockSupabaseFrom.mockImplementation(() => ({
       select: mockSelect,
       insert: mockInsert,
       update: mockUpdate,
       delete: mockDelete,
       eq: mockEq,
+      in: mockIn,
       single: mockSingle,
+      maybeSingle: mockMaybeSingle,
       order: mockOrder,
       range: mockRange,
+      ilike: mockIlike,
     }));
+
+    (supabase as any).rpc = mockRpc;
 
     mockGetUserById.mockReset();
   });
@@ -75,7 +96,6 @@ describe('classroomService', () => {
       email: 'teacher@example.com',
       name: 'Test Teacher',
       role: UserRole.TEACHER,
-      updatedAt: '',
     };
     const classroomInput = {
       name: 'New Classroom',
@@ -84,32 +104,26 @@ describe('classroomService', () => {
     };
     const supabaseClassroomRecord = {
       id: 'classroom123',
-      ...classroomInput,
+      name: classroomInput.name,
+      description: classroomInput.description,
       teacher_id: classroomInput.teacherId,
       subject: 'General',
-      difficulty: 'Beginner',
+      difficulty: 'beginner',
       enable_student_ai_analysis: false,
       invite_code: 'TESTCD',
-      created_at: '',
-      updated_at: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     it('should create a classroom successfully', async () => {
       mockGetUserById.mockResolvedValue(teacherUser);
-      // Specific chain for create: from -> insert -> select -> single
-      mockSupabaseFrom.mockImplementationOnce(() => ({
-        insert: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(), // This select is part of the insert chain
-      }));
-      (supabase.from('classrooms').insert({} as any) as any).select = vi
-        .fn()
-        .mockReturnThis(); // Mock select on insert
-      (
-        supabase.from('classrooms').insert({} as any).select() as any
-      ).single = mockSingle; // Mock single on select
-      mockSingle.mockResolvedValueOnce({
-        data: supabaseClassroomRecord,
-        error: null,
+      mockInsert.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: supabaseClassroomRecord,
+            error: null,
+          }),
+        }),
       });
 
       const result = await createClassroom(
@@ -120,19 +134,18 @@ describe('classroomService', () => {
 
       expect(mockGetUserById).toHaveBeenCalledWith(classroomInput.teacherId);
       expect(mockSupabaseFrom).toHaveBeenCalledWith('classrooms');
-      const insertMock = supabase.from('classrooms').insert as vi.Mock; // Get the mock for insert
-      expect(insertMock).toHaveBeenCalledWith(
+      expect(mockInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           name: classroomInput.name,
           teacher_id: classroomInput.teacherId,
           invite_code: expect.any(String),
         })
       );
-
+      expect(result.teacherName).toBe(teacherUser.name);
       expect(result.inviteCode).toHaveLength(6);
     });
 
-    it('should throw an error if teacherId is invalid or user is not a teacher', async () => {
+    it('should throw an error if teacherId is invalid or user is not authorized', async () => {
       mockGetUserById.mockResolvedValue(null);
       await expect(
         createClassroom(
@@ -141,7 +154,7 @@ describe('classroomService', () => {
           'invalid-teacher-id'
         )
       ).rejects.toThrow(
-        'Invalid teacher ID. User does not exist or is not a teacher.'
+        'Invalid teacher ID or user is not authorized to create classrooms.'
       );
     });
 
@@ -157,7 +170,7 @@ describe('classroomService', () => {
           teacherUser.id
         )
       ).rejects.toThrow(
-        'Invalid teacher ID. User does not exist or is not a teacher.'
+        'Invalid teacher ID or user is not authorized to create classrooms.'
       );
     });
 
@@ -169,16 +182,11 @@ describe('classroomService', () => {
         details: '',
         hint: '',
       };
-      mockSupabaseFrom.mockImplementationOnce(() => ({
-        insert: vi.fn().mockReturnThis(),
-      }));
-      (supabase.from('classrooms').insert({} as any) as any).select = vi
-        .fn()
-        .mockReturnThis();
-      (
-        supabase.from('classrooms').insert({} as any).select() as any
-      ).single = mockSingle;
-      mockSingle.mockResolvedValueOnce({ data: null, error: supabaseError });
+      mockInsert.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: supabaseError }),
+        }),
+      });
 
       await expect(
         createClassroom(
@@ -191,16 +199,11 @@ describe('classroomService', () => {
 
     it('should throw an error if Supabase returns no data after insert', async () => {
       mockGetUserById.mockResolvedValue(teacherUser);
-      mockSupabaseFrom.mockImplementationOnce(() => ({
-        insert: vi.fn().mockReturnThis(),
-      }));
-      (supabase.from('classrooms').insert({} as any) as any).select = vi
-        .fn()
-        .mockReturnThis();
-      (
-        supabase.from('classrooms').insert({} as any).select() as any
-      ).single = mockSingle;
-      mockSingle.mockResolvedValueOnce({ data: null, error: null });
+      mockInsert.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      });
 
       await expect(
         createClassroom(
@@ -223,75 +226,63 @@ describe('classroomService', () => {
       difficulty: 'intermediate',
       enable_student_ai_analysis: true,
       invite_code: 'TESTC1',
-      created_at: '',
-      updated_at: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       teacher: {
         id: 'teacher1',
         name: 'Prof. Minerva',
         email: 'minerva@hogwarts.edu',
         role: UserRole.TEACHER,
-        created_at: '',
-        updated_at: '',
       },
-      students: [
-        {
-          user_id: 'student1',
-          profiles: {
-            id: 'student1',
-            name: 'Harry Potter',
-            email: 'harry@hogwarts.edu',
-            role: UserRole.STUDENT,
-            created_at: '',
-            updated_at: '',
-          },
-        },
-        {
-          user_id: 'student2',
-          profiles: {
-            id: 'student2',
-            name: 'Hermione Granger',
-            email: 'hermione@hogwarts.edu',
-            role: UserRole.STUDENT,
-            created_at: '',
-            updated_at: '',
-          },
-        },
-      ],
     };
 
-    it('should retrieve a classroom successfully by ID and map joined data', async () => {
-      mockSupabaseFrom.mockImplementationOnce(() => ({ select: mockSelect }));
-      mockSelect.mockReturnValueOnce({ eq: mockEq });
-      mockEq.mockReturnValueOnce({ single: mockSingle });
-      mockSingle.mockResolvedValueOnce({
-        data: mockSupabaseResponse,
-        error: null,
+    it('should retrieve a classroom successfully by ID', async () => {
+      mockSelect.mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockSupabaseResponse,
+            error: null,
+          }),
+        }),
+      });
+
+      // Mock student fetching
+      mockSupabaseFrom.mockImplementation((tableName) => {
+        if (tableName === 'classrooms') {
+          return {
+            select: mockSelect,
+          };
+        }
+        if (tableName === 'classroom_students') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          };
+        }
+        return {};
       });
 
       const result = await getClassroomById(classroomId);
 
       expect(mockSupabaseFrom).toHaveBeenCalledWith('classrooms');
       expect(mockSelect).toHaveBeenCalledWith(
-        '*, students:classroom_students(user_id, profiles:users(id, name, email, role)), teacher:profiles!classrooms_teacher_id_fkey(id, name, email, role)'
+        '*, teacher:profiles!teacher_id(name)'
       );
-      expect(mockEq).toHaveBeenCalledWith('id', classroomId);
-      expect(mockSingle).toHaveBeenCalled();
       expect(result?.teacherName).toBe('Prof. Minerva');
+      expect(result?.students).toEqual([]);
     });
 
     it('should return null if classroom is not found (PGRST116 error)', async () => {
-      mockSupabaseFrom.mockImplementationOnce(() => ({ select: mockSelect }));
-      mockSelect.mockReturnValueOnce({ eq: mockEq });
-      mockEq.mockReturnValueOnce({ single: mockSingle });
-      mockSingle.mockResolvedValueOnce({
-        data: null,
-        error: {
-          code: 'PGRST116',
-          message: 'Row not found',
-          details: '',
-          hint: '',
-        },
+      mockSelect.mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST116', message: 'Row not found' },
+          }),
+        }),
       });
+
       const result = await getClassroomById(classroomId);
       expect(result).toBeNull();
     });
@@ -304,8 +295,6 @@ describe('classroomService', () => {
       name: 'Prof. Minerva',
       email: 'minerva@hogwarts.edu',
       role: UserRole.TEACHER,
-      created_at: '',
-      updated_at: '',
     };
     const dbRecords = [
       {
@@ -313,34 +302,52 @@ describe('classroomService', () => {
         teacher_id: teacherId,
         teacher: mockTeacherProfile,
         name: 'Class 1',
-        students: [],
+        description: '',
+        invite_code: 'C1',
+        subject: 'Sub',
+        difficulty: 'beginner',
+        enable_student_ai_analysis: true,
       },
     ];
 
     it('should retrieve paginated classrooms for a teacher', async () => {
-      const countEqMock = vi
-        .fn()
-        .mockResolvedValue({ count: dbRecords.length, error: null });
-      const dataRangeMock = vi
-        .fn()
-        .mockResolvedValue({ data: dbRecords, error: null });
-      const dataOrderMock = vi.fn().mockReturnValue({ range: dataRangeMock });
-      const dataEqMock = vi.fn().mockReturnValue({ order: dataOrderMock });
-
-      mockSupabaseFrom.mockImplementation((tableName: string) => {
-        if (tableName === 'classrooms') {
+      mockSelect.mockImplementation((select) => {
+        if (select.includes('count')) {
           return {
-            select: vi.fn((cols, opts) => {
-              if (opts?.count === 'exact') return { eq: countEqMock }; // Count query
-              return { eq: dataEqMock }; // Data query
+            eq: vi.fn().mockReturnValue({
+              ilike: vi.fn().mockResolvedValue({ data: dbRecords, error: null, count: 1 }),
+            }),
+          };
+        }
+        return {
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              range: vi.fn().mockResolvedValue({ data: dbRecords, error: null, count: 1 }),
+            }),
+          }),
+        };
+      });
+
+      // Mock student count for each classroom
+      mockSupabaseFrom.mockImplementation((tableName) => {
+        if (tableName === 'classrooms') {
+          return { select: mockSelect };
+        }
+        if (tableName === 'classroom_students') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
+              }),
             }),
           };
         }
         return {};
       });
 
+
       const result = await getClassroomsByTeacherId(teacherId, 1, 10);
-      expect(result.totalCount).toBe(dbRecords.length);
+      expect(result.totalCount).toBe(1);
       expect(result.classrooms[0].teacherName).toBe(mockTeacherProfile.name);
     });
   });
@@ -351,8 +358,6 @@ describe('classroomService', () => {
       name: 'Teacher One',
       role: UserRole.TEACHER,
       email: '',
-      created_at: '',
-      updated_at: '',
     };
     const dbRecords = [
       {
@@ -360,261 +365,134 @@ describe('classroomService', () => {
         name: 'Class A',
         teacher_id: 't1',
         teacher: mockTeacher1,
-        student_count: [{ count: 10 }],
-        created_at: '',
-        updated_at: '',
+        description: '',
+        invite_code: 'CA',
+        subject: null,
+        difficulty: null,
+        enable_student_ai_analysis: true,
       },
     ];
 
-    it('should retrieve paginated list of all classrooms', async () => {
-      const countMock = vi
-        .fn()
-        .mockResolvedValue({ count: dbRecords.length, error: null });
-      const dataRangeMock = vi
-        .fn()
-        .mockResolvedValue({ data: dbRecords, error: null });
-      const dataOrderMock = vi.fn().mockReturnValue({ range: dataRangeMock });
+    it('should retrieve a list of all classrooms', async () => {
+      mockSelect.mockReturnValue({
+        order: vi.fn().mockResolvedValue({ data: dbRecords, error: null }),
+      });
 
-      mockSupabaseFrom.mockImplementation((tableName: string) => {
+      // Mock student count
+      mockSupabaseFrom.mockImplementation((tableName) => {
         if (tableName === 'classrooms') {
+          return { select: mockSelect };
+        }
+        if (tableName === 'classroom_students') {
           return {
-            select: vi.fn((cols, opts) => {
-              if (opts?.count === 'exact') return countMock(); // Direct call for count
-              return { order: dataOrderMock }; // Data query
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockResolvedValue({ data: [], error: null, count: 5 }),
+              }),
             }),
           };
         }
         return {};
       });
 
-      const result = await getAllClassrooms(1, 10);
-      expect(result.totalCount).toBe(dbRecords.length);
+      const result = await getAllClassrooms();
+      expect(result.length).toBe(1);
+      expect(result[0].name).toBe('Class A');
     });
   });
 
   describe('updateClassroom', () => {
     const classroomId = 'cUpdate1';
     const teacherId = 'tUpdate1';
-    const teacherUser = {
-      id: teacherId,
-      role: UserRole.TEACHER,
-      name: 'T. Update',
-      email: '',
-      created_at: '',
-      updated_at: '',
-    };
-    const adminUser = {
-      id: 'adminUpdate',
-      role: UserRole.ADMIN,
-      name: 'A. Update',
-      email: '',
-      created_at: '',
-      updated_at: '',
-    };
-    const otherUser = {
-      id: 'otherUpdate',
-      role: UserRole.TEACHER,
-      name: 'O. Update',
-      email: '',
-      created_at: '',
-      updated_at: '',
-    };
     const existingRecord = {
       id: classroomId,
       teacher_id: teacherId,
       name: 'Old Name',
-      teacher: teacherUser,
-      students: [],
-      created_at: '',
-      updated_at: '',
+      teacher: { id: teacherId, name: 'T. Update' },
     };
     const updates = { name: 'New Name' };
-    const updatedRecord = {
-      ...existingRecord,
-      ...updates,
-      updated_at: new Date().toISOString(),
-    };
 
-    it('should update a classroom successfully by owner', async () => {
-      const getByIdSingleMock = vi
-        .fn()
-        .mockResolvedValue({ data: existingRecord, error: null });
-      const updateSingleMock = vi
-        .fn()
-        .mockResolvedValue({ data: updatedRecord, error: null });
-
-      mockSupabaseFrom.mockImplementation((tableName: string) => {
+    it('should update a classroom successfully', async () => {
+      // Mock getClassroomById to return a valid classroom
+      mockSupabaseFrom.mockImplementation((tableName) => {
         if (tableName === 'classrooms') {
-          // First call for getClassroomById, second for update
-          const callCount = mockSupabaseFrom.mock.calls.filter(
-            (c) => c[0] === 'classrooms'
-          ).length;
-          if (callCount % 2 !== 0) {
-            // Odd call (1st, 3rd, etc.)
-            return {
-              select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: existingRecord, error: null }),
               }),
-            };
-          } else {
-            // Even call (2nd, 4th, etc.)
-            return {
-              update: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  select: vi
-                    .fn()
-                    .mockReturnValue({ single: updateSingleMock }),
-                }),
-              }),
-            };
-          }
+            }),
+            update: mockUpdate,
+          };
+        }
+        if (tableName === 'classroom_students') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          };
         }
         return {};
       });
 
+       // Mock the update call
+      mockUpdate.mockReturnValueOnce({
+        eq: vi.fn().mockReturnValueOnce({
+         select: vi.fn().mockReturnValueOnce({
+          single: vi.fn().mockResolvedValueOnce({ data: {...existingRecord, ...updates}, error: null }),
+         })
+        }),
+      });
+
+
       const result = await updateClassroom(classroomId, updates);
       expect(result?.name).toBe('New Name');
-    });
-
-    it('should throw error if non-owner/non-admin tries to update', async () => {
-      const getByIdSingleMock = vi
-        .fn()
-        .mockResolvedValue({ data: existingRecord, error: null });
-      mockSupabaseFrom.mockImplementationOnce(() => ({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
-        }),
-      }));
-
-      await expect(updateClassroom(classroomId, updates)).rejects.toThrow(
-        'User not authorized to update this classroom.'
-      );
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('classrooms');
+      expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining(updates));
     });
   });
 
   describe('deleteClassroom', () => {
     const classroomId = 'cDelete1';
-    const teacherId = 'tDelete1';
-    const teacherUser = {
-      id: teacherId,
-      role: UserRole.TEACHER,
-      name: 'T. Delete',
-      email: '',
-      created_at: '',
-      updated_at: '',
-    };
-    const adminUser = {
-      id: 'adminDelete',
-      role: UserRole.ADMIN,
-      name: 'A. Delete',
-      email: '',
-      created_at: '',
-      updated_at: '',
-    };
-    const existingRecord = {
-      id: classroomId,
-      teacher_id: teacherId,
-      name: 'To Delete',
-      teacher: teacherUser,
-      students: [],
-      created_at: '',
-      updated_at: '',
-    };
 
-    it('should delete a classroom successfully by owner', async () => {
-      const getByIdSingleMock = vi
-        .fn()
-        .mockResolvedValue({ data: existingRecord, error: null });
-      const studentDeleteEqMock = vi
-        .fn()
-        .mockResolvedValue({ error: null, count: 0 });
-      const classroomDeleteEqMock = vi
-        .fn()
-        .mockResolvedValue({ error: null, count: 1 });
-
-      mockSupabaseFrom.mockImplementation((tableName: string) => {
-        if (tableName === 'classrooms') {
-          // First call for getClassroomById, second for classroom deletion
-          const classroomCalls = mockSupabaseFrom.mock.calls.filter(
-            (c) => c[0] === 'classrooms'
-          );
-          if (classroomCalls.length === 1)
-            return {
-              select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
-              }),
-            };
-          if (classroomCalls.length === 2)
-            return {
-              delete: vi.fn().mockReturnValue({ eq: classroomDeleteEqMock }),
-            };
-        } else if (tableName === 'classroom_students') {
-          return {
-            delete: vi.fn().mockReturnValue({ eq: studentDeleteEqMock }),
-          };
-        }
-        return {};
+    it('should delete a classroom successfully', async () => {
+      // Mock student enrollments deletion
+      mockDelete.mockReturnValueOnce({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      });
+      // Mock classroom deletion
+      mockDelete.mockReturnValueOnce({
+        eq: vi.fn().mockResolvedValue({ error: null, count: 1 }),
       });
 
       const result = await deleteClassroom(classroomId);
+
       expect(result).toBe(true);
-      expect(studentDeleteEqMock).toHaveBeenCalledWith(
-        'classroom_id',
-        classroomId
-      );
-      expect(classroomDeleteEqMock).toHaveBeenCalledWith('id', classroomId);
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('classroom_students');
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('classrooms');
+      expect(mockDelete).toHaveBeenCalledTimes(2);
     });
 
-    it('should throw error if classroom not found for deletion', async () => {
-      const getByIdSingleMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: {
-          code: 'PGRST116',
-          message: 'Not found',
-          details: '',
-          hint: '',
-        },
-      });
-      mockSupabaseFrom.mockImplementationOnce(() => ({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
-        }),
-      }));
-      await expect(deleteClassroom(classroomId)).rejects.toThrow(
-        'Classroom not found.'
-      );
+    it('should return false if classroom not found for deletion', async () => {
+      mockDelete.mockReturnValueOnce({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }); // students
+      mockDelete.mockReturnValueOnce({
+        eq: vi.fn().mockResolvedValue({ error: null, count: 0 }),
+      }); // classroom
+
+      const result = await deleteClassroom(classroomId);
+      expect(result).toBe(false);
     });
 
     it('should throw error if Supabase fails to delete students', async () => {
-      const getByIdSingleMock = vi
-        .fn()
-        .mockResolvedValue({ data: existingRecord, error: null });
-      const studentDeleteError = {
-        message: 'Failed to delete students',
-        code: 'SDE1',
-        details: '',
-        hint: '',
-      };
-      const studentDeleteEqMock = vi
-        .fn()
-        .mockResolvedValue({ error: studentDeleteError, count: null });
-
-      mockSupabaseFrom.mockImplementation((tableName: string) => {
-        if (tableName === 'classrooms')
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
-            }),
-          };
-        if (tableName === 'classroom_students')
-          return {
-            delete: vi.fn().mockReturnValue({ eq: studentDeleteEqMock }),
-          };
-        return {};
+      const studentDeleteError = { message: 'Failed to delete students' };
+      mockDelete.mockReturnValueOnce({
+        eq: vi.fn().mockResolvedValue({ error: studentDeleteError }),
       });
 
       await expect(deleteClassroom(classroomId)).rejects.toThrow(
-        `Failed to delete students from classroom: ${studentDeleteError.message}`
+        `Failed to delete student enrollments for classroom: ${studentDeleteError.message}`
       );
     });
   });

@@ -1,34 +1,36 @@
+import { vi } from 'vitest';
+
 // Store the actual implementations
-const actualNav = jest.requireActual('next/navigation');
+const actualNav = await vi.importActual('next/navigation');
 
 // Default mock implementations
 let mockRouter = {
-  push: jest.fn(),
-  replace: jest.fn(),
-  forward: jest.fn(),
-  back: jest.fn(),
-  prefetch: jest.fn(),
-  refresh: jest.fn(),
+  push: vi.fn(),
+  replace: vi.fn(),
+  forward: vi.fn(),
+  back: vi.fn(),
+  prefetch: vi.fn(),
+  refresh: vi.fn(),
   // Add any other properties/methods your tests might access on the router object
   // For example, if tests access router.events, router.pathname, etc.
   pathname: '/mock-pathname', // Default pathname
   query: {}, // Default query
   asPath: '/mock-pathname', // Default asPath
   events: {
-    on: jest.fn(),
-    off: jest.fn(),
-    emit: jest.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+    emit: vi.fn(),
   },
 };
 
 let mockPathname = '/mock-pathname';
 let mockSearchParams = new URLSearchParams();
 
-export const useRouter = jest.fn(() => mockRouter);
-export const usePathname = jest.fn(() => mockPathname);
-export const useSearchParams = jest.fn(() => mockSearchParams);
+export const useRouter = vi.fn(() => mockRouter);
+export const usePathname = vi.fn(() => mockPathname);
+export const useSearchParams = vi.fn(() => mockSearchParams);
 
-export const redirect = jest.fn((path: string) => {
+export const redirect = vi.fn((path: string) => {
   // In tests, you might want to check if redirect was called with the correct path
   // instead of actually throwing an error, unless that's part of the test.
   console.log(`MOCK_REDIRECT_CALLED: ${path}`);
@@ -39,7 +41,7 @@ export const redirect = jest.fn((path: string) => {
   return `MOCK_REDIRECT_TO:${path}`;
 });
 
-export const permanentRedirect = jest.fn((path: string) => {
+export const permanentRedirect = vi.fn((path: string) => {
   console.log(`MOCK_PERMANENT_REDIRECT_CALLED: ${path}`);
   return `MOCK_PERMANENT_REDIRECT_TO:${path}`;
 });
