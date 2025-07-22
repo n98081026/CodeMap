@@ -13,14 +13,18 @@ import { vi } from 'vitest';
 // Mock dependencies
 import { runFlow } from '@genkit-ai/flow';
 
-vi.mock('@/ai/flows/summarize-code-element-purpose');
-vi.mock('../supabase-file-fetcher-tool');
-
 const mockedSummarizeFlow = vi.fn();
 const mockedSupabaseFileFetcher = vi.fn();
 
-(summarizeCodeElementPurposeFlow as any).mockImplementation(mockedSummarizeFlow);
-(supabaseFileFetcherTool as any).mockImplementation(mockedSupabaseFileFetcher);
+vi.mock('@/ai/flows/summarize-code-element-purpose', () => ({
+  summarizeCodeElementPurposeFlow: mockedSummarizeFlow,
+}));
+vi.mock('../supabase-file-fetcher-tool', () => ({
+  supabaseFileFetcherTool: mockedSupabaseFileFetcher,
+}));
+
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
 const mockJsFileContentFixture = `
 function calculateTotalPrice(price, quantity) {
@@ -45,6 +49,14 @@ describe('projectStructureAnalyzerTool', () => {
   beforeEach(() => {
     mockedSupabaseFileFetcher.mockReset();
     mockedSummarizeFlow.mockReset();
+    (supabaseFileFetcherTool as any).mockResolvedValue({
+      fileName: 'test_script.py',
+      fileContent: '',
+      fileBuffer: Buffer.from(''),
+      contentType: 'text/x-python',
+      isBinary: false,
+      error: null,
+    });
   });
 
   // Helper function to create a valid SupabaseFileFetcherOutput
@@ -111,7 +123,7 @@ def another_top_level_function():
         supabasePath: 'user/project/test_script.py',
         isMock: true,
       };
-      const result = await runFlow(projectStructureAnalyzerTool, input);
+      const result = await projectStructureAnalyzerTool(input);
 
       expect(result.error).toBeUndefined();
       expect(result.analyzedFileName).toBe('test_script.py');
@@ -243,7 +255,7 @@ from ..parent import parent_module
         supabasePath: 'user/project/imports_test.py',
         isMock: true,
       };
-      const result = await runFlow(projectStructureAnalyzerTool, input as any);
+      const result = await projectStructureAnalyzerTool(input as any);
 
       expect(result.error).toBeUndefined();
       const detailedNodes = result.detailedNodes || [];
@@ -289,7 +301,7 @@ from ..parent import parent_module
         supabasePath: 'user/project/empty.py',
         isMock: true,
       };
-      const result = await runFlow(projectStructureAnalyzerTool, input as any);
+      const result = await projectStructureAnalyzerTool(input as any);
 
       expect(result.error).toBeUndefined();
       expect(result.analyzedFileName).toBe('empty.py');
@@ -316,7 +328,7 @@ class MyBrokenClass
         supabasePath: 'user/project/syntax_error.py',
         isMock: true,
       };
-      const result = await runFlow(projectStructureAnalyzerTool, input as any);
+      const result = await projectStructureAnalyzerTool(input as any);
 
       expect(result.error).toBeDefined();
       expect(result.error).toContain('Python AST parsing failed');
@@ -353,7 +365,7 @@ class MyBrokenClass
       supabasePath: 'user/project/notes.txt',
       isMock: true,
     };
-    const result = await runFlow(projectStructureAnalyzerTool, input);
+    const result = await projectStructureAnalyzerTool(input);
 
     expect(result.error).toBeUndefined();
     expect(result.analyzedFileName).toBe('notes.txt');
@@ -377,7 +389,7 @@ class MyBrokenClass
       supabasePath: 'user/project/error_file.py',
       isMock: true,
     };
-    const result = await runFlow(projectStructureAnalyzerTool, input as any);
+    const result = await projectStructureAnalyzerTool(input as any);
 
     expect(result.error).toBe('File fetch failed: Supabase fetch failed');
     expect(result.analysisSummary).toContain(
@@ -397,7 +409,7 @@ class MyBrokenClass
       supabasePath: 'user/project/summarize_error.py',
       isMock: true,
     };
-    const result = await runFlow(projectStructureAnalyzerTool, input as any);
+    const result = await projectStructureAnalyzerTool(input as any);
 
     expect(result.error).toBeUndefined(); // The tool itself shouldn't fail, but summary will be affected
     const funcNode = result.detailedNodes?.find(
