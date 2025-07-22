@@ -9,8 +9,10 @@ import type { Classroom, User } from '@/types';
 
 import {
   BYPASS_AUTH_FOR_TESTING,
-  MOCK_CLASSROOM_SHARED_V2,
-  MOCK_CLASSROOM_TEACHER_OWNED_V2,
+  MOCK_CLASSROOM_SHARED,
+  MOCK_CLASSROOM_STUDENTS_STORE,
+  MOCK_CLASSROOM_TEACHER_OWNED,
+  MOCK_CLASSROOMS_STORE,
   MOCK_STUDENT_USER,
   MOCK_TEACHER_USER,
   MOCK_USERS,
@@ -20,28 +22,17 @@ import { getUserById } from '@/services/users/userService';
 import { UserRole } from '@/types';
 
 // Mock data store for bypass mode
-let MOCK_CLASSROOMS_STORE: Classroom[] = [
-  MOCK_CLASSROOM_SHARED,
-  MOCK_CLASSROOM_TEACHER_OWNED,
-];
-let MOCK_CLASSROOM_STUDENTS_STORE: Array<{
+let MOCK_CLASSROOMS_STORE_LOCAL: Classroom[] = [...MOCK_CLASSROOMS_STORE];
+let MOCK_CLASSROOM_STUDENTS_STORE_LOCAL: Array<{
   classroom_id: string;
   student_id: string;
-}> = [
-  { classroom_id: MOCK_CLASSROOM_SHARED.id, student_id: MOCK_STUDENT_USER.id },
-  {
-    classroom_id: MOCK_CLASSROOM_SHARED.id,
-    student_id: 'another-mock-student-id',
-  },
-  { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED.id, student_id: 'mock-s1' },
-  { classroom_id: MOCK_CLASSROOM_TEACHER_OWNED.id, student_id: 'mock-s2' },
-];
+}> = [...MOCK_CLASSROOM_STUDENTS_STORE];
 
 async function populateTeacherName(classroom: Classroom): Promise<void> {
   if (classroom.teacherId && !classroom.teacherName) {
     const teacher = await getUserById(classroom.teacherId);
     if (teacher) {
-      classroom.teacherName = teacher.name;
+      classroom.teacherName = teacher.name ?? 'Unknown Teacher';
     } else {
       classroom.teacherName = 'Unknown Teacher';
     }
@@ -52,13 +43,13 @@ async function populateStudentDetailsForClassroom(
   classroom: Classroom
 ): Promise<void> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const studentEntries = MOCK_CLASSROOM_STUDENTS_STORE.filter(
+    const studentEntries = MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.filter(
       (cs) => cs.classroom_id === classroom.id
     );
     classroom.studentIds = studentEntries.map((entry) => entry.student_id);
     classroom.students = classroom.studentIds
       .map((id) => MOCK_USERS.find((u) => u.id === id))
-      .filter((u) => u !== undefined) as User[];
+      .filter((u): u is User => u !== undefined);
     return;
   }
 
@@ -94,7 +85,7 @@ async function populateStudentDetailsForClassroom(
       classroom.students = [];
       return;
     }
-    classroom.students = studentProfiles as User[];
+    classroom.students = (studentProfiles as User[]) ?? [];
   } else {
     classroom.students = [];
   }
@@ -132,7 +123,7 @@ export async function createClassroom(
       enableStudentAiAnalysis:
         enableStudentAiAnalysis === undefined ? true : enableStudentAiAnalysis,
     };
-    MOCK_CLASSROOMS_STORE.push(newClassroom);
+    MOCK_CLASSROOMS_STORE_LOCAL.push(newClassroom);
     return newClassroom;
   }
 
@@ -194,7 +185,7 @@ export async function getClassroomsByTeacherId(
   searchTerm?: string
 ): Promise<{ classrooms: Classroom[]; totalCount: number }> {
   if (BYPASS_AUTH_FOR_TESTING && teacherId === MOCK_TEACHER_USER.id) {
-    let filtered = MOCK_CLASSROOMS_STORE.filter(
+    let filtered = MOCK_CLASSROOMS_STORE_LOCAL.filter(
       (c) => c.teacherId === teacherId
     );
     if (searchTerm) {
@@ -209,7 +200,7 @@ export async function getClassroomsByTeacherId(
     return {
       classrooms: filtered.map((c) => ({
         ...c,
-        studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(
+        studentIds: MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.filter(
           (cs) => cs.classroom_id === c.id
         ).map((cs) => cs.student_id),
       })),
@@ -247,7 +238,8 @@ export async function getClassroomsByTeacherId(
       name: c.name,
       description: c.description ?? undefined,
       teacherId: c.teacher_id,
-      teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
+      teacherName:
+        (c.teacher as { name: string } | null)?.name ?? 'Unknown Teacher',
       studentIds: [],
       inviteCode: c.invite_code,
       subject: c.subject ?? undefined,
@@ -278,14 +270,14 @@ export async function getClassroomsByStudentId(
   studentId: string
 ): Promise<Classroom[]> {
   if (BYPASS_AUTH_FOR_TESTING && studentId === MOCK_STUDENT_USER.id) {
-    const enrolledClassroomIds = MOCK_CLASSROOM_STUDENTS_STORE.filter(
+    const enrolledClassroomIds = MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.filter(
       (cs) => cs.student_id === studentId
     ).map((cs) => cs.classroom_id);
-    return MOCK_CLASSROOMS_STORE.filter((c) =>
+    return MOCK_CLASSROOMS_STORE_LOCAL.filter((c) =>
       enrolledClassroomIds.includes(c.id)
     ).map((c) => ({
       ...c,
-      studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(
+      studentIds: MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.filter(
         (cs) => cs.classroom_id === c.id
       ).map((cs) => cs.student_id),
     }));
@@ -332,7 +324,8 @@ export async function getClassroomsByStudentId(
       name: c.name,
       description: c.description ?? undefined,
       teacherId: c.teacher_id,
-      teacherName: (c.teacher as any)?.name || 'Unknown Teacher',
+      teacherName:
+        (c.teacher as { name: string } | null)?.name ?? 'Unknown Teacher',
       studentIds: [],
       inviteCode: c.invite_code,
       subject: c.subject ?? undefined,
@@ -358,7 +351,9 @@ export async function getClassroomById(
   classroomId: string
 ): Promise<Classroom | null> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const classroom = MOCK_CLASSROOMS_STORE.find((c) => c.id === classroomId);
+    const classroom = MOCK_CLASSROOMS_STORE_LOCAL.find(
+      (c) => c.id === classroomId
+    );
     if (!classroom) return null;
     const clonedClassroom = { ...classroom }; // Avoid mutating mock store directly
     await populateStudentDetailsForClassroom(clonedClassroom); // Populate mock students
@@ -382,7 +377,8 @@ export async function getClassroomById(
     name: data.name,
     description: data.description ?? undefined,
     teacherId: data.teacher_id,
-    teacherName: (data.teacher as any)?.name || 'Unknown Teacher',
+    teacherName:
+      (data.teacher as { name: string } | null)?.name ?? 'Unknown Teacher',
     studentIds: [],
     students: [],
     inviteCode: data.invite_code,
@@ -400,7 +396,9 @@ export async function addStudentToClassroom(
   studentId: string
 ): Promise<Classroom | null> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const classroom = MOCK_CLASSROOMS_STORE.find((c) => c.id === classroomId);
+    const classroom = MOCK_CLASSROOMS_STORE_LOCAL.find(
+      (c) => c.id === classroomId
+    );
     const student = MOCK_USERS.find(
       (u) => u.id === studentId && u.role === UserRole.STUDENT
     );
@@ -410,11 +408,11 @@ export async function addStudentToClassroom(
         'BYPASS_AUTH: Invalid student ID or user is not a student.'
       );
     if (
-      !MOCK_CLASSROOM_STUDENTS_STORE.find(
+      !MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.find(
         (cs) => cs.classroom_id === classroomId && cs.student_id === studentId
       )
     ) {
-      MOCK_CLASSROOM_STUDENTS_STORE.push({
+      MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.push({
         classroom_id: classroomId,
         student_id: studentId,
       });
@@ -469,11 +467,15 @@ export async function removeStudentFromClassroom(
   studentId: string
 ): Promise<Classroom | null> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const classroom = MOCK_CLASSROOMS_STORE.find((c) => c.id === classroomId);
-    if (!classroom) throw new Error('BYPASS_AUTH: Classroom not found.');
-    MOCK_CLASSROOM_STUDENTS_STORE = MOCK_CLASSROOM_STUDENTS_STORE.filter(
-      (cs) => !(cs.classroom_id === classroomId && cs.student_id === studentId)
+    const classroom = MOCK_CLASSROOMS_STORE_LOCAL.find(
+      (c) => c.id === classroomId
     );
+    if (!classroom) throw new Error('BYPASS_AUTH: Classroom not found.');
+    MOCK_CLASSROOM_STUDENTS_STORE_LOCAL =
+      MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.filter(
+        (cs) =>
+          !(cs.classroom_id === classroomId && cs.student_id === studentId)
+      );
     const clonedClassroom = { ...classroom };
     await populateStudentDetailsForClassroom(clonedClassroom);
     return clonedClassroom;
@@ -513,13 +515,15 @@ export async function updateClassroom(
   >
 ): Promise<Classroom | null> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const index = MOCK_CLASSROOMS_STORE.findIndex((c) => c.id === classroomId);
+    const index = MOCK_CLASSROOMS_STORE_LOCAL.findIndex(
+      (c) => c.id === classroomId
+    );
     if (index === -1) return null;
-    MOCK_CLASSROOMS_STORE[index] = {
-      ...MOCK_CLASSROOMS_STORE[index],
+    MOCK_CLASSROOMS_STORE_LOCAL[index] = {
+      ...MOCK_CLASSROOMS_STORE_LOCAL[index],
       ...updates,
     };
-    const clonedClassroom = { ...MOCK_CLASSROOMS_STORE[index] };
+    const clonedClassroom = { ...MOCK_CLASSROOMS_STORE_LOCAL[index] };
     await populateStudentDetailsForClassroom(clonedClassroom);
     return clonedClassroom;
   }
@@ -563,7 +567,9 @@ export async function updateClassroom(
     name: data.name,
     description: data.description ?? undefined,
     teacherId: data.teacher_id,
-    teacherName: (data.teacher as any)?.name || classroomToUpdate.teacherName,
+    teacherName:
+      (data.teacher as { name: string } | null)?.name ??
+      classroomToUpdate.teacherName,
     studentIds: classroomToUpdate.studentIds,
     students: classroomToUpdate.students,
     inviteCode: data.invite_code,
@@ -577,14 +583,15 @@ export async function updateClassroom(
 
 export async function deleteClassroom(classroomId: string): Promise<boolean> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    const initialLength = MOCK_CLASSROOMS_STORE.length;
-    MOCK_CLASSROOMS_STORE = MOCK_CLASSROOMS_STORE.filter(
+    const initialLength = MOCK_CLASSROOMS_STORE_LOCAL.length;
+    MOCK_CLASSROOMS_STORE_LOCAL = MOCK_CLASSROOMS_STORE_LOCAL.filter(
       (c) => c.id !== classroomId
     );
-    MOCK_CLASSROOM_STUDENTS_STORE = MOCK_CLASSROOM_STUDENTS_STORE.filter(
-      (cs) => cs.classroom_id !== classroomId
-    );
-    return MOCK_CLASSROOMS_STORE.length < initialLength;
+    MOCK_CLASSROOM_STUDENTS_STORE_LOCAL =
+      MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.filter(
+        (cs) => cs.classroom_id !== classroomId
+      );
+    return MOCK_CLASSROOMS_STORE_LOCAL.length < initialLength;
   }
 
   const { error: deleteEnrollmentsError } = await supabase
@@ -619,9 +626,9 @@ export async function deleteClassroom(classroomId: string): Promise<boolean> {
 
 export async function getAllClassrooms(): Promise<Classroom[]> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    return MOCK_CLASSROOMS_STORE.map((c) => ({
+    return MOCK_CLASSROOMS_STORE_LOCAL.map((c) => ({
       ...c,
-      studentIds: MOCK_CLASSROOM_STUDENTS_STORE.filter(
+      studentIds: MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.filter(
         (cs) => cs.classroom_id === c.id
       ).map((cs) => cs.student_id),
     }));
@@ -652,7 +659,8 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
       name: row.name,
       description: row.description ?? undefined,
       teacherId: row.teacher_id,
-      teacherName: (row.teacher as any)?.name || 'Unknown Teacher',
+      teacherName:
+        (row.teacher as { name: string } | null)?.name ?? 'Unknown Teacher',
       studentIds: [],
       inviteCode: row.invite_code,
       subject: row.subject ?? undefined,

@@ -89,6 +89,7 @@ vi.mock('lucide-react', () => {
     Compass: createIcon('Compass'),
     AlertTriangle: createIcon('AlertTriangle'),
     Info: createIcon('Info'),
+    InfoIcon: createIcon('InfoIcon'),
     MessageSquareDashed: createIcon('MessageSquareDashed'),
     CheckSquare: createIcon('CheckSquare'),
     Edit3: createIcon('Edit3'),
