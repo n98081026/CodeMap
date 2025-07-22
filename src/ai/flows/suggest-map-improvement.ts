@@ -130,7 +130,7 @@ const suggestMapImprovement = async (input: z.infer<typeof MapDataSchema>) => {
     },
   });
 
-  const outputData = llmResponse.output();
+  const outputData = llmResponse.output;
 
   // Basic validation for suggested IDs (can be enhanced)
   if (outputData) {

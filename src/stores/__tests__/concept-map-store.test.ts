@@ -11,19 +11,20 @@ import type {
   ConceptMap,
   ConceptMapNode,
   ConceptMapEdge,
+  ConceptMapData,
 } from '@/types';
 
 // Mocking uuid
-vi.mock('uuid', () => ({
+jest.mock('uuid', () => ({
   v4: () => `mock-uuid-${Math.random().toString(16).slice(2)}`,
 }));
 
 // Mocking the external flow used in fetchProjectOverview
 import { generateProjectOverviewFlow } from '@/ai/flows/generate-project-overview';
-vi.mock('@/ai/flows/generate-project-overview', () => ({
-  generateProjectOverviewFlow: vi.fn(),
+jest.mock('@/ai/flows/generate-project-overview', () => ({
+  generateProjectOverviewFlow: jest.fn(),
 }));
-const mockGenerateProjectOverviewFlow = vi.mocked(generateProjectOverviewFlow);
+const mockGenerateProjectOverviewFlow = jest.mocked(generateProjectOverviewFlow);
 
 // Helper to reset store state before each test
 const resetStore = () => {
@@ -79,7 +80,7 @@ const resetStore = () => {
 describe('useConceptMapStore', () => {
   beforeEach(() => {
     resetStore();
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('should have correct initial state', () => {

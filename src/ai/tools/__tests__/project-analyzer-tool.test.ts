@@ -1,4 +1,3 @@
-/// <reference types="jest" />
 // src/ai/tools/project-analyzer-tool.test.ts
 import {
   projectStructureAnalyzerTool,
@@ -10,15 +9,15 @@ import { supabaseFileFetcherTool } from '../supabase-file-fetcher-tool';
 
 import { summarizeCodeElementPurposeFlow } from '@/ai/flows/summarize-code-element-purpose';
 
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 // Mock dependencies
 import { runFlow } from '@genkit-ai/flow';
 
-jest.mock('@/ai/flows/summarize-code-element-purpose');
-jest.mock('../supabase-file-fetcher-tool');
+vi.mock('@/ai/flows/summarize-code-element-purpose');
+vi.mock('../supabase-file-fetcher-tool');
 
-const mockedSummarizeFlow = jest.fn();
-const mockedSupabaseFileFetcher = jest.fn();
+const mockedSummarizeFlow = vi.fn();
+const mockedSupabaseFileFetcher = vi.fn();
 
 (summarizeCodeElementPurposeFlow as any).mockImplementation(mockedSummarizeFlow);
 (supabaseFileFetcherTool as any).mockImplementation(mockedSupabaseFileFetcher);
@@ -112,7 +111,7 @@ def another_top_level_function():
         supabasePath: 'user/project/test_script.py',
         isMock: true,
       };
-      const result = await runFlow(projectStructureAnalyzerTool, input as any);
+      const result = await runFlow(projectStructureAnalyzerTool, input);
 
       expect(result.error).toBeUndefined();
       expect(result.analyzedFileName).toBe('test_script.py');
@@ -361,7 +360,7 @@ class MyBrokenClass
     expect(result.effectiveFileType).toBe('text');
     expect(result.analysisSummary).toContain("Plain text file 'notes.txt'");
     expect(
-      result.detailedNodes?.find((n) => n.type === 'text_file')
+      result.detailedNodes?.find((n: any) => n.type === 'text_file')
     ).toBeDefined();
   });
 

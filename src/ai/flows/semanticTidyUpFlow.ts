@@ -105,7 +105,7 @@ The origin (0,0) for your new layout should be considered the top-left of the bo
         config: { temperature: 0.4 },
       });
 
-      const suggestedUpdates = llmResponse.output();
+      const suggestedUpdates = llmResponse.output;
 
       if (!suggestedUpdates || !Array.isArray(suggestedUpdates)) {
         console.error(

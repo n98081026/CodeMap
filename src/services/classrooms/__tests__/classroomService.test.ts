@@ -13,43 +13,43 @@ import { getUserById } from '@/services/users/userService';
 import { UserRole, type User, type Classroom } from '@/types';
 
 // Mock the modules
-jest.mock('@/lib/supabaseClient', () => ({
+vi.mock('@/lib/supabaseClient', () => ({
   supabase: {
-    from: jest.fn(), // Will be implemented in beforeEach or tests
+    from: vi.fn(), // Will be implemented in beforeEach or tests
     // Individual chained methods will be mocks on the object returned by from()
   },
 }));
 
-jest.mock('@/services/users/userService', () => ({
-  getUserById: jest.fn(),
+vi.mock('@/services/users/userService', () => ({
+  getUserById: vi.fn(),
 }));
 
 describe('classroomService', () => {
-  const mockSupabaseFrom = supabase.from as jest.Mock;
-  const mockGetUserById = getUserById as jest.Mock;
+  const mockSupabaseFrom = supabase.from as vi.Mock;
+  const mockGetUserById = getUserById as vi.Mock;
 
   // Common mocks for chained calls, can be specialized in tests
-  let mockSelect = jest.fn();
-  let mockInsert = jest.fn();
-  let mockUpdate = jest.fn();
-  let mockDelete = jest.fn();
-  let mockEq = jest.fn();
-  let mockSingle = jest.fn();
-  let mockOrder = jest.fn();
-  let mockRange = jest.fn();
+  let mockSelect = vi.fn();
+  let mockInsert = vi.fn();
+  let mockUpdate = vi.fn();
+  let mockDelete = vi.fn();
+  let mockEq = vi.fn();
+  let mockSingle = vi.fn();
+  let mockOrder = vi.fn();
+  let mockRange = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Reset individual chained mocks
-    mockSelect = jest.fn().mockReturnThis();
-    mockInsert = jest.fn().mockReturnThis();
-    mockUpdate = jest.fn().mockReturnThis();
-    mockDelete = jest.fn().mockReturnThis();
-    mockEq = jest.fn().mockReturnThis();
-    mockSingle = jest.fn().mockResolvedValue({ data: null, error: null });
-    mockOrder = jest.fn().mockReturnThis();
-    mockRange = jest
+    mockSelect = vi.fn().mockReturnThis();
+    mockInsert = vi.fn().mockReturnThis();
+    mockUpdate = vi.fn().mockReturnThis();
+    mockDelete = vi.fn().mockReturnThis();
+    mockEq = vi.fn().mockReturnThis();
+    mockSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    mockOrder = vi.fn().mockReturnThis();
+    mockRange = vi
       .fn()
       .mockResolvedValue({ data: [], error: null, count: 0 });
 
@@ -98,10 +98,10 @@ describe('classroomService', () => {
       mockGetUserById.mockResolvedValue(teacherUser);
       // Specific chain for create: from -> insert -> select -> single
       mockSupabaseFrom.mockImplementationOnce(() => ({
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(), // This select is part of the insert chain
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(), // This select is part of the insert chain
       }));
-      (supabase.from('classrooms').insert({} as any) as any).select = jest
+      (supabase.from('classrooms').insert({} as any) as any).select = vi
         .fn()
         .mockReturnThis(); // Mock select on insert
       (
@@ -120,7 +120,7 @@ describe('classroomService', () => {
 
       expect(mockGetUserById).toHaveBeenCalledWith(classroomInput.teacherId);
       expect(mockSupabaseFrom).toHaveBeenCalledWith('classrooms');
-      const insertMock = supabase.from('classrooms').insert as jest.Mock; // Get the mock for insert
+      const insertMock = supabase.from('classrooms').insert as vi.Mock; // Get the mock for insert
       expect(insertMock).toHaveBeenCalledWith(
         expect.objectContaining({
           name: classroomInput.name,
@@ -170,9 +170,9 @@ describe('classroomService', () => {
         hint: '',
       };
       mockSupabaseFrom.mockImplementationOnce(() => ({
-        insert: jest.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
       }));
-      (supabase.from('classrooms').insert({} as any) as any).select = jest
+      (supabase.from('classrooms').insert({} as any) as any).select = vi
         .fn()
         .mockReturnThis();
       (
@@ -192,9 +192,9 @@ describe('classroomService', () => {
     it('should throw an error if Supabase returns no data after insert', async () => {
       mockGetUserById.mockResolvedValue(teacherUser);
       mockSupabaseFrom.mockImplementationOnce(() => ({
-        insert: jest.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
       }));
-      (supabase.from('classrooms').insert({} as any) as any).select = jest
+      (supabase.from('classrooms').insert({} as any) as any).select = vi
         .fn()
         .mockReturnThis();
       (
@@ -318,19 +318,19 @@ describe('classroomService', () => {
     ];
 
     it('should retrieve paginated classrooms for a teacher', async () => {
-      const countEqMock = jest
+      const countEqMock = vi
         .fn()
         .mockResolvedValue({ count: dbRecords.length, error: null });
-      const dataRangeMock = jest
+      const dataRangeMock = vi
         .fn()
         .mockResolvedValue({ data: dbRecords, error: null });
-      const dataOrderMock = jest.fn().mockReturnValue({ range: dataRangeMock });
-      const dataEqMock = jest.fn().mockReturnValue({ order: dataOrderMock });
+      const dataOrderMock = vi.fn().mockReturnValue({ range: dataRangeMock });
+      const dataEqMock = vi.fn().mockReturnValue({ order: dataOrderMock });
 
       mockSupabaseFrom.mockImplementation((tableName: string) => {
         if (tableName === 'classrooms') {
           return {
-            select: jest.fn((cols, opts) => {
+            select: vi.fn((cols, opts) => {
               if (opts?.count === 'exact') return { eq: countEqMock }; // Count query
               return { eq: dataEqMock }; // Data query
             }),
@@ -367,18 +367,18 @@ describe('classroomService', () => {
     ];
 
     it('should retrieve paginated list of all classrooms', async () => {
-      const countMock = jest
+      const countMock = vi
         .fn()
         .mockResolvedValue({ count: dbRecords.length, error: null });
-      const dataRangeMock = jest
+      const dataRangeMock = vi
         .fn()
         .mockResolvedValue({ data: dbRecords, error: null });
-      const dataOrderMock = jest.fn().mockReturnValue({ range: dataRangeMock });
+      const dataOrderMock = vi.fn().mockReturnValue({ range: dataRangeMock });
 
       mockSupabaseFrom.mockImplementation((tableName: string) => {
         if (tableName === 'classrooms') {
           return {
-            select: jest.fn((cols, opts) => {
+            select: vi.fn((cols, opts) => {
               if (opts?.count === 'exact') return countMock(); // Direct call for count
               return { order: dataOrderMock }; // Data query
             }),
@@ -436,10 +436,10 @@ describe('classroomService', () => {
     };
 
     it('should update a classroom successfully by owner', async () => {
-      const getByIdSingleMock = jest
+      const getByIdSingleMock = vi
         .fn()
         .mockResolvedValue({ data: existingRecord, error: null });
-      const updateSingleMock = jest
+      const updateSingleMock = vi
         .fn()
         .mockResolvedValue({ data: updatedRecord, error: null });
 
@@ -452,16 +452,16 @@ describe('classroomService', () => {
           if (callCount % 2 !== 0) {
             // Odd call (1st, 3rd, etc.)
             return {
-              select: jest.fn().mockReturnValue({
-                eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
               }),
             };
           } else {
             // Even call (2nd, 4th, etc.)
             return {
-              update: jest.fn().mockReturnValue({
-                eq: jest.fn().mockReturnValue({
-                  select: jest
+              update: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  select: vi
                     .fn()
                     .mockReturnValue({ single: updateSingleMock }),
                 }),
@@ -477,12 +477,12 @@ describe('classroomService', () => {
     });
 
     it('should throw error if non-owner/non-admin tries to update', async () => {
-      const getByIdSingleMock = jest
+      const getByIdSingleMock = vi
         .fn()
         .mockResolvedValue({ data: existingRecord, error: null });
       mockSupabaseFrom.mockImplementationOnce(() => ({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
         }),
       }));
 
@@ -522,13 +522,13 @@ describe('classroomService', () => {
     };
 
     it('should delete a classroom successfully by owner', async () => {
-      const getByIdSingleMock = jest
+      const getByIdSingleMock = vi
         .fn()
         .mockResolvedValue({ data: existingRecord, error: null });
-      const studentDeleteEqMock = jest
+      const studentDeleteEqMock = vi
         .fn()
         .mockResolvedValue({ error: null, count: 0 });
-      const classroomDeleteEqMock = jest
+      const classroomDeleteEqMock = vi
         .fn()
         .mockResolvedValue({ error: null, count: 1 });
 
@@ -540,17 +540,17 @@ describe('classroomService', () => {
           );
           if (classroomCalls.length === 1)
             return {
-              select: jest.fn().mockReturnValue({
-                eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
               }),
             };
           if (classroomCalls.length === 2)
             return {
-              delete: jest.fn().mockReturnValue({ eq: classroomDeleteEqMock }),
+              delete: vi.fn().mockReturnValue({ eq: classroomDeleteEqMock }),
             };
         } else if (tableName === 'classroom_students') {
           return {
-            delete: jest.fn().mockReturnValue({ eq: studentDeleteEqMock }),
+            delete: vi.fn().mockReturnValue({ eq: studentDeleteEqMock }),
           };
         }
         return {};
@@ -566,7 +566,7 @@ describe('classroomService', () => {
     });
 
     it('should throw error if classroom not found for deletion', async () => {
-      const getByIdSingleMock = jest.fn().mockResolvedValue({
+      const getByIdSingleMock = vi.fn().mockResolvedValue({
         data: null,
         error: {
           code: 'PGRST116',
@@ -576,8 +576,8 @@ describe('classroomService', () => {
         },
       });
       mockSupabaseFrom.mockImplementationOnce(() => ({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
         }),
       }));
       await expect(deleteClassroom(classroomId)).rejects.toThrow(
@@ -586,7 +586,7 @@ describe('classroomService', () => {
     });
 
     it('should throw error if Supabase fails to delete students', async () => {
-      const getByIdSingleMock = jest
+      const getByIdSingleMock = vi
         .fn()
         .mockResolvedValue({ data: existingRecord, error: null });
       const studentDeleteError = {
@@ -595,20 +595,20 @@ describe('classroomService', () => {
         details: '',
         hint: '',
       };
-      const studentDeleteEqMock = jest
+      const studentDeleteEqMock = vi
         .fn()
         .mockResolvedValue({ error: studentDeleteError, count: null });
 
       mockSupabaseFrom.mockImplementation((tableName: string) => {
         if (tableName === 'classrooms')
           return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({ single: getByIdSingleMock }),
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({ single: getByIdSingleMock }),
             }),
           };
         if (tableName === 'classroom_students')
           return {
-            delete: jest.fn().mockReturnValue({ eq: studentDeleteEqMock }),
+            delete: vi.fn().mockReturnValue({ eq: studentDeleteEqMock }),
           };
         return {};
       });

@@ -3,39 +3,40 @@
  * Tests the complete project upload and analysis workflow
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
 import {
   createSubmission,
   updateSubmissionStatus,
 } from '@/services/projectSubmissions/projectSubmissionService';
+import { ProjectSubmissionStatus } from '@/types';
 
 // Mock Supabase client
-vi.mock('@/lib/supabaseClient', () => ({
+jest.mock('@/lib/supabaseClient', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn(),
+    from: jest.fn(() => ({
+      insert: jest.fn(() => ({
+        select: jest.fn(() => ({
+          single: jest.fn(),
         })),
       })),
-      update: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          select: vi.fn(() => ({
-            single: vi.fn(),
+      update: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          select: jest.fn(() => ({
+            single: jest.fn(),
           })),
         })),
       })),
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(),
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn(),
         })),
       })),
     })),
     storage: {
-      from: vi.fn(() => ({
-        upload: vi.fn(),
-        getPublicUrl: vi.fn(() => ({
+      from: jest.fn(() => ({
+        upload: jest.fn(),
+        getPublicUrl: jest.fn(() => ({
           data: { publicUrl: 'https://example.com/file.zip' },
         })),
       })),
@@ -44,13 +45,13 @@ vi.mock('@/lib/supabaseClient', () => ({
 }));
 
 // Mock AI flows
-vi.mock('@/ai/flows/generate-map-from-project', () => ({
-  generateMapFromProject: vi.fn(),
+jest.mock('@/ai/flows/generate-map-from-project', () => ({
+  generateMapFromProject: jest.fn(),
 }));
 
 describe('Project Analysis Integration Tests', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('Project Submission Flow', () => {
@@ -68,14 +69,14 @@ describe('Project Analysis Integration Tests', () => {
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockInsert = vi.fn().mockResolvedValue({
+      const mockInsert = jest.fn().mockResolvedValue({
         data: mockSubmission,
         error: null,
       });
 
       (supabase.from as any).mockReturnValue({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
             single: mockInsert,
           }),
         }),
@@ -95,14 +96,14 @@ describe('Project Analysis Integration Tests', () => {
 
     it('should handle submission creation errors', async () => {
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockInsert = vi.fn().mockResolvedValue({
+      const mockInsert = jest.fn().mockResolvedValue({
         data: null,
         error: { message: 'File upload failed' },
       });
 
       (supabase.from as any).mockReturnValue({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
             single: mockInsert,
           }),
         }),
@@ -194,15 +195,15 @@ describe('Project Analysis Integration Tests', () => {
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockUpdate = vi.fn().mockResolvedValue({
+      const mockUpdate = jest.fn().mockResolvedValue({
         data: mockUpdatedSubmission,
         error: null,
       });
 
       (supabase.from as any).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
+        update: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
               single: mockUpdate,
             }),
           }),
@@ -220,15 +221,15 @@ describe('Project Analysis Integration Tests', () => {
 
     it('should handle status update errors', async () => {
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockUpdate = vi.fn().mockResolvedValue({
+      const mockUpdate = jest.fn().mockResolvedValue({
         data: null,
         error: { message: 'Submission not found' },
       });
 
       (supabase.from as any).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
+        update: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
               single: mockUpdate,
             }),
           }),
@@ -244,14 +245,14 @@ describe('Project Analysis Integration Tests', () => {
   describe('File Storage Integration', () => {
     it('should handle file upload to Supabase Storage', async () => {
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockUpload = vi.fn().mockResolvedValue({
+      const mockUpload = jest.fn().mockResolvedValue({
         data: { path: 'submissions/test-project.zip' },
         error: null,
       });
 
       (supabase.storage.from as any).mockReturnValue({
         upload: mockUpload,
-        getPublicUrl: vi.fn(() => ({
+        getPublicUrl: jest.fn(() => ({
           data: { publicUrl: 'https://example.com/test-project.zip' },
         })),
       });
@@ -275,7 +276,7 @@ describe('Project Analysis Integration Tests', () => {
 
     it('should handle file upload errors', async () => {
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockUpload = vi.fn().mockResolvedValue({
+      const mockUpload = jest.fn().mockResolvedValue({
         data: null,
         error: { message: 'Storage quota exceeded' },
       });

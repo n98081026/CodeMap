@@ -6,6 +6,8 @@ import type {
 } from '@/types/graph-adapter';
 
 
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 describe('DagreLayoutUtility', () => {
   let dagreUtil: DagreLayoutUtility;
 
@@ -13,7 +15,7 @@ describe('DagreLayoutUtility', () => {
     dagreUtil = new DagreLayoutUtility();
   });
 
-  test('should perform a basic layout and convert coordinates', async () => {
+  it('should perform a basic layout and convert coordinates', async () => {
     const nodes: DagreLayoutInput['nodes'] = [
       { id: 'n1', width: 100, height: 50, text: 'Node 1' },
       { id: 'n2', width: 120, height: 60, text: 'Node 2' },
@@ -33,7 +35,7 @@ describe('DagreLayoutUtility', () => {
     expect(node2Result).toBeDefined();
   });
 
-  test('should apply default dimensions if not provided', async () => {
+  it('should apply default dimensions if not provided', async () => {
     const nodes: DagreLayoutInput['nodes'] = [{ id: 'n1', text: 'Node 1' }]; // No width/height
     const edges: DagreLayoutInput['edges'] = [];
     const options: DagreLayoutOptions = {
@@ -45,7 +47,7 @@ describe('DagreLayoutUtility', () => {
     expect(result).toHaveLength(1);
   });
 
-  test('should handle layout options like direction', async () => {
+  it('should handle layout options like direction', async () => {
     const nodes: DagreLayoutInput['nodes'] = [
       { id: 'n1', width: 100, height: 50, text: 'Node 1' },
     ];
@@ -61,13 +63,13 @@ describe('DagreLayoutUtility', () => {
     expect(resultDefault).toBeDefined();
   });
 
-  test('should handle empty nodes and edges gracefully', async () => {
+  it('should handle empty nodes and edges gracefully', async () => {
     const result = await dagreUtil.layout([], []);
     expect(result).toEqual([]);
   });
 
-  test('should warn if edge references non-existent node', async () => {
-    const consoleWarnSpy = jest
+  it('should warn if edge references non-existent node', async () => {
+    const consoleWarnSpy = vi
       .spyOn(console, 'warn')
       .mockImplementation(() => {});
     const nodes: DagreLayoutInput['nodes'] = [

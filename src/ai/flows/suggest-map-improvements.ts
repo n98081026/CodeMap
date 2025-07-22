@@ -230,7 +230,7 @@ Provide only the JSON object as your output. Focus on quality and relevance over
         output: { format: 'json', schema: SuggestedImprovementsSchema },
         config: { temperature: 0.5 }, // Slightly higher temp for more creative interpretation of metrics
       });
-      const output = llmResponse.output();
+      const output = llmResponse.output;
       // ... (rest of post-processing logic as before)
       const rawEdges = output?.suggestedEdges || [];
       const rawGroups = output?.suggestedGroups || [];

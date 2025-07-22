@@ -53,7 +53,7 @@ export const summarizeCodeElementPurposeFlow = defineFlow(
         },
       });
 
-      const result = llmResponse.output();
+      const result = llmResponse.output;
       if (!result) {
         throw new Error('LLM returned no output for code summary.');
       }

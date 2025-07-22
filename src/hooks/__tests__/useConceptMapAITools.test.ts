@@ -25,94 +25,94 @@ import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 // Mock dependencies
-jest.mock('@/hooks/use-toast', () => ({
-  useToast: jest.fn(),
+vi.mock('@/hooks/use-toast', () => ({
+  useToast: vi.fn(),
 }));
 
-jest.mock('@/stores/concept-map-store');
+vi.mock('@/stores/concept-map-store');
 
-jest.mock('reactflow', () => ({
-  ...jest.requireActual('reactflow'),
-  useReactFlow: jest.fn(),
+vi.mock('reactflow', () => ({
+  ...vi.importActual('reactflow'),
+  useReactFlow: vi.fn(),
 }));
 
-jest.mock('@/lib/graphologyAdapter');
-jest.mock('@/lib/dagreLayoutUtility');
-jest.mock('@/lib/layout-utils', () => ({
-  getNodePlacement: jest.fn(),
+vi.mock('@/lib/graphologyAdapter');
+vi.mock('@/lib/dagreLayoutUtility');
+vi.mock('@/lib/layout-utils', () => ({
+  getNodePlacement: vi.fn(),
 }));
 
 // Mock AI Flows
-jest.mock('@/ai/flows', () => ({
-  aiExtractConcepts: jest.fn(),
-  aiSuggestRelations: jest.fn(),
-  aiExpandConcept: jest.fn(),
-  aiAskQuestionAboutNode: jest.fn(),
-  aiGenerateQuickCluster: jest.fn(),
-  aiGenerateMapSnippetFromText: jest.fn(),
-  aiSummarizeNodes: jest.fn(),
-  suggestEdgeLabelFlow: jest.fn(),
-  suggestQuickChildTextsFlow: jest.fn(),
-  refineNodeSuggestionFlow: jest.fn(),
-  suggestIntermediateNodeFlow: jest.fn(),
-  aiTidyUpSelectionFlow: jest.fn(),
-  suggestChildNodesFlow: jest.fn(),
-  suggestMapImprovementsFlow: jest.fn(),
-  aiRewriteNodeContent: jest.fn(),
-  generateMapSummaryFlow: jest.fn(),
-  askQuestionAboutEdgeFlow: jest.fn(),
-  askQuestionAboutMapContextFlow: jest.fn(),
+vi.mock('@/ai/flows', () => ({
+  aiExtractConcepts: vi.fn(),
+  aiSuggestRelations: vi.fn(),
+  aiExpandConcept: vi.fn(),
+  aiAskQuestionAboutNode: vi.fn(),
+  aiGenerateQuickCluster: vi.fn(),
+  aiGenerateMapSnippetFromText: vi.fn(),
+  aiSummarizeNodes: vi.fn(),
+  suggestEdgeLabelFlow: vi.fn(),
+  suggestQuickChildTextsFlow: vi.fn(),
+  refineNodeSuggestionFlow: vi.fn(),
+  suggestIntermediateNodeFlow: vi.fn(),
+  aiTidyUpSelectionFlow: vi.fn(),
+  suggestChildNodesFlow: vi.fn(),
+  suggestMapImprovementsFlow: vi.fn(),
+  aiRewriteNodeContent: vi.fn(),
+  generateMapSummaryFlow: vi.fn(),
+  askQuestionAboutEdgeFlow: vi.fn(),
+  askQuestionAboutMapContextFlow: vi.fn(),
 }));
 
 describe('useConceptMapAITools', () => {
   const mockAiExtractConcepts =
-    jest.requireMock('@/ai/flows').aiExtractConcepts;
+    vi.importMock('@/ai/flows').aiExtractConcepts;
   const mockAiSuggestRelations =
-    jest.requireMock('@/ai/flows').aiSuggestRelations;
-  const mockAiExpandConcept = jest.requireMock('@/ai/flows').aiExpandConcept;
-  const mockAiSummarizeNodes = jest.requireMock('@/ai/flows').aiSummarizeNodes;
+    vi.importMock('@/ai/flows').aiSuggestRelations;
+  const mockAiExpandConcept = vi.importMock('@/ai/flows').aiExpandConcept;
+  const mockAiSummarizeNodes = vi.importMock('@/ai/flows').aiSummarizeNodes;
   const mockAiRewriteNodeContent =
-    jest.requireMock('@/ai/flows').aiRewriteNodeContent;
+    vi.importMock('@/ai/flows').aiRewriteNodeContent;
   const mockAiAskQuestionAboutNode =
-    jest.requireMock('@/ai/flows').aiAskQuestionAboutNode;
+    vi.importMock('@/ai/flows').aiAskQuestionAboutNode;
   const mockAskQuestionAboutEdgeFlow =
-    jest.requireMock('@/ai/flows').askQuestionAboutEdgeFlow;
+    vi.importMock('@/ai/flows').askQuestionAboutEdgeFlow;
   const mockAskQuestionAboutMapContextFlow =
-    jest.requireMock('@/ai/flows').askQuestionAboutMapContextFlow;
+    vi.importMock('@/ai/flows').askQuestionAboutMapContextFlow;
   const mockGenerateMapSummaryFlow =
-    jest.requireMock('@/ai/flows').generateMapSummaryFlow;
+    vi.importMock('@/ai/flows').generateMapSummaryFlow;
   const mockSuggestEdgeLabelFlow =
-    jest.requireMock('@/ai/flows').suggestEdgeLabelFlow;
+    vi.importMock('@/ai/flows').suggestEdgeLabelFlow;
   const mockSuggestQuickChildTextsFlow =
-    jest.requireMock('@/ai/flows').suggestQuickChildTextsFlow;
+    vi.importMock('@/ai/flows').suggestQuickChildTextsFlow;
   const mockSuggestIntermediateNodeFlow =
-    jest.requireMock('@/ai/flows').suggestIntermediateNodeFlow;
+    vi.importMock('@/ai/flows').suggestIntermediateNodeFlow;
   const mockAiTidyUpSelectionFlow =
-    jest.requireMock('@/ai/flows').aiTidyUpSelectionFlow;
+    vi.importMock('@/ai/flows').aiTidyUpSelectionFlow;
   const mockSuggestMapImprovementsFlow =
-    jest.requireMock('@/ai/flows').suggestMapImprovementsFlow;
+    vi.importMock('@/ai/flows').suggestMapImprovementsFlow;
   const mockRefineNodeSuggestionFlow =
-    jest.requireMock('@/ai/flows').refineNodeSuggestionFlow;
+    vi.importMock('@/ai/flows').refineNodeSuggestionFlow;
 
-  let mockToast: jest.Mock;
-  let mockReactFlowInstance: { getViewport: jest.Mock; getNode: jest.Mock };
+  let mockToast: vi.Mock;
+  let mockReactFlowInstance: { getViewport: vi.Mock; getNode: vi.Mock };
   let mockStore: any;
-  let mockGraphAdapterInstance: jest.Mocked<GraphAdapterUtility>;
-  let mockDagreLayoutUtilityInstance: jest.Mocked<DagreLayoutUtility>;
+  let mockGraphAdapterInstance: vi.Mocked<GraphAdapterUtility>;
+  let mockDagreLayoutUtilityInstance: vi.Mocked<DagreLayoutUtility>;
 
   beforeEach(() => {
-    mockToast = jest.fn();
-    (useToast as jest.Mock).mockReturnValue({ toast: mockToast });
+    mockToast = vi.fn();
+    (useToast as vi.Mock).mockReturnValue({ toast: mockToast });
 
     mockReactFlowInstance = {
-      getViewport: jest
+      getViewport: vi
         .fn()
         .mockReturnValue({ x: 0, y: 0, zoom: 1, width: 800, height: 600 }),
-      getNode: jest.fn((id) =>
+      getNode: vi.fn((id) =>
         mockStore.mapData.nodes.find((n: any) => n.id === id)
       ),
     };
-    (useReactFlow as jest.Mock).mockImplementation(() => mockReactFlowInstance);
+    (useReactFlow as vi.Mock).mockImplementation(() => mockReactFlowInstance);
 
     mockStore = {
       mapData: { nodes: [], edges: [] },
@@ -120,27 +120,27 @@ describe('useConceptMapAITools', () => {
       mapId: 'map123',
       selectedElementId: null,
       multiSelectedNodeIds: [],
-      setAiExtractedConcepts: jest.fn(),
-      setAiSuggestedRelations: jest.fn(),
-      removeExtractedConceptsFromSuggestions: jest.fn(),
-      removeSuggestedRelationsFromSuggestions: jest.fn(),
-      resetAiSuggestions: jest.fn(),
-      addNode: jest.fn(),
-      updateNode: jest.fn(),
-      addEdge: jest.fn(),
-      setAiProcessingNodeId: jest.fn(),
-      setStagedMapData: jest.fn(),
-      // setConceptExpansionPreview: jest.fn(), // Removed, use stagedMapData
+      setAiExtractedConcepts: vi.fn(),
+      setAiSuggestedRelations: vi.fn(),
+      removeExtractedConceptsFromSuggestions: vi.fn(),
+      removeSuggestedRelationsFromSuggestions: vi.fn(),
+      resetAiSuggestions: vi.fn(),
+      addNode: vi.fn(),
+      updateNode: vi.fn(),
+      addEdge: vi.fn(),
+      setAiProcessingNodeId: vi.fn(),
+      setStagedMapData: vi.fn(),
+      // setConceptExpansionPreview: vi.fn(), // Removed, use stagedMapData
       // conceptExpansionPreview: null, // Removed
-      // updateConceptExpansionPreviewNode: jest.fn(), // Removed
-      applyLayout: jest.fn(),
-      addDebugLog: jest.fn(),
+      // updateConceptExpansionPreviewNode: vi.fn(), // Removed
+      applyLayout: vi.fn(),
+      addDebugLog: vi.fn(),
       aiProcessingNodeId: null,
-      setGhostPreview: jest.fn(),
-      setStructuralSuggestions: jest.fn(),
+      setGhostPreview: vi.fn(),
+      setStructuralSuggestions: vi.fn(),
     };
 
-    (useConceptMapStore as unknown as jest.Mock).mockImplementation(
+    (useConceptMapStore as unknown as vi.Mock).mockImplementation(
       (selector?: (state: any) => any) => {
         if (selector) {
           return selector(mockStore);
@@ -148,27 +148,27 @@ describe('useConceptMapAITools', () => {
         return mockStore;
       }
     );
-    useConceptMapStore.getState = jest.fn().mockReturnValue(mockStore);
+    useConceptMapStore.getState = vi.fn().mockReturnValue(mockStore);
 
     mockGraphAdapterInstance = {
-      fromArrays: jest.fn().mockReturnThis(),
-      hasNode: jest.fn().mockReturnValue(true),
-      getNeighborhood: jest.fn().mockReturnValue([]),
-    } as unknown as jest.Mocked<GraphAdapterUtility>;
-    (GraphAdapterUtility as jest.Mock).mockImplementation(
+      fromArrays: vi.fn().mockReturnThis(),
+      hasNode: vi.fn().mockReturnValue(true),
+      getNeighborhood: vi.fn().mockReturnValue([]),
+    } as unknown as vi.Mocked<GraphAdapterUtility>;
+    (GraphAdapterUtility as vi.Mock).mockImplementation(
       () => mockGraphAdapterInstance
     );
 
     mockDagreLayoutUtilityInstance = {
-      layout: jest.fn().mockResolvedValue([]),
-    } as unknown as jest.Mocked<DagreLayoutUtility>;
-    (DagreLayoutUtility as jest.Mock).mockImplementation(
+      layout: vi.fn().mockResolvedValue([]),
+    } as unknown as vi.Mocked<DagreLayoutUtility>;
+    (DagreLayoutUtility as vi.Mock).mockImplementation(
       () => mockDagreLayoutUtilityInstance
     );
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // ... (all previously added tests remain here) ...

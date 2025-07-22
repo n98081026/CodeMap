@@ -137,7 +137,7 @@ const suggestGraphologyIntermediateNode = async (
       config: { temperature: 0.5 },
     });
 
-    const validationResult = llmResponse.output();
+    const validationResult = llmResponse.output;
 
     if (!validationResult) {
       console.warn(

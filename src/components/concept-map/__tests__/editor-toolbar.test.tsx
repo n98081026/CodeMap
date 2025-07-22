@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 
 import { EditorToolbar } from '../editor-toolbar';
 
@@ -58,12 +59,27 @@ describe('EditorToolbar (/components/concept-map/editor-toolbar.tsx)', () => {
     onAskQuestionAboutMap: vi.fn(),
     onSuggestMapImprovement: vi.fn(),
     onAITidyUpSelection: vi.fn(),
+    isSaving: false,
+    onTriggerImport: vi.fn(),
+    onGenerateSnippetFromText: vi.fn(),
+    onSummarizeSelectedNodes: vi.fn(),
+    onToggleDebugLogViewer: vi.fn(),
+    onDagreTidySelection: vi.fn(),
+    isDagreTidying: false,
+    onToggleOverviewMode: vi.fn(),
+    isOverviewModeActive: false,
+    onSummarizeMap: vi.fn(),
+    isSummarizingMap: false,
+    onAskQuestionAboutMapContext: vi.fn(),
+    isAskingAboutMapContext: false,
+    isSuggestingMapImprovements: false,
+    onSuggestMapImprovements: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Default store state
-    (useConceptMapStore as vi.Mock).mockReturnValue({
+    (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
       canUndo: false,
       canRedo: false,
       hasStagedChanges: false,

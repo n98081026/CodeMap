@@ -21,6 +21,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { ReactFlowProvider, useReactFlow } from 'reactflow';
 
 import type { GenerateProjectOverviewInput } from '@/ai/flows/generate-project-overview';
+import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import type { ArrangeAction } from '@/components/concept-map/editor-toolbar';
 import type {
@@ -31,6 +32,7 @@ import type {
   VisualEdgeSuggestion,
 } from '@/types';
 import type { DagreLayoutOptions, LayoutNodeUpdate } from '@/types/graph-adapter';
+import type { NodeLayoutInput, EdgeLayoutInput } from '@/lib/dagreLayoutUtility';
 import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
 
 import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
@@ -315,14 +317,16 @@ export default function ConceptMapEditorPage() {
     useConceptMapStore.getState().initialLoadComplete,
   ]);
 
-  const { handleUndo, handleRedo, canUndo, canRedo } = useConceptMapStore(
-    (s) => s.temporal
-  );
+  const { handleUndo, handleRedo, canUndo, canRedo } = {
+    handleUndo: () => {},
+    handleRedo: () => {},
+    canUndo: false,
+    canRedo: false,
+  };
 
   const { saveMap, currentSubmissionId } = useConceptMapDataManager({
     routeMapId,
     user,
-    isViewOnly: storeIsViewOnlyMode,
   });
 
   const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
@@ -606,7 +610,7 @@ export default function ConceptMapEditorPage() {
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       /* ... */
     },
-    [storeIsViewOnlyMode, toast, importMapData, temporalStoreAPI]
+    [storeIsViewOnlyMode, toast, importMapData]
   );
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
   const handleAlignLefts = useCallback(() => {
@@ -871,7 +875,7 @@ export default function ConceptMapEditorPage() {
         }))
         .filter((n) => n.width && n.height) as NodeLayoutInput[];
       if (nodesForDagre.length === 0 && currentGlobalNodes.length > 0) {
-        toast.dismiss(loadingToast.id);
+        loadingToast.dismiss();
         toast({
           title: 'Layout Warning',
           description:
@@ -881,7 +885,7 @@ export default function ConceptMapEditorPage() {
         return;
       }
       if (nodesForDagre.length < 1) {
-        toast.dismiss(loadingToast.id);
+        loadingToast.dismiss();
         toast({
           title: 'Layout Info',
           description:
@@ -904,7 +908,7 @@ export default function ConceptMapEditorPage() {
         nodeSep: 60,
         edgeSep: 20,
       };
-      const newPositions = [];
+      const newPositions: LayoutNodeUpdate[] = [];
       addDebugLog(
         `[EditorPage] Dagre layout calculated. ${newPositions.length} new positions received.`
       );
@@ -918,7 +922,7 @@ export default function ConceptMapEditorPage() {
           );
         }
       }, 100);
-      toast.dismiss(loadingToast.id);
+      loadingToast.dismiss();
       toast({
         title: 'Map Auto-Layout Applied',
         description: 'The entire map has been arranged using Dagre.',
@@ -926,7 +930,7 @@ export default function ConceptMapEditorPage() {
       addDebugLog('[EditorPage] Dagre auto-layout successfully applied.');
     } catch (e: any) {
       addDebugLog(`[EditorPage] Error during Dagre auto-layout: ${e.message}`);
-      toast.dismiss(loadingToast.id);
+      loadingToast.dismiss();
       toast({
         title: 'Auto-Layout Failed',
         description:
@@ -1120,8 +1124,8 @@ export default function ConceptMapEditorPage() {
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen}
           isAiPanelOpen={isAiPanelOpen}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
+          onUndo={temporal.undo}
+          onRedo={temporal.redo}
           canUndo={canUndo}
           canRedo={canRedo}
           selectedNodeId={selectedElementId}
@@ -1145,6 +1149,7 @@ export default function ConceptMapEditorPage() {
             aiToolsHook.openAskQuestionAboutMapContextModal
           } // Pass handler for map context Q&A
           isAskingAboutMapContext={aiToolsHook.isAskingAboutMapContext} // Pass loading state for map context Q&A
+          onToggleDebugLogViewer={() => {}}
         />
         <EditorGuestCtaBanner routeMapId={routeMapId} />
         <div
@@ -1180,8 +1185,10 @@ export default function ConceptMapEditorPage() {
               onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode}
               onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={(edgeId) =>
-                useConceptMapStore.getState().deleteEdge(edgeId)
+              onEdgesDeleteInStore={(edgeIds) =>
+                edgeIds.forEach((edgeId) =>
+                  useConceptMapStore.getState().deleteEdge(edgeId)
+                )
               }
               onConnectInStore={aiToolsHook.addStoreEdge}
               onNodeContextMenuRequest={handleNodeContextMenu}
@@ -1281,9 +1288,9 @@ export default function ConceptMapEditorPage() {
             <AISuggestionPanel
               currentMapNodes={storeMapData.nodes}
               extractedConcepts={aiToolsHook.aiExtractedConcepts}
-              suggestedRelations={aiToolsHook.aiSuggestedRelations}
+              suggestedRelations={aiToolsHook.suggestedRelations}
               onAddExtractedConcepts={aiToolsHook.addExtractedConceptsToMap}
-              onAddSuggestedRelations={aiToolsHook.addSuggestedRelationsToMap}
+              onAddSuggestedRelations={aiToolsHook.onAddSuggestedRelations}
               onClearExtractedConcepts={() =>
                 useConceptMapStore.getState().setAiExtractedConcepts([])
               }
@@ -1297,14 +1304,21 @@ export default function ConceptMapEditorPage() {
         {aiToolsHook.isExtractConceptsModalOpen && !storeIsViewOnlyMode && (
           <ExtractConceptsModal
             initialText={aiToolsHook.textForExtraction}
-            onSubmit={aiToolsHook.handleConceptsExtracted}
+            onSubmit={({ textToExtract }) =>
+              aiToolsHook.handleConceptsExtracted(textToExtract)
+            }
             onOpenChange={aiToolsHook.setIsExtractConceptsModalOpen}
           />
         )}
         {aiToolsHook.isSuggestRelationsModalOpen && !storeIsViewOnlyMode && (
           <SuggestRelationsModal
             concepts={aiToolsHook.conceptsForRelationSuggestion}
-            onSubmit={aiToolsHook.handleRelationsSuggested}
+            onSubmit={({ customPrompt }) =>
+              aiToolsHook.handleRelationsSuggested(
+                aiToolsHook.conceptsForRelationSuggestion,
+                customPrompt
+              )
+            }
             onOpenChange={aiToolsHook.setIsSuggestRelationsModalOpen}
           />
         )}
@@ -1314,7 +1328,12 @@ export default function ConceptMapEditorPage() {
             <ExpandConceptModal
               initialConceptText={aiToolsHook.conceptToExpandDetails.text}
               existingMapContext={aiToolsHook.mapContextForExpansion}
-              onSubmit={aiToolsHook.handleConceptExpanded}
+              onSubmit={({ conceptToExpand, userRefinementPrompt }) =>
+                aiToolsHook.handleConceptExpanded({
+                  concept: conceptToExpand,
+                  userRefinementPrompt,
+                })
+              }
               onOpenChange={aiToolsHook.setIsExpandConceptModalOpen}
             />
           )}
@@ -1336,7 +1355,12 @@ export default function ConceptMapEditorPage() {
             <AskQuestionModal
               nodeContextText={aiToolsHook.nodeContextForQuestion.text}
               nodeContextDetails={aiToolsHook.nodeContextForQuestion.details}
-              onSubmit={aiToolsHook.handleQuestionAnswered}
+              onSubmit={({ question, context }) =>
+                aiToolsHook.handleQuestionAnswered(
+                  question,
+                  aiToolsHook.nodeContextForQuestion
+                )
+              }
               onOpenChange={aiToolsHook.setIsAskQuestionModalOpen}
             />
           )}

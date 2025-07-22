@@ -22,8 +22,12 @@ const GroupSuggestionOverlayNode: React.FC<
   NodeProps<GroupSuggestionOverlayData>
 > = ({ data }) => {
   const { width, height, label, reason, suggestionId } = data;
-  const { acceptStructuralSuggestion, dismissStructuralSuggestion } =
-    useConceptMapStore.getState();
+  const acceptStructuralSuggestion = useConceptMapStore(
+    (state) => state.acceptStructuralSuggestion
+  );
+  const dismissStructuralSuggestion = useConceptMapStore(
+    (state) => state.dismissStructuralSuggestion
+  );
 
   const handleAccept = (event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent node selection or other underlying interactions

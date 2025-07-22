@@ -1,6 +1,6 @@
 import { SupabaseClient, User as SupabaseUser } from '@supabase/supabase-js';
 import { act, renderHook } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 import { AuthProvider, useAuth } from '../auth-context'; // Import the function for testing
 
@@ -10,23 +10,23 @@ import { useConceptMapStore } from '@/stores/concept-map-store';
 
 // Mock Supabase client
 const mockSupabaseAuth = {
-  onAuthStateChange: vi
+  onAuthStateChange: jest
     .fn()
-    .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
-  signOut: vi.fn().mockResolvedValue({ error: null }),
-  signInWithPassword: vi.fn(),
-  signUp: vi.fn(),
-  getSession: vi
+    .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+  signOut: jest.fn().mockResolvedValue({ error: null }),
+  signInWithPassword: jest.fn(),
+  signUp: jest.fn(),
+  getSession: jest
     .fn()
     .mockResolvedValue({ data: { session: null }, error: null }),
-  getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+  getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
 };
-const mockSupabaseFrom = vi.fn(() => ({
-  select: vi.fn().mockReturnThis(),
-  insert: vi.fn().mockReturnThis(),
-  update: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  single: vi.fn(),
+const mockSupabaseFrom = jest.fn(() => ({
+  select: jest.fn().mockReturnThis(),
+  insert: jest.fn().mockReturnThis(),
+  update: jest.fn().mockReturnThis(),
+  eq: jest.fn().mockReturnThis(),
+  single: jest.fn(),
 }));
 const mockSupabase = {
   auth: mockSupabaseAuth,
@@ -53,7 +53,7 @@ const localStorageMock = (() => {
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 // Mock global fetch
-global.fetch = vi.fn();
+global.fetch = jest.fn();
 
 
 // Original AuthContext tests (Guest Session State Management)
@@ -61,11 +61,11 @@ global.fetch = vi.fn();
 describe('AuthContext - Guest Session State Management', () => {
   beforeEach(() => {
     localStorageMock.clear();
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     // Default to no session for these state tests
     mockSupabaseAuth.onAuthStateChange.mockImplementation((callback: any) => {
       callback('INITIAL_SESSION', null);
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
+      return { data: { subscription: { unsubscribe: jest.fn() } } };
     });
     mockSupabaseAuth.getSession.mockResolvedValue({
       data: { session: null },
@@ -122,7 +122,7 @@ describe('AuthContext - Guest Session State Management', () => {
     mockSupabaseAuth.onAuthStateChange.mockImplementation((callback: any) => {
       callback('INITIAL_SESSION', null);
       setTimeout(() => callback('SIGNED_IN', mockSession), 0); // Cast to Session type
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
+      return { data: { subscription: { unsubscribe: jest.fn() } } };
     });
 
     await act(async () => {

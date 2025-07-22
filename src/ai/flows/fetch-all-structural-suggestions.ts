@@ -94,7 +94,10 @@ export const fetchAllStructuralSuggestionsFlow = defineFlow(
     try {
       const groupCandidate = await runFlow(
         suggestNodeGroupCandidatesFlow,
-        mapData
+        {
+          ...mapData,
+          nodes: mapData.nodes.map(node => ({ ...node, x: 0, y: 0 })),
+        }
       );
       if (groupCandidate && groupCandidate.suggestedGroups) {
         groupCandidate.suggestedGroups.forEach((group: any) => {

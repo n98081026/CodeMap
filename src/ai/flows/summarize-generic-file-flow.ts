@@ -50,7 +50,7 @@ export const summarizeGenericFileFlow = defineFlow(
         }
       );
 
-      const result = llmResponse.output();
+      const result = llmResponse.output;
       if (!result) {
         throw new Error('LLM returned no output for summary.');
       }

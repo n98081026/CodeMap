@@ -54,7 +54,7 @@ const SuggestionEdge: React.FC<EdgeProps<SuggestionEdgeData>> = ({
 
   const handleAccept = (event: React.MouseEvent) => {
     event.stopPropagation();
-    acceptStructuralSuggestion(id);
+    acceptStructuralSuggestion(id, { createParentNode: false });
   };
 
   const handleDismiss = (event: React.MouseEvent) => {
