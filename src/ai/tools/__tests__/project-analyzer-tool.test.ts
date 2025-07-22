@@ -16,12 +16,8 @@ import { runFlow } from '@genkit-ai/flow';
 const mockedSummarizeFlow = vi.fn();
 const mockedSupabaseFileFetcher = vi.fn();
 
-vi.mock('@/ai/flows/summarize-code-element-purpose', () => ({
-  summarizeCodeElementPurposeFlow: mockedSummarizeFlow,
-}));
-vi.mock('../supabase-file-fetcher-tool', () => ({
-  supabaseFileFetcherTool: mockedSupabaseFileFetcher,
-}));
+vi.mock('@/ai/flows/summarize-code-element-purpose');
+vi.mock('../supabase-file-fetcher-tool');
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
@@ -57,6 +53,9 @@ describe('projectStructureAnalyzerTool', () => {
       isBinary: false,
       error: null,
     });
+    (summarizeCodeElementPurposeFlow as any).mockImplementation(async (input: any) => ({
+      semanticSummary: `Mocked summary for ${input.elementType} ${input.elementName}`,
+    }));
   });
 
   // Helper function to create a valid SupabaseFileFetcherOutput
