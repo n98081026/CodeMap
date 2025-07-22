@@ -227,6 +227,25 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     string | null
   >(null);
   const [isAskingAboutMapContext, setIsAskingAboutMapContext] = useState(false);
+  const [conceptExpansionPreview, setConceptExpansionPreview] = useState<any>(null);
+  const [intermediateNodeSuggestion, setIntermediateNodeSuggestion] = useState<any>(null);
+
+  const clearIntermediateNodeSuggestion = () => {
+    setIntermediateNodeSuggestion(null);
+  };
+
+  const confirmAddIntermediateNode = () => {
+    // This function is a placeholder.
+  };
+
+  const clearExpansionPreview = () => {
+    setConceptExpansionPreview(null);
+  };
+
+  const acceptAllExpansionPreviews = () => {
+    // This function is a placeholder.
+    // The actual implementation would take the preview data and commit it to the main map state.
+  };
 
   /**
    * A generic utility function to call an AI flow and provide standardized user feedback
@@ -2555,5 +2574,13 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       setMapContextQuestionAnswer(null);
       setIsMapContextQuestionModalOpen(false);
     },
+    getNodePlacement,
+    aiExtractedConcepts,
+    conceptExpansionPreview,
+    acceptAllExpansionPreviews,
+    clearExpansionPreview,
+    intermediateNodeSuggestion,
+    clearIntermediateNodeSuggestion,
+    confirmAddIntermediateNode,
   };
 }

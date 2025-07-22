@@ -211,7 +211,7 @@ export async function GET(request: Request) {
 
     // getAllClassrooms service function already defaults page to 1 and limit to 10 if not provided.
     // Here, we ensure that if the API is called without params, it uses its own defaults before calling service.
-    const result = await getAllClassrooms(page, limit);
+    const result = await getAllClassrooms();
     return NextResponse.json(result);
   } catch (error) {
     console.error('Get Classrooms API error:', error);

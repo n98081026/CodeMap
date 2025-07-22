@@ -605,9 +605,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     selectedIndicesSet: Set<number>,
     itemKeyPrefix: string,
     // renderItemContent is now specific to each type
-    onAddSelectedItems: (
-      selectedItems: (ExtractedConceptItem | RelationSuggestion)[]
-    ) => void,
+    onAddSelectedItems: (selectedItems: any[]) => void,
     onClearCategory?: () => void,
     cardClassName?: string,
     titleClassName?: string,
@@ -672,7 +670,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           );
         });
       if (toAdd.length > 0) {
-        onAddSelectedItems(toAdd as ExtractedConceptItem[] & RelationSuggestion[]);
+        onAddSelectedItems(toAdd);
         clearSelectionForCategory();
       }
     };
@@ -941,9 +939,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                       );
                     });
                   if (toAdd.length > 0) {
-                    onAddSelectedItems(
-                      toAdd as ExtractedConceptItem[] & RelationSuggestion[]
-                    );
+                    onAddSelectedItems(toAdd);
                     clearSelectionForCategory();
                   }
                 }}
@@ -1000,7 +996,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             editableExtracted,
             selectedExtractedIndices,
             'extracted-concept',
-            onAddExtractedConcepts,
+            onAddExtractedConcepts as any,
             onClearExtractedConcepts,
             'bg-blue-500/5 border-blue-500/20',
             'text-blue-700 dark:text-blue-400',
@@ -1014,7 +1010,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             editableRelations,
             selectedRelationIndices,
             'relation-',
-            onAddSuggestedRelations,
+            onAddSuggestedRelations as any,
             onClearSuggestedRelations,
             'bg-purple-500/5 border-purple-500/20',
             'text-purple-700 dark:text-purple-400',

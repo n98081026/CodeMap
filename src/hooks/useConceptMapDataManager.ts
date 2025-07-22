@@ -14,14 +14,17 @@ import {
 import useConceptMapStore from '@/stores/concept-map-store';
 
 interface UseConceptMapDataManagerProps {
-  routeMapIdFromProps?: string; // This will now be the primary source for routeMapId
+  routeMapId?: string; // This will now be the primary source for routeMapId
   user: User | null;
 }
 
 export function useConceptMapDataManager({
-  routeMapIdFromProps,
+  routeMapId,
   user,
 }: UseConceptMapDataManagerProps) {
+  const [currentSubmissionId, setCurrentSubmissionId] = useState<string | null>(
+    null
+  );
   const { toast } = useToast();
   const router = useRouter();
   const paramsHook = useParams(); // Use params from Next.js for initial check
@@ -304,12 +307,12 @@ export function useConceptMapDataManager({
       useConceptMapStore.getState();
 
     addDebugLog(
-      `[DataManager useEffect V13] RUNNING: RouteID='${routeMapIdFromProps}', Store(ID='${storeMapId}', isNew=${isNewMapMode}, Owner='${currentMapOwnerId}', isLoading=${isLoading}, initComp=${initialLoadComplete}, viewOnly=${isViewOnlyModeInStore}). EffectiveUser='${effectiveUserId}', URLViewOnly=${currentViewOnlyQueryParam}`
+      `[DataManager useEffect V13] RUNNING: RouteID='${routeMapId}', Store(ID='${storeMapId}', isNew=${isNewMapMode}, Owner='${currentMapOwnerId}', isLoading=${isLoading}, initComp=${initialLoadComplete}, viewOnly=${isViewOnlyModeInStore}). EffectiveUser='${effectiveUserId}', URLViewOnly=${currentViewOnlyQueryParam}`
     );
 
-    if (!routeMapIdFromProps || routeMapIdFromProps.trim() === '') {
+    if (!routeMapId || routeMapId.trim() === '') {
       addDebugLog(
-        '[DataManager useEffect V13] Guard: routeMapIdFromProps is falsy or empty. Waiting.'
+        '[DataManager useEffect V13] Guard: routeMapId is falsy or empty. Waiting.'
       );
       return;
     }
@@ -317,7 +320,7 @@ export function useConceptMapDataManager({
     // User check is only critical if NOT loading an example map via direct link (as guests can do that)
     // and not in bypass mode.
     if (
-      !routeMapIdFromProps.startsWith('example-') &&
+      !routeMapId.startsWith('example-') &&
       !effectiveUserId &&
       !BYPASS_AUTH_FOR_TESTING
     ) {
@@ -340,10 +343,10 @@ export function useConceptMapDataManager({
 
     // Handle direct loading of example maps if route indicates an example
     // and it's not already correctly loaded in the store.
-    if (routeMapIdFromProps.startsWith('example-')) {
-      const exampleKey = routeMapIdFromProps.substring('example-'.length);
+    if (routeMapId.startsWith('example-')) {
+      const exampleKey = routeMapId.substring('example-'.length);
       const isExampleCorrectlyLoaded =
-        storeMapId === routeMapIdFromProps &&
+        storeMapId === routeMapId &&
         mapData.nodes.length > 0 && // Ensure it's not an empty map state
         initialLoadComplete &&
         isViewOnlyModeInStore; // Examples should be view-only
@@ -471,7 +474,7 @@ export function useConceptMapDataManager({
       return; // Handled example map loading
     }
 
-    if (routeMapIdFromProps === 'new') {
+    if (routeMapId === 'new') {
       // This requires an authenticated user (or bypass)
       if (!effectiveUserId) {
         addDebugLog(
@@ -505,9 +508,9 @@ export function useConceptMapDataManager({
 
     // Handle loading existing, non-example maps
     if (
-      routeMapIdFromProps &&
-      !routeMapIdFromProps.startsWith('example-') &&
-      routeMapIdFromProps !== 'new'
+      routeMapId &&
+      !routeMapId.startsWith('example-') &&
+      routeMapId !== 'new'
     ) {
       if (!effectiveUserId) {
         // Should have been caught earlier, but double check
@@ -519,7 +522,7 @@ export function useConceptMapDataManager({
         if (!initialLoadComplete) setInitialLoadComplete(true);
         return;
       }
-      const isCorrectMapIdInStore = storeMapId === routeMapIdFromProps;
+      const isCorrectMapIdInStore = storeMapId === routeMapId;
       const isStoreInPotentiallyValidLoadedState =
         !isNewMapMode && initialLoadComplete && !isLoading;
       let shouldLoad = false;
@@ -538,7 +541,7 @@ export function useConceptMapDataManager({
         isCorrectMapIdInStore &&
         isStoreInPotentiallyValidLoadedState &&
         mapData.nodes.length === 0 &&
-        !routeMapIdFromProps.startsWith('example-')
+        !routeMapId.startsWith('example-')
       ) {
         // Only force reload for non-empty maps if it's not an example (examples might legitimately be empty if file is bad)
         shouldLoad = true;
@@ -548,33 +551,33 @@ export function useConceptMapDataManager({
       }
 
       addDebugLog(
-        `[DataManager useEffect V13] Existing Map Evaluation: RouteID='${routeMapIdFromProps}'. Calculated shouldLoad: ${shouldLoad}`
+        `[DataManager useEffect V13] Existing Map Evaluation: RouteID='${routeMapId}'. Calculated shouldLoad: ${shouldLoad}`
       );
       if (shouldLoad) {
         addDebugLog(
-          `[DataManager useEffect V13] Action: Loading existing map '${routeMapIdFromProps}'. TargetViewOnly: ${isViewOnlyModeInStore}`
+          `[DataManager useEffect V13] Action: Loading existing map '${routeMapId}'. TargetViewOnly: ${isViewOnlyModeInStore}`
         );
         loadMapDataInternalRef.current(
-          routeMapIdFromProps,
+          routeMapId,
           isViewOnlyModeInStore
         );
       } else {
         addDebugLog(
-          `[DataManager useEffect V13] Info: Map ID '${routeMapIdFromProps}' considered loaded and not requiring re-fetch.`
+          `[DataManager useEffect V13] Info: Map ID '${routeMapId}' considered loaded and not requiring re-fetch.`
         );
         if (isLoading) setIsLoading(false);
       }
       return;
     }
 
-    if (!routeMapIdFromProps && isLoading) {
+    if (!routeMapId && isLoading) {
       addDebugLog(
-        '[DataManager useEffect V13] Fallback: routeMapIdFromProps is empty, ensuring isLoading is false.'
+        '[DataManager useEffect V13] Fallback: routeMapId is empty, ensuring isLoading is false.'
       );
       setIsLoading(false);
     }
   }, [
-    routeMapIdFromProps,
+    routeMapId,
     user,
     storeMapId,
     isNewMapMode,
@@ -750,5 +753,5 @@ export function useConceptMapDataManager({
     ]
   );
 
-  return { saveMap, loadMapData: loadMapDataInternalRef.current };
+  return { saveMap, loadMapData: loadMapDataInternalRef.current, currentSubmissionId };
 }

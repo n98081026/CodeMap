@@ -1,9 +1,10 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import React from 'react';
+import { describe, it, expect, vi, beforeEach, afterEach, test } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 
 import { AISuggestionPanel } from '../ai-suggestion-panel';
 
-import type { RelationSuggestion } from '../ai-suggestion-panel'; // Assuming RelationSuggestion is exported or defined locally for tests
 import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
 
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -19,7 +20,7 @@ vi.mock('@tanstack/react-virtual', () => ({
       index,
       start: index * options.estimateSize(),
       size: options.estimateSize(),
-      measureRef: vi.fn(), // Corrected: measureRef to measureElement
+      measureElement: vi.fn(), // Corrected: measureRef to measureElement
     }));
     return {
       getVirtualItems: () => virtualItems,
@@ -30,8 +31,8 @@ vi.mock('@tanstack/react-virtual', () => ({
 }));
 
 // Mock Lucide icons
-vi.mock('lucide-react', async (importOriginal) => {
-  const original = await importOriginal();
+vi.mock('lucide-react', async () => {
+  const original = await vi.importActual('lucide-react');
   return {
     ...original,
     GitFork: () => <svg data-testid='git-fork-icon' />,
@@ -48,6 +49,13 @@ vi.mock('lucide-react', async (importOriginal) => {
     Trash2: () => <svg data-testid='trash2-icon' />,
   };
 });
+
+type RelationSuggestion = {
+  source: string;
+  target: string;
+  relation: string;
+  reason?: string;
+};
 
 describe('AISuggestionPanel', () => {
   let mockSetDragPreview: vi.Mock;

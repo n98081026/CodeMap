@@ -59,6 +59,7 @@ export interface ConceptMapEdge {
 export interface ConceptMapData {
   nodes: ConceptMapNode[];
   edges: ConceptMapEdge[];
+  projectFileStoragePath?: string;
 }
 
 export interface ConceptMap {

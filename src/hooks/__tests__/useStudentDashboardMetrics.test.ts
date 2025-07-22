@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 import { useStudentDashboardMetrics } from '../useStudentDashboardMetrics';
 
@@ -8,11 +8,11 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 
 // Mock the fetch function
-global.fetch = vi.fn();
+global.fetch = jest.fn();
 
 // Mock useAuth to provide a user for the AuthProvider wrapper
-vi.mock('@/contexts/auth-context', async () => {
-  const actual = await vi.importActual('@/contexts/auth-context');
+jest.mock('@/contexts/auth-context', async () => {
+  const actual = await jest.requireActual('@/contexts/auth-context');
   return {
     ...actual,
     useAuth: () => ({
@@ -38,7 +38,7 @@ describe('useStudentDashboardMetrics', () => {
   const mockUserId = 'user-123';
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('should return loading state initially', () => {
@@ -55,11 +55,15 @@ describe('useStudentDashboardMetrics', () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.metrics.classroomCount).toBe(0);
-    expect(result.current.metrics.conceptMaps.length).toBe(0);
-    expect(result.current.metrics.submissions.length).toBe(0);
-    expect(result.current.error).toBeNull();
+    expect(result.current.classrooms.isLoading).toBe(true);
+    expect(result.current.conceptMaps.isLoading).toBe(true);
+    expect(result.current.submissions.isLoading).toBe(true);
+    expect(result.current.classrooms.count).toBe(0);
+    expect(result.current.conceptMaps.count).toBe(0);
+    expect(result.current.submissions.count).toBe(0);
+    expect(result.current.classrooms.error).toBeNull();
+    expect(result.current.conceptMaps.error).toBeNull();
+    expect(result.current.submissions.error).toBeNull();
   });
 
   it('should fetch and return student metrics successfully', async () => {
@@ -78,13 +82,13 @@ describe('useStudentDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.classrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.metrics.classroomCount).toBe(4);
-    expect(result.current.metrics.conceptMaps.length).toBe(12);
-    expect(result.current.metrics.submissions.length).toBe(6);
-    expect(result.current.error).toBeNull();
+    expect(result.current.classrooms.count).toBe(4);
+    expect(result.current.conceptMaps.count).toBe(12);
+    expect(result.current.submissions.count).toBe(6);
+    expect(result.current.classrooms.error).toBeNull();
   });
 
   it('should not fetch when userId is not provided', () => {
@@ -92,11 +96,11 @@ describe('useStudentDashboardMetrics', () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.metrics.classroomCount).toBe(0);
-    expect(result.current.metrics.conceptMaps.length).toBe(0);
-    expect(result.current.metrics.submissions.length).toBe(0);
-    expect(result.current.error).toBeNull();
+    expect(result.current.classrooms.isLoading).toBe(false);
+    expect(result.current.classrooms.count).toBe(0);
+    expect(result.current.conceptMaps.count).toBe(0);
+    expect(result.current.submissions.count).toBe(0);
+    expect(result.current.classrooms.error).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -108,9 +112,9 @@ describe('useStudentDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.classrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.error).toBe('Failed to fetch student metrics');
+    expect(result.current.classrooms.error).toBe('Failed to fetch student metrics');
   });
 });

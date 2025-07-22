@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 import { useAdminDashboardMetrics } from '../useAdminDashboardMetrics';
 
@@ -8,11 +8,11 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 
 // Mock the fetch function
-global.fetch = vi.fn();
+global.fetch = jest.fn();
 
 // Mock useAuth to provide a user for the AuthProvider wrapper
-vi.mock('@/contexts/auth-context', async () => {
-  const actual = await vi.importActual('@/contexts/auth-context');
+jest.mock('@/contexts/auth-context', async () => {
+  const actual = await jest.requireActual('@/contexts/auth-context');
   return {
     ...actual,
     useAuth: () => ({
@@ -36,7 +36,7 @@ const createWrapper = () => {
 
 describe('useAdminDashboardMetrics', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('should return loading state initially', () => {
@@ -49,10 +49,12 @@ describe('useAdminDashboardMetrics', () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.metrics.userCount).toBe(0);
-    expect(result.current.metrics.classroomCount).toBe(0);
-    expect(result.current.error).toBeNull();
+    expect(result.current.users.isLoading).toBe(true);
+    expect(result.current.classrooms.isLoading).toBe(true);
+    expect(result.current.users.count).toBe(0);
+    expect(result.current.classrooms.count).toBe(0);
+    expect(result.current.users.error).toBeNull();
+    expect(result.current.classrooms.error).toBeNull();
   });
 
   it('should fetch and return metrics successfully', async () => {
@@ -67,12 +69,14 @@ describe('useAdminDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.users.isLoading).toBe(false);
+      expect(result.current.classrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.metrics.userCount).toBe(15);
-    expect(result.current.metrics.classroomCount).toBe(8);
-    expect(result.current.error).toBeNull();
+    expect(result.current.users.count).toBe(15);
+    expect(result.current.classrooms.count).toBe(8);
+    expect(result.current.users.error).toBeNull();
+    expect(result.current.classrooms.error).toBeNull();
   });
 
   it('should handle fetch errors', async () => {
@@ -83,12 +87,12 @@ describe('useAdminDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.users.isLoading).toBe(false);
     });
 
-    expect(result.current.metrics.userCount).toBe(0);
-    expect(result.current.metrics.classroomCount).toBe(0);
-    expect(result.current.error).toBe('Failed to fetch admin metrics');
+    expect(result.current.users.count).toBe(0);
+    expect(result.current.classrooms.count).toBe(0);
+    expect(result.current.users.error).toBe('Failed to fetch admin metrics');
   });
 
   it('should handle non-ok response', async () => {
@@ -102,9 +106,9 @@ describe('useAdminDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.users.isLoading).toBe(false);
     });
 
-    expect(result.current.error).toBe('Failed to fetch admin metrics');
+    expect(result.current.users.error).toBe('Failed to fetch admin metrics');
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 import {
   createConceptMap,
@@ -8,28 +8,28 @@ import {
 } from '../../conceptMaps/conceptMapService';
 
 // Mock Supabase client
-vi.mock('@/lib/supabaseClient', () => ({
+jest.mock('@/lib/supabaseClient', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn(),
+    from: jest.fn(() => ({
+      insert: jest.fn(() => ({
+        select: jest.fn(() => ({
+          single: jest.fn(),
         })),
       })),
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(),
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn(),
         })),
       })),
-      update: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          select: vi.fn(() => ({
-            single: vi.fn(),
+      update: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          select: jest.fn(() => ({
+            single: jest.fn(),
           })),
         })),
       })),
-      delete: vi.fn(() => ({
-        eq: vi.fn(),
+      delete: jest.fn(() => ({
+        eq: jest.fn(),
       })),
     })),
   },
@@ -37,7 +37,7 @@ vi.mock('@/lib/supabaseClient', () => ({
 
 describe('conceptMapService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('createConceptMap', () => {
@@ -54,14 +54,14 @@ describe('conceptMapService', () => {
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockInsert = vi.fn().mockResolvedValue({
+      const mockInsert = jest.fn().mockResolvedValue({
         data: mockConceptMap,
         error: null,
       });
 
       (supabase.from as any).mockReturnValue({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
             single: mockInsert,
           }),
         }),
@@ -79,14 +79,14 @@ describe('conceptMapService', () => {
 
     it('should handle creation errors', async () => {
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockInsert = vi.fn().mockResolvedValue({
+      const mockInsert = jest.fn().mockResolvedValue({
         data: null,
         error: { message: 'Database error' },
       });
 
       (supabase.from as any).mockReturnValue({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
             single: mockInsert,
           }),
         }),
@@ -114,14 +114,14 @@ describe('conceptMapService', () => {
       };
 
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockSelect = vi.fn().mockResolvedValue({
+      const mockSelect = jest.fn().mockResolvedValue({
         data: mockConceptMap,
         error: null,
       });
 
       (supabase.from as any).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
             single: mockSelect,
           }),
         }),
@@ -134,14 +134,14 @@ describe('conceptMapService', () => {
 
     it('should handle not found errors', async () => {
       const { supabase } = await import('@/lib/supabaseClient');
-      const mockSelect = vi.fn().mockResolvedValue({
+      const mockSelect = jest.fn().mockResolvedValue({
         data: null,
         error: { message: 'Not found' },
       });
 
       (supabase.from as any).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
             single: mockSelect,
           }),
         }),

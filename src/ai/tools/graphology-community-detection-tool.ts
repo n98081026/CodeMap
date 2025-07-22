@@ -1,5 +1,5 @@
 // src/ai/tools/graphology-community-detection-tool.ts
-import { genkit as ai } from 'genkit';
+import { genkit } from 'genkit';
 import Graph from 'graphology';
 import louvain from 'graphology-communities-louvain';
 import { z } from 'zod';
@@ -18,7 +18,7 @@ export const CommunityDetectionOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export const graphologyCommunityDetectionTool = ai.defineTool(
+export const graphologyCommunityDetectionTool = genkit.defineTool(
   {
     name: 'graphologyCommunityDetector',
     description: 'Detects communities in a graph using the Louvain algorithm.',

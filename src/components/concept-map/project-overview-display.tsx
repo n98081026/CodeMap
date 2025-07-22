@@ -30,7 +30,7 @@ import useConceptMapStore from '@/stores/concept-map-store';
 interface ProjectOverviewDisplayProps {
   overviewData: GenerateProjectOverviewOutput | null;
   isLoading: boolean;
-  onModuleClick: (moduleName: string) => void;
+  onModuleClick?: (moduleName: string) => void;
 }
 
 interface LineData {
@@ -255,7 +255,7 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
                   'shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out border-border/50',
                   'cursor-pointer hover:border-primary/50 flex flex-col' // Added flex flex-col for consistent height if content varies
                 )}
-                onClick={() => handleModuleCardClick(module)}
+                onClick={() => onModuleClick && handleModuleCardClick(module)}
                 style={{ minHeight: '180px' }} // Ensure cards have some min height for line calculations
               >
                 <CardHeader className='pb-3'>

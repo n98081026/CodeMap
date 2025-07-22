@@ -206,7 +206,7 @@ function ConceptMapEditorPageContent({
   const canRedo = temporalStoreAPI.getState().futureStates.length > 0;
 
   const { saveMap } = useConceptMapDataManager({
-    routeMapIdFromProps: routeMapId,
+    routeMapId: routeMapId,
     user: currentUser,
   });
 
@@ -847,7 +847,6 @@ function ConceptMapEditorPageContent({
             onEdgesDeleteInStore={handleEdgesDeleteCallback}
             onConnectInStore={addEdgeFromHook}
             onNodeContextMenuRequest={handleNodeContextMenu}
-            onAddChildNodeRequestCallback={handleAddChildNodeFromHover}
             panActivationKeyCode='Space'
           />
         </div>
@@ -937,14 +936,23 @@ function ConceptMapEditorPageContent({
         {isExtractConceptsModalOpen && !storeIsViewOnlyMode && (
           <DynamicExtractConceptsModal
             initialText={textForExtraction}
-            onSubmit={handleConceptsExtracted}
+            onSubmit={({ textToExtract }) =>
+              handleConceptsExtracted(textToExtract)
+            }
             onOpenChange={setIsExtractConceptsModalOpen}
           />
         )}
         {isSuggestRelationsModalOpen && !storeIsViewOnlyMode && (
           <DynamicSuggestRelationsModal
-            concepts={conceptsForRelationSuggestion}
-            onSubmit={handleRelationsSuggested}
+            concepts={conceptsForRelationSuggestion.map((concept) => ({
+              concept,
+            }))}
+            onSubmit={({ customPrompt }) =>
+              handleRelationsSuggested(
+                conceptsForRelationSuggestion,
+                customPrompt
+              )
+            }
             onOpenChange={setIsSuggestRelationsModalOpen}
           />
         )}
@@ -954,7 +962,12 @@ function ConceptMapEditorPageContent({
             <DynamicExpandConceptModal
               initialConceptText={conceptToExpandDetails.text}
               existingMapContext={mapContextForExpansion}
-              onSubmit={handleConceptExpanded}
+              onSubmit={({ conceptToExpand, userRefinementPrompt }) =>
+                handleConceptExpanded({
+                  concept: conceptToExpand,
+                  userRefinementPrompt,
+                })
+              }
               onOpenChange={setIsExpandConceptModalOpen}
             />
           )}
@@ -976,7 +989,9 @@ function ConceptMapEditorPageContent({
             <DynamicAskQuestionModal
               nodeContextText={nodeContextForQuestion.text}
               nodeContextDetails={nodeContextForQuestion.details}
-              onSubmit={handleQuestionAnswered}
+              onSubmit={({ question, context }) =>
+                handleQuestionAnswered(question, nodeContextForQuestion)
+              }
               onOpenChange={setIsAskQuestionModalOpen}
             />
           )}

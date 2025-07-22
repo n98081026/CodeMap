@@ -23,23 +23,23 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 
 // Global mock for next/navigation
 // This ensures that all tests that import from 'next/navigation' will use our mock.
-vi.mock('next/navigation', async () => {
+vi.mock('next/navigation', () => {
   // Dynamically import the mock implementation
-  const mockModule = await import('@/tests/__mocks__/next/navigation');
+  const mockModule = import('@/tests/__mocks__/next/navigation');
   return mockModule; // Return all exports from the mock file
 });
 
 // Global mock for MainLayout
-vi.mock('@/components/layout/main-layout', async () => {
-  const mockModule = await import(
+vi.mock('@/components/layout/main-layout', () => {
+  const mockModule = import(
     '@/tests/__mocks__/components/layout/main-layout'
   );
   return mockModule;
 });
 
 // Mock lucide-react icons globally
-vi.mock('lucide-react', async () => {
-  const actual = await vi.importActual('lucide-react');
+vi.mock('lucide-react', () => {
+  const actual = vi.importActual('lucide-react');
   const createIcon = (displayName: string) => {
     const IconComponent = (props: React.SVGProps<SVGSVGElement>) =>
       React.createElement('svg', {

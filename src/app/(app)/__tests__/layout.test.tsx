@@ -9,14 +9,14 @@ import {
   __setMockRouter,
   __setMockSearchParams,
 } from '@/tests/__mocks__/next/navigation'; // Adjusted path
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 import AppLayout from '../layout';
 
 import { useAuth } from '@/contexts/auth-context';
 
 // Mock useAuth
-vi.mock('@/contexts/auth-context');
+jest.mock('@/contexts/auth-context');
 
 // The global mock for 'next/navigation' is set in `src/tests/setup.ts`.
 // The global mock for '@components/layout/main-layout' is also set in `src/tests/setup.ts`.

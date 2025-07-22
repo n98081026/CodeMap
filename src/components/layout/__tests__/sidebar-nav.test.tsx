@@ -7,11 +7,11 @@ import { SidebarNav } from '../sidebar-nav'; // Assuming named export
 import { useAuth } from '@/contexts/auth-context';
 
 // Mock useAuth
-jest.mock('@/contexts/auth-context');
+vi.mock('@/contexts/auth-context');
 
 // Mock next/navigation
-const mockUsePathname = jest.fn();
-jest.mock('next/navigation', () => ({
+const mockUsePathname = vi.fn();
+vi.mock('next/navigation', () => ({
   usePathname: () => mockUsePathname(),
   Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>
@@ -20,11 +20,11 @@ jest.mock('next/navigation', () => ({
 
 describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render null (nothing) when in a guest session', () => {
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as vi.Mock).mockReturnValue({
       user: null,
       profile: null,
       isGuestSession: true,
@@ -40,7 +40,7 @@ describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
   });
 
   it('should render null (nothing) if auth is loading', () => {
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as vi.Mock).mockReturnValue({
       user: null,
       profile: null,
       isGuestSession: false,
@@ -54,7 +54,7 @@ describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
   });
 
   it('should render null (nothing) if not authenticated, not guest, and no profile (edge case)', () => {
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as vi.Mock).mockReturnValue({
       user: null, // Has user object from Supabase Auth, but profile fetch failed/pending
       profile: null,
       isGuestSession: false,
@@ -68,7 +68,7 @@ describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
   });
 
   it('should render student links for an authenticated student', () => {
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as vi.Mock).mockReturnValue({
       user: { id: 'student-id' },
       profile: { role: 'student', id: 'student-id' /* other profile fields */ },
       isGuestSession: false,
@@ -87,7 +87,7 @@ describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
   });
 
   it('should render teacher links for an authenticated teacher', () => {
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as vi.Mock).mockReturnValue({
       user: { id: 'teacher-id' },
       profile: { role: 'teacher', id: 'teacher-id' /* other profile fields */ },
       isGuestSession: false,
@@ -105,7 +105,7 @@ describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
   });
 
   it('should render admin links for an authenticated admin', () => {
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as vi.Mock).mockReturnValue({
       user: { id: 'admin-id' },
       profile: { role: 'admin', id: 'admin-id' /* other profile fields */ },
       isGuestSession: false,

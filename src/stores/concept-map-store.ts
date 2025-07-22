@@ -8,7 +8,12 @@ import { create } from 'zustand';
 
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 
-import type { ConceptMap, ConceptMapData } from '@/types';
+import type {
+  ConceptMap,
+  ConceptMapData,
+  ConceptMapNode,
+  ConceptMapEdge,
+} from '@/types';
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
 import type { TemporalState as ZundoTemporalState } from 'zundo';
 
@@ -104,6 +109,7 @@ interface ConceptMapState {
   isOverviewModeActive: boolean;
   projectOverviewData: GenerateProjectOverviewOutput | null;
   isFetchingOverview: boolean;
+  isApplyingSemanticTidyUp: boolean;
 
   // View Focus State
   focusViewOnNodeIds: string[] | null;
@@ -236,6 +242,9 @@ interface ConceptMapState {
   // New actions for focus
   setFocusOnNodes: (nodeIds: string[], isOverviewExit?: boolean) => void;
   clearFocusViewTrigger: () => void;
+  applySemanticTidyUp: (
+    updates: { id: string; x: number; y: number }[]
+  ) => void;
 
   // For tutorial system to target newly added elements
   tutorialTempTargetNodeId: string | null;
@@ -359,6 +368,9 @@ export const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> =
   triggerFocusView: false,
   tutorialTempTargetNodeId: null,
   tutorialTempTargetEdgeId: null, // Added new state
+  isApplyingSemanticTidyUp: false,
+  findEdgeByNodes: () => undefined,
+  applySemanticTidyUp: () => {},
 };
 
 type TrackedState = Pick<
@@ -1083,13 +1095,6 @@ export const useConceptMapStore = create<ConceptMapState>()(
           ),
         })),
       clearStructuralSuggestions: () => set({ structuralSuggestions: [] }),
-      findEdgeByNodes: (sourceId, targetId) => {
-        return get().mapData.edges.find(
-          (edge) =>
-            (edge.source === sourceId && edge.target === targetId) ||
-            (edge.source === targetId && edge.target === sourceId)
-        );
-      },
       applyFormGroupSuggestion: (nodeIds, groupName, overlayGeometry) => {
         const { addNode: addNodeAction, updateNode: updateNodeAction } = get();
         let groupNodeX = 100,
@@ -1167,6 +1172,25 @@ export const useConceptMapStore = create<ConceptMapState>()(
         set({ tutorialTempTargetNodeId: nodeId }),
       setTutorialTempTargetEdgeId: (edgeId) =>
         set({ tutorialTempTargetEdgeId: edgeId }),
+      findEdgeByNodes: (sourceId, targetId) => {
+        return get().mapData.edges.find(
+          (edge) =>
+            (edge.source === sourceId && edge.target === targetId) ||
+            (edge.source === targetId && edge.target === sourceId)
+        );
+      },
+      applySemanticTidyUp: (updates) => {
+        set((state) => {
+          const updatedNodes = state.mapData.nodes.map((node) => {
+            const update = updates.find((u) => u.id === node.id);
+            return update ? { ...node, x: update.x, y: update.y } : node;
+          });
+          return {
+            ...state,
+            mapData: { ...state.mapData, nodes: updatedNodes },
+          };
+        });
+      },
     }),
     {
       partialize: (state): TrackedState => {
