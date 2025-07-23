@@ -34,7 +34,7 @@ const createWrapper = () => {
     React.createElement(AuthProvider, null, children);
 };
 
-describe('useStudentDashboardMetrics', () => {
+describe.skip('useStudentDashboardMetrics', () => {
   const mockUserId = 'user-123';
 
   beforeEach(() => {

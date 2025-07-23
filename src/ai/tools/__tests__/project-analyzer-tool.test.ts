@@ -13,7 +13,14 @@ import { vi } from 'vitest';
 // Mock dependencies
 import { runFlow } from '@genkit-ai/flow';
 
+vi.mock('@/ai/flows/summarize-code-element-purpose');
+vi.mock('../supabase-file-fetcher-tool');
 
+const mockedSummarizeFlow = vi.fn();
+const mockedSupabaseFileFetcher = vi.fn();
+
+(summarizeCodeElementPurposeFlow as any).mockImplementation(mockedSummarizeFlow);
+(supabaseFileFetcherTool as any).mockImplementation(mockedSupabaseFileFetcher);
 
 const mockJsFileContentFixture = `
 function calculateTotalPrice(price, quantity) {
@@ -36,7 +43,8 @@ def subtract(a, b):
 
 describe('projectStructureAnalyzerTool', () => {
   beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockImplementation(vi.fn());
+    mockedSupabaseFileFetcher.mockReset();
+    mockedSummarizeFlow.mockReset();
   });
 
   // Helper function to create a valid SupabaseFileFetcherOutput
@@ -345,7 +353,7 @@ class MyBrokenClass
       supabasePath: 'user/project/notes.txt',
       isMock: true,
     };
-    const result = await runFlow(projectStructureAnalyzerTool, input as any);
+    const result = await runFlow(projectStructureAnalyzerTool, input);
 
     expect(result.error).toBeUndefined();
     expect(result.analyzedFileName).toBe('notes.txt');

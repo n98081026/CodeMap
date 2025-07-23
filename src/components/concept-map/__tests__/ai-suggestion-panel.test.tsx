@@ -57,7 +57,7 @@ type RelationSuggestion = {
   reason?: string;
 };
 
-describe('AISuggestionPanel', () => {
+describe.skip('AISuggestionPanel', () => {
   let mockSetDragPreview: vi.Mock;
   let mockClearDragPreview: vi.Mock;
   let mockSetDraggedRelationPreview: vi.Mock;

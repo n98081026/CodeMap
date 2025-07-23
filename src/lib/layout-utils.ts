@@ -159,10 +159,6 @@ export function getNodePlacement(
     finalY = Math.round(finalY / gridSize) * gridSize;
   }
 
-  // Ensure no negative coordinates for new nodes if possible, push them to positive quadrant
-  finalX = Math.max(gridSize || 0, finalX);
-  finalY = Math.max(gridSize || 0, finalY);
-
   return { x: finalX, y: finalY };
 }
 

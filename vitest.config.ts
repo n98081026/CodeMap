@@ -47,11 +47,7 @@ export default defineConfig({
       },
     },
     deps: {
-      inline: [
-        /@genkit-ai\//, // Process all @genkit-ai scoped packages
-        'graphology-traversal',
-        // Add other problematic dependencies here if needed
-      ],
+      noExternal: true,
     },
   },
 });
