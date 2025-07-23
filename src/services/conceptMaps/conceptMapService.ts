@@ -60,7 +60,7 @@ export async function createConceptMap(
     .insert({
       name,
       owner_id: ownerId,
-      map_data: (mapData || { nodes: [], edges: [] }) as any,
+      map_data: mapData || { nodes: [], edges: [] },
       is_public: isPublic,
       shared_with_classroom_id: sharedWithClassroomId || null,
     })

@@ -394,7 +394,13 @@ type TrackedState = Pick<
 >;
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
-export const useConceptMapStore = create<ConceptMapState>()(
+import { create } from 'zustand';
+import { temporal } from 'zundo';
+import type { TemporalState as ZundoTemporalState } from 'zundo';
+
+// ...
+
+export const useConceptMapStore = create<ConceptMapState>(
   temporal(
     (set, get) => ({
       ...initialStateBase,
@@ -608,7 +614,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
             state.mapData.nodes,
             state.mapData.edges
           );
-          if (!graphInstance.hasNode(nodeIdToDelete)) {
+          if (!graphInstance.hasNode(nodeIdToDelete as string | number)) {
             return state;
           }
           const descendants = graphUtil.getDescendants(
@@ -960,10 +966,11 @@ export const useConceptMapStore = create<ConceptMapState>()(
           draggedRelationLabel: null,
         }),
       setDragPreview: (item) => set({ dragPreviewItem: item }),
-      updateDragPreviewPosition: (position) =>
-        set({
-          dragPreviewPosition: position as { x: number; y: number } | null,
-        }),
+      updateDragPreviewPosition: (
+        position: { x: number; y: number } | null
+      ) => {
+        set({ dragPreviewPosition: position });
+      },
       clearDragPreview: () =>
         set({
           dragPreviewItem: null,
@@ -1230,6 +1237,11 @@ export const useConceptMapStore = create<ConceptMapState>()(
         };
       },
       limit: 50,
+      // Add findEdgeByNodes to the partialize function
+      partialize: (state) => ({
+        ...state,
+        findEdgeByNodes: state.findEdgeByNodes,
+      }),
     }
   )
 );

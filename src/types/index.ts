@@ -66,7 +66,7 @@ export interface ConceptMap {
   id: string;
   name: string;
   ownerId: string;
-  mapData: ConceptMapData;
+  mapData: ConceptMapData | null;
   isPublic: boolean;
   sharedWithClassroomId?: string | null;
   createdAt: string;

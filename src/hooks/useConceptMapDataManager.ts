@@ -125,7 +125,8 @@ export function useConceptMapDataManager({
             MOCK_USER_FOR_TESTING_MAPS &&
             typeof MOCK_USER_FOR_TESTING_MAPS === 'object'
           ) {
-            mockMapToLoad = MOCK_USER_FOR_TESTING_MAPS[idToLoad];
+            mockMapToLoad =
+              MOCK_USER_FOR_TESTING_MAPS[idToLoad as string | number];
           }
 
           if (mockMapToLoad) {
@@ -302,7 +303,7 @@ export function useConceptMapDataManager({
     const effectiveUserId = BYPASS_AUTH_FOR_TESTING
       ? (MOCK_STUDENT_USER_V3?.id ?? null)
       : (user?.id ?? null);
-    const currentViewOnlyQueryParam = paramsHook.viewOnly === 'true';
+    const currentViewOnlyQueryParam = paramsHook.viewOnly === true;
     const { loadExampleMapData: storeLoadExampleMapData } =
       useConceptMapStore.getState();
     addDebugLog(
@@ -642,7 +643,7 @@ export function useConceptMapDataManager({
 
       const payload = {
         name: mapName,
-        ownerId: effectiveUserForSave.id,
+        ownerId: effectiveUserForSave.id as string | null,
         mapData: mapData,
         isPublic: isPublic,
         sharedWithClassroomId: sharedWithClassroomId,
@@ -673,7 +674,7 @@ export function useConceptMapDataManager({
             mapData: mapData,
             isPublic: isPublic,
             sharedWithClassroomId: sharedWithClassroomId,
-            ownerId: effectiveUserForSave.id,
+            ownerId: effectiveUserForSave.id as string | null,
           };
           addDebugLog(
             `[DataManager saveMap V3] Updating EXISTING map via PUT /api/concept-maps/${currentMapIdForAPI}`
