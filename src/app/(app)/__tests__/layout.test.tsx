@@ -9,14 +9,14 @@ import {
   __setMockRouter,
   __setMockSearchParams,
 } from '@/tests/__mocks__/next/navigation'; // Adjusted path
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import AppLayout from '../layout';
 
 import { useAuth } from '@/contexts/auth-context';
 
 // Mock useAuth
-jest.mock('@/contexts/auth-context');
+vi.mock('@/contexts/auth-context');
 
 // The global mock for 'next/navigation' is set in `src/tests/setup.ts`.
 // The global mock for '@components/layout/main-layout' is also set in `src/tests/setup.ts`.
@@ -26,19 +26,19 @@ describe.skip('AppLayout (/app/(app)/layout.tsx)', () => {
   let mockRouterInstance: any;
 
   beforeEach(() => {
-    (useAuth as jest.Mock).mockClear();
+    (useAuth as ReturnType<typeof vi.fn>).mockClear();
 
     mockRouterInstance = {
-      push: jest.fn(),
-      replace: jest.fn(),
-      forward: jest.fn(),
-      back: jest.fn(),
-      prefetch: jest.fn(),
-      refresh: jest.fn(),
+      push: vi.fn(),
+      replace: vi.fn(),
+      forward: vi.fn(),
+      back: vi.fn(),
+      prefetch: vi.fn(),
+      refresh: vi.fn(),
       pathname: '/default-pathname',
       query: {},
       asPath: '/default-pathname',
-      events: { on: jest.fn(), off: jest.fn(), emit: jest.fn() },
+      events: { on: vi.fn(), off: vi.fn(), emit: vi.fn() },
     };
     __setMockRouter(mockRouterInstance);
     __setMockPathname('/default-pathname');

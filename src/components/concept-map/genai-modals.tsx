@@ -44,15 +44,15 @@ import {
   askQuestionAboutSelectedNodeSchema,
 } from '@/types/zodSchemas';
 
-interface GenAIModalProps<T> {
+interface GenAIModalProps<T extends z.ZodType<any, any, any>> {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSubmit: (data: T) => void;
+  onSubmit: (data: z.infer<T>) => void;
   isProcessing: boolean;
 }
 
 export const ExtractConceptsModal: React.FC<
-  Omit<GenAIModalProps<z.infer<typeof extractConceptsSchema>>, 'isProcessing'> & {
+  Omit<GenAIModalProps<typeof extractConceptsSchema>, 'isProcessing'> & {
     initialText?: string;
   }
 > = ({ isOpen, onOpenChange, onSubmit, initialText }) => {
@@ -152,13 +152,13 @@ export const ExtractConceptsModal: React.FC<
 };
 
 export const SuggestRelationsModal: React.FC<
-  Omit<GenAIModalProps<z.infer<typeof suggestRelationsSchema>>, 'isProcessing'> & {
+  Omit<GenAIModalProps<typeof suggestRelationsSchema>, 'isProcessing'> & {
     concepts: string[];
   }
 > = ({ isOpen, onOpenChange, onSubmit, concepts }) => {
   const form = useForm<z.infer<typeof suggestRelationsSchema>>({
     resolver: zodResolver(suggestRelationsSchema),
-    defaultValues: { concepts: concepts, customPrompt: '' },
+    defaultValues: { customPrompt: '' },
   });
   const { isProcessing: isProcessingRelations } = useConceptMapAITools();
 
@@ -182,19 +182,6 @@ export const SuggestRelationsModal: React.FC<
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4 py-4"
           >
-            <FormField
-              control={form.control}
-              name="concepts"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Concepts to Relate</FormLabel>
-                  <FormControl>
-                    <Input readOnly {...field} value={field.value.join(', ')} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="customPrompt"
@@ -247,7 +234,7 @@ export const SuggestRelationsModal: React.FC<
 };
 
 export const ExpandConceptModal: React.FC<
-  Omit<GenAIModalProps<z.infer<typeof expandConceptSchema>>, 'isProcessing'> & {
+  Omit<GenAIModalProps<typeof expandConceptSchema>, 'isProcessing'> & {
     initialConceptText?: string;
     existingMapContext?: string[];
   }
@@ -375,7 +362,7 @@ export const ExpandConceptModal: React.FC<
 };
 
 export const AskQuestionModal: React.FC<
-  Omit<GenAIModalProps<z.infer<typeof askQuestionAboutSelectedNodeSchema>>, 'isProcessing'> & {
+  Omit<GenAIModalProps<typeof askQuestionAboutSelectedNodeSchema>, 'isProcessing'> & {
     nodeContextText?: string;
     nodeContextDetails?: string;
   }
