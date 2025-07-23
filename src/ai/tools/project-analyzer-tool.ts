@@ -47,7 +47,7 @@ export type ProjectAnalysisInput = z.infer<typeof ProjectAnalysisInputSchema>;
 export type ProjectAnalysisOutput = z.infer<typeof ProjectAnalysisOutputSchema>;
 export type DetailedNode = z.infer<typeof DetailedNodeSchema>;
 
-export const projectStructureAnalyzerTool = ai.defineTool(
+export const projectStructureAnalyzerTool = ai.defineFlow(
   {
     name: 'projectStructureAnalyzer',
     description: 'Analyzes a project to extract its structure and components.',
