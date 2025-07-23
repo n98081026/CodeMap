@@ -24,7 +24,6 @@ import React, {
   useRef,
 } from 'react'; // Added useRef
 
-import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
 import type { ConceptMapData, ConceptMapNode } from '@/types';
 
 import { EmptyState } from '@/components/layout/empty-state';
@@ -48,6 +47,12 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
+
+interface ExtractedConceptItem {
+    concept: string;
+    context?: string;
+    source?: string;
+}
 
 interface RelationSuggestion {
   source: string;
@@ -394,7 +399,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   const { setDragPreview, clearDragPreview, setDraggedRelationPreview } =
     useConceptMapStore(
       useCallback(
-        (s) => ({
+        (s: any) => ({
           setDragPreview: s.setDragPreview,
           clearDragPreview: s.clearDragPreview,
           setDraggedRelationPreview: s.setDraggedRelationPreview,
@@ -813,7 +818,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                     <div
                       key={displayId}
                       data-index={virtualRow.index} // Important for react-virtual
-                      ref={rowVirtualizerInstance.measureElement} // For dynamic height (optional but good)
+                      ref={(el) => rowVirtualizerInstance.measureElement(el)} // For dynamic height (optional but good)
                       style={{
                         position: 'absolute',
                         top: 0,

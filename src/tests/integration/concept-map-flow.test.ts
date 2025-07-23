@@ -4,7 +4,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import {
   createConceptMap,
@@ -13,23 +13,23 @@ import {
 } from '@/services/conceptMaps/conceptMapService';
 
 // Mock Supabase client
-jest.mock('@/lib/supabaseClient', () => ({
+vi.mock('@/lib/supabaseClient', () => ({
   supabase: {
-    from: jest.fn(() => ({
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(),
+    from: vi.fn(() => ({
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(),
         })),
       })),
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn(),
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(),
         })),
       })),
-      update: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn(),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn(),
           })),
         })),
       })),
@@ -39,7 +39,7 @@ jest.mock('@/lib/supabaseClient', () => ({
 
 describe.skip('Concept Map Integration Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Concept Map Creation Flow', () => {

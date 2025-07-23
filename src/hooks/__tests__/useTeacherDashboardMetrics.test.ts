@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { useTeacherDashboardMetrics } from '../useTeacherDashboardMetrics';
 
@@ -8,11 +8,11 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 
 // Mock the fetch function
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Mock useAuth to provide a user for the AuthProvider wrapper
-jest.mock('@/contexts/auth-context', async () => {
-  const actual = await jest.requireActual('@/contexts/auth-context');
+vi.mock('@/contexts/auth-context', async () => {
+  const actual = await vi.importActual('@/contexts/auth-context');
   return {
     ...actual,
     useAuth: () => ({
@@ -38,7 +38,7 @@ describe.skip('useTeacherDashboardMetrics', () => {
   const mockUserId = 'teacher-123';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should return loading state initially', () => {

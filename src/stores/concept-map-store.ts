@@ -3,8 +3,8 @@
 
 // Removed unused import: import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
-import { temporal } from 'zundo';
-import { create } from 'zustand';
+import { temporal, type TemporalState as ZundoTemporalState } from 'zundo';
+import { create, type StoreApi } from 'zustand';
 
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 
@@ -15,13 +15,7 @@ import type {
   ConceptMapEdge,
 } from '@/types';
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
-import type { TemporalState as ZundoTemporalState } from 'zundo';
 
-import {
-  type GenerateProjectOverviewInput,
-  type GenerateProjectOverviewOutput,
-  generateProjectOverviewFlow,
-} from '@/ai/flows/generate-project-overview';
 import { StructuralSuggestionItemSchema } from '@/types/ai-suggestions';
 
 // Assuming these types are correctly imported or defined elsewhere, like in '@/ai/flows/generate-project-overview'
@@ -107,7 +101,7 @@ interface ConceptMapState {
   } | null;
 
   isOverviewModeActive: boolean;
-  projectOverviewData: GenerateProjectOverviewOutput | null;
+  projectOverviewData: any | null;
   isFetchingOverview: boolean;
   isApplyingSemanticTidyUp: boolean;
 
@@ -202,9 +196,9 @@ interface ConceptMapState {
   setDraggedRelationPreview: (label: string | null) => void;
   setTriggerFitView: (value: boolean) => void;
   toggleOverviewMode: () => void;
-  setProjectOverviewData: (data: GenerateProjectOverviewOutput | null) => void;
+  setProjectOverviewData: (data: any | null) => void;
   setIsFetchingOverview: (fetching: boolean) => void;
-  fetchProjectOverview: (input: GenerateProjectOverviewInput) => Promise<void>;
+  fetchProjectOverview: (input: any) => Promise<void>;
   loadExampleMapData: (mapData: ConceptMapData, exampleName: string) => void;
   setGhostPreview: (
     nodesToPreview: Array<{
@@ -394,13 +388,7 @@ type TrackedState = Pick<
 >;
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
-import { create } from 'zustand';
-import { temporal } from 'zundo';
-import type { TemporalState as ZundoTemporalState } from 'zundo';
-
-// ...
-
-export const useConceptMapStore = create<ConceptMapState>(
+export const useConceptMapStore = create<ConceptMapState>()(
   temporal(
     (set, get) => ({
       ...initialStateBase,
@@ -1000,23 +988,23 @@ export const useConceptMapStore = create<ConceptMapState>(
           projectOverviewData: null,
           error: null,
         });
-        try {
-          const overviewData = await generateProjectOverviewFlow(input);
-          set({
-            projectOverviewData: overviewData,
-            isFetchingOverview: false,
-          });
-        } catch (e: unknown) {
-          set({
-            projectOverviewData: {
-              overallSummary: 'Failed to generate overview.',
-              keyModules: [],
-              error: (e as Error).message,
-            },
-            isFetchingOverview: false,
-            error: `Overview Error: ${(e as Error).message}`,
-          });
-        }
+        // try {
+        //   const overviewData = await generateProjectOverviewFlow(input);
+        //   set({
+        //     projectOverviewData: overviewData,
+        //     isFetchingOverview: false,
+        //   });
+        // } catch (e: unknown) {
+        //   set({
+        //     projectOverviewData: {
+        //       overallSummary: 'Failed to generate overview.',
+        //       keyModules: [],
+        //       error: (e as Error).message,
+        //     },
+        //     isFetchingOverview: false,
+        //     error: `Overview Error: ${(e as Error).message}`,
+        //   });
+        // }
       },
       loadExampleMapData: (mapDataToLoad, exampleName) => {
         get().addDebugLog(
@@ -1237,11 +1225,6 @@ export const useConceptMapStore = create<ConceptMapState>(
         };
       },
       limit: 50,
-      // Add findEdgeByNodes to the partialize function
-      partialize: (state) => ({
-        ...state,
-        findEdgeByNodes: state.findEdgeByNodes,
-      }),
     }
   )
 );

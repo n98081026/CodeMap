@@ -36,7 +36,6 @@ import type { CustomNodeData } from './custom-node';
 
 // getNodePlacement is still needed for other AI tools that might use staging area
 // import { getNodePlacement } from '@/lib/layout-utils'; // Already used if needed
-import type { ExtractedConceptItem } from '@/ai/flows/extract-concepts';
 import type {
   ConceptMapData,
   ConceptMapNode,
@@ -49,6 +48,12 @@ import { useToast } from '@/hooks/use-toast';
 import { calculateSnappedPositionAndLines } from '@/lib/layout-utils'; // Import moved function
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
+
+interface ExtractedConceptItem {
+    concept: string;
+    context?: string;
+    source?: string;
+}
 
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8;
@@ -150,28 +155,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     setTriggerFitView,
     structuralSuggestions,
     // structuralGroupSuggestions, // This was removed from the store selector in a previous step, ensure it's not used or re-add if necessary
-  } = useConceptMapStore(
-    useCallback(
-      (s) => ({
-        addNode: s.addNode,
-        setSelectedElement: s.setSelectedElement,
-        setEditingNodeId: s.setEditingNodeId,
-        connectingNodeId: s.connectingNodeId,
-        completeConnectionMode: s.completeConnectionMode,
-        cancelConnection: s.cancelConnection,
-        dragPreviewItem: s.dragPreviewItem,
-        dragPreviewPosition: s.dragPreviewPosition,
-        updateDragPreviewPosition: s.updateDragPreviewPosition,
-        draggedRelationLabel: s.draggedRelationLabel,
-        addEdge: s.addEdge,
-        triggerFitView: s.triggerFitView,
-        setTriggerFitView: s.setTriggerFitView,
-        structuralSuggestions: s.structuralSuggestions || [],
-        // structuralGroupSuggestions: s.structuralGroupSuggestions || [], // Ensure consistency
-      }),
-      []
-    )
-  );
+  } = useConceptMapStore();
 
   const { toast } = useToast();
   const reactFlowInstance = useReactFlow();
@@ -195,7 +179,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 
   const { stagedMapData, isStagingActive } = useConceptMapStore(
     useCallback(
-      (s) => ({
+      (s: any) => ({
         stagedMapData: s.stagedMapData,
         isStagingActive: s.isStagingActive,
         ghostPreviewData: s.ghostPreviewData,
@@ -214,7 +198,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     ghostPreviewData,
   } = useConceptMapStore(
     useCallback(
-      (s) => ({
+      (s: any) => ({
         focusViewOnNodeIds: s.focusViewOnNodeIds,
         triggerFocusView: s.triggerFocusView,
         clearFocusViewTrigger: s.clearFocusViewTrigger,
@@ -448,7 +432,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   useEffect(() => {
     const currentConnectingNodeId =
       useConceptMapStore.getState().connectingNodeId;
-    if (!currentConnectingNodeId && !pendingRelationForEdgeCreation) {
+    if (!currentConnectingNodeId) {
       if (reactFlowWrapperRef.current) {
         reactFlowWrapperRef.current.classList.remove(
           'cursor-crosshair',
@@ -459,8 +443,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     }
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (pendingRelationForEdgeCreation)
-          clearPendingRelationForEdgeCreation();
         if (currentConnectingNodeId) storeCancelConnection();
         if (reactFlowWrapperRef.current) {
           reactFlowWrapperRef.current.classList.remove(
@@ -476,9 +458,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     };
   }, [
     connectingNodeId,
-    pendingRelationForEdgeCreation,
     storeCancelConnection,
-    clearPendingRelationForEdgeCreation,
     reactFlowWrapperRef,
   ]);
 
@@ -489,8 +469,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     ) as HTMLElement | null;
     if (paneElement) {
       if (connectingNodeId) paneElement.style.cursor = 'crosshair';
-      else if (pendingRelationForEdgeCreation)
-        paneElement.style.cursor = 'alias';
       else paneElement.style.cursor = 'default';
     }
     return () => {
@@ -498,7 +476,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     };
   }, [
     connectingNodeId,
-    pendingRelationForEdgeCreation,
     reactFlowInstance,
     reactFlowWrapperRef,
   ]);
@@ -520,7 +497,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         return;
       }
       // Ensure allNodes are cast or mapped to RFLayoutNode if necessary
-      const layoutNodesToSnapAgainst = allNodes.map((n) => ({
+      const layoutNodesToSnapAgainst: RFLayoutNode[] = allNodes.map((n: any) => ({
         id: n.id,
         ...n.position,
         width: n.width || 0,
@@ -531,7 +508,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         calculateSnappedPositionAndLines(
           draggedNode.positionAbsolute as { x: number; y: number },
           { width: draggedNode.width, height: draggedNode.height },
-          layoutNodesToSnapAgainst, // Use potentially casted/mapped nodes
+          layoutNodesToSnapAgainst, // Use casted/mapped nodes
           GRID_SIZE,
           NODE_DRAG_SNAP_THRESHOLD,
           draggedNode.id
@@ -645,20 +622,20 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       const currentStagedNodeIds = new Set(rfStagedNodes.map((n) => n.id));
       const currentStagedEdgeIds = new Set(rfStagedEdges.map((e) => e.id));
       const newlySelectedStagedNodeIds = selectedRfNodes
-        .filter((n) => currentStagedNodeIds.has(n.id))
-        .map((n) => n.id);
+        .filter((n: any) => currentStagedNodeIds.has(n.id))
+        .map((n: any) => n.id);
       const newlySelectedStagedEdgeIds = selectedRfEdges
-        .filter((e) => currentStagedEdgeIds.has(e.id))
-        .map((e) => e.id);
+        .filter((e: any) => currentStagedEdgeIds.has(e.id))
+        .map((e: any) => e.id);
       onStagedElementsSelectionChange?.([
         ...newlySelectedStagedNodeIds,
         ...newlySelectedStagedEdgeIds,
       ]);
       const mainSelectedNodes = selectedRfNodes.filter(
-        (n) => !currentStagedNodeIds.has(n.id)
+        (n: any) => !currentStagedNodeIds.has(n.id)
       );
       const mainSelectedEdges = selectedRfEdges.filter(
-        (e) => !currentStagedEdgeIds.has(e.id)
+        (e: any) => !currentStagedEdgeIds.has(e.id)
       );
       if (mainSelectedNodes.length === 1 && mainSelectedEdges.length === 0) {
         onSelectionChange(mainSelectedNodes[0].id, 'node');
@@ -680,7 +657,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       ) {
         onSelectionChange(null, null);
       }
-      onMultiNodeSelectionChange?.(mainSelectedNodes.map((node) => node.id));
+      onMultiNodeSelectionChange?.(mainSelectedNodes.map((node: any) => node.id));
     },
     [
       onSelectionChange,
@@ -741,9 +718,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
           y: event.clientY,
         });
         // Cast rfNodes to RFLayoutNode[] for calculateSnappedPositionAndLines
-        const layoutNodesForSnapping = rfNodes
+        const layoutNodesForSnapping: RFLayoutNode[] = rfNodes
           .filter((n) => n.width && n.height && n.positionAbsolute)
-          .map((n) => ({
+          .map((n: any) => ({
             id: n.id,
             ...n.position,
             width: n.width || 0,
@@ -828,11 +805,11 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       return node;
     });
 
-    let baseNodes = [...updatedRfNodes, ...rfStagedNodes];
+    let baseNodes: RFNode<CustomNodeData>[] = [...updatedRfNodes, ...rfStagedNodes];
     const currentMapNodesForSuggestions = mapDataFromStore.nodes;
 
     if (ghostPreviewData) {
-      const ghostNodesToAdd = ghostPreviewData.nodes.map((ghostNodeInfo) => ({
+      const ghostNodesToAdd = ghostPreviewData.nodes.map((ghostNodeInfo: any) => ({
         id: `ghost-${ghostNodeInfo.id}`,
         type: 'ghostNode',
         position: { x: ghostNodeInfo.x, y: ghostNodeInfo.y },
@@ -853,7 +830,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     }
 
     const suggestionNodes = (structuralSuggestions || []).flatMap(
-      (suggestion) => {
+      (suggestion: any) => {
         if (suggestion.type === 'NEW_INTERMEDIATE_NODE') {
           const { sourceNodeId, targetNodeId } = suggestion.data as any;
           const sourceNode = currentMapNodesForSuggestions.find(
@@ -907,8 +884,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     baseNodes = [...baseNodes, ...suggestionNodes];
 
     const groupOverlayNodes = (structuralSuggestions || [])
-      .filter((s) => s.type === 'FORM_GROUP')
-      .map((suggestion) => {
+      .filter((s: any) => s.type === 'FORM_GROUP')
+      .map((suggestion: any) => {
         const { nodeIds, groupLabel } = suggestion.data as any;
         const groupNodes = currentMapNodesForSuggestions.filter(
           (n) =>
@@ -1002,10 +979,10 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   ]);
 
   const combinedEdges = useMemo(() => {
-    let baseEdges = [...rfEdges, ...rfStagedEdges];
+    let baseEdges: RFEdge<OrthogonalEdgeData>[] = [...rfEdges, ...rfStagedEdges];
     const newSuggestionEdges = (structuralSuggestions || [])
-      .filter((suggestion) => suggestion.type === 'ADD_EDGE')
-      .map((suggestion) => {
+      .filter((suggestion: any) => suggestion.type === 'ADD_EDGE')
+      .map((suggestion: any) => {
         const edgeData = suggestion.data as Record<string, unknown>;
         return {
           id: `suggestion-${suggestion.id}`,
@@ -1051,7 +1028,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
             source: currentConnectingNodeId,
             target: node.id,
             label: '',
-            type: 'default',
           });
           onNewEdgeSuggestLabels?.(newEdgeId, currentConnectingNodeId, node.id);
           storeCompleteConnectionMode();
@@ -1121,7 +1097,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         onDrop={handleCanvasDrop}
         onDragLeave={handleCanvasDragLeave}
         nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        edgeTypes={edgeTypes as any}
         activeSnapLines={activeSnapLinesLocal}
         panActivationKeyCode={panActivationKeyCode}
         activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}

@@ -101,20 +101,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
     deleteNode,
     updateNode,
     multiSelectedNodeIds,
-  } = useConceptMapStore(
-    useCallback(
-      (s) => ({
-        isViewOnlyMode: s.isViewOnlyMode,
-        editingNodeId: s.editingNodeId,
-        setEditingNodeId: s.setEditingNodeId,
-        aiProcessingNodeId: s.aiProcessingNodeId,
-        deleteNode: s.deleteNode,
-        updateNode: s.updateNode,
-        multiSelectedNodeIds: s.multiSelectedNodeIds,
-      }),
-      []
-    )
-  );
+  } = useConceptMapStore();
 
   // onRefineGhostNode removed from data destructuring
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;

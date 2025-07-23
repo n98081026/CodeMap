@@ -285,7 +285,7 @@ export default function TeacherClassroomsPage() {
           isOpen
           onOpenChange={setIsEditModalOpen}
           classroomToEdit={editingClassroom}
-          onClose={() => setIsEditModalOpen(false)}
+          onClassroomUpdateSuccess={() => fetchTeacherClassrooms(currentPage)}
         />
       )}
     </div>

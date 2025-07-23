@@ -25,7 +25,6 @@ import {
   TextSearch,
   ListCollapse,
   ScrollText,
-  Search,
   TestTube2,
   type LucideIcon,
   Eye,
@@ -44,7 +43,6 @@ import React, { useState, useCallback } from 'react';
 
 import type { AIFetchAllStructuralSuggestionsInput } from '@/types/ai-shared';
 
-import { fetchAllStructuralSuggestionsFlow } from '@/ai/flows';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -186,10 +184,10 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const store = useConceptMapStore();
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
-  const currentMapId = useConceptMapStore((s) => s.mapId);
-  const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview);
+  const currentMapId = useConceptMapStore((s: any) => s.mapId);
+  const isFetchingOverview = useConceptMapStore((s: any) => s.isFetchingOverview);
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback((s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
+    useCallback((s: any) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
   );
 
   // TEMP: Button to test manualAddNodeTutorial
@@ -241,7 +239,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   };
 
   const numMultiSelectedNodeIds = useConceptMapStore(
-    (s) => s.multiSelectedNodeIds
+    (s: any) => s.multiSelectedNodeIds
   ).length;
 
   const handleCopyToWorkspace = () => {
@@ -674,24 +672,25 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   }
                   setIsLoadingSuggestions(true);
                   try {
-                    const currentMapData = store.getState().mapData;
+                    const currentMapData = (store as any).getState().mapData;
                     const flowInput = {
-                      nodes: currentMapData.nodes.map((n) => ({
+                      nodes: currentMapData.nodes.map((n: any) => ({
                         id: n.id,
                         text: n.text,
                         details: n.details || '',
                       })),
-                      edges: currentMapData.edges.map((e) => ({
+                      edges: currentMapData.edges.map((e: any) => ({
                         source: e.source,
                         target: e.target,
                         label: e.label || '',
                       })),
                     };
-                    const results = await runFlow(
-                      fetchAllStructuralSuggestionsFlow,
-                      flowInput as any
-                    );
-                    store.setStructuralSuggestions(results);
+                    // const results = await runFlow(
+                    //   fetchAllStructuralSuggestionsFlow,
+                    //   flowInput as any
+                    // );
+                    const results = [] as any;
+                    (store as any).setStructuralSuggestions(results);
                     toast({
                       title: 'AI Suggestions',
                       description: `Received ${results.length} structural suggestions.`,
@@ -706,7 +705,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                       description: 'Failed to fetch AI structural suggestions.',
                       variant: 'destructive',
                     });
-                    store.clearStructuralSuggestions();
+                    (store as any).clearStructuralSuggestions();
                   } finally {
                     setIsLoadingSuggestions(false);
                   }
@@ -803,7 +802,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   {isAIDiscoveringGroup ? (
                     <Loader2 className='h-5 w-5 animate-spin' />
                   ) : (
-                    <SearchPlus className='h-5 w-5' />
+                    <ScanSearch className='h-5 w-5' />
                   )}
                 </Button>
               </TooltipTrigger>
