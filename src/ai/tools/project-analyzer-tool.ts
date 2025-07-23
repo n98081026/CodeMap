@@ -47,14 +47,14 @@ export type ProjectAnalysisInput = z.infer<typeof ProjectAnalysisInputSchema>;
 export type ProjectAnalysisOutput = z.infer<typeof ProjectAnalysisOutputSchema>;
 export type DetailedNode = z.infer<typeof DetailedNodeSchema>;
 
-export const projectStructureAnalyzerTool = genkit.defineTool(
+export const projectStructureAnalyzerTool = ai.defineFlow(
   {
     name: 'projectStructureAnalyzer',
     description: 'Analyzes a project to extract its structure and components.',
     inputSchema: ProjectAnalysisInputSchema,
     outputSchema: ProjectAnalysisOutputSchema,
   },
-  async (input: ProjectAnalysisInput) => {
+  async (input) => {
     console.log('projectStructureAnalyzerTool called with input:', input);
     const file = await supabaseFileFetcherTool({ bucketName: 'projects', filePath: input.supabasePath });
     // ... (rest of the logic)

@@ -404,7 +404,11 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       typeof reactFlowInstance.fitView === 'function'
     ) {
       const timerId = setTimeout(() => {
-        reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
+        reactFlowInstance.fitView({
+          duration: 300,
+          padding: 0.2,
+          includeHiddenNodes: true,
+        });
       }, 100);
       return () => clearTimeout(timerId);
     }
@@ -525,7 +529,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 
       const { snappedPosition, activeSnapLines } =
         calculateSnappedPositionAndLines(
-          draggedNode.positionAbsolute,
+          draggedNode.positionAbsolute as { x: number; y: number },
           { width: draggedNode.width, height: draggedNode.height },
           layoutNodesToSnapAgainst, // Use potentially casted/mapped nodes
           GRID_SIZE,

@@ -15,7 +15,7 @@ import { UserRole } from '@/types';
 export async function POST(request: Request) {
   try {
     const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = createRouteHandlerClient({ cookies: () => cookies() });
     const {
       data: { user },
       error: authError,

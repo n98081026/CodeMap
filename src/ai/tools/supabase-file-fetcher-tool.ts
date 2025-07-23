@@ -1,5 +1,5 @@
 // src/ai/tools/supabase-file-fetcher-tool.ts
-import { genkit } from 'genkit';
+import { genkit as ai } from 'genkit';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -18,7 +18,7 @@ export const FileFetcherOutputSchema = z.object({
   error: z.string().nullable(),
 });
 
-export const supabaseFileFetcherTool = genkit.defineTool(
+export const supabaseFileFetcherTool = ai.defineTool(
   {
     name: 'supabaseFileFetcher',
     description: 'Fetches a file from a Supabase storage bucket.',
