@@ -18,7 +18,7 @@ export const FileFetcherOutputSchema = z.object({
   error: z.string().nullable(),
 });
 
-export const supabaseFileFetcherTool = ai.flow(
+export const supabaseFileFetcherTool = ai.defineTool(
   {
     name: 'supabaseFileFetcher',
     description: 'Fetches a file from a Supabase storage bucket.',
