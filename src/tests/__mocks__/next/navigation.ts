@@ -89,7 +89,7 @@ for (const key in actualNav) {
     key !== 'permanentRedirect'
   ) {
     if (typeof (actualNav as any)[key] === 'function') {
-      (exports as any)[key] = jest.fn((actualNav as any)[key]);
+      (exports as any)[key] = vi.fn((actualNav as any)[key]);
     } else {
       (exports as any)[key] = (actualNav as any)[key];
     }

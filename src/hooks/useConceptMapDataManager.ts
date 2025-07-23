@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useParams } from 'next/navigation'; // Added useParams
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ConceptMap, User } from '@/types';
 
@@ -222,7 +222,7 @@ export function useConceptMapDataManager({
           if (effectiveUserForLoadHookId) {
             toast({
               title: 'Map Load Failed',
-              description: `Could not load map '${idToLoad}'. Displaying a new map. Reason: ${errData.message || response.statusText}`,
+              description: `Could not load map '${idToLoad}'. Displaying a new map. Reason: ${errorDetail}`,
               variant: 'destructive',
             });
             initializeNewMap(effectiveUserForLoadHookId); // Sets initialLoadComplete = true
@@ -305,7 +305,6 @@ export function useConceptMapDataManager({
     const currentViewOnlyQueryParam = paramsHook.viewOnly === 'true';
     const { loadExampleMapData: storeLoadExampleMapData } =
       useConceptMapStore.getState();
-
     addDebugLog(
       `[DataManager useEffect V13] RUNNING: RouteID='${routeMapId}', Store(ID='${storeMapId}', isNew=${isNewMapMode}, Owner='${currentMapOwnerId}', isLoading=${isLoading}, initComp=${initialLoadComplete}, viewOnly=${isViewOnlyModeInStore}). EffectiveUser='${effectiveUserId}', URLViewOnly=${currentViewOnlyQueryParam}`
     );
@@ -358,7 +357,6 @@ export function useConceptMapDataManager({
         setIsLoading(true);
         setError(null);
         setInitialLoadComplete(false);
-
         // Dynamically import exampleProjects to avoid circular dependency if this hook is used by example-data itself.
         // This is a common pattern for such cases.
         import('@/lib/example-data')
@@ -594,11 +592,11 @@ export function useConceptMapDataManager({
     setIsViewOnlyMode,
     paramsHook.viewOnly,
     toast,
-    storeLoadExampleMapData, // Added toast and storeLoadExampleMapData
   ]);
 
   const saveMap = useCallback(
     async (isViewOnlyParam: boolean) => {
+      console.log('saveMap called with isViewOnlyParam:', isViewOnlyParam);
       if (isViewOnlyParam) {
         toast({
           title: 'View Only Mode',

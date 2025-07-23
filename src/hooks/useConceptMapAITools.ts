@@ -227,7 +227,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     string | null
   >(null);
   const [isAskingAboutMapContext, setIsAskingAboutMapContext] = useState(false);
-  const [conceptExpansionPreview, setConceptExpansionPreview] = useState<any>(null);
   const [intermediateNodeSuggestion, setIntermediateNodeSuggestion] = useState<any>(null);
 
   const clearIntermediateNodeSuggestion = () => {
@@ -236,15 +235,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
 
   const confirmAddIntermediateNode = () => {
     // This function is a placeholder.
-  };
-
-  const clearExpansionPreview = () => {
-    setConceptExpansionPreview(null);
-  };
-
-  const acceptAllExpansionPreviews = () => {
-    // This function is a placeholder.
-    // The actual implementation would take the preview data and commit it to the main map state.
   };
 
   /**
@@ -2199,12 +2189,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
     (_node: RFNode<CustomNodeData>): SuggestionAction[] => [],
     []
   );
-  const acceptAllExpansionPreviews = useCallback(() => {}, []);
-  const acceptSingleExpansionPreview = useCallback(
-    (_previewNodeId: string) => {},
-    []
-  );
-  const clearExpansionPreview = useCallback(() => {}, []);
   const openRefineSuggestionModal = useCallback(
     (_previewNodeId: string, _parentNodeId: string) => {
       // This would need to find the item in stagedMapData and populate the refine modal
@@ -2575,10 +2559,6 @@ export function useConceptMapAITools(isViewOnlyMode: boolean) {
       setIsMapContextQuestionModalOpen(false);
     },
     getNodePlacement,
-    aiExtractedConcepts,
-    conceptExpansionPreview,
-    acceptAllExpansionPreviews,
-    clearExpansionPreview,
     intermediateNodeSuggestion,
     clearIntermediateNodeSuggestion,
     confirmAddIntermediateNode,

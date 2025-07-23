@@ -41,9 +41,15 @@ export default defineConfig({
       reportsDirectory: './coverage',
       enabled: false, // Temporarily disable coverage
     },
+    resolve: {
+      alias: {
+        'graphology-traversal/bfs': 'graphology-traversal/dist/bfs.js',
+      },
+    },
     deps: {
       inline: [
         /@genkit-ai\//, // Process all @genkit-ai scoped packages
+        'graphology-traversal',
         // Add other problematic dependencies here if needed
       ],
     },

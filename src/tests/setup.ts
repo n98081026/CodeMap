@@ -116,3 +116,11 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+// Global mock for genkit
+vi.mock('genkit', () => ({
+  genkit: {
+    defineTool: vi.fn(() => ({})),
+    // Mock other genkit functions if needed
+  },
+}));
