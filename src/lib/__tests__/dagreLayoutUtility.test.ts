@@ -1,4 +1,37 @@
 import { DagreLayoutUtility } from '../dagreLayoutUtility';
+import { vi } from 'vitest';
+
+vi.mock('dagre', () => {
+  const dagre = {
+    graphlib: {
+      Graph: vi.fn().mockImplementation(() => {
+        const nodes: any[] = [];
+        return {
+          setGraph: vi.fn(),
+          setDefaultEdgeLabel: vi.fn(),
+          setNode: vi.fn((id, options) => {
+            nodes.push({ id, ...options });
+          }),
+          setEdge: vi.fn(),
+          nodes: vi.fn(() => nodes.map(n => n.id)),
+          node: vi.fn(id => nodes.find(n => n.id === id)),
+          hasNode: vi.fn(id => nodes.some(n => n.id === id)),
+        };
+      }),
+    },
+    layout: vi.fn(graph => {
+      graph.nodes().forEach((id: string) => {
+        const node = graph.node(id);
+        node.x = Math.random() * 100;
+        node.y = Math.random() * 100;
+      });
+    }),
+  };
+  return {
+    default: dagre,
+    ...dagre,
+  };
+});
 
 import type {
   DagreLayoutOptions,

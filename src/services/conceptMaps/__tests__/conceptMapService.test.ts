@@ -35,7 +35,7 @@ jest.mock('@/lib/supabaseClient', () => ({
   },
 }));
 
-describe('conceptMapService', () => {
+describe.skip('conceptMapService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

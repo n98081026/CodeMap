@@ -4,10 +4,6 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
-
 export const FileFetcherInputSchema = z.object({
   bucketName: z.string(),
   filePath: z.string(),
@@ -30,6 +26,9 @@ export const supabaseFileFetcherTool = genkit.defineTool(
     outputSchema: FileFetcherOutputSchema,
   },
   async ({ bucketName, filePath }: z.infer<typeof FileFetcherInputSchema>) => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
     const { data, error } = await supabase.storage
       .from(bucketName)
       .download(filePath);

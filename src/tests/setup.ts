@@ -116,3 +116,32 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+import { z } from 'zod';
+
+import { z } from 'zod';
+
+vi.mock('genkit', () => ({
+  genkit: vi.fn(() => ({
+    defineTool: vi.fn(tool => tool),
+    defineFlow: vi.fn(flow => flow),
+    definePrompt: vi.fn(prompt => prompt),
+  })),
+  defineTool: vi.fn(tool => tool),
+  defineFlow: vi.fn(flow => flow),
+  definePrompt: vi.fn(prompt => prompt),
+  configureGenkit: vi.fn(),
+  z,
+}));
+
+vi.mock('@genkit-ai/core', () => ({
+  defineTool: vi.fn(tool => tool),
+  defineFlow: vi.fn(flow => flow),
+  definePrompt: vi.fn(prompt => prompt),
+  configureGenkit: vi.fn(),
+}));
+
+vi.mock('@genkit-ai/googleai', () => ({
+  googleAI: vi.fn(),
+  gemini10Pro: {},
+}));
