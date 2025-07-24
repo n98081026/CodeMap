@@ -64,17 +64,17 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import {
-  MOCK_ADMIN_USER_V3,
-  MOCK_STUDENT_USER_V3,
-  MOCK_TEACHER_USER_V3,
+  MOCK_ADMIN_USER,
+  MOCK_STUDENT_USER,
+  MOCK_TEACHER_USER,
 } from '@/lib/config';
 import { UserRole } from '@/types';
 
 const USERS_PER_PAGE = 15;
 const PREDEFINED_MOCK_USER_IDS = [
-  MOCK_STUDENT_USER_V3.id,
-  MOCK_TEACHER_USER_V3.id,
-  MOCK_ADMIN_USER_V3.id,
+  MOCK_STUDENT_USER.id,
+  MOCK_TEACHER_USER.id,
+  MOCK_ADMIN_USER.id,
 ];
 
 export default function AdminUsersPage() {

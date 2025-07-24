@@ -39,7 +39,6 @@ import {
 } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { getNodePlacement } from '@/lib/layout-utils';
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -73,70 +72,7 @@ const PropertiesInspector = dynamic(
   }
 );
 
-const AISuggestionPanel = dynamic(
-  () =>
-    import('@/components/concept-map/ai-suggestion-panel').then(
-      (mod) => mod.AISuggestionPanel
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className='p-4 text-center text-sm text-muted-foreground'>
-        Loading AI Suggestions...
-      </div>
-    ),
-  }
-);
 
-const DynamicExtractConceptsModal = dynamic(
-  () =>
-    import('@/components/concept-map/genai-modals').then(
-      (mod) => mod.ExtractConceptsModal
-    ),
-  { ssr: false }
-);
-const DynamicSuggestRelationsModal = dynamic(
-  () =>
-    import('@/components/concept-map/genai-modals').then(
-      (mod) => mod.SuggestRelationsModal
-    ),
-  { ssr: false }
-);
-const DynamicExpandConceptModal = dynamic(
-  () =>
-    import('@/components/concept-map/genai-modals').then(
-      (mod) => mod.ExpandConceptModal
-    ),
-  { ssr: false }
-);
-const DynamicAskQuestionModal = dynamic(
-  () =>
-    import('@/components/concept-map/genai-modals').then(
-      (mod) => mod.AskQuestionModal
-    ),
-  { ssr: false }
-);
-const DynamicQuickClusterModal = dynamic(
-  () =>
-    import('@/components/concept-map/quick-cluster-modal').then(
-      (mod) => mod.QuickClusterModal
-    ),
-  { ssr: false }
-);
-const DynamicGenerateSnippetModal = dynamic(
-  () =>
-    import('@/components/concept-map/generate-snippet-modal').then(
-      (mod) => mod.GenerateSnippetModal
-    ),
-  { ssr: false }
-);
-const DynamicRewriteNodeContentModal = dynamic(
-  () =>
-    import('@/components/concept-map/rewrite-node-content-modal').then(
-      (mod) => mod.RewriteNodeContentModal
-    ),
-  { ssr: false }
-);
 const DynamicDebugLogViewerDialog = dynamic(
   () =>
     import('@/components/debug/debug-log-viewer-dialog').then(
@@ -176,8 +112,6 @@ function ConceptMapEditorPageContent({
     selectedElementId,
     selectedElementType,
     multiSelectedNodeIds,
-    aiExtractedConcepts,
-    aiSuggestedRelations,
     setMapName: setStoreMapName,
     setIsPublic: setStoreIsPublic,
     setSharedWithClassroomId: setStoreSharedWithClassroomId,
@@ -209,47 +143,6 @@ function ConceptMapEditorPageContent({
     routeMapId: routeMapId,
     user: currentUser,
   });
-
-  const aiToolsHook = useConceptMapAITools(storeIsViewOnlyMode);
-  const {
-    isExtractConceptsModalOpen,
-    setIsExtractConceptsModalOpen,
-    textForExtraction,
-    openExtractConceptsModal,
-    handleConceptsExtracted,
-    addExtractedConceptsToMap,
-    isSuggestRelationsModalOpen,
-    setIsSuggestRelationsModalOpen,
-    conceptsForRelationSuggestion,
-    openSuggestRelationsModal,
-    handleRelationsSuggested,
-    addSuggestedRelationsToMap,
-    isExpandConceptModalOpen,
-    setIsExpandConceptModalOpen,
-    conceptToExpandDetails,
-    mapContextForExpansion,
-    openExpandConceptModal,
-    handleConceptExpanded,
-    isQuickClusterModalOpen,
-    setIsQuickClusterModalOpen,
-    openQuickClusterModal,
-    isGenerateSnippetModalOpen,
-    setIsGenerateSnippetModalOpen,
-    openGenerateSnippetModal,
-    isAskQuestionModalOpen,
-    setIsAskQuestionModalOpen,
-    nodeContextForQuestion,
-    openAskQuestionModal,
-    handleQuestionAnswered,
-    isRewriteNodeContentModalOpen,
-    setIsRewriteNodeContentModalOpen,
-    nodeContentToRewrite,
-    openRewriteNodeContentModal,
-    handleRewriteNodeContentConfirm,
-    handleSummarizeSelectedNodes,
-    addStoreNode: addNodeFromHook,
-    addStoreEdge: addEdgeFromHook,
-  } = aiToolsHook;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -321,7 +214,7 @@ function ConceptMapEditorPageContent({
       null,
       20
     );
-    const newNodeId = addNodeFromHook({
+    const newNodeId = useConceptMapStore.getState().addNode({
       text: newNodeText,
       type: 'manual-node',
       position: { x, y },
@@ -332,7 +225,6 @@ function ConceptMapEditorPageContent({
   }, [
     storeIsViewOnlyMode,
     toast,
-    addNodeFromHook,
     setStoreSelectedElement,
     setEditingNodeId,
   ]);
@@ -361,13 +253,13 @@ function ConceptMapEditorPageContent({
       });
       return;
     }
-    addEdgeFromHook({
+    useConceptMapStore.getState().addEdge({
       source: sourceNode.id,
       target: targetNode.id,
       label: 'connects',
     });
     toast({ title: 'Edge Added' });
-  }, [storeIsViewOnlyMode, toast, addEdgeFromHook]);
+  }, [storeIsViewOnlyMode, toast]);
 
   const getRoleBasedDashboardLink = useCallback(() => {
     return currentUser
@@ -434,8 +326,8 @@ function ConceptMapEditorPageContent({
   if (selectedElementId && selectedElementType) {
     actualSelectedElementForInspector =
       selectedElementType === 'node'
-        ? storeMapData.nodes.find((n) => n.id === selectedElementId) || null
-        : storeMapData.edges.find((e) => e.id === selectedElementId) || null;
+        ? storeMapData.nodes.find((n: any) => n.id === selectedElementId) || null
+        : storeMapData.edges.find((e: any) => e.id === selectedElementId) || null;
   }
   const canAddEdge = storeMapData.nodes.length >= 2;
 
@@ -547,18 +439,6 @@ function ConceptMapEditorPageContent({
     () => saveMap(storeIsViewOnlyMode),
     [saveMap, storeIsViewOnlyMode]
   );
-  const handleExtractConceptsCallback = useCallback(
-    () => openExtractConceptsModal(selectedElementId || undefined),
-    [openExtractConceptsModal, selectedElementId]
-  );
-  const handleSuggestRelationsCallback = useCallback(
-    () => openSuggestRelationsModal(selectedElementId || undefined),
-    [openSuggestRelationsModal, selectedElementId]
-  );
-  const handleExpandConceptCallback = useCallback(
-    () => openExpandConceptModal(selectedElementId || undefined),
-    [openExpandConceptModal, selectedElementId]
-  );
   const handleUndoCallback = useCallback(
     () => temporalStoreAPI.getState().undo(),
     [temporalStoreAPI]
@@ -577,7 +457,7 @@ function ConceptMapEditorPageContent({
       if (storeIsViewOnlyMode) return;
       const parentNode = useConceptMapStore
         .getState()
-        .mapData.nodes.find((n) => n.id === parentNodeId);
+        .mapData.nodes.find((n: any) => n.id === parentNodeId);
       if (!parentNode) return;
 
       const currentNodes = useConceptMapStore.getState().mapData.nodes;
@@ -589,13 +469,13 @@ function ConceptMapEditorPageContent({
         20,
         direction
       );
-      const newNodeId = addNodeFromHook({
+      const newNodeId = useConceptMapStore.getState().addNode({
         text: 'New Idea',
         type: 'manual-node',
         position: childPosition,
         parentNode: parentNode.id,
       });
-      addEdgeFromHook({
+      useConceptMapStore.getState().addEdge({
         source: parentNode.id,
         target: newNodeId,
         label: 'relates to',
@@ -610,47 +490,11 @@ function ConceptMapEditorPageContent({
     },
     [
       storeIsViewOnlyMode,
-      addNodeFromHook,
-      addEdgeFromHook,
       setStoreSelectedElement,
       setEditingNodeId,
       toast,
     ]
   );
-
-  const handleClearExtractedConceptsCallback = useCallback(
-    () => useConceptMapStore.getState().setAiExtractedConcepts([]),
-    []
-  );
-  const handleClearSuggestedRelationsCallback = useCallback(
-    () => useConceptMapStore.getState().setAiSuggestedRelations([]),
-    []
-  );
-
-  const handleExpandConceptFromContextMenuCallback = useCallback(() => {
-    if (contextMenu?.nodeId) openExpandConceptModal(contextMenu.nodeId);
-    closeContextMenu();
-  }, [openExpandConceptModal, contextMenu, closeContextMenu]);
-
-  const handleSuggestRelationsFromContextMenuCallback = useCallback(() => {
-    if (contextMenu?.nodeId) openSuggestRelationsModal(contextMenu.nodeId);
-    closeContextMenu();
-  }, [openSuggestRelationsModal, contextMenu, closeContextMenu]);
-
-  const handleExtractConceptsFromContextMenuCallback = useCallback(() => {
-    if (contextMenu?.nodeId) openExtractConceptsModal(contextMenu.nodeId);
-    closeContextMenu();
-  }, [openExtractConceptsModal, contextMenu, closeContextMenu]);
-
-  const handleAskQuestionFromContextMenuCallback = useCallback(() => {
-    if (contextMenu?.nodeId) openAskQuestionModal(contextMenu.nodeId);
-    closeContextMenu();
-  }, [openAskQuestionModal, contextMenu, closeContextMenu]);
-
-  const handleRewriteContentFromContextMenuCallback = useCallback(() => {
-    if (contextMenu?.nodeId) openRewriteNodeContentModal(contextMenu.nodeId);
-    closeContextMenu();
-  }, [openRewriteNodeContentModal, contextMenu, closeContextMenu]);
 
   // Keyboard listener for Tab and Enter node creation
   useEffect(() => {
@@ -676,7 +520,7 @@ function ConceptMapEditorPageContent({
       ) {
         event.preventDefault();
         const selectedStoreNode = currentMapData.nodes.find(
-          (n) => n.id === currentSelectedElementId
+          (n: any) => n.id === currentSelectedElementId
         );
         if (!selectedStoreNode) return;
 
@@ -693,13 +537,13 @@ function ConceptMapEditorPageContent({
             GRID_SIZE,
             'right'
           );
-          newNodeId = addNodeFromHook({
+          newNodeId = useConceptMapStore.getState().addNode({
             text: 'New Idea',
             type: 'manual-node',
             position: childPosition,
             parentNode: selectedStoreNode.id,
           });
-          addEdgeFromHook({
+          useConceptMapStore.getState().addEdge({
             source: selectedStoreNode.id,
             target: newNodeId,
             label: 'relates to',
@@ -708,7 +552,7 @@ function ConceptMapEditorPageContent({
           // Create sibling node (Enter key)
           const parentOfSelected = selectedStoreNode.parentNode
             ? currentMapData.nodes.find(
-                (n) => n.id === selectedStoreNode.parentNode
+                (n: any) => n.id === selectedStoreNode.parentNode
               )
             : null;
           const siblingPosition = getNodePlacement(
@@ -718,7 +562,7 @@ function ConceptMapEditorPageContent({
             selectedStoreNode,
             GRID_SIZE
           );
-          newNodeId = addNodeFromHook({
+          newNodeId = useConceptMapStore.getState().addNode({
             text: 'New Sibling',
             type: 'manual-node',
             position: siblingPosition,
@@ -734,8 +578,6 @@ function ConceptMapEditorPageContent({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [
     storeIsViewOnlyMode,
-    addNodeFromHook,
-    addEdgeFromHook,
     setStoreSelectedElement,
     setEditingNodeId,
     toast,
@@ -811,12 +653,12 @@ function ConceptMapEditorPageContent({
           isSaving={isStoreSaving}
           onExportMap={handleExportMap}
           onTriggerImport={handleTriggerImport}
-          onExtractConcepts={handleExtractConceptsCallback}
-          onSuggestRelations={handleSuggestRelationsCallback}
-          onExpandConcept={handleExpandConceptCallback}
-          onQuickCluster={openQuickClusterModal}
-          onGenerateSnippetFromText={openGenerateSnippetModal}
-          onSummarizeSelectedNodes={handleSummarizeSelectedNodes}
+          onExtractConcepts={() => {}}
+          onSuggestRelations={() => {}}
+          onExpandConcept={() => {}}
+          onQuickCluster={() => {}}
+          onGenerateSnippetFromText={() => {}}
+          onSummarizeSelectedNodes={() => {}}
           isViewOnlyMode={storeIsViewOnlyMode}
           onAddNodeToData={handleAddNodeToData}
           onAddEdgeToData={handleAddEdgeToData}
@@ -845,7 +687,9 @@ function ConceptMapEditorPageContent({
             onNodesChangeInStore={updateStoreNode}
             onNodesDeleteInStore={deleteStoreNode}
             onEdgesDeleteInStore={handleEdgesDeleteCallback}
-            onConnectInStore={addEdgeFromHook}
+            onConnectInStore={(params: any) =>
+              useConceptMapStore.getState().addEdge(params)
+            }
             onNodeContextMenuRequest={handleNodeContextMenu}
             panActivationKeyCode='Space'
           />
@@ -857,17 +701,11 @@ function ConceptMapEditorPageContent({
             nodeId={contextMenu.nodeId}
             onClose={closeContextMenu}
             onDeleteNode={handleDeleteNodeFromContextMenu}
-            onExpandConcept={() => handleExpandConceptFromContextMenuCallback()}
-            onSuggestRelations={() =>
-              handleSuggestRelationsFromContextMenuCallback()
-            }
-            onExtractConcepts={() =>
-              handleExtractConceptsFromContextMenuCallback()
-            }
-            onAskQuestion={() => handleAskQuestionFromContextMenuCallback()}
-            onRewriteContent={() =>
-              handleRewriteContentFromContextMenuCallback()
-            }
+            onExpandConcept={() => {}}
+            onSuggestRelations={() => {}}
+            onExtractConcepts={() => {}}
+            onAskQuestion={() => {}}
+            onRewriteContent={() => {}}
             isViewOnlyMode={storeIsViewOnlyMode}
           />
         )}
@@ -903,7 +741,7 @@ function ConceptMapEditorPageContent({
             )}
           </SheetContent>
         </Sheet>
-        <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
+        {/* <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
           <SheetContent side='bottom' className='h-[40vh] sm:h-1/3'>
             <SheetHeader>
               <SheetTitle>AI Suggestions Panel</SheetTitle>
@@ -914,97 +752,23 @@ function ConceptMapEditorPageContent({
             {isAiPanelOpen && (
               <AISuggestionPanel
                 currentMapNodes={storeMapData.nodes}
-                extractedConcepts={aiExtractedConcepts}
-                suggestedRelations={aiSuggestedRelations}
-                onAddExtractedConcepts={addExtractedConceptsToMap}
-                onAddSuggestedRelations={addSuggestedRelationsToMap}
-                onClearExtractedConcepts={handleClearExtractedConceptsCallback}
-                onClearSuggestedRelations={
-                  handleClearSuggestedRelationsCallback
-                }
+                extractedConcepts={[]}
+                suggestedRelations={[]}
+                onAddExtractedConcepts={() => {}}
+                onAddSuggestedRelations={() => {}}
+                onClearExtractedConcepts={() => {}}
+                onClearSuggestedRelations={() => {}}
                 isViewOnlyMode={storeIsViewOnlyMode}
               />
             )}
           </SheetContent>
-        </Sheet>
+        </Sheet> */}
         {isDebugLogViewerOpen && (
           <DynamicDebugLogViewerDialog
             isOpen={isDebugLogViewerOpen}
             onOpenChange={setIsDebugLogViewerOpen}
           />
         )}
-        {isExtractConceptsModalOpen && !storeIsViewOnlyMode && (
-          <DynamicExtractConceptsModal
-            initialText={textForExtraction}
-            onSubmit={({ textToExtract }) =>
-              handleConceptsExtracted(textToExtract)
-            }
-            onOpenChange={setIsExtractConceptsModalOpen}
-          />
-        )}
-        {isSuggestRelationsModalOpen && !storeIsViewOnlyMode && (
-          <DynamicSuggestRelationsModal
-            concepts={conceptsForRelationSuggestion.map((concept) => ({
-              concept,
-            }))}
-            onSubmit={({ customPrompt }) =>
-              handleRelationsSuggested(
-                conceptsForRelationSuggestion,
-                customPrompt
-              )
-            }
-            onOpenChange={setIsSuggestRelationsModalOpen}
-          />
-        )}
-        {isExpandConceptModalOpen &&
-          !storeIsViewOnlyMode &&
-          conceptToExpandDetails && (
-            <DynamicExpandConceptModal
-              initialConceptText={conceptToExpandDetails.text}
-              existingMapContext={mapContextForExpansion}
-              onSubmit={({ conceptToExpand, userRefinementPrompt }) =>
-                handleConceptExpanded({
-                  concept: conceptToExpand,
-                  userRefinementPrompt,
-                })
-              }
-              onOpenChange={setIsExpandConceptModalOpen}
-            />
-          )}
-        {isQuickClusterModalOpen && !storeIsViewOnlyMode && (
-          <DynamicQuickClusterModal
-            isOpen={isQuickClusterModalOpen}
-            onOpenChange={setIsQuickClusterModalOpen}
-          />
-        )}
-        {isGenerateSnippetModalOpen && !storeIsViewOnlyMode && (
-          <DynamicGenerateSnippetModal
-            isOpen={isGenerateSnippetModalOpen}
-            onOpenChange={setIsGenerateSnippetModalOpen}
-          />
-        )}
-        {isAskQuestionModalOpen &&
-          !storeIsViewOnlyMode &&
-          nodeContextForQuestion && (
-            <DynamicAskQuestionModal
-              nodeContextText={nodeContextForQuestion.text}
-              nodeContextDetails={nodeContextForQuestion.details}
-              onSubmit={({ question, context }) =>
-                handleQuestionAnswered(question, nodeContextForQuestion)
-              }
-              onOpenChange={setIsAskQuestionModalOpen}
-            />
-          )}
-        {isRewriteNodeContentModalOpen &&
-          !storeIsViewOnlyMode &&
-          nodeContentToRewrite && (
-            <DynamicRewriteNodeContentModal
-              isOpen={isRewriteNodeContentModalOpen}
-              nodeContent={nodeContentToRewrite}
-              onRewriteConfirm={handleRewriteNodeContentConfirm}
-              onOpenChange={setIsRewriteNodeContentModalOpen}
-            />
-          )}
         <GhostPreviewToolbar /> {/* Add GhostPreviewToolbar here */}
       </ReactFlowProvider>
     </div>

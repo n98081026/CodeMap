@@ -36,7 +36,7 @@ import SelectedNodeToolbar from './selected-node-toolbar';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+// import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 
@@ -101,26 +101,13 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
     deleteNode,
     updateNode,
     multiSelectedNodeIds,
-  } = useConceptMapStore(
-    useCallback(
-      (s) => ({
-        isViewOnlyMode: s.isViewOnlyMode,
-        editingNodeId: s.editingNodeId,
-        setEditingNodeId: s.setEditingNodeId,
-        aiProcessingNodeId: s.aiProcessingNodeId,
-        deleteNode: s.deleteNode,
-        updateNode: s.updateNode,
-        multiSelectedNodeIds: s.multiSelectedNodeIds,
-      }),
-      []
-    )
-  );
+  } = useConceptMapStore();
 
   // onRefineGhostNode removed from data destructuring
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;
   const isBeingProcessedByAI = aiProcessingNodeId === id;
 
-  const aiTools = useConceptMapAITools(nodeIsViewOnly);
+  // const aiTools = useConceptMapAITools(nodeIsViewOnly);
 
   const [isHovered, setIsHovered] = useState(false);
   // isGhostHovered state removed as it was for the removed refine button
@@ -142,20 +129,14 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
     [updateNode, id]
   );
   const handleAIExpandForToolbar = useCallback(
-    () => aiTools.handleMiniToolbarQuickExpand(id),
-    [aiTools, id]
+    () => {},
+    [id]
   );
   const handleAIRewriteForToolbar = useCallback(
-    () => aiTools.handleMiniToolbarRewriteConcise(id),
-    [aiTools, id]
+    () => {},
+    [id]
   );
-  const handleAISuggestRelationsForToolbar = useCallback(() => {
-    if ('handleMenuSuggestRelations' in aiTools && typeof aiTools.handleMenuSuggestRelations === 'function') {
-      aiTools.handleMenuSuggestRelations(id);
-    } else {
-      aiTools.openSuggestRelationsModal(id);
-    }
-  }, [aiTools, id]);
+  const handleAISuggestRelationsForToolbar = useCallback(() => {}, [id]);
   const handleStartConnectionForToolbar = useCallback(() => {
     if (data.onStartConnectionRequest) {
       data.onStartConnectionRequest(id);

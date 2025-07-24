@@ -65,7 +65,7 @@ interface AppTutorialProps {}
 
 const AppTutorial: React.FC<AppTutorialProps> = () => {
   const { t } = useTranslation();
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const [steps, setSteps] = useState<Step[]>([]);
 
   const {
@@ -195,7 +195,7 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
 
     if (
       finishedStatuses.includes(status) ||
-      (type === EVENTS.TOOLTIP_CLOSE && action === 'close')
+      (type === EVENTS.TOOLTIP && action === 'close')
     ) {
       setRunTutorialState(false);
       if (activeTutorialKey === 'manualAddNodeTutorial') {

@@ -19,7 +19,7 @@ import { EmptyState } from '@/components/layout/empty-state';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER_V3 } from '@/lib/config';
+import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER } from '@/lib/config';
 import { UserRole } from '@/types';
 
 export default function StudentConceptMapsPage() {
@@ -33,7 +33,7 @@ export default function StudentConceptMapsPage() {
 
   const fetchUserMaps = useCallback(async () => {
     const userIdToFetch = BYPASS_AUTH_FOR_TESTING
-      ? MOCK_STUDENT_USER_V3.id
+      ? MOCK_STUDENT_USER.id
       : user?.id;
 
     if (!userIdToFetch) {
@@ -80,7 +80,7 @@ export default function StudentConceptMapsPage() {
   const handleDeleteMap = useCallback(
     async (mapId: string, mapName: string) => {
       const currentUserId = BYPASS_AUTH_FOR_TESTING
-        ? MOCK_STUDENT_USER_V3.id
+        ? MOCK_STUDENT_USER.id
         : user?.id;
       if (!currentUserId) {
         toast({

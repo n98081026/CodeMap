@@ -31,10 +31,6 @@ import AICommandPalette, { type AICommand } from './ai-command-palette';
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from '@/types';
 
 import {
-  suggestIntermediateNodeFlow,
-  type SuggestIntermediateNodeOutputSchema,
-} from '@/ai/flows';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -70,7 +66,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+// import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 
@@ -116,7 +112,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const textareaDetailsRef = useRef<HTMLTextAreaElement>(null);
   const nodeDetailsTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const aiToolsHook = useConceptMapAITools(!!isViewOnlyMode);
+  // const aiToolsHook = useConceptMapAITools(!!isViewOnlyMode);
   const { toast } = useToast();
 
   // AI Command Palette states (merge both approaches)
@@ -601,34 +597,34 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     // const nodeDetails = (selectedElement as ConceptMapNode).details || "";
 
     return [
-      {
-        id: 'expand',
-        label: 'Expand Node',
-        icon: Sparkles,
-        description: 'Generate related ideas',
-        action: () => aiToolsHook.openExpandConceptModal(nodeId),
-      },
-      {
-        id: 'rewrite',
-        label: 'Rewrite Content',
-        icon: MessageSquareQuote,
-        description: 'Refine text using AI',
-        action: () => aiToolsHook.openRewriteNodeContentModal(nodeId),
-      },
-      {
-        id: 'ask',
-        label: 'Ask Question',
-        icon: HelpCircle,
-        description: 'Get insights about this node',
-        action: () => aiToolsHook.openAskQuestionModal(nodeId),
-      },
-      {
-        id: 'extract',
-        label: 'Extract Concepts',
-        icon: Brain,
-        description: 'Identify key concepts from details',
-        action: () => aiToolsHook.openExtractConceptsModal(nodeId),
-      },
+      // {
+      //   id: 'expand',
+      //   label: 'Expand Node',
+      //   icon: Sparkles,
+      //   description: 'Generate related ideas',
+      //   action: () => aiToolsHook.openExpandConceptModal(nodeId),
+      // },
+      // {
+      //   id: 'rewrite',
+      //   label: 'Rewrite Content',
+      //   icon: MessageSquareQuote,
+      //   description: 'Refine text using AI',
+      //   action: () => aiToolsHook.openRewriteNodeContentModal(nodeId),
+      // },
+      // {
+      //   id: 'ask',
+      //   label: 'Ask Question',
+      //   icon: HelpCircle,
+      //   description: 'Get insights about this node',
+      //   action: () => aiToolsHook.openAskQuestionModal(nodeId),
+      // },
+      // {
+      //   id: 'extract',
+      //   label: 'Extract Concepts',
+      //   icon: Brain,
+      //   description: 'Identify key concepts from details',
+      //   action: () => aiToolsHook.openExtractConceptsModal(nodeId),
+      // },
       // Add more commands as needed
     ];
   }, [aiToolsHook, selectedElement, selectedElementType]);
@@ -730,113 +726,105 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   }, []);
 
   const handleTriggerSuggestIntermediateNode = useCallback(async () => {
-    if (isViewOnlyMode || selectedElementType !== 'edge' || !selectedElement) {
-      toast({
-        title: 'Action Unavailable',
-        description: 'Please select an edge to use this feature.',
-        variant: 'default',
-      });
-      return;
-    }
-
-    const edge = selectedElement as ConceptMapEdge;
-    const { setStagedMapData } = useConceptMapStore.getState(); // Get setStagedMapData
-    const sourceNode = useConceptMapStore
-      .getState()
-      .nodes.find((n) => n.id === edge.source);
-    const targetNode = useConceptMapStore
-      .getState()
-      .nodes.find((n) => n.id === edge.target);
-
-    if (!sourceNode || !targetNode) {
-      toast({
-        title: 'Error',
-        description: 'Source or target node for the selected edge not found.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsLoadingAISuggestIntermediateNode(true); // Use new loading state
-    const loadingToastId = toast({
-      title: 'AI Suggestion',
-      description: 'Generating intermediate node suggestion...',
-      duration: 999999, // Keep toast until dismissed
-    }).id;
-
-    try {
-      const flowInput = {
-        sourceNodeText: sourceNode.text,
-        sourceNodeDetails: sourceNode.details,
-        targetNodeText: targetNode.text,
-        targetNodeDetails: targetNode.details,
-        currentEdgeLabel: edge.label,
-      };
-      const result = await suggestIntermediateNodeFlow(flowInput);
-
-      if (result && result.intermediateNodeText) {
-        // Calculate positions for staging
-        const midX =
-          (sourceNode.x || 0) + ((targetNode.x || 0) - (sourceNode.x || 0)) / 2;
-        const midY =
-          (sourceNode.y || 0) + ((targetNode.y || 0) - (sourceNode.y || 0)) / 2;
-
-        const DEFAULT_NODE_WIDTH = 150; // Define or import
-        const DEFAULT_NODE_HEIGHT = 70; // Define or import
-
-        const intermediateNode: ConceptMapNode = {
-          id: `staged-intermediate-${Date.now()}`,
-          text: result.intermediateNodeText,
-          details:
-            result.intermediateNodeDetails ||
-            (result.reasoning ? `AI Rationale: ${result.reasoning}` : ''),
-          type: 'ai-intermediate',
-          width: DEFAULT_NODE_WIDTH,
-          height: DEFAULT_NODE_HEIGHT,
-          childIds: [],
-        };
-        const edgeToIntermediate: ConceptMapEdge = {
-          id: `staged-edge1-${intermediateNode.id}-${Date.now()}`,
-          source: sourceNode.id,
-          target: intermediateNode.id,
-          label: result.labelSourceToIntermediate,
-        };
-        const edgeFromIntermediate: ConceptMapEdge = {
-          id: `staged-edge2-${intermediateNode.id}-${Date.now()}`,
-          source: intermediateNode.id,
-          target: targetNode.id,
-          label: result.labelIntermediateToTarget,
-        };
-
-        setStagedMapData({
-          nodes: [intermediateNode],
-          edges: [edgeToIntermediate, edgeFromIntermediate],
-          actionType: 'intermediateNode', // To inform the commit logic what to do (e.g., delete original edge)
-          originalElementId: edge.id, // Pass original edge ID for deletion on commit
-        });
-        toast({
-          title: 'AI Suggestion Ready',
-          description: 'Review the new intermediate node in the staging area.',
-        });
-      } else {
-        toast({
-          title: 'AI Suggestion',
-          description: 'AI could not suggest an intermediate node.',
-          variant: 'default',
-        });
-      }
-    } catch (error) {
-      console.error('Error suggesting intermediate node:', error);
-      toast({
-        title: 'AI Error',
-        description:
-          'Failed to suggest intermediate node. ' +
-          (error instanceof Error ? error.message : ''),
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoadingAISuggestIntermediateNode(false); // Use new loading state
-    }
+    // if (isViewOnlyMode || selectedElementType !== 'edge' || !selectedElement) {
+    //   toast({
+    //     title: 'Action Unavailable',
+    //     description: 'Please select an edge to use this feature.',
+    //     variant: 'default',
+    //   });
+    //   return;
+    // }
+    // const edge = selectedElement as ConceptMapEdge;
+    // const { setStagedMapData } = useConceptMapStore.getState(); // Get setStagedMapData
+    // const sourceNode = useConceptMapStore
+    //   .getState()
+    //   .mapData.nodes.find((n) => n.id === edge.source);
+    // const targetNode = useConceptMapStore
+    //   .getState()
+    //   .mapData.nodes.find((n) => n.id === edge.target);
+    // if (!sourceNode || !targetNode) {
+    //   toast({
+    //     title: 'Error',
+    //     description: 'Source or target node for the selected edge not found.',
+    //     variant: 'destructive',
+    //   });
+    //   return;
+    // }
+    // setIsLoadingAISuggestIntermediateNode(true); // Use new loading state
+    // const loadingToastId = toast({
+    //   title: 'AI Suggestion',
+    //   description: 'Generating intermediate node suggestion...',
+    //   duration: 999999, // Keep toast until dismissed
+    // }).id;
+    // try {
+    //   const flowInput = {
+    //     sourceNodeText: sourceNode.text,
+    //     sourceNodeDetails: sourceNode.details,
+    //     targetNodeText: targetNode.text,
+    //     targetNodeDetails: targetNode.details,
+    //     currentEdgeLabel: edge.label,
+    //   };
+    //   const result = await suggestIntermediateNodeFlow(flowInput);
+    //   if (result && result.intermediateNodeText) {
+    //     // Calculate positions for staging
+    //     const midX =
+    //       (sourceNode.x || 0) + ((targetNode.x || 0) - (sourceNode.x || 0)) / 2;
+    //     const midY =
+    //       (sourceNode.y || 0) + ((targetNode.y || 0) - (sourceNode.y || 0)) / 2;
+    //     const DEFAULT_NODE_WIDTH = 150; // Define or import
+    //     const DEFAULT_NODE_HEIGHT = 70; // Define or import
+    //     const intermediateNode: ConceptMapNode = {
+    //       id: `staged-intermediate-${Date.now()}`,
+    //       text: result.intermediateNodeText,
+    //       details:
+    //         result.intermediateNodeDetails ||
+    //         (result.reasoning ? `AI Rationale: ${result.reasoning}` : ''),
+    //       type: 'ai-intermediate',
+    //       width: DEFAULT_NODE_WIDTH,
+    //       height: DEFAULT_NODE_HEIGHT,
+    //       childIds: [],
+    //     };
+    //     const edgeToIntermediate: ConceptMapEdge = {
+    //       id: `staged-edge1-${intermediateNode.id}-${Date.now()}`,
+    //       source: sourceNode.id,
+    //       target: intermediateNode.id,
+    //       label: result.labelSourceToIntermediate,
+    //     };
+    //     const edgeFromIntermediate: ConceptMapEdge = {
+    //       id: `staged-edge2-${intermediateNode.id}-${Date.now()}`,
+    //       source: intermediateNode.id,
+    //       target: targetNode.id,
+    //       label: result.labelIntermediateToTarget,
+    //     };
+    //     setStagedMapData({
+    //       nodes: [intermediateNode],
+    //       edges: [edgeToIntermediate, edgeFromIntermediate],
+    //       actionType: 'intermediateNode', // To inform the commit logic what to do (e.g., delete original edge)
+    //       originalElementId: edge.id, // Pass original edge ID for deletion on commit
+    //     });
+    //     toast({
+    //       title: 'AI Suggestion Ready',
+    //       description: 'Review the new intermediate node in the staging area.',
+    //     });
+    //   } else {
+    //     toast({
+    //       title: 'AI Suggestion',
+    //       description: 'AI could not suggest an intermediate node.',
+    //       variant: 'default',
+    //     });
+    //   }
+    // } catch (error) {
+    //   console.error('Error suggesting intermediate node:', error);
+    //   toast({
+    //     title: 'AI Error',
+    //     description:
+    //       'Failed to suggest intermediate node. ' +
+    //       (error instanceof Error ? error.message : ''),
+    //     variant: 'destructive',
+    //   });
+    // } finally {
+    //   setIsLoadingAISuggestIntermediateNode(false); // Use new loading state
+    // }
   }, [isViewOnlyMode, selectedElement, selectedElementType, toast]);
 
   // handleConfirmAISuggestion is removed as staging area handles confirmation.
@@ -1238,51 +1226,50 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   );
 
   const handleAskAIAboutNode = useCallback(async () => {
-    if (
-      isViewOnlyMode ||
-      !selectedElement ||
-      selectedElementType !== 'node' ||
-      !nodeQuestion.trim()
-    ) {
-      return;
-    }
-    setIsAskingNodeQuestion(true);
-    setAiNodeAnswer(null);
-    setAskNodeQuestionError(null);
-
-    try {
-      const node = selectedElement as ConceptMapNode;
-      // Assuming aiToolsHook.askQuestionAboutNode is implemented in useConceptMapAITools
-      const result = await aiToolsHook.askQuestionAboutNode(
-        node.id,
-        node.text,
-        node.details,
-        node.type,
-        nodeQuestion
-      );
-      if (result.error) {
-        setAskNodeQuestionError(result.error);
-        setAiNodeAnswer(
-          result.answer ||
-            'AI could not provide a specific answer due to an error.'
-        );
-      } else {
-        setAiNodeAnswer(result.answer);
-      }
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'An unknown error occurred.';
-      setAskNodeQuestionError(errorMsg);
-      setAiNodeAnswer('Failed to get an answer from AI.');
-      toast({
-        title: 'AI Question Error',
-        description: errorMsg,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsAskingNodeQuestion(false);
-      // Do not clear nodeQuestion here, user might want to refine it.
-    }
+    // if (
+    //   isViewOnlyMode ||
+    //   !selectedElement ||
+    //   selectedElementType !== 'node' ||
+    //   !nodeQuestion.trim()
+    // ) {
+    //   return;
+    // }
+    // setIsAskingNodeQuestion(true);
+    // setAiNodeAnswer(null);
+    // setAskNodeQuestionError(null);
+    // try {
+    //   const node = selectedElement as ConceptMapNode;
+    //   // Assuming aiToolsHook.askQuestionAboutNode is implemented in useConceptMapAITools
+    //   const result = await aiToolsHook.askQuestionAboutNode(
+    //     node.id,
+    //     node.text,
+    //     node.details,
+    //     node.type,
+    //     nodeQuestion
+    //   );
+    //   if (result.error) {
+    //     setAskNodeQuestionError(result.error);
+    //     setAiNodeAnswer(
+    //       result.answer ||
+    //         'AI could not provide a specific answer due to an error.'
+    //     );
+    //   } else {
+    //     setAiNodeAnswer(result.answer);
+    //   }
+    // } catch (error) {
+    //   const errorMsg =
+    //     error instanceof Error ? error.message : 'An unknown error occurred.';
+    //   setAskNodeQuestionError(errorMsg);
+    //   setAiNodeAnswer('Failed to get an answer from AI.');
+    //   toast({
+    //     title: 'AI Question Error',
+    //     description: errorMsg,
+    //     variant: 'destructive',
+    //   });
+    // } finally {
+    //   setIsAskingNodeQuestion(false);
+    //   // Do not clear nodeQuestion here, user might want to refine it.
+    // }
   }, [
     isViewOnlyMode,
     selectedElement,
@@ -1539,14 +1526,14 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             This map is in view-only mode. Editing features are disabled.
           </p>
         )}
-        <AICommandPalette
+        {/* <AICommandPalette
           isOpen={showPalette}
-          targetRef={paletteTargetRef}
+          targetRect={paletteTargetRef?.current?.getBoundingClientRect()}
           commands={availableAiCommands}
           onSelectCommand={_handlePaletteSelectCommand}
           onClose={_handlePaletteClose}
           query={paletteQuery}
-        />
+        /> */}
       </CardContent>
 
       {/* AlertDialog for intermediate node suggestion removed, will use Staging Area */}

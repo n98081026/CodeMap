@@ -26,9 +26,9 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import {
-  MOCK_ADMIN_USER_V3,
-  MOCK_STUDENT_USER_V3,
-  MOCK_TEACHER_USER_V3,
+  MOCK_ADMIN_USER,
+  MOCK_STUDENT_USER,
+  MOCK_TEACHER_USER,
 } from '@/lib/config'; // Updated import
 import { UserRole } from '@/types';
 
@@ -40,9 +40,9 @@ interface EditUserDialogProps {
 }
 
 const PREDEFINED_MOCK_USER_IDS_FOR_DIALOG = [
-  MOCK_STUDENT_USER_V3.id,
-  MOCK_TEACHER_USER_V3.id,
-  MOCK_ADMIN_USER_V3.id,
+  MOCK_STUDENT_USER.id,
+  MOCK_TEACHER_USER.id,
+  MOCK_ADMIN_USER.id,
 ]; // Updated to V3
 
 export function EditUserDialog({

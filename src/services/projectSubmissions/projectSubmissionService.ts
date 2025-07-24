@@ -10,9 +10,9 @@ import type { ProjectSubmission } from '@/types';
 import {
   BYPASS_AUTH_FOR_TESTING,
   MOCK_STUDENT_USER,
-  MOCK_PROJECT_SUBMISSION_STUDENT_V3,
-  MOCK_PROJECT_SUBMISSION_PROCESSING_V3,
-  MOCK_CLASSROOM_SHARED_V3,
+  MOCK_PROJECT_SUBMISSION_STUDENT,
+  MOCK_PROJECT_SUBMISSION_PROCESSING,
+  MOCK_CLASSROOM_SHARED,
 } from '@/lib/config';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService';
@@ -20,8 +20,8 @@ import { ProjectSubmissionStatus, UserRole } from '@/types';
 
 // Mock data store for bypass mode
 let MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [
-  MOCK_PROJECT_SUBMISSION_STUDENT_V3,
-  MOCK_PROJECT_SUBMISSION_PROCESSING_V3,
+  MOCK_PROJECT_SUBMISSION_STUDENT,
+  MOCK_PROJECT_SUBMISSION_PROCESSING,
 ];
 
 /**

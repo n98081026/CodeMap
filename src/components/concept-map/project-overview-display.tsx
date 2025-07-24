@@ -4,11 +4,6 @@
 import { Loader2, AlertTriangle, FileText, Package, Info } from 'lucide-react';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 
-import type {
-  GenerateProjectOverviewOutput,
-  KeyModule,
-  ModuleConnection,
-} from '@/ai/flows/generate-project-overview';
 
 import {
   Card,
@@ -28,7 +23,7 @@ import { cn } from '@/lib/utils'; // Import cn for conditional classNames
 import useConceptMapStore from '@/stores/concept-map-store';
 
 interface ProjectOverviewDisplayProps {
-  overviewData: GenerateProjectOverviewOutput | null;
+  overviewData: any | null;
   isLoading: boolean;
   onModuleClick?: (moduleName: string) => void;
 }
@@ -129,7 +124,7 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [overviewData, isLoading]);
 
-  const handleModuleCardClick = (module: KeyModule) => {
+  const handleModuleCardClick = (module: any) => {
     // ... (existing click handler logic remains the same) ...
     if (!module.filePaths || module.filePaths.length === 0) {
       addDebugLog(
@@ -148,8 +143,8 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
         const nodePath1 =
           typeof node.text === 'string' ? node.text.trim() : null;
         const nodePath2 =
-          typeof node.data?.filePath === 'string'
-            ? node.data?.filePath.trim()
+          typeof (node as any)?.filePath === 'string'
+            ? (node as any)?.filePath.trim()
             : null;
         return (
           (nodePath1 && moduleFilePathsSet.has(nodePath1)) ||

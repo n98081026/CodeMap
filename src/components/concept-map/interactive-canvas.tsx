@@ -13,7 +13,7 @@ import ReactFlow, {
   type OnEdgesChange,
   type OnNodesDelete,
   type OnEdgesDelete,
-  type NodeSelectionChange as SelectionChanges,
+  type NodeSelectionChange,
   type Connection,
   type NodeTypes,
   type EdgeTypes,
@@ -37,6 +37,12 @@ import useConceptMapStore from '@/stores/concept-map-store'; // Added import
 
 import { CheckIcon, XIcon } from 'lucide-react';
 
+interface ExtractedConceptItem {
+    concept: string;
+    context?: string;
+    source?: string;
+}
+
 // Define nodeTypesConfig as top-level constant here
 const nodeTypesConfig: NodeTypes = {
   customConceptNode: CustomNodeComponent,
@@ -56,7 +62,7 @@ interface InteractiveCanvasProps {
   onEdgesChange: OnEdgesChange;
   onNodesDelete?: OnNodesDelete;
   onEdgesDelete?: OnEdgesDelete;
-  onSelectionChange?: (params: SelectionChanges) => void;
+  onSelectionChange?: (params: any) => void;
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
   onNodeContextMenu?: (
@@ -164,15 +170,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   edgeTypes: propEdgeTypes,
   onNodeDrop, // Destructure onNodeDrop
 }) => {
-  console.log(
-    `[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node: ${nodes && nodes.length > 0 ? JSON.stringify(nodes[nodes.length - 1]) : 'N/A'}`
-  );
-  // Also send to store's debug log for easier collection if console is not always available during testing
-  useConceptMapStore
-    .getState()
-    .addDebugLog(
-      `[InteractiveCanvasComponent Render] Received nodes prop count: ${nodes?.length ?? 'N/A'}. Last node ID: ${nodes && nodes.length > 0 ? nodes[nodes.length - 1]?.id : 'N/A'}`
-    );
   const {
     project,
     getNodes: rfGetNodes,

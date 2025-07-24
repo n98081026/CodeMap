@@ -1,5 +1,4 @@
 import { DagreLayoutUtility } from '../dagreLayoutUtility';
-import { vi } from 'vitest';
 
 vi.mock('dagre', () => {
   const dagre = {
@@ -50,11 +49,11 @@ describe('DagreLayoutUtility', () => {
 
   it('should perform a basic layout and convert coordinates', async () => {
     const nodes: DagreLayoutInput['nodes'] = [
-      { id: 'n1', width: 100, height: 50, text: 'Node 1' },
-      { id: 'n2', width: 120, height: 60, text: 'Node 2' },
+      { id: 'n1', width: 100, height: 50 },
+      { id: 'n2', width: 120, height: 60 },
     ];
     const edges: DagreLayoutInput['edges'] = [
-      { id: 'e1', source: 'n1', target: 'n2' },
+      { source: 'n1', target: 'n2' },
     ];
 
     const result = await dagreUtil.layout(nodes, edges);
@@ -69,9 +68,9 @@ describe('DagreLayoutUtility', () => {
   });
 
   it('should apply default dimensions if not provided', async () => {
-    const nodes: DagreLayoutInput['nodes'] = [{ id: 'n1', text: 'Node 1' }]; // No width/height
+    const nodes: DagreLayoutInput['nodes'] = [{ id: 'n1' }]; // No width/height
     const edges: DagreLayoutInput['edges'] = [];
-    const options: DagreLayoutOptions = {
+    const options: any = {
       defaultNodeWidth: 200,
       defaultNodeHeight: 80,
     };
@@ -82,7 +81,7 @@ describe('DagreLayoutUtility', () => {
 
   it('should handle layout options like direction', async () => {
     const nodes: DagreLayoutInput['nodes'] = [
-      { id: 'n1', width: 100, height: 50, text: 'Node 1' },
+      { id: 'n1', width: 100, height: 50 },
     ];
 
     const resultLR = await dagreUtil.layout(nodes, [], { direction: 'LR' });
@@ -106,11 +105,11 @@ describe('DagreLayoutUtility', () => {
       .spyOn(console, 'warn')
       .mockImplementation(() => {});
     const nodes: DagreLayoutInput['nodes'] = [
-      { id: 'n1', width: 100, height: 50, text: 'Node 1' },
+      { id: 'n1', width: 100, height: 50 },
     ];
     // n2 does not exist in nodes array
     const edges: DagreLayoutInput['edges'] = [
-      { id: 'e1', source: 'n1', target: 'n2' },
+      { source: 'n1', target: 'n2' },
     ];
 
     await dagreUtil.layout(nodes, edges);

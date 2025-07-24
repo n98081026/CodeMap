@@ -41,13 +41,8 @@ export default defineConfig({
       reportsDirectory: './coverage',
       enabled: false, // Temporarily disable coverage
     },
-    resolve: {
-      alias: {
-        'graphology-traversal/bfs': 'graphology-traversal/dist/bfs.js',
-      },
-    },
     deps: {
-      noExternal: true,
+      external: [],
     },
   },
 });
