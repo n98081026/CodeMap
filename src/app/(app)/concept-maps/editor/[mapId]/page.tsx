@@ -1195,6 +1195,7 @@ export default function ConceptMapEditorPage() {
             />{' '}
           </SheetContent>{' '}
         </Sheet> */}
+        </Sheet>
       </ReactFlowProvider>
       {/* AppTutorial is now globally managed via AppLayout and tutorial-store */}
       {/* <AppTutorial

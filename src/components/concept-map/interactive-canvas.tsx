@@ -63,6 +63,7 @@ interface InteractiveCanvasProps {
   onNodesDelete?: OnNodesDelete;
   onEdgesDelete?: OnEdgesDelete;
   onSelectionChange?: (params: any) => void;
+  onSelectionChange?: (params: NodeSelectionChange) => void;
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
   onNodeContextMenu?: (
@@ -311,7 +312,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onDragOver: onDragOver,
     onDrop: onDrop,
     onDragLeave: onCanvasDragLeave || onDragLeave,
-    onNodeDragStop: onNodeDrop, // Pass onNodeDrop to ReactFlow
+    onNodeDrop: onNodeDrop, // Pass onNodeDrop to ReactFlow
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode

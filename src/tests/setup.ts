@@ -123,6 +123,12 @@ vi.mock('genkit', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as any),
+import { z } from 'zod';
+
+vi.mock('genkit', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
     default: {
         defineTool: vi.fn(tool => tool),
         defineFlow: vi.fn(flow => flow),

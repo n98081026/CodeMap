@@ -1091,6 +1091,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         onDragOver={handleCanvasDragOver}
         onDrop={handleCanvasDrop}
         onDragLeave={handleCanvasDragLeave}
+        nodeTypes={nodeTypes}
         edgeTypes={edgeTypes as any}
         activeSnapLines={activeSnapLinesLocal}
         panActivationKeyCode={panActivationKeyCode}
