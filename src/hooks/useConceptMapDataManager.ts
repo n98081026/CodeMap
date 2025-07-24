@@ -8,7 +8,7 @@ import type { ConceptMap, User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   BYPASS_AUTH_FOR_TESTING,
-  MOCK_STUDENT_USER_V3,
+  MOCK_STUDENT_USER,
   MOCK_USER_FOR_TESTING_MAPS,
 } from '@/lib/config';
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -303,7 +303,7 @@ export function useConceptMapDataManager({
     const effectiveUserId = BYPASS_AUTH_FOR_TESTING
       ? (MOCK_STUDENT_USER_V3?.id ?? null)
       : (user?.id ?? null);
-    const currentViewOnlyQueryParam = paramsHook.viewOnly === true;
+    const currentViewOnlyQueryParam = String(paramsHook.viewOnly) === 'true';
     const { loadExampleMapData: storeLoadExampleMapData } =
       useConceptMapStore.getState();
     addDebugLog(

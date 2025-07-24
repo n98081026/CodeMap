@@ -38,27 +38,11 @@ import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
 import AISuggestionFloater, {
   type SuggestionAction,
 } from '@/components/concept-map/ai-suggestion-floater';
-import { AISuggestionPanel } from '@/components/concept-map/ai-suggestion-panel';
-import { AskQuestionAboutEdgeModal } from '@/components/concept-map/AskQuestionAboutEdgeModal';
-import { AskQuestionAboutMapModal } from '@/components/concept-map/AskQuestionAboutMapModal'; // Import the new map Q&A modal
 import { EditorToolbar } from '@/components/concept-map/editor-toolbar';
-import {
-  ExtractConceptsModal,
-  SuggestRelationsModal,
-  ExpandConceptModal,
-  AskQuestionModal,
-} from '@/components/concept-map/genai-modals';
-import { GenerateSnippetModal } from '@/components/concept-map/generate-snippet-modal';
 import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar';
-import { MapSummaryModal } from '@/components/concept-map/map-summary-modal';
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import ProjectOverviewDisplay from '@/components/concept-map/project-overview-display'; // Import the new component
 import { PropertiesInspector } from '@/components/concept-map/properties-inspector';
-import { QuickClusterModal } from '@/components/concept-map/quick-cluster-modal';
-import { RefineSuggestionModal } from '@/components/concept-map/refine-suggestion-modal';
-import { RewriteNodeContentModal } from '@/components/concept-map/rewrite-node-content-modal';
-import { SuggestIntermediateNodeModal } from '@/components/concept-map/suggest-intermediate-node-modal';
-import { WhimsicalAIAssistant } from '@/components/concept-map/whimsical-ai-assistant';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import AppTutorial from '@/components/tutorial/app-tutorial'; // Import AppTutorial
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // For CTA
@@ -1192,7 +1176,7 @@ export default function ConceptMapEditorPage() {
             />{' '}
           </SheetContent>{' '}
         </Sheet>
-        <Sheet
+        {/* <Sheet
           open={isAiPanelOpen && !isOverviewModeActive}
           onOpenChange={setIsAiPanelOpen}
         >
@@ -1210,6 +1194,7 @@ export default function ConceptMapEditorPage() {
               isViewOnlyMode={storeIsViewOnlyMode}
             />{' '}
           </SheetContent>{' '}
+        </Sheet> */}
         </Sheet>
       </ReactFlowProvider>
       {/* AppTutorial is now globally managed via AppLayout and tutorial-store */}

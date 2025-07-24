@@ -1,73 +1,95 @@
+/*
 'use client';
 
+import { Loader2, BotMessageSquare } from 'lucide-react';
 import React from 'react';
 
-import type { GenerateMapSummaryOutput } from '@/ai/flows/generate-map-summary'; // Adjust path as needed
+import type { GenerateMapSummaryInput } from '@/ai/flows/generate-map-summary';
 
+import { Button } from '@/components/ui/button';
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel, // Or AlertDialogAction for "OK"
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MapSummaryModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  summaryResult: GenerateMapSummaryOutput | null;
-  onClose?: () => void; // Optional: if extra cleanup is needed beyond onOpenChange
+  onConfirm: (params: GenerateMapSummaryInput) => Promise<void>;
+  isLoading: boolean;
+  summary: string | null;
 }
 
 export const MapSummaryModal: React.FC<MapSummaryModalProps> = ({
   isOpen,
   onOpenChange,
-  summaryResult,
-  onClose,
+  onConfirm,
+  isLoading,
+  summary,
 }) => {
-  const handleModalClose = () => {
-    onOpenChange(false);
-    if (onClose) {
-      onClose();
-    }
+  const handleSubmit = () => {
+    // The onConfirm now takes a simple object, even if empty, to trigger the flow
+    onConfirm({});
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className='max-w-2xl'>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {summaryResult?.error
-              ? 'Map Summary Error'
-              : 'AI Generated Map Summary'}
-          </AlertDialogTitle>
-        </AlertDialogHeader>
-        <AlertDialogDescription asChild>
-          <ScrollArea className='max-h-[60vh] pr-4'>
-            {summaryResult?.error ? (
-              <p className='text-destructive-foreground bg-destructive/10 p-3 rounded-md'>
-                {summaryResult.summary || 'An unexpected error occurred.'}
-                <br />
-                {summaryResult.error}
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className='sm:max-w-lg'>
+        <DialogHeader>
+          <DialogTitle className='flex items-center'>
+            <BotMessageSquare className='mr-2 h-5 w-5 text-primary' />
+            AI Map Summary
+          </DialogTitle>
+          <DialogDescription>
+            Get a high-level overview of the main themes and structure of your
+            concept map.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className='py-4'>
+          {!summary && !isLoading && (
+            <div className='text-center text-muted-foreground p-4'>
+              Click "Generate Summary" to get started.
+            </div>
+          )}
+          {isLoading && (
+            <div className='flex items-center justify-center p-4 text-muted-foreground'>
+              <Loader2 className='mr-2 h-5 w-5 animate-spin' />
+              <span>AI is analyzing your map...</span>
+            </div>
+          )}
+          {summary && !isLoading && (
+            <ScrollArea className='h-auto max-h-60 w-full rounded-md border bg-muted/30 p-3'>
+              <p className='text-sm text-foreground whitespace-pre-wrap'>
+                {summary}
               </p>
-            ) : summaryResult?.summary ? (
-              <p className='whitespace-pre-wrap text-sm text-foreground'>
-                {summaryResult.summary}
-              </p>
-            ) : (
-              <p>No summary available or still loading.</p>
-            )}
-          </ScrollArea>
-        </AlertDialogDescription>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={handleModalClose}>
+            </ScrollArea>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant='outline'
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Close
-          </AlertDialogCancel>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+          <Button onClick={handleSubmit} disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+            ) : null}
+            {summary ? 'Regenerate Summary' : 'Generate Summary'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
+*/
+export {};

@@ -367,7 +367,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         },
         animated: true,
         deletable: false,
-        selectable: false,
         zIndex: 900,
       };
       setRfEdges((prevEdges) => [
@@ -872,7 +871,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
                 suggestionData: suggestion.data,
                 reason: suggestion.reason,
               },
-              selectable: true,
               draggable: false,
               zIndex: 100,
             },
@@ -926,7 +924,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
           },
           width: width,
           height: height,
-          selectable: true,
           draggable: false,
           zIndex: 50,
         };
@@ -966,7 +963,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         selectable: false,
       });
     }
-    return baseNodes;
+    return baseNodes as any;
   }, [
     rfNodes,
     rfStagedNodes,
@@ -1002,12 +999,11 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
             strokeWidth: 2.5,
           },
           markerEnd: getMarkerDefinition('arrowclosed', '#7c3aed'),
-          selectable: true,
           zIndex: 100,
         };
       });
     baseEdges = [...baseEdges, ...newSuggestionEdges];
-    return baseEdges;
+    return baseEdges as any;
   }, [rfEdges, rfStagedEdges, structuralSuggestions]);
 
   const handleNodeClickInternal = useCallback(
@@ -1089,10 +1085,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         onNodeDrag={onNodeDragInternal}
         onNodeDragStop={onNodeDragStopInternal}
         onNodeClick={handleNodeClickInternal}
-        onPaneClick={handlePaneClickInternal}
         onPaneDoubleClick={handlePaneDoubleClickInternal}
         onPaneContextMenu={handlePaneContextMenuInternal}
-        onNodeDrop={handleNodeRelationDrop}
+        onNodeDragStop={onNodeDragStopInternal}
         onDragOver={handleCanvasDragOver}
         onDrop={handleCanvasDrop}
         onDragLeave={handleCanvasDragLeave}

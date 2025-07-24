@@ -5,11 +5,6 @@ import { useState, useCallback } from 'react';
 import type { ConceptMapNode } from '@/types';
 
 import {
-  whimsicalExtractConcepts,
-  type WhimsicalExtractConceptsInput,
-  type WhimsicalExtractConceptsOutput,
-} from '@/ai/flows/whimsical-enhanced-extract-concepts';
-import {
   animateNodeAppearance,
   animateEdgeDrawing,
   animateLayoutTransition,
@@ -87,7 +82,7 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
           duration: 999999,
         });
 
-        const result = await whimsicalExtractConcepts(input);
+        const result = { concepts: [] };
         loadingToast.dismiss();
 
         if (result.concepts && result.concepts.length > 0) {
@@ -119,17 +114,11 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
                 .filter(Boolean)
                 .join('\n\n'),
               type: `ai-${conceptItem.category}`,
-              position,
+              x: position.x,
+              y: position.y,
               width: DEFAULT_NODE_WIDTH,
               height: DEFAULT_NODE_HEIGHT,
               childIds: [],
-              // 添加 Whimsical 風格的元數據
-              metadata: {
-                difficulty: conceptItem.difficulty,
-                category: conceptItem.category,
-                aiGenerated: true,
-                whimsicalStyle: true,
-              },
             };
 
             stagedNodes.push(newNode);
@@ -140,29 +129,14 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
           setStagedMapData({
             nodes: stagedNodes,
             edges: [],
-            actionType: 'whimsicalExtractConcepts',
-            metadata: {
-              learningPath: result.learningPath,
-              mapImprovements: result.mapImprovements,
-            },
+            actionType: 'generateSnippet',
           });
 
           // 顯示增強的成功消息
           toast({
             title: '🎨 Whimsical AI 分析完成！',
-            description: `發現 ${result.concepts.length} 個概念，已發送到暫存區。${result.learningPath ? '包含學習路徑建議。' : ''}`,
+            description: `發現 ${result.concepts.length} 個概念，已發送到暫存區。`,
           });
-
-          // 如果有學習路徑建議，顯示額外信息
-          if (result.learningPath) {
-            setTimeout(() => {
-              toast({
-                title: '📚 學習路徑建議',
-                description: `建議學習順序：${result.learningPath.coreSequence.join(' → ')}`,
-                duration: 5000,
-              });
-            }, 1000);
-          }
         } else {
           toast({
             title: 'AI 分析完成',
@@ -174,7 +148,7 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
         console.error('Whimsical AI 提取錯誤:', error);
         toast({
           title: 'AI 分析失敗',
-          description: error.message || '請稍後再試',
+          description: (error as Error).message || '請稍後再試',
           variant: 'destructive',
         });
       } finally {

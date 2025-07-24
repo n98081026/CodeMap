@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -16,7 +17,7 @@ describe.skip('GhostPreviewToolbar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default mock state
-    (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
+    (useConceptMapStore as any).mockReturnValue({
       ghostPreviewData: null,
       acceptGhostPreview: mockAcceptGhostPreview,
       cancelGhostPreview: mockCancelGhostPreview,
@@ -29,7 +30,7 @@ describe.skip('GhostPreviewToolbar', () => {
   });
 
   it('should not render if ghostPreviewData.nodes is empty', () => {
-    (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
+    (useConceptMapStore as any).mockReturnValue({
       ghostPreviewData: { nodes: [] },
       acceptGhostPreview: mockAcceptGhostPreview,
       cancelGhostPreview: mockCancelGhostPreview,
@@ -39,7 +40,7 @@ describe.skip('GhostPreviewToolbar', () => {
   });
 
   it('should render correctly when ghostPreviewData is present with nodes', () => {
-    (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
+    (useConceptMapStore as any).mockReturnValue({
       ghostPreviewData: { nodes: [{ id: 'n1', x: 0, y: 0 }] },
       acceptGhostPreview: mockAcceptGhostPreview,
       cancelGhostPreview: mockCancelGhostPreview,
@@ -64,7 +65,7 @@ describe.skip('GhostPreviewToolbar', () => {
   });
 
   it('should display the correct node count', () => {
-    (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
+    (useConceptMapStore as any).mockReturnValue({
       ghostPreviewData: {
         nodes: [
           { id: 'n1', x: 0, y: 0 },
@@ -89,7 +90,7 @@ describe.skip('GhostPreviewToolbar', () => {
   });
 
   it('should call acceptGhostPreview when "Accept Layout" button is clicked', () => {
-    (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
+    (useConceptMapStore as any).mockReturnValue({
       ghostPreviewData: { nodes: [{ id: 'n1', x: 0, y: 0 }] },
       acceptGhostPreview: mockAcceptGhostPreview,
       cancelGhostPreview: mockCancelGhostPreview,
@@ -100,7 +101,7 @@ describe.skip('GhostPreviewToolbar', () => {
   });
 
   it('should call cancelGhostPreview when "Cancel" button is clicked', () => {
-    (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
+    (useConceptMapStore as any).mockReturnValue({
       ghostPreviewData: { nodes: [{ id: 'n1', x: 0, y: 0 }] },
       acceptGhostPreview: mockAcceptGhostPreview,
       cancelGhostPreview: mockCancelGhostPreview,

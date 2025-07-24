@@ -201,7 +201,6 @@ describe('getNodePlacement', () => {
         offGridParent,
         null,
         undefined,
-        undefined,
         'right'
       );
       const withGrid = getNodePlacement(
@@ -210,7 +209,6 @@ describe('getNodePlacement', () => {
         offGridParent,
         null,
         20,
-        undefined,
         'right'
       );
 
@@ -228,7 +226,6 @@ describe('getNodePlacement', () => {
         parent,
         null,
         undefined,
-        undefined,
         'right'
       );
       const posGridZero = getNodePlacement(
@@ -237,7 +234,6 @@ describe('getNodePlacement', () => {
         parent,
         null,
         0,
-        undefined,
         'right'
       );
       expect(posGridZero.x).toBe(posNoGrid.x);

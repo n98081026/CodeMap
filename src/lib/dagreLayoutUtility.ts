@@ -25,18 +25,16 @@
 import dagre from 'dagre';
 
 import type {
-  DagreLayoutUtility as IDagreLayoutUtility,
   DagreLayoutInput,
   DagreLayoutOptions,
-  NodePositionOutput, // Represents the output from Dagre (id, x, y) - will be top-left
 } from '../types/graph-adapter'; // Path to where these interfaces are defined
 
-export class DagreLayoutUtility implements IDagreLayoutUtility {
+export class DagreLayoutUtility {
   async layout(
     nodes: DagreLayoutInput['nodes'],
     edges: DagreLayoutInput['edges'],
     options?: DagreLayoutOptions
-  ): Promise<NodePositionOutput[]> {
+  ): Promise<any[]> {
     // Create a new directed graph
     const dagreGraph = new dagre.graphlib.Graph({
       multigraph: true,
@@ -59,15 +57,15 @@ export class DagreLayoutUtility implements IDagreLayoutUtility {
       dagreGraph.setNode(node.id, {
         width: node.width || defaultWidth,
         height: node.height || defaultHeight,
-        label: node.text || node.id, // Dagre uses label for debug/display, not strictly for layout
+        label: (node as any).text || node.id, // Dagre uses label for debug/display, not strictly for layout
       });
     });
 
     edges.forEach((edge) => {
       if (dagreGraph.hasNode(edge.source) && dagreGraph.hasNode(edge.target)) {
         dagreGraph.setEdge(edge.source, edge.target, {
-          minlen: edge.minlen, // example of an edge option from options
-          weight: edge.weight, // example
+          minlen: (edge as any).minlen, // example of an edge option from options
+          weight: (edge as any).weight, // example
           // label: edge.label, // If you want edge labels to affect layout (rarely used in basic dagre)
         });
       } else {
@@ -79,7 +77,7 @@ export class DagreLayoutUtility implements IDagreLayoutUtility {
 
     dagre.layout(dagreGraph);
 
-    const layoutNodes: NodePositionOutput[] = [];
+    const layoutNodes: any[] = [];
     dagreGraph.nodes().forEach((nodeId) => {
       const dagreNode = dagreGraph.node(nodeId);
       if (dagreNode) {

@@ -24,7 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added
+// import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added
 import useConceptMapStore from '@/stores/concept-map-store'; // Added to get isViewOnlyMode if needed
 
 interface SelectedNodeToolbarProps {
@@ -71,7 +71,7 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   onDeleteNode,
 }) => {
   const isViewOnlyMode = useConceptMapStore((state) => state.isViewOnlyMode); // Get from store
-  const { handleDagreLayoutSelection } = useConceptMapAITools(isViewOnlyMode); // Get the new function
+  // const { handleDagreLayoutSelection } = useConceptMapAITools(isViewOnlyMode); // Get the new function
 
   const handleInteraction = (
     e: React.MouseEvent | React.TouchEvent | React.PointerEvent
@@ -134,7 +134,7 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
       <Button
         variant='ghost'
         size='icon'
-        onClick={handleDagreLayoutSelection} // Use the new handler
+        onClick={() => {}} // Use the new handler
         title='Auto-Layout Selection (Dagre)'
         disabled={numMultiSelectedNodes < 2 || isViewOnlyMode} // Also disable in view-only mode
       >

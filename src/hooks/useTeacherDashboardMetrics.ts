@@ -128,9 +128,7 @@ export function useTeacherDashboardMetrics(): TeacherDashboardMetrics {
       ) {
         allClassroomsData.classrooms.forEach((c) => {
           // Prioritize studentCount if available, otherwise fallback to studentIds.length
-          if (typeof c.studentCount === 'number') {
-            currentTotalStudents += c.studentCount;
-          } else if (c.studentIds) {
+          if (c.studentIds) {
             // Fallback, log if this happens often
             currentTotalStudents += c.studentIds.length;
             console.warn(

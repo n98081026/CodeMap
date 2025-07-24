@@ -71,6 +71,7 @@ describe.skip('conceptMapService', () => {
         'Test Map',
         'user-123',
         { nodes: [], edges: [] },
+        false,
         'class-123'
       );
 
@@ -97,6 +98,7 @@ describe.skip('conceptMapService', () => {
           'Test Map',
           'user-123',
           { nodes: [], edges: [] },
+          false,
           'class-123'
         )
       ).rejects.toThrow('Database error');

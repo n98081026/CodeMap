@@ -1,49 +1,24 @@
+/*
 'use client';
 
-import {
-  Loader2,
-  HelpCircle,
-  Search,
-  Lightbulb,
-  Brain,
-  Send,
-} from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Node } from 'reactflow';
-import { z } from 'zod';
+import React from 'react';
 
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
+import { ExtractConceptsModal } from './extract-concepts-modal';
+import { GenerateSnippetModal } from './generate-snippet-modal';
+import { MapSummaryModal } from './map-summary-modal';
+import { QuickClusterModal } from './quick-cluster-modal';
+import { RewriteNodeContentModal } from './rewrite-node-content-modal';
+import { AskQuestionAboutEdgeModal } from './AskQuestionAboutEdgeModal';
+import { SuggestIntermediateNodeModal } from './suggest-intermediate-node-modal';
+
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
-import {
-  extractConceptsSchema,
-  suggestRelationsSchema,
-  expandConceptSchema,
-  askQuestionAboutSelectedNodeSchema,
-} from '@/types/zodSchemas';
 
+interface GenAIModalsProps {
+  mapId: string;
+}
+
+export const GenAIModals: React.FC<GenAIModalsProps> = ({ mapId }) => {
+  const aiTools = useConceptMapAITools(mapId);
 interface GenAIModalProps<T extends z.ZodType<any, any, any>> {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -388,97 +363,80 @@ export const AskQuestionModal: React.FC<
   }, [isOpen, nodeContextText, nodeContextDetails, form]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <HelpCircle className="mr-2 h-5 w-5 text-primary" /> Ask AI About
-            This Node
-          </DialogTitle>
-          {nodeContextText && (
-            <DialogDescription>
-              You are asking about node:{' '}
-              <strong className="text-foreground">{nodeContextText}</strong>
-              <br />
-              The AI's answer will appear as a toast notification. This action
-              does not modify the map.
-            </DialogDescription>
-          )}
-        </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 py-4"
-          >
-            <FormField
-              control={form.control}
-              name="question"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Question</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="e.g., What are the main applications of this concept?"
-                      {...field}
-                      rows={3}
-                      disabled={isProcessingQuestion || !nodeContextText}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="context"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Context (Automatically populated)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      readOnly
-                      className="bg-muted"
-                      rows={4}
-                      disabled={isProcessingQuestion}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isProcessingQuestion}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  isProcessingQuestion ||
-                  !form.watch('question')?.trim() ||
-                  !nodeContextText
-                }
-              >
-                {isProcessingQuestion && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isProcessingQuestion ? (
-                  'Asking...'
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" /> Ask Question
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <>
+      <ExtractConceptsModal
+        isOpen={aiTools.isExtractConceptsModalOpen}
+        onOpenChange={aiTools.setIsExtractConceptsModalOpen}
+        onConfirm={aiTools.handleExtractConcepts}
+        isLoading={aiTools.isProcessing}
+        contextText={aiTools.textForExtraction}
+      />
+      <QuickClusterModal
+        isOpen={aiTools.isQuickClusterModalOpen}
+        onOpenChange={aiTools.setIsQuickClusterModalOpen}
+        onConfirm={aiTools.handleQuickCluster}
+        isLoading={aiTools.isProcessing}
+      />
+      <GenerateSnippetModal
+        isOpen={aiTools.isGenerateSnippetModalOpen}
+        onOpenChange={aiTools.setIsGenerateSnippetModalOpen}
+        onConfirm={aiTools.handleGenerateSnippetFromText}
+        isLoading={aiTools.isProcessing}
+      />
+      <MapSummaryModal
+        isOpen={aiTools.isSummarizeMapModalOpen}
+        onOpenChange={aiTools.setIsSummarizeMapModalOpen}
+        onConfirm={() => aiTools.handleSummarizeMap()}
+        isLoading={aiTools.isProcessing}
+        summary={aiTools.mapSummary}
+      />
+      <RewriteNodeContentModal
+        isOpen={!!aiTools.rewriteModalState.isOpen}
+        onOpenChange={(isOpen) =>
+          aiTools.setRewriteModalState((prev) => ({ ...prev, isOpen }))
+        }
+        onConfirm={(style, customInstruction) =>
+          aiTools.handleRewriteNodeContent(style, customInstruction)
+        }
+        isLoading={aiTools.isProcessing}
+        originalContent={aiTools.rewriteModalState.originalContent}
+        rewrittenContent={aiTools.rewriteModalState.rewrittenContent}
+        nodeId={aiTools.rewriteModalState.nodeId}
+      />
+      <AskQuestionAboutEdgeModal
+        isOpen={!!aiTools.askQuestionAboutEdgeState.isOpen}
+        onOpenChange={(isOpen) =>
+          aiTools.setAskQuestionAboutEdgeState((prev) => ({ ...prev, isOpen }))
+        }
+        edgeContext={aiTools.askQuestionAboutEdgeState.edgeContext}
+        onSubmitQuestion={aiTools.handleAskQuestionAboutEdge}
+        isLoading={aiTools.isProcessing}
+        answer={aiTools.askQuestionAboutEdgeState.answer}
+        onCloseModal={() =>
+          aiTools.setAskQuestionAboutEdgeState({
+            isOpen: false,
+            edgeContext: null,
+            answer: null,
+          })
+        }
+      />
+      <SuggestIntermediateNodeModal
+        isOpen={!!aiTools.suggestIntermediateNodeState.isOpen}
+        onOpenChange={(isOpen) =>
+          aiTools.setSuggestIntermediateNodeState((prev) => ({
+            ...prev,
+            isOpen,
+          }))
+        }
+        edgeInfo={aiTools.suggestIntermediateNodeState.edgeInfo}
+        suggestions={aiTools.suggestIntermediateNodeState.suggestions}
+        isLoading={aiTools.isProcessing}
+        onConfirm={(suggestion) =>
+          aiTools.confirmAddIntermediateNode(suggestion)
+        }
+      />
+    </>
   );
 };
+*/
+export {};

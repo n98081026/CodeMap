@@ -23,9 +23,9 @@ import type { ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   BYPASS_AUTH_FOR_TESTING,
-  MOCK_STUDENT_USER_V3,
-  MOCK_TEACHER_USER_V3,
-  MOCK_ADMIN_USER_V3,
+  MOCK_STUDENT_USER,
+  MOCK_TEACHER_USER,
+  MOCK_ADMIN_USER,
 } from '@/lib/config';
 import { exampleProjects } from '@/lib/example-data';
 import { supabase } from '@/lib/supabaseClient';
@@ -37,7 +37,7 @@ import {
 // Ensure V3 is the default for bypass
 
 // DEFAULT_BYPASS_USER is now MOCK_STUDENT_USER_V3 for student testing
-const DEFAULT_BYPASS_USER = MOCK_STUDENT_USER_V3;
+const DEFAULT_BYPASS_USER = MOCK_STUDENT_USER;
 
 interface AuthContextType {
   user: User | null;
@@ -481,10 +481,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const setTestUserRole = useCallback((newRole: UserRole) => {
     setUser((prevUser) => {
       if (prevUser) {
-        let targetMockUser = MOCK_STUDENT_USER_V3;
-        if (newRole === UserRole.ADMIN) targetMockUser = MOCK_ADMIN_USER_V3;
+        let targetMockUser = MOCK_STUDENT_USER;
+        if (newRole === UserRole.ADMIN) targetMockUser = MOCK_ADMIN_USER;
         else if (newRole === UserRole.TEACHER)
-          targetMockUser = MOCK_TEACHER_USER_V3;
+          targetMockUser = MOCK_TEACHER_USER;
 
         console.warn(
           `Locally overriding user to MOCK ${newRole.toUpperCase()} USER for testing. (Bypass_Auth: ${BYPASS_AUTH_FOR_TESTING})`
@@ -616,7 +616,7 @@ async function handleCopyExampleAction(
     }
     const savedMap = await saveResponse.json();
 
-    toast.toast({
+    toast({
       title: 'Example Copied',
       description: `"${savedMap.name}" has been copied to your workspace.`,
     });

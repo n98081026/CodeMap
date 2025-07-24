@@ -628,7 +628,7 @@ describe.skip('useConceptMapStore', () => {
   describe('Ghost Preview Actions', () => {
     it('setGhostPreview: should set ghostPreviewData and clear staging data', () => {
       const store = useConceptMapStore.getState();
-      const initialStagedData: StagedMapDataWithContext = {
+      const initialStagedData = {
         nodes: [
           { id: 's1', text: 'SN1', type: 'st', x: 0, y: 0, childIds: [] },
         ],
@@ -687,7 +687,7 @@ describe.skip('useConceptMapStore', () => {
         type: 't',
         position: { x: 0, y: 0 },
       });
-      const updates: LayoutNodeUpdate[] = [{ id: n1, x: 100, y: 110 }];
+      const updates = [{ id: n1, x: 100, y: 110 }];
       store.applyLayout(updates);
       const state = useConceptMapStore.getState();
       expect(state.mapData.nodes.find((n) => n.id === n1)?.x).toBe(100);

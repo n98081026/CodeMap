@@ -86,7 +86,7 @@ describe.skip('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
   });
 
   it('should render DashboardHeader and example project cards', () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as any).mockReturnValue({
       isGuestSession: false, // Authenticated user
       isAuthenticated: true,
       user: { id: 'test-user' },
@@ -107,7 +107,7 @@ describe.skip('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
   });
 
   it('should render GuestModeCtaBanner when in a guest session', () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as any).mockReturnValue({
       isGuestSession: true,
       isAuthenticated: false,
       user: null,
@@ -119,7 +119,7 @@ describe.skip('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
   });
 
   it('should NOT render GuestModeCtaBanner when not in a guest session (authenticated user)', () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as any).mockReturnValue({
       isGuestSession: false,
       isAuthenticated: true,
       user: { id: 'test-user' },
@@ -131,7 +131,7 @@ describe.skip('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
   });
 
   it('should show "View Example" button for all users, and "Copy & Edit" for guests', () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as any).mockReturnValue({
       isGuestSession: true, // Guest user
       isAuthenticated: false,
       user: null,
@@ -149,7 +149,7 @@ describe.skip('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
   });
 
   it('should show only "View Example" button for authenticated users', () => {
-    (useAuth as vi.Mock).mockReturnValue({
+    (useAuth as any).mockReturnValue({
       isGuestSession: false, // Authenticated user
       isAuthenticated: true,
       user: { id: 'test-user' },

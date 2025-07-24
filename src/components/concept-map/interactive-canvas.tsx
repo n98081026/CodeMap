@@ -62,6 +62,7 @@ interface InteractiveCanvasProps {
   onEdgesChange: OnEdgesChange;
   onNodesDelete?: OnNodesDelete;
   onEdgesDelete?: OnEdgesDelete;
+  onSelectionChange?: (params: any) => void;
   onSelectionChange?: (params: NodeSelectionChange) => void;
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;

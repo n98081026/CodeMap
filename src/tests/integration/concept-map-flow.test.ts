@@ -54,9 +54,11 @@ describe.skip('Concept Map Integration Tests', () => {
           nodes: [
             {
               id: 'node-1',
-              type: 'custom',
-              data: { label: 'Test Node', type: 'concept' },
-              position: { x: 100, y: 100 },
+              text: 'Test Node',
+              type: 'concept',
+              x: 100,
+              y: 100,
+              childIds: [],
             },
           ],
           edges: [],
@@ -86,9 +88,11 @@ describe.skip('Concept Map Integration Tests', () => {
           nodes: [
             {
               id: 'node-1',
-              type: 'custom',
-              data: { label: 'Test Node', type: 'concept' },
-              position: { x: 100, y: 100 },
+              text: 'Test Node',
+              type: 'concept',
+              x: 100,
+              y: 100,
+              childIds: [],
             },
           ],
           edges: [],
@@ -184,9 +188,11 @@ describe.skip('Concept Map Integration Tests', () => {
         nodes: [
           {
             id: 'node-1',
-            type: 'custom',
-            data: { label: 'Updated Node', type: 'concept' },
-            position: { x: 150, y: 150 },
+            text: 'Updated Node',
+            type: 'concept',
+            x: 150,
+            y: 150,
+            childIds: [],
           },
         ],
         edges: [
@@ -194,7 +200,7 @@ describe.skip('Concept Map Integration Tests', () => {
             id: 'edge-1',
             source: 'node-1',
             target: 'node-2',
-            type: 'default',
+            label: 'connects',
           },
         ],
       };

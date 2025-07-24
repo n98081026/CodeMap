@@ -72,20 +72,6 @@ const PropertiesInspector = dynamic(
   }
 );
 
-const AISuggestionPanel = dynamic(
-  () =>
-    import('@/components/concept-map/ai-suggestion-panel').then(
-      (mod) => mod.AISuggestionPanel
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className='p-4 text-center text-sm text-muted-foreground'>
-        Loading AI Suggestions...
-      </div>
-    ),
-  }
-);
 
 const DynamicDebugLogViewerDialog = dynamic(
   () =>
@@ -755,7 +741,7 @@ function ConceptMapEditorPageContent({
             )}
           </SheetContent>
         </Sheet>
-        <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
+        {/* <Sheet open={isAiPanelOpen} onOpenChange={setIsAiPanelOpen}>
           <SheetContent side='bottom' className='h-[40vh] sm:h-1/3'>
             <SheetHeader>
               <SheetTitle>AI Suggestions Panel</SheetTitle>
@@ -776,7 +762,7 @@ function ConceptMapEditorPageContent({
               />
             )}
           </SheetContent>
-        </Sheet>
+        </Sheet> */}
         {isDebugLogViewerOpen && (
           <DynamicDebugLogViewerDialog
             isOpen={isDebugLogViewerOpen}
