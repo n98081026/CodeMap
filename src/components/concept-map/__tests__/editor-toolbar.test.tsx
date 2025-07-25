@@ -1,4 +1,3 @@
-/*
 /// <reference types="vitest/globals" />
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -93,5 +92,3 @@ describe.skip('EditorToolbar (/components/concept-map/editor-toolbar.tsx)', () =
     expect(screen.getByRole('button', { name: /Redo/i })).not.toBeDisabled();
   });
 });
-*/
-export {};

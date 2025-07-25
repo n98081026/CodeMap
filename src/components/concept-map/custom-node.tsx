@@ -216,7 +216,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
 
   const handleSaveInlineEdit = () => {
     if (nodeIsViewOnly || data.isGhost || data.isStaged) return;
-    updateNode(id, { text: editText });
+    updateNode(id, { label: editText });
     setIsInlineEditing(false);
   };
 
@@ -485,7 +485,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
             key={btn.pos}
             onClick={(e) => {
               e.stopPropagation();
-              data.onAddChildNodeRequest?.(id, btn.pos);
+              if (data.onAddChildNodeRequest) {
+                data.onAddChildNodeRequest(id, btn.pos);
+              }
             }}
             className='absolute z-10 flex items-center justify-center w-5 h-5 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/80 transition-all opacity-0 group-hover/node:opacity-100'
             style={btn.style}

@@ -85,9 +85,7 @@ const EditorGuestCtaBanner: React.FC<{ routeMapId: string }> = ({
   routeMapId,
 }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const storeIsViewOnlyMode = useConceptMapStore(
-    (state: any) => state.isViewOnlyMode
-  );
+  const storeIsViewOnlyMode = useConceptMapStore((state) => state.isViewOnlyMode);
 
   const isActuallyGuest = !isLoading && !isAuthenticated;
   const isExampleMap = routeMapId && routeMapId.startsWith('example-');
@@ -138,7 +136,7 @@ export default function ConceptMapEditorPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback((s: any) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
+    useCallback((s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
   );
   // const [runEditorTutorial, setRunEditorTutorial] = useState(false); // Removed local state
 
@@ -178,7 +176,6 @@ export default function ConceptMapEditorPage() {
     setIsViewOnlyMode: setStoreIsViewOnlyMode,
     addDebugLog,
     applyLayout: storeApplyLayout,
-    // Overview Mode State and Actions from Zustand
     isOverviewModeActive,
     projectOverviewData,
     isFetchingOverview,
@@ -186,7 +183,7 @@ export default function ConceptMapEditorPage() {
     fetchProjectOverview,
   } = useConceptMapStore(
     useCallback(
-      (s: any) => ({
+      (s) => ({
         mapId: s.mapId,
         mapName: s.mapName,
         currentMapOwnerId: s.currentMapOwnerId,
@@ -223,7 +220,6 @@ export default function ConceptMapEditorPage() {
         applyLayout: s.applyLayout,
         applySemanticTidyUp: s.applySemanticTidyUp,
         isApplyingSemanticTidyUp: s.isApplyingSemanticTidyUp,
-        // Overview Mode
         isOverviewModeActive: s.isOverviewModeActive,
         projectOverviewData: s.projectOverviewData,
         isFetchingOverview: s.isFetchingOverview,
@@ -415,7 +411,10 @@ export default function ConceptMapEditorPage() {
     Floater_handleDismiss,
   ]);
   const handleConceptSuggestionDrop = useCallback(
-    (conceptItem: any, position: { x: number; y: number }) => {
+    (
+      conceptItem: { concept: string; context?: string; source?: string },
+      position: { x: number; y: number }
+    ) => {
       if (storeIsViewOnlyMode) return;
       // aiToolsHook.addStoreNode({
       //   text: conceptItem.concept,
@@ -715,7 +714,7 @@ export default function ConceptMapEditorPage() {
     [storeIsViewOnlyMode, deleteStoreNode, closeContextMenu]
   );
   const handleSelectedElementPropertyUpdateInspector = useCallback(
-    (updates: any) => {
+    (updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>) => {
       /* ... */
     },
     [
@@ -726,17 +725,17 @@ export default function ConceptMapEditorPage() {
       updateStoreEdge,
     ]
   );
-  const inspectorAiTools = React.useMemo(
-    () => ({
-      // openExpandConceptModal: aiToolsHook.openExpandConceptModal,
-      // openRewriteNodeContentModal: aiToolsHook.openRewriteNodeContentModal,
-      // openAskQuestionAboutNodeModal: aiToolsHook.openAskQuestionModal, // Assuming this is for nodes
-      // openAskQuestionAboutEdgeModal: aiToolsHook.openAskQuestionAboutEdgeModal, // Wire up edge Q&A modal opener
-      // handleSuggestIntermediateNodeRequest is not directly an aiTool but a handler, passed separately
-    }),
-    [
-    ]
-  );
+  // const inspectorAiTools = React.useMemo(
+  //   () => ({
+  //     // openExpandConceptModal: aiToolsHook.openExpandConceptModal,
+  //     // openRewriteNodeContentModal: aiToolsHook.openRewriteNodeContentModal,
+  //     // openAskQuestionAboutNodeModal: aiToolsHook.openAskQuestionModal, // Assuming this is for nodes
+  //     // openAskQuestionAboutEdgeModal: aiToolsHook.openAskQuestionAboutEdgeModal, // Wire up edge Q&A modal opener
+  //     // handleSuggestIntermediateNodeRequest is not directly an aiTool but a handler, passed separately
+  //   }),
+  //   [
+  //   ]
+  // );
 
   const showEmptyMapMessage =
     !isStoreLoading &&
@@ -792,13 +791,13 @@ export default function ConceptMapEditorPage() {
       duration: Infinity,
     });
     try {
-      const nodesForDagre: any[] = currentGlobalNodes
+      const nodesForDagre = currentGlobalNodes
         .map((n) => ({
           id: n.id,
           width: n.width || DEFAULT_NODE_WIDTH,
           height: n.height || DEFAULT_NODE_HEIGHT,
         }))
-        .filter((n) => n.width && n.height) as any[];
+        .filter((n) => n.width && n.height);
       if (nodesForDagre.length === 0 && currentGlobalNodes.length > 0) {
         loadingToast.dismiss();
         toast({
@@ -818,8 +817,8 @@ export default function ConceptMapEditorPage() {
         });
         return;
       }
-      const currentGlobalEdges = (useConceptMapStore.getState() as any).mapData.edges;
-      const edgesForDagre: any[] = currentGlobalEdges.map((e: any) => ({
+      const currentGlobalEdges = useConceptMapStore.getState().mapData.edges;
+      const edgesForDagre = currentGlobalEdges.map((e) => ({
         source: e.source,
         target: e.target,
         id: e.id,
@@ -885,10 +884,6 @@ export default function ConceptMapEditorPage() {
     if (newOverviewModeState && !projectOverviewData && currentSubmissionId) {
       // Fetch overview data only if entering overview mode and data is not already there
       // And if there's a submission ID to fetch data for (or adapt for current map content)
-      const overviewInput: any = {
-        projectStoragePath: `submission_related_path_for_${currentSubmissionId}`, // This needs to be the actual storage path
-        userGoals: 'Provide a high-level overview of this project.', // Generic goal
-      };
       // Check if currentSubmissionId has a valid path, or if mapId can be used to derive project path
       // For now, this part is conceptual as direct projectStoragePath might not be available here.
       // A more robust solution would fetch based on mapId or submissionId if available.
@@ -1096,12 +1091,14 @@ export default function ConceptMapEditorPage() {
               onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode}
               onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={(edgeIds: any) =>
-                edgeIds.forEach((edgeId: any) =>
-                  (useConceptMapStore.getState() as any).deleteEdge(edgeId)
+              onEdgesDeleteInStore={(edgeIds) =>
+                edgeIds.forEach((edgeId) =>
+                  useConceptMapStore.getState().deleteEdge(edgeId)
                 )
               }
-              onConnectInStore={(params: any) => (useConceptMapStore.getState() as any).addEdge(params)}
+              onConnectInStore={(params) =>
+                useConceptMapStore.getState().addEdge(params)
+              }
               onNodeContextMenuRequest={handleNodeContextMenu}
               onPaneContextMenuRequest={handlePaneContextMenuRequest}
               onStagedElementsSelectionChange={setSelectedStagedElementIds}
@@ -1195,7 +1192,6 @@ export default function ConceptMapEditorPage() {
             />{' '}
           </SheetContent>{' '}
         </Sheet> */}
-        </Sheet>
       </ReactFlowProvider>
       {/* AppTutorial is now globally managed via AppLayout and tutorial-store */}
       {/* <AppTutorial

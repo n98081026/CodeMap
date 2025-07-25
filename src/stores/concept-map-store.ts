@@ -101,7 +101,11 @@ interface ConceptMapState {
   } | null;
 
   isOverviewModeActive: boolean;
-  projectOverviewData: any | null;
+  projectOverviewData: {
+    overallSummary: string;
+    keyModules: { name: string; description: string }[];
+    error?: string;
+  } | null;
   isFetchingOverview: boolean;
   isApplyingSemanticTidyUp: boolean;
 
@@ -196,9 +200,18 @@ interface ConceptMapState {
   setDraggedRelationPreview: (label: string | null) => void;
   setTriggerFitView: (value: boolean) => void;
   toggleOverviewMode: () => void;
-  setProjectOverviewData: (data: any | null) => void;
+  setProjectOverviewData: (
+    data: {
+      overallSummary: string;
+      keyModules: { name: string; description: string }[];
+      error?: string;
+    } | null
+  ) => void;
   setIsFetchingOverview: (fetching: boolean) => void;
-  fetchProjectOverview: (input: any) => Promise<void>;
+  fetchProjectOverview: (input: {
+    projectStoragePath: string;
+    userGoals: string;
+  }) => Promise<void>;
   loadExampleMapData: (mapData: ConceptMapData, exampleName: string) => void;
   setGhostPreview: (
     nodesToPreview: Array<{

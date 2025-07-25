@@ -1,4 +1,3 @@
-/*
 /// <reference types="vitest" />
 import { act, renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -10,20 +9,23 @@ import { useToast } from '@/hooks/use-toast';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 // Mock dependencies
-vi.mock('@/ai/flows', () => ({
-  extractConceptsFlow: vi.fn(),
-  suggestRelationsFlow: vi.fn(),
-  expandConceptFlow: vi.fn(),
-  rewriteNodeContentFlow: vi.fn(),
-  askQuestionAboutNodeFlow: vi.fn(),
-  // Add other flows as needed
+vi.mock('@/ai/flows', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    runFlow: vi.fn(),
+  };
+});
+
+vi.mock('@/lib/dagreLayoutUtility', () => ({
+  getNodePlacement: vi.fn(() => ({ x: 0, y: 0 })),
 }));
 
-vi.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({
-    toast: vi.fn(),
-  }),
+vi.mock('@/lib/utils', () => ({
+  generateUniqueId: vi.fn(() => 'unique-id'),
 }));
+
+vi.mock('@/hooks/use-toast');
 
 vi.mock('@/stores/concept-map-store');
 
@@ -49,7 +51,7 @@ describe('useConceptMapAITools', () => {
   beforeEach(() => {
     setStagedMapData = vi.fn();
     addDebugLog = vi.fn();
-    toast = vi.fn();
+    toast = vi.fn().mockReturnValue({ id: 'toast-id' });
 
     (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
       setStagedMapData,
@@ -67,12 +69,12 @@ describe('useConceptMapAITools', () => {
 
   describe('handleExtractConcepts', () => {
     it('should call extractConceptsFlow and update staged data on success', async () => {
-      const mockExtractedData = { concepts: ['concept1', 'concept2'] };
-      (aiFlows.extractConceptsFlow as vi.Mock).mockResolvedValue(
+      const mockExtractedData = { concepts: [{ text: 'concept1', reason: 'reason1' }, { text: 'concept2', reason: 'reason2' }] };
+      (aiFlows.runFlow as vi.Mock).mockResolvedValue(
         mockExtractedData
       );
 
-      const { result } = renderHook(() => useConceptMapAITools(mockMapId));
+      const { result } = renderHook(() => useConceptMapAITools(false));
 
       await act(async () => {
         await result.current.handleExtractConcepts({
@@ -80,7 +82,7 @@ describe('useConceptMapAITools', () => {
         });
       });
 
-      expect(aiFlows.extractConceptsFlow).toHaveBeenCalledWith({
+      expect(aiFlows.runFlow).toHaveBeenCalledWith('extractConcepts', {
         context: 'some context',
       });
       expect(setStagedMapData).toHaveBeenCalledWith({
@@ -95,17 +97,17 @@ describe('useConceptMapAITools', () => {
         edges: [],
         actionType: 'extractConcepts',
       });
-      expect(toast).toHaveBeenCalledWith({
+      expect(toast).toHaveBeenCalledWith(expect.objectContaining({
         title: 'Concepts Extracted',
         description: 'Review the new concepts in the staging area.',
-      });
+      }));
     });
 
     it('should show a toast message on failure', async () => {
       const error = new Error('AI failed');
-      (aiFlows.extractConceptsFlow as vi.Mock).mockRejectedValue(error);
+      (aiFlows.runFlow as vi.Mock).mockRejectedValue(error);
 
-      const { result } = renderHook(() => useConceptMapAITools(mockMapId));
+      const { result } = renderHook(() => useConceptMapAITools(false));
 
       await act(async () => {
         await result.current.handleExtractConcepts({
@@ -113,18 +115,18 @@ describe('useConceptMapAITools', () => {
         });
       });
 
-      expect(toast).toHaveBeenCalledWith({
+      expect(toast).toHaveBeenCalledWith(expect.objectContaining({
         title: 'Error Extracting Concepts',
         description: error.message,
         variant: 'destructive',
-      });
+      }));
     });
   });
 
   // Example for another function
   describe('handleRewriteNodeContent', () => {
     it('should open the rewrite modal with correct content', async () => {
-      const { result } = renderHook(() => useConceptMapAITools(mockMapId));
+      const { result } = renderHook(() => useConceptMapAITools(false));
 
       act(() => {
         result.current.openRewriteNodeContentModal(mockNodeId);
@@ -139,11 +141,11 @@ describe('useConceptMapAITools', () => {
 
     it('should call rewriteNodeContentFlow and update modal state', async () => {
       const mockRewrite = { rewrittenText: 'Rewritten content' };
-      (aiFlows.rewriteNodeContentFlow as vi.Mock).mockResolvedValue(
+      (aiFlows.runFlow as vi.Mock).mockResolvedValue(
         mockRewrite
       );
 
-      const { result } = renderHook(() => useConceptMapAITools(mockMapId));
+      const { result } = renderHook(() => useConceptMapAITools(false));
 
       // First, open the modal
       act(() => {
@@ -155,7 +157,7 @@ describe('useConceptMapAITools', () => {
         await result.current.handleRewriteNodeContent('concise');
       });
 
-      expect(aiFlows.rewriteNodeContentFlow).toHaveBeenCalledWith({
+      expect(aiFlows.runFlow).toHaveBeenCalledWith('rewriteNode', {
         text: 'Test Node\n\nSome details.',
         style: 'concise',
         customInstruction: undefined,
@@ -166,5 +168,3 @@ describe('useConceptMapAITools', () => {
     });
   });
 });
-*/
-export {};

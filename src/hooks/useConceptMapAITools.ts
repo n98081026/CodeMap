@@ -1,4 +1,3 @@
-/*
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -23,14 +22,8 @@ import {
   type ExpandConceptOutput,
   type RewriteNodeContentOutput,
 } from '@/ai/flows';
-import {
-  getNodePlacement,
-  type NodeLayoutInput,
-  type EdgeLayoutInput,
-  type DagreLayoutOptions,
-  getDagreLayout,
-} from '@/lib/dagreLayoutUtility';
 import { generateUniqueId } from '@/lib/utils';
+import { getNodePlacement } from '@/lib/dagreLayoutUtility';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 type AICommand =
@@ -401,5 +394,3 @@ export function useConceptMapAITools(isViewOnly: boolean) {
     handleGenerateSnippetFromText,
   };
 }
-*/
-export {};

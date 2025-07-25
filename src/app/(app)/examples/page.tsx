@@ -75,7 +75,7 @@ export default function ExamplesPage() {
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const { setLoadedMap, setIsLoading, setError } = useConceptMapStore(
     React.useCallback(
-      (s: any) => ({
+      (s) => ({
         setLoadedMap: s.setLoadedMap,
         setIsLoading: s.setIsLoading,
         setError: s.setError,

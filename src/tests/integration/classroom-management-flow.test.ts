@@ -1,4 +1,3 @@
-/*
 import { SupabaseClient } from '@supabase/supabase-js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -115,5 +114,3 @@ describe.skip('Integration Test: Classroom Management Flow', () => {
     expect(deleteResult).toBe(true);
   });
 });
-*/
-export {};

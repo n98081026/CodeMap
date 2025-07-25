@@ -246,53 +246,35 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       if (isViewOnlyMode || !currentMap) return;
       onMapPropertiesChange({
         name: e.target.value,
-        isPublic: isPublicValue,
-        sharedWithClassroomId: sharedWithClassroomIdValue,
+        isPublic: currentMap.isPublic,
+        sharedWithClassroomId: currentMap.sharedWithClassroomId || null,
       });
     },
-    [
-      isViewOnlyMode,
-      currentMap,
-      onMapPropertiesChange,
-      isPublicValue,
-      sharedWithClassroomIdValue,
-    ]
+    [isViewOnlyMode, currentMap, onMapPropertiesChange]
   );
 
   const handleIsPublicChange = React.useCallback(
     (checked: boolean) => {
       if (isViewOnlyMode || !currentMap) return;
       onMapPropertiesChange({
-        name: mapNameValue,
+        name: currentMap.name,
         isPublic: checked,
-        sharedWithClassroomId: sharedWithClassroomIdValue,
+        sharedWithClassroomId: currentMap.sharedWithClassroomId || null,
       });
     },
-    [
-      isViewOnlyMode,
-      currentMap,
-      onMapPropertiesChange,
-      mapNameValue,
-      sharedWithClassroomIdValue,
-    ]
+    [isViewOnlyMode, currentMap, onMapPropertiesChange]
   );
 
   const handleSharedIdChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (isViewOnlyMode || !currentMap) return;
       onMapPropertiesChange({
-        name: mapNameValue,
-        isPublic: isPublicValue,
+        name: currentMap.name,
+        isPublic: currentMap.isPublic,
         sharedWithClassroomId: e.target.value.trim() || null,
       });
     },
-    [
-      isViewOnlyMode,
-      currentMap,
-      onMapPropertiesChange,
-      mapNameValue,
-      isPublicValue,
-    ]
+    [isViewOnlyMode, currentMap, onMapPropertiesChange]
   );
 
   const handleInputChangeForPalette = useCallback(
@@ -301,12 +283,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       field: 'label' | 'details',
       ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>
     ) => {
-      if (
-        isViewOnlyMode ||
-        !onSelectedElementPropertyUpdate ||
-        !selectedElement
-      )
-        return;
+      if (isViewOnlyMode || !onSelectedElementPropertyUpdate) return;
 
       // Update the actual property in the store first
       if (field === 'label') {
@@ -428,53 +405,35 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       if (
         isViewOnlyMode ||
         !onSelectedElementPropertyUpdate ||
-        selectedElementType !== 'node' ||
-        !selectedElement
+        selectedElementType !== 'node'
       )
         return;
       onSelectedElementPropertyUpdate({ backgroundColor: e.target.value });
     },
-    [
-      isViewOnlyMode,
-      onSelectedElementPropertyUpdate,
-      selectedElementType,
-      selectedElement,
-    ]
+    [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
 
   const clearNodeBackgroundColor = React.useCallback(() => {
     if (
       isViewOnlyMode ||
       !onSelectedElementPropertyUpdate ||
-      selectedElementType !== 'node' ||
-      !selectedElement
+      selectedElementType !== 'node'
     )
       return;
     onSelectedElementPropertyUpdate({ backgroundColor: undefined });
-  }, [
-    isViewOnlyMode,
-    onSelectedElementPropertyUpdate,
-    selectedElementType,
-    selectedElement,
-  ]);
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]);
 
   const handleNodeShapeChange = React.useCallback(
     (value: 'rectangle' | 'ellipse') => {
       if (
         isViewOnlyMode ||
         !onSelectedElementPropertyUpdate ||
-        selectedElementType !== 'node' ||
-        !selectedElement
+        selectedElementType !== 'node'
       )
         return;
       onSelectedElementPropertyUpdate({ shape: value });
     },
-    [
-      isViewOnlyMode,
-      onSelectedElementPropertyUpdate,
-      selectedElementType,
-      selectedElement,
-    ]
+    [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
 
   const handleNodeDimensionChange = React.useCallback(
@@ -482,8 +441,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       if (
         isViewOnlyMode ||
         !onSelectedElementPropertyUpdate ||
-        selectedElementType !== 'node' ||
-        !selectedElement
+        selectedElementType !== 'node'
       )
         return;
       const numValue = parseInt(value, 10);
@@ -491,82 +449,53 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         !isNaN(numValue) && numValue > 0 ? numValue : undefined;
       onSelectedElementPropertyUpdate({ [dimension]: updateValue });
     },
-    [
-      isViewOnlyMode,
-      onSelectedElementPropertyUpdate,
-      selectedElementType,
-      selectedElement,
-    ]
+    [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
 
   const handleClearNodeDimensions = React.useCallback(() => {
     if (
       isViewOnlyMode ||
       !onSelectedElementPropertyUpdate ||
-      selectedElementType !== 'node' ||
-      !selectedElement
+      selectedElementType !== 'node'
     )
       return;
     onSelectedElementPropertyUpdate({ width: undefined, height: undefined });
-  }, [
-    isViewOnlyMode,
-    onSelectedElementPropertyUpdate,
-    selectedElementType,
-    selectedElement,
-  ]);
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]);
 
   const handleEdgeColorChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (
         isViewOnlyMode ||
         !onSelectedElementPropertyUpdate ||
-        selectedElementType !== 'edge' ||
-        !selectedElement
+        selectedElementType !== 'edge'
       )
         return;
       onSelectedElementPropertyUpdate({ color: e.target.value });
     },
-    [
-      isViewOnlyMode,
-      onSelectedElementPropertyUpdate,
-      selectedElementType,
-      selectedElement,
-    ]
+    [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
 
   const clearEdgeColor = React.useCallback(() => {
     if (
       isViewOnlyMode ||
       !onSelectedElementPropertyUpdate ||
-      selectedElementType !== 'edge' ||
-      !selectedElement
+      selectedElementType !== 'edge'
     )
       return;
     onSelectedElementPropertyUpdate({ color: undefined });
-  }, [
-    isViewOnlyMode,
-    onSelectedElementPropertyUpdate,
-    selectedElementType,
-    selectedElement,
-  ]);
+  }, [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]);
 
   const handleEdgeLineTypeChange = React.useCallback(
     (value: 'solid' | 'dashed') => {
       if (
         isViewOnlyMode ||
         !onSelectedElementPropertyUpdate ||
-        selectedElementType !== 'edge' ||
-        !selectedElement
+        selectedElementType !== 'edge'
       )
         return;
       onSelectedElementPropertyUpdate({ lineType: value });
     },
-    [
-      isViewOnlyMode,
-      onSelectedElementPropertyUpdate,
-      selectedElementType,
-      selectedElement,
-    ]
+    [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
 
   const handleEdgeMarkerChange = React.useCallback(
@@ -574,20 +503,14 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       if (
         isViewOnlyMode ||
         !onSelectedElementPropertyUpdate ||
-        selectedElementType !== 'edge' ||
-        !selectedElement
+        selectedElementType !== 'edge'
       )
         return;
       if (markerEnd === 'start')
         onSelectedElementPropertyUpdate({ markerStart: value });
       else onSelectedElementPropertyUpdate({ markerEnd: value });
     },
-    [
-      isViewOnlyMode,
-      onSelectedElementPropertyUpdate,
-      selectedElementType,
-      selectedElement,
-    ]
+    [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
 
   const aiCommands = useMemo<AICommand[]>(() => {
@@ -602,32 +525,32 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       //   label: 'Expand Node',
       //   icon: Sparkles,
       //   description: 'Generate related ideas',
-      //   action: () => aiToolsHook.openExpandConceptModal(nodeId),
+      //   action: () => openExpandConceptModal(nodeId),
       // },
       // {
       //   id: 'rewrite',
       //   label: 'Rewrite Content',
       //   icon: MessageSquareQuote,
       //   description: 'Refine text using AI',
-      //   action: () => aiToolsHook.openRewriteNodeContentModal(nodeId),
+      //   action: () => openRewriteNodeContentModal(nodeId),
       // },
       // {
       //   id: 'ask',
       //   label: 'Ask Question',
       //   icon: HelpCircle,
       //   description: 'Get insights about this node',
-      //   action: () => aiToolsHook.openAskQuestionModal(nodeId),
+      //   action: () => openAskQuestionModal(nodeId),
       // },
       // {
       //   id: 'extract',
       //   label: 'Extract Concepts',
       //   icon: Brain,
       //   description: 'Identify key concepts from details',
-      //   action: () => aiToolsHook.openExtractConceptsModal(nodeId),
+      //   action: () => openExtractConceptsModal(nodeId),
       // },
       // Add more commands as needed
     ];
-  }, [aiToolsHook, selectedElement, selectedElementType]);
+  }, [selectedElement, selectedElementType]);
 
   const originalHandleElementDetailsChange = React.useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -726,105 +649,15 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   }, []);
 
   const handleTriggerSuggestIntermediateNode = useCallback(async () => {
-    // if (isViewOnlyMode || selectedElementType !== 'edge' || !selectedElement) {
-    //   toast({
-    //     title: 'Action Unavailable',
-    //     description: 'Please select an edge to use this feature.',
-    //     variant: 'default',
-    //   });
-    //   return;
-    // }
-    // const edge = selectedElement as ConceptMapEdge;
-    // const { setStagedMapData } = useConceptMapStore.getState(); // Get setStagedMapData
-    // const sourceNode = useConceptMapStore
-    //   .getState()
-    //   .mapData.nodes.find((n) => n.id === edge.source);
-    // const targetNode = useConceptMapStore
-    //   .getState()
-    //   .mapData.nodes.find((n) => n.id === edge.target);
-    // if (!sourceNode || !targetNode) {
-    //   toast({
-    //     title: 'Error',
-    //     description: 'Source or target node for the selected edge not found.',
-    //     variant: 'destructive',
-    //   });
-    //   return;
-    // }
-    // setIsLoadingAISuggestIntermediateNode(true); // Use new loading state
-    // const loadingToastId = toast({
-    //   title: 'AI Suggestion',
-    //   description: 'Generating intermediate node suggestion...',
-    //   duration: 999999, // Keep toast until dismissed
-    // }).id;
-    // try {
-    //   const flowInput = {
-    //     sourceNodeText: sourceNode.text,
-    //     sourceNodeDetails: sourceNode.details,
-    //     targetNodeText: targetNode.text,
-    //     targetNodeDetails: targetNode.details,
-    //     currentEdgeLabel: edge.label,
-    //   };
-    //   const result = await suggestIntermediateNodeFlow(flowInput);
-    //   if (result && result.intermediateNodeText) {
-    //     // Calculate positions for staging
-    //     const midX =
-    //       (sourceNode.x || 0) + ((targetNode.x || 0) - (sourceNode.x || 0)) / 2;
-    //     const midY =
-    //       (sourceNode.y || 0) + ((targetNode.y || 0) - (sourceNode.y || 0)) / 2;
-    //     const DEFAULT_NODE_WIDTH = 150; // Define or import
-    //     const DEFAULT_NODE_HEIGHT = 70; // Define or import
-    //     const intermediateNode: ConceptMapNode = {
-    //       id: `staged-intermediate-${Date.now()}`,
-    //       text: result.intermediateNodeText,
-    //       details:
-    //         result.intermediateNodeDetails ||
-    //         (result.reasoning ? `AI Rationale: ${result.reasoning}` : ''),
-    //       type: 'ai-intermediate',
-    //       width: DEFAULT_NODE_WIDTH,
-    //       height: DEFAULT_NODE_HEIGHT,
-    //       childIds: [],
-    //     };
-    //     const edgeToIntermediate: ConceptMapEdge = {
-    //       id: `staged-edge1-${intermediateNode.id}-${Date.now()}`,
-    //       source: sourceNode.id,
-    //       target: intermediateNode.id,
-    //       label: result.labelSourceToIntermediate,
-    //     };
-    //     const edgeFromIntermediate: ConceptMapEdge = {
-    //       id: `staged-edge2-${intermediateNode.id}-${Date.now()}`,
-    //       source: intermediateNode.id,
-    //       target: targetNode.id,
-    //       label: result.labelIntermediateToTarget,
-    //     };
-    //     setStagedMapData({
-    //       nodes: [intermediateNode],
-    //       edges: [edgeToIntermediate, edgeFromIntermediate],
-    //       actionType: 'intermediateNode', // To inform the commit logic what to do (e.g., delete original edge)
-    //       originalElementId: edge.id, // Pass original edge ID for deletion on commit
-    //     });
-    //     toast({
-    //       title: 'AI Suggestion Ready',
-    //       description: 'Review the new intermediate node in the staging area.',
-    //     });
-    //   } else {
-    //     toast({
-    //       title: 'AI Suggestion',
-    //       description: 'AI could not suggest an intermediate node.',
-    //       variant: 'default',
-    //     });
-    //   }
-    // } catch (error) {
-    //   console.error('Error suggesting intermediate node:', error);
-    //   toast({
-    //     title: 'AI Error',
-    //     description:
-    //       'Failed to suggest intermediate node. ' +
-    //       (error instanceof Error ? error.message : ''),
-    //     variant: 'destructive',
-    //   });
-    // } finally {
-    //   setIsLoadingAISuggestIntermediateNode(false); // Use new loading state
-    // }
+    if (isViewOnlyMode || selectedElementType !== 'edge' || !selectedElement) {
+      toast({
+        title: 'Action Unavailable',
+        description: 'Please select an edge to use this feature.',
+        variant: 'default',
+      });
+      return;
+    }
+    // The rest of the logic is commented out, but the basic checks are here.
   }, [isViewOnlyMode, selectedElement, selectedElementType, toast]);
 
   // handleConfirmAISuggestion is removed as staging area handles confirmation.
@@ -1226,56 +1059,55 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   );
 
   const handleAskAIAboutNode = useCallback(async () => {
-    // if (
-    //   isViewOnlyMode ||
-    //   !selectedElement ||
-    //   selectedElementType !== 'node' ||
-    //   !nodeQuestion.trim()
-    // ) {
-    //   return;
-    // }
-    // setIsAskingNodeQuestion(true);
-    // setAiNodeAnswer(null);
-    // setAskNodeQuestionError(null);
-    // try {
-    //   const node = selectedElement as ConceptMapNode;
-    //   // Assuming aiToolsHook.askQuestionAboutNode is implemented in useConceptMapAITools
-    //   const result = await aiToolsHook.askQuestionAboutNode(
-    //     node.id,
-    //     node.text,
-    //     node.details,
-    //     node.type,
-    //     nodeQuestion
-    //   );
-    //   if (result.error) {
-    //     setAskNodeQuestionError(result.error);
-    //     setAiNodeAnswer(
-    //       result.answer ||
-    //         'AI could not provide a specific answer due to an error.'
-    //     );
-    //   } else {
-    //     setAiNodeAnswer(result.answer);
-    //   }
-    // } catch (error) {
-    //   const errorMsg =
-    //     error instanceof Error ? error.message : 'An unknown error occurred.';
-    //   setAskNodeQuestionError(errorMsg);
-    //   setAiNodeAnswer('Failed to get an answer from AI.');
-    //   toast({
-    //     title: 'AI Question Error',
-    //     description: errorMsg,
-    //     variant: 'destructive',
-    //   });
-    // } finally {
-    //   setIsAskingNodeQuestion(false);
-    //   // Do not clear nodeQuestion here, user might want to refine it.
-    // }
+    if (
+      isViewOnlyMode ||
+      !selectedElement ||
+      selectedElementType !== 'node' ||
+      !nodeQuestion.trim()
+    ) {
+      return;
+    }
+    setIsAskingNodeQuestion(true);
+    setAiNodeAnswer(null);
+    setAskNodeQuestionError(null);
+    try {
+      const node = selectedElement as ConceptMapNode;
+      // Assuming aiTools.askQuestionAboutNode is implemented
+      // const result = await aiTools.askQuestionAboutNode(
+      //   node.id,
+      //   node.text,
+      //   node.details,
+      //   node.type,
+      //   nodeQuestion
+      // );
+      // if (result.error) {
+      //   setAskNodeQuestionError(result.error);
+      //   setAiNodeAnswer(
+      //     result.answer ||
+      //       'AI could not provide a specific answer due to an error.'
+      //   );
+      // } else {
+      //   setAiNodeAnswer(result.answer);
+      // }
+    } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : 'An unknown error occurred.';
+      setAskNodeQuestionError(errorMsg);
+      setAiNodeAnswer('Failed to get an answer from AI.');
+      toast({
+        title: 'AI Question Error',
+        description: errorMsg,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAskingNodeQuestion(false);
+      // Do not clear nodeQuestion here, user might want to refine it.
+    }
   }, [
     isViewOnlyMode,
     selectedElement,
     selectedElementType,
     nodeQuestion,
-    aiToolsHook,
     toast,
   ]);
 

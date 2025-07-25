@@ -85,7 +85,7 @@ interface FlowCanvasCoreProps {
     lineType?: 'solid' | 'dashed';
     markerStart?: string;
     markerEnd?: string;
-  }) => string;
+  }) => string | undefined;
   onNodeContextMenuRequest?: (
     event: React.MouseEvent,
     node: RFNode<CustomNodeData>
@@ -177,32 +177,22 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] =
     useEdgesState<OrthogonalEdgeData>([]);
 
-  const { stagedMapData, isStagingActive } = useConceptMapStore(
-    useCallback(
-      (s: any) => ({
-        stagedMapData: s.stagedMapData,
-        isStagingActive: s.isStagingActive,
-        ghostPreviewData: s.ghostPreviewData,
-        focusViewOnNodeIds: s.focusViewOnNodeIds,
-        triggerFocusView: s.triggerFocusView,
-        clearFocusViewTrigger: s.clearFocusViewTrigger,
-      }),
-      []
-    )
-  );
-
   const {
+    stagedMapData,
+    isStagingActive,
     focusViewOnNodeIds,
     triggerFocusView: triggerFocusViewFromStore,
     clearFocusViewTrigger,
     ghostPreviewData,
   } = useConceptMapStore(
     useCallback(
-      (s: any) => ({
+      (s) => ({
+        stagedMapData: s.stagedMapData,
+        isStagingActive: s.isStagingActive,
+        ghostPreviewData: s.ghostPreviewData,
         focusViewOnNodeIds: s.focusViewOnNodeIds,
         triggerFocusView: s.triggerFocusView,
         clearFocusViewTrigger: s.clearFocusViewTrigger,
-        ghostPreviewData: s.ghostPreviewData,
       }),
       []
     )
@@ -606,7 +596,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   );
 
   const handleNodeRelationDrop = useCallback(
-    (event: React.DragEvent, targetNode: RFNode<any>) => {
+    (event: React.DragEvent, targetNode: RFNode<CustomNodeData>) => {
       if (isViewOnlyMode || !reactFlowWrapperRef.current) return;
       const dataString = event.dataTransfer.getData('application/json');
       if (!dataString) return;
@@ -963,7 +953,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         selectable: false,
       });
     }
-    return baseNodes as any;
+    return baseNodes;
   }, [
     rfNodes,
     rfStagedNodes,
@@ -1003,7 +993,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         };
       });
     baseEdges = [...baseEdges, ...newSuggestionEdges];
-    return baseEdges as any;
+    return baseEdges;
   }, [rfEdges, rfStagedEdges, structuralSuggestions]);
 
   const handleNodeClickInternal = useCallback(
@@ -1087,12 +1077,11 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         onNodeClick={handleNodeClickInternal}
         onPaneDoubleClick={handlePaneDoubleClickInternal}
         onPaneContextMenu={handlePaneContextMenuInternal}
-        onNodeDragStop={onNodeDragStopInternal}
         onDragOver={handleCanvasDragOver}
         onDrop={handleCanvasDrop}
         onDragLeave={handleCanvasDragLeave}
         nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes as any}
+        edgeTypes={edgeTypes}
         activeSnapLines={activeSnapLinesLocal}
         panActivationKeyCode={panActivationKeyCode}
         activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}

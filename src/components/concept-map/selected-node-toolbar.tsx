@@ -134,7 +134,9 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
       <Button
         variant='ghost'
         size='icon'
-        onClick={() => {}} // Use the new handler
+        onClick={() => {
+          // Placeholder for Dagre layout logic
+        }}
         title='Auto-Layout Selection (Dagre)'
         disabled={numMultiSelectedNodes < 2 || isViewOnlyMode} // Also disable in view-only mode
       >

@@ -1,4 +1,3 @@
-/*
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -184,5 +183,3 @@ describe.skip('AISuggestionPanel', () => {
     expect(onAddSuggestedRelations).toHaveBeenCalledWith([mockRelations[0]]);
   });
 });
-*/
-export {};
