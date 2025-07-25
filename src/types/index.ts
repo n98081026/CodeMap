@@ -30,7 +30,25 @@ export interface Classroom {
 export interface ConceptMapNode {
   id: string;
   text: string;
-  type: string;
+  type:
+    | 'default'
+    | 'manual-node'
+    | 'key_feature'
+    | 'service_component'
+    | 'ui_view'
+    | 'data_model'
+    | 'code_module'
+    | 'external_dependency'
+    | 'user_role'
+    | 'core_process'
+    | 'security_concept'
+    | 'ai-concept'
+    | 'ai-expanded'
+    | 'ai-summary-node'
+    | 'ai-rewritten-node'
+    | 'text-derived-concept'
+    | 'ai-generated'
+    | 'ai-group-parent';
   details?: string;
   x?: number;
   y?: number;

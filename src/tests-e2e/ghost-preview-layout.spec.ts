@@ -44,9 +44,7 @@ test.describe('Ghost Preview Layout Flow (Dagre Tidy)', () => {
     console.log('POM: All three nodes selected.');
   }
 
-  async function getNodesInitialPositions(
-    page: import('@playwright/test').Page
-  ) {
+  async function getNodesInitialPositions() {
     const nodes = await editorPage.getNodesOnCanvas();
     const initialPositions: Array<{ id: string | null; x: number; y: number }> =
       [];

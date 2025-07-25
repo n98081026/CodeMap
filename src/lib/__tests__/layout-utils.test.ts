@@ -1,6 +1,6 @@
-// src/lib/layout-utils.test.ts
-import { getNodePlacement } from '../layout-utils';
 import { describe, it, expect } from 'vitest';
+
+import { getNodePlacement } from '../layout-utils';
 
 import type { ConceptMapNode } from '@/types';
 
@@ -54,7 +54,7 @@ describe('getNodePlacement', () => {
       expect(y).toBe(Math.round(expectedY / gridSize) * gridSize);
     });
 
-  it('should place child to the left of parent', () => {
+    it('should place child to the left of parent', () => {
       const defaultNodeWidth = 160;
       const expectedX = parent.x! - 180 - defaultNodeWidth; // CHILD_X_OFFSET_DIRECT - defaultNodeWidth
       const expectedY = parent.y! + parent.height! / 2 - 70 / 2;
@@ -87,7 +87,7 @@ describe('getNodePlacement', () => {
       expect(y).toBe(Math.round(expectedY / gridSize) * gridSize);
     });
 
-  it('should place child below parent', () => {
+    it('should place child below parent', () => {
       const defaultNodeWidth = 160;
       const expectedX = parent.x! + parent.width! / 2 - defaultNodeWidth / 2;
       const expectedY = parent.y! + parent.height! + 100; // CHILD_Y_OFFSET_VERTICAL

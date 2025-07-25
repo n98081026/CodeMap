@@ -10,7 +10,6 @@ import {
   PlusSquare,
   Spline,
   Shuffle,
-  LayoutPanelLeft,
   BoxSelect,
   LayoutGrid,
   ScanSearch,
@@ -34,14 +33,11 @@ import {
   MessagesSquare,
   GraduationCap,
   Grid,
-  Network,
   AlignHorizontalDistributeCenter,
   BrainCircuit,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState, useCallback } from 'react';
-
-import type { AIFetchAllStructuralSuggestionsInput } from '@/types/ai-shared';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -116,9 +112,7 @@ interface EditorToolbarProps {
   isSummarizingMap?: boolean;
   onAskQuestionAboutMapContext?: () => void;
   isAskingAboutMapContext?: boolean;
-  onTidySelection?: () => void;
   onSuggestMapImprovements?: () => void;
-  isSuggestingMapImprovements?: boolean;
   onApplySemanticTidyUp?: () => void;
   isApplyingSemanticTidyUp?: boolean;
   onAiTidySelection?: () => void;
@@ -170,9 +164,6 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
   onAskQuestionAboutMapContext,
   isAskingAboutMapContext,
-  onTidySelection,
-  onSuggestMapImprovements,
-  isSuggestingMapImprovements,
   onApplySemanticTidyUp,
   isApplyingSemanticTidyUp,
   onAiTidySelection,
@@ -185,9 +176,14 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
   const currentMapId = useConceptMapStore((s: any) => s.mapId);
-  const isFetchingOverview = useConceptMapStore((s: any) => s.isFetchingOverview);
+  const isFetchingOverview = useConceptMapStore(
+    (s: any) => s.isFetchingOverview
+  );
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback((s: any) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
+    useCallback(
+      (s: any) => ({ startOrResumeTutorial: s.startOrResumeTutorial }),
+      []
+    )
   );
 
   // TEMP: Button to test manualAddNodeTutorial
@@ -222,21 +218,8 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
   const isExpandConceptDisabled =
     isViewOnlyMode || !selectedNodeId || numMultiSelectedNodes > 1;
-  const getExpandConceptTooltip = () => {
-    if (isViewOnlyMode) return 'Expand Concept (Disabled in View Mode)';
-    if (!selectedNodeId) return 'Expand Concept (Select a node first)';
-    if (numMultiSelectedNodes > 1)
-      return 'Expand Concept (Select a single node)';
-    return 'Expand Selected Concept (AI)';
-  };
 
   const isSummarizeNodesDisabled = isViewOnlyMode || numMultiSelectedNodes < 2;
-  const getSummarizeNodesTooltip = () => {
-    if (isViewOnlyMode) return 'Summarize Selection (Disabled in View Mode)';
-    if (numMultiSelectedNodes < 2)
-      return 'Summarize Selection (Select 2+ nodes)';
-    return 'Summarize Selection (AI)';
-  };
 
   const numMultiSelectedNodeIds = useConceptMapStore(
     (s: any) => s.multiSelectedNodeIds
@@ -660,78 +643,76 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </DropdownMenu>
 
         {/* AI Suggestion Tools that are direct buttons */}
-        {onSuggestMapImprovements && ( // This was the BrainCircuit button logic from master
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='ghost'
-                size='icon'
-                onClick={async () => {
-                  if (isViewOnlyMode) {
-                    return;
-                  }
-                  setIsLoadingSuggestions(true);
-                  try {
-                    const currentMapData = (store as any).getState().mapData;
-                    const flowInput = {
-                      nodes: currentMapData.nodes.map((n: any) => ({
-                        id: n.id,
-                        text: n.text,
-                        details: n.details || '',
-                      })),
-                      edges: currentMapData.edges.map((e: any) => ({
-                        source: e.source,
-                        target: e.target,
-                        label: e.label || '',
-                      })),
-                    };
-                    // const results = await runFlow(
-                    //   fetchAllStructuralSuggestionsFlow,
-                    //   flowInput as any
-                    // );
-                    const results = [] as any;
-                    (store as any).setStructuralSuggestions(results);
-                    toast({
-                      title: 'AI Suggestions',
-                      description: `Received ${results.length} structural suggestions.`,
-                    });
-                  } catch (error) {
-                    console.error(
-                      'Failed to fetch structural suggestions',
-                      error
-                    );
-                    toast({
-                      title: 'Error',
-                      description: 'Failed to fetch AI structural suggestions.',
-                      variant: 'destructive',
-                    });
-                    (store as any).clearStructuralSuggestions();
-                  } finally {
-                    setIsLoadingSuggestions(false);
-                  }
-                }}
-                disabled={
-                  isViewOnlyMode || isLoadingSuggestions || showCopyButton
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={async () => {
+                if (isViewOnlyMode) {
+                  return;
                 }
-              >
-                {isLoadingSuggestions ? (
-                  <Loader2 className='h-5 w-5 animate-spin' />
-                ) : (
-                  <BrainCircuit className='h-5 w-5' />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {showCopyButton
-                ? 'Log in to use AI tools'
-                : isViewOnlyMode
-                  ? 'Suggest Improvements (Disabled)'
-                  : isLoadingSuggestions
-                    ? 'Loading...'
-                    : 'Suggest Structural Improvements (AI)'}
-            </TooltipContent>
-          </Tooltip>
-        )}
+                setIsLoadingSuggestions(true);
+                try {
+                  const currentMapData = (store as any).getState().mapData;
+                  const flowInput = {
+                    nodes: currentMapData.nodes.map((n: any) => ({
+                      id: n.id,
+                      text: n.text,
+                      details: n.details || '',
+                    })),
+                    edges: currentMapData.edges.map((e: any) => ({
+                      source: e.source,
+                      target: e.target,
+                      label: e.label || '',
+                    })),
+                  };
+                  // const results = await runFlow(
+                  //   fetchAllStructuralSuggestionsFlow,
+                  //   flowInput as any
+                  // );
+                  const results = [] as any;
+                  (store as any).setStructuralSuggestions(results);
+                  toast({
+                    title: 'AI Suggestions',
+                    description: `Received ${results.length} structural suggestions.`,
+                  });
+                } catch (error) {
+                  console.error(
+                    'Failed to fetch structural suggestions',
+                    error
+                  );
+                  toast({
+                    title: 'Error',
+                    description: 'Failed to fetch AI structural suggestions.',
+                    variant: 'destructive',
+                  });
+                  (store as any).clearStructuralSuggestions();
+                } finally {
+                  setIsLoadingSuggestions(false);
+                }
+              }}
+              disabled={
+                isViewOnlyMode || isLoadingSuggestions || showCopyButton
+              }
+            >
+              {isLoadingSuggestions ? (
+                <Loader2 className='h-5 w-5 animate-spin' />
+              ) : (
+                <BrainCircuit className='h-5 w-5' />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {showCopyButton
+              ? 'Log in to use AI tools'
+              : isViewOnlyMode
+                ? 'Suggest Improvements (Disabled)'
+                : isLoadingSuggestions
+                  ? 'Loading...'
+                  : 'Suggest Structural Improvements (AI)'}
+          </TooltipContent>
+        </Tooltip>
 
         {!isViewOnlyMode &&
           !showCopyButton &&

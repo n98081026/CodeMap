@@ -1,5 +1,3 @@
-// src/lib/layout-utils.ts
-
 import type { ConceptMapNode } from '@/types';
 import type { RFLayoutNode, SnapResult } from '@/types/graph-adapter';
 
@@ -8,8 +6,6 @@ const CHILD_Y_OFFSET_DIRECT = 0; // For direct right/left, try to align vertical
 const CHILD_Y_OFFSET_VERTICAL = 100; // For direct top/bottom
 const CHILD_X_OFFSET_VERTICAL = 0;
 
-const CHILD_X_OFFSET_SPIRAL = 180;
-const CHILD_Y_OFFSET_SPIRAL = 90;
 const SIBLING_Y_OFFSET = 120;
 
 interface NodePosition {
@@ -88,7 +84,7 @@ export function getNodePlacement(
           : Math.max(1, childIndex + 1);
       const angleStep =
         (2 * Math.PI) / Math.max(1, totalSiblings > 3 ? 6 : totalSiblings); // Distribute more widely for more items
-      const radius = CHILD_X_OFFSET_SPIRAL * (0.6 + childIndex * 0.05); // Slightly increasing radius
+      const radius = 180 * (0.6 + childIndex * 0.05); // Slightly increasing radius
 
       if (childIndex === 0 && totalSiblings === 1) {
         finalX = parentNode.x + parentW + 60;

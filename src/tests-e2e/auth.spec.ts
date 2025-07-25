@@ -33,9 +33,7 @@ test.describe('Authentication Flows', () => {
     // await expect(page.getByRole('heading', { name: /dashboard/i, level: 1 })).toBeVisible();
   });
 
-  test('should show an error message for invalid credentials', async ({
-    page,
-  }) => {
+  test('should show an error message for invalid credentials', async () => {
     await loginPage.login('wrong@example.com', 'wrongpassword');
 
     // Identificare il selettore per il messaggio di errore.

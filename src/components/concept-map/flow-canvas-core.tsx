@@ -16,7 +16,6 @@ import {
   type OnEdgesChange,
   type OnNodesDelete,
   type OnEdgesDelete,
-  type NodeSelectionChange,
   type Connection,
   useReactFlow,
 } from 'reactflow';
@@ -39,20 +38,18 @@ import type { CustomNodeData } from './custom-node';
 import type {
   ConceptMapData,
   ConceptMapNode,
-  ConceptMapEdge,
   VisualEdgeSuggestion,
 } from '@/types';
 import type { SnapResult, RFLayoutNode } from '@/types/graph-adapter'; // Import moved types
 
-import { useToast } from '@/hooks/use-toast';
 import { calculateSnappedPositionAndLines } from '@/lib/layout-utils'; // Import moved function
 import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 interface ExtractedConceptItem {
-    concept: string;
-    context?: string;
-    source?: string;
+  concept: string;
+  context?: string;
+  source?: string;
 }
 
 const GRID_SIZE = 20;
@@ -85,7 +82,7 @@ interface FlowCanvasCoreProps {
     lineType?: 'solid' | 'dashed';
     markerStart?: string;
     markerEnd?: string;
-  }) => string;
+  }) => string | undefined;
   onNodeContextMenuRequest?: (
     event: React.MouseEvent,
     node: RFNode<CustomNodeData>
@@ -137,7 +134,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   useConceptMapStore
     .getState()
     .addDebugLog(
-      `[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${mapDataFromStore.nodes?.length ?? 'N/A'}`
+      `[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${
+        mapDataFromStore.nodes?.length ?? 'N/A'
+      }`
     );
   const {
     addNode: addNodeToStore,
@@ -157,7 +156,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     // structuralGroupSuggestions, // This was removed from the store selector in a previous step, ensure it's not used or re-add if necessary
   } = useConceptMapStore();
 
-  const { toast } = useToast();
   const reactFlowInstance = useReactFlow();
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -177,7 +175,14 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const [rfEdges, setRfEdges, onEdgesChangeReactFlow] =
     useEdgesState<OrthogonalEdgeData>([]);
 
-  const { stagedMapData, isStagingActive } = useConceptMapStore(
+  const {
+    stagedMapData,
+    isStagingActive,
+    focusViewOnNodeIds,
+    triggerFocusView: triggerFocusViewFromStore,
+    clearFocusViewTrigger,
+    ghostPreviewData,
+  } = useConceptMapStore(
     useCallback(
       (s: any) => ({
         stagedMapData: s.stagedMapData,
@@ -191,27 +196,10 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     )
   );
 
-  const {
-    focusViewOnNodeIds,
-    triggerFocusView: triggerFocusViewFromStore,
-    clearFocusViewTrigger,
-    ghostPreviewData,
-  } = useConceptMapStore(
-    useCallback(
-      (s: any) => ({
-        focusViewOnNodeIds: s.focusViewOnNodeIds,
-        triggerFocusView: s.triggerFocusView,
-        clearFocusViewTrigger: s.clearFocusViewTrigger,
-        ghostPreviewData: s.ghostPreviewData,
-      }),
-      []
-    )
+  const [rfStagedNodes, setRfStagedNodes] = useNodesState<CustomNodeData>([]);
+  const [rfStagedEdges, setRfStagedEdges] = useEdgesState<OrthogonalEdgeData>(
+    []
   );
-
-  const [rfStagedNodes, setRfStagedNodes, onStagedNodesChangeReactFlow] =
-    useNodesState<CustomNodeData>([]);
-  const [rfStagedEdges, setRfStagedEdges, onStagedEdgesChangeReactFlow] =
-    useEdgesState<OrthogonalEdgeData>([]);
 
   const edgeTypes = useMemo(
     () => ({
@@ -455,11 +443,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [
-    connectingNodeId,
-    storeCancelConnection,
-    reactFlowWrapperRef,
-  ]);
+  }, [connectingNodeId, storeCancelConnection, reactFlowWrapperRef]);
 
   useEffect(() => {
     if (!reactFlowInstance || !reactFlowWrapperRef.current) return;
@@ -473,11 +457,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     return () => {
       if (paneElement) paneElement.style.cursor = 'default';
     };
-  }, [
-    connectingNodeId,
-    reactFlowInstance,
-    reactFlowWrapperRef,
-  ]);
+  }, [connectingNodeId, reactFlowInstance, reactFlowWrapperRef]);
 
   const onNodeDragInternal = useCallback(
     (
@@ -496,12 +476,14 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         return;
       }
       // Ensure allNodes are cast or mapped to RFLayoutNode if necessary
-      const layoutNodesToSnapAgainst: RFLayoutNode[] = allNodes.map((n: any) => ({
-        id: n.id,
-        ...n.position,
-        width: n.width || 0,
-        height: n.height || 0,
-      })); // Assuming RFNode<CustomNodeData> is compatible enough for now
+      const layoutNodesToSnapAgainst: RFLayoutNode[] = allNodes.map(
+        (n: any) => ({
+          id: n.id,
+          ...n.position,
+          width: n.width || 0,
+          height: n.height || 0,
+        })
+      ); // Assuming RFNode<CustomNodeData> is compatible enough for now
 
       const { snappedPosition, activeSnapLines } =
         calculateSnappedPositionAndLines(
@@ -534,9 +516,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     (_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>) => {
       if (isViewOnlyMode || !draggedNode.positionAbsolute) return;
       setActiveSnapLinesLocal([]);
-      let finalX =
+      const finalX =
         Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
-      let finalY =
+      const finalY =
         Math.round(draggedNode.positionAbsolute.y / GRID_SIZE) * GRID_SIZE;
       onNodesChangeInStore(draggedNode.id, {
         x: finalX,
@@ -605,14 +587,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     [isViewOnlyMode, onConnectInStore, onNewEdgeSuggestLabels]
   );
 
-  const handleNodeRelationDrop = useCallback(
-    (event: React.DragEvent, targetNode: RFNode<any>) => {
-      if (isViewOnlyMode || !reactFlowWrapperRef.current) return;
-      const dataString = event.dataTransfer.getData('application/json');
-      if (!dataString) return;
-    },
-    [isViewOnlyMode, reactFlowWrapperRef]
-  );
+  const handleNodeRelationDrop = useCallback(() => {
+    if (isViewOnlyMode || !reactFlowWrapperRef.current) return;
+  }, [isViewOnlyMode]);
 
   const handleRfSelectionChange = useCallback(
     (selection: any) => {
@@ -656,7 +633,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       ) {
         onSelectionChange(null, null);
       }
-      onMultiNodeSelectionChange?.(mainSelectedNodes.map((node: any) => node.id));
+      onMultiNodeSelectionChange?.(
+        mainSelectedNodes.map((node: any) => node.id)
+      );
     },
     [
       onSelectionChange,
@@ -795,7 +774,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
 
   const combinedNodes = useMemo(() => {
     const ghostNodeIds = new Set(
-      ghostPreviewData?.nodes.map((n) => n.id) || []
+      ghostPreviewData?.nodes.map((n: any) => n.id) || []
     );
     const updatedRfNodes = rfNodes.map((node) => {
       if (ghostNodeIds.has(node.id)) {
@@ -804,27 +783,33 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       return node;
     });
 
-    let baseNodes: RFNode<CustomNodeData>[] = [...updatedRfNodes, ...rfStagedNodes];
+    let baseNodes: RFNode<CustomNodeData>[] = [
+      ...updatedRfNodes,
+      ...rfStagedNodes,
+    ];
     const currentMapNodesForSuggestions = mapDataFromStore.nodes;
 
     if (ghostPreviewData) {
-      const ghostNodesToAdd = ghostPreviewData.nodes.map((ghostNodeInfo: any) => ({
-        id: `ghost-${ghostNodeInfo.id}`,
-        type: 'ghostNode',
-        position: { x: ghostNodeInfo.x, y: ghostNodeInfo.y },
-        data: {
-          id: ghostNodeInfo.id,
-          width: ghostNodeInfo.width,
-          height: ghostNodeInfo.height,
-          label:
-            currentMapNodesForSuggestions.find((n) => n.id === ghostNodeInfo.id)
-              ?.text || '',
-        },
-        draggable: false,
-        selectable: false,
-        connectable: false,
-        zIndex: 200,
-      }));
+      const ghostNodesToAdd = ghostPreviewData.nodes.map(
+        (ghostNodeInfo: any) => ({
+          id: `ghost-${ghostNodeInfo.id}`,
+          type: 'ghostNode',
+          position: { x: ghostNodeInfo.x, y: ghostNodeInfo.y },
+          data: {
+            id: ghostNodeInfo.id,
+            width: ghostNodeInfo.width,
+            height: ghostNodeInfo.height,
+            label:
+              currentMapNodesForSuggestions.find(
+                (n) => n.id === ghostNodeInfo.id
+              )?.text || '',
+          },
+          draggable: false,
+          selectable: false,
+          connectable: false,
+          zIndex: 200,
+        })
+      );
       baseNodes = [...baseNodes, ...ghostNodesToAdd];
     }
 
@@ -898,7 +883,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
           minY = Infinity,
           maxX = -Infinity,
           maxY = -Infinity;
-        groupNodes.forEach((n) => {
+        groupNodes.forEach((n: any) => {
           minX = Math.min(minX, n.x!);
           minY = Math.min(minY, n.y!);
           maxX = Math.max(maxX, n.x! + n.width!);
@@ -963,7 +948,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         selectable: false,
       });
     }
-    return baseNodes as any;
+    return baseNodes;
   }, [
     rfNodes,
     rfStagedNodes,
@@ -976,7 +961,10 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   ]);
 
   const combinedEdges = useMemo(() => {
-    let baseEdges: RFEdge<OrthogonalEdgeData>[] = [...rfEdges, ...rfStagedEdges];
+    let baseEdges: RFEdge<OrthogonalEdgeData>[] = [
+      ...rfEdges,
+      ...rfStagedEdges,
+    ];
     const newSuggestionEdges = (structuralSuggestions || [])
       .filter((suggestion: any) => suggestion.type === 'ADD_EDGE')
       .map((suggestion: any) => {
@@ -1003,7 +991,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         };
       });
     baseEdges = [...baseEdges, ...newSuggestionEdges];
-    return baseEdges as any;
+    return baseEdges;
   }, [rfEdges, rfStagedEdges, structuralSuggestions]);
 
   const handleNodeClickInternal = useCallback(
@@ -1045,20 +1033,17 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     ]
   );
 
-  const handlePaneClickInternal = useCallback(
-    (event: React.MouseEvent) => {
-      const currentConnectingNodeId =
-        useConceptMapStore.getState().connectingNodeId;
-      if (currentConnectingNodeId) {
-        storeCancelConnection();
-        if (reactFlowWrapperRef.current)
-          reactFlowWrapperRef.current.classList.remove('cursor-crosshair');
-      } else {
-        onSelectionChange(null, null);
-      }
-    },
-    [storeCancelConnection, onSelectionChange, reactFlowWrapperRef]
-  );
+  const handlePaneClickInternal = useCallback(() => {
+    const currentConnectingNodeId =
+      useConceptMapStore.getState().connectingNodeId;
+    if (currentConnectingNodeId) {
+      storeCancelConnection();
+      if (reactFlowWrapperRef.current)
+        reactFlowWrapperRef.current.classList.remove('cursor-crosshair');
+    } else {
+      onSelectionChange(null, null);
+    }
+  }, [storeCancelConnection, onSelectionChange, reactFlowWrapperRef]);
 
   return (
     <div
@@ -1087,12 +1072,11 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         onNodeClick={handleNodeClickInternal}
         onPaneDoubleClick={handlePaneDoubleClickInternal}
         onPaneContextMenu={handlePaneContextMenuInternal}
-        onNodeDragStop={onNodeDragStopInternal}
         onDragOver={handleCanvasDragOver}
         onDrop={handleCanvasDrop}
         onDragLeave={handleCanvasDragLeave}
         nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes as any}
+        edgeTypes={edgeTypes}
         activeSnapLines={activeSnapLinesLocal}
         panActivationKeyCode={panActivationKeyCode}
         activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}

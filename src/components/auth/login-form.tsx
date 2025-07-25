@@ -153,7 +153,7 @@ export function LoginForm() {
             <p className='font-semibold'>Admin Login Note:</p>
             <p className='mt-1'>
               Ensure your admin account is registered in the Supabase project
-              with the 'admin' role.
+              with the &apos;admin&apos; role.
             </p>
           </div>
         )}

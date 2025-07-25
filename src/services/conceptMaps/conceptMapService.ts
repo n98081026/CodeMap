@@ -7,13 +7,7 @@
 
 import type { ConceptMap, ConceptMapData } from '@/types';
 
-import {
-  BYPASS_AUTH_FOR_TESTING,
-  MOCK_STUDENT_USER,
-  MOCK_TEACHER_USER,
-  MOCK_CONCEPT_MAPS_STORE,
-  MOCK_CLASSROOM_SHARED,
-} from '@/lib/config'; // Use MOCK_CONCEPT_MAPS_STORE
+import { BYPASS_AUTH_FOR_TESTING, MOCK_CONCEPT_MAPS_STORE } from '@/lib/config'; // Use MOCK_CONCEPT_MAPS_STORE
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService'; // To validate ownerId
 
@@ -60,7 +54,7 @@ export async function createConceptMap(
     .insert({
       name,
       owner_id: ownerId,
-      map_data: (mapData as any) || { nodes: [], edges: [] },
+      map_data: mapData || { nodes: [], edges: [] },
       is_public: isPublic,
       shared_with_classroom_id: sharedWithClassroomId || null,
     })
@@ -133,7 +127,7 @@ export async function getConceptMapById(
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: (data.map_data as any) || { nodes: [], edges: [] },
+    mapData: data.map_data || { nodes: [], edges: [] },
     isPublic: data.is_public ?? false,
     sharedWithClassroomId: data.shared_with_classroom_id ?? null,
     createdAt: data.created_at,
@@ -252,7 +246,7 @@ export async function getConceptMapsByOwnerId(
         id: m.id,
         name: m.name,
         ownerId: m.owner_id,
-        mapData: (m.map_data as any) || { nodes: [], edges: [] },
+        mapData: m.map_data || { nodes: [], edges: [] },
         isPublic: m.is_public ?? false,
         sharedWithClassroomId: m.shared_with_classroom_id ?? null,
         createdAt: m.created_at,
@@ -375,7 +369,7 @@ export async function getConceptMapsByClassroomId(
         id: m.id,
         name: m.name,
         ownerId: m.owner_id,
-        mapData: (m.map_data as any) || { nodes: [], edges: [] },
+        mapData: m.map_data || { nodes: [], edges: [] },
         isPublic: m.is_public ?? false,
         sharedWithClassroomId: m.shared_with_classroom_id ?? null,
         createdAt: m.created_at,
@@ -420,12 +414,12 @@ export async function updateConceptMap(
     throw new Error('User not authorized to update this concept map.');
   }
 
-  const supabaseUpdates: any = {};
+  const supabaseUpdates: { [key: string]: any } = {};
   if (updates.name !== undefined) supabaseUpdates.name = updates.name;
   if (updates.mapData !== undefined) supabaseUpdates.map_data = updates.mapData;
   if (updates.isPublic !== undefined)
     supabaseUpdates.is_public = updates.isPublic;
-  if (updates.hasOwnProperty('sharedWithClassroomId')) {
+  if (Object.prototype.hasOwnProperty.call(updates, 'sharedWithClassroomId')) {
     supabaseUpdates.shared_with_classroom_id = updates.sharedWithClassroomId;
   }
 
@@ -452,7 +446,7 @@ export async function updateConceptMap(
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: (data.map_data as any) || { nodes: [], edges: [] },
+    mapData: data.map_data || { nodes: [], edges: [] },
     isPublic: data.is_public ?? false,
     sharedWithClassroomId: data.shared_with_classroom_id ?? null,
     createdAt: data.created_at,

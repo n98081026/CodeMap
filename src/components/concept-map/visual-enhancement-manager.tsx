@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Sparkles,
   Layout,
@@ -10,8 +10,6 @@ import {
   Circle,
   TreePine,
   Shuffle,
-  Play,
-  Pause,
 } from 'lucide-react';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 
@@ -25,9 +23,7 @@ import {
   EnhancedEdge,
   ParticleEffect,
   PulseWave,
-  AnimatedConnection,
   MagicAura,
-  ENHANCED_ANIMATIONS,
 } from './enhanced-visual-effects';
 
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
@@ -105,17 +101,6 @@ export function VisualEnhancementManager({
     }
   }, []);
 
-  // 移除視覺效果
-  const removeVisualEffect = useCallback((effectId: string) => {
-    setVisualEffects((prev) => prev.filter((e) => e.id !== effectId));
-
-    const timeout = effectTimeoutRef.current.get(effectId);
-    if (timeout) {
-      clearTimeout(timeout);
-      effectTimeoutRef.current.delete(effectId);
-    }
-  }, []);
-
   // 節點點擊處理
   const handleNodeClick = useCallback(
     (nodeId: string) => {
@@ -130,8 +115,8 @@ export function VisualEnhancementManager({
       addVisualEffect({
         type: 'pulse',
         position: {
-              x: (node.x || 0) + (node.width || 150) / 2,
-              y: (node.y || 0) + (node.height || 70) / 2,
+          x: (node.x || 0) + (node.width || 150) / 2,
+          y: (node.y || 0) + (node.height || 70) / 2,
         },
         isActive: true,
         duration: 1000,

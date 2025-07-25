@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setRunTutorialState,
   } = useTutorialStore(
     useCallback(
-      (s) => ({
+      (s: any) => ({
         startOrResumeTutorial: s.startOrResumeTutorial,
         activeTutorialKey: s.activeTutorialKey,
         runTutorial: s.runTutorial,

@@ -7,13 +7,11 @@ import { useToast } from './use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import {
   BYPASS_AUTH_FOR_TESTING,
-  MOCK_ADMIN_USER,
+  MOCK_ADMIN_USER_V3,
   MOCK_USERS,
   MOCK_CLASSROOM_SHARED,
   MOCK_CLASSROOM_TEACHER_OWNED,
 } from '@/lib/config';
-import { getAllClassrooms as getAllClassroomsService } from '@/services/classrooms/classroomService';
-import { getAllUsers as getAllUsersService } from '@/services/users/userService';
 import { UserRole } from '@/types';
 
 interface MetricState {
@@ -65,10 +63,7 @@ export function useAdminDashboardMetrics(): AdminDashboardMetrics {
         error: null,
       });
       setClassroomsMetric({
-        count: [
-          MOCK_CLASSROOM_SHARED,
-          MOCK_CLASSROOM_TEACHER_OWNED,
-        ].length,
+        count: [MOCK_CLASSROOM_SHARED, MOCK_CLASSROOM_TEACHER_OWNED].length,
         isLoading: false,
         error: null,
       });
@@ -82,7 +77,9 @@ export function useAdminDashboardMetrics(): AdminDashboardMetrics {
       if (!usersResponse.ok) {
         const errData = await usersResponse.json();
         throw new Error(
-          `Failed to fetch users: ${errData.message || usersResponse.statusText}`
+          `Failed to fetch users: ${
+            errData.message || usersResponse.statusText
+          }`
         );
       }
       const usersData = await usersResponse.json();
@@ -108,13 +105,12 @@ export function useAdminDashboardMetrics(): AdminDashboardMetrics {
       if (!classroomsResponse.ok) {
         const errData = await classroomsResponse.json();
         throw new Error(
-          `Failed to fetch classrooms: ${errData.message || classroomsResponse.statusText}`
+          `Failed to fetch classrooms: ${
+            errData.message || classroomsResponse.statusText
+          }`
         );
       }
-      const classroomsData = (await classroomsResponse.json()) as {
-        classrooms: any[];
-        totalCount: number;
-      };
+      const classroomsData = await classroomsResponse.json();
       setClassroomsMetric({
         count: classroomsData.totalCount,
         isLoading: false,

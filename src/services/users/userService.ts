@@ -12,7 +12,7 @@ import {
   MOCK_USERS,
   MOCK_STUDENT_USER,
   MOCK_TEACHER_USER,
-  MOCK_ADMIN_USER,
+  MOCK_ADMIN_USER_V3,
 } from '@/lib/config';
 import { supabase } from '@/lib/supabaseClient';
 import { UserRole } from '@/types';
@@ -212,7 +212,7 @@ export async function updateUser(
     if (userIndex === -1) throw new Error('Mock user not found for update.');
 
     const mockUserIdsToRestrict = [
-      MOCK_ADMIN_USER.id,
+      MOCK_ADMIN_USER_V3.id,
       MOCK_STUDENT_USER.id,
       MOCK_TEACHER_USER.id,
     ];
@@ -302,7 +302,7 @@ export async function updateUser(
 export async function deleteUser(userId: string): Promise<boolean> {
   if (BYPASS_AUTH_FOR_TESTING) {
     const mockUserIdsToRestrict = [
-      MOCK_ADMIN_USER.id,
+      MOCK_ADMIN_USER_V3.id,
       MOCK_STUDENT_USER.id,
       MOCK_TEACHER_USER.id,
     ];

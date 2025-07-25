@@ -1,6 +1,4 @@
-// src/app/application/admin/users/page.tsx
 'use client';
-
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   PlusCircle,
@@ -49,7 +47,6 @@ import {
 import { Input } from '@/components/ui/input';
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -64,7 +61,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import {
-  MOCK_ADMIN_USER,
+  MOCK_ADMIN_USER_V3,
   MOCK_STUDENT_USER,
   MOCK_TEACHER_USER,
 } from '@/lib/config';
@@ -74,7 +71,7 @@ const USERS_PER_PAGE = 15;
 const PREDEFINED_MOCK_USER_IDS = [
   MOCK_STUDENT_USER.id,
   MOCK_TEACHER_USER.id,
-  MOCK_ADMIN_USER.id,
+  MOCK_ADMIN_USER_V3.id,
 ];
 
 export default function AdminUsersPage() {
@@ -121,10 +118,7 @@ export default function AdminUsersPage() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch users');
       }
-      const data = (await response.json()) as {
-        users: User[];
-        totalCount: number;
-      };
+      const data = await response.json();
       setUsers(data.users);
       setTotalUsers(data.totalCount);
     } catch (err) {
@@ -238,7 +232,7 @@ export default function AdminUsersPage() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span tabIndex={0}>
+              <span>
                 <Button disabled>
                   <PlusCircle className='mr-2 h-4 w-4' /> Add New User
                 </Button>
@@ -400,17 +394,17 @@ export default function AdminUsersPage() {
                               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                               <AlertDialogDescription>
                                 This action cannot be undone. This will
-                                permanently delete the user "{userRow.name}".
-                                Associated authentication user in Supabase will
-                                need to be handled separately.
+                                permanently delete the user &quot;{userRow.name}
+                                &quot;. Associated authentication user in
+                                Supabase will need to be handled separately.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() =>
-                                  handleDeleteUser(userRow.id, userRow.name)
-                                }
+                                onClick={() => {
+                                  handleDeleteUser(userRow.id, userRow.name);
+                                }}
                               >
                                 Delete User Profile
                               </AlertDialogAction>

@@ -28,9 +28,7 @@ import {
 import useConceptMapStore from '@/stores/concept-map-store'; // Added to get isViewOnlyMode if needed
 
 interface SelectedNodeToolbarProps {
-  nodeId: string;
   numMultiSelectedNodes: number;
-  multiSelectedNodeIds: string[];
   onEditLabel: () => void;
   onChangeColor: (color: string) => void;
   onStartConnection: () => void;
@@ -59,9 +57,7 @@ const PREDEFINED_COLORS = [
 ];
 
 const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
-  nodeId,
   numMultiSelectedNodes,
-  multiSelectedNodeIds, // Will be used by the actual Dagre call via handleDagreLayoutSelection
   onEditLabel,
   onChangeColor,
   onStartConnection,
@@ -82,14 +78,9 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   return (
     <div
       className='flex items-center space-x-1 p-1 bg-popover border rounded shadow-lg z-20'
-      onClick={handleInteraction}
-      onDoubleClick={handleInteraction}
-      onMouseDown={handleInteraction}
-      onMouseUp={handleInteraction}
-      onTouchStart={handleInteraction}
-      onTouchEnd={handleInteraction}
       onPointerDown={handleInteraction}
-      onPointerUp={handleInteraction}
+      role='toolbar'
+      aria-label='Selected node tools'
     >
       <Button
         variant='ghost'
@@ -134,7 +125,9 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
       <Button
         variant='ghost'
         size='icon'
-        onClick={() => {}} // Use the new handler
+        onClick={() => {
+          // Placeholder for Dagre layout logic
+        }}
         title='Auto-Layout Selection (Dagre)'
         disabled={numMultiSelectedNodes < 2 || isViewOnlyMode} // Also disable in view-only mode
       >

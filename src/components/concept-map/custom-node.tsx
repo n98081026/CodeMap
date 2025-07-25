@@ -1,7 +1,6 @@
 'use client';
 import {
   Brain,
-  HelpCircle,
   Settings2,
   MessageSquareQuote,
   Workflow,
@@ -17,16 +16,10 @@ import {
   Share2,
   KeyRound,
   Type,
-  Palette,
-  CircleDot,
-  Ruler,
-  Eraser,
   Box,
   Move as MoveIcon,
-  Edit2Icon,
   CheckIcon,
   XIcon,
-  Wand2,
 } from 'lucide-react';
 import React, { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
@@ -65,7 +58,9 @@ const NODE_MAX_WIDTH = 400;
 const NODE_MIN_HEIGHT = 70;
 const NODE_DETAILS_MAX_HEIGHT = 200;
 
-const TYPE_ICONS: { [key: string]: React.ComponentType<{ className?: string }> } = {
+const TYPE_ICONS: {
+  [key: string]: React.ComponentType<{ className?: string }>;
+} = {
   default: Settings2,
   'manual-node': Type,
   key_feature: Star,
@@ -95,7 +90,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
 }) => {
   const {
     isViewOnlyMode: globalIsViewOnlyMode,
-    editingNodeId,
     setEditingNodeId,
     aiProcessingNodeId,
     deleteNode,
@@ -116,7 +110,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
   );
   const [toolbarHorizontalOffset, setToolbarHorizontalOffset] =
     useState<number>(0);
-  const cardRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -128,15 +121,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
     (color: string) => updateNode(id, { backgroundColor: color }),
     [updateNode, id]
   );
-  const handleAIExpandForToolbar = useCallback(
-    () => {},
-    [id]
-  );
-  const handleAIRewriteForToolbar = useCallback(
-    () => {},
-    [id]
-  );
-  const handleAISuggestRelationsForToolbar = useCallback(() => {}, [id]);
+  const handleAIExpandForToolbar = useCallback(() => {}, []);
+  const handleAIRewriteForToolbar = useCallback(() => {}, []);
+  const handleAISuggestRelationsForToolbar = useCallback(() => {}, []);
   const handleStartConnectionForToolbar = useCallback(() => {
     if (data.onStartConnectionRequest) {
       data.onStartConnectionRequest(id);
@@ -207,16 +194,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
 
   // handleToolbarStartConnection already defined above with useCallback
 
-  const handleStartInlineEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (nodeIsViewOnly || data.isGhost || data.isStaged) return; // Prevent editing ghost/staged nodes
-    setEditText(data.label);
-    setIsInlineEditing(true);
-  };
-
   const handleSaveInlineEdit = () => {
     if (nodeIsViewOnly || data.isGhost || data.isStaged) return;
-    updateNode(id, { text: editText });
+    updateNode(id, { label: editText });
     setIsInlineEditing(false);
   };
 
@@ -240,7 +220,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
   useEffect(() => {
     if (selected && nodeRef.current) {
       const nodeRect = nodeRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
       const APPROX_TOOLBAR_HEIGHT = 40;
       const APPROX_TOOLBAR_WIDTH = 250;
@@ -306,6 +285,8 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
             }}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
+            role='toolbar'
+            aria-label='Actions for selected node'
           >
             <SelectedNodeToolbar
               nodeId={id}
@@ -330,7 +311,6 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
           />
         )}
       <Card
-        ref={cardRef}
         className={cn(
           'flex flex-col h-full w-full overflow-hidden',
           data.shape === 'ellipse'
@@ -358,6 +338,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
               className='w-full text-xs p-1 resize-none flex-grow bg-background/80'
               placeholder='Enter node text...'
               onClick={(e) => e.stopPropagation()}
+              aria-label='Edit Node Label'
             />
             <div className='flex justify-end space-x-1'>
               <button
@@ -485,7 +466,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
             key={btn.pos}
             onClick={(e) => {
               e.stopPropagation();
-              data.onAddChildNodeRequest?.(id, btn.pos);
+              if (data.onAddChildNodeRequest) {
+                data.onAddChildNodeRequest(id, btn.pos);
+              }
             }}
             className='absolute z-10 flex items-center justify-center w-5 h-5 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/80 transition-all opacity-0 group-hover/node:opacity-100'
             style={btn.style}

@@ -261,7 +261,11 @@ export function ProjectUploadForm() {
         //   projectStoragePath,
         //   userHint: aiInputUserGoals,
         // });
-        const analysisOutput = { error: null, analyzedFileName: 'mock.zip', analysisSummary: 'mock summary' };
+        const analysisOutput = {
+          error: null,
+          analyzedFileName: 'mock.zip',
+          analysisSummary: 'mock summary',
+        };
 
         if (analysisOutput.error) {
           throw new Error(
@@ -284,7 +288,10 @@ export function ProjectUploadForm() {
         //   analysisOutput,
         //   userGoals: aiInputUserGoals,
         // });
-        const mapGenerationResult = { error: null, conceptMapData: { nodes: [], edges: [] } };
+        const mapGenerationResult = {
+          error: null,
+          conceptMapData: { nodes: [], edges: [] },
+        };
 
         if (mapGenerationResult.error || !mapGenerationResult.conceptMapData) {
           throw new Error(
@@ -520,18 +527,25 @@ export function ProjectUploadForm() {
                       </TooltipTrigger>
                       <TooltipContent side='right' className='max-w-xs'>
                         <p className='text-sm'>
-                          Help the AI understand what you're interested in. For
-                          example:
+                          Help the AI understand what you&apos;re interested in.
+                          For example:
                         </p>
                         <ul className='list-disc list-inside mt-1 text-xs'>
-                          <li>"Understand the main functional modules"</li>
                           <li>
-                            "Identify key classes and their relationships"
+                            &quot;Understand the main functional modules&quot;
                           </li>
                           <li>
-                            "Get a quick overview of the project architecture"
+                            &quot;Identify key classes and their
+                            relationships&quot;
                           </li>
-                          <li>"Focus on user authentication and API routes"</li>
+                          <li>
+                            &quot;Get a quick overview of the project
+                            architecture&quot;
+                          </li>
+                          <li>
+                            &quot;Focus on user authentication and API
+                            routes&quot;
+                          </li>
                         </ul>
                       </TooltipContent>
                     </Tooltip>
@@ -675,11 +689,11 @@ export function ProjectUploadForm() {
                 Generation
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Project archive "{currentSubmissionForAI.originalFileName}" has
-                been successfully submitted.
+                Project archive &quot;{currentSubmissionForAI.originalFileName}
+                &quot; has been successfully submitted.
                 {currentUserGoalsForAI && (
                   <span className='block mt-2 text-sm'>
-                    Analysis goals: "{currentUserGoalsForAI}"
+                    Analysis goals: &quot;{currentUserGoalsForAI}&quot;
                   </span>
                 )}
                 <br />

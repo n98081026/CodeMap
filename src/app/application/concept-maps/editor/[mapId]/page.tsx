@@ -72,7 +72,6 @@ const PropertiesInspector = dynamic(
   }
 );
 
-
 const DynamicDebugLogViewerDialog = dynamic(
   () =>
     import('@/components/debug/debug-log-viewer-dialog').then(
@@ -222,12 +221,7 @@ function ConceptMapEditorPageContent({
     toast({ title: 'Node Added', description: `"${newNodeText}" added.` });
     setStoreSelectedElement(newNodeId, 'node');
     setEditingNodeId(newNodeId);
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    setStoreSelectedElement,
-    setEditingNodeId,
-  ]);
+  }, [storeIsViewOnlyMode, toast, setStoreSelectedElement, setEditingNodeId]);
 
   const handleAddEdgeToData = useCallback(() => {
     if (storeIsViewOnlyMode) {
@@ -326,8 +320,10 @@ function ConceptMapEditorPageContent({
   if (selectedElementId && selectedElementType) {
     actualSelectedElementForInspector =
       selectedElementType === 'node'
-        ? storeMapData.nodes.find((n: any) => n.id === selectedElementId) || null
-        : storeMapData.edges.find((e: any) => e.id === selectedElementId) || null;
+        ? storeMapData.nodes.find((n: any) => n.id === selectedElementId) ||
+          null
+        : storeMapData.edges.find((e: any) => e.id === selectedElementId) ||
+          null;
   }
   const canAddEdge = storeMapData.nodes.length >= 2;
 
@@ -488,12 +484,7 @@ function ConceptMapEditorPageContent({
         description: 'New child node created and selected.',
       });
     },
-    [
-      storeIsViewOnlyMode,
-      setStoreSelectedElement,
-      setEditingNodeId,
-      toast,
-    ]
+    [storeIsViewOnlyMode, setStoreSelectedElement, setEditingNodeId, toast]
   );
 
   // Keyboard listener for Tab and Enter node creation
@@ -576,12 +567,7 @@ function ConceptMapEditorPageContent({
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [
-    storeIsViewOnlyMode,
-    setStoreSelectedElement,
-    setEditingNodeId,
-    toast,
-  ]);
+  }, [storeIsViewOnlyMode, setStoreSelectedElement, setEditingNodeId, toast]);
 
   if (isStoreLoading && !storeError) {
     return (

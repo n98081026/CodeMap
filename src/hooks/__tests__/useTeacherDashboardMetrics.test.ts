@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useTeacherDashboardMetrics } from '../useTeacherDashboardMetrics';
 
 import { AuthProvider } from '@/contexts/auth-context';
-import { UserRole } from '@/types';
+import { User, UserRole } from '@/types';
 
 // Mock the fetch function
 global.fetch = vi.fn();
@@ -30,13 +30,14 @@ vi.mock('@/contexts/auth-context', async () => {
 
 // Wrapper component that includes the AuthProvider
 const createWrapper = () => {
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(AuthProvider, null, children);
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <AuthProvider>{children}</AuthProvider>
+  );
+  Wrapper.displayName = 'TestWrapper';
+  return Wrapper;
 };
 
-describe.skip('useTeacherDashboardMetrics', () => {
-  const mockUserId = 'teacher-123';
-
+describe('useTeacherDashboardMetrics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -47,9 +48,12 @@ describe.skip('useTeacherDashboardMetrics', () => {
       json: async () => ({ classroomCount: 2, totalStudents: 25 }),
     });
 
-    const { result } = renderHook(() => useTeacherDashboardMetrics(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useTeacherDashboardMetrics({ id: 'teacher-user-id' } as User),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     expect(result.current.managedClassrooms.isLoading).toBe(true);
     expect(result.current.totalStudents.isLoading).toBe(true);
@@ -66,9 +70,12 @@ describe.skip('useTeacherDashboardMetrics', () => {
       json: async () => mockData,
     });
 
-    const { result } = renderHook(() => useTeacherDashboardMetrics(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useTeacherDashboardMetrics({ id: 'teacher-user-id' } as User),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.managedClassrooms.isLoading).toBe(false);
@@ -80,9 +87,12 @@ describe.skip('useTeacherDashboardMetrics', () => {
   });
 
   it('should not fetch when userId is not provided', () => {
-    const { result } = renderHook(() => useTeacherDashboardMetrics(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useTeacherDashboardMetrics({} as User),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     expect(result.current.managedClassrooms.isLoading).toBe(false);
     expect(result.current.managedClassrooms.count).toBe(0);
@@ -94,14 +104,19 @@ describe.skip('useTeacherDashboardMetrics', () => {
   it('should handle fetch errors', async () => {
     (fetch as any).mockRejectedValueOnce(new Error('Network error'));
 
-    const { result } = renderHook(() => useTeacherDashboardMetrics(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useTeacherDashboardMetrics({ id: 'teacher-user-id' } as User),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.managedClassrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.managedClassrooms.error).toBe('Failed to fetch teacher metrics');
+    expect(result.current.managedClassrooms.error).toBe(
+      'Failed to fetch teacher metrics'
+    );
   });
 });

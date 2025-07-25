@@ -205,8 +205,9 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> =
     targetPosition = Position.Top,
     style = {},
     data,
-    markerStart,
-    markerEnd,
+    // markerStart and markerEnd are passed as strings, but BaseEdge expects EdgeMarkerType
+    markerStart: markerStartString,
+    markerEnd: markerEndString,
     selected,
   }) {
     const updateEdgeInStore = useConceptMapStore((state) => state.updateEdge);
@@ -261,8 +262,15 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> =
     const lineTypeStyle =
       data?.lineType === 'dashed' ? { strokeDasharray: '5,5' } : {};
 
-    const actualMarkerStart = markerStart;
-    const actualMarkerEnd = markerEnd;
+    // Convert string markers to EdgeMarkerType objects
+    const actualMarkerStart = getMarkerDefinition(
+      markerStartString as string,
+      edgeColor
+    );
+    const actualMarkerEnd = getMarkerDefinition(
+      markerEndString as string,
+      edgeColor
+    );
 
     return (
       <>
@@ -336,6 +344,4 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> =
       </>
     );
   });
-OrthogonalEdge.displayName = 'OrthogonalEdge';
-
 export default OrthogonalEdge;

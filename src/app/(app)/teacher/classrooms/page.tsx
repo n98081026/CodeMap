@@ -57,7 +57,7 @@ const TeacherClassroomDisplayCard: React.FC<TeacherClassroomDisplayCardProps> =
         </CardContent>
         <CardFooter>
           <Button asChild className='w-full'>
-            <Link href={`/teacher/classrooms/${classroom.id}`}>
+            <Link href={`/application/teacher/classrooms/${classroom.id}`}>
               View Details <ArrowRight className='ml-2 h-4 w-4' />
             </Link>
           </Button>

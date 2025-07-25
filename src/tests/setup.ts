@@ -31,9 +31,7 @@ vi.mock('next/navigation', () => {
 
 // Global mock for MainLayout
 vi.mock('@/components/layout/main-layout', () => {
-  const mockModule = import(
-    '@/tests/__mocks__/components/layout/main-layout'
-  );
+  const mockModule = import('@/tests/__mocks__/components/layout/main-layout');
   return mockModule;
 });
 
@@ -123,31 +121,25 @@ vi.mock('genkit', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as any),
-import { z } from 'zod';
-
-vi.mock('genkit', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
     default: {
-        defineTool: vi.fn(tool => tool),
-        defineFlow: vi.fn(flow => flow),
-        definePrompt: vi.fn(prompt => prompt),
-        configureGenkit: vi.fn(),
-        z,
+      defineTool: vi.fn((tool) => tool),
+      defineFlow: vi.fn((flow) => flow),
+      definePrompt: vi.fn((prompt) => prompt),
+      configureGenkit: vi.fn(),
+      z,
     },
-    defineTool: vi.fn(tool => tool),
-    defineFlow: vi.fn(flow => flow),
-    definePrompt: vi.fn(prompt => prompt),
+    defineTool: vi.fn((tool) => tool),
+    defineFlow: vi.fn((flow) => flow),
+    definePrompt: vi.fn((prompt) => prompt),
     configureGenkit: vi.fn(),
     z,
   };
 });
 
 vi.mock('@genkit-ai/core', () => ({
-  defineTool: vi.fn(tool => tool),
-  defineFlow: vi.fn(flow => flow),
-  definePrompt: vi.fn(prompt => prompt),
+  defineTool: vi.fn((tool) => tool),
+  defineFlow: vi.fn((flow) => flow),
+  definePrompt: vi.fn((prompt) => prompt),
   configureGenkit: vi.fn(),
 }));
 

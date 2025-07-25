@@ -9,17 +9,15 @@ import type { ProjectSubmission } from '@/types';
 
 import {
   BYPASS_AUTH_FOR_TESTING,
-  MOCK_STUDENT_USER,
   MOCK_PROJECT_SUBMISSION_STUDENT,
   MOCK_PROJECT_SUBMISSION_PROCESSING,
-  MOCK_CLASSROOM_SHARED,
 } from '@/lib/config';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService';
 import { ProjectSubmissionStatus, UserRole } from '@/types';
 
 // Mock data store for bypass mode
-let MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [
+const MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [
   MOCK_PROJECT_SUBMISSION_STUDENT,
   MOCK_PROJECT_SUBMISSION_PROCESSING,
 ];
@@ -293,7 +291,7 @@ export async function getSubmissionsByClassroomId(
   const mappedSubmissions = (submissionsData || []).map((s) => ({
     id: s.id,
     studentId: s.student_id,
-    // @ts-ignore - Supabase join type, assume student.name exists if student is not null
+    // @ts-expect-error - Supabase join type, assume student.name exists if student is not null
     studentName: s.student?.name || 'N/A',
     originalFileName: s.original_file_name,
     fileSize: s.file_size,

@@ -23,17 +23,18 @@ import type { ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   BYPASS_AUTH_FOR_TESTING,
+  MOCK_ADMIN_USER,
   MOCK_STUDENT_USER,
   MOCK_TEACHER_USER,
-  MOCK_ADMIN_USER,
 } from '@/lib/config';
 import { exampleProjects } from '@/lib/example-data';
 import { supabase } from '@/lib/supabaseClient';
 import {
+  createUserProfile,
   getUserById as fetchSupabaseUserProfile,
   updateUser as updateUserProfileService,
-  createUserProfile,
 } from '@/services/users/userService';
+import { UserRole } from '@/types';
 // Ensure V3 is the default for bypass
 
 // DEFAULT_BYPASS_USER is now MOCK_STUDENT_USER_V3 for student testing
@@ -291,11 +292,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     async (email: string, password: string, role: UserRole) => {
       if (BYPASS_AUTH_FOR_TESTING) {
         console.warn(
-          'Login attempt while BYPASS_AUTH_FOR_TESTING is true. Using default bypass user.'
+          `Login attempt while BYPASS_AUTH_FOR_TESTING is true. Setting user to mock role: ${role}`
         );
-        setUser(DEFAULT_BYPASS_USER);
+        // Use the provided role to set the correct mock user
+        setTestUserRole(role);
         setIsLoading(false);
-        switch (DEFAULT_BYPASS_USER.role) {
+        // Redirect based on the selected role
+        switch (role) {
           case UserRole.ADMIN:
             router.replace('/application/admin/dashboard');
             break;
@@ -353,11 +356,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     async (name: string, email: string, password: string, role: UserRole) => {
       if (BYPASS_AUTH_FOR_TESTING) {
         console.warn(
-          'Register attempt while BYPASS_AUTH_FOR_TESTING is true. No-op.'
+          `Register attempt for role '${role}' while BYPASS_AUTH_FOR_TESTING is true. No-op.`
         );
         toast({
           title: 'Registration Skipped',
-          description: 'Auth bypass is active.',
+          description: `Auth bypass is active. Cannot register new '${role}' users.`,
           variant: 'default',
         });
         return;
@@ -535,7 +538,6 @@ export const useAuth = () => {
 
 // Helper function (can be moved to a service or utility file if it grows)
 import useConceptMapStore from '@/stores/concept-map-store';
-import { UserRole } from '@/types';
 
 async function handleCopyExampleAction(
   exampleKey: string,

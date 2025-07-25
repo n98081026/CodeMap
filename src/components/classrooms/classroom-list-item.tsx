@@ -126,8 +126,8 @@ export const ClassroomListItem: React.FC<ClassroomListItemProps> = React.memo(
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This action cannot be undone. This will permanently delete
-                    the classroom "{classroom.name}" and all associated data.
-                    Student enrollments will be removed.
+                    the classroom &quot;{classroom.name}&quot; and all
+                    associated data. Student enrollments will be removed.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

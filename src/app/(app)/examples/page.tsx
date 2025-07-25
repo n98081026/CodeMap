@@ -75,7 +75,7 @@ export default function ExamplesPage() {
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const { setLoadedMap, setIsLoading, setError } = useConceptMapStore(
     React.useCallback(
-      (s: any) => ({
+      (s) => ({
         setLoadedMap: s.setLoadedMap,
         setIsLoading: s.setIsLoading,
         setError: s.setError,
@@ -165,7 +165,7 @@ export default function ExamplesPage() {
           <Compass className='h-16 w-16 text-muted-foreground mb-4' />
           <h2 className='text-2xl font-semibold mb-2'>No Examples Yet</h2>
           <p className='text-muted-foreground'>
-            Check back later for curated examples demonstrating CodeMap's
+            Check back later for curated examples demonstrating CodeMap&apos;s
             capabilities.
           </p>
         </div>

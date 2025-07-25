@@ -136,7 +136,6 @@ test.describe('Expand Concept with Staging Area Flow', () => {
       `POM: Total node count is ${initialNodeCountOnCanvas} after discard, as expected.`
     );
 
-    const originalNode = await editorPage.getNodesOnCanvas(); // Should be just the one
     // Check if the original node (identifiable by its text) is still visible
     const originalNodeWithText = page.locator(
       `.react-flow__node:has-text("${INITIAL_NODE_TEXT}")`

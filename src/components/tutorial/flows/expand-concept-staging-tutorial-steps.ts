@@ -14,9 +14,7 @@ export const getExpandConceptStagingTutorialSteps = (t: any): Step[] => [
   },
   {
     target: '.ghost-node',
-    content: t(
-      'tutorialSteps.expandConceptStagingTutorial.ghostNode.content'
-    ),
+    content: t('tutorialSteps.expandConceptStagingTutorial.ghostNode.content'),
     title: t('tutorialSteps.expandConceptStagingTutorial.ghostNode.title'),
     placement: 'bottom',
   },

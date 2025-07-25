@@ -1,11 +1,8 @@
-export {};
-
-'use client';
+('use client');
 
 import { useVirtualizer } from '@tanstack/react-virtual'; // Import useVirtualizer
 import {
   GitFork,
-  Brain,
   Search,
   Lightbulb,
   PlusCircle,
@@ -13,7 +10,6 @@ import {
   MessageSquareDashed,
   CheckSquare,
   Edit3,
-  BotMessageSquare,
   Zap,
   AlertCircle,
   Trash2,
@@ -51,9 +47,9 @@ import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 interface ExtractedConceptItem {
-    concept: string;
-    context?: string;
-    source?: string;
+  concept: string;
+  context?: string;
+  source?: string;
 }
 
 interface RelationSuggestion {
@@ -142,7 +138,6 @@ const RenderEditableConceptLabel: React.FC<{
           value={item.current.concept}
           onChange={(e) => onInputChange(index, e.target.value, 'concept')}
           className='h-8 text-sm flex-grow'
-          autoFocus
           onKeyDown={(e) => e.key === 'Enter' && onConfirmEdit(index)}
           onBlur={() => onConfirmEdit(index)}
           disabled={isViewOnlyMode}
@@ -188,19 +183,13 @@ const RenderEditableConceptLabel: React.FC<{
           )}
         >
           {itemStatus === 'exact-match' && (
-            <CheckSquare
-              className='h-4 w-4 mr-2 text-green-600 flex-shrink-0'
-            />
+            <CheckSquare className='h-4 w-4 mr-2 text-green-600 flex-shrink-0' />
           )}
           {itemStatus === 'similar-match' && (
-            <Zap
-              className='h-4 w-4 mr-2 text-yellow-600 dark:text-yellow-400 flex-shrink-0'
-            />
+            <Zap className='h-4 w-4 mr-2 text-yellow-600 dark:text-yellow-400 flex-shrink-0' />
           )}
           {itemStatus === 'new' && (
-            <PlusCircle
-              className='h-4 w-4 mr-2 text-blue-500 flex-shrink-0'
-            />
+            <PlusCircle className='h-4 w-4 mr-2 text-blue-500 flex-shrink-0' />
           )}
           {item.current.concept}
         </Label>
@@ -226,7 +215,7 @@ const RenderEditableConceptLabel: React.FC<{
                     {item.current.source && (
                       <p className='text-xs text-muted-foreground'>
                         <strong>Source:</strong>{' '}
-                        <em>"{item.current.source}"</em>
+                        <em>&quot;{item.current.source}&quot;</em>
                       </p>
                     )}
                   </TooltipContent>{' '}
@@ -288,7 +277,6 @@ const RenderEditableRelationLabel: React.FC<{
           value={String((item.current as Record<string, unknown>)[field] || '')}
           onChange={(e) => onInputChange(index, e.target.value, field)}
           className='h-7 text-xs px-1 py-0.5 mx-0.5 inline-block w-auto min-w-[60px] max-w-[120px]'
-          autoFocus
           onKeyDown={(e) => {
             if (e.key === 'Enter') onConfirmEdit(index);
           }}
@@ -299,7 +287,16 @@ const RenderEditableRelationLabel: React.FC<{
     }
     return (
       <span
+        role='button'
+        tabIndex={0}
         onClick={isViewOnlyMode ? undefined : () => onToggleEdit(index, field)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            if (!isViewOnlyMode) {
+              onToggleEdit(index, field);
+            }
+          }
+        }}
         className={cn(
           'hover:bg-muted/50 px-1 rounded inline-flex items-center',
           !isViewOnlyMode && 'cursor-pointer'
@@ -307,14 +304,10 @@ const RenderEditableRelationLabel: React.FC<{
       >
         {String((item.current as Record<string, unknown>)[field])}
         {nodeExists && field !== 'relation' && (
-          <CheckSquare
-            className='h-3 w-3 ml-1 text-green-600 inline-block'
-          />
+          <CheckSquare className='h-3 w-3 ml-1 text-green-600 inline-block' />
         )}
         {!nodeExists && field !== 'relation' && (
-          <AlertCircle
-            className='h-3 w-3 ml-1 text-orange-500 inline-block'
-          />
+          <AlertCircle className='h-3 w-3 ml-1 text-orange-500 inline-block' />
         )}
       </span>
     );
@@ -373,7 +366,7 @@ const RenderEditableRelationLabel: React.FC<{
               className='max-w-xs bg-background border shadow-lg p-3'
             >
               <p className='text-xs font-medium text-foreground'>
-                AI's Reasoning:
+                AI&apos;s Reasoning:
               </p>
               <p className='text-xs text-muted-foreground'>
                 {item.current.reason}
@@ -473,11 +466,6 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           | 'reason'
       ) => {
         if (isViewOnlyMode) return;
-        const setStateAction =
-          type === 'extracted' ? setEditableExtracted : setEditableRelations;
-        const items =
-          type === 'extracted' ? editableExtracted : editableRelations;
-
         const setState =
           type === 'extracted'
             ? (setEditableExtracted as React.Dispatch<
@@ -499,7 +487,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           })
         );
       },
-    [isViewOnlyMode, editableExtracted, editableRelations]
+    [isViewOnlyMode]
   );
 
   const handleInputChangeFactory = useCallback(
@@ -515,9 +503,6 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           | 'relation'
           | 'reason'
       ) => {
-        const setStateAction =
-          type === 'extracted' ? setEditableExtracted : setEditableRelations;
-
         const setState =
           type === 'extracted'
             ? (setEditableExtracted as React.Dispatch<
@@ -852,7 +837,11 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                           disabled={
                             (itemStatus === 'exact-match' &&
                               itemKeyPrefix.startsWith('extracted-')) ||
-                            (item as EditableExtractedConcept | EditableRelationSuggestion).isEditing ||
+                            (
+                              item as
+                                | EditableExtractedConcept
+                                | EditableRelationSuggestion
+                            ).isEditing ||
                             isViewOnlyMode
                           }
                         />
@@ -936,13 +925,21 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                 onClick={() => {
                   // Implement Add All New/Similar functionality directly
                   const toAdd = items
-                    .map((item) => item.current)
+                    .map(
+                      (item) =>
+                        (
+                          item as
+                            | EditableExtractedConcept
+                            | EditableRelationSuggestion
+                        ).current
+                    )
                     .filter((itemValue) => {
                       const status = itemKeyPrefix.startsWith('extracted-')
                         ? getConceptStatus(itemValue as ExtractedConceptItem)
                         : 'new';
                       return (
-                        status !== 'exact-match' || itemKeyPrefix.startsWith('relation-')
+                        status !== 'exact-match' ||
+                        itemKeyPrefix.startsWith('relation-')
                       );
                     });
                   if (toAdd.length > 0) {

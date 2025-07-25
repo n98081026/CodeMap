@@ -1,6 +1,7 @@
 'use client';
 
 import { FileText } from 'lucide-react';
+
 // UserRole might not be directly needed here, useAuth is for user object
 // import { UserRole } from "@/types";
 // import { useAuth } from "@/contexts/auth-context"; // user object is not directly used in this component for tutorial logic now

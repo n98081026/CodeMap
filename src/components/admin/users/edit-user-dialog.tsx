@@ -181,7 +181,7 @@ export function EditUserDialog({
         <FormDialogHeader>
           <FormDialogTitle>Edit User: {userToEdit.name}</FormDialogTitle>
           <FormDialogDescription>
-            Modify the user's details below. Pre-defined test users have
+            Modify the user&apos;s details below. Pre-defined test users have
             restricted editing.
           </FormDialogDescription>
         </FormDialogHeader>

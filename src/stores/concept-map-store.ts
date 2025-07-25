@@ -1,12 +1,6 @@
-// src/stores/concept-map-store.ts
-// Manually processed content of src/stores/concept-map-store.ts
-
-// Removed unused import: import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { temporal, type TemporalState as ZundoTemporalState } from 'zundo';
-import { create, type StoreApi } from 'zustand';
-
-import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
+import { create } from 'zustand';
 
 import type {
   ConceptMap,
@@ -16,6 +10,7 @@ import type {
 } from '@/types';
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
 
+import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
 import { StructuralSuggestionItemSchema } from '@/types/ai-suggestions';
 
 // Assuming these types are correctly imported or defined elsewhere, like in '@/ai/flows/generate-project-overview'
@@ -101,7 +96,11 @@ interface ConceptMapState {
   } | null;
 
   isOverviewModeActive: boolean;
-  projectOverviewData: any | null;
+  projectOverviewData: {
+    overallSummary: string;
+    keyModules: { name: string; description: string }[];
+    error?: string;
+  } | null;
   isFetchingOverview: boolean;
   isApplyingSemanticTidyUp: boolean;
 
@@ -196,9 +195,18 @@ interface ConceptMapState {
   setDraggedRelationPreview: (label: string | null) => void;
   setTriggerFitView: (value: boolean) => void;
   toggleOverviewMode: () => void;
-  setProjectOverviewData: (data: any | null) => void;
+  setProjectOverviewData: (
+    data: {
+      overallSummary: string;
+      keyModules: { name: string; description: string }[];
+      error?: string;
+    } | null
+  ) => void;
   setIsFetchingOverview: (fetching: boolean) => void;
-  fetchProjectOverview: (input: any) => Promise<void>;
+  fetchProjectOverview: (input: {
+    projectStoragePath: string;
+    userGoals: string;
+  }) => Promise<void>;
   loadExampleMapData: (mapData: ConceptMapData, exampleName: string) => void;
   setGhostPreview: (
     nodesToPreview: Array<{
@@ -320,52 +328,53 @@ const initialStateBaseOmitKeys = [
 ] as const;
 type InitialStateBaseOmitType = (typeof initialStateBaseOmitKeys)[number];
 
-export const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> = {
-  // Added removed types here
-  mapId: null,
-  mapName: 'Untitled Concept Map',
-  currentMapOwnerId: null,
-  currentMapCreatedAt: null,
-  isPublic: false,
-  sharedWithClassroomId: null,
-  isNewMapMode: true,
-  isViewOnlyMode: false,
-  initialLoadComplete: false,
-  mapData: { nodes: [], edges: [] },
-  isLoading: false,
-  isSaving: false,
-  error: null,
-  selectedElementId: null,
-  selectedElementType: null,
-  multiSelectedNodeIds: [],
-  editingNodeId: null,
-  aiProcessingNodeId: null,
-  connectingNodeId: null,
-  aiExtractedConcepts: [],
-  aiSuggestedRelations: [],
-  debugLogs: [],
-  stagedMapData: null,
-  isStagingActive: false,
-  // conceptExpansionPreview: null, // Removed
-  isConnectingMode: false,
-  connectionSourceNodeId: null,
-  dragPreviewItem: null,
-  dragPreviewPosition: null,
-  draggedRelationLabel: null,
-  triggerFitView: false,
-  structuralSuggestions: [],
-  ghostPreviewData: null,
-  isOverviewModeActive: false,
-  projectOverviewData: null,
-  isFetchingOverview: false,
-  focusViewOnNodeIds: null,
-  triggerFocusView: false,
-  tutorialTempTargetNodeId: null,
-  tutorialTempTargetEdgeId: null, // Added new state
-  isApplyingSemanticTidyUp: false,
-  findEdgeByNodes: () => undefined,
-  applySemanticTidyUp: () => {},
-};
+export const initialStateBase: Omit<ConceptMapState, InitialStateBaseOmitType> =
+  {
+    // Added removed types here
+    mapId: null,
+    mapName: 'Untitled Concept Map',
+    currentMapOwnerId: null,
+    currentMapCreatedAt: null,
+    isPublic: false,
+    sharedWithClassroomId: null,
+    isNewMapMode: true,
+    isViewOnlyMode: false,
+    initialLoadComplete: false,
+    mapData: { nodes: [], edges: [] },
+    isLoading: false,
+    isSaving: false,
+    error: null,
+    selectedElementId: null,
+    selectedElementType: null,
+    multiSelectedNodeIds: [],
+    editingNodeId: null,
+    aiProcessingNodeId: null,
+    connectingNodeId: null,
+    aiExtractedConcepts: [],
+    aiSuggestedRelations: [],
+    debugLogs: [],
+    stagedMapData: null,
+    isStagingActive: false,
+    // conceptExpansionPreview: null, // Removed
+    isConnectingMode: false,
+    connectionSourceNodeId: null,
+    dragPreviewItem: null,
+    dragPreviewPosition: null,
+    draggedRelationLabel: null,
+    triggerFitView: false,
+    structuralSuggestions: [],
+    ghostPreviewData: null,
+    isOverviewModeActive: false,
+    projectOverviewData: null,
+    isFetchingOverview: false,
+    focusViewOnNodeIds: null,
+    triggerFocusView: false,
+    tutorialTempTargetNodeId: null,
+    tutorialTempTargetEdgeId: null, // Added new state
+    isApplyingSemanticTidyUp: false,
+    findEdgeByNodes: () => undefined,
+    applySemanticTidyUp: () => {},
+  };
 
 type TrackedState = Pick<
   ConceptMapState,
@@ -859,7 +868,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
           };
         });
         get().addDebugLog(
-          `[STORE commitStagedMapData] Committed staged data. Action: ${stagedData.actionType || 'none'}`
+          `[STORE commitStagedMapData] Committed staged data. Action: ${
+            stagedData.actionType || 'none'
+          }`
         );
       },
       deleteFromStagedMapData: (elementIdsToRemove) => {
@@ -932,10 +943,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
           selectedElementType: null,
           multiSelectedNodeIds: [],
         }),
-      completeConnectionMode: (
-        targetNodeId?: string,
-        targetHandleId?: string | null
-      ) => {
+      completeConnectionMode: (targetNodeId?: string) => {
         const sourceNodeId = get().connectionSourceNodeId;
         if (sourceNodeId && targetNodeId) {
           get().addEdge({
@@ -981,7 +989,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
         set({ projectOverviewData: data, isFetchingOverview: false }),
       setIsFetchingOverview: (fetching) =>
         set({ isFetchingOverview: fetching }),
-      fetchProjectOverview: async (input) => {
+      fetchProjectOverview: async () => {
         if (get().isFetchingOverview) return;
         set({
           isFetchingOverview: true,
@@ -1134,7 +1142,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
           }
         });
         get().addDebugLog(
-          `[STORE applyFormGroupSuggestion] Group node ${newGroupId} created. Children: ${nodeIds.join(', ')} parented.`
+          `[STORE applyFormGroupSuggestion] Group node ${newGroupId} created. Children: ${nodeIds.join(
+            ', '
+          )} parented.`
         );
         return newGroupId;
       },
@@ -1152,7 +1162,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
         }
         set(updates);
         get().addDebugLog(
-          `[STORE setFocusOnNodes] Focus set for nodes: ${nodeIds.join(', ')}. Triggered view update. Overview exit: ${isOverviewExit}`
+          `[STORE setFocusOnNodes] Focus set for nodes: ${nodeIds.join(
+            ', '
+          )}. Triggered view update. Overview exit: ${isOverviewExit}`
         );
       },
       clearFocusViewTrigger: () => {
