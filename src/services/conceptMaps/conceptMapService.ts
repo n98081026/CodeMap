@@ -6,12 +6,11 @@
  */
 
 import type { ConceptMap, ConceptMapData } from '@/types';
+import { Json } from '@/types/supabase';
 
-import { BYPASS_AUTH_FOR_TESTING, MOCK_CONCEPT_MAPS_STORE } from '@/lib/config'; // Use MOCK_CONCEPT_MAPS_STORE
+import { BYPASS_AUTH_FOR_TESTING, MOCK_CONCEPT_MAPS_STORE } from '@/lib/config';
 import { supabase } from '@/lib/supabaseClient';
-import { getUserById } from '@/services/users/userService'; // To validate ownerId
-
-// Mock data store for bypass mode is now primarily from MOCK_CONCEPT_MAPS_STORE in config.ts
+import { getUserById } from '@/services/users/userService';
 
 /**
  * Creates a new concept map.
@@ -34,12 +33,8 @@ export async function createConceptMap(
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    // Note: This will not persist if the service module reloads without MOCK_CONCEPT_MAPS_STORE being updated in config.ts
-    // For more robust mock creation, consider updating MOCK_CONCEPT_MAPS_STORE in config.ts if it's mutable
-    // or handle mock mutations in a dedicated mock service layer.
-    // For now, we assume MOCK_CONCEPT_MAPS_STORE is the source of truth for reads.
     console.warn(
-      `BYPASS_AUTH: Mock map "${name}" created in-memory for this request only. It won't be in MOCK_CONCEPT_MAPS_STORE unless added there.`
+      `BYPASS_AUTH: Mock map "${name}" created in-memory for this request only.`
     );
     return newMap;
   }
@@ -54,7 +49,7 @@ export async function createConceptMap(
     .insert({
       name,
       owner_id: ownerId,
-      map_data: mapData || { nodes: [], edges: [] },
+      map_data: (mapData || { nodes: [], edges: [] }) as unknown as Json,
       is_public: isPublic,
       shared_with_classroom_id: sharedWithClassroomId || null,
     })
@@ -71,7 +66,7 @@ export async function createConceptMap(
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: data.map_data as any,
+    mapData: data.map_data as unknown as ConceptMapData,
     isPublic: data.is_public,
     sharedWithClassroomId: data.shared_with_classroom_id,
     createdAt: data.created_at,
@@ -96,9 +91,7 @@ export async function getConceptMapById(
       name: foundMap.name || 'Untitled Mock Map',
       ownerId: foundMap.ownerId || 'unknown-mock-owner',
       mapData:
-        foundMap.mapData && typeof foundMap.mapData === 'object'
-          ? foundMap.mapData
-          : { nodes: [], edges: [] },
+        (foundMap.mapData as ConceptMapData) || { nodes: [], edges: [] },
       isPublic:
         typeof foundMap.isPublic === 'boolean' ? foundMap.isPublic : false,
       sharedWithClassroomId:
@@ -127,7 +120,10 @@ export async function getConceptMapById(
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: data.map_data || { nodes: [], edges: [] },
+    mapData: (data.map_data as unknown as ConceptMapData) || {
+      nodes: [],
+      edges: [],
+    },
     isPublic: data.is_public ?? false,
     sharedWithClassroomId: data.shared_with_classroom_id ?? null,
     createdAt: data.created_at,
@@ -168,10 +164,7 @@ export async function getConceptMapsByOwnerId(
       id: m.id || `mock-map-id-${Date.now()}-${Math.random()}`,
       name: m.name || 'Untitled Mock Map',
       ownerId: m.ownerId,
-      mapData:
-        m.mapData && typeof m.mapData === 'object'
-          ? m.mapData
-          : { nodes: [], edges: [] },
+      mapData: (m.mapData as ConceptMapData) || { nodes: [], edges: [] },
       isPublic: typeof m.isPublic === 'boolean' ? m.isPublic : false,
       sharedWithClassroomId:
         m.sharedWithClassroomId === undefined ? null : m.sharedWithClassroomId,
@@ -246,7 +239,10 @@ export async function getConceptMapsByOwnerId(
         id: m.id,
         name: m.name,
         ownerId: m.owner_id,
-        mapData: m.map_data || { nodes: [], edges: [] },
+        mapData: (m.map_data as unknown as ConceptMapData) || {
+          nodes: [],
+          edges: [],
+        },
         isPublic: m.is_public ?? false,
         sharedWithClassroomId: m.shared_with_classroom_id ?? null,
         createdAt: m.created_at,
@@ -294,10 +290,7 @@ export async function getConceptMapsByClassroomId(
       id: m.id || `mock-classroom-map-id-${Date.now()}-${Math.random()}`,
       name: m.name || 'Untitled Mock Classroom Map',
       ownerId: m.ownerId || 'unknown-mock-owner',
-      mapData:
-        m.mapData && typeof m.mapData === 'object'
-          ? m.mapData
-          : { nodes: [], edges: [] },
+      mapData: (m.mapData as ConceptMapData) || { nodes: [], edges: [] },
       isPublic: typeof m.isPublic === 'boolean' ? m.isPublic : false,
       sharedWithClassroomId: m.sharedWithClassroomId,
       createdAt: m.createdAt || new Date().toISOString(),
@@ -369,7 +362,10 @@ export async function getConceptMapsByClassroomId(
         id: m.id,
         name: m.name,
         ownerId: m.owner_id,
-        mapData: m.map_data || { nodes: [], edges: [] },
+        mapData: (m.map_data as unknown as ConceptMapData) || {
+          nodes: [],
+          edges: [],
+        },
         isPublic: m.is_public ?? false,
         sharedWithClassroomId: m.shared_with_classroom_id ?? null,
         createdAt: m.created_at,
@@ -416,7 +412,8 @@ export async function updateConceptMap(
 
   const supabaseUpdates: { [key: string]: any } = {};
   if (updates.name !== undefined) supabaseUpdates.name = updates.name;
-  if (updates.mapData !== undefined) supabaseUpdates.map_data = updates.mapData;
+  if (updates.mapData !== undefined)
+    supabaseUpdates.map_data = updates.mapData as unknown as Json;
   if (updates.isPublic !== undefined)
     supabaseUpdates.is_public = updates.isPublic;
   if (Object.prototype.hasOwnProperty.call(updates, 'sharedWithClassroomId')) {
@@ -446,7 +443,10 @@ export async function updateConceptMap(
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
-    mapData: data.map_data || { nodes: [], edges: [] },
+    mapData: (data.map_data as unknown as ConceptMapData) || {
+      nodes: [],
+      edges: [],
+    },
     isPublic: data.is_public ?? false,
     sharedWithClassroomId: data.shared_with_classroom_id ?? null,
     createdAt: data.created_at,

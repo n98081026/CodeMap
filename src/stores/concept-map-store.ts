@@ -607,9 +607,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
         );
         set((state) => {
           const graphUtil = new GraphAdapterUtility();
-          const graphInstance = graphUtil.fromArrays(
-            state.mapData.nodes,
-            state.mapData.edges
+          const graphInstance = graphUtil.fromConceptMap(
+            state.mapData
           );
           if (!graphInstance.hasNode(nodeIdToDelete as string | number)) {
             return state;

@@ -88,34 +88,28 @@ export type DagreLayoutUtilityType = (
 /**
  * Placeholder for a Graphology instance type.
  */
-export type GraphologyInstance = {
-  nodesMap: Map<string, ConceptMapNode>;
-  edges: ConceptMapEdge[];
-};
+import Graph, { MultiGraph } from 'graphology';
+import { ConceptMapData } from '.';
+
+export type GraphologyInstance = Graph | MultiGraph;
 
 export interface GraphAdapterOptions {
-  // isDirected?: boolean;
+  type?: 'graph' | 'multi';
+  replaceEdges?: boolean;
 }
 
 export interface NeighborhoodOptions {
   depth?: number;
-  direction?: 'in' | 'out' | 'both';
+  direction?: 'in' | 'out' | 'all';
 }
 
-/**
- * Defines a contract for a utility or adapter that performs graph operations.
- */
 export interface GraphAdapter {
-  fromArrays(
-    nodes: ConceptMapNode[],
-    edges: ConceptMapEdge[],
+  fromConceptMap(
+    conceptMapData: ConceptMapData,
     options?: GraphAdapterOptions
   ): GraphologyInstance;
 
-  toArrays(graphInstance: GraphologyInstance): {
-    nodes: ConceptMapNode[];
-    edges: ConceptMapEdge[];
-  };
+  toConceptMap(graphInstance: GraphologyInstance): ConceptMapData;
 
   getDescendants(graphInstance: GraphologyInstance, nodeId: string): string[];
 
@@ -130,7 +124,16 @@ export interface GraphAdapter {
   getSubgraphData(
     graphInstance: GraphologyInstance,
     nodeIds: string[]
-  ): { nodes: ConceptMapNode[]; edges: ConceptMapEdge[] };
+  ): ConceptMapData;
+
+  getBetweennessCentrality(
+    graphInstance: GraphologyInstance
+  ): Record<string, number>;
+
+  detectCommunities(
+    graphInstance: GraphologyInstance,
+    options?: any
+  ): Record<string, number>;
 }
 
 // --- Types for Snapping Logic (Moved from flow-canvas-core.tsx) ---

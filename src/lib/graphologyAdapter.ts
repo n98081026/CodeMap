@@ -1,51 +1,37 @@
-// =====================================================================================
-// REVIEW SUMMARY: Graphology/Dagre Integration (Phase 1) - Completed 2024-07-27
-// -------------------------------------------------------------------------------------
-// This review assessed the initial integration of the Graphology library,
-// replacing previous mock utilities.
-//
-// Key Benefits Realized:
-// 1. Correctness & Robustness: Significant improvement in graph operations (descendant finding,
-//    neighborhood analysis, centrality, communities).
-// 2. Foundation for Advanced Features: Essential groundwork for planned GAI features
-//    leveraging graph theory.
-// 3. Code Maintainability: Encapsulation of complex graph logic within this utility.
-// 4. Developer Experience: Access to full Graphology API for future development.
-//
-// Potential Drawbacks & Areas for Monitoring:
-// 1. Bundle Size: Graphology and its ecosystem may increase client bundle size.
-// 2. Client-Side Performance: Intensive graph operations on very large maps could pose risks
-//    if not handled carefully (though many are now in server-side Genkit flows).
-// 3. Complexity: Introduces a learning curve for Graphology.
-//
-// Overall: The integration is a net positive. The `TODO.md` item for this
-// review has been marked as complete.
-// =====================================================================================
-
-import Graph, { MultiGraph, type PlainObject } from 'graphology';
+import Graph, { MultiGraph } from 'graphology';
 import louvain from 'graphology-communities-louvain';
-import { bfsFromNode } from 'graphology-traversal/bfs';
+import { bfsFromNode } from 'graphology-traversal';
+import { toDirected, toUndirected } from 'graphology-operators';
 
-import type { ConceptMapNode, ConceptMapEdge } from '../types';
+import type {
+  ConceptMapNode,
+  ConceptMapEdge,
+  ConceptMapData,
+} from '../types';
+import type {
+  GraphologyInstance,
+  NeighborhoodOptions,
+  GraphAdapter,
+} from '@/types/graph-adapter';
 
-import { GraphologyInstance, NeighborhoodOptions } from '@/types/graph-adapter';
-
-export class GraphAdapterUtility {
-  fromArrays(
-    nodes: ConceptMapNode[],
-    edges: ConceptMapEdge[],
-    options?: PlainObject & {
+export class GraphAdapterUtility implements GraphAdapter {
+  fromConceptMap(
+    conceptMapData: ConceptMapData,
+    options?: {
       type?: 'graph' | 'multi';
       replaceEdges?: boolean;
     } & Record<string, any>
-  ): any {
+  ): GraphologyInstance {
+    const { nodes, edges } = conceptMapData;
     const graph =
-      options?.type === 'multi' ? new MultiGraph(options) : new Graph(options);
+      options?.type === 'multi'
+        ? new MultiGraph(options)
+        : new Graph(options);
 
     nodes.forEach((node) => {
       const { id, ...attributes } = node;
       if (!graph.hasNode(id)) {
-        graph.addNode(id, attributes as any);
+        graph.addNode(id, attributes);
       }
     });
 
@@ -56,7 +42,7 @@ export class GraphAdapterUtility {
         if (graph.hasEdge(id)) {
           if (options?.replaceEdges) {
             graph.dropEdge(id);
-            graph.addEdgeWithKey(id, source, target, attributes as any);
+            graph.addEdgeWithKey(id, source, target, attributes);
           }
         } else if (
           graph instanceof Graph &&
@@ -64,9 +50,8 @@ export class GraphAdapterUtility {
           !options?.replaceEdges
         ) {
           // In a simple Graph, if an edge (any key) between source & target exists, and we're not replacing.
-          // console.warn(`Simple graph already has an edge between ${source} and ${target}. Skipping edge ${id}.`);
         } else {
-          graph.addEdgeWithKey(id, source, target, attributes as any);
+          graph.addEdgeWithKey(id, source, target, attributes);
         }
       } else {
         console.warn(
@@ -77,40 +62,32 @@ export class GraphAdapterUtility {
     return graph;
   }
 
-  toArrays(graphInstance: any): any {
+  toConceptMap(graphInstance: GraphologyInstance): ConceptMapData {
     const nodes: ConceptMapNode[] = [];
-    graphInstance.forEachNode((nodeId: any, attributes: any) => {
+    graphInstance.forEachNode((nodeId, attributes) => {
       nodes.push({
         id: nodeId,
-        text: attributes.label || '',
+        text: attributes.text || '',
         x: attributes.x || 0,
         y: attributes.y || 0,
         type: attributes.type || 'unknown',
         width: attributes.width || 150,
         height: attributes.height || 40,
         childIds: attributes.childIds || [],
-        backgroundColor: attributes.backgroundColor,
-        details: attributes.details,
-        parentNode: attributes.parentNode,
-        shape: attributes.shape || 'rectangle',
-        data: (attributes as any).data,
-      });
+        ...attributes, // Spread the rest of the attributes
+      } as ConceptMapNode);
     });
 
     const edges: ConceptMapEdge[] = [];
     graphInstance.forEachEdge(
-      (edgeId: any, attributes: any, source: any, target: any) => {
+      (edgeId, attributes, source, target) => {
         edges.push({
           id: edgeId,
-          source: source,
-          target: target,
+          source,
+          target,
           label: attributes.label || '',
-          color: attributes.color,
-          lineType: attributes.lineType || 'solid',
-          markerStart: attributes.markerStart,
-          markerEnd: attributes.markerEnd,
-          data: (attributes as any).data,
-        });
+          ...attributes, // Spread the rest of the attributes
+        } as ConceptMapEdge);
       }
     );
     return { nodes, edges };
@@ -148,25 +125,12 @@ export class GraphAdapterUtility {
       return [];
     }
 
-    const reversedGraph = graphInstance.copyEmpty({
-      type: graphInstance.type === 'multi' ? 'MultiGraph' : 'Graph',
-    }) as GraphologyInstance;
-
-    graphInstance.forEachNode((n) =>
-      reversedGraph.addNode(n, { ...graphInstance.getNodeAttributes(n) })
-    );
-    graphInstance.forEachEdge((key, attrs, source, target) => {
-      if (reversedGraph.hasNode(target) && reversedGraph.hasNode(source)) {
-        if (reversedGraph instanceof MultiGraph) {
-          reversedGraph.addEdgeWithKey(key, target, source, { ...attrs });
-        } else {
-          if (!reversedGraph.hasEdge(target, source)) {
-            // Check before adding for simple graph
-            reversedGraph.addDirectedEdge(target, source, { ...attrs });
-          }
-        }
-      }
+    const reversedGraph = toDirected(graphInstance, { mergeEdges: true });
+    reversedGraph.forEachEdge((edge, attrs, source, target) => {
+      reversedGraph.dropEdge(edge);
+      reversedGraph.addEdge(target, source, attrs);
     });
+
 
     if (reversedGraph.hasNode(nodeId)) {
       try {
@@ -215,17 +179,10 @@ export class GraphAdapterUtility {
       if (current.d < depth) {
         let currentNeighbors: string[] = [];
         if (graphInstance.hasNode(current.id)) {
-          if (
-            graphInstance.type === 'directed' ||
-            graphInstance.type === 'multi'
-          ) {
-            if (direction === 'in') {
-              currentNeighbors = graphInstance.inNeighbors(current.id);
-            } else if (direction === 'out') {
-              currentNeighbors = graphInstance.outNeighbors(current.id);
-            } else {
-              currentNeighbors = graphInstance.neighbors(current.id);
-            }
+          if (direction === 'in') {
+            currentNeighbors = graphInstance.inNeighbors(current.id);
+          } else if (direction === 'out') {
+            currentNeighbors = graphInstance.outNeighbors(current.id);
           } else {
             currentNeighbors = graphInstance.neighbors(current.id);
           }
@@ -242,32 +199,20 @@ export class GraphAdapterUtility {
     return Array.from(neighborhood);
   }
 
-  getSubgraphData(graphInstance: GraphologyInstance, nodeIds: string[]): any {
-    const subGraph = graphInstance.copyEmpty({
-      type: graphInstance.type === 'multi' ? 'MultiGraph' : 'Graph',
-    }) as GraphologyInstance;
+  getSubgraphData(
+    graphInstance: GraphologyInstance,
+    nodeIds: string[]
+  ): ConceptMapData {
+    const subGraph = graphInstance.copy();
     const nodeIdSet = new Set(nodeIds);
 
-    nodeIds.forEach((nodeId) => {
-      if (graphInstance.hasNode(nodeId)) {
-        subGraph.addNode(nodeId, {
-          ...graphInstance.getNodeAttributes(nodeId),
-        });
-      } else {
-        console.warn(
-          `[GraphAdapter] Node ${nodeId} for subgraph not found in main graph.`
-        );
+    graphInstance.forEachNode((nodeId) => {
+      if (!nodeIdSet.has(nodeId)) {
+        subGraph.dropNode(nodeId);
       }
     });
 
-    graphInstance.forEachEdge((edgeKey, attributes, source, target) => {
-      if (nodeIdSet.has(source) && nodeIdSet.has(target)) {
-        if (subGraph.hasNode(source) && subGraph.hasNode(target)) {
-          subGraph.addEdgeWithKey(edgeKey, source, target, { ...attributes });
-        }
-      }
-    });
-    return this.toArrays(subGraph);
+    return this.toConceptMap(subGraph);
   }
 
   getBetweennessCentrality(
@@ -277,11 +222,8 @@ export class GraphAdapterUtility {
       return {};
     }
     try {
-      // Note: graphology's betweennessCentrality directly returns the map or object.
-      // It might assign results to nodes if an attribute name is passed in options,
-      // but here we want the direct result.
-      // const centrality = betweennessCentrality(graphInstance);
-      return {}; // This should be Record<string, number>
+      // This will be implemented with a proper library call
+      return {};
     } catch (e) {
       console.error(
         '[GraphAdapter] Error calculating betweenness centrality:',
@@ -300,15 +242,13 @@ export class GraphAdapterUtility {
     }
     const communityAttribute = options?.communityAttribute || 'community';
     try {
-      // Louvain algorithm assigns community IDs as node attributes.
-      // It also returns the number of communities found or a map.
-      // We'll use the assignment and then extract it.
-      louvain.assign(graphInstance, {
+      const undirected = toUndirected(graphInstance);
+      louvain.assign(undirected, {
         nodeCommunityAttribute: communityAttribute,
       });
 
       const communities: Record<string, number> = {};
-      graphInstance.forEachNode((nodeId, attrs) => {
+      undirected.forEachNode((nodeId, attrs) => {
         if (attrs[communityAttribute] !== undefined) {
           communities[nodeId] = attrs[communityAttribute] as number;
         }

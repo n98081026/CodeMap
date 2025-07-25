@@ -60,6 +60,7 @@
     "graphology": "^0.26.0",
     "graphology-communities-louvain": "^2.0.2",
     "graphology-components": "^1.5.4",
+    "graphology-operators": "^1.6.1",
     "i18next": "^25.3.1",
     "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^0.475.0",
