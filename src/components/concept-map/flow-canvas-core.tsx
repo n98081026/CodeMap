@@ -237,7 +237,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       id: appNode.id,
       type: 'customConceptNode',
       data: {
-        label: appNode.text,
+        text: appNode.text,
         details: appNode.details,
         type: appNode.type || 'default',
         isViewOnly: isViewOnlyMode,
@@ -278,7 +278,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         label: appEdge.label,
         color: appEdge.color,
         lineType: appEdge.lineType,
-      } as OrthogonalEdgeData,
+      },
       markerStart: getMarkerDefinition(appEdge.markerStart, appEdge.color),
       markerEnd: getMarkerDefinition(appEdge.markerEnd, appEdge.color),
       style: { strokeWidth: 2 },
@@ -294,7 +294,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         id: appNode.id,
         type: 'customConceptNode',
         data: {
-          label: appNode.text,
+          text: appNode.text,
           details: appNode.details,
           type: appNode.type || 'default',
           isViewOnly: true,
@@ -321,7 +321,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
           label: appEdge.label,
           color: appEdge.color,
           lineType: appEdge.lineType,
-        } as OrthogonalEdgeData,
+      },
         style: {
           strokeDasharray: '5,5',
           opacity: 0.7,

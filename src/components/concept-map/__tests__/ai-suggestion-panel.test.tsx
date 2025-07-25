@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 import { AISuggestionPanel } from '../ai-suggestion-panel'; // Named export
-import type { ExtractedConcept } from '@/ai/flows/extract-concepts';
-import type { RelationSuggestion } from '@/types/ai-types';
+import type { ExtractedConcept } from '@/types/ai-suggestions';
+import type { RelationSuggestion } from '@/types/ai-suggestions';
 
 // Mock child components for isolation
 vi.mock('@/components/ui/button', () => ({
@@ -56,9 +56,9 @@ describe.skip('AISuggestionPanel', () => {
 
   const defaultProps = {
     currentMapNodes: [
-      { id: 'n1', text: 'Component' },
-      { id: 'n2', text: 'Hook' },
-      { id: 'n3', text: 'State' },
+      { id: 'n1', text: 'Component', type: 'box' },
+      { id: 'n2', text: 'Hook', type: 'box' },
+      { id: 'n3', text: 'State', type: 'box' },
     ],
     extractedConcepts: [],
     suggestedRelations: [],

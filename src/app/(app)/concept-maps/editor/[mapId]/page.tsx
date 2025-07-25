@@ -911,9 +911,7 @@ export default function ConceptMapEditorPage() {
           selectedNodeId={selectedElementId}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
           onAutoLayout={handleAutoLayout}
-          onTidySelection={() => {}}
           onSuggestMapImprovements={() => {}}
-          isSuggestingMapImprovements={false}
           onAiTidySelection={() => {}}
           onDagreTidySelection={() => {}}
           isDagreTidying={false}
@@ -959,11 +957,13 @@ export default function ConceptMapEditorPage() {
               onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
               onNodesChangeInStore={updateStoreNode}
               onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={(edgeIds) =>
-                edgeIds.forEach((edgeId) =>
-                  useConceptMapStore.getState().deleteEdge(edgeId)
-                )
-              }
+              onEdgesDeleteInStore={(edgeIds) => {
+                if (Array.isArray(edgeIds)) {
+                  edgeIds.forEach((edgeId) =>
+                    useConceptMapStore.getState().deleteEdge(edgeId)
+                  );
+                }
+              }}
               onConnectInStore={(params) =>
                 useConceptMapStore.getState().addEdge(params)
               }
@@ -1035,7 +1035,6 @@ export default function ConceptMapEditorPage() {
               onSelectedElementPropertyUpdate={
                 handleSelectedElementPropertyUpdateInspector
               }
-              onSuggestIntermediateNode={() => {}}
               isNewMapMode={isNewMapMode}
               isViewOnlyMode={storeIsViewOnlyMode}
             />{' '}

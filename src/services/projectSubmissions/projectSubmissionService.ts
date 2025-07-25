@@ -30,7 +30,8 @@ export async function createSubmission(
   originalFileName: string,
   fileSize: number,
   classroomId?: string | null,
-  fileStoragePath?: string | null
+  fileStoragePath?: string | null,
+  userGoals?: string,
 ): Promise<ProjectSubmission> {
   if (BYPASS_AUTH_FOR_TESTING) {
     const student = await getUserById(studentId); // Uses mock if ID matches
@@ -48,6 +49,7 @@ export async function createSubmission(
       fileStoragePath: fileStoragePath || `mock/path/${originalFileName}`,
       submissionTimestamp: new Date().toISOString(),
       analysisStatus: ProjectSubmissionStatus.PENDING,
+      userGoals,
     };
     MOCK_SUBMISSIONS_STORE.push(newSubmission);
     return newSubmission;
@@ -68,6 +70,7 @@ export async function createSubmission(
       file_storage_path: fileStoragePath || null,
       submission_timestamp: new Date().toISOString(),
       analysis_status: ProjectSubmissionStatus.PENDING,
+      user_goals: userGoals,
     })
     .select()
     .single();
@@ -90,6 +93,7 @@ export async function createSubmission(
     analysisStatus: data.analysis_status as ProjectSubmissionStatus,
     analysisError: data.analysis_error,
     generatedConceptMapId: data.generated_concept_map_id,
+    userGoals: data.user_goals,
   };
 }
 
