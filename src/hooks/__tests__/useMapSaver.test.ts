@@ -16,6 +16,11 @@ vi.mock('next/navigation', () => ({
   usePathname: vi.fn().mockReturnValue('/student/concept-map/map-123'),
 }));
 
+vi.mock('@/lib/config', () => ({
+  BYPASS_AUTH_FOR_TESTING: false,
+  MOCK_STUDENT_USER: { id: 'student-mock-id' },
+}));
+
 vi.mock('@/services/conceptMaps/conceptMapService', () => ({
   createConceptMap: vi.fn(),
   updateConceptMap: vi.fn(),
@@ -66,6 +71,9 @@ describe('useMapSaver', () => {
   beforeEach(() => {
     toast = vi.fn();
     vi.spyOn(useToastModule, 'useToast').mockReturnValue({ toast });
+    vi.mock('@/contexts/auth-context', () => ({
+      useAuth: vi.fn().mockReturnValue({ user: mockUser, loading: false }),
+    }));
 
     mockRouter = {
       push: vi.fn(),
@@ -142,7 +150,7 @@ describe('useMapSaver', () => {
     expect(mapService.createConceptMap).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Test Map',
-        // ownerId: mockUser.id,
+        ownerId: mockUser.id,
       })
     );
     expect(toast).toHaveBeenCalledWith({

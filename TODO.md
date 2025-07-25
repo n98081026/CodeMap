@@ -1,4 +1,5 @@
-- [ ] Fix tests in `src/hooks/__tests__/useConceptMapDataManager.test.ts`
+- [x] Fix tests in `src/hooks/__tests__/useConceptMapDataManager.test.ts` (file removed)
+- [ ] Fix `Unterminated regular expression` error in dashboard metrics tests.
 - [ ] Fix `graphology-traversal/bfs` resolution issue in `vitest`. This might require a local environment to debug properly.
 - [ ] Fix `genkit` mocking in tests. The current mock is not working as expected.
 - [ ] Fix coordinate calculation in `src/lib/__tests__/layout-utils.test.ts`.

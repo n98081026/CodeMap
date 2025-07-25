@@ -20,8 +20,10 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/services/conceptMaps/conceptMapService', () => ({
-  getConceptMapById: vi.fn(),
+vi.mock('@/lib/config', () => ({
+  BYPASS_AUTH_FOR_TESTING: false,
+  MOCK_STUDENT_USER: { id: 'student-mock-id' },
+  MOCK_USER_FOR_TESTING_MAPS: {},
 }));
 
 vi.mock('@/stores/concept-map-store', () => {
@@ -36,7 +38,9 @@ vi.mock('@/stores/concept-map-store', () => {
     },
   };
 });
-vi.mock('@/contexts/auth-context');
+vi.mock('@/contexts/auth-context', () => ({
+  useAuth: vi.fn(),
+}));
 
 const mockUser: User = {
   id: 'user-1',
@@ -66,7 +70,17 @@ describe('useMapLoader', () => {
   beforeEach(() => {
     toast = vi.fn();
     vi.spyOn(useToastModule, 'useToast').mockReturnValue({ toast });
-    (useAuth as vi.Mock).mockReturnValue({ user: mockUser });
+    (useAuth as vi.Mock).mockReturnValue({ user: mockUser, loading: false });
+
+    vi.spyOn(window, 'fetch').mockImplementation(async (url) => {
+      if (url.toString().includes('map-123')) {
+        return new Response(JSON.stringify(mockMap), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(null, { status: 404 });
+    });
 
     storeState = {
       mapId: null,
@@ -108,8 +122,6 @@ describe('useMapLoader', () => {
   });
 
   it('should load an existing map and update the store', async () => {
-    (mapService.getConceptMapById as vi.Mock).mockResolvedValue(mockMap);
-
     const { result } = renderHook(() =>
       useMapLoader({ routeMapId: mockMapId, user: mockUser })
     );
@@ -118,8 +130,8 @@ describe('useMapLoader', () => {
       await result.current.loadMapData(mockMapId, false);
     });
 
-    // expect(mapService.getConceptMapById).toHaveBeenCalledWith(mockMapId);
-    // expect(storeState.setLoadedMap).toHaveBeenCalledWith(mockMap, false);
+    expect(window.fetch).toHaveBeenCalledWith(`/api/concept-maps/${mockMapId}`, expect.any(Object));
+    expect(storeState.setLoadedMap).toHaveBeenCalledWith(mockMap, false);
   });
 
   it('should handle "new" map id by initializing a new map in the store', async () => {
@@ -131,13 +143,13 @@ describe('useMapLoader', () => {
       await result.current.loadMapData('new', false);
     });
 
-    expect(mapService.getConceptMapById).not.toHaveBeenCalled();
-    // expect(storeState.initializeNewMap).toHaveBeenCalledWith(mockUser.id);
+    expect(window.fetch).not.toHaveBeenCalled();
+    expect(storeState.initializeNewMap).toHaveBeenCalledWith(mockUser.id);
   });
 
   it('should set an error state if loading fails', async () => {
     const error = new Error('Failed to fetch map');
-    (mapService.getConceptMapById as vi.Mock).mockRejectedValue(error);
+    (window.fetch as vi.Mock).mockRejectedValue(error);
 
     const { result } = renderHook(() =>
       useMapLoader({ routeMapId: mockMapId, user: mockUser })
@@ -147,6 +159,6 @@ describe('useMapLoader', () => {
       await result.current.loadMapData(mockMapId, false);
     });
 
-    // expect(storeState.setError).toHaveBeenCalledWith(error.message);
+    expect(storeState.setError).toHaveBeenCalledWith(error.message);
   });
 });

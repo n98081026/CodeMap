@@ -4,14 +4,14 @@ import { useState, useCallback } from 'react';
 
 import { useToast } from './use-toast';
 
+import { runFlow } from '@/ai/flows';
 import type {
   AskQuestionAboutNodeInput,
   AskQuestionAboutNodeOutput,
-  runFlow,
-  type ExtractConceptsOutput,
-  type SuggestRelationsOutput,
-  type ExpandConceptOutput,
-  type RewriteNodeContentOutput,
+  ExtractConceptsOutput,
+  SuggestRelationsOutput,
+  ExpandConceptOutput,
+  RewriteNodeContentOutput,
 } from '@/ai/flows';
 import type {
   ConceptMapNode,
