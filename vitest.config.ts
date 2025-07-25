@@ -44,5 +44,11 @@ export default defineConfig({
     deps: {
       external: [],
     },
+    resolve: {
+      alias: {
+        'graphology-traversal/bfs':
+          './node_modules/graphology-traversal/bfs.js',
+      },
+    },
   },
 });

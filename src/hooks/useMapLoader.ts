@@ -45,6 +45,13 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
       addDebugLog(
         `[DataManager loadMapDataInternal V10] Called with ID: '${idToLoad}', TargetViewOnly: ${targetViewOnlyMode}. User: ${effectiveUserForLoadHookId}`
       );
+      if (idToLoad === 'new') {
+        if (effectiveUserForLoadHookId) {
+          initializeNewMap(effectiveUserForLoadHookId);
+          useConceptMapStore.temporal.getState().clear();
+        }
+        return;
+      }
       setIsLoading(true);
       setError(null);
       setInitialLoadComplete(false);
