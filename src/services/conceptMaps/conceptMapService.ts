@@ -7,13 +7,7 @@
 
 import type { ConceptMap, ConceptMapData } from '@/types';
 
-import {
-  BYPASS_AUTH_FOR_TESTING,
-  MOCK_STUDENT_USER,
-  MOCK_TEACHER_USER,
-  MOCK_CONCEPT_MAPS_STORE,
-  MOCK_CLASSROOM_SHARED,
-} from '@/lib/config'; // Use MOCK_CONCEPT_MAPS_STORE
+import { BYPASS_AUTH_FOR_TESTING, MOCK_CONCEPT_MAPS_STORE } from '@/lib/config'; // Use MOCK_CONCEPT_MAPS_STORE
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService'; // To validate ownerId
 
@@ -425,7 +419,7 @@ export async function updateConceptMap(
   if (updates.mapData !== undefined) supabaseUpdates.map_data = updates.mapData;
   if (updates.isPublic !== undefined)
     supabaseUpdates.is_public = updates.isPublic;
-  if (updates.hasOwnProperty('sharedWithClassroomId')) {
+  if (Object.prototype.hasOwnProperty.call(updates, 'sharedWithClassroomId')) {
     supabaseUpdates.shared_with_classroom_id = updates.sharedWithClassroomId;
   }
 

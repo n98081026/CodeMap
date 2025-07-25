@@ -22,13 +22,7 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const {
-    mapData,
-    addNode: addStoreNode,
-    addEdge: addStoreEdge,
-    setStagedMapData,
-    setAiExtractedConcepts,
-  } = useConceptMapStore(
+  const { mapData, setStagedMapData } = useConceptMapStore(
     useCallback(
       (s) => ({
         mapData: s.mapData,
@@ -65,16 +59,10 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
         const existingConcepts = mapData.nodes.map((node) => node.text);
         const mapContext =
           mapData.nodes.length > 0
-            ? `當前地圖包含 ${mapData.nodes.length} 個概念，主要涉及：${existingConcepts.slice(0, 3).join('、')}`
+            ? `當前地圖包含 ${
+                mapData.nodes.length
+              } 個概念，主要涉及：${existingConcepts.slice(0, 3).join('、')}`
             : '這是一個新的概念圖';
-
-        const input: WhimsicalExtractConceptsInput = {
-          text: text || '請基於當前地圖內容建議相關概念',
-          existingConcepts,
-          userGoals,
-          mapContext,
-          difficultyLevel,
-        };
 
         const loadingToast = toast({
           title: 'AI 正在分析...',
@@ -90,7 +78,7 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
           const stagedNodes: ConceptMapNode[] = [];
           const existingNodesForPlacement = [...mapData.nodes];
 
-          result.concepts.forEach((conceptItem, index) => {
+          result.concepts.forEach((conceptItem: any, index) => {
             const newNodeId = `whimsical-${Date.now()}-${index}`;
             const position = getNodePlacement(
               existingNodesForPlacement,

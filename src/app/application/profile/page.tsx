@@ -33,7 +33,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/auth-context';
-import { useToast } from '@/hooks/use-toast';
 import { UserRole, type User } from '@/types';
 
 export default function ProfilePage() {
@@ -55,14 +54,6 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  if (authIsLoading || !user) {
-    return (
-      <div className='flex h-screen w-screen items-center justify-center'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    );
-  }
-
   const getDashboardLink = useCallback(() => {
     if (!user) return '/login';
     switch (user.role) {
@@ -75,7 +66,7 @@ export default function ProfilePage() {
       default:
         return '/login';
     }
-  }, [user?.role]);
+  }, [user]);
 
   const handleProfileUpdated = useCallback(
     async (updatedFields: Partial<User>) => {
@@ -104,6 +95,14 @@ export default function ProfilePage() {
       }
     }
   };
+
+  if (authIsLoading || !user) {
+    return (
+      <div className='flex h-screen w-screen items-center justify-center'>
+        <Loader2 className='h-12 w-12 animate-spin text-primary' />
+      </div>
+    );
+  }
 
   const isCurrentAccountMock =
     user.id === 'admin-mock-id' ||

@@ -12,13 +12,13 @@ vi.mock('dagre', () => {
             nodes.push({ id, ...options });
           }),
           setEdge: vi.fn(),
-          nodes: vi.fn(() => nodes.map(n => n.id)),
-          node: vi.fn(id => nodes.find(n => n.id === id)),
-          hasNode: vi.fn(id => nodes.some(n => n.id === id)),
+          nodes: vi.fn(() => nodes.map((n: any) => n.id)),
+          node: vi.fn((id) => nodes.find((n: any) => n.id === id)),
+          hasNode: vi.fn((id) => nodes.some((n: any) => n.id === id)),
         };
       }),
     },
-    layout: vi.fn(graph => {
+    layout: vi.fn((graph: any) => {
       graph.nodes().forEach((id: string) => {
         const node = graph.node(id);
         node.x = Math.random() * 100;
@@ -32,13 +32,9 @@ vi.mock('dagre', () => {
   };
 });
 
-import type {
-  DagreLayoutOptions,
-  DagreLayoutInput,
-} from '@/types/graph-adapter';
+import type { DagreLayoutInput } from '@/types/graph-adapter';
 
-
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('DagreLayoutUtility', () => {
   let dagreUtil: DagreLayoutUtility;
@@ -52,9 +48,7 @@ describe('DagreLayoutUtility', () => {
       { id: 'n1', width: 100, height: 50 },
       { id: 'n2', width: 120, height: 60 },
     ];
-    const edges: DagreLayoutInput['edges'] = [
-      { source: 'n1', target: 'n2' },
-    ];
+    const edges: DagreLayoutInput['edges'] = [{ source: 'n1', target: 'n2' }];
 
     const result = await dagreUtil.layout(nodes, edges);
 
@@ -108,9 +102,7 @@ describe('DagreLayoutUtility', () => {
       { id: 'n1', width: 100, height: 50 },
     ];
     // n2 does not exist in nodes array
-    const edges: DagreLayoutInput['edges'] = [
-      { source: 'n1', target: 'n2' },
-    ];
+    const edges: DagreLayoutInput['edges'] = [{ source: 'n1', target: 'n2' }];
 
     await dagreUtil.layout(nodes, edges);
 

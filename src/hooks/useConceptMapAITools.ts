@@ -2,28 +2,26 @@
 
 import { useState, useCallback } from 'react';
 
-import type {
-  ConceptMapNode,
-  ConceptMapEdge,
-  RFNode,
-  CustomNodeData,
-} from '@/types';
+import { useToast } from './use-toast';
+
 import type {
   AskQuestionAboutNodeInput,
   AskQuestionAboutNodeOutput,
-} from '@/ai/flows';
-
-import { useToast } from './use-toast';
-
-import {
   runFlow,
   type ExtractConceptsOutput,
   type SuggestRelationsOutput,
   type ExpandConceptOutput,
   type RewriteNodeContentOutput,
 } from '@/ai/flows';
-import { generateUniqueId } from '@/lib/utils';
+import type {
+  ConceptMapNode,
+  ConceptMapEdge,
+  RFNode,
+  CustomNodeData,
+} from '@/types';
+
 import { getNodePlacement } from '@/lib/dagreLayoutUtility';
+import { generateUniqueId } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 type AICommand =
@@ -56,8 +54,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
 
   const [isExtractConceptsModalOpen, setIsExtractConceptsModalOpen] =
     useState(false);
-  const [isQuickClusterModalOpen, setIsQuickClusterModalOpen] =
-    useState(false);
+  const [isQuickClusterModalOpen, setIsQuickClusterModalOpen] = useState(false);
   const [isGenerateSnippetModalOpen, setIsGenerateSnippetModalOpen] =
     useState(false);
   const [textForExtraction, setTextForExtraction] = useState('');
@@ -129,8 +126,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         ExtractConceptsOutput
       >('extractConcepts', params, {
         successTitle: 'Concepts Extracted',
-        successDescription:
-          'Review the new concepts in the staging area.',
+        successDescription: 'Review the new concepts in the staging area.',
         errorTitle: 'Error Extracting Concepts',
       });
 
@@ -170,8 +166,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
       {},
       {
         successTitle: 'Relations Suggested',
-        successDescription:
-          'Review the new relations in the staging area.',
+        successDescription: 'Review the new relations in the staging area.',
         errorTitle: 'Error Suggesting Relations',
       }
     );
@@ -250,7 +245,9 @@ export function useConceptMapAITools(isViewOnly: boolean) {
           id: generateUniqueId('edge'),
           source: parentNode.id,
           target: newNode.id,
-          label: result.edges?.find((e) => e.target === newNode.text)?.label || 'related to',
+          label:
+            result.edges?.find((e) => e.target === newNode.text)?.label ||
+            'related to',
         }));
 
         setStagedMapData({
@@ -351,14 +348,11 @@ export function useConceptMapAITools(isViewOnly: boolean) {
     console.log('Opening ask question modal for node:', nodeId);
   };
 
-  const handleQuickCluster = useCallback(
-    async (params: {}) => {
-      // Implementation for quick cluster
-      // This will involve getting selected nodes from the store
-      return { success: true };
-    },
-    []
-  );
+  const handleQuickCluster = useCallback(async (params: {}) => {
+    // Implementation for quick cluster
+    // This will involve getting selected nodes from the store
+    return { success: true };
+  }, []);
 
   const handleGenerateSnippetFromText = useCallback(
     async (params: { text: string }) => {

@@ -1,11 +1,9 @@
-// src/hooks/useMapSaver.ts
+import { useRouter, usePathname } from 'next/navigation';
 import { useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 
 import type { ConceptMap, User } from '@/types';
 
 import { useToast } from '@/hooks/use-toast';
-import { usePathname } from 'next/navigation';
 import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER } from '@/lib/config';
 import * as mapService from '@/services/conceptMaps/conceptMapService';
 import useConceptMapStore from '@/stores/concept-map-store';
@@ -46,7 +44,7 @@ export function useMapSaver({ user }: UseMapSaverProps) {
         return;
       }
       const effectiveUserForSave = BYPASS_AUTH_FOR_TESTING
-        ? MOCK_STUDENT_USER ?? null
+        ? (MOCK_STUDENT_USER ?? null)
         : user;
 
       if (!effectiveUserForSave) {
@@ -92,7 +90,7 @@ export function useMapSaver({ user }: UseMapSaverProps) {
         } else {
           savedMapData = await mapService.updateConceptMap(
             storeMapId,
-            payload
+            payload as any
           );
         }
 
@@ -112,14 +110,9 @@ export function useMapSaver({ user }: UseMapSaverProps) {
           addDebugLog(
             `[DataManager saveMap V3] New map saved, redirecting to /editor/${savedMapData.id}`
           );
-          const newPath = pathname.replace(
-            /(new|map-\w+)/,
-            savedMapData.id
-          );
+          const newPath = pathname.replace(/(new|map-\w+)/, savedMapData.id);
           router.replace(
-            `${newPath}${
-              currentViewOnlyModeInStore ? '?viewOnly=true' : ''
-            }`,
+            `${newPath}${currentViewOnlyModeInStore ? '?viewOnly=true' : ''}`,
             { scroll: false }
           );
         }

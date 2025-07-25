@@ -1,10 +1,6 @@
 'use client';
 
 import {
-  AlignLeft,
-  AlignCenterHorizontal,
-  AlignRight,
-  AlignCenterVertical,
   ArrowLeft,
   Compass,
   Share2,
@@ -12,8 +8,10 @@ import {
   EyeOff,
   HelpCircle,
   Save,
+  Info,
+  UserPlus,
+  LogIn,
 } from 'lucide-react';
-import { Info, UserPlus, LogIn } from 'lucide-react'; // For CTA
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -26,13 +24,15 @@ import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import type { ArrangeAction } from '@/components/concept-map/editor-toolbar';
 import type {
   ConceptMap,
-  ConceptMapData,
   ConceptMapNode,
   ConceptMapEdge,
   VisualEdgeSuggestion,
 } from '@/types';
-import type { DagreLayoutOptions, LayoutNodeUpdate } from '@/types/graph-adapter';
-import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
+import type {
+  DagreLayoutOptions,
+  LayoutNodeUpdate,
+} from '@/types/graph-adapter';
+import type { Node as RFNode } from 'reactflow';
 
 import AIStagingToolbar from '@/components/concept-map/ai-staging-toolbar';
 import AISuggestionFloater, {
@@ -44,18 +44,7 @@ import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import ProjectOverviewDisplay from '@/components/concept-map/project-overview-display'; // Import the new component
 import { PropertiesInspector } from '@/components/concept-map/properties-inspector';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import AppTutorial from '@/components/tutorial/app-tutorial'; // Import AppTutorial
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // For CTA
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Alert } from '@/components/ui/alert'; // For CTA
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/auth-context';
@@ -84,8 +73,10 @@ const DEFAULT_NODE_HEIGHT = 70;
 const EditorGuestCtaBanner: React.FC<{ routeMapId: string }> = ({
   routeMapId,
 }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const storeIsViewOnlyMode = useConceptMapStore((state) => state.isViewOnlyMode);
+  const { isAuthenticated, isLoading } = useAuth();
+  const storeIsViewOnlyMode = useConceptMapStore(
+    (state) => state.isViewOnlyMode
+  );
 
   const isActuallyGuest = !isLoading && !isAuthenticated;
   const isExampleMap = routeMapId && routeMapId.startsWith('example-');
@@ -99,8 +90,8 @@ const EditorGuestCtaBanner: React.FC<{ routeMapId: string }> = ({
       <Info className='h-4 w-4 !text-primary mr-2' />
       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
         <span className='text-primary/90'>
-          You're viewing an example. To create maps, save your work, or use AI
-          tools, please
+          You&apos;re viewing an example. To create maps, save your work, or use
+          AI tools, please
         </span>
         <div className='mt-2 sm:mt-0 sm:ml-4 flex gap-2 flex-shrink-0'>
           <Button
@@ -136,7 +127,12 @@ export default function ConceptMapEditorPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback((s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
+    useCallback(
+      (s: { startOrResumeTutorial: (arg0: string) => void }) => ({
+        startOrResumeTutorial: s.startOrResumeTutorial,
+      }),
+      []
+    )
   );
   // const [runEditorTutorial, setRunEditorTutorial] = useState(false); // Removed local state
 
@@ -183,7 +179,7 @@ export default function ConceptMapEditorPage() {
     fetchProjectOverview,
   } = useConceptMapStore(
     useCallback(
-      (s) => ({
+      (s: any) => ({
         mapId: s.mapId,
         mapName: s.mapName,
         currentMapOwnerId: s.currentMapOwnerId,
@@ -237,7 +233,13 @@ export default function ConceptMapEditorPage() {
 
   useEffect(() => {
     addDebugLog(
-      `[EditorPage V12] storeMapData processed. Nodes: ${storeMapData.nodes?.length ?? 'N/A'}, Edges: ${storeMapData.edges?.length ?? 'N/A'}. isLoading: ${isStoreLoading}, initialLoadComplete: ${(useConceptMapStore.getState() as any).initialLoadComplete}`
+      `[EditorPage V12] storeMapData processed. Nodes: ${
+        storeMapData.nodes?.length ?? 'N/A'
+      }, Edges: ${
+        storeMapData.edges?.length ?? 'N/A'
+      }. isLoading: ${isStoreLoading}, initialLoadComplete: ${
+        (useConceptMapStore.getState() as any).initialLoadComplete
+      }`
     );
   }, [storeMapData, isStoreLoading, addDebugLog]);
 
@@ -263,14 +265,11 @@ export default function ConceptMapEditorPage() {
     user,
     isAuthLoading,
     isStoreLoading,
-    routeMapId,
     startOrResumeTutorial,
     (useConceptMapStore.getState() as any).initialLoadComplete,
   ]);
 
-  const { handleUndo, handleRedo, canUndo, canRedo } = {
-    handleUndo: () => {},
-    handleRedo: () => {},
+  const { canUndo, canRedo } = {
     canUndo: false,
     canRedo: false,
   };
@@ -349,9 +348,7 @@ export default function ConceptMapEditorPage() {
   });
   const Floater_handleDismiss = useCallback(() => {
     /* ... */
-  }, [
-    floaterState.contextType,
-  ]);
+  }, [floaterState.contextType]);
   useEffect(() => {
     /* for edgeLabelSuggestions */
   }, [
@@ -361,32 +358,13 @@ export default function ConceptMapEditorPage() {
     floaterState.isVisible,
     floaterState.contextType,
   ]);
-  const handleAddNodeFromFloater = useCallback(
-    (position?: { x: number; y: number }) => {},
-    []
-  );
-  const handlePaneContextMenuRequest = useCallback(
-    (event: React.MouseEvent, positionInFlow: { x: number; y: number }) => {
-      /* ... */
-    },
-    [
-      storeIsViewOnlyMode,
-      Floater_handleDismiss,
-      contextMenu,
-      () => setContextMenu(null),
-    ]
-  );
-  const handleNodeContextMenuRequest = useCallback(
-    async (event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
-      /* ... */
-    },
-    [
-      storeIsViewOnlyMode,
-      contextMenu,
-      () => setContextMenu(null),
-      Floater_handleDismiss,
-    ]
-  );
+
+  const handlePaneContextMenuRequest = useCallback(() => {
+    /* ... */
+  }, []);
+  const handleNodeContextMenuRequest = useCallback(async () => {
+    /* ... */
+  }, []);
   const handleCommitStagedData = useCallback(() => {
     commitStagedMapData();
     toast({ title: 'Staged items added to map.' });
@@ -410,47 +388,28 @@ export default function ConceptMapEditorPage() {
     floaterState.contextType,
     Floater_handleDismiss,
   ]);
-  const handleConceptSuggestionDrop = useCallback(
-    (
-      conceptItem: { concept: string; context?: string; source?: string },
-      position: { x: number; y: number }
-    ) => {
-      if (storeIsViewOnlyMode) return;
-      // aiToolsHook.addStoreNode({
-      //   text: conceptItem.concept,
-      //   type: 'ai-concept', // Or derive from conceptItem if it has a type
-      //   position,
-      //   details: conceptItem.context
-      //     ? `Context: ${conceptItem.context}${conceptItem.source ? `\nSource: "${conceptItem.source}"` : ''}`
-      //     : conceptItem.source
-      //       ? `Source: "${conceptItem.source}"`
-      //       : '',
-      // });
-      // // Optionally remove from suggestions if onAddExtractedConcepts handles it, or call a specific removal function
-      // toast({
-      //   title: 'Concept Added',
-      //   description: `"${conceptItem.concept}" added from suggestions.`,
-      // });
-    },
-    [storeIsViewOnlyMode, toast]
-  );
+  const handleConceptSuggestionDrop = useCallback(() => {
+    if (storeIsViewOnlyMode) return;
+    // aiToolsHook.addStoreNode({
+    //   text: conceptItem.concept,
+    //   type: 'ai-concept', // Or derive from conceptItem if it has a type
+    //   position,
+    //   details: conceptItem.context
+    //     ? `Context: ${conceptItem.context}${conceptItem.source ? `\nSource: "${conceptItem.source}"` : ''}`
+    //     : conceptItem.source
+    //       ? `Source: "${conceptItem.source}"`
+    //       : '',
+    // });
+    // // Optionally remove from suggestions if onAddExtractedConcepts handles it, or call a specific removal function
+    // toast({
+    //   title: 'Concept Added',
+    //   description: `"${conceptItem.concept}" added from suggestions.`,
+    // });
+  }, [storeIsViewOnlyMode]);
 
-  const handleMapPropertiesChange = useCallback(
-    (properties: {
-      name: string;
-      isPublic: boolean;
-      sharedWithClassroomId: string | null;
-    }) => {
-      /* ... */
-    },
-    [
-      storeIsViewOnlyMode,
-      toast,
-      setStoreMapName,
-      setStoreIsPublic,
-      setStoreSharedWithClassroomId,
-    ]
-  );
+  const handleMapPropertiesChange = useCallback(() => {
+    /* ... */
+  }, []);
   const handleFlowSelectionChange = useCallback(
     (elementId: string | null, elementType: 'node' | 'edge' | null) => {
       setStoreSelectedElement(elementId, elementType);
@@ -465,18 +424,10 @@ export default function ConceptMapEditorPage() {
   );
   const handleAddNodeToData = useCallback(() => {
     /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeMapData.nodes,
-  ]);
+  }, [storeIsViewOnlyMode, toast, storeMapData.nodes]);
   const handleAddEdgeToData = useCallback(() => {
     /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeMapData.nodes,
-  ]);
+  }, [storeIsViewOnlyMode, toast, storeMapData.nodes]);
   const getRoleBasedDashboardLink = useCallback(() => {
     return user ? `/${user.role}/dashboard` : '/login';
   }, [user]);
@@ -530,8 +481,8 @@ export default function ConceptMapEditorPage() {
   if (selectedElementId && selectedElementType) {
     actualSelectedElementForInspector =
       selectedElementType === 'node'
-        ? storeMapData.nodes.find((n: any) => n.id === selectedElementId) || null
-        : storeMapData.edges.find((e: any) => e.id === selectedElementId) || null;
+        ? storeMapData.nodes.find((n) => n.id === selectedElementId) || null
+        : storeMapData.edges.find((e) => e.id === selectedElementId) || null;
   }
   const canAddEdge = storeMapData.nodes.length >= 2;
   const handleNewMap = useCallback(() => {
@@ -637,94 +588,13 @@ export default function ConceptMapEditorPage() {
       handleDistributeVertically,
     ]
   );
-  const handleTriggerAISemanticGroup = useCallback(async () => {
+
+  const handleDeleteNodeFromContextMenu = useCallback(() => {
     /* ... */
-  }, [
-    toast,
-    addDebugLog,
-    storeIsViewOnlyMode,
-    multiSelectedNodeIds,
-    storeMapData.nodes,
-  ]);
-  const handleRequestAIArrangementSuggestion = useCallback(async () => {
+  }, []);
+  const handleSelectedElementPropertyUpdateInspector = useCallback(() => {
     /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    multiSelectedNodeIds,
-    toast,
-    addDebugLog,
-    storeMapData.nodes,
-  ]);
-  const handleConfirmAIArrangement = useCallback(() => {
-    /* ... */
-  }, [
-    arrangeActions,
-    toast,
-    addDebugLog,
-    handleAlignLefts,
-    handleAlignCentersH,
-    handleAlignRights,
-    handleAlignTops,
-    handleAlignMiddlesV,
-    handleAlignBottoms,
-    handleDistributeHorizontally,
-    handleDistributeVertically,
-  ]);
-  const handleRequestAIDiscoverGroup = useCallback(async () => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    storeMapData,
-    toast,
-    addDebugLog,
-  ]);
-  const handleConfirmAIDiscoverGroup = useCallback(async () => {
-    /* ... */
-  }, [
-    updateStoreNode,
-    toast,
-    addDebugLog,
-    storeApplyLayout,
-  ]);
-  const handleRequestAIMapImprovement = useCallback(async () => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    storeMapData,
-    toast,
-    addDebugLog,
-  ]);
-  const handleConfirmAIMapImprovement = useCallback(() => {
-    /* ... */
-  }, [toast]);
-  const handleConfirmAISemanticGroup = useCallback(async () => {
-    /* ... */
-  }, [
-    multiSelectedNodeIds,
-    storeMapData.nodes,
-    updateStoreNode,
-    toast,
-    addDebugLog,
-    storeApplyLayout,
-  ]);
-  const handleDeleteNodeFromContextMenu = useCallback(
-    (nodeId: string) => {
-      /* ... */
-    },
-    [storeIsViewOnlyMode, deleteStoreNode, closeContextMenu]
-  );
-  const handleSelectedElementPropertyUpdateInspector = useCallback(
-    (updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>) => {
-      /* ... */
-    },
-    [
-      storeIsViewOnlyMode,
-      selectedElementId,
-      selectedElementType,
-      updateStoreNode,
-      updateStoreEdge,
-    ]
-  );
+  }, []);
   // const inspectorAiTools = React.useMemo(
   //   () => ({
   //     // openExpandConceptModal: aiToolsHook.openExpandConceptModal,
@@ -744,12 +614,9 @@ export default function ConceptMapEditorPage() {
     routeMapId !== 'new' &&
     storeMapData.nodes.length === 0 &&
     storeMapId === routeMapId;
-  const handleStartConnectionFromNode = useCallback(
-    (nodeId: string) => {
-      /* ... */
-    },
-    [storeIsViewOnlyMode, toast, addDebugLog]
-  );
+  const handleStartConnectionFromNode = useCallback(() => {
+    /* ... */
+  }, []);
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
       /* ... */
@@ -891,7 +758,8 @@ export default function ConceptMapEditorPage() {
         // This is a placeholder for deriving projectStoragePath from currentSubmissionId
         // In a real application, you'd fetch submission details to get its fileStoragePath
         const projectStoragePath =
-          (useConceptMapStore.getState() as any).mapData.projectFileStoragePath || // Check if already in mapData
+          (useConceptMapStore.getState() as any).mapData
+            .projectFileStoragePath || // Check if already in mapData
           `user-${user?.id}/project-archives/some-path-derived-from-${currentSubmissionId}.zip`; // Placeholder
 
         if (

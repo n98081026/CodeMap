@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { act, renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -9,13 +8,15 @@ import { useToast } from '@/hooks/use-toast';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 // Mock dependencies
-vi.mock('@/ai/flows', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    runFlow: vi.fn(),
-  };
-});
+vi.mock('@/ai/flows', () => ({
+  runFlow: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
 
 vi.mock('@/lib/dagreLayoutUtility', () => ({
   getNodePlacement: vi.fn(() => ({ x: 0, y: 0 })),
@@ -29,7 +30,6 @@ vi.mock('@/hooks/use-toast');
 
 vi.mock('@/stores/concept-map-store');
 
-const mockMapId = 'test-map-id';
 const mockNodeId = 'node-1';
 const mockNode = {
   id: mockNodeId,
@@ -69,10 +69,13 @@ describe('useConceptMapAITools', () => {
 
   describe('handleExtractConcepts', () => {
     it('should call extractConceptsFlow and update staged data on success', async () => {
-      const mockExtractedData = { concepts: [{ text: 'concept1', reason: 'reason1' }, { text: 'concept2', reason: 'reason2' }] };
-      (aiFlows.runFlow as vi.Mock).mockResolvedValue(
-        mockExtractedData
-      );
+      const mockExtractedData = {
+        concepts: [
+          { text: 'concept1', reason: 'reason1' },
+          { text: 'concept2', reason: 'reason2' },
+        ],
+      };
+      (aiFlows.runFlow as vi.Mock).mockResolvedValue(mockExtractedData);
 
       const { result } = renderHook(() => useConceptMapAITools(false));
 
@@ -97,10 +100,12 @@ describe('useConceptMapAITools', () => {
         edges: [],
         actionType: 'extractConcepts',
       });
-      expect(toast).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Concepts Extracted',
-        description: 'Review the new concepts in the staging area.',
-      }));
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Concepts Extracted',
+          description: 'Review the new concepts in the staging area.',
+        })
+      );
     });
 
     it('should show a toast message on failure', async () => {
@@ -115,11 +120,13 @@ describe('useConceptMapAITools', () => {
         });
       });
 
-      expect(toast).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Error Extracting Concepts',
-        description: error.message,
-        variant: 'destructive',
-      }));
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Error Extracting Concepts',
+          description: error.message,
+          variant: 'destructive',
+        })
+      );
     });
   });
 
@@ -141,9 +148,7 @@ describe('useConceptMapAITools', () => {
 
     it('should call rewriteNodeContentFlow and update modal state', async () => {
       const mockRewrite = { rewrittenText: 'Rewritten content' };
-      (aiFlows.runFlow as vi.Mock).mockResolvedValue(
-        mockRewrite
-      );
+      (aiFlows.runFlow as vi.Mock).mockResolvedValue(mockRewrite);
 
       const { result } = renderHook(() => useConceptMapAITools(false));
 

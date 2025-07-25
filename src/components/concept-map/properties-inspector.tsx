@@ -13,33 +13,26 @@ import {
   Ruler,
   Brain,
   Sparkles,
-  GitMerge,
   Info,
   HelpCircle,
-  MessageSquareQuote,
   Lightbulb,
   MessageCircleQuestion,
   Loader2 as LoaderIcon,
   AlertTriangle as AlertTriangleIcon,
   Send,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import * as z from 'zod';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react';
 
 import AICommandPalette, { type AICommand } from './ai-command-palette';
 
 import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from '@/types';
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -68,7 +61,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 // import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { cn } from '@/lib/utils';
-import useConceptMapStore from '@/stores/concept-map-store';
 
 interface PropertiesInspectorProps {
   currentMap: ConceptMap | null;
@@ -83,7 +75,6 @@ interface PropertiesInspectorProps {
   onSelectedElementPropertyUpdate?: (
     updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>
   ) => void;
-  onSuggestIntermediateNode?: (edgeId: string) => void;
 
   isNewMapMode?: boolean;
   isViewOnlyMode?: boolean;
@@ -102,14 +93,11 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   selectedElement,
   selectedElementType,
   onSelectedElementPropertyUpdate,
-  onSuggestIntermediateNode, // Destructure new prop
-  isNewMapMode,
   isViewOnlyMode,
   editingNodeId,
   aiTools, // Destructure aiTools
 }: PropertiesInspectorProps) {
   const nodeLabelInputRef = useRef<HTMLInputElement>(null); // Ref for node label input
-  const textareaDetailsRef = useRef<HTMLTextAreaElement>(null);
   const nodeDetailsTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // const aiToolsHook = useConceptMapAITools(!!isViewOnlyMode);
@@ -139,10 +127,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   >(null);
 
   // Loading state for AI suggest intermediate node
-  const [
-    isLoadingAISuggestIntermediateNode,
-    setIsLoadingAISuggestIntermediateNode,
-  ] = useState(false); // New loading state for the button
 
   // Define AI Commands (merge both approaches)
   const availableAiCommands: AICommand[] = React.useMemo(() => {
@@ -322,16 +306,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         setShowPalette(false);
       }
     },
-    [
-      isViewOnlyMode,
-      onSelectedElementPropertyUpdate,
-      selectedElement,
-      selectedElementType,
-      setPaletteQuery,
-      setShowPalette,
-      setPaletteTargetRef,
-      setActiveCommandField,
-    ]
+    [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
 
   const handleElementLabelChange = useCallback(
@@ -351,54 +326,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     },
     [handleInputChangeForPalette]
   );
-
-  const _handlePaletteSelectCommand = useCallback(
-    (command: AICommand) => {
-      setShowPalette(false);
-      if (
-        paletteTargetRef?.current &&
-        activeCommandField &&
-        onSelectedElementPropertyUpdate
-      ) {
-        const currentValue = paletteTargetRef.current.value;
-        const aiCommandIndex = currentValue.toLowerCase().lastIndexOf('/ai');
-        let cleanedValue = currentValue;
-        if (aiCommandIndex !== -1) {
-          cleanedValue = currentValue.substring(0, aiCommandIndex).trimEnd();
-        }
-
-        if (activeCommandField === 'label') {
-          if (selectedElementType === 'node')
-            onSelectedElementPropertyUpdate({ text: cleanedValue });
-          else if (selectedElementType === 'edge')
-            onSelectedElementPropertyUpdate({ label: cleanedValue });
-        } else if (
-          activeCommandField === 'details' &&
-          selectedElementType === 'node'
-        ) {
-          onSelectedElementPropertyUpdate({ details: cleanedValue });
-        }
-
-        // command.action(); // This will be called with more context later
-        // For now, the availableAiCommands already have console.log with selectedElement.id
-        const commandToExecute = availableAiCommands.find(
-          (c) => c.id === command.id
-        );
-        commandToExecute?.action();
-      }
-    },
-    [
-      paletteTargetRef,
-      activeCommandField,
-      onSelectedElementPropertyUpdate,
-      selectedElementType,
-      availableAiCommands,
-    ]
-  );
-
-  const _handlePaletteClose = useCallback(() => {
-    setShowPalette(false);
-  }, []);
 
   const handleNodeBackgroundColorChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -515,7 +442,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
 
   const aiCommands = useMemo<AICommand[]>(() => {
     if (!selectedElement || selectedElementType !== 'node') return [];
-    const nodeId = selectedElement.id;
     // const nodeText = (selectedElement as ConceptMapNode).text;
     // const nodeDetails = (selectedElement as ConceptMapNode).details || "";
 
@@ -582,11 +508,9 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         const textAfterSlashAi = value.substring(lastSlashAiIndex + 3); // +3 for "/ai"
         setCommandFilterText(textAfterSlashAi.trimStart()); // Trim only start for active filtering
 
-        if (textareaDetailsRef.current) {
+        if (nodeDetailsTextareaRef.current) {
           // Attempt to get caret position to position palette
-          const textarea = textareaDetailsRef.current;
-          const selectionStart = textarea.selectionStart;
-
+          const textarea = nodeDetailsTextareaRef.current;
           // This is a simplified way to get rect; more complex calculations might be needed for precise caret position
           // For now, using the textarea's bounding rect. A library might be better for exact caret.
           const rect = textarea.getBoundingClientRect();
@@ -620,8 +544,8 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       command.action();
 
       // Clear the "/ai <filter>" text from the Textarea
-      if (textareaDetailsRef.current) {
-        const currentValue = textareaDetailsRef.current.value;
+      if (nodeDetailsTextareaRef.current) {
+        const currentValue = nodeDetailsTextareaRef.current.value;
         const lastSlashAiIndex = currentValue.lastIndexOf('/ai');
         if (lastSlashAiIndex !== -1) {
           const newValue = currentValue.substring(0, lastSlashAiIndex);
@@ -633,7 +557,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             onSelectedElementPropertyUpdate({ details: newValue });
           }
           // If not using a controlled component for Textarea value, manually update:
-          // textareaDetailsRef.current.value = newValue;
+          // nodeDetailsTextareaRef.current.value = newValue;
         }
       }
 
@@ -786,7 +710,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         <Textarea
           id='nodeDetails'
           data-tutorial-id='properties-inspector-node-details-input' // Added tutorial ID
-          ref={textareaDetailsRef}
+          ref={nodeDetailsTextareaRef}
           value={elementDetailsValue}
           onChange={handleElementDetailsChangeWithPalette}
           disabled={isViewOnlyMode}
@@ -1071,7 +995,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     setAiNodeAnswer(null);
     setAskNodeQuestionError(null);
     try {
-      const node = selectedElement as ConceptMapNode;
+      // const node = selectedElement as ConceptMapNode;
       // Assuming aiTools.askQuestionAboutNode is implemented
       // const result = await aiTools.askQuestionAboutNode(
       //   node.id,
@@ -1263,17 +1187,9 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
           size='sm'
           className='w-full'
           onClick={handleTriggerSuggestIntermediateNode}
-          disabled={
-            isLoadingAISuggestIntermediateNode ||
-            isViewOnlyMode ||
-            !selectedElement
-          }
+          disabled={isViewOnlyMode || !selectedElement}
         >
-          {isLoadingAISuggestIntermediateNode ? (
-            <LoaderIcon className='mr-2 h-4 w-4 animate-spin' />
-          ) : (
-            <Lightbulb className='mr-2 h-4 w-4' />
-          )}
+          <Lightbulb className='mr-2 h-4 w-4' />
           Suggest Intermediate Node (AI)
         </Button>
       </div>

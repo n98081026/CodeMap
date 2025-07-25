@@ -100,8 +100,8 @@ export function InviteStudentDialog({
         <DialogHeader>
           <DialogTitle>Invite or Add Student</DialogTitle>
           <DialogDescription>
-            Enter student's email to send an invite (mock), or their existing
-            Student ID to add them directly to the classroom.
+            Enter student&apos;s email to send an invite (mock), or their
+            existing Student ID to add them directly to the classroom.
           </DialogDescription>
         </DialogHeader>
         <div className='grid gap-4 py-4'>

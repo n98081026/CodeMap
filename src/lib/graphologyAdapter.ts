@@ -22,20 +22,19 @@
 // review has been marked as complete.
 // =====================================================================================
 
-import Graph, { MultiGraph } from 'graphology';
+import Graph, { MultiGraph, type PlainObject } from 'graphology';
 import louvain from 'graphology-communities-louvain';
 import { bfsFromNode } from 'graphology-traversal/bfs';
 
-import type {
-  ConceptMapNode,
-  ConceptMapEdge,
-} from '../types';
+import type { ConceptMapNode, ConceptMapEdge } from '../types';
+
+import { GraphologyInstance, NeighborhoodOptions } from '@/types/graph-adapter';
 
 export class GraphAdapterUtility {
   fromArrays(
     nodes: ConceptMapNode[],
     edges: ConceptMapEdge[],
-    options?: any & {
+    options?: PlainObject & {
       type?: 'graph' | 'multi';
       replaceEdges?: boolean;
     } & Record<string, any>
@@ -46,7 +45,7 @@ export class GraphAdapterUtility {
     nodes.forEach((node) => {
       const { id, ...attributes } = node;
       if (!graph.hasNode(id)) {
-        graph.addNode(id, attributes);
+        graph.addNode(id, attributes as any);
       }
     });
 
@@ -57,7 +56,7 @@ export class GraphAdapterUtility {
         if (graph.hasEdge(id)) {
           if (options?.replaceEdges) {
             graph.dropEdge(id);
-            graph.addEdgeWithKey(id, source, target, attributes);
+            graph.addEdgeWithKey(id, source, target, attributes as any);
           }
         } else if (
           graph instanceof Graph &&
@@ -67,7 +66,7 @@ export class GraphAdapterUtility {
           // In a simple Graph, if an edge (any key) between source & target exists, and we're not replacing.
           // console.warn(`Simple graph already has an edge between ${source} and ${target}. Skipping edge ${id}.`);
         } else {
-          graph.addEdgeWithKey(id, source, target, attributes);
+          graph.addEdgeWithKey(id, source, target, attributes as any);
         }
       } else {
         console.warn(
@@ -80,7 +79,7 @@ export class GraphAdapterUtility {
 
   toArrays(graphInstance: any): any {
     const nodes: ConceptMapNode[] = [];
-    graphInstance.forEachNode((nodeId, attributes) => {
+    graphInstance.forEachNode((nodeId: any, attributes: any) => {
       nodes.push({
         id: nodeId,
         text: attributes.label || '',
@@ -99,19 +98,21 @@ export class GraphAdapterUtility {
     });
 
     const edges: ConceptMapEdge[] = [];
-    graphInstance.forEachEdge((edgeId, attributes, source, target) => {
-      edges.push({
-        id: edgeId,
-        source: source,
-        target: target,
-        label: attributes.label || '',
-        color: attributes.color,
-        lineType: attributes.lineType || 'solid',
-        markerStart: attributes.markerStart,
-        markerEnd: attributes.markerEnd,
-        data: (attributes as any).data,
-      });
-    });
+    graphInstance.forEachEdge(
+      (edgeId: any, attributes: any, source: any, target: any) => {
+        edges.push({
+          id: edgeId,
+          source: source,
+          target: target,
+          label: attributes.label || '',
+          color: attributes.color,
+          lineType: attributes.lineType || 'solid',
+          markerStart: attributes.markerStart,
+          markerEnd: attributes.markerEnd,
+          data: (attributes as any).data,
+        });
+      }
+    );
     return { nodes, edges };
   }
 
@@ -241,10 +242,7 @@ export class GraphAdapterUtility {
     return Array.from(neighborhood);
   }
 
-  getSubgraphData(
-    graphInstance: GraphologyInstance,
-    nodeIds: string[]
-  ): any {
+  getSubgraphData(graphInstance: GraphologyInstance, nodeIds: string[]): any {
     const subGraph = graphInstance.copyEmpty({
       type: graphInstance.type === 'multi' ? 'MultiGraph' : 'Graph',
     }) as GraphologyInstance;
@@ -305,7 +303,9 @@ export class GraphAdapterUtility {
       // Louvain algorithm assigns community IDs as node attributes.
       // It also returns the number of communities found or a map.
       // We'll use the assignment and then extract it.
-      louvain.assign(graphInstance, { nodeCommunityAttribute: communityAttribute });
+      louvain.assign(graphInstance, {
+        nodeCommunityAttribute: communityAttribute,
+      });
 
       const communities: Record<string, number> = {};
       graphInstance.forEachNode((nodeId, attrs) => {

@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useStudentDashboardMetrics } from '../useStudentDashboardMetrics';
 
 import { AuthProvider } from '@/contexts/auth-context';
-import { UserRole } from '@/types';
+import { User, UserRole } from '@/types';
 
 // Mock the fetch function
 global.fetch = vi.fn();
@@ -30,13 +30,14 @@ vi.mock('@/contexts/auth-context', async () => {
 
 // Wrapper component that includes the AuthProvider
 const createWrapper = () => {
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(AuthProvider, null, children);
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <AuthProvider>{children}</AuthProvider>
+  );
+  Wrapper.displayName = 'TestWrapper';
+  return Wrapper;
 };
 
-describe.skip('useStudentDashboardMetrics', () => {
-  const mockUserId = 'user-123';
-
+describe('useStudentDashboardMetrics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -51,9 +52,12 @@ describe.skip('useStudentDashboardMetrics', () => {
       }),
     });
 
-    const { result } = renderHook(() => useStudentDashboardMetrics(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useStudentDashboardMetrics({ id: 'student-user-id' } as User),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     expect(result.current.classrooms.isLoading).toBe(true);
     expect(result.current.conceptMaps.isLoading).toBe(true);
@@ -77,9 +81,12 @@ describe.skip('useStudentDashboardMetrics', () => {
       json: async () => mockData,
     });
 
-    const { result } = renderHook(() => useStudentDashboardMetrics(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useStudentDashboardMetrics({ id: 'student-user-id' } as User),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.classrooms.isLoading).toBe(false);
@@ -92,9 +99,12 @@ describe.skip('useStudentDashboardMetrics', () => {
   });
 
   it('should not fetch when userId is not provided', () => {
-    const { result } = renderHook(() => useStudentDashboardMetrics(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useStudentDashboardMetrics({} as User),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     expect(result.current.classrooms.isLoading).toBe(false);
     expect(result.current.classrooms.count).toBe(0);
@@ -107,14 +117,19 @@ describe.skip('useStudentDashboardMetrics', () => {
   it('should handle fetch errors', async () => {
     (fetch as any).mockRejectedValueOnce(new Error('Network error'));
 
-    const { result } = renderHook(() => useStudentDashboardMetrics(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useStudentDashboardMetrics({ id: 'student-user-id' } as User),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.classrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.classrooms.error).toBe('Failed to fetch student metrics');
+    expect(result.current.classrooms.error).toBe(
+      'Failed to fetch student metrics'
+    );
   });
 });

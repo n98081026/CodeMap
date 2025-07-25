@@ -1,4 +1,3 @@
-// src/hooks/__tests__/useMapSaver.test.ts
 import { act, renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useRouter } from 'next/navigation';
@@ -8,7 +7,7 @@ import { useMapSaver } from '../useMapSaver';
 import { useToast } from '@/hooks/use-toast';
 import * as mapService from '@/services/conceptMaps/conceptMapService';
 import useConceptMapStore from '@/stores/concept-map-store';
-import { UserRole } from '@/types';
+import { User, UserRole } from '@/types';
 
 import * as useToastModule from '@/hooks/use-toast';
 
@@ -35,7 +34,11 @@ vi.mock('@/stores/concept-map-store', () => {
   };
 });
 
-const mockUser = { id: 'user-1', role: UserRole.STUDENT, email: 'student@test.com' };
+const mockUser: User = {
+  id: 'user-1',
+  role: UserRole.STUDENT,
+  email: 'student@test.com',
+};
 const mockMapId = 'map-123';
 const mockMapData = {
   nodes: [{ id: 'n1', text: 'Node 1', x: 0, y: 0 }],
@@ -82,12 +85,14 @@ describe('useMapSaver', () => {
       setError: vi.fn(),
       addDebugLog: vi.fn(),
     };
-    (useConceptMapStore as unknown as vi.Mock).mockImplementation((selector) => {
-      if (typeof selector === 'function') {
-        return selector(storeState);
+    (useConceptMapStore as unknown as vi.Mock).mockImplementation(
+      (selector) => {
+        if (typeof selector === 'function') {
+          return selector(storeState);
+        }
+        return storeState;
       }
-      return storeState;
-    });
+    );
     (useConceptMapStore as any).getState = () => storeState;
     (useConceptMapStore as any).temporal = {
       getState: () => ({
@@ -124,7 +129,10 @@ describe('useMapSaver', () => {
   it('should call createConceptMap for a new map', async () => {
     storeState.isNewMapMode = true;
     storeState.mapId = 'new';
-    (mapService.createConceptMap as vi.Mock).mockResolvedValue({ ...mockMap, id: 'new-map-id' });
+    (mapService.createConceptMap as vi.Mock).mockResolvedValue({
+      ...mockMap,
+      id: 'new-map-id',
+    });
     const { result } = renderHook(() => useMapSaver({ user: mockUser }));
 
     await act(async () => {

@@ -16,10 +16,9 @@ vi.mock('@/components/ui/button', () => ({
   ),
 }));
 vi.mock('@/components/ui/badge', () => ({
-  Badge: ({
-    children,
-    ...props
-  }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
+  Badge: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+    <div {...props}>{children}</div>
+  ),
 }));
 
 // Sample data for testing
@@ -137,8 +136,9 @@ describe.skip('AISuggestionPanel', () => {
     expect(addRelationsButton).toBeDisabled();
 
     // Check individual add buttons
-    const firstConceptAddButton =
-      screen.getByText('React Hooks').parentElement?.querySelector('button');
+    const firstConceptAddButton = screen
+      .getByText('React Hooks')
+      .parentElement?.querySelector('button');
     expect(firstConceptAddButton).toBeDisabled();
   });
 

@@ -1,4 +1,4 @@
-import { GroupIcon, CheckCircle, XCircle, InfoIcon } from 'lucide-react'; // Added icons
+import { CheckCircle, XCircle, InfoIcon } from 'lucide-react'; // Added icons
 import React, { useState } from 'react'; // Added useState
 import { NodeProps } from 'reactflow';
 
@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/popover';
 // uuidv4 might not be needed here if group creation doesn't generate ID on client
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 interface SuggestedGroupOverlayNodeData {
@@ -139,8 +138,8 @@ const SuggestedGroupOverlayNode: React.FC<
               />
             </div>
             <p className='text-xs text-muted-foreground pt-1'>
-              Original suggestion: "{suggestionData.suggestedParentName}" for{' '}
-              {suggestionData.nodeIdsToGroup.length} nodes.
+              Original suggestion: &quot;{suggestionData.suggestedParentName}
+              &quot; for {suggestionData.nodeIdsToGroup.length} nodes.
             </p>
             {reason && (
               <>

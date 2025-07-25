@@ -9,9 +9,7 @@ import type { Classroom, User } from '@/types';
 
 import {
   BYPASS_AUTH_FOR_TESTING,
-  MOCK_CLASSROOM_SHARED,
   MOCK_CLASSROOM_STUDENTS_STORE,
-  MOCK_CLASSROOM_TEACHER_OWNED,
   MOCK_CLASSROOMS_STORE,
   MOCK_STUDENT_USER,
   MOCK_TEACHER_USER,
@@ -27,17 +25,6 @@ let MOCK_CLASSROOM_STUDENTS_STORE_LOCAL: Array<{
   classroom_id: string;
   student_id: string;
 }> = [...MOCK_CLASSROOM_STUDENTS_STORE];
-
-async function populateTeacherName(classroom: Classroom): Promise<void> {
-  if (classroom.teacherId && !classroom.teacherName) {
-    const teacher = await getUserById(classroom.teacherId);
-    if (teacher) {
-      classroom.teacherName = teacher.name ?? 'Unknown Teacher';
-    } else {
-      classroom.teacherName = 'Unknown Teacher';
-    }
-  }
-}
 
 async function populateStudentDetailsForClassroom(
   classroom: Classroom

@@ -3,7 +3,7 @@
  * 為 AI 生成的內容提供流暢的動畫效果
  */
 
-import { ConceptMapNode, ConceptMapEdge } from '@/types';
+import type { ConceptMapNode } from '@/types';
 
 export interface AnimationConfig {
   duration: number;
@@ -137,7 +137,6 @@ export function animateEdgeDrawing(
  * 為佈局變化添加平滑過渡
  */
 export function animateLayoutTransition(
-  nodes: ConceptMapNode[],
   newPositions: { id: string; x: number; y: number }[],
   options: LayoutAnimationOptions
 ): Promise<void> {
@@ -160,9 +159,8 @@ export function animateLayoutTransition(
           case 'smoothMorph':
             nodeElement.style.transform = `translate(${position.x}px, ${position.y}px)`;
             break;
-          case 'guidedMovement':
+          case 'guidedMovement': {
             // 添加中間關鍵幀以創建引導路徑
-            const currentTransform = nodeElement.style.transform;
             const midX = position.x * 0.5;
             const midY = position.y * 0.5 - 50; // 向上彎曲
 
@@ -171,6 +169,7 @@ export function animateLayoutTransition(
               nodeElement.style.transform = `translate(${position.x}px, ${position.y}px)`;
             }, duration * 0.5);
             break;
+          }
           case 'elastic':
             nodeElement.style.transition = `transform ${duration}ms cubic-bezier(0.68, -0.55, 0.265, 1.55)`;
             nodeElement.style.transform = `translate(${position.x}px, ${position.y}px)`;

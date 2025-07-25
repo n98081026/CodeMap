@@ -3,10 +3,10 @@
 
 import { useState } from 'react';
 
-import type { User } from '@/types';
-
 import { useMapLoader } from './useMapLoader';
 import { useMapSaver } from './useMapSaver';
+
+import type { User } from '@/types';
 
 interface UseConceptMapDataManagerProps {
   routeMapId?: string;
@@ -17,9 +17,7 @@ export function useConceptMapDataManager({
   routeMapId,
   user,
 }: UseConceptMapDataManagerProps) {
-  const [currentSubmissionId, setCurrentSubmissionId] = useState<string | null>(
-    null
-  );
+  const [currentSubmissionId] = useState<string | null>(null);
   const { loadMapData } = useMapLoader({ routeMapId, user });
   const { saveMap } = useMapSaver({ user });
 

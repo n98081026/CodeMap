@@ -1,12 +1,8 @@
 import { SupabaseClient, User as SupabaseUser } from '@supabase/supabase-js';
 import { act, renderHook } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { AuthProvider, useAuth } from '../auth-context'; // Import the function for testing
-
-import { useToast } from '@/hooks/use-toast';
-import { exampleProjects as actualExampleProjects } from '@/lib/example-data';
-import { useConceptMapStore } from '@/stores/concept-map-store';
 
 // Mock Supabase client
 const mockSupabaseAuth = {
@@ -28,11 +24,6 @@ const mockSupabaseFrom = vi.fn(() => ({
   eq: vi.fn().mockReturnThis(),
   single: vi.fn(),
 }));
-const mockSupabase = {
-  auth: mockSupabaseAuth,
-  from: mockSupabaseFrom,
-} as unknown as SupabaseClient;
-
 
 // Mock localStorage (already in the original file, kept for consistency)
 const localStorageMock = (() => {
@@ -54,7 +45,6 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 // Mock global fetch
 global.fetch = vi.fn();
-
 
 // Original AuthContext tests (Guest Session State Management)
 // These tests can remain as they test different aspects of the AuthContext
@@ -107,16 +97,18 @@ describe.skip('AuthContext - Guest Session State Management', () => {
       role: 'student',
     };
 
-    (mockSupabaseAuth.signInWithPassword as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (
+      mockSupabaseAuth.signInWithPassword as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce({
       data: { user: mockAuthUser, session: mockSession },
       error: null,
     });
-    (mockSupabaseFrom().select().eq().single as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-      {
-        data: mockProfile,
-        error: null,
-      }
-    );
+    (
+      mockSupabaseFrom().select().eq().single as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce({
+      data: mockProfile,
+      error: null,
+    });
 
     // Simulate onAuthStateChange emitting SIGNED_IN after login
     mockSupabaseAuth.onAuthStateChange.mockImplementation((callback: any) => {

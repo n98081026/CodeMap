@@ -3,9 +3,7 @@ import { Step } from 'react-joyride';
 export const getProjectUploadTutorialSteps = (t: any): Step[] => [
   {
     target: '#tutorial-target-project-file-input',
-    content: t(
-      'tutorialSteps.projectUploadTutorial.projectFileInput.content'
-    ),
+    content: t('tutorialSteps.projectUploadTutorial.projectFileInput.content'),
     title: t('tutorialSteps.projectUploadTutorial.projectFileInput.title'),
     placement: 'bottom',
     disableBeacon: true,

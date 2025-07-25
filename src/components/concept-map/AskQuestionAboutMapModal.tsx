@@ -93,8 +93,8 @@ export const AskQuestionAboutMapModal: React.FC<
           {answer && !isLoading && (
             <div className='mt-4'>
               <Label className='flex items-center mb-1'>
-                <MessageSquare className='mr-2 h-4 w-4 text-primary' /> AI's
-                Answer:
+                <MessageSquare className='mr-2 h-4 w-4 text-primary' />{' '}
+                AI&apos;s Answer:
               </Label>
               <ScrollArea className='h-auto max-h-48 w-full rounded-md border bg-muted/30 p-3'>
                 <p className='text-sm text-foreground whitespace-pre-wrap'>

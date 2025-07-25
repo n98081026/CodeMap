@@ -15,11 +15,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React from 'react'; // Added this line
 
-import { UserRole } from '@/types';
 import type { LucideIcon } from 'lucide-react';
 
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
+import { UserRole } from '@/types';
 
 interface NavItem {
   href: string;

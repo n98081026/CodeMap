@@ -29,7 +29,12 @@ export const FormGroupDataSchema = z.object({
 export const StructuralSuggestionItemSchema = z.object({
   id: z.string().uuid(),
   type: z.enum(['ADD_EDGE', 'NEW_INTERMEDIATE_NODE', 'FORM_GROUP']),
-  data: z.union([AddEdgeDataSchema, NewIntermediateNodeDataSchema, FormGroupDataSchema]), // The flow will ensure data structure corresponds to 'type'.
+  data: z.union([
+    AddEdgeDataSchema,
+    NewIntermediateNodeDataSchema,
+    FormGroupDataSchema,
+  ]),
+  // The flow will ensure data structure corresponds to 'type'.
   // Client-side will interpret 'data' based on 'type'.
   reason: z.string().optional(),
   status: z.enum(['pending', 'accepted', 'dismissed']),

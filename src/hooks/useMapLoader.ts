@@ -1,7 +1,8 @@
-// src/hooks/useMapLoader.ts
-import { useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import { useCallback, useEffect, useRef } from 'react';
+
 import type { ConceptMap, User } from '@/types';
+
 import { useToast } from '@/hooks/use-toast';
 import {
   BYPASS_AUTH_FOR_TESTING,
@@ -38,8 +39,8 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
   const loadMapData = useCallback(
     async (idToLoad: string, targetViewOnlyMode: boolean) => {
       const effectiveUserForLoadHookId = BYPASS_AUTH_FOR_TESTING
-        ? MOCK_STUDENT_USER?.id ?? null
-        : user?.id ?? null;
+        ? (MOCK_STUDENT_USER?.id ?? null)
+        : (user?.id ?? null);
 
       addDebugLog(
         `[DataManager loadMapDataInternal V10] Called with ID: '${idToLoad}', TargetViewOnly: ${targetViewOnlyMode}. User: ${effectiveUserForLoadHookId}`
@@ -170,7 +171,9 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
             throw new Error(`Map load timed out for '${idToLoad}'.`);
           }
           addDebugLog(
-            `[DataManager loadMapDataInternal V10] Fetch error for ID: ${idToLoad}: ${(fetchError as Error).message}`
+            `[DataManager loadMapDataInternal V10] Fetch error for ID: ${idToLoad}: ${
+              (fetchError as Error).message
+            }`
           );
           throw fetchError;
         }
@@ -212,13 +215,19 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
         }
         const data: ConceptMap = await response.json();
         addDebugLog(
-          `[DataManager loadMapDataInternal V11] Parsed data for ID '${idToLoad}': Nodes count: ${data.mapData?.nodes?.length ?? 'undefined/null'}. Edges count: ${data.mapData?.edges?.length ?? 'undefined/null'}. Map name: ${data.name}`
+          `[DataManager loadMapDataInternal V11] Parsed data for ID '${idToLoad}': Nodes count: ${
+            data.mapData?.nodes?.length ?? 'undefined/null'
+          }. Edges count: ${
+            data.mapData?.edges?.length ?? 'undefined/null'
+          }. Map name: ${data.name}`
         );
         addDebugLog(
           `[DataManager loadMapDataInternal V10] Successfully loaded map ID: '${idToLoad}', Name: '${data.name}'`
         );
         addDebugLog(
-          `[DataManager loadMapDataInternal V11] Calling setLoadedMap for ID '${idToLoad}' with Nodes count: ${data.mapData?.nodes?.length ?? 'undefined/null'}. targetViewOnlyMode: ${targetViewOnlyMode}`
+          `[DataManager loadMapDataInternal V11] Calling setLoadedMap for ID '${idToLoad}' with Nodes count: ${
+            data.mapData?.nodes?.length ?? 'undefined/null'
+          }. targetViewOnlyMode: ${targetViewOnlyMode}`
         );
         setLoadedMap(data, targetViewOnlyMode);
         useConceptMapStore.temporal.getState().clear();
@@ -272,10 +281,9 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
 
   useEffect(() => {
     const effectiveUserId = BYPASS_AUTH_FOR_TESTING
-      ? MOCK_STUDENT_USER?.id ?? null
-      : user?.id ?? null;
-    const currentViewOnlyQueryParam =
-      String(paramsHook.viewOnly) === 'true';
+      ? (MOCK_STUDENT_USER?.id ?? null)
+      : (user?.id ?? null);
+    const currentViewOnlyQueryParam = String(paramsHook.viewOnly) === 'true';
     const { loadExampleMapData: storeLoadExampleMapData } =
       useConceptMapStore.getState();
     addDebugLog(
@@ -321,7 +329,9 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
 
       if (!isExampleCorrectlyLoaded) {
         addDebugLog(
-          `[DataManager useEffect V13] Action: Attempting to load example map '${exampleKey}' directly. Store state: (mapId: ${storeMapId}, nodes: ${useConceptMapStore.getState().mapData.nodes.length}, initComp: ${initialLoadComplete}, viewOnly: ${isViewOnlyModeInStore})`
+          `[DataManager useEffect V13] Action: Attempting to load example map '${exampleKey}' directly. Store state: (mapId: ${storeMapId}, nodes: ${
+            useConceptMapStore.getState().mapData.nodes.length
+          }, initComp: ${initialLoadComplete}, viewOnly: ${isViewOnlyModeInStore})`
         );
         setIsLoading(true);
         setError(null);
@@ -513,12 +523,9 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
       );
       if (shouldLoad) {
         addDebugLog(
-          `[DataManager useEffect V13] Action: Loading existing map '${routeMapId}'. TargetViewOnly: ${isViewOnlyModeInStore}`
+          `[DataManager useEffect V13] Action: Loading existing map '${routeMapId}'. TargetViewOnly: ${(routeMapId, isViewOnlyModeInStore)}`
         );
-        loadMapDataRef.current(
-          routeMapId,
-          isViewOnlyModeInStore
-        );
+        loadMapDataRef.current(routeMapId, isViewOnlyModeInStore);
       } else {
         addDebugLog(
           `[DataManager useEffect V13] Info: Map ID '${routeMapId}' considered loaded and not requiring re-fetch.`

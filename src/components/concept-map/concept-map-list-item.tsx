@@ -81,7 +81,7 @@ export const ConceptMapListItem: React.FC<ConceptMapListItemProps> = React.memo(
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This action cannot be undone. This will permanently delete the
-                  concept map "{map.name}".
+                  concept map &quot;{map.name}&quot;.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

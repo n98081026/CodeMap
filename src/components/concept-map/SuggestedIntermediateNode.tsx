@@ -1,7 +1,6 @@
 import { CheckCircle, XCircle, InfoIcon } from 'lucide-react'; // Added icons
 import React, { useState } from 'react'; // Added useState
-import { Handle, Position, NodeProps, useReactFlow } from 'reactflow'; // Added useReactFlow
-import { v4 as uuidv4 } from 'uuid';
+import { Handle, Position, NodeProps } from 'reactflow'; // Added useReactFlow
 
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +30,6 @@ interface SuggestedIntermediateNodeData {
 const SuggestedIntermediateNode: React.FC<
   NodeProps<SuggestedIntermediateNodeData>
 > = ({
-  id, // React Flow element ID: `suggestion-${suggestionId}`
   data,
   selected,
   xPos, // position from React Flow
@@ -47,11 +45,8 @@ const SuggestedIntermediateNode: React.FC<
   } = useConceptMapStore.getState();
   const { toast } = useToast();
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const { project } = useReactFlow(); // To get flow coordinates if needed for new node
 
   const onAccept = () => {
-    const newNodeId = uuidv4(); // Generate ID for the new intermediate node
-
     // Use the node's current position in the flow for the new node
     // xPos and yPos are provided by ReactFlow as props to the custom node
     addNode({
@@ -65,12 +60,12 @@ const SuggestedIntermediateNode: React.FC<
     addEdge({
       // id: uuidv4(),
       source: suggestionData.sourceNodeId,
-      target: newNodeId,
+      target: 'new-node-id', // Placeholder, the store will generate the ID
       label: suggestionData.labelToIntermediate || 'connects',
     });
     addEdge({
       // id: uuidv4(),
-      source: newNodeId,
+      source: 'new-node-id', // Placeholder, the store will generate the ID
       target: suggestionData.targetNodeId,
       label: suggestionData.labelFromIntermediate || 'connects',
     });
@@ -161,17 +156,17 @@ const SuggestedIntermediateNode: React.FC<
       <PopoverContent className='w-64 text-sm' side='bottom'>
         <div className='space-y-2'>
           <p className='font-semibold'>New Intermediate Node:</p>
-          <p>"{suggestionData.intermediateNodeText}"</p>
+          <p>&quot;{suggestionData.intermediateNodeText}&quot;</p>
           {suggestionData.labelToIntermediate && (
             <p className='text-xs text-muted-foreground'>
-              Edge 1: Source Node → "{suggestionData.labelToIntermediate}" → New
-              Node
+              Edge 1: Source Node → &quot;
+              {suggestionData.labelToIntermediate}&quot; → New Node
             </p>
           )}
           {suggestionData.labelFromIntermediate && (
             <p className='text-xs text-muted-foreground'>
-              Edge 2: New Node → "{suggestionData.labelFromIntermediate}" →
-              Target Node
+              Edge 2: New Node → &quot;{suggestionData.labelFromIntermediate}
+              &quot; → Target Node
             </p>
           )}
           {reason && (

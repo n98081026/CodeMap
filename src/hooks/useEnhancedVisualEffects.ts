@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+import type { ConceptMapNode } from '@/types';
 
 import {
   EnhancedLayoutEngine,
@@ -42,11 +42,10 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
   const effectTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const animationFrameRef = useRef<number>();
 
-  const { mapData, updateNode, applyLayout } = useConceptMapStore(
+  const { mapData, applyLayout } = useConceptMapStore(
     useCallback(
       (s) => ({
         mapData: s.mapData,
-        updateNode: s.updateNode,
         applyLayout: s.applyLayout,
       }),
       []
@@ -132,10 +131,7 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
    * 節點出現動畫
    */
   const animateNodeAppearance = useCallback(
-    (
-      nodeId: string,
-      animationType: 'fadeIn' | 'scaleUp' | 'bounce' = 'fadeIn'
-    ) => {
+    (nodeId: string) => {
       if (isViewOnlyMode) return;
 
       const node = mapData.nodes.find((n) => n.id === nodeId);
@@ -420,15 +416,12 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
    * 批量動畫節點
    */
   const batchAnimateNodes = useCallback(
-    (
-      nodeIds: string[],
-      animationType: 'fadeIn' | 'scaleUp' | 'bounce' = 'fadeIn'
-    ) => {
+    (nodeIds: string[]) => {
       if (isViewOnlyMode) return;
 
       nodeIds.forEach((nodeId, index) => {
         setTimeout(() => {
-          animateNodeAppearance(nodeId, animationType);
+          animateNodeAppearance(nodeId);
         }, index * 150);
       });
     },

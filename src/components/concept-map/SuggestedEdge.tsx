@@ -1,7 +1,6 @@
 import { PlusCircleIcon, CheckCircle, XCircle } from 'lucide-react'; // Added more icons
 import React, { useState } from 'react'; // Added useState
 import { getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
-import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -38,7 +37,6 @@ interface SuggestedEdgeProps {
 }
 
 const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
-  id, // This is the React Flow element id: `suggestion-${suggestionId}`
   sourceX,
   sourceY,
   targetX,
@@ -126,7 +124,7 @@ const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
             <PopoverContent className='w-60 text-sm' side='bottom'>
               <div className='space-y-2'>
                 <p className='font-semibold'>Suggested Edge:</p>
-                <p>"{data.suggestionData.label}"</p>
+                <p>&quot;{data.suggestionData.label}&quot;</p>
                 {data.reason && (
                   <>
                     <p className='font-semibold mt-2'>Reason:</p>

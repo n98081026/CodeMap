@@ -38,9 +38,9 @@ import useConceptMapStore from '@/stores/concept-map-store'; // Added import
 import { CheckIcon, XIcon } from 'lucide-react';
 
 interface ExtractedConceptItem {
-    concept: string;
-    context?: string;
-    source?: string;
+  concept: string;
+  context?: string;
+  source?: string;
 }
 
 // Define nodeTypesConfig as top-level constant here

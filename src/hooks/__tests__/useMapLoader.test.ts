@@ -1,4 +1,3 @@
-// src/hooks/__tests__/useMapLoader.test.ts
 import { act, renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -7,7 +6,7 @@ import { useMapLoader } from '../useMapLoader';
 import { useToast } from '@/hooks/use-toast';
 import * as mapService from '@/services/conceptMaps/conceptMapService';
 import useConceptMapStore from '@/stores/concept-map-store';
-import { UserRole } from '@/types';
+import { User, UserRole } from '@/types';
 
 import * as useToastModule from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
@@ -39,7 +38,11 @@ vi.mock('@/stores/concept-map-store', () => {
 });
 vi.mock('@/contexts/auth-context');
 
-const mockUser = { id: 'user-1', role: UserRole.STUDENT, email: 'student@test.com' };
+const mockUser: User = {
+  id: 'user-1',
+  role: UserRole.STUDENT,
+  email: 'student@test.com',
+};
 const mockMapId = 'map-123';
 const mockMapData = {
   nodes: [{ id: 'n1', text: 'Node 1', x: 0, y: 0 }],
@@ -88,12 +91,14 @@ describe('useMapLoader', () => {
       }),
     };
 
-    (useConceptMapStore as unknown as vi.Mock).mockImplementation((selector) => {
-      if (typeof selector === 'function') {
-        return selector(storeState);
+    (useConceptMapStore as unknown as vi.Mock).mockImplementation(
+      (selector) => {
+        if (typeof selector === 'function') {
+          return selector(storeState);
+        }
+        return storeState;
       }
-      return storeState;
-    });
+    );
     (useConceptMapStore as any).getState = () => storeState;
     (useConceptMapStore as any).temporal = mockTemporal;
   });
@@ -105,7 +110,9 @@ describe('useMapLoader', () => {
   it('should load an existing map and update the store', async () => {
     (mapService.getConceptMapById as vi.Mock).mockResolvedValue(mockMap);
 
-    const { result } = renderHook(() => useMapLoader({ routeMapId: mockMapId, user: mockUser }));
+    const { result } = renderHook(() =>
+      useMapLoader({ routeMapId: mockMapId, user: mockUser })
+    );
 
     await act(async () => {
       await result.current.loadMapData(mockMapId, false);
@@ -116,7 +123,9 @@ describe('useMapLoader', () => {
   });
 
   it('should handle "new" map id by initializing a new map in the store', async () => {
-    const { result } = renderHook(() => useMapLoader({ routeMapId: 'new', user: mockUser }));
+    const { result } = renderHook(() =>
+      useMapLoader({ routeMapId: 'new', user: mockUser })
+    );
 
     await act(async () => {
       await result.current.loadMapData('new', false);
@@ -130,7 +139,9 @@ describe('useMapLoader', () => {
     const error = new Error('Failed to fetch map');
     (mapService.getConceptMapById as vi.Mock).mockRejectedValue(error);
 
-    const { result } = renderHook(() => useMapLoader({ routeMapId: mockMapId, user: mockUser }));
+    const { result } = renderHook(() =>
+      useMapLoader({ routeMapId: mockMapId, user: mockUser })
+    );
 
     await act(async () => {
       await result.current.loadMapData(mockMapId, false);

@@ -30,11 +30,14 @@ vi.mock('@/contexts/auth-context', async () => {
 
 // Wrapper component that includes the AuthProvider
 const createWrapper = () => {
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(AuthProvider, null, children);
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <AuthProvider>{children}</AuthProvider>
+  );
+  Wrapper.displayName = 'TestWrapper';
+  return Wrapper;
 };
 
-describe.skip('useAdminDashboardMetrics', () => {
+describe('useAdminDashboardMetrics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

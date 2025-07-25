@@ -23,7 +23,7 @@ export const MOCK_TEACHER_USER: User = {
   role: UserRole.TEACHER,
 };
 
-export const MOCK_ADMIN_USER: User = {
+export const MOCK_ADMIN_USER_V3: User = {
   id: 'admin-mock-v3-a001',
   name: 'Charlie Admin (Bypass V3)',
   email: 'charlieadmin.bypass.v3@example.com',
@@ -33,7 +33,7 @@ export const MOCK_ADMIN_USER: User = {
 export const MOCK_USERS: User[] = [
   MOCK_STUDENT_USER,
   MOCK_TEACHER_USER,
-  MOCK_ADMIN_USER,
+  MOCK_ADMIN_USER_V3,
 ];
 
 export const MOCK_CLASSROOM_SHARED: Classroom = {

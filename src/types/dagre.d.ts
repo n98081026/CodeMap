@@ -6,12 +6,12 @@ declare module 'dagre' {
         multigraph?: boolean;
         compound?: boolean;
       });
-      setGraph(options: any): this;
+      setGraph(options: Record<string, any>): this;
       setDefaultEdgeLabel(callback: () => void): this;
-      setNode(id: string, options: any): this;
-      setEdge(v: string, w: string, options?: any): this;
+      setNode(id: string, options: Record<string, any>): this;
+      setEdge(v: string, w: string, options?: Record<string, any>): this;
       nodes(): string[];
-      node(id: string): any;
+      node(id: string): Record<string, any>;
       hasNode(id: string): boolean;
     }
   }
