@@ -21,11 +21,11 @@ vi.mock('zustand', () => ({
   },
 }));
 
-import { vanillaStore } from '../concept-map-store';
 import useConceptMapStore, {
   initialStateBase,
   type ConceptMapStoreTemporalState,
   StagedMapDataWithContext,
+  vanillaStore,
 } from '../concept-map-store';
 
 import type {
