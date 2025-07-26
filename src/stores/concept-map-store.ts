@@ -556,7 +556,9 @@ export const useConceptMapStore = create<ConceptMapState>()(
       },
       resetStore: () => {
         set({ ...initialStateBase, initialLoadComplete: false, debugLogs: [] });
-        useConceptMapStore.temporal.getState().clear();
+        if (useConceptMapStore.temporal) {
+          useConceptMapStore.temporal.getState().clear();
+        }
       },
       addNode: (options) => {
         const newNodeId = options.id || uniqueNodeId();
