@@ -2,9 +2,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
-import { AISuggestionPanel } from '../ai-suggestion-panel'; // Named export
-import type { ExtractedConcept } from '@/types/ai-suggestions';
-import type { RelationSuggestion } from '@/types/ai-suggestions';
+import { AISuggestionPanel } from '../ai-suggestion-panel';
+import type { AISuggestionPanelProps } from '../ai-suggestion-panel';
+import { AISuggestionPanel, AISuggestionPanelProps } from '../ai-suggestion-panel';
+import type {
+  ExtractedConceptItem,
+  RelationSuggestion,
+} from '../ai-suggestion-panel';
+import { ConceptMapNode } from '@/types';
 
 // Mock child components for isolation
 vi.mock('@/components/ui/button', () => ({
@@ -21,30 +26,61 @@ vi.mock('@/components/ui/badge', () => ({
   ),
 }));
 
+// Mock for lucide-react icons
+vi.mock('lucide-react', async () => {
+  const actual = await vi.importActual('lucide-react');
+  return {
+    ...actual,
+    Check: () => <div data-testid='check-icon' />,
+    PlusCircle: () => <div data-testid='plus-circle-icon' />,
+    GitFork: () => <div data-testid='git-fork-icon' />,
+    Search: () => <div data-testid='search-icon' />,
+    Lightbulb: () => <div data-testid='lightbulb-icon' />,
+    Trash2: () => <div data-testid='trash-icon' />,
+    CheckSquare: () => <div data-testid='check-square-icon' />,
+    AlertCircle: () => <div data-testid='alert-circle-icon' />,
+  };
+});
+
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: vi.fn((opts) => {
+    const virtualItems = Array.from({ length: opts.count }).map((_, index) => ({
+      index,
+      start: index * opts.estimateSize(),
+      size: opts.estimateSize(),
+      measureElement: vi.fn(),
+    }));
+
+    return {
+      getVirtualItems: () => virtualItems,
+      getTotalSize: () => opts.count * opts.estimateSize(),
+      measureElement: vi.fn(),
+    };
+  }),
+}));
+
 // Sample data for testing
-const mockConcepts: ExtractedConcept[] = [
-  { id: 'c1', text: 'React Hooks', reason: 'Core concept of React' },
-  { id: 'c2', text: 'State Management', reason: 'Key for dynamic UIs' },
+const mockConcepts: ExtractedConceptItem[] = [
+  { concept: 'React Hooks', context: 'Core concept of React' },
+  { concept: 'State Management', context: 'Key for dynamic UIs' },
 ];
 
 const mockRelations: RelationSuggestion[] = [
   {
-    id: 'r1',
-    sourceNodeId: 'n1',
-    targetNodeId: 'n2',
-    label: 'uses',
+    source: 'Component',
+    target: 'Hook',
+    relation: 'uses',
     reason: 'Components use hooks for state.',
   },
   {
-    id: 'r2',
-    sourceNodeId: 'n2',
-    targetNodeId: 'n3',
-    label: 'manages',
+    source: 'Hook',
+    target: 'State',
+    relation: 'manages',
     reason: 'Hooks manage component state.',
   },
 ];
 
-describe.skip('AISuggestionPanel', () => {
+describe('AISuggestionPanel', () => {
   const onAddExtractedConcepts = vi.fn();
   const onAddSuggestedRelations = vi.fn();
   const onClearExtractedConcepts = vi.fn();
@@ -54,11 +90,11 @@ describe.skip('AISuggestionPanel', () => {
     vi.clearAllMocks();
   });
 
-  const defaultProps = {
+  const defaultProps: AISuggestionPanelProps = {
     currentMapNodes: [
-      { id: 'n1', text: 'Component', type: 'box' },
-      { id: 'n2', text: 'Hook', type: 'box' },
-      { id: 'n3', text: 'State', type: 'box' },
+      { id: 'n1', text: 'Component', type: 'default', x: 0, y: 0 },
+      { id: 'n2', text: 'Hook', type: 'default', x: 0, y: 0 },
+      { id: 'n3', text: 'State', type: 'default', x: 0, y: 0 },
     ],
     extractedConcepts: [],
     suggestedRelations: [],
@@ -72,10 +108,7 @@ describe.skip('AISuggestionPanel', () => {
   it('renders correctly with no suggestions', () => {
     render(<AISuggestionPanel {...defaultProps} />);
     expect(
-      screen.getByText('No new concepts suggested at the moment.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('No new relations suggested at the moment.')
+      screen.getByText('No suggestions available for the current map.')
     ).toBeInTheDocument();
   });
 
@@ -86,7 +119,7 @@ describe.skip('AISuggestionPanel', () => {
     expect(screen.getByText('React Hooks')).toBeInTheDocument();
     expect(screen.getByText('State Management')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Add 2 Concepts/i })
+      screen.getByRole('button', { name: /Add All New\/Similar \(2\)/i })
     ).toBeInTheDocument();
   });
 
@@ -94,10 +127,10 @@ describe.skip('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} suggestedRelations={mockRelations} />
     );
-    expect(screen.getByText(/Component → Hook/)).toBeInTheDocument();
-    expect(screen.getByText(/Hook → State/)).toBeInTheDocument();
+    expect(screen.getByText('Component')).toBeInTheDocument();
+    expect(screen.getAllByText('Hook')).toHaveLength(2);
     expect(
-      screen.getByRole('button', { name: /Add 2 Relations/i })
+      screen.getByRole('button', { name: /Add All New\/Similar \(2\)/i })
     ).toBeInTheDocument();
   });
 
@@ -105,7 +138,9 @@ describe.skip('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} extractedConcepts={mockConcepts} />
     );
-    fireEvent.click(screen.getByRole('button', { name: /Add 2 Concepts/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Add All New\/Similar \(2\)/i })
+    );
     expect(onAddExtractedConcepts).toHaveBeenCalledWith(mockConcepts);
   });
 
@@ -113,7 +148,9 @@ describe.skip('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} suggestedRelations={mockRelations} />
     );
-    fireEvent.click(screen.getByRole('button', { name: /Add 2 Relations/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Add All New\/Similar \(2\)/i })
+    );
     expect(onAddSuggestedRelations).toHaveBeenCalledWith(mockRelations);
   });
 
@@ -126,27 +163,25 @@ describe.skip('AISuggestionPanel', () => {
         isViewOnlyMode={true}
       />
     );
-    const addConceptsButton = screen.getByRole('button', {
-      name: /Add 2 Concepts/i,
+    const addButtons = screen.queryAllByRole('button', {
+      name: /Add All New\/Similar/i,
     });
-    const addRelationsButton = screen.getByRole('button', {
-      name: /Add 2 Relations/i,
-    });
-    expect(addConceptsButton).toBeDisabled();
-    expect(addRelationsButton).toBeDisabled();
+    expect(addButtons).toHaveLength(0);
 
-    // Check individual add buttons
+    // Check individual add buttons are not present
     const firstConceptAddButton = screen
       .getByText('React Hooks')
-      .parentElement?.querySelector('button');
-    expect(firstConceptAddButton).toBeDisabled();
+      .parentElement?.querySelector('button[title="Add this concept"]');
+    expect(firstConceptAddButton).toBeNull();
   });
 
   it('calls onClearExtractedConcepts when "Clear" is clicked for concepts', () => {
     render(
       <AISuggestionPanel {...defaultProps} extractedConcepts={mockConcepts} />
     );
-    const clearButton = screen.getAllByRole('button', { name: /Clear/i })[0];
+    const clearButton = screen.getByTitle(
+      'Clear all Extracted Concepts suggestions'
+    );
     fireEvent.click(clearButton);
     expect(onClearExtractedConcepts).toHaveBeenCalledTimes(1);
   });
@@ -155,7 +190,9 @@ describe.skip('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} suggestedRelations={mockRelations} />
     );
-    const clearButton = screen.getAllByRole('button', { name: /Clear/i })[1];
+    const clearButton = screen.getByTitle(
+      'Clear all Suggested Relations suggestions'
+    );
     fireEvent.click(clearButton);
     expect(onClearSuggestedRelations).toHaveBeenCalledTimes(1);
   });
@@ -164,10 +201,9 @@ describe.skip('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} extractedConcepts={mockConcepts} />
     );
-    const firstConceptAddButton = screen
-      .getByText('React Hooks')
-      .parentElement?.querySelector('button[title="Add this concept"]');
-    fireEvent.click(firstConceptAddButton!);
+    const checkbox = screen.getByRole('checkbox', { name: 'React Hooks' });
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole('button', { name: /Add Selected \(1\)/i }));
     expect(onAddExtractedConcepts).toHaveBeenCalledWith([mockConcepts[0]]);
   });
 
@@ -175,11 +211,11 @@ describe.skip('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} suggestedRelations={mockRelations} />
     );
-    const firstRelationAddButton = screen
-      .getByText(/Component → Hook/)
-      .closest('div.flex.items-center.justify-between')
-      ?.querySelector('button[title="Add this relation"]');
-    fireEvent.click(firstRelationAddButton!);
+    const relationCheckboxes = screen.getAllByRole('checkbox');
+    // The first checkbox is for "Select All", so we start at index 1 for the actual items.
+    // The first relation is at index 1 of the checkboxes list.
+    fireEvent.click(relationCheckboxes[1]);
+    fireEvent.click(screen.getByRole('button', { name: /Add Selected \(1\)/i }));
     expect(onAddSuggestedRelations).toHaveBeenCalledWith([mockRelations[0]]);
   });
 });

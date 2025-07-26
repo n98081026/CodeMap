@@ -62,7 +62,9 @@ describe('DagreLayoutUtility', () => {
   });
 
   it('should apply default dimensions if not provided', async () => {
-    const nodes: DagreLayoutInput['nodes'] = [{ id: 'n1' }]; // No width/height
+    const nodes: DagreLayoutInput['nodes'] = [
+      { id: 'n1', width: 100, height: 50 },
+    ]; // No width/height
     const edges: DagreLayoutInput['edges'] = [];
     const options: any = {
       defaultNodeWidth: 200,

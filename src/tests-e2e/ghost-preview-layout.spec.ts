@@ -64,7 +64,7 @@ test.describe('Ghost Preview Layout Flow (Dagre Tidy)', () => {
     page,
   }) => {
     await selectAllNodes(page);
-    const initialPositions = await getNodesInitialPositions(page);
+    const initialPositions = await getNodesInitialPositions();
     console.log('POM: Initial positions captured:', initialPositions);
 
     await editorPage.selectLayoutTool('Dagre Tidy');
@@ -117,7 +117,7 @@ test.describe('Ghost Preview Layout Flow (Dagre Tidy)', () => {
     page,
   }) => {
     await selectAllNodes(page);
-    const initialPositions = await getNodesInitialPositions(page); // also captures size implicitly via boundingBox
+    const initialPositions = await getNodesInitialPositions(); // also captures size implicitly via boundingBox
     console.log(
       'POM: Initial states (pos & size) captured for cancel flow:',
       initialPositions

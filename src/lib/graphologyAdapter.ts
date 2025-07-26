@@ -1,13 +1,10 @@
 import Graph, { MultiGraph } from 'graphology';
+import type { GraphOptions } from 'graphology';
 import louvain from 'graphology-communities-louvain';
-import { bfsFromNode } from 'graphology-traversal';
 import { toDirected, toUndirected } from 'graphology-operators';
+import { bfsFromNode } from 'graphology-traversal';
 
-import type {
-  ConceptMapNode,
-  ConceptMapEdge,
-  ConceptMapData,
-} from '../types';
+import type { ConceptMapNode, ConceptMapEdge, ConceptMapData } from '../types';
 import type {
   GraphologyInstance,
   NeighborhoodOptions,
@@ -25,8 +22,8 @@ export class GraphAdapterUtility implements GraphAdapter {
     const { nodes, edges } = conceptMapData;
     const graph =
       options?.type === 'multi'
-        ? new MultiGraph(options)
-        : new Graph(options);
+        ? new MultiGraph(options as GraphOptions)
+        : new Graph(options as GraphOptions);
 
     nodes.forEach((node) => {
       const { id, ...attributes } = node;
@@ -79,17 +76,15 @@ export class GraphAdapterUtility implements GraphAdapter {
     });
 
     const edges: ConceptMapEdge[] = [];
-    graphInstance.forEachEdge(
-      (edgeId, attributes, source, target) => {
-        edges.push({
-          id: edgeId,
-          source,
-          target,
-          label: attributes.label || '',
-          ...attributes, // Spread the rest of the attributes
-        } as ConceptMapEdge);
-      }
-    );
+    graphInstance.forEachEdge((edgeId, attributes, source, target) => {
+      edges.push({
+        id: edgeId,
+        source,
+        target,
+        label: attributes.label || '',
+        ...attributes, // Spread the rest of the attributes
+      } as ConceptMapEdge);
+    });
     return { nodes, edges };
   }
 
@@ -125,12 +120,13 @@ export class GraphAdapterUtility implements GraphAdapter {
       return [];
     }
 
-    const reversedGraph = toDirected(graphInstance, { mergeEdges: true });
+    const reversedGraph = toDirected(graphInstance, {
+      mergeEdge: (edge, attrs) => ({ ...attrs }),
+    });
     reversedGraph.forEachEdge((edge, attrs, source, target) => {
       reversedGraph.dropEdge(edge);
       reversedGraph.addEdge(target, source, attrs);
     });
-
 
     if (reversedGraph.hasNode(nodeId)) {
       try {

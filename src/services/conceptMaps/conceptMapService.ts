@@ -6,11 +6,11 @@
  */
 
 import type { ConceptMap, ConceptMapData } from '@/types';
-import { Json } from '@/types/supabase';
 
 import { BYPASS_AUTH_FOR_TESTING, MOCK_CONCEPT_MAPS_STORE } from '@/lib/config';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService';
+import { Json } from '@/types/supabase';
 
 /**
  * Creates a new concept map.
@@ -90,8 +90,7 @@ export async function getConceptMapById(
       id: foundMap.id,
       name: foundMap.name || 'Untitled Mock Map',
       ownerId: foundMap.ownerId || 'unknown-mock-owner',
-      mapData:
-        (foundMap.mapData as ConceptMapData) || { nodes: [], edges: [] },
+      mapData: (foundMap.mapData as ConceptMapData) || { nodes: [], edges: [] },
       isPublic:
         typeof foundMap.isPublic === 'boolean' ? foundMap.isPublic : false,
       sharedWithClassroomId:

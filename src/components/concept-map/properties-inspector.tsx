@@ -31,7 +31,12 @@ import React, {
 
 import AICommandPalette, { type AICommand } from './ai-command-palette';
 
-import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from '@/types';
+import type {
+  ConceptMap,
+  ConceptMapNode,
+  ConceptMapEdge,
+  NodeType,
+} from '@/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -786,7 +791,9 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
               !selectedElement
             )
               return;
-            onSelectedElementPropertyUpdate({ type: e.target.value });
+            onSelectedElementPropertyUpdate({
+              type: e.target.value as NodeType,
+            });
           }}
           disabled={isViewOnlyMode}
           placeholder='e.g., service, component, ai-summary'

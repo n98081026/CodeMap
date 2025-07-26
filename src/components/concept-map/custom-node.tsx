@@ -284,6 +284,11 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
               transform: `translateX(calc(-50% + ${toolbarHorizontalOffset}px))`,
             }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.stopPropagation();
+              }
+            }}
             onMouseDown={(e) => e.stopPropagation()}
             role='toolbar'
             aria-label='Actions for selected node'

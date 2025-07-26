@@ -70,7 +70,11 @@ describe('Project Analysis Integration Tests', () => {
       };
 
       const mockInsert = vi.fn().mockResolvedValue({
-        data: { ...mockSubmission, id: 'submission-123', submissionTimestamp: new Date().toISOString() },
+        data: {
+          ...mockSubmission,
+          id: 'submission-123',
+          submissionTimestamp: new Date().toISOString(),
+        },
         error: null,
       });
 
@@ -104,8 +108,12 @@ describe('Project Analysis Integration Tests', () => {
     });
 
     it('should handle submission creation errors', async () => {
-      const projectSubmissionService = await import('@/services/projectSubmissions/projectSubmissionService');
-      vi.spyOn(projectSubmissionService, 'createSubmission').mockRejectedValue(new Error('File upload failed'));
+      const projectSubmissionService = await import(
+        '@/services/projectSubmissions/projectSubmissionService'
+      );
+      vi.spyOn(projectSubmissionService, 'createSubmission').mockRejectedValue(
+        new Error('File upload failed')
+      );
 
       const { MOCK_STUDENT_USER } = await import('@/lib/config');
       await expect(
@@ -114,8 +122,7 @@ describe('Project Analysis Integration Tests', () => {
           'test-project.zip',
           12345,
           'class-123',
-          'submissions/test-project.zip',
-          'Understand project structure'
+          'submissions/test-project.zip'
         )
       ).rejects.toThrow(/File upload failed/);
     });
@@ -152,7 +159,7 @@ describe('Project Analysis Integration Tests', () => {
         ],
       });
 
-      const result = await generateMapFromProject({
+      const result = await (generateMapFromProject as any)({
         projectStoragePath: 'submissions/test-project.zip',
         userGoals: 'Understand project structure',
       });
@@ -173,7 +180,7 @@ describe('Project Analysis Integration Tests', () => {
       );
 
       await expect(
-        generateMapFromProject({
+        (generateMapFromProject as any)({
           projectStoragePath: 'submissions/invalid-project.zip',
           userGoals: 'Understand project structure',
         })
@@ -183,10 +190,8 @@ describe('Project Analysis Integration Tests', () => {
 
   describe('Submission Status Updates', () => {
     it('should update submission status after processing', async () => {
-      const {
-        MOCK_PROJECT_SUBMISSION_STUDENT,
-        MOCK_SUBMISSIONS_STORE,
-      } = await import('@/lib/config');
+      const { MOCK_PROJECT_SUBMISSION_STUDENT, MOCK_SUBMISSIONS_STORE } =
+        await import('@/lib/config');
       MOCK_SUBMISSIONS_STORE.push(MOCK_PROJECT_SUBMISSION_STUDENT);
 
       const mockUpdatedSubmission = {
@@ -222,7 +227,10 @@ describe('Project Analysis Integration Tests', () => {
     });
 
     it('should handle status update errors', async () => {
-      vi.spyOn(await import('@/services/projectSubmissions/projectSubmissionService'), 'updateSubmissionStatus').mockRejectedValue(new Error('Submission not found'));
+      vi.spyOn(
+        await import('@/services/projectSubmissions/projectSubmissionService'),
+        'updateSubmissionStatus'
+      ).mockRejectedValue(new Error('Submission not found'));
 
       await expect(
         updateSubmissionStatus('nonexistent-id', ProjectSubmissionStatus.FAILED)

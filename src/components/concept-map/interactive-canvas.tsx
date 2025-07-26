@@ -62,7 +62,6 @@ interface InteractiveCanvasProps {
   onEdgesChange: OnEdgesChange;
   onNodesDelete?: OnNodesDelete;
   onEdgesDelete?: OnEdgesDelete;
-  onSelectionChange?: (params: any) => void;
   onSelectionChange?: (params: NodeSelectionChange) => void;
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
@@ -116,7 +115,7 @@ interface InteractiveCanvasProps {
   onRejectVisualEdge?: (suggestionId: string) => void;
   // Edge types and node drop
   edgeTypes?: EdgeTypes; // Prop to pass custom edge types
-  onNodeDrop?: (event: React.DragEvent, node: Node) => void; // New prop for node drop
+  onNodeDragStart?: (event: React.MouseEvent, node: Node) => void; // New prop for node drop
 }
 
 const fitViewOptions: FitViewOptions = {
@@ -169,7 +168,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   onAcceptVisualEdge,
   onRejectVisualEdge,
   edgeTypes: propEdgeTypes,
-  onNodeDrop, // Destructure onNodeDrop
+  onNodeDragStart, // Destructure onNodeDrop
 }) => {
   const {
     project,
@@ -312,7 +311,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     onDragOver: onDragOver,
     onDrop: onDrop,
     onDragLeave: onCanvasDragLeave || onDragLeave,
-    onNodeDrop: onNodeDrop, // Pass onNodeDrop to ReactFlow
+    onNodeDragStart: onNodeDragStart, // Pass onNodeDrop to ReactFlow
     onNodeDrag,
     onNodeDragStop,
     panActivationKeyCode: isViewOnlyMode

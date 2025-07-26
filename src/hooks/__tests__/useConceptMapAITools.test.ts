@@ -75,7 +75,7 @@ describe('useConceptMapAITools', () => {
           { text: 'concept2', reason: 'reason2' },
         ],
       };
-      (aiFlows.runFlow as vi.Mock).mockResolvedValue(mockExtractedData);
+      (aiFlows as any).runFlow.mockResolvedValue(mockExtractedData);
 
       const { result } = renderHook(() => useConceptMapAITools(false));
 
@@ -85,7 +85,7 @@ describe('useConceptMapAITools', () => {
         });
       });
 
-      expect(aiFlows.runFlow).toHaveBeenCalledWith('extractConcepts', {
+      expect((aiFlows as any).runFlow).toHaveBeenCalledWith('extractConcepts', {
         context: 'some context',
       });
       expect(setStagedMapData).toHaveBeenCalledWith({
@@ -110,7 +110,7 @@ describe('useConceptMapAITools', () => {
 
     it('should show a toast message on failure', async () => {
       const error = new Error('AI failed');
-      (aiFlows.runFlow as vi.Mock).mockRejectedValue(error);
+      (aiFlows as any).runFlow.mockRejectedValue(error);
 
       const { result } = renderHook(() => useConceptMapAITools(false));
 
@@ -148,7 +148,7 @@ describe('useConceptMapAITools', () => {
 
     it('should call rewriteNodeContentFlow and update modal state', async () => {
       const mockRewrite = { rewrittenText: 'Rewritten content' };
-      (aiFlows.runFlow as vi.Mock).mockResolvedValue(mockRewrite);
+      (aiFlows as any).runFlow.mockResolvedValue(mockRewrite);
 
       const { result } = renderHook(() => useConceptMapAITools(false));
 
@@ -162,7 +162,7 @@ describe('useConceptMapAITools', () => {
         await result.current.handleRewriteNodeContent('concise');
       });
 
-      expect(aiFlows.runFlow).toHaveBeenCalledWith('rewriteNode', {
+      expect((aiFlows as any).runFlow).toHaveBeenCalledWith('rewriteNode', {
         text: 'Test Node\n\nSome details.',
         style: 'concise',
         customInstruction: undefined,

@@ -23,7 +23,7 @@ import type { ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   BYPASS_AUTH_FOR_TESTING,
-  MOCK_ADMIN_USER,
+  MOCK_ADMIN_USER_V3,
   MOCK_STUDENT_USER,
   MOCK_TEACHER_USER,
 } from '@/lib/config';
@@ -119,9 +119,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             // Delegate to a new function to handle the copy logic
             // This function will be defined outside or imported
-            await handleCopyExampleAction(exampleKey, profile.id, router, {
-              toast,
-            });
+            await handleCopyExampleAction(
+              exampleKey,
+              profile.id,
+              router,
+              toast
+            );
           }
         } else if (!isRegistering) {
           console.warn(
@@ -158,13 +161,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (BYPASS_AUTH_FOR_TESTING) {
-      console.warn(
-        `AuthContext: BYPASS_AUTH_FOR_TESTING is TRUE. Using mock user: ${DEFAULT_BYPASS_USER.role}`
-      );
-      setUser(DEFAULT_BYPASS_USER);
       setIsLoading(false);
-      initialAuthCheckCompleted.current = true;
-      return; // Skip Supabase listeners and calls
+      return;
     }
 
     if (initialAuthCheckCompleted.current && !fetchAndSetSupabaseUser) {
@@ -482,19 +480,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const setTestUserRole = useCallback((newRole: UserRole) => {
-    setUser((prevUser) => {
-      if (prevUser) {
-        let targetMockUser = MOCK_STUDENT_USER;
-        if (newRole === UserRole.ADMIN) targetMockUser = MOCK_ADMIN_USER;
-        else if (newRole === UserRole.TEACHER)
-          targetMockUser = MOCK_TEACHER_USER;
+    setUser(() => {
+      let targetMockUser = MOCK_STUDENT_USER;
+      if (newRole === UserRole.ADMIN) targetMockUser = MOCK_ADMIN_USER_V3;
+      else if (newRole === UserRole.TEACHER)
+        targetMockUser = MOCK_TEACHER_USER;
 
-        console.warn(
-          `Locally overriding user to MOCK ${newRole.toUpperCase()} USER for testing. (Bypass_Auth: ${BYPASS_AUTH_FOR_TESTING})`
-        );
-        return { ...targetMockUser };
-      }
-      return null;
+      console.warn(
+        `Locally overriding user to MOCK ${newRole.toUpperCase()} USER for testing. (Bypass_Auth: ${BYPASS_AUTH_FOR_TESTING})`
+      );
+      return { ...targetMockUser };
     });
   }, []);
 
@@ -543,7 +538,7 @@ async function handleCopyExampleAction(
   exampleKey: string,
   userId: string,
   router: ReturnType<typeof useRouter>, // Use NextRouterInstance for type
-  toast: { toast: (options: any) => void } // Use ToastFunction for type
+  toast: ReturnType<typeof useToast>
 ) {
   console.log(
     `Handling copyExample action for key: ${exampleKey}, user: ${userId}`
@@ -624,8 +619,7 @@ async function handleCopyExampleAction(
     });
     router.replace(`/application/concept-maps/editor/${savedMap.id}`);
   } catch (error) {
-    console.error('Failed to copy example map:', error);
-    toast.toast({
+    toast({
       title: 'Copy Failed',
       description: (error as Error).message,
       variant: 'destructive',

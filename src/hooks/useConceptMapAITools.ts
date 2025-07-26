@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react';
 
 import { useToast } from './use-toast';
 
-import { runFlow } from '@/ai/flows';
 import type {
   AskQuestionAboutNodeInput,
   AskQuestionAboutNodeOutput,
@@ -20,9 +19,11 @@ import type {
   CustomNodeData,
 } from '@/types';
 
+import { runFlow } from '@/ai/flows';
 import { getNodePlacement } from '@/lib/dagreLayoutUtility';
 import { generateUniqueId } from '@/lib/utils';
 import useConceptMapStore from '@/stores/concept-map-store';
+import { StagedMapDataWithContext } from '@/stores/concept-map-store';
 
 type AICommand =
   | 'extractConcepts'
@@ -88,15 +89,14 @@ export function useConceptMapAITools(isViewOnly: boolean) {
 
       setIsProcessing(true);
       setError(null);
-      const toastId = toast({
+      const { id: toastId } = toast({
         title: 'AI Processing...',
         description: `Running ${command}...`,
-      }).id;
+      });
 
       try {
         const result = await runFlow<T, U>(command, payload);
         toast({
-          id: toastId,
           title: options?.successTitle || 'AI Task Successful',
           description: options?.successDescription || 'The AI task completed.',
         });
@@ -106,7 +106,6 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         console.error(`Error executing AI command ${command}:`, error);
         setError(error.message);
         toast({
-          id: toastId,
           title: options?.errorTitle || 'AI Task Failed',
           description: error.message,
           variant: 'destructive',
@@ -153,7 +152,8 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         setStagedMapData({
           nodes: newNodes,
           edges: [],
-          actionType: 'extractConcepts',
+          actionType:
+            'extractConcepts' as StagedMapDataWithContext['actionType'],
         });
       }
     },
@@ -189,7 +189,8 @@ export function useConceptMapAITools(isViewOnly: boolean) {
       setStagedMapData({
         nodes: [],
         edges: newEdges,
-        actionType: 'suggestRelations',
+        actionType:
+          'suggestRelations' as StagedMapDataWithContext['actionType'],
       });
     }
   }, [executeAICommand, mapData.nodes, setStagedMapData]);
@@ -253,7 +254,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         setStagedMapData({
           nodes: newNodes,
           edges: newEdges,
-          actionType: 'expandConcept',
+          actionType: 'expandConcept' as StagedMapDataWithContext['actionType'],
         });
       }
     },

@@ -7,6 +7,7 @@ import type {
   ConceptMapData,
   ConceptMapNode,
   ConceptMapEdge,
+  NodeType,
 } from '@/types';
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
 
@@ -149,7 +150,7 @@ interface ConceptMapState {
   addNode: (options: {
     id?: string;
     text: string;
-    type: string;
+    type: NodeType;
     position: { x: number; y: number };
     details?: string;
     parentNode?: string;
@@ -873,30 +874,60 @@ export const useConceptMapStore = create<ConceptMapState>()(
         );
       },
       deleteFromStagedMapData: (elementIdsToRemove) => {
-        const currentStagedData = get().stagedMapData;
-        if (!currentStagedData) return;
-        const newStagedNodes = currentStagedData.nodes.filter(
-          (node) => !elementIdsToRemove.includes(node.id)
-        );
-        const remainingNodeIds = new Set(newStagedNodes.map((node) => node.id));
-        const newStagedEdges = (currentStagedData.edges || []).filter(
-          (edge) =>
-            !elementIdsToRemove.includes(edge.id) &&
-            remainingNodeIds.has(edge.source) &&
-            remainingNodeIds.has(edge.target)
-        );
-        if (newStagedNodes.length === 0 && newStagedEdges.length === 0) {
-          set({ stagedMapData: null, isStagingActive: false });
-        } else {
-          set({
-            stagedMapData: {
-              ...currentStagedData,
-              nodes: newStagedNodes,
-              edges: newStagedEdges,
-            },
-            isStagingActive: true,
+        set((state) => {
+          const { stagedMapData } = state;
+          if (!stagedMapData) return state;
+
+          const elementIdsToRemoveSet = new Set(elementIdsToRemove);
+
+          // Filter out nodes to be removed
+          const newStagedNodes = stagedMapData.nodes.filter(
+            (node) => !elementIdsToRemoveSet.has(node.id)
+          );
+          const remainingStagedNodeIds = new Set(
+            newStagedNodes.map((n) => n.id)
+          );
+
+          // Filter out edges to be removed, or edges connected to removed staged nodes
+          const newStagedEdges = (stagedMapData.edges || []).filter((edge) => {
+            // Rule 1: Edge itself is not marked for deletion
+            if (elementIdsToRemoveSet.has(edge.id)) return false;
+
+            // An edge can connect a staged node to another staged node, OR a staged node to an existing (external) node.
+            // We only need to check for removal if the endpoint is a staged node.
+            const isSourceStaged = stagedMapData.nodes.some(
+              (n) => n.id === edge.source
+            );
+            const isTargetStaged = stagedMapData.nodes.some(
+              (n) => n.id === edge.target
+            );
+
+            // Rule 2: If source is a staged node, it must not have been removed.
+            if (isSourceStaged && !remainingStagedNodeIds.has(edge.source)) {
+              return false;
+            }
+            // Rule 3: If target is a staged node, it must not have been removed.
+            if (isTargetStaged && !remainingStagedNodeIds.has(edge.target)) {
+              return false;
+            }
+
+            return true;
           });
-        } // Persist actionType and other context
+
+          if (newStagedNodes.length === 0 && newStagedEdges.length === 0) {
+            return { ...state, stagedMapData: null, isStagingActive: false };
+          } else {
+            return {
+              ...state,
+              stagedMapData: {
+                ...stagedMapData,
+                nodes: newStagedNodes,
+                edges: newStagedEdges,
+              },
+              isStagingActive: true,
+            };
+          }
+        });
       },
       // setConceptExpansionPreview: (preview) => set({ conceptExpansionPreview: preview }), // Removed
       // updateConceptExpansionPreviewNode: (previewNodeId, newText, newDetails) => { // Removed
@@ -1236,6 +1267,8 @@ export const useConceptMapStore = create<ConceptMapState>()(
         };
       },
       limit: 50,
+      pastStates: [],
+      futureStates: [],
     }
   )
 );

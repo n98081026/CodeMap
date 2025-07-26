@@ -229,22 +229,24 @@ export function ProjectUploadForm() {
     async (submission: ProjectSubmission, userGoals?: string) => {
       if (!user) throw new Error('User not authenticated for AI processing.');
       setIsProcessingAIInDialog(true);
-      let loadingToastId: string | number | undefined = undefined;
+      let loadingToast:
+        | { id: string; dismiss: () => void; update: (props: any) => void }
+        | undefined = undefined;
 
       try {
-        loadingToastId = toast({
+        loadingToast = toast({
           title: 'AI Analysis Initiated',
           description: `Preparing to analyze "${submission.originalFileName}"...`,
           duration: 999999,
-        }).id;
+        });
 
         await updateSubmissionStatusOnServer(
           submission.id,
           ProjectSubmissionStatus.PROCESSING
         );
 
-        toast({
-          id: loadingToastId,
+        loadingToast.update({
+          id: loadingToast.id,
           description: 'Step 1/3: Analyzing project structure...',
         });
         const projectStoragePath = submission.fileStoragePath;
@@ -279,8 +281,8 @@ export function ProjectUploadForm() {
           );
         }
 
-        toast({
-          id: loadingToastId,
+        loadingToast.update({
+          id: loadingToast.id,
           description: 'Step 2/3: Generating concept map from structure...',
         });
         // Stage 2: Generate map from analysis output
@@ -309,8 +311,8 @@ export function ProjectUploadForm() {
           );
         }
 
-        toast({
-          id: loadingToastId,
+        loadingToast.update({
+          id: loadingToast.id,
           description:
             'Step 3/3: Finalizing and saving your new concept map...',
         });
@@ -339,7 +341,7 @@ export function ProjectUploadForm() {
           createdMap.id
         );
 
-        if (loadingToastId) toast.dismiss(loadingToastId);
+        if (loadingToast) loadingToast.dismiss();
         toast({
           title: 'AI Map Generated Successfully!',
           description: `Map "${createdMap.name}" created and linked.`,
@@ -347,7 +349,7 @@ export function ProjectUploadForm() {
         });
         return createdMap;
       } catch (aiError) {
-        if (loadingToastId) toast({ id: loadingToastId, dismiss: true });
+        if (loadingToast) loadingToast.dismiss();
         console.error('AI Map Generation/Saving Error:', aiError);
         const errorMessage =
           (aiError as Error).message || 'AI processing failed';
@@ -502,6 +504,7 @@ export function ProjectUploadForm() {
                     onChange={(e) => {
                       onChange(e.target.files);
                     }}
+                    value={undefined}
                   />
                 </FormControl>
                 <FormMessage />
@@ -563,7 +566,7 @@ export function ProjectUploadForm() {
                 </FormControl>
                 <FormDescription className='text-xs'>
                   Max 500 characters. Providing clear goals can improve the
-                  generated map's relevance.
+                  generated map&apos;s relevance.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

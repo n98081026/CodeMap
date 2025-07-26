@@ -89,6 +89,7 @@ export type DagreLayoutUtilityType = (
  * Placeholder for a Graphology instance type.
  */
 import Graph, { MultiGraph } from 'graphology';
+
 import { ConceptMapData } from '.';
 
 export type GraphologyInstance = Graph | MultiGraph;

@@ -41,6 +41,7 @@ vi.mock('@/stores/concept-map-store', () => {
 
 const mockUser: User = {
   id: 'user-1',
+  name: 'Test User',
   role: UserRole.STUDENT,
   email: 'student@test.com',
 };
@@ -70,7 +71,7 @@ describe('useMapSaver', () => {
 
   beforeEach(() => {
     toast = vi.fn();
-    vi.spyOn(useToastModule, 'useToast').mockReturnValue({ toast });
+    vi.spyOn(useToastModule, 'useToast').mockReturnValue({ toast } as any);
     vi.mock('@/contexts/auth-context', () => ({
       useAuth: vi.fn().mockReturnValue({ user: mockUser, loading: false }),
     }));
@@ -148,10 +149,11 @@ describe('useMapSaver', () => {
     });
 
     expect(mapService.createConceptMap).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Test Map',
-        ownerId: mockUser.id,
-      })
+      'Test Map',
+      mockUser.id,
+      mockMapData,
+      false,
+      null
     );
     expect(toast).toHaveBeenCalledWith({
       title: 'Map Saved',
