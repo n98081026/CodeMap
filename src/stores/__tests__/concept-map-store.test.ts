@@ -25,8 +25,8 @@ import useConceptMapStore, {
   initialStateBase,
   type ConceptMapStoreTemporalState,
   StagedMapDataWithContext,
-  vanillaStore,
 } from '../concept-map-store';
+import { vanillaStore } from '../concept-map-store';
 
 import type {
   ConceptMap,
