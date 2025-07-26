@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { type TemporalState as ZundoTemporalState } from 'zundo'; // Correct import for TemporalState
 
-vi.mock('zundo', () => ({
+vi.doMock('zundo', () => ({
   temporal: (fn) => fn,
 }));
 
