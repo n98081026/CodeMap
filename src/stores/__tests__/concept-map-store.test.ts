@@ -21,6 +21,7 @@ vi.mock('zustand', () => ({
   },
 }));
 
+import { vanillaStore } from '../concept-map-store';
 import useConceptMapStore, {
   initialStateBase,
   type ConceptMapStoreTemporalState,
@@ -51,7 +52,7 @@ vi.mock('uuid', () => ({
 const resetStore = () => {
   // Directly call the resetStore action from the store itself.
   // This is the canonical way to reset the store to its defined initial state.
-  useConceptMapStore.getState().resetStore();
+  vanillaStore.getState().resetStore();
 };
 
 describe('useConceptMapStore', () => {
@@ -64,7 +65,7 @@ describe('useConceptMapStore', () => {
   });
 
   it('should have correct initial state', () => {
-    const state = useConceptMapStore.getState();
+    const state = vanillaStore.getState();
     expect(state.mapName).toBe('Untitled Concept Map');
     expect(state.mapData.nodes).toEqual([]);
     expect(state.mapData.edges).toEqual([]);
@@ -76,10 +77,10 @@ describe('useConceptMapStore', () => {
 
   describe('Initialization and Loading Actions', () => {
     it('initializeNewMap: should correctly initialize a new map', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const userId = 'user-123';
       store.initializeNewMap(userId);
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
 
       expect(state.mapId).toBe('new');
       expect(state.mapName).toBe('New Concept Map');
@@ -89,11 +90,11 @@ describe('useConceptMapStore', () => {
       expect(state.isNewMapMode).toBe(true);
       expect(state.isViewOnlyMode).toBe(false);
       expect(state.initialLoadComplete).toBe(true);
-      expect(useConceptMapStore.temporal.getState().pastStates.length).toBe(0); // Should clear history
+      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0); // Should clear history
     });
 
     it('setLoadedMap: should load map data and set relevant states', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const mapToLoad: ConceptMap = {
         id: 'map-1',
         name: 'Loaded Map',
@@ -110,7 +111,7 @@ describe('useConceptMapStore', () => {
         updatedAt: new Date().toISOString(),
       };
       store.setLoadedMap(mapToLoad, true); // Load as view-only
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
 
       expect(state.mapId).toBe('map-1');
       expect(state.mapName).toBe('Loaded Map');
@@ -121,11 +122,11 @@ describe('useConceptMapStore', () => {
       expect(state.isPublic).toBe(true);
       expect(state.sharedWithClassroomId).toBe('class-1');
       expect(state.initialLoadComplete).toBe(true);
-      expect(useConceptMapStore.temporal.getState().pastStates.length).toBe(0);
+      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0);
     });
 
     it('importMapData: should import map data and set new name', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const dataToImport: ConceptMapData = {
         nodes: [
           {
@@ -140,31 +141,31 @@ describe('useConceptMapStore', () => {
         edges: [],
       };
       store.importMapData(dataToImport, 'MyImportedMap.json');
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
 
       expect(state.mapName).toBe('MyImportedMap');
       expect(state.mapData.nodes.length).toBe(1);
       expect(state.mapData.nodes[0].text).toBe('Imported N1');
       expect(state.isNewMapMode).toBe(true); // Remains new if mapId was 'new' or null
       expect(state.isViewOnlyMode).toBe(false);
-      expect(useConceptMapStore.temporal.getState().pastStates.length).toBe(0);
+      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0);
     });
 
     it('resetStore: should reset the store to its initial base state', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       store.setMapId('custom-id');
       store.resetStore();
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
       expect(state.mapId).toBe(initialStateBase.mapId);
       expect(state.mapName).toBe(initialStateBase.mapName);
       expect(state.initialLoadComplete).toBe(false);
-      expect(useConceptMapStore.temporal.getState().pastStates.length).toBe(0);
+      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0);
     });
   });
 
   describe('Node Actions', () => {
     it('addNode: should add a new node to mapData.nodes', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const initialNodeCount = store.mapData.nodes.length;
       const nodeOptions = {
         text: 'Test Node',
@@ -172,7 +173,7 @@ describe('useConceptMapStore', () => {
         position: { x: 10, y: 20 },
       };
       const newNodeId = store.addNode(nodeOptions);
-      const updatedState = useConceptMapStore.getState().mapData;
+      const updatedState = vanillaStore.getState().mapData;
       expect(updatedState.nodes.length).toBe(initialNodeCount + 1);
       const addedNode = updatedState.nodes.find((n) => n.id === newNodeId);
       expect(addedNode).toBeDefined();
@@ -180,7 +181,7 @@ describe('useConceptMapStore', () => {
     });
 
     it('addNode: should correctly link child to parentNode if parentNode ID is provided', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const parentId = store.addNode({
         text: 'Parent',
         type: 'default' as NodeType,
@@ -192,14 +193,14 @@ describe('useConceptMapStore', () => {
         position: { x: 0, y: 50 },
         parentNode: parentId,
       });
-      const parentNode = useConceptMapStore
+      const parentNode = vanillaStore
         .getState()
         .mapData.nodes.find((n) => n.id === parentId);
       expect(parentNode?.childIds).toContain(childId);
     });
 
     it('updateNode: should update specified properties of a node', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const nodeId = store.addNode({
         text: 'Old Text',
         type: 'default' as NodeType,
@@ -209,7 +210,7 @@ describe('useConceptMapStore', () => {
         text: 'New Text',
         backgroundColor: '#FF0000',
       });
-      const updatedNode = useConceptMapStore
+      const updatedNode = vanillaStore
         .getState()
         .mapData.nodes.find((n) => n.id === nodeId);
       expect(updatedNode?.text).toBe('New Text');
@@ -217,7 +218,7 @@ describe('useConceptMapStore', () => {
     });
 
     it('deleteNode: should remove a node and its connected edges', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const node1Id = store.addNode({
         text: 'Node 1',
         type: 'default' as NodeType,
@@ -234,14 +235,14 @@ describe('useConceptMapStore', () => {
         label: 'connects',
       });
       store.deleteNode(node1Id);
-      const finalNodes = useConceptMapStore.getState().mapData.nodes;
-      const finalEdges = useConceptMapStore.getState().mapData.edges;
+      const finalNodes = vanillaStore.getState().mapData.nodes;
+      const finalEdges = vanillaStore.getState().mapData.edges;
       expect(finalNodes.some((n) => n.id === node1Id)).toBe(false);
       expect(finalEdges.some((e) => e.id === edge1Id)).toBe(false);
     });
 
     it('deleteNode: should remove a node and its descendants and their connected edges', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const parentId = store.addNode({
         text: 'Parent',
         type: 'default' as NodeType,
@@ -278,7 +279,7 @@ describe('useConceptMapStore', () => {
         label: 'c2u',
       });
       store.deleteNode(parentId);
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
       expect(
         state.mapData.nodes.find((n) => n.id === parentId)
       ).toBeUndefined();
