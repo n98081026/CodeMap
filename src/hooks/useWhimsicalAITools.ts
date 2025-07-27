@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 
-import type { ConceptMapNode } from '@/types';
+import type { ConceptMapNode, NodeType } from '@/types';
 
 import {
   animateNodeAppearance,
@@ -101,7 +101,7 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
               ]
                 .filter(Boolean)
                 .join('\n\n'),
-              type: `ai-${conceptItem.category}`,
+              type: `ai-${conceptItem.category}` as NodeType,
               x: position.x,
               y: position.y,
               width: DEFAULT_NODE_WIDTH,

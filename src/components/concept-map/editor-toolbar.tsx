@@ -68,7 +68,7 @@ export interface ArrangeAction {
   isSeparator?: boolean;
 }
 
-interface EditorToolbarProps {
+export interface EditorToolbarProps {
   onNewMap: () => void;
   onSaveMap: () => void;
   isSaving: boolean;
@@ -275,7 +275,12 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant='ghost' size='icon' onClick={onNewMap}>
+    <Button
+      variant='ghost'
+      size='icon'
+      onClick={onNewMap}
+      title='New map'
+    >
               <FilePlus className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
@@ -288,6 +293,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onSaveMap}
               disabled={isSaving || isViewOnlyMode || showCopyButton}
+  title={
+    showCopyButton
+      ? 'Log in to save maps'
+      : isViewOnlyMode
+      ? 'Save Map (Disabled in View Mode)'
+      : 'Save Map'
+  }
             >
               {isSaving ? (
                 <Loader2 className='h-5 w-5 animate-spin' />
@@ -311,6 +323,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onTriggerImport}
               disabled={isViewOnlyMode || showCopyButton}
+  title={
+    showCopyButton
+      ? 'Log in to import maps'
+      : isViewOnlyMode
+      ? 'Import Map (Disabled)'
+      : 'Import Map (JSON)'
+  }
             >
               <Upload className='h-5 w-5' />
             </Button>
@@ -325,7 +344,12 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant='ghost' size='icon' onClick={onExportMap}>
+<Button
+  variant='ghost'
+  size='icon'
+  onClick={onExportMap}
+  title='Export Map (JSON)'
+>
               <Download className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
@@ -341,6 +365,15 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onUndo}
               disabled={isViewOnlyMode || !canUndo || showCopyButton}
+  title={
+    showCopyButton
+      ? 'Log in to use undo/redo'
+      : isViewOnlyMode
+      ? 'Undo (Disabled)'
+      : !canUndo
+      ? 'Nothing to Undo'
+      : 'Undo'
+  }
             >
               <Undo className='h-5 w-5' />
             </Button>
@@ -362,6 +395,15 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onRedo}
               disabled={isViewOnlyMode || !canRedo || showCopyButton}
+  title={
+    showCopyButton
+      ? 'Log in to use undo/redo'
+      : isViewOnlyMode
+      ? 'Redo (Disabled)'
+      : !canRedo
+      ? 'Nothing to Redo'
+      : 'Redo'
+  }
             >
               <Redo className='h-5 w-5' />
             </Button>
@@ -386,6 +428,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onAddNodeToData}
               disabled={isViewOnlyMode || showCopyButton}
+  title={
+    showCopyButton
+      ? 'Log in to add elements'
+      : isViewOnlyMode
+      ? 'Add Node (Disabled)'
+      : 'Add Node'
+  }
             >
               <PlusSquare className='h-5 w-5' />
             </Button>
@@ -405,6 +454,15 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onAddEdgeToData}
               disabled={isViewOnlyMode || !canAddEdge || showCopyButton}
+  title={
+    showCopyButton
+      ? 'Log in to add elements'
+      : isViewOnlyMode
+      ? 'Add Edge (Disabled)'
+      : !canAddEdge
+      ? 'Add Edge (Requires 2+ nodes)'
+      : 'Add Edge'
+  }
             >
               <Spline className='h-5 w-5' />
             </Button>
@@ -593,7 +651,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 onClick={() =>
                   handleGenAIClick(onAiTidySelection, 'AI Tidy Selection')
                 }
-                disabled={isViewOnlyMode || numMultiSelectedNodes < 2}
+                disabled={isViewOnlyMode || numMultiSelectedNodeIds < 2}
               >
                 <AlignHorizontalDistributeCenter className='mr-2 h-4 w-4' /> AI
                 Tidy Selection
@@ -607,7 +665,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 disabled={
                   isViewOnlyMode ||
                   isApplyingSemanticTidyUp ||
-                  numMultiSelectedNodes < 2
+                  numMultiSelectedNodeIds < 2
                 }
               >
                 {isApplyingSemanticTidyUp ? (
@@ -840,6 +898,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               className={cn(
                 isPropertiesPanelOpen && 'bg-accent text-accent-foreground'
               )}
+  title={isPropertiesPanelOpen ? 'Hide Properties' : 'Show Properties'}
             >
               <Settings2 className='h-5 w-5' />
             </Button>
@@ -857,6 +916,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               className={cn(
                 isAiPanelOpen && 'bg-accent text-accent-foreground'
               )}
+  title={isAiPanelOpen ? 'Hide AI Suggestions' : 'Show AI Suggestions'}
             >
               <BotMessageSquare className='h-5 w-5' />
             </Button>

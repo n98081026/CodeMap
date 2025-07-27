@@ -77,7 +77,7 @@ export function useMapSaver({ user }: UseMapSaverProps) {
 
       const payload = {
         name: mapName,
-        ownerId: effectiveUserForSave.id as string | null,
+        ownerId: effectiveUserForSave.id as string,
         mapData: mapData,
         isPublic: isPublic,
         sharedWithClassroomId: sharedWithClassroomId,
@@ -86,7 +86,13 @@ export function useMapSaver({ user }: UseMapSaverProps) {
       try {
         let savedMapData: ConceptMap;
         if (isNewMapMode || storeMapId === 'new' || storeMapId === null) {
-          savedMapData = await mapService.createConceptMap(payload);
+          savedMapData = await mapService.createConceptMap(
+            payload.name,
+            payload.ownerId,
+            payload.mapData,
+            payload.isPublic,
+            payload.sharedWithClassroomId
+          );
         } else {
           savedMapData = await mapService.updateConceptMap(
             storeMapId,

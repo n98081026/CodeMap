@@ -1,17 +1,39 @@
 // FORCE_OVERWRITE_TOKEN_1
+import { act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { type TemporalState as ZundoTemporalState } from 'zundo'; // Correct import for TemporalState
+
+vi.mock('zustand', () => ({
+  create: (fn) => {
+    const set = (partial) => {
+      const state = useConceptMapStore.getState();
+      const newState = typeof partial === 'function' ? partial(state) : partial;
+      Object.assign(state, newState);
+    };
+    const get = () => useConceptMapStore.getState();
+    const store = fn(set, get);
+    const useStore = () => store;
+    Object.assign(useStore, {
+      getState: () => store,
+      setState: (newState) => Object.assign(store, newState),
+    });
+    return useStore;
+  },
+}));
 
 import useConceptMapStore, {
   initialStateBase,
   type ConceptMapStoreTemporalState,
+  StagedMapDataWithContext,
 } from '../concept-map-store';
+import { vanillaStore } from '../concept-map-store';
 
 import type {
   ConceptMap,
   ConceptMapNode,
   ConceptMapEdge,
   ConceptMapData,
+  NodeType,
 } from '@/types';
 
 // Mocking uuid
@@ -28,63 +50,22 @@ vi.mock('uuid', () => ({
 
 // Helper to reset store state before each test
 const resetStore = () => {
-  useConceptMapStore.setState(
-    {
-      ...initialStateBase,
-      mapData: { nodes: [], edges: [] },
-      ghostPreviewData: null,
-      stagedMapData: null,
-      debugLogs: [],
-      structuralSuggestions: [],
-      projectOverviewData: null,
-      mapId: null,
-      mapName: 'Untitled Concept Map',
-      currentMapOwnerId: null,
-      currentMapCreatedAt: null,
-      isPublic: false,
-      sharedWithClassroomId: null,
-      isNewMapMode: true,
-      isViewOnlyMode: false,
-      initialLoadComplete: false,
-      isLoading: false,
-      isSaving: false,
-      error: null,
-      selectedElementId: null,
-      selectedElementType: null,
-      multiSelectedNodeIds: [],
-      editingNodeId: null,
-      aiProcessingNodeId: null,
-      connectingNodeId: null,
-      aiExtractedConcepts: [],
-      aiSuggestedRelations: [],
-      isConnectingMode: false,
-      connectionSourceNodeId: null,
-      dragPreviewItem: null,
-      dragPreviewPosition: null,
-      draggedRelationLabel: null,
-      triggerFitView: false,
-      isOverviewModeActive: false,
-      isFetchingOverview: false,
-      focusViewOnNodeIds: null,
-      triggerFocusView: false,
-    },
-    true // replace state
-  );
-
-  const temporalStore = useConceptMapStore.temporal;
-  if (temporalStore && temporalStore.getState) {
-    temporalStore.getState().clear();
-  }
+  // Directly call the resetStore action from the store itself.
+  // This is the canonical way to reset the store to its defined initial state.
+  vanillaStore.getState().resetStore();
 };
 
-describe.skip('useConceptMapStore', () => {
+describe('useConceptMapStore', () => {
+  // Vitest's `beforeEach` ensures this runs before every single `it` block.
   beforeEach(() => {
+    // Reset the store to a clean state before each test
     resetStore();
-    jest.clearAllMocks();
+    // Clear any mocks to ensure tests are isolated
+    vi.clearAllMocks();
   });
 
   it('should have correct initial state', () => {
-    const state = useConceptMapStore.getState();
+    const state = vanillaStore.getState();
     expect(state.mapName).toBe('Untitled Concept Map');
     expect(state.mapData.nodes).toEqual([]);
     expect(state.mapData.edges).toEqual([]);
@@ -96,10 +77,10 @@ describe.skip('useConceptMapStore', () => {
 
   describe('Initialization and Loading Actions', () => {
     it('initializeNewMap: should correctly initialize a new map', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const userId = 'user-123';
       store.initializeNewMap(userId);
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
 
       expect(state.mapId).toBe('new');
       expect(state.mapName).toBe('New Concept Map');
@@ -109,18 +90,18 @@ describe.skip('useConceptMapStore', () => {
       expect(state.isNewMapMode).toBe(true);
       expect(state.isViewOnlyMode).toBe(false);
       expect(state.initialLoadComplete).toBe(true);
-      expect(useConceptMapStore.temporal.getState().pastStates.length).toBe(0); // Should clear history
+      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0); // Should clear history
     });
 
     it('setLoadedMap: should load map data and set relevant states', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const mapToLoad: ConceptMap = {
         id: 'map-1',
         name: 'Loaded Map',
         ownerId: 'owner-1',
         mapData: {
           nodes: [
-            { id: 'n1', text: 'N1', type: 't', x: 0, y: 0, childIds: [] },
+            { id: 'n1', text: 'N1', type: 'default', x: 0, y: 0, childIds: [] },
           ],
           edges: [],
         },
@@ -130,7 +111,7 @@ describe.skip('useConceptMapStore', () => {
         updatedAt: new Date().toISOString(),
       };
       store.setLoadedMap(mapToLoad, true); // Load as view-only
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
 
       expect(state.mapId).toBe('map-1');
       expect(state.mapName).toBe('Loaded Map');
@@ -141,17 +122,17 @@ describe.skip('useConceptMapStore', () => {
       expect(state.isPublic).toBe(true);
       expect(state.sharedWithClassroomId).toBe('class-1');
       expect(state.initialLoadComplete).toBe(true);
-      expect(useConceptMapStore.temporal.getState().pastStates.length).toBe(0);
+      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0);
     });
 
     it('importMapData: should import map data and set new name', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const dataToImport: ConceptMapData = {
         nodes: [
           {
             id: 'imported-n1',
             text: 'Imported N1',
-            type: 't',
+            type: 'default',
             x: 0,
             y: 0,
             childIds: [],
@@ -160,39 +141,39 @@ describe.skip('useConceptMapStore', () => {
         edges: [],
       };
       store.importMapData(dataToImport, 'MyImportedMap.json');
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
 
       expect(state.mapName).toBe('MyImportedMap');
       expect(state.mapData.nodes.length).toBe(1);
       expect(state.mapData.nodes[0].text).toBe('Imported N1');
       expect(state.isNewMapMode).toBe(true); // Remains new if mapId was 'new' or null
       expect(state.isViewOnlyMode).toBe(false);
-      expect(useConceptMapStore.temporal.getState().pastStates.length).toBe(0);
+      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0);
     });
 
     it('resetStore: should reset the store to its initial base state', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       store.setMapId('custom-id');
       store.resetStore();
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
       expect(state.mapId).toBe(initialStateBase.mapId);
       expect(state.mapName).toBe(initialStateBase.mapName);
       expect(state.initialLoadComplete).toBe(false);
-      expect(useConceptMapStore.temporal.getState().pastStates.length).toBe(0);
+      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0);
     });
   });
 
   describe('Node Actions', () => {
     it('addNode: should add a new node to mapData.nodes', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const initialNodeCount = store.mapData.nodes.length;
       const nodeOptions = {
         text: 'Test Node',
-        type: 'test-type',
+        type: 'default' as NodeType,
         position: { x: 10, y: 20 },
       };
       const newNodeId = store.addNode(nodeOptions);
-      const updatedState = useConceptMapStore.getState().mapData;
+      const updatedState = vanillaStore.getState().mapData;
       expect(updatedState.nodes.length).toBe(initialNodeCount + 1);
       const addedNode = updatedState.nodes.find((n) => n.id === newNodeId);
       expect(addedNode).toBeDefined();
@@ -200,36 +181,36 @@ describe.skip('useConceptMapStore', () => {
     });
 
     it('addNode: should correctly link child to parentNode if parentNode ID is provided', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const parentId = store.addNode({
         text: 'Parent',
-        type: 'p',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const childId = store.addNode({
         text: 'Child',
-        type: 'c',
+        type: 'default' as NodeType,
         position: { x: 0, y: 50 },
         parentNode: parentId,
       });
-      const parentNode = useConceptMapStore
+      const parentNode = vanillaStore
         .getState()
         .mapData.nodes.find((n) => n.id === parentId);
       expect(parentNode?.childIds).toContain(childId);
     });
 
     it('updateNode: should update specified properties of a node', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const nodeId = store.addNode({
         text: 'Old Text',
-        type: 'old-type',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       store.updateNode(nodeId, {
         text: 'New Text',
         backgroundColor: '#FF0000',
       });
-      const updatedNode = useConceptMapStore
+      const updatedNode = vanillaStore
         .getState()
         .mapData.nodes.find((n) => n.id === nodeId);
       expect(updatedNode?.text).toBe('New Text');
@@ -237,15 +218,15 @@ describe.skip('useConceptMapStore', () => {
     });
 
     it('deleteNode: should remove a node and its connected edges', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const node1Id = store.addNode({
         text: 'Node 1',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const node2Id = store.addNode({
         text: 'Node 2',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 100, y: 0 },
       });
       const edge1Id = store.addEdge({
@@ -254,40 +235,40 @@ describe.skip('useConceptMapStore', () => {
         label: 'connects',
       });
       store.deleteNode(node1Id);
-      const finalNodes = useConceptMapStore.getState().mapData.nodes;
-      const finalEdges = useConceptMapStore.getState().mapData.edges;
+      const finalNodes = vanillaStore.getState().mapData.nodes;
+      const finalEdges = vanillaStore.getState().mapData.edges;
       expect(finalNodes.some((n) => n.id === node1Id)).toBe(false);
       expect(finalEdges.some((e) => e.id === edge1Id)).toBe(false);
     });
 
     it('deleteNode: should remove a node and its descendants and their connected edges', () => {
-      const store = useConceptMapStore.getState();
+      const store = vanillaStore.getState();
       const parentId = store.addNode({
         text: 'Parent',
-        type: 'p',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const child1Id = store.addNode({
         text: 'Child1',
-        type: 'c',
+        type: 'default' as NodeType,
         position: { x: 0, y: 50 },
         parentNode: parentId,
       });
       const child2Id = store.addNode({
         text: 'Child2',
-        type: 'c',
+        type: 'default' as NodeType,
         position: { x: 0, y: 100 },
         parentNode: parentId,
       });
       const grandchildId = store.addNode({
         text: 'Grandchild',
-        type: 'gc',
+        type: 'default' as NodeType,
         position: { x: 0, y: 150 },
         parentNode: child1Id,
       });
       const unrelatedNodeId = store.addNode({
         text: 'Unrelated',
-        type: 'u',
+        type: 'default' as NodeType,
         position: { x: 200, y: 0 },
       });
       store.addEdge({ source: parentId, target: child1Id, label: 'pc1' });
@@ -298,7 +279,7 @@ describe.skip('useConceptMapStore', () => {
         label: 'c2u',
       });
       store.deleteNode(parentId);
-      const state = useConceptMapStore.getState();
+      const state = vanillaStore.getState();
       expect(
         state.mapData.nodes.find((n) => n.id === parentId)
       ).toBeUndefined();
@@ -321,12 +302,12 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const node1Id = store.addNode({
         text: 'S',
-        type: 's',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const node2Id = store.addNode({
         text: 'T',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const initialEdgeCount = store.mapData.edges.length;
@@ -346,12 +327,12 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const node1Id = store.addNode({
         text: 'S',
-        type: 's',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const node2Id = store.addNode({
         text: 'T',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const edgeId = store.addEdge({
@@ -372,12 +353,12 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const node1Id = store.addNode({
         text: 'S',
-        type: 's',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const node2Id = store.addNode({
         text: 'T',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const edgeId = store.addEdge({ source: node1Id, target: node2Id });
@@ -391,7 +372,7 @@ describe.skip('useConceptMapStore', () => {
     const sampleStagedNode: ConceptMapNode = {
       id: 'staged-n1',
       text: 'Staged Node 1',
-      type: 'staged-type',
+      type: 'default' as NodeType,
       x: 50,
       y: 50,
       childIds: [],
@@ -406,7 +387,7 @@ describe.skip('useConceptMapStore', () => {
     it('setStagedMapData: should set stagedMapData and clear ghost data', () => {
       const store = useConceptMapStore.getState();
       store.setGhostPreview([{ id: 'g1', x: 0, y: 0, width: 100, height: 50 }]); // Ensure ghost data is present
-      const stagedData = {
+      const stagedData: StagedMapDataWithContext = {
         nodes: [sampleStagedNode],
         edges: [sampleStagedEdge],
         actionType: 'quickCluster',
@@ -423,7 +404,7 @@ describe.skip('useConceptMapStore', () => {
       const stagedNode1: ConceptMapNode = {
         id: 'temp-n1',
         text: 'Staged N1',
-        type: 't',
+        type: 'default' as NodeType,
         x: 0,
         y: 0,
         childIds: [],
@@ -431,7 +412,7 @@ describe.skip('useConceptMapStore', () => {
       const stagedNode2: ConceptMapNode = {
         id: 'temp-n2',
         text: 'Staged N2',
-        type: 't',
+        type: 'default' as NodeType,
         x: 10,
         y: 10,
         childIds: [],
@@ -460,7 +441,7 @@ describe.skip('useConceptMapStore', () => {
       const nodeToKeep: ConceptMapNode = {
         id: 'keep-n1',
         text: 'Keep',
-        type: 't',
+        type: 'default' as NodeType,
         x: 0,
         y: 0,
         childIds: [],
@@ -468,7 +449,7 @@ describe.skip('useConceptMapStore', () => {
       const nodeToRemove: ConceptMapNode = {
         id: 'remove-n1',
         text: 'Remove',
-        type: 't',
+        type: 'default' as NodeType,
         x: 0,
         y: 0,
         childIds: [],
@@ -506,12 +487,12 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const sourceId = store.addNode({
         text: 'Source',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const targetId = store.addNode({
         text: 'Target',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 100, y: 0 },
       });
       const originalEdgeId = store.addEdge({
@@ -522,7 +503,7 @@ describe.skip('useConceptMapStore', () => {
       const intermediateNode: ConceptMapNode = {
         id: 'temp-inter',
         text: 'Intermediate',
-        type: 'inter',
+        type: 'default' as NodeType,
         x: 50,
         y: 50,
         childIds: [],
@@ -565,12 +546,12 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const child1Id = store.addNode({
         text: 'Child 1',
-        type: 'c',
+        type: 'default' as NodeType,
         position: { x: 0, y: 100 },
       });
       const child2Id = store.addNode({
         text: 'Child 2',
-        type: 'c',
+        type: 'default' as NodeType,
         position: { x: 50, y: 200 },
       });
       const stagedParent: ConceptMapNode = {
@@ -586,7 +567,7 @@ describe.skip('useConceptMapStore', () => {
       const stagedChild1Update: ConceptMapNode = {
         id: child1Id,
         text: 'Child 1',
-        type: 'c',
+        type: 'default' as NodeType,
         x: 20,
         y: 120,
         parentNode: stagedParent.id,
@@ -597,7 +578,7 @@ describe.skip('useConceptMapStore', () => {
       const stagedChild2Update: ConceptMapNode = {
         id: child2Id,
         text: 'Child 2',
-        type: 'c',
+        type: 'default' as NodeType,
         x: 20,
         y: 220,
         parentNode: stagedParent.id,
@@ -630,7 +611,14 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const initialStagedData = {
         nodes: [
-          { id: 's1', text: 'SN1', type: 'st', x: 0, y: 0, childIds: [] },
+          {
+            id: 's1',
+            text: 'SN1',
+            type: 'default' as NodeType,
+            x: 0,
+            y: 0,
+            childIds: [],
+          },
         ],
         edges: [],
       };
@@ -648,7 +636,7 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const nodeId = store.addNode({
         text: 'NodeToMove',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       store.setGhostPreview([
@@ -665,7 +653,7 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const nodeId = store.addNode({
         text: 'NodeToNotMove',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 10, y: 10 },
       });
       store.setGhostPreview([
@@ -684,7 +672,7 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const n1 = store.addNode({
         text: 'N1',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const updates = [{ id: n1, x: 100, y: 110 }];
@@ -753,7 +741,7 @@ describe.skip('useConceptMapStore', () => {
       const store = useConceptMapStore.getState();
       const childId1 = store.addNode({
         text: 'c1',
-        type: 't',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       const newGroupId = store.applyFormGroupSuggestion(
@@ -777,14 +765,16 @@ describe.skip('useConceptMapStore', () => {
       const initialNodeCount = store.mapData.nodes.length;
       store.addNode({
         text: 'Node for Undo',
-        type: 'undo-test',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       expect(useConceptMapStore.getState().mapData.nodes.length).toBe(
         initialNodeCount + 1
       );
 
-      temporalStore.undo();
+      act(() => {
+        temporalStore.undo();
+      });
       expect(useConceptMapStore.getState().mapData.nodes.length).toBe(
         initialNodeCount
       );
@@ -797,19 +787,23 @@ describe.skip('useConceptMapStore', () => {
 
       const nodeId = store.addNode({
         text: 'Node for Redo',
-        type: 'redo-test',
+        type: 'default' as NodeType,
         position: { x: 0, y: 0 },
       });
       expect(useConceptMapStore.getState().mapData.nodes.length).toBe(
         initialNodeCount + 1
       );
 
-      temporalStore.undo();
+      act(() => {
+        temporalStore.undo();
+      });
       expect(useConceptMapStore.getState().mapData.nodes.length).toBe(
         initialNodeCount
       );
 
-      temporalStore.redo();
+      act(() => {
+        temporalStore.redo();
+      });
       expect(useConceptMapStore.getState().mapData.nodes.length).toBe(
         initialNodeCount + 1
       );

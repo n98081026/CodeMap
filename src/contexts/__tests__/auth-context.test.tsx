@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { AuthProvider, useAuth } from '../auth-context'; // Import the function for testing
+import { UserRole } from '@/types';
 
 // Mock Supabase client
 const mockSupabaseAuth = {
@@ -48,7 +49,7 @@ global.fetch = vi.fn();
 
 // Original AuthContext tests (Guest Session State Management)
 // These tests can remain as they test different aspects of the AuthContext
-describe.skip('AuthContext - Guest Session State Management', () => {
+describe('AuthContext - Guest Session State Management', () => {
   beforeEach(() => {
     localStorageMock.clear();
     vi.clearAllMocks();
@@ -82,7 +83,7 @@ describe.skip('AuthContext - Guest Session State Management', () => {
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
     const mockAuthUser = {
-      id: 'user-123',
+      id: 'student-mock-v3-s001',
       email: 'test@example.com',
     } as SupabaseUser;
     const mockSession = {
@@ -94,7 +95,7 @@ describe.skip('AuthContext - Guest Session State Management', () => {
       id: 'user-123',
       full_name: 'Test User',
       email: 'test@example.com',
-      role: 'student',
+      role: UserRole.STUDENT,
     };
 
     (
@@ -118,7 +119,11 @@ describe.skip('AuthContext - Guest Session State Management', () => {
     });
 
     await act(async () => {
-      await result.current.login('test@example.com', 'password', 'student');
+      await result.current.login(
+        'test@example.com',
+        'password',
+        UserRole.STUDENT
+      );
     });
 
     // Wait for async operations within onAuthStateChange and fetchAndSetSupabaseUser

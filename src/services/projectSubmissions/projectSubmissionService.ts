@@ -29,8 +29,9 @@ export async function createSubmission(
   studentId: string,
   originalFileName: string,
   fileSize: number,
-  classroomId?: string | null,
-  fileStoragePath?: string | null
+  classroomId: string | undefined | null,
+  fileStoragePath: string | undefined | null,
+  userGoals?: string
 ): Promise<ProjectSubmission> {
   if (BYPASS_AUTH_FOR_TESTING) {
     const student = await getUserById(studentId); // Uses mock if ID matches
@@ -48,6 +49,7 @@ export async function createSubmission(
       fileStoragePath: fileStoragePath || `mock/path/${originalFileName}`,
       submissionTimestamp: new Date().toISOString(),
       analysisStatus: ProjectSubmissionStatus.PENDING,
+      userGoals: userGoals,
     };
     MOCK_SUBMISSIONS_STORE.push(newSubmission);
     return newSubmission;
@@ -291,8 +293,7 @@ export async function getSubmissionsByClassroomId(
   const mappedSubmissions = (submissionsData || []).map((s) => ({
     id: s.id,
     studentId: s.student_id,
-    // @ts-expect-error - Supabase join type, assume student.name exists if student is not null
-    studentName: s.student?.name || 'N/A',
+    studentName: (s as any).student?.name || 'N/A',
     originalFileName: s.original_file_name,
     fileSize: s.file_size,
     classroomId: s.classroom_id,

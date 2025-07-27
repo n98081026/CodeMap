@@ -5,7 +5,13 @@
 export const BYPASS_AUTH_FOR_TESTING = true;
 
 // Define mock user data that can be shared across services when BYPASS_AUTH_FOR_TESTING is true.
-import type { User, Classroom, ConceptMap, ProjectSubmission } from '@/types';
+import type {
+  User,
+  Classroom,
+  ConceptMap,
+  ProjectSubmission,
+  NodeType,
+} from '@/types';
 
 import { UserRole, ProjectSubmissionStatus } from '@/types';
 
@@ -119,7 +125,7 @@ export const MOCK_CONCEPT_MAP_TEACHER: ConceptMap = {
       {
         id: 'nt1-v3-beta',
         text: 'Teacher Node V3 Beta',
-        type: 'important',
+        type: 'key_feature',
         x: 100,
         y: 100,
       },

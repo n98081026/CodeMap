@@ -44,6 +44,7 @@ vi.mock('@/contexts/auth-context', () => ({
 
 const mockUser: User = {
   id: 'user-1',
+  name: 'Test User',
   role: UserRole.STUDENT,
   email: 'student@test.com',
 };
@@ -69,7 +70,7 @@ describe('useMapLoader', () => {
 
   beforeEach(() => {
     toast = vi.fn();
-    vi.spyOn(useToastModule, 'useToast').mockReturnValue({ toast });
+    vi.spyOn(useToastModule, 'useToast').mockReturnValue({ toast } as any);
     (useAuth as vi.Mock).mockReturnValue({ user: mockUser, loading: false });
 
     vi.spyOn(window, 'fetch').mockImplementation(async (url) => {
@@ -130,7 +131,10 @@ describe('useMapLoader', () => {
       await result.current.loadMapData(mockMapId, false);
     });
 
-    expect(window.fetch).toHaveBeenCalledWith(`/api/concept-maps/${mockMapId}`, expect.any(Object));
+    expect(window.fetch).toHaveBeenCalledWith(
+      `/api/concept-maps/${mockMapId}`,
+      expect.any(Object)
+    );
     expect(storeState.setLoadedMap).toHaveBeenCalledWith(mockMap, false);
   });
 

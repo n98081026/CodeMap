@@ -196,7 +196,7 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
 
   const handleSaveInlineEdit = () => {
     if (nodeIsViewOnly || data.isGhost || data.isStaged) return;
-    updateNode(id, { label: editText });
+    updateNode(id, { text: editText });
     setIsInlineEditing(false);
   };
 
@@ -284,14 +284,17 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
               transform: `translateX(calc(-50% + ${toolbarHorizontalOffset}px))`,
             }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.stopPropagation();
+              }
+            }}
             onMouseDown={(e) => e.stopPropagation()}
             role='toolbar'
             aria-label='Actions for selected node'
           >
             <SelectedNodeToolbar
-              nodeId={id}
               numMultiSelectedNodes={multiSelectedNodeIds.length}
-              multiSelectedNodeIds={multiSelectedNodeIds}
               onEditLabel={handleEditLabelForToolbar}
               onChangeColor={handleChangeColorForToolbar}
               onAIExpand={handleAIExpandForToolbar}

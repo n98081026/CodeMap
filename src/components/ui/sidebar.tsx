@@ -109,14 +109,14 @@ const SidebarProvider = React.forwardRef<
 
     const state = open ? 'expanded' : 'collapsed';
 
-    const contextValue = React.useMemo<SidebarContext>(
+    const contextValue = React.useMemo(
       () => ({
         state,
         open,
-        setOpen,
+        setOpen: setOpen as (open: boolean) => void,
         isMobile,
         openMobile,
-        setOpenMobile,
+        setOpenMobile: setOpenMobile as (open: boolean) => void,
         toggleSidebar,
       }),
       [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]

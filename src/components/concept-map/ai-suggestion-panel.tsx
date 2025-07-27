@@ -274,7 +274,7 @@ const RenderEditableRelationLabel: React.FC<{
     if (item.isEditing && item.editingField === field && !isViewOnlyMode) {
       return (
         <Input
-          value={String((item.current as Record<string, unknown>)[field] || '')}
+          value={String((item.current as any)[field] || '')}
           onChange={(e) => onInputChange(index, e.target.value, field)}
           className='h-7 text-xs px-1 py-0.5 mx-0.5 inline-block w-auto min-w-[60px] max-w-[120px]'
           onKeyDown={(e) => {
@@ -302,7 +302,7 @@ const RenderEditableRelationLabel: React.FC<{
           !isViewOnlyMode && 'cursor-pointer'
         )}
       >
-        {String((item.current as Record<string, unknown>)[field])}
+        {String((item.current as any)[field])}
         {nodeExists && field !== 'relation' && (
           <CheckSquare className='h-3 w-3 ml-1 text-green-600 inline-block' />
         )}
@@ -596,13 +596,12 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     items: (EditableExtractedConcept | EditableRelationSuggestion)[],
     selectedIndicesSet: Set<number>,
     itemKeyPrefix: string,
-    // renderItemContent is now specific to each type
+    parentRef: React.RefObject<HTMLDivElement>, // For virtualizer
+    rowVirtualizerInstance: ReturnType<typeof useVirtualizer>, // Instance of useVirtualizer
     onAddSelectedItems: (selectedItems: any[]) => void,
     onClearCategory?: () => void,
     cardClassName?: string,
-    titleClassName?: string,
-    parentRef: React.RefObject<HTMLDivElement>, // For virtualizer
-    rowVirtualizerInstance: ReturnType<typeof useVirtualizer> // Instance of useVirtualizer
+    titleClassName?: string
   ) => {
     const isRelationsSection = itemKeyPrefix.startsWith('relation-');
     const sectionId = isRelationsSection
@@ -1000,12 +999,12 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             editableExtracted,
             selectedExtractedIndices,
             'extracted-concept',
+            conceptsParentRef,
+            conceptsRowVirtualizer,
             onAddExtractedConcepts as any,
             onClearExtractedConcepts,
             'bg-blue-500/5 border-blue-500/20',
-            'text-blue-700 dark:text-blue-400',
-            conceptsParentRef,
-            conceptsRowVirtualizer
+            'text-blue-700 dark:text-blue-400'
           )}
         {onAddSuggestedRelations &&
           renderSuggestionSection(
@@ -1014,12 +1013,12 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             editableRelations,
             selectedRelationIndices,
             'relation-',
+            relationsParentRef,
+            relationsRowVirtualizer,
             onAddSuggestedRelations as any,
             onClearSuggestedRelations,
             'bg-purple-500/5 border-purple-500/20',
-            'text-purple-700 dark:text-purple-400',
-            relationsParentRef,
-            relationsRowVirtualizer
+            'text-purple-700 dark:text-purple-400'
           )}
       </div>
     );

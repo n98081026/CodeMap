@@ -530,7 +530,7 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
       );
       if (shouldLoad) {
         addDebugLog(
-          `[DataManager useEffect V13] Action: Loading existing map '${routeMapId}'. TargetViewOnly: ${(routeMapId, isViewOnlyModeInStore)}`
+          `[DataManager useEffect V13] Action: Loading existing map '${routeMapId}'. TargetViewOnly: ${isViewOnlyModeInStore}`
         );
         loadMapDataRef.current(routeMapId, isViewOnlyModeInStore);
       } else {

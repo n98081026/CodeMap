@@ -8,6 +8,12 @@ export default defineConfig({
     react(),
     tsconfigPaths(), // To handle aliases like @/components/*
   ],
+  resolve: {
+    alias: {
+      'graphology-traversal/bfs':
+        './node_modules/graphology-traversal/bfs.js',
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom', // For testing components that interact with DOM APIs
@@ -42,13 +48,7 @@ export default defineConfig({
       enabled: false, // Temporarily disable coverage
     },
     deps: {
-      external: [],
-    },
-    resolve: {
-      alias: {
-        'graphology-traversal/bfs':
-          './node_modules/graphology-traversal/bfs.js',
-      },
+      external: ['graphology-traversal/bfs'],
     },
   },
 });
