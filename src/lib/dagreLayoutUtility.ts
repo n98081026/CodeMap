@@ -34,7 +34,7 @@ export class DagreLayoutUtility {
     nodes: DagreLayoutInput['nodes'],
     edges: DagreLayoutInput['edges'],
     options?: DagreLayoutOptions
-  ): Promise<any[]> {
+  ): Promise<{ id: string, x: number, y: number }[]> {
     // Create a new directed graph
     const dagreGraph = new dagre.graphlib.Graph({
       multigraph: true,

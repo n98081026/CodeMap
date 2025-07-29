@@ -31,12 +31,7 @@ import React, {
 
 import AICommandPalette, { type AICommand } from './ai-command-palette';
 
-import type {
-  ConceptMap,
-  ConceptMapNode,
-  ConceptMapEdge,
-} from '@/types';
-import { NodeType } from '@/types/concept-map';
+import type { ConceptMap, ConceptMapNode, ConceptMapEdge } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import {

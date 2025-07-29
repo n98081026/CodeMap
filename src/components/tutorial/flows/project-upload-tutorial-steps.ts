@@ -1,6 +1,6 @@
 import { Step } from 'react-joyride';
 
-export const getProjectUploadTutorialSteps = (t: any): Step[] => [
+export const getProjectUploadTutorialSteps = (t: (key: string) => string): Step[] => [
   {
     target: '#tutorial-target-project-file-input',
     content: t('tutorialSteps.projectUploadTutorial.projectFileInput.content'),

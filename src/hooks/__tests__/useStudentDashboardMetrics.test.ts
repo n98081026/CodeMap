@@ -12,7 +12,9 @@ global.fetch = vi.fn();
 
 // Mock useAuth to provide a user for the AuthProvider wrapper
 vi.mock('@/contexts/auth-context', async () => {
-  const actual = await vi.importActual<typeof import('@/contexts/auth-context')>('@/contexts/auth-context');
+  const actual = await vi.importActual<
+    typeof import('@/contexts/auth-context')
+  >('@/contexts/auth-context');
   return {
     ...actual,
     useAuth: () => ({
@@ -89,6 +91,8 @@ describe('useStudentDashboardMetrics', () => {
       expect(result.current.classrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.classrooms.error).toBe('Failed to fetch student metrics');
+    expect(result.current.classrooms.error).toBe(
+      'Failed to fetch student metrics'
+    );
   });
 });

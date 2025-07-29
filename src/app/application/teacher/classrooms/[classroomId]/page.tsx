@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 import type { Classroom, User, ConceptMap, ProjectSubmission } from '@/types';
 

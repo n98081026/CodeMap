@@ -133,7 +133,7 @@ export interface GraphAdapter {
 
   detectCommunities(
     graphInstance: GraphologyInstance,
-    options?: any
+    options?: Record<string, unknown>
   ): Record<string, number>;
 }
 

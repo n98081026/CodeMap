@@ -50,7 +50,7 @@ async function checkAdminAuth(): Promise<{
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   const authCheck = await checkAdminAuth();
   if (!authCheck.allow) {
     return NextResponse.json(

@@ -122,13 +122,9 @@ export function getNodePlacement(
   ) {
     // Position near the selected node, but slightly offset to avoid direct overlap
     finalX =
-      selectedNode.x +
-      (selectedNode.width || defaultNodeWidth) * 0.5 +
-      30;
+      selectedNode.x + (selectedNode.width || defaultNodeWidth) * 0.5 + 30;
     finalY =
-      selectedNode.y +
-      (selectedNode.height || defaultNodeHeight) * 0.5 +
-      30;
+      selectedNode.y + (selectedNode.height || defaultNodeHeight) * 0.5 + 30;
   } else {
     // Generic placement if no context
     let maxX = 0;

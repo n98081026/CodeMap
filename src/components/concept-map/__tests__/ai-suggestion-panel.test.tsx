@@ -2,8 +2,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
-import { AISuggestionPanel, AISuggestionPanelProps } from '../ai-suggestion-panel';
-import type { ExtractedConceptItem, RelationSuggestion } from '../ai-suggestion-panel';
+import {
+  AISuggestionPanel,
+  AISuggestionPanelProps,
+} from '../ai-suggestion-panel';
+import type {
+  ExtractedConceptItem,
+  RelationSuggestion,
+} from '../ai-suggestion-panel';
 import { ConceptMapNode } from '@/types';
 
 // Mock child components for isolation
@@ -87,7 +93,14 @@ describe('AISuggestionPanel', () => {
 
   const defaultProps: AISuggestionPanelProps = {
     currentMapNodes: [
-      { id: 'n1', text: 'Component', type: 'default', x: 0, y: 0, childIds: [] },
+      {
+        id: 'n1',
+        text: 'Component',
+        type: 'default',
+        x: 0,
+        y: 0,
+        childIds: [],
+      },
       { id: 'n2', text: 'Hook', type: 'default', x: 0, y: 0, childIds: [] },
       { id: 'n3', text: 'State', type: 'default', x: 0, y: 0, childIds: [] },
     ] as ConceptMapNode[],
@@ -198,7 +211,9 @@ describe('AISuggestionPanel', () => {
     );
     const checkbox = screen.getByRole('checkbox', { name: 'React Hooks' });
     fireEvent.click(checkbox);
-    fireEvent.click(screen.getByRole('button', { name: /Add Selected \(1\)/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Add Selected \(1\)/i })
+    );
     expect(onAddExtractedConcepts).toHaveBeenCalledWith([mockConcepts[0]]);
   });
 
@@ -210,7 +225,9 @@ describe('AISuggestionPanel', () => {
     // The first checkbox is for "Select All", so we start at index 1 for the actual items.
     // The first relation is at index 1 of the checkboxes list.
     fireEvent.click(relationCheckboxes[1]);
-    fireEvent.click(screen.getByRole('button', { name: /Add Selected \(1\)/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Add Selected \(1\)/i })
+    );
     expect(onAddSuggestedRelations).toHaveBeenCalledWith([mockRelations[0]]);
   });
 });

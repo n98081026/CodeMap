@@ -13,7 +13,7 @@ import { UserRole } from '@/types'; // UserRole is already imported correctly
 // UserRole is already imported from '@/types'
 
 export async function GET(
-  request: Request,
+  _request: Request,
   context: { params: { userId: string } }
 ) {
   try {

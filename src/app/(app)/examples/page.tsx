@@ -4,19 +4,15 @@
 import {
   Compass,
   Eye,
-  Zap,
   BookCopy,
   Code,
-  LayoutList,
   LogIn,
   UserPlus,
   Info,
   Edit3,
 } from 'lucide-react'; // Added Edit3
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React from 'react';
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

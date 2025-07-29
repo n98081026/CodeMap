@@ -10,7 +10,7 @@ import {
 import { UserRole } from '@/types';
 
 export async function DELETE(
-  request: Request,
+  _request: Request,
   context: { params: { classroomId: string; studentId: string } }
 ) {
   try {

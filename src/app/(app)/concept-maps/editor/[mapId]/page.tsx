@@ -21,7 +21,6 @@ import { ReactFlowProvider, useReactFlow } from 'reactflow';
 // import { generateProjectOverviewFlow } from '@/ai/flows/generate-project-overview';
 // import { extractConceptsFlow } from '@/ai/flows/extract-concepts';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
-import type { ArrangeAction } from '@/components/concept-map/editor-toolbar';
 import type {
   ConceptMap,
   ConceptMapNode,
@@ -29,7 +28,6 @@ import type {
   VisualEdgeSuggestion,
 } from '@/types';
 import type {
-  DagreLayoutOptions,
   LayoutNodeUpdate,
 } from '@/types/graph-adapter';
 import type { Node as RFNode } from 'reactflow';
@@ -50,7 +48,10 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import {
+  useConceptMapStore,
+  type ConceptMapState,
+} from '@/stores/concept-map-store';
 import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
 import { UserRole } from '@/types';
 
@@ -128,7 +129,7 @@ export default function ConceptMapEditorPage() {
   const router = useRouter();
   const { startOrResumeTutorial } = useTutorialStore(
     useCallback(
-      (s: { startOrResumeTutorial: (arg0: string) => void }) => ({
+      (s: any) => ({
         startOrResumeTutorial: s.startOrResumeTutorial,
       }),
       []
@@ -160,9 +161,6 @@ export default function ConceptMapEditorPage() {
     commitStagedMapData,
     clearStagedMapData,
     deleteFromStagedMapData,
-    setMapName: setStoreMapName,
-    setIsPublic: setStoreIsPublic,
-    setSharedWithClassroomId: setStoreSharedWithClassroomId,
     deleteNode: deleteStoreNode,
     updateNode: updateStoreNode,
     updateEdge: updateStoreEdge,
@@ -179,7 +177,7 @@ export default function ConceptMapEditorPage() {
     fetchProjectOverview,
   } = useConceptMapStore(
     useCallback(
-      (s: any) => ({
+      (s: ConceptMapState) => ({
         mapId: s.mapId,
         mapName: s.mapName,
         currentMapOwnerId: s.currentMapOwnerId,
@@ -238,7 +236,7 @@ export default function ConceptMapEditorPage() {
       }, Edges: ${
         storeMapData.edges?.length ?? 'N/A'
       }. isLoading: ${isStoreLoading}, initialLoadComplete: ${
-        (useConceptMapStore.getState() as any).initialLoadComplete
+        (useConceptMapStore.getState() as ConceptMapState).initialLoadComplete
       }`
     );
   }, [storeMapData, isStoreLoading, addDebugLog]);
@@ -252,7 +250,7 @@ export default function ConceptMapEditorPage() {
     if (
       !isAuthLoading &&
       user &&
-      (useConceptMapStore.getState() as any).initialLoadComplete &&
+      (useConceptMapStore.getState() as ConceptMapState).initialLoadComplete &&
       !isStoreLoading
     ) {
       const tutorialCompleted =
@@ -266,7 +264,7 @@ export default function ConceptMapEditorPage() {
     isAuthLoading,
     isStoreLoading,
     startOrResumeTutorial,
-    (useConceptMapStore.getState() as any).initialLoadComplete,
+    (useConceptMapStore.getState() as ConceptMapState).initialLoadComplete,
   ]);
 
   const { canUndo, canRedo } = {
@@ -332,7 +330,7 @@ export default function ConceptMapEditorPage() {
     nodeId: string | null;
   } | null>(null);
 
-  const [floaterState, setFloaterState] = useState<{
+  const [floaterState] = useState<{
     isVisible: boolean;
     position: { x: number; y: number } | null;
     suggestions: SuggestionAction[];
@@ -360,9 +358,6 @@ export default function ConceptMapEditorPage() {
   ]);
 
   const handlePaneContextMenuRequest = useCallback(() => {
-    /* ... */
-  }, []);
-  const handleNodeContextMenuRequest = useCallback(async () => {
     /* ... */
   }, []);
   const handleCommitStagedData = useCallback(() => {
@@ -495,99 +490,12 @@ export default function ConceptMapEditorPage() {
     /* ... */
   }, [storeIsViewOnlyMode, toast]);
   const handleFileSelectedForImport = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (_event: React.ChangeEvent<HTMLInputElement>) => {
       /* ... */
     },
     [storeIsViewOnlyMode, toast, importMapData]
   );
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
-  const handleAlignLefts = useCallback(() => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeApplyLayout,
-    storeMapData,
-    multiSelectedNodeIds,
-  ]);
-  const handleAlignCentersH = useCallback(() => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeApplyLayout,
-    storeMapData,
-    multiSelectedNodeIds,
-  ]);
-  const handleAlignRights = useCallback(() => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeApplyLayout,
-    storeMapData,
-    multiSelectedNodeIds,
-  ]);
-  const handleAlignTops = useCallback(() => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeApplyLayout,
-    storeMapData,
-    multiSelectedNodeIds,
-  ]);
-  const handleAlignMiddlesV = useCallback(() => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeApplyLayout,
-    storeMapData,
-    multiSelectedNodeIds,
-  ]);
-  const handleAlignBottoms = useCallback(() => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeApplyLayout,
-    storeMapData,
-    multiSelectedNodeIds,
-  ]);
-  const handleDistributeHorizontally = useCallback(() => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeApplyLayout,
-    storeMapData,
-    multiSelectedNodeIds,
-  ]);
-  const handleDistributeVertically = useCallback(() => {
-    /* ... */
-  }, [
-    storeIsViewOnlyMode,
-    toast,
-    storeApplyLayout,
-    storeMapData,
-    multiSelectedNodeIds,
-  ]);
-  const arrangeActions = React.useMemo<ArrangeAction[]>(
-    () => [
-      /* ... */
-    ],
-    [
-      handleAlignLefts,
-      handleAlignCentersH,
-      handleAlignRights,
-      handleAlignTops,
-      handleAlignMiddlesV,
-      handleAlignBottoms,
-      handleDistributeHorizontally,
-      handleDistributeVertically,
-    ]
-  );
 
   const handleDeleteNodeFromContextMenu = useCallback(() => {
     /* ... */
@@ -618,7 +526,7 @@ export default function ConceptMapEditorPage() {
     /* ... */
   }, []);
   const handleNodeContextMenu = useCallback(
-    (event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
+    (_event: React.MouseEvent, _node: RFNode<CustomNodeData>) => {
       /* ... */
     },
     []
@@ -693,12 +601,6 @@ export default function ConceptMapEditorPage() {
       addDebugLog(
         `[EditorPage] Prepared ${nodesForDagre.length} nodes and ${edgesForDagre.length} edges for Dagre layout.`
       );
-      const dagreOptions: DagreLayoutOptions = {
-        direction: 'TB',
-        rankSep: 70,
-        nodeSep: 60,
-        edgeSep: 20,
-      };
       const newPositions: LayoutNodeUpdate[] = [];
       addDebugLog(
         `[EditorPage] Dagre layout calculated. ${newPositions.length} new positions received.`
@@ -719,13 +621,14 @@ export default function ConceptMapEditorPage() {
         description: 'The entire map has been arranged using Dagre.',
       });
       addDebugLog('[EditorPage] Dagre auto-layout successfully applied.');
-    } catch (e: any) {
-      addDebugLog(`[EditorPage] Error during Dagre auto-layout: ${e.message}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      addDebugLog(`[EditorPage] Error during Dagre auto-layout: ${message}`);
       loadingToast.dismiss();
       toast({
         title: 'Auto-Layout Failed',
         description:
-          e.message || 'An unexpected error occurred during Dagre layout.',
+          message || 'An unexpected error occurred during Dagre layout.',
         variant: 'destructive',
       });
     }
@@ -758,7 +661,7 @@ export default function ConceptMapEditorPage() {
         // This is a placeholder for deriving projectStoragePath from currentSubmissionId
         // In a real application, you'd fetch submission details to get its fileStoragePath
         const projectStoragePath =
-          (useConceptMapStore.getState() as any).mapData
+          (useConceptMapStore.getState() as ConceptMapState).mapData
             .projectFileStoragePath || // Check if already in mapData
           `user-${user?.id}/project-archives/some-path-derived-from-${currentSubmissionId}.zip`; // Placeholder
 
@@ -777,7 +680,9 @@ export default function ConceptMapEditorPage() {
             variant: 'default',
           });
           // Provide some minimal data or rely on the flow's error handling
-          (useConceptMapStore.getState() as any).setProjectOverviewData({
+          (
+            useConceptMapStore.getState() as ConceptMapState
+          ).setProjectOverviewData({
             overallSummary:
               'Project source information is unclear. Cannot generate a detailed AI overview for this map at the moment.',
             keyModules: [],
@@ -786,7 +691,10 @@ export default function ConceptMapEditorPage() {
           return; // Prevent calling fetchProjectOverview with bad path
         }
 
-        const overviewInput: any = {
+        const overviewInput: {
+          projectStoragePath: string;
+          userGoals: string;
+        } = {
           projectStoragePath,
           userGoals:
             "Provide a high-level overview of this project's structure and purpose.",
@@ -799,12 +707,14 @@ export default function ConceptMapEditorPage() {
             'Generating a basic overview from current map content...',
           variant: 'default',
         });
-        (useConceptMapStore.getState() as any).setProjectOverviewData({
+        (
+          useConceptMapStore.getState() as ConceptMapState
+        ).setProjectOverviewData({
           overallSummary:
             'This is an overview based on the current concepts on your map. For a more detailed AI analysis, please upload a project.',
           keyModules: storeMapData.nodes
             .slice(0, Math.min(5, storeMapData.nodes.length))
-            .map((n: any) => ({
+            .map((n: ConceptMapNode) => ({
               name: n.text,
               description: n.details || 'A key concept from the map.',
             })),
@@ -816,7 +726,9 @@ export default function ConceptMapEditorPage() {
             'No project context or map content to generate an overview from.',
           variant: 'default',
         });
-        (useConceptMapStore.getState() as any).setProjectOverviewData({
+        (
+          useConceptMapStore.getState() as ConceptMapState
+        ).setProjectOverviewData({
           overallSummary:
             'No content available to generate an overview. Try uploading a project or adding nodes to your map.',
           keyModules: [],

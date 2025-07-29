@@ -1,34 +1,11 @@
 'use client';
 
-import {
-  BookOpen,
-  FileText,
-  Share2,
-  FolderKanban,
-  LayoutDashboard,
-  Compass,
-  Loader2,
-  AlertTriangle,
-  Users,
-  Settings,
-} from 'lucide-react'; // Added Users, Settings
-import Link from 'next/link';
+import { Loader2 } from 'lucide-react'; // Added Users, Settings
 import { useRouter } from 'next/navigation'; // For redirection
-import React from 'react'; // Ensure React is imported for useMemo if not already via other imports
 import { useEffect } from 'react'; // For redirection logic
 
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import StudentDashboardView from '@/components/dashboard/student/StudentDashboardView'; // Import the new shared view
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
-import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics';
 import { UserRole } from '@/types'; // Import UserRole
 
 // import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Now in StudentDashboardView

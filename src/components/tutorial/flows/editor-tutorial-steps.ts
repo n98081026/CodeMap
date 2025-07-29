@@ -1,6 +1,6 @@
 import { Step } from 'react-joyride';
 
-export const getEditorTutorialSteps = (t: any): Step[] => [
+export const getEditorTutorialSteps = (t: (key: string) => string): Step[] => [
   {
     target: '#editor-toolbar',
     content: t('tutorialSteps.editorTutorial.editorToolbar.content'),

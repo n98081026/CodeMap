@@ -16,7 +16,7 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore",
     "analyze": "cross-env ANALYZE=true next build",
     "depcheck": "depcheck",
-    "test": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs",
+    "test": "node --max-old-space-size=8192 ./node_modules/vitest/vitest.mjs --no-threads",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test"
   },
@@ -80,6 +80,7 @@
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
+    "vite": "^7.0.6",
     "zod": "^3.24.2",
     "zundo": "^2.1.0",
     "zustand": "^4.5.4"

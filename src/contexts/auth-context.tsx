@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               exampleKey,
               profile.id,
               router,
-              toast,
+              toast
             );
           }
         } else if (!isRegistering) {
@@ -483,8 +483,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(() => {
       let targetMockUser = MOCK_STUDENT_USER;
       if (newRole === UserRole.ADMIN) targetMockUser = MOCK_ADMIN_USER_V3;
-      else if (newRole === UserRole.TEACHER)
-        targetMockUser = MOCK_TEACHER_USER;
+      else if (newRole === UserRole.TEACHER) targetMockUser = MOCK_TEACHER_USER;
 
       console.warn(
         `Locally overriding user to MOCK ${newRole.toUpperCase()} USER for testing. (Bypass_Auth: ${BYPASS_AUTH_FOR_TESTING})`
@@ -538,7 +537,7 @@ async function handleCopyExampleAction(
   exampleKey: string,
   userId: string,
   router: ReturnType<typeof useRouter>, // Use NextRouterInstance for type
-  toast: ({ ...props }: any) => void
+  toast: (props: any) => void
 ) {
   console.log(
     `Handling copyExample action for key: ${exampleKey}, user: ${userId}`

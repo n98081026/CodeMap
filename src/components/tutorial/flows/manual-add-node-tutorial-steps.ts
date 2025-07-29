@@ -1,7 +1,7 @@
 import { Step } from 'react-joyride';
 
 export const getManualAddNodeTutorialSteps = (
-  t: any,
+  t: (key: string) => string,
   dynamicNodeId?: string | null
 ): Step[] => {
   const steps: Step[] = [

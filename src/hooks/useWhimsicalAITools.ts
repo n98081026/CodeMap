@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react';
 
 import type { ConceptMapNode } from '@/types';
-import { NodeType } from '@/types/concept-map';
 
 import {
   animateNodeAppearance,
@@ -79,7 +78,7 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
           const stagedNodes: ConceptMapNode[] = [];
           const existingNodesForPlacement = [...mapData.nodes];
 
-          result.concepts.forEach((conceptItem: any, index) => {
+        result.concepts.forEach((conceptItem, index) => {
             const newNodeId = `whimsical-${Date.now()}-${index}`;
             const position = getNodePlacement(
               existingNodesForPlacement,
@@ -102,7 +101,7 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
               ]
                 .filter(Boolean)
                 .join('\n\n'),
-              type: `ai-${conceptItem.category}` as NodeType,
+              type: `ai-${conceptItem.category}` as ConceptMapNode['type'],
               x: position.x,
               y: position.y,
               width: DEFAULT_NODE_WIDTH,

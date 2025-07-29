@@ -1,6 +1,6 @@
 import { Step } from 'react-joyride';
 
-export const getSuggestRelationsToolTutorialSteps = (t: any): Step[] => [
+export const getSuggestRelationsToolTutorialSteps = (t: (key: string) => string): Step[] => [
   {
     target: '#suggest-relations-button',
     content: t(

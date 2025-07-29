@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 import { getAllUsers } from '@/services/users/userService';
 import { UserRole } from '@/types';
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });

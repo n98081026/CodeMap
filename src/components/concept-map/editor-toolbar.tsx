@@ -275,12 +275,12 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
         <Tooltip>
           <TooltipTrigger asChild>
-    <Button
-      variant='ghost'
-      size='icon'
-      onClick={onNewMap}
-      title='New map'
-    >
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onNewMap}
+              title='New map'
+            >
               <FilePlus className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
@@ -293,13 +293,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onSaveMap}
               disabled={isSaving || isViewOnlyMode || showCopyButton}
-  title={
-    showCopyButton
-      ? 'Log in to save maps'
-      : isViewOnlyMode
-      ? 'Save Map (Disabled in View Mode)'
-      : 'Save Map'
-  }
+              title={
+                showCopyButton
+                  ? 'Log in to save maps'
+                  : isViewOnlyMode
+                    ? 'Save Map (Disabled in View Mode)'
+                    : 'Save Map'
+              }
             >
               {isSaving ? (
                 <Loader2 className='h-5 w-5 animate-spin' />
@@ -323,13 +323,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onTriggerImport}
               disabled={isViewOnlyMode || showCopyButton}
-  title={
-    showCopyButton
-      ? 'Log in to import maps'
-      : isViewOnlyMode
-      ? 'Import Map (Disabled)'
-      : 'Import Map (JSON)'
-  }
+              title={
+                showCopyButton
+                  ? 'Log in to import maps'
+                  : isViewOnlyMode
+                    ? 'Import Map (Disabled)'
+                    : 'Import Map (JSON)'
+              }
             >
               <Upload className='h-5 w-5' />
             </Button>
@@ -344,12 +344,12 @@ export const EditorToolbar = React.memo(function EditorToolbar({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-<Button
-  variant='ghost'
-  size='icon'
-  onClick={onExportMap}
-  title='Export Map (JSON)'
->
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onExportMap}
+              title='Export Map (JSON)'
+            >
               <Download className='h-5 w-5' />
             </Button>
           </TooltipTrigger>
@@ -365,15 +365,15 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onUndo}
               disabled={isViewOnlyMode || !canUndo || showCopyButton}
-  title={
-    showCopyButton
-      ? 'Log in to use undo/redo'
-      : isViewOnlyMode
-      ? 'Undo (Disabled)'
-      : !canUndo
-      ? 'Nothing to Undo'
-      : 'Undo'
-  }
+              title={
+                showCopyButton
+                  ? 'Log in to use undo/redo'
+                  : isViewOnlyMode
+                    ? 'Undo (Disabled)'
+                    : !canUndo
+                      ? 'Nothing to Undo'
+                      : 'Undo'
+              }
             >
               <Undo className='h-5 w-5' />
             </Button>
@@ -395,15 +395,15 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onRedo}
               disabled={isViewOnlyMode || !canRedo || showCopyButton}
-  title={
-    showCopyButton
-      ? 'Log in to use undo/redo'
-      : isViewOnlyMode
-      ? 'Redo (Disabled)'
-      : !canRedo
-      ? 'Nothing to Redo'
-      : 'Redo'
-  }
+              title={
+                showCopyButton
+                  ? 'Log in to use undo/redo'
+                  : isViewOnlyMode
+                    ? 'Redo (Disabled)'
+                    : !canRedo
+                      ? 'Nothing to Redo'
+                      : 'Redo'
+              }
             >
               <Redo className='h-5 w-5' />
             </Button>
@@ -428,13 +428,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onAddNodeToData}
               disabled={isViewOnlyMode || showCopyButton}
-  title={
-    showCopyButton
-      ? 'Log in to add elements'
-      : isViewOnlyMode
-      ? 'Add Node (Disabled)'
-      : 'Add Node'
-  }
+              title={
+                showCopyButton
+                  ? 'Log in to add elements'
+                  : isViewOnlyMode
+                    ? 'Add Node (Disabled)'
+                    : 'Add Node'
+              }
             >
               <PlusSquare className='h-5 w-5' />
             </Button>
@@ -454,15 +454,15 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               size='icon'
               onClick={onAddEdgeToData}
               disabled={isViewOnlyMode || !canAddEdge || showCopyButton}
-  title={
-    showCopyButton
-      ? 'Log in to add elements'
-      : isViewOnlyMode
-      ? 'Add Edge (Disabled)'
-      : !canAddEdge
-      ? 'Add Edge (Requires 2+ nodes)'
-      : 'Add Edge'
-  }
+              title={
+                showCopyButton
+                  ? 'Log in to add elements'
+                  : isViewOnlyMode
+                    ? 'Add Edge (Disabled)'
+                    : !canAddEdge
+                      ? 'Add Edge (Requires 2+ nodes)'
+                      : 'Add Edge'
+              }
             >
               <Spline className='h-5 w-5' />
             </Button>
@@ -712,14 +712,14 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 }
                 setIsLoadingSuggestions(true);
                 try {
-                  const currentMapData = (store as any).getState().mapData;
+                  const currentMapData = store.getState().mapData;
                   const flowInput = {
-                    nodes: currentMapData.nodes.map((n: any) => ({
+                    nodes: currentMapData.nodes.map((n) => ({
                       id: n.id,
                       text: n.text,
                       details: n.details || '',
                     })),
-                    edges: currentMapData.edges.map((e: any) => ({
+                    edges: currentMapData.edges.map((e) => ({
                       source: e.source,
                       target: e.target,
                       label: e.label || '',
@@ -727,10 +727,10 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   };
                   // const results = await runFlow(
                   //   fetchAllStructuralSuggestionsFlow,
-                  //   flowInput as any
+                  //   flowInput
                   // );
                   const results = [] as any;
-                  (store as any).setStructuralSuggestions(results);
+                  store.getState().setStructuralSuggestions(results);
                   toast({
                     title: 'AI Suggestions',
                     description: `Received ${results.length} structural suggestions.`,
@@ -898,7 +898,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               className={cn(
                 isPropertiesPanelOpen && 'bg-accent text-accent-foreground'
               )}
-  title={isPropertiesPanelOpen ? 'Hide Properties' : 'Show Properties'}
+              title={
+                isPropertiesPanelOpen ? 'Hide Properties' : 'Show Properties'
+              }
             >
               <Settings2 className='h-5 w-5' />
             </Button>
@@ -916,7 +918,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               className={cn(
                 isAiPanelOpen && 'bg-accent text-accent-foreground'
               )}
-  title={isAiPanelOpen ? 'Hide AI Suggestions' : 'Show AI Suggestions'}
+              title={
+                isAiPanelOpen ? 'Hide AI Suggestions' : 'Show AI Suggestions'
+              }
             >
               <BotMessageSquare className='h-5 w-5' />
             </Button>

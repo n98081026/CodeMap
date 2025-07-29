@@ -9,7 +9,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import type { ProjectSubmission } from '@/types';
 

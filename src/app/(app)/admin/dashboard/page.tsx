@@ -1,18 +1,10 @@
 'use client';
 
-import {
-  Users,
-  Settings,
-  LayoutDashboard,
-  Loader2,
-  AlertTriangle,
-} from 'lucide-react';
-import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 

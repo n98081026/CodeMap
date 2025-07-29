@@ -77,15 +77,15 @@ vi.doMock('@/lib/example-data', () => ({
 }));
 
 describe.skip('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     // Ensure necessary mocks from next/navigation are setup if tests interact with router/params
     // For this page, useRouter is used.
-    const { __setMockRouter } = require('@/tests/__mocks__/next/navigation');
+    const { __setMockRouter } = await import('@/tests/__mocks__/next/navigation');
     __setMockRouter({ push: vi.fn(), replace: vi.fn() });
   });
 
-  it('should render DashboardHeader and example project cards', () => {
+  it('should render DashboardHeader and example project cards', async () => {
     (useAuth as any).mockReturnValue({
       isGuestSession: false, // Authenticated user
       isAuthenticated: true,

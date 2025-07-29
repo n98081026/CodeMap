@@ -1,6 +1,6 @@
 import { Step } from 'react-joyride';
 
-export const getProjectOverviewTutorialSteps = (t: any): Step[] => [
+export const getProjectOverviewTutorialSteps = (t: (key: string) => string): Step[] => [
   {
     target: '#project-overview-panel',
     content: t('tutorialSteps.projectOverviewTutorial.overviewPanel.content'),

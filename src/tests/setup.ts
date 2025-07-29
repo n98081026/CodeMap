@@ -151,8 +151,9 @@ vi.mock('@genkit-ai/googleai', () => ({
   gemini10Pro: {},
 }));
 
+import { temporal } from 'zundo';
 vi.mock('zundo', () => ({
-  temporal: (fn) => fn,
+  temporal: (fn: any) => fn,
   createVanillaTemporal: () => ({
     getState: () => ({
       pastStates: [],
@@ -164,21 +165,46 @@ vi.mock('zundo', () => ({
   }),
 }));
 
-const storeState = {};
+import { vi } from 'vitest';
 
-vi.mock('zustand', () => ({
-  create: (fn) => {
-    const store = fn((partial) => {
-      const newState = typeof partial === 'function' ? partial(storeState) : partial;
-      Object.assign(storeState, newState);
-    }, () => storeState);
+import { vi } from 'vitest';
 
-    const useStore = () => store;
-    Object.assign(useStore, {
-      getState: () => store,
-      setState: (newState) => Object.assign(storeState, newState),
-    });
+vi.mock('zustand', async () => {
+  const actual = await vi.importActual('zustand');
+  const { temporalStateCreator } = await vi.importActual(
+    '@/stores/concept-map-store'
+  );
 
-    return useStore;
-  },
-}));
+  const mockCreate = (initializer: any) => {
+    // Check if it's the temporal store
+    if (initializer && initializer.toString().includes('temporalStateCreator')) {
+      const vanillaStore = initializer(temporalStateCreator);
+      const useBoundStore = () => vanillaStore;
+      Object.assign(useBoundStore, {
+        getState: () => vanillaStore,
+        setState: (updater: any) => {
+          const newState =
+            typeof updater === 'function' ? updater(vanillaStore) : updater;
+          Object.assign(vanillaStore, newState);
+        },
+        subscribe: vi.fn(),
+        temporal: {
+          pastStates: () => [],
+          futureStates: () => [],
+          undo: vi.fn(),
+          redo: vi.fn(),
+          clear: vi.fn(),
+        },
+      });
+      return useBoundStore;
+    }
+    // For other stores
+    return (actual as any).create(initializer);
+  };
+
+  return {
+    ...(actual as any),
+    create: mockCreate,
+    default: mockCreate,
+  };
+});

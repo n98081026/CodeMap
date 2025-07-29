@@ -9,7 +9,7 @@ import {
   ArrowRight,
 } from 'lucide-react'; // Added ArrowLeft, ArrowRight
 import Link from 'next/link';
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import type { ConceptMap } from '@/types';
 
@@ -21,31 +21,6 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 
 const MAPS_PER_PAGE = 9; // Or 10, as you prefer
-
-// Define the new memoized component for displaying a single student concept map card
-interface StudentConceptMapCardProps {
-  map: ConceptMap;
-  onDelete: (mapId: string, mapName: string) => void;
-}
-
-const StudentConceptMapCard: React.FC<StudentConceptMapCardProps> = React.memo(
-  ({ map, onDelete }) => {
-    return (
-      <Card className='flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300'>
-        <CardHeader>
-          <CardTitle className='text-xl'>{map.name}</CardTitle>
-        </CardHeader>
-        <CardContent className='flex-grow'>
-          <p className='text-sm text-muted-foreground'>
-            Last updated: {new Date(map.updatedAt).toLocaleDateString()}
-          </p>
-          {/* Add more details like node/edge count if available */}
-        </CardContent>
-      </Card>
-    );
-  }
-);
-StudentConceptMapCard.displayName = 'StudentConceptMapCard';
 
 export default function StudentConceptMapsPage() {
   const { user } = useAuth();

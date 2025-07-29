@@ -18,7 +18,6 @@ import { ReactFlowProvider } from 'reactflow';
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import type {
   ConceptMap,
-  ConceptMapData,
   ConceptMapNode,
   ConceptMapEdge,
   User,
@@ -320,9 +319,9 @@ function ConceptMapEditorPageContent({
   if (selectedElementId && selectedElementType) {
     actualSelectedElementForInspector =
       selectedElementType === 'node'
-        ? storeMapData.nodes.find((n: any) => n.id === selectedElementId) ||
+        ? storeMapData.nodes.find((n) => n.id === selectedElementId) ||
           null
-        : storeMapData.edges.find((e: any) => e.id === selectedElementId) ||
+        : storeMapData.edges.find((e) => e.id === selectedElementId) ||
           null;
   }
   const canAddEdge = storeMapData.nodes.length >= 2;
@@ -414,7 +413,7 @@ function ConceptMapEditorPageContent({
   );
 
   const handleSelectedElementPropertyUpdateInspector = useCallback(
-    (updates: any) => {
+    (updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>) => {
       if (storeIsViewOnlyMode || !selectedElementId || !selectedElementType)
         return;
       if (selectedElementType === 'node')
@@ -453,7 +452,7 @@ function ConceptMapEditorPageContent({
       if (storeIsViewOnlyMode) return;
       const parentNode = useConceptMapStore
         .getState()
-        .mapData.nodes.find((n: any) => n.id === parentNodeId);
+        .mapData.nodes.find((n) => n.id === parentNodeId);
       if (!parentNode) return;
 
       const currentNodes = useConceptMapStore.getState().mapData.nodes;
@@ -511,7 +510,7 @@ function ConceptMapEditorPageContent({
       ) {
         event.preventDefault();
         const selectedStoreNode = currentMapData.nodes.find(
-          (n: any) => n.id === currentSelectedElementId
+          (n) => n.id === currentSelectedElementId
         );
         if (!selectedStoreNode) return;
 
@@ -673,7 +672,7 @@ function ConceptMapEditorPageContent({
             onNodesChangeInStore={updateStoreNode}
             onNodesDeleteInStore={deleteStoreNode}
             onEdgesDeleteInStore={handleEdgesDeleteCallback}
-            onConnectInStore={(params: any) =>
+            onConnectInStore={(params) =>
               useConceptMapStore.getState().addEdge(params)
             }
             onNodeContextMenuRequest={handleNodeContextMenu}

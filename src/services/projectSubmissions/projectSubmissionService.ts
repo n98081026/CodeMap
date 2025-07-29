@@ -49,6 +49,7 @@ export async function createSubmission(
       fileStoragePath: fileStoragePath || `mock/path/${originalFileName}`,
       submissionTimestamp: new Date().toISOString(),
       analysisStatus: ProjectSubmissionStatus.PENDING,
+      userGoals: userGoals || null,
     };
     MOCK_SUBMISSIONS_STORE.push(newSubmission);
     return newSubmission;
@@ -69,6 +70,7 @@ export async function createSubmission(
       file_storage_path: fileStoragePath || null,
       submission_timestamp: new Date().toISOString(),
       analysis_status: ProjectSubmissionStatus.PENDING,
+      user_goals: userGoals || null,
     })
     .select()
     .single();
@@ -91,6 +93,7 @@ export async function createSubmission(
     analysisStatus: data.analysis_status as ProjectSubmissionStatus,
     analysisError: data.analysis_error,
     generatedConceptMapId: data.generated_concept_map_id,
+    userGoals: data.user_goals,
   };
 }
 
@@ -127,6 +130,7 @@ export async function getSubmissionById(
     analysisStatus: data.analysis_status as ProjectSubmissionStatus,
     analysisError: data.analysis_error,
     generatedConceptMapId: data.generated_concept_map_id,
+    userGoals: data.user_goals,
   };
 }
 
@@ -212,6 +216,7 @@ export async function getSubmissionsByStudentId(
     analysisStatus: s.analysis_status as ProjectSubmissionStatus,
     analysisError: s.analysis_error,
     generatedConceptMapId: s.generated_concept_map_id,
+    userGoals: s.user_goals,
   }));
 
   return { submissions: mappedSubmissions, totalCount };
@@ -301,6 +306,7 @@ export async function getSubmissionsByClassroomId(
     analysisStatus: s.analysis_status as ProjectSubmissionStatus,
     analysisError: s.analysis_error,
     generatedConceptMapId: s.generated_concept_map_id,
+    userGoals: s.user_goals,
   }));
 
   return { submissions: mappedSubmissions, totalCount };
@@ -335,12 +341,11 @@ export async function updateSubmissionStatus(
     return MOCK_SUBMISSIONS_STORE[index];
   }
 
-  const updates: any = {
-    analysis_status: status,
-    analysis_error: analysisError === undefined ? null : analysisError,
-    generated_concept_map_id:
+  const updates: Partial<ProjectSubmission> = {
+    analysisStatus: status,
+    analysisError: analysisError === undefined ? null : analysisError,
+    generatedConceptMapId:
       generatedConceptMapId === undefined ? null : generatedConceptMapId,
-    updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await supabase
@@ -408,6 +413,7 @@ export async function getAllSubmissions(
     analysisStatus: s.analysis_status as ProjectSubmissionStatus,
     analysisError: s.analysis_error,
     generatedConceptMapId: s.generated_concept_map_id,
+    userGoals: s.user_goals,
   }));
   return { submissions, totalCount: count || 0 };
 }

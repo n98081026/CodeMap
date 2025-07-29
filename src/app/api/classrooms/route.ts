@@ -185,24 +185,20 @@ export async function GET(request: Request) {
     }
 
     // Admin path: Fetch all classrooms with pagination
-    let page = 1;
     if (pageParam) {
       // pageParam and limitParam were already parsed from searchParams earlier
       const parsedPage = parseInt(pageParam, 10);
       // Silently use default if parsing fails or value is invalid, or return 400
       if (!isNaN(parsedPage) && parsedPage > 0) {
-        page = parsedPage;
       } else {
         // Optional: Return 400 for explicitly invalid parameters by admin
         // return NextResponse.json({ message: "Invalid 'page' parameter for admin. Must be a positive integer." }, { status: 400 });
       }
     }
 
-    let limit = 10; // Default limit
     if (limitParam) {
       const parsedLimit = parseInt(limitParam, 10);
       if (!isNaN(parsedLimit) && parsedLimit > 0) {
-        limit = parsedLimit;
       } else {
         // Optional: Return 400
         // return NextResponse.json({ message: "Invalid 'limit' parameter for admin. Must be a positive integer." }, { status: 400 });

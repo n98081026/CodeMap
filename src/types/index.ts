@@ -111,6 +111,7 @@ export interface ProjectSubmission {
   analysisError?: string | null;
   generatedConceptMapId?: string | null;
   generatedConceptMap?: ConceptMap | null;
+  userGoals?: string | null;
 }
 
 export interface EmptyStateProps {

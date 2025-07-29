@@ -1,4 +1,4 @@
-import Graph, { MultiGraph, GraphOptions } from 'graphology';
+import Graph, { MultiGraph } from 'graphology';
 import louvain from 'graphology-communities-louvain';
 import { toDirected, toUndirected } from 'graphology-operators';
 import { bfsFromNode } from 'graphology-traversal';
@@ -16,13 +16,13 @@ export class GraphAdapterUtility implements GraphAdapter {
     options?: {
       type?: 'graph' | 'multi';
       replaceEdges?: boolean;
-    } & Record<string, any>
+    } & Record<string, unknown>
   ): GraphologyInstance {
     const { nodes, edges } = conceptMapData;
     const graph =
       options?.type === 'multi'
-        ? new MultiGraph(options as GraphOptions)
-        : new Graph(options as GraphOptions);
+        ? new MultiGraph(options)
+        : new Graph(options);
 
     nodes.forEach((node) => {
       const { id, ...attributes } = node;
