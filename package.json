@@ -16,7 +16,7 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore",
     "analyze": "cross-env ANALYZE=true next build",
     "depcheck": "depcheck",
-    "test": "node --max-old-space-size=8192 ./node_modules/vitest/vitest.mjs --no-threads",
+    "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test"
   },

@@ -81,40 +81,60 @@ describe('EditorToolbar (/components/concept-map/editor-toolbar.tsx)', () => {
     expect(screen.getByTitle('Add Node')).not.toBeDisabled();
   });
 
-  it('should disable most action buttons when isViewOnlyMode is true', async () => {
-    renderWithAuthProvider(
-      <EditorToolbar {...defaultProps} isViewOnlyMode={true} />
-    );
+  describe('when in view-only mode', () => {
+    beforeEach(() => {
+      renderWithAuthProvider(
+        <EditorToolbar {...defaultProps} isViewOnlyMode={true} />
+      );
+    });
 
-    expect(screen.getByTitle(/Save Map/i)).toBeDisabled();
-    expect(screen.getByTitle(/Add Node/i)).toBeDisabled();
+    it('should disable the save button', () => {
+      expect(screen.getByTitle(/Save Map \(Disabled in View Mode\)/i)).toBeDisabled();
+    });
 
-    // Undo/Redo should also be disabled
-    expect(screen.getByTitle(/Undo/i)).toBeDisabled();
-    expect(screen.getByTitle(/Redo/i)).toBeDisabled();
+    it('should disable the add node button', () => {
+      expect(screen.getByTitle(/Add Node \(Disabled\)/i)).toBeDisabled();
+    });
 
-    // Non-mutating actions like "New Map" and "Export Map" might still be enabled.
-    expect(screen.getByTitle('New map')).not.toBeDisabled();
-    expect(screen.getByTitle('Export Map (JSON)')).not.toBeDisabled();
+    it('should disable the undo button', () => {
+      expect(screen.getByTitle(/Undo \(Disabled\)/i)).toBeDisabled();
+    });
 
-    // Toggle buttons for side panels should still be enabled
-    expect(screen.getByTitle(/Show Properties/i)).not.toBeDisabled();
-    expect(screen.getByTitle(/Show AI Suggestions/i)).not.toBeDisabled();
+    it('should disable the redo button', () => {
+      expect(screen.getByTitle(/Redo \(Disabled\)/i)).toBeDisabled();
+    });
+
+    it('should not disable the new map button', () => {
+      expect(screen.getByTitle('New map')).not.toBeDisabled();
+    });
+
+    it('should not disable the export map button', () => {
+      expect(screen.getByTitle('Export Map (JSON)')).not.toBeDisabled();
+    });
+
+    it('should not disable the show properties button', () => {
+      expect(screen.getByTitle(/Show Properties/i)).not.toBeDisabled();
+    });
+
+    it('should not disable the show AI suggestions button', () => {
+      expect(screen.getByTitle(/Show AI Suggestions/i)).not.toBeDisabled();
+    });
   });
 
   it('Undo and Redo buttons should be disabled based on canUndo/canRedo props', async () => {
     const { rerender } = renderWithAuthProvider(
       <EditorToolbar {...defaultProps} canUndo={false} canRedo={false} />
     );
-    expect(screen.getByTitle(/Undo/i)).toBeDisabled();
-    expect(screen.getByTitle(/Redo/i)).toBeDisabled();
+    expect(screen.getByTitle(/Undo \(Disabled\)/i)).toBeDisabled();
+    expect(screen.getByTitle(/Redo \(Disabled\)/i)).toBeDisabled();
 
     rerender(
       <AuthProvider>
         <EditorToolbar {...defaultProps} canUndo={true} canRedo={true} />
       </AuthProvider>
     );
-    expect(screen.getByTitle(/Undo/i)).not.toBeDisabled();
-    expect(screen.getByTitle(/Redo/i)).not.toBeDisabled();
+    // When enabled, the title should not have the "(Disabled)" suffix.
+    expect(screen.getByTitle(/^Undo$/i)).not.toBeDisabled();
+    expect(screen.getByTitle(/^Redo$/i)).not.toBeDisabled();
   });
 });
