@@ -5,7 +5,7 @@ import { useConceptMapAITools } from '../useConceptMapAITools';
 
 import * as aiFlows from '@/ai/flows';
 import { useToast } from '@/hooks/use-toast';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 // Mock dependencies
 vi.mock('@/ai/flows', async () => {

@@ -22,7 +22,7 @@ import type {
 import { runFlow } from '@/ai/flows';
 import { getNodePlacement } from '@/lib/dagreLayoutUtility';
 import { generateUniqueId } from '@/lib/utils';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 import { StagedMapDataWithContext } from '@/stores/concept-map-store';
 
 type AICommand =

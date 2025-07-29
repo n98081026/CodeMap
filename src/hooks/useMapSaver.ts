@@ -6,7 +6,7 @@ import type { ConceptMap, User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER } from '@/lib/config';
 import * as mapService from '@/services/conceptMaps/conceptMapService';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 interface UseMapSaverProps {
   user: User | null;

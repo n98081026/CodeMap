@@ -25,7 +25,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 // import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added
-import useConceptMapStore from '@/stores/concept-map-store'; // Added to get isViewOnlyMode if needed
+import { useConceptMapStore } from '@/stores/concept-map-store'; // Added to get isViewOnlyMode if needed
 
 interface SelectedNodeToolbarProps {
   numMultiSelectedNodes: number;

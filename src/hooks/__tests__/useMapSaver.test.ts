@@ -6,7 +6,7 @@ import { useMapSaver } from '../useMapSaver';
 
 import { useToast } from '@/hooks/use-toast';
 import * as mapService from '@/services/conceptMaps/conceptMapService';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 import { User, UserRole } from '@/types';
 
 import * as useToastModule from '@/hooks/use-toast';

@@ -9,7 +9,7 @@ import {
   MOCK_STUDENT_USER,
   MOCK_USER_FOR_TESTING_MAPS,
 } from '@/lib/config';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 interface UseMapLoaderProps {
   routeMapId?: string;

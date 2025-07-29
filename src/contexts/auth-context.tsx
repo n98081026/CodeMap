@@ -532,7 +532,7 @@ export const useAuth = () => {
 };
 
 // Helper function (can be moved to a service or utility file if it grows)
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 async function handleCopyExampleAction(
   exampleKey: string,

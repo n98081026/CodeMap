@@ -26,7 +26,7 @@ import { getSuggestRelationsToolTutorialSteps } from './flows/suggest-relations-
 import type { LucideIcon } from 'lucide-react';
 
 import { useAuth } from '@/contexts/auth-context';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 import useTutorialStore from '@/stores/tutorial-store';
 
 // TutorialMetaData remains the same
