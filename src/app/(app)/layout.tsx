@@ -17,7 +17,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // const [runDashboardTutorial, setRunDashboardTutorial] = useState(false); // Remove local state for this
   const { startOrResumeTutorial, activeTutorialKey } = useTutorialStore(
     useCallback(
-      (s: any) => ({
+      (s) => ({
         startOrResumeTutorial: s.startOrResumeTutorial,
         activeTutorialKey: s.activeTutorialKey,
       }),

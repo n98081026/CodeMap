@@ -57,15 +57,15 @@ export class DagreLayoutUtility {
       dagreGraph.setNode(node.id, {
         width: node.width || defaultWidth,
         height: node.height || defaultHeight,
-        label: (node as any).text || node.id, // Dagre uses label for debug/display, not strictly for layout
+        label: (node as { text?: string }).text || node.id, // Dagre uses label for debug/display, not strictly for layout
       });
     });
 
     edges.forEach((edge) => {
       if (dagreGraph.hasNode(edge.source) && dagreGraph.hasNode(edge.target)) {
         dagreGraph.setEdge(edge.source, edge.target, {
-          minlen: (edge as any).minlen, // example of an edge option from options
-          weight: (edge as any).weight, // example
+          minlen: (edge as { minlen?: number }).minlen, // example of an edge option from options
+          weight: (edge as { weight?: number }).weight, // example
           // label: edge.label, // If you want edge labels to affect layout (rarely used in basic dagre)
         });
       } else {
@@ -77,7 +77,7 @@ export class DagreLayoutUtility {
 
     dagre.layout(dagreGraph);
 
-    const layoutNodes: any[] = [];
+    const layoutNodes: Array<{ id: string; x: number; y: number }> = [];
     dagreGraph.nodes().forEach((nodeId) => {
       const dagreNode = dagreGraph.node(nodeId);
       if (dagreNode) {

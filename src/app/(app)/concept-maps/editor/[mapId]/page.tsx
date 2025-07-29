@@ -1,19 +1,7 @@
 'use client';
 
-import {
-  ArrowLeft,
-  Compass,
-  Share2,
-  Loader2,
-  EyeOff,
-  HelpCircle,
-  Save,
-  Info,
-  UserPlus,
-  LogIn,
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { ReactFlowProvider, useReactFlow } from 'reactflow';
@@ -41,13 +29,14 @@ import GhostPreviewToolbar from '@/components/concept-map/GhostPreviewToolbar';
 import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import ProjectOverviewDisplay from '@/components/concept-map/project-overview-display'; // Import the new component
 import { PropertiesInspector } from '@/components/concept-map/properties-inspector';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { Alert } from '@/components/ui/alert'; // For CTA
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { EditorHeader } from '@/components/concept-map/editor/EditorHeader';
+import { EditorSidePanels } from '@/components/concept-map/editor/EditorSidePanels';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
+import { useEditorState } from '@/hooks/useEditorState';
+import { useEditorActions } from '@/hooks/useEditorActions';
+import { useEditorAIActions } from '@/hooks/useEditorAIActions';
 import {
   useConceptMapStore,
   type ConceptMapState,
@@ -70,56 +59,8 @@ const FlowCanvasCore = dynamic(
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;
 
-// CTA Banner for Guest viewing an example
-const EditorGuestCtaBanner: React.FC<{ routeMapId: string }> = ({
-  routeMapId,
-}) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const storeIsViewOnlyMode = useConceptMapStore(
-    (state) => state.isViewOnlyMode
-  );
-
-  const isActuallyGuest = !isLoading && !isAuthenticated;
-  const isExampleMap = routeMapId && routeMapId.startsWith('example-');
-
-  if (!isActuallyGuest || !storeIsViewOnlyMode || !isExampleMap) {
-    return null;
-  }
-
-  return (
-    <Alert className='mx-4 my-2 border-primary/50 bg-primary/5 text-primary-foreground text-sm rounded-md'>
-      <Info className='h-4 w-4 !text-primary mr-2' />
-      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
-        <span className='text-primary/90'>
-          You&apos;re viewing an example. To create maps, save your work, or use
-          AI tools, please
-        </span>
-        <div className='mt-2 sm:mt-0 sm:ml-4 flex gap-2 flex-shrink-0'>
-          <Button
-            asChild
-            size='sm'
-            variant='outline'
-            className='py-1 px-2 h-auto text-xs'
-          >
-            <Link href='/register'>
-              <UserPlus className='mr-1 h-3 w-3' /> Sign Up
-            </Link>
-          </Button>
-          <Button
-            asChild
-            size='sm'
-            variant='outline'
-            className='py-1 px-2 h-auto text-xs'
-          >
-            <Link href='/login'>
-              <LogIn className='mr-1 h-3 w-3' /> Log In
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </Alert>
-  );
-};
+// Import the extracted component
+import { EditorGuestCtaBanner } from '@/components/concept-map/editor/EditorGuestCtaBanner';
 
 export default function ConceptMapEditorPage() {
   const paramsHook = useParams();
@@ -129,16 +70,20 @@ export default function ConceptMapEditorPage() {
   const router = useRouter();
   const { startOrResumeTutorial } = useTutorialStore(
     useCallback(
-      (s: any) => ({
+      (s) => ({
         startOrResumeTutorial: s.startOrResumeTutorial,
       }),
       []
     )
   );
-  // const [runEditorTutorial, setRunEditorTutorial] = useState(false); // Removed local state
 
   const routeMapId = paramsHook.mapId as string;
   const isViewOnlyModeQueryParam = searchParams.get('viewOnly') === 'true';
+
+  // Use custom hooks for state management
+  const editorState = useEditorState();
+  const editorActions = useEditorActions(routeMapId);
+  const aiActions = useEditorAIActions();
 
   const {
     mapId: storeMapId,
@@ -173,11 +118,9 @@ export default function ConceptMapEditorPage() {
     isOverviewModeActive,
     projectOverviewData,
     isFetchingOverview,
-    toggleOverviewMode,
-    fetchProjectOverview,
-  } = useConceptMapStore(
-    useCallback(
-      (s: ConceptMapState) => ({
+    setIsViewOnlyMode: setStoreIsViewOnlyMode,
+    addDebugLog,
+  } = useConceptMapStore();
         mapId: s.mapId,
         mapName: s.mapName,
         currentMapOwnerId: s.currentMapOwnerId,
@@ -226,8 +169,7 @@ export default function ConceptMapEditorPage() {
 
   const reactFlowInstance = useReactFlow(); // Moved here to be available for handleAutoLayout
 
-  const [activeVisualEdgeSuggestion, setActiveVisualEdgeSuggestion] =
-    useState<VisualEdgeSuggestion | null>(null);
+  // Remove local state that's now handled by hooks
 
   useEffect(() => {
     addDebugLog(

@@ -15,10 +15,16 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom', // For testing components that interact with DOM APIs
     setupFiles: ['./src/tests/setup.ts'],
-      // Add --no-threads or equivalent to Vitest config to potentially reduce memory pressure
-      // Vitest uses Tinypool which runs tests in worker threads. Disabling this might help with OOM.
-      // The CLI option is --no-threads. In config, it's `threads: false` or specific pool options.
-      // Also, setting minThreads and maxThreads to 1 can achieve a similar effect.
+    // Reduce memory pressure by disabling worker threads
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
+    // Set memory limits
+    testTimeout: 30000,
+    hookTimeout: 30000,
     include: [
       'src/**/*.test.{ts,tsx}',
       'src/**/__tests__/**/*.{ts,tsx}',

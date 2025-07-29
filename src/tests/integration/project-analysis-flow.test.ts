@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { MockSupabaseClient, MockSupabaseQueryBuilder } from '@/types/test-mocks';
 
 import {
   createSubmission,
@@ -79,7 +80,7 @@ describe('Project Analysis Integration Tests', () => {
       });
 
       if (!BYPASS_AUTH_FOR_TESTING) {
-        (supabase.from as any).mockReturnValue({
+        (supabase.from as MockSupabaseQueryBuilder).mockReturnValue({
           insert: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
               single: mockInsert,
@@ -99,8 +100,8 @@ describe('Project Analysis Integration Tests', () => {
 
       expect(result).toEqual({
         ...mockSubmission,
-        id: expect.any(String),
-        submissionTimestamp: expect.any(String),
+        id: expect.any(String) as string,
+        submissionTimestamp: expect.any(String) as string,
       });
       if (!BYPASS_AUTH_FOR_TESTING) {
         expect(mockInsert).toHaveBeenCalled();
@@ -200,7 +201,7 @@ describe('Project Analysis Integration Tests', () => {
         error: null,
       });
 
-      (supabase.from as any).mockReturnValue({
+      (supabase.from as MockSupabaseQueryBuilder).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
@@ -240,7 +241,7 @@ describe('Project Analysis Integration Tests', () => {
         error: null,
       });
 
-      (supabase.storage.from as any).mockReturnValue({
+      (supabase.storage.from as jest.MockedFunction<any>).mockReturnValue({
         upload: mockUpload,
         getPublicUrl: vi.fn(() => ({
           data: { publicUrl: 'https://example.com/test-project.zip' },
@@ -271,7 +272,7 @@ describe('Project Analysis Integration Tests', () => {
         error: { message: 'Storage quota exceeded' },
       });
 
-      (supabase.storage.from as any).mockReturnValue({
+      (supabase.storage.from as jest.MockedFunction<any>).mockReturnValue({
         upload: mockUpload,
       });
 

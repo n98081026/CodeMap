@@ -175,13 +175,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const store = useConceptMapStore();
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
-  const currentMapId = useConceptMapStore((s: any) => s.mapId);
+  const currentMapId = useConceptMapStore((s) => s.mapId);
   const isFetchingOverview = useConceptMapStore(
-    (s: any) => s.isFetchingOverview
+    (s) => s.isFetchingOverview
   );
   const { startOrResumeTutorial } = useTutorialStore(
     useCallback(
-      (s: any) => ({ startOrResumeTutorial: s.startOrResumeTutorial }),
+      (s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }),
       []
     )
   );
@@ -222,7 +222,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const isSummarizeNodesDisabled = isViewOnlyMode || numMultiSelectedNodes < 2;
 
   const numMultiSelectedNodeIds = useConceptMapStore(
-    (s: any) => s.multiSelectedNodeIds
+    (s) => s.multiSelectedNodeIds
   ).length;
 
   const handleCopyToWorkspace = () => {
@@ -729,7 +729,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   //   fetchAllStructuralSuggestionsFlow,
                   //   flowInput
                   // );
-                  const results = [] as any;
+                  const results: Array<{ id: string; type: string; data: any; reason: string }> = [];
                   store.getState().setStructuralSuggestions(results);
                   toast({
                     title: 'AI Suggestions',
@@ -745,7 +745,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                     description: 'Failed to fetch AI structural suggestions.',
                     variant: 'destructive',
                   });
-                  (store as any).clearStructuralSuggestions();
+                  store.clearStructuralSuggestions();
                 } finally {
                   setIsLoadingSuggestions(false);
                 }

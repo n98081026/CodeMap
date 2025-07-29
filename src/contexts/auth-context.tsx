@@ -537,7 +537,7 @@ async function handleCopyExampleAction(
   exampleKey: string,
   userId: string,
   router: ReturnType<typeof useRouter>, // Use NextRouterInstance for type
-  toast: (props: any) => void
+  toast: (props: { title?: string; description?: string; variant?: 'default' | 'destructive' }) => void
 ) {
   console.log(
     `Handling copyExample action for key: ${exampleKey}, user: ${userId}`

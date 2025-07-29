@@ -397,7 +397,10 @@ type TrackedState = Pick<
 >;
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
-const storeDefinition = (set: any, get: any): ConceptMapState => ({
+const storeDefinition = (
+  set: (partial: ConceptMapState | Partial<ConceptMapState> | ((state: ConceptMapState) => ConceptMapState | Partial<ConceptMapState>), replace?: boolean | undefined) => void,
+  get: () => ConceptMapState
+): ConceptMapState => ({
   ...initialStateBase,
   // Ensure all functions from ConceptMapState (that are actions) are implemented
   // For properties that were removed from ConceptMapState, ensure their setters are also removed or handled
@@ -1251,4 +1254,12 @@ export const useConceptMapStore = create<ConceptMapState>()(
     limit: 50,
   })
 );
-export const vanillaStore = (useConceptMapStore as any).temporal;
+export const vanillaStore = (useConceptMapStore as any).temporal as {
+  getState: () => {
+    pastStates: ConceptMapState[];
+    futureStates: ConceptMapState[];
+    clear: () => void;
+    undo: () => void;
+    redo: () => void;
+  };
+};

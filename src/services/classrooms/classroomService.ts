@@ -518,7 +518,7 @@ export async function updateClassroom(
   const classroomToUpdate = await getClassroomById(classroomId);
   if (!classroomToUpdate) return null;
 
-  const supabaseUpdates: any = {};
+  const supabaseUpdates: Record<string, any> = {};
   if (updates.name !== undefined) supabaseUpdates.name = updates.name;
   if (updates.description !== undefined)
     supabaseUpdates.description =

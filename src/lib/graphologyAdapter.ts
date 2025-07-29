@@ -230,7 +230,7 @@ export class GraphAdapterUtility implements GraphAdapter {
 
   detectCommunities(
     graphInstance: GraphologyInstance,
-    options?: any
+    options?: { communityAttribute?: string }
   ): Record<string, number> {
     if (!graphInstance || graphInstance.order === 0) {
       return {};

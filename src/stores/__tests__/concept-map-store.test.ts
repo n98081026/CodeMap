@@ -1,5 +1,5 @@
-// import { act } from '@testing-library/react';
-// import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { act } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 // import { type TemporalState as ZundoTemporalState } from 'zundo'; // Correct import for TemporalState
 
 // // No mock for zustand here. It's now in setup.ts
@@ -724,7 +724,7 @@
 //       reason: 'Reason 1',
 //     };
 //     it('addStructuralSuggestion: should add a suggestion', () => {
-//       useConceptMapStore.getState().addStructuralSuggestion(suggestion1 as any);
+//       useConceptMapStore.getState().addStructuralSuggestion(suggestion1);
 //       expect(
 //         useConceptMapStore.getState().structuralSuggestions
 //       ).toContainEqual(suggestion1);
