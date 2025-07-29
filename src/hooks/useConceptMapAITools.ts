@@ -15,7 +15,7 @@ import type {
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 import type { RFNode, CustomNodeData } from '@/types/rf-flow';
 
-import { runFlow } from '@/ai/flows/run-flow';
+import { runFlow } from '@/ai/flows';
 import { getNodePlacement } from '@/lib/layout-utils';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 import { StagedMapDataWithContext } from '@/stores/concept-map-store';
@@ -128,7 +128,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         const newNodes: Partial<ConceptMapNode>[] = result.concepts.map((concept, index) => {
           const { x, y } = getNodePlacement(
             mapData.nodes,
-            'grid',
+            'generic',
             null,
             null,
             20,
@@ -173,7 +173,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
             mapData.nodes.some((n) => n.id === relation.targetNodeId)
         )
         .map((relation) => ({
-          id: generateUniqueId('relation'),
+          id: undefined,
           source: relation.sourceNodeId,
           target: relation.targetNodeId,
           label: relation.label,
@@ -219,7 +219,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         const newNodes: Partial<ConceptMapNode>[] = result.newConcepts.map((concept, index) => {
           const { x, y } = getNodePlacement(
             mapData.nodes,
-            'radial',
+            'child',
             parentNode,
             null,
             150,
@@ -227,7 +227,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
             result.newConcepts.length
           );
           return {
-            id: generateUniqueId('expanded'),
+            id: undefined,
             text: concept.text,
             details: concept.reason,
             type: 'ai-expanded',

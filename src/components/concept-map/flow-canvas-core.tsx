@@ -28,7 +28,7 @@ import OrthogonalEdge, {
   type OrthogonalEdgeData,
   getMarkerDefinition,
 } from './orthogonal-edge';
-import SuggestedEdge, { SuggestedEdgeProps } from './SuggestedEdge';
+import SuggestedEdge, { SuggestedEdgeProps } from './suggested-edge';
 import SuggestedGroupOverlayNode from './SuggestedGroupOverlayNode';
 import SuggestedIntermediateNode from './SuggestedIntermediateNode';
 
@@ -46,7 +46,7 @@ import type { SnapResult, RFLayoutNode } from '@/types/graph-adapter'; // Import
 import { calculateSnappedPositionAndLines } from '@/lib/layout-utils'; // Import moved function
 import { cn } from '@/lib/utils';
 import { useConceptMapStore } from '@/stores/concept-map-store';
-import { StructuralSuggestion } from '@/types/ai-suggestions';
+import { StructuralSuggestionItemSchema } from '@/types/ai-suggestions';
 
 interface ExtractedConceptItem {
   concept: string;
@@ -481,8 +481,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       const layoutNodesToSnapAgainst: RFLayoutNode[] = allNodes.map(
         (n: RFNode<CustomNodeData>) => ({
           id: n.id,
-          position: n.position,
-          data: n.data,
+          position: { x: n.position.x, y: n.position.y },
+          data: { ...n.data, id: n.id },
           width: n.width || 0,
           height: n.height || 0,
         })
@@ -703,8 +703,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
           .filter((n) => n.width && n.height && n.positionAbsolute)
           .map((n: RFNode<CustomNodeData>) => ({
             id: n.id,
-            position: n.position,
-            data: n.data,
+            position: { x: n.position.x, y: n.position.y },
+            data: { ...n.data, id: n.id },
             width: n.width || 0,
             height: n.height || 0,
           }));
@@ -820,8 +820,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       baseNodes = [...baseNodes, ...ghostNodesToAdd];
     }
 
-    const suggestionNodes = (structuralSuggestions || []).flatMap(
-      (suggestion: StructuralSuggestion) => {
+    const suggestionNodes: any[] = (structuralSuggestions || []).flatMap(
+      (suggestion: any) => {
         if (suggestion.type === 'NEW_INTERMEDIATE_NODE') {
           const { sourceNodeId, targetNodeId } = suggestion.data;
           const sourceNode = currentMapNodesForSuggestions.find(
@@ -873,9 +873,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     );
     baseNodes = [...baseNodes, ...suggestionNodes];
 
-    const groupOverlayNodes = (structuralSuggestions || [])
-      .filter((s: StructuralSuggestion) => s.type === 'FORM_GROUP')
-      .map((suggestion: StructuralSuggestion) => {
+    const groupOverlayNodes: any[] = (structuralSuggestions || [])
+      .filter((s: any) => s.type === 'FORM_GROUP')
+      .map((suggestion: any) => {
         const { nodeIds, groupLabel } = suggestion.data;
         const groupNodes = currentMapNodesForSuggestions.filter(
           (n) =>
@@ -972,9 +972,9 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       ...rfEdges,
       ...rfStagedEdges,
     ];
-    const newSuggestionEdges = (structuralSuggestions || [])
-      .filter((suggestion: StructuralSuggestion) => suggestion.type === 'ADD_EDGE')
-      .map((suggestion: StructuralSuggestion) => {
+    const newSuggestionEdges: any[] = (structuralSuggestions || [])
+      .filter((suggestion: any) => suggestion.type === 'ADD_EDGE')
+      .map((suggestion: any) => {
         const edgeData = suggestion.data;
         return {
           id: `suggestion-${suggestion.id}`,
@@ -1066,7 +1066,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         onEdgesChange={handleRfEdgesChange}
         onNodesDelete={handleRfNodesDeleted}
         onEdgesDelete={handleRfEdgesDeleted}
-        onSelectionChange={handleRfSelectionChange as (params: NodeSelectionChange) => void}
+        onSelectionChange={handleRfSelectionChange as any}
         onConnect={handleRfConnect}
         isViewOnlyMode={isViewOnlyMode}
         onNodeContextMenu={(event, node) => {
@@ -1082,8 +1082,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         onDragOver={handleCanvasDragOver}
         onDrop={handleCanvasDrop}
         onDragLeave={handleCanvasDragLeave}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes as any}
         activeSnapLines={activeSnapLinesLocal}
         panActivationKeyCode={panActivationKeyCode}
         activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}

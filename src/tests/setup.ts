@@ -164,10 +164,6 @@ vi.mock('zundo', () => ({
   }),
 }));
 
-import { vi } from 'vitest';
-
-import { vi } from 'vitest';
-
 const storeState = {};
 
 vi.mock('zustand', () => ({

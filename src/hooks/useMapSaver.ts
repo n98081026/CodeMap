@@ -103,7 +103,6 @@ export function useMapSaver({ user }: UseMapSaverProps) {
         const currentViewOnlyModeInStore =
           useConceptMapStore.getState().isViewOnlyMode;
         setLoadedMap(savedMapData, currentViewOnlyModeInStore);
-        useConceptMapStore.temporal.getState().clear();
         toast({
           title: 'Map Saved',
           description: `"${savedMapData.name}" has been saved successfully.`,

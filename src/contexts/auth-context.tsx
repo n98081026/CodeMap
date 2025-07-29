@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               exampleKey,
               profile.id,
               router,
-              toast.toast,
+              toast,
             );
           }
         } else if (!isRegistering) {

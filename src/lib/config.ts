@@ -11,9 +11,8 @@ import type {
   ConceptMap,
   ProjectSubmission,
 } from '@/types';
-import { NodeType } from '@/types';
-
 import { UserRole, ProjectSubmissionStatus } from '@/types';
+import { NodeType } from '@/types/concept-map';
 
 export const MOCK_STUDENT_USER: User = {
   id: 'student-mock-v3-s001',

@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react';
 
-import type { ConceptMapNode, NodeType } from '@/types';
+import type { ConceptMapNode } from '@/types';
+import { NodeType } from '@/types/concept-map';
 
 import {
   animateNodeAppearance,

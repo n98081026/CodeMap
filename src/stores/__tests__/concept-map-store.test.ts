@@ -19,7 +19,7 @@ import type {
   ConceptMapEdge,
   ConceptMapData,
 } from '@/types';
-import { NodeType } from '@/types';
+import { NodeType } from '@/types/concept-map';
 
 // Mocking uuid
 vi.mock('uuid', () => ({

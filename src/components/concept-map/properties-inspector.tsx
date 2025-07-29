@@ -800,7 +800,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             )
               return;
             onSelectedElementPropertyUpdate({
-              type: e.target.value,
+              type: e.target.value as any,
             });
           }}
           disabled={isViewOnlyMode}

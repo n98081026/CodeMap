@@ -450,10 +450,10 @@ export default function AdminUsersPage() {
 
       {editingUser && (
         <EditUserDialog
-          isOpen={isEditModalOpen}
+          open={isEditModalOpen}
           onOpenChange={setIsEditModalOpen}
-          userToEdit={editingUser}
-          onUserUpdateSuccess={handleUserUpdateSuccess}
+          user={editingUser}
+          onUserUpdated={handleUserUpdateSuccess}
         />
       )}
     </div>

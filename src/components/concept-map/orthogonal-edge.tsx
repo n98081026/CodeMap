@@ -274,8 +274,8 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> =
         <BaseEdge
           id={id}
           path={edgePath}
-          markerStart={actualMarkerStart}
-          markerEnd={actualMarkerEnd}
+          markerStart={markerStart}
+          markerEnd={markerEnd}
           style={{
             ...style,
             stroke: edgeColor,

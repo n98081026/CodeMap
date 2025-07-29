@@ -48,7 +48,6 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
       if (idToLoad === 'new') {
         if (effectiveUserForLoadHookId) {
           initializeNewMap(effectiveUserForLoadHookId);
-          (useConceptMapStore as any).temporal.getState().clear();
         }
         return;
       }
@@ -111,7 +110,6 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
 
           if (mockMapToLoad) {
             setLoadedMap(mockMapToLoad, targetViewOnlyMode);
-            useConceptMapStore.temporal.getState().clear();
           } else {
             const reason =
               MOCK_USER_FOR_TESTING_MAPS &&
@@ -237,7 +235,6 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
           }. targetViewOnlyMode: ${targetViewOnlyMode}`
         );
         setLoadedMap(data, targetViewOnlyMode);
-        useConceptMapStore.temporal.getState().clear();
       } catch (err) {
         const errorMsg = (err as Error).message;
         addDebugLog(
@@ -474,7 +471,6 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
           `[DataManager useEffect V13] Action: Initializing NEW map for user '${effectiveUserId}'.`
         );
         initializeNewMap(effectiveUserId);
-        useConceptMapStore.temporal.getState().clear();
       } else {
         addDebugLog(
           `[DataManager useEffect V13] Info: Store already correct for new map by user '${effectiveUserId}'.`

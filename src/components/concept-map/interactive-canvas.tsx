@@ -62,7 +62,7 @@ interface InteractiveCanvasProps {
   onEdgesChange: OnEdgesChange;
   onNodesDelete?: OnNodesDelete;
   onEdgesDelete?: OnEdgesDelete;
-  onSelectionChange?: (params: NodeSelectionChange) => void;
+  onSelectionChange?: ReactFlowProps['onSelectionChange'];
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
   onNodeContextMenu?: (

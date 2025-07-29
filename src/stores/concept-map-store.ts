@@ -4,7 +4,7 @@ import {
   type TemporalState as ZundoTemporalState,
 } from 'zundo';
 import { create } from 'zustand';
-import { createVanillaTemporal } from 'zundo';
+import { createVanillaTemporal } from 'zundo/vanilla';
 
 import type {
   ConceptMap,
@@ -12,7 +12,7 @@ import type {
   ConceptMapNode,
   ConceptMapEdge,
 } from '@/types';
-import { NodeType } from '@/types';
+import { NodeType } from '@/types/concept-map';
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
 
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
@@ -439,9 +439,9 @@ const store = temporal(
       }),
     cancelConnection: () => set({ connectingNodeId: null }),
     finishConnectionAttempt: (targetNodeId) => {
-      const sourceNodeId = get().connectingNodeId;
+      const sourceNodeId = (get() as any).connectingNodeId;
       if (sourceNodeId && targetNodeId) {
-        get().addEdge({
+        (get() as any).addEdge({
           source: sourceNodeId,
           target: targetNodeId,
           label: 'connects',
@@ -482,7 +482,7 @@ const store = temporal(
       })),
     clearDebugLogs: () => set({ debugLogs: [] }),
     initializeNewMap: (userId: string) => {
-      get().addDebugLog(`[STORE initializeNewMap] User: ${userId}.`);
+      (get() as any).addDebugLog(`[STORE initializeNewMap] User: ${userId}.`);
       const newMapState = {
         ...initialStateBase,
         mapId: 'new',
@@ -494,7 +494,7 @@ const store = temporal(
         isViewOnlyMode: false,
         isLoading: false,
         initialLoadComplete: true,
-        debugLogs: get().debugLogs,
+        debugLogs: (get() as any).debugLogs,
         aiExtractedConcepts: [],
         aiSuggestedRelations: [],
         stagedMapData: null,
@@ -514,7 +514,7 @@ const store = temporal(
       }
     },
     setLoadedMap: (map, viewOnly = false) => {
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE setLoadedMap] Map ID: ${map.id}, ViewOnly: ${viewOnly}`
       );
       set({
@@ -531,7 +531,7 @@ const store = temporal(
         isLoading: false,
         initialLoadComplete: true,
         error: null,
-        debugLogs: get().debugLogs,
+        debugLogs: (get() as any).debugLogs,
         focusViewOnNodeIds: null,
         triggerFocusView: false,
       });
@@ -543,7 +543,7 @@ const store = temporal(
       const newName = fileName
         ? fileName.replace(/\.json$/i, '')
         : `Imported Map`;
-      get().addDebugLog(`[STORE importMapData] New Name: ${newName}`);
+      (get() as any).addDebugLog(`[STORE importMapData] New Name: ${newName}`);
       set((state) => ({
         ...initialStateBase,
         mapData: importedData,
@@ -555,7 +555,7 @@ const store = temporal(
         isLoading: false,
         initialLoadComplete: true,
         error: null,
-        debugLogs: get().debugLogs,
+        debugLogs: (get() as any).debugLogs,
         focusViewOnNodeIds: null,
         triggerFocusView: false,
       }));
@@ -598,8 +598,8 @@ const store = temporal(
         return { mapData: { ...state.mapData, nodes: newNodes } };
       });
       // After node is added, set it as the temporary target for tutorials
-      get().setTutorialTempTargetNodeId(newNodeId);
-      get().addDebugLog(
+      (get() as any).setTutorialTempTargetNodeId(newNodeId);
+      (get() as any).addDebugLog(
         `[STORE addNode] Node ${newNodeId} added and set as tutorial target.`
       );
       return newNodeId;
@@ -614,7 +614,7 @@ const store = temporal(
         },
       })),
     deleteNode: (nodeIdToDelete) => {
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE deleteNode GraphAdapter] Attempting to delete node: ${nodeIdToDelete} and its descendants.`
       );
       set((state) => {
@@ -688,8 +688,8 @@ const store = temporal(
           edges: [...state.mapData.edges, newEdge],
         },
       }));
-      get().setTutorialTempTargetEdgeId(newEdgeId); // Set temp target for tutorial
-      get().addDebugLog(
+      (get() as any).setTutorialTempTargetEdgeId(newEdgeId); // Set temp target for tutorial
+      (get() as any).addDebugLog(
         `[STORE addEdge] Edge ${newEdgeId} added and set as tutorial target.`
       );
       return newEdgeId;
@@ -725,7 +725,7 @@ const store = temporal(
     clearStagedMapData: () =>
       set({ stagedMapData: null, isStagingActive: false }),
     commitStagedMapData: () => {
-      const stagedData = get().stagedMapData;
+      const stagedData = (get() as any).stagedMapData;
       if (!stagedData) return;
       set((state) => {
         let finalNodes = [...state.mapData.nodes];
@@ -737,7 +737,7 @@ const store = temporal(
           finalEdges = finalEdges.filter(
             (edge) => edge.id !== stagedData.originalElementId
           );
-          get().addDebugLog(
+          (get() as any).addDebugLog(
             `[STORE commitStagedMapData] Original edge ${stagedData.originalElementId} deleted for intermediateNode action.`
           );
           stagedData.nodes.forEach((n) =>
@@ -767,7 +767,7 @@ const store = temporal(
             });
           });
         } else if (stagedData.actionType === 'aiTidyUpComplete') {
-          get().addDebugLog(
+          (get() as any).addDebugLog(
             `[STORE commitStagedMapData] Processing aiTidyUpComplete.`
           );
           const stagedParentNodeInfo = stagedData.nodes.find((n) =>
@@ -875,7 +875,7 @@ const store = temporal(
           isStagingActive: false,
         };
       });
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE commitStagedMapData] Committed staged data. Action: ${
           stagedData.actionType || 'none'
         }`
@@ -982,9 +982,9 @@ const store = temporal(
         multiSelectedNodeIds: [],
       }),
     completeConnectionMode: (targetNodeId?: string) => {
-      const sourceNodeId = get().connectionSourceNodeId;
+      const sourceNodeId = (get() as any).connectionSourceNodeId;
       if (sourceNodeId && targetNodeId) {
-        get().addEdge({
+        (get() as any).addEdge({
           source: sourceNodeId,
           target: targetNodeId,
           label: 'connects',
@@ -1028,7 +1028,7 @@ const store = temporal(
     setIsFetchingOverview: (fetching) =>
       set({ isFetchingOverview: fetching }),
     fetchProjectOverview: async () => {
-      if (get().isFetchingOverview) return;
+      if ((get() as any).isFetchingOverview) return;
       set({
         isFetchingOverview: true,
         projectOverviewData: null,
@@ -1053,7 +1053,7 @@ const store = temporal(
       // }
     },
     loadExampleMapData: (mapDataToLoad, exampleName) => {
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE loadExampleMapData] Loading example: ${exampleName}`
       );
       set({
@@ -1067,15 +1067,15 @@ const store = temporal(
         isNewMapMode: false,
         isViewOnlyMode: true,
         initialLoadComplete: true,
-        debugLogs: get().debugLogs,
+        debugLogs: (get() as any).debugLogs,
       });
-      if (useConceptMapStore.temporal) {
-        useConceptMapStore.temporal.getState().clear();
+      if ((useConceptMapStore as any).temporal) {
+        (useConceptMapStore as any).temporal.getState().clear();
       }
       set({ triggerFitView: true });
     },
     setGhostPreview: (nodesToPreview) => {
-      const currentNodes = get().mapData.nodes;
+      const currentNodes = (get() as any).mapData.nodes;
       const previewNodesWithOriginalData = nodesToPreview.map(
         (previewNode) => {
           const originalNode = currentNodes.find(
@@ -1095,27 +1095,27 @@ const store = temporal(
         stagedMapData: null,
         isStagingActive: false,
       });
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE setGhostPreview] Ghost preview set for ${nodesToPreview.length} nodes. Staging cleared.`
       );
     },
     acceptGhostPreview: () => {
-      const previewData = get().ghostPreviewData;
+      const previewData = (get() as any).ghostPreviewData;
       if (!previewData) return;
       const updates: LayoutNodeUpdate[] = previewData.nodes.map((node) => ({
         id: node.id,
         x: node.x,
         y: node.y,
       }));
-      get().applyLayout(updates);
+      (get() as any).applyLayout(updates);
       set({ ghostPreviewData: null });
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE acceptGhostPreview] Ghost preview accepted and applied.`
       );
     },
     cancelGhostPreview: () => {
       set({ ghostPreviewData: null });
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE cancelGhostPreview] Ghost preview cancelled.`
       );
     },
@@ -1139,7 +1139,7 @@ const store = temporal(
       })),
     clearStructuralSuggestions: () => set({ structuralSuggestions: [] }),
     applyFormGroupSuggestion: (nodeIds, groupName, overlayGeometry) => {
-      const { addNode: addNodeAction, updateNode: updateNodeAction } = get();
+      const { addNode: addNodeAction, updateNode: updateNodeAction } = get() as any;
       let groupNodeX = 100,
         groupNodeY = 100;
       if (
@@ -1152,8 +1152,8 @@ const store = temporal(
         groupNodeY = overlayGeometry.y + 20; // Position it near the top of the overlay
       } else {
         // Fallback if no geometry: average position of nodes, then offset upwards.
-        const groupNodes = get().mapData.nodes.filter(
-          (n) =>
+        const groupNodes = (get() as any).mapData.nodes.filter(
+          (n: ConceptMapNode) =>
             nodeIds.includes(n.id) && n.x !== undefined && n.y !== undefined
         );
         if (groupNodes.length > 0) {
@@ -1176,12 +1176,12 @@ const store = temporal(
           : 100, // MODIFIED HERE
       });
       nodeIds.forEach((nodeId) => {
-        const nodeToUpdate = get().mapData.nodes.find((n) => n.id === nodeId);
+        const nodeToUpdate = (get() as any).mapData.nodes.find((n: ConceptMapNode) => n.id === nodeId);
         if (nodeToUpdate) {
           updateNodeAction(nodeId, { parentNode: newGroupId });
         }
       });
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE applyFormGroupSuggestion] Group node ${newGroupId} created. Children: ${nodeIds.join(
           ', '
         )} parented.`
@@ -1201,7 +1201,7 @@ const store = temporal(
         updates.isOverviewModeActive = false;
       }
       set(updates);
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE setFocusOnNodes] Focus set for nodes: ${nodeIds.join(
           ', '
         )}. Triggered view update. Overview exit: ${isOverviewExit}`
@@ -1211,7 +1211,7 @@ const store = temporal(
       set({ triggerFocusView: false });
       // Optionally clear focusViewOnNodeIds as well, depending on desired behavior
       // set({ focusViewOnNodeIds: null, triggerFocusView: false });
-      get().addDebugLog(
+      (get() as any).addDebugLog(
         `[STORE clearFocusViewTrigger] Focus view trigger cleared.`
       );
     },
@@ -1220,8 +1220,8 @@ const store = temporal(
     setTutorialTempTargetEdgeId: (edgeId) =>
       set({ tutorialTempTargetEdgeId: edgeId }),
     findEdgeByNodes: (sourceId, targetId) => {
-      return get().mapData.edges.find(
-        (edge) =>
+      return (get() as any).mapData.edges.find(
+        (edge: ConceptMapEdge) =>
           (edge.source === sourceId && edge.target === targetId) ||
           (edge.source === targetId && edge.target === sourceId)
       );
@@ -1281,5 +1281,5 @@ const store = temporal(
     futureStates: [],
   }
 );
-export const useConceptMapStore = create<ConceptMapState>(store);
-export const vanillaStore = createVanillaTemporal(useConceptMapStore);
+export const useConceptMapStore = create<ConceptMapState>(store as any);
+export const vanillaStore = createVanillaTemporal(useConceptMapStore as any);

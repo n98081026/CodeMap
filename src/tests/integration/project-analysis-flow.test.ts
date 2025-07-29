@@ -130,7 +130,7 @@ describe('Project Analysis Integration Tests', () => {
 
   describe('AI Analysis Flow', () => {
     it('should process project and generate concept map', async () => {
-      const { generateMapFromProject } = await import('@/ai/flows');
+      const { generateMapFromProject } = await import('@/ai/flows/index');
 
       // Mock successful AI analysis
       (generateMapFromProject as any).mockResolvedValue({
@@ -172,7 +172,7 @@ describe('Project Analysis Integration Tests', () => {
     });
 
     it('should handle AI analysis errors', async () => {
-      const { generateMapFromProject } = await import('@/ai/flows');
+      const { generateMapFromProject } = await import('@/ai/flows/index');
 
       // Mock AI analysis error
       (generateMapFromProject as any).mockRejectedValue(

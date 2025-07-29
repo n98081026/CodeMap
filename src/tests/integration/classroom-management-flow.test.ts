@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 
 import {
   createClassroom,
@@ -42,7 +42,7 @@ describe('Integration Test: Classroom Management Flow', () => {
       updated_at: new Date().toISOString(),
     };
 
-    (mockSupabase.from as vi.Mock).mockImplementation(() => ({
+    (mockSupabase.from as Mock).mockImplementation(() => ({
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi
@@ -59,7 +59,7 @@ describe('Integration Test: Classroom Management Flow', () => {
     expect(resultClassroom.teacherId).toBe(MOCK_TEACHER_USER.id);
 
     // 2. Teacher adds a student to the classroom
-    (mockSupabase.from as vi.Mock).mockImplementation(() => ({
+    (mockSupabase.from as Mock).mockImplementation(() => ({
       insert: vi.fn().mockResolvedValue({ error: null }),
     }));
 
@@ -73,7 +73,7 @@ describe('Integration Test: Classroom Management Flow', () => {
     const teacherClassrooms = [
       { ...createdClassroom, students: [MOCK_STUDENT_USER] },
     ];
-    (mockSupabase.from as vi.Mock).mockImplementation(() => ({
+    (mockSupabase.from as Mock).mockImplementation(() => ({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ data: teacherClassrooms, error: null }),
     }));
@@ -92,7 +92,7 @@ describe('Integration Test: Classroom Management Flow', () => {
         enrolled_at: new Date().toISOString(),
       },
     ];
-    (mockSupabase.from as vi.Mock).mockImplementation(() => ({
+    (mockSupabase.from as Mock).mockImplementation(() => ({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ data: studentEnrollments, error: null }),
     }));
@@ -111,7 +111,7 @@ describe('Integration Test: Classroom Management Flow', () => {
         active_students: 1,
       },
     ];
-    (mockSupabase.rpc as vi.Mock).mockResolvedValue({
+    (mockSupabase.rpc as Mock).mockResolvedValue({
       data: classroomMetrics,
       error: null,
     });
@@ -120,7 +120,7 @@ describe('Integration Test: Classroom Management Flow', () => {
     expect(metrics.classrooms.length).toBe(0);
 
     // 6. Teacher deletes the classroom
-    (mockSupabase.from as vi.Mock).mockImplementation(() => ({
+    (mockSupabase.from as Mock).mockImplementation(() => ({
       delete: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ error: null }),
     }));
