@@ -14,7 +14,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom', // For testing components that interact with DOM APIs
-    setupFiles: ['./src/tests/setup.ts', './src/tests/singleton-setup.ts'],
+    setupFiles: ['./src/tests/setup.ts'],
     // Reduce memory pressure by disabling worker threads
     pool: 'forks',
     poolOptions: {
