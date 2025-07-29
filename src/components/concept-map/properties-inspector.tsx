@@ -35,8 +35,8 @@ import type {
   ConceptMap,
   ConceptMapNode,
   ConceptMapEdge,
-  NodeType,
 } from '@/types';
+import { NodeType } from '@/types/concept-map';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -89,6 +89,13 @@ interface PropertiesInspectorProps {
     openRewriteNodeContentModal: (nodeId: string) => void;
     openAskQuestionAboutNodeModal?: (nodeId: string) => void; // Already exists for node Q&A
     openAskQuestionAboutEdgeModal?: (edgeId: string) => void; // For edge Q&A
+    askQuestionAboutNode?: (
+      nodeId: string,
+      nodeText: string,
+      nodeDetails: string,
+      nodeType: string,
+      question: string
+    ) => Promise<{ answer: string; error?: string }>;
   };
 }
 
@@ -586,6 +593,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       });
       return;
     }
+    const edge = selectedElement as ConceptMapEdge;
     // The rest of the logic is commented out, but the basic checks are here.
   }, [isViewOnlyMode, selectedElement, selectedElementType, toast]);
 
@@ -792,7 +800,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             )
               return;
             onSelectedElementPropertyUpdate({
-              type: e.target.value as NodeType,
+              type: e.target.value as any,
             });
           }}
           disabled={isViewOnlyMode}

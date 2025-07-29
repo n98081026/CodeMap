@@ -5,7 +5,7 @@ import '@testing-library/jest-dom/vitest';
 
 import GhostPreviewToolbar from '../GhostPreviewToolbar';
 
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 // Mock the Zustand store
 vi.mock('@/stores/concept-map-store');

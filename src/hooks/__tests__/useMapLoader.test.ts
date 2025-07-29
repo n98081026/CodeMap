@@ -1,11 +1,11 @@
 import { act, renderHook } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 
 import { useMapLoader } from '../useMapLoader';
 
 import { useToast } from '@/hooks/use-toast';
 import * as mapService from '@/services/conceptMaps/conceptMapService';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 import { User, UserRole } from '@/types';
 
 import * as useToastModule from '@/hooks/use-toast';
@@ -66,12 +66,12 @@ const mockMap = {
 
 describe('useMapLoader', () => {
   let storeState: any;
-  let toast: vi.Mock;
+  let toast: Mock;
 
   beforeEach(() => {
     toast = vi.fn();
     vi.spyOn(useToastModule, 'useToast').mockReturnValue({ toast } as any);
-    (useAuth as vi.Mock).mockReturnValue({ user: mockUser, loading: false });
+    (useAuth as Mock).mockReturnValue({ user: mockUser, loading: false });
 
     vi.spyOn(window, 'fetch').mockImplementation(async (url) => {
       if (url.toString().includes('map-123')) {
@@ -106,7 +106,7 @@ describe('useMapLoader', () => {
       }),
     };
 
-    (useConceptMapStore as unknown as vi.Mock).mockImplementation(
+    (useConceptMapStore as unknown as Mock).mockImplementation(
       (selector) => {
         if (typeof selector === 'function') {
           return selector(storeState);
@@ -153,7 +153,7 @@ describe('useMapLoader', () => {
 
   it('should set an error state if loading fails', async () => {
     const error = new Error('Failed to fetch map');
-    (window.fetch as vi.Mock).mockRejectedValue(error);
+    (window.fetch as Mock).mockRejectedValue(error);
 
     const { result } = renderHook(() =>
       useMapLoader({ routeMapId: mockMapId, user: mockUser })

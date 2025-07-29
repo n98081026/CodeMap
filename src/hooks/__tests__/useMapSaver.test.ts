@@ -1,12 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { useRouter } from 'next/navigation';
 
 import { useMapSaver } from '../useMapSaver';
 
 import { useToast } from '@/hooks/use-toast';
 import * as mapService from '@/services/conceptMaps/conceptMapService';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 import { User, UserRole } from '@/types';
 
 import * as useToastModule from '@/hooks/use-toast';
@@ -63,10 +63,10 @@ const mockMap = {
 
 describe('useMapSaver', () => {
   let storeState: any;
-  let toast: vi.Mock;
+  let toast: Mock;
   let mockRouter: {
-    push: vi.Mock;
-    replace: vi.Mock;
+    push: Mock;
+    replace: Mock;
   };
 
   beforeEach(() => {
@@ -80,7 +80,7 @@ describe('useMapSaver', () => {
       push: vi.fn(),
       replace: vi.fn(),
     };
-    (useRouter as vi.Mock).mockReturnValue(mockRouter);
+    (useRouter as Mock).mockReturnValue(mockRouter);
 
     storeState = {
       mapId: mockMapId,
@@ -94,7 +94,7 @@ describe('useMapSaver', () => {
       setError: vi.fn(),
       addDebugLog: vi.fn(),
     };
-    (useConceptMapStore as unknown as vi.Mock).mockImplementation(
+    (useConceptMapStore as unknown as Mock).mockImplementation(
       (selector) => {
         if (typeof selector === 'function') {
           return selector(storeState);
@@ -115,7 +115,7 @@ describe('useMapSaver', () => {
   });
 
   it('should call updateConceptMap for an existing map', async () => {
-    (mapService.updateConceptMap as vi.Mock).mockResolvedValue(mockMap);
+    (mapService.updateConceptMap as Mock).mockResolvedValue(mockMap);
     const { result } = renderHook(() => useMapSaver({ user: mockUser }));
 
     await act(async () => {
@@ -138,7 +138,7 @@ describe('useMapSaver', () => {
   it('should call createConceptMap for a new map', async () => {
     storeState.isNewMapMode = true;
     storeState.mapId = 'new';
-    (mapService.createConceptMap as vi.Mock).mockResolvedValue({
+    (mapService.createConceptMap as Mock).mockResolvedValue({
       ...mockMap,
       id: 'new-map-id',
     });
@@ -163,7 +163,7 @@ describe('useMapSaver', () => {
 
   it('should handle save errors', async () => {
     const error = new Error('Save failed');
-    (mapService.updateConceptMap as vi.Mock).mockRejectedValue(error);
+    (mapService.updateConceptMap as Mock).mockRejectedValue(error);
     const { result } = renderHook(() => useMapSaver({ user: mockUser }));
 
     await act(async () => {

@@ -40,7 +40,7 @@ describe('Concept Map Integration Tests', () => {
             {
               id: 'node-1',
               text: 'Test Node',
-              type: 'default',
+              type: 'default' as any,
               x: 100,
               y: 100,
               childIds: [],
@@ -131,7 +131,7 @@ describe('Concept Map Integration Tests', () => {
           {
             id: 'node-1',
             text: 'Updated Node',
-            type: 'default',
+            type: 'default' as any,
             x: 150,
             y: 150,
             childIds: [],

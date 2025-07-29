@@ -3,38 +3,23 @@ import { act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { type TemporalState as ZundoTemporalState } from 'zundo'; // Correct import for TemporalState
 
-vi.mock('zustand', () => ({
-  create: (fn) => {
-    const set = (partial) => {
-      const state = useConceptMapStore.getState();
-      const newState = typeof partial === 'function' ? partial(state) : partial;
-      Object.assign(state, newState);
-    };
-    const get = () => useConceptMapStore.getState();
-    const store = fn(set, get);
-    const useStore = () => store;
-    Object.assign(useStore, {
-      getState: () => store,
-      setState: (newState) => Object.assign(store, newState),
-    });
-    return useStore;
-  },
-}));
+// No mock for zustand here. It's now in setup.ts
 
-import useConceptMapStore, {
+import {
+  useConceptMapStore,
   initialStateBase,
   type ConceptMapStoreTemporalState,
   StagedMapDataWithContext,
+  vanillaStore,
 } from '../concept-map-store';
-import { vanillaStore } from '../concept-map-store';
 
 import type {
   ConceptMap,
   ConceptMapNode,
   ConceptMapEdge,
   ConceptMapData,
-  NodeType,
 } from '@/types';
+import { NodeType } from '@/types/concept-map';
 
 // Mocking uuid
 vi.mock('uuid', () => ({
@@ -90,7 +75,7 @@ describe('useConceptMapStore', () => {
       expect(state.isNewMapMode).toBe(true);
       expect(state.isViewOnlyMode).toBe(false);
       expect(state.initialLoadComplete).toBe(true);
-      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0); // Should clear history
+      expect((vanillaStore as any).temporal.getState().pastStates.length).toBe(0); // Should clear history
     });
 
     it('setLoadedMap: should load map data and set relevant states', () => {
@@ -122,7 +107,7 @@ describe('useConceptMapStore', () => {
       expect(state.isPublic).toBe(true);
       expect(state.sharedWithClassroomId).toBe('class-1');
       expect(state.initialLoadComplete).toBe(true);
-      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0);
+      expect((vanillaStore as any).temporal.getState().pastStates.length).toBe(0);
     });
 
     it('importMapData: should import map data and set new name', () => {
@@ -148,7 +133,7 @@ describe('useConceptMapStore', () => {
       expect(state.mapData.nodes[0].text).toBe('Imported N1');
       expect(state.isNewMapMode).toBe(true); // Remains new if mapId was 'new' or null
       expect(state.isViewOnlyMode).toBe(false);
-      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0);
+      expect((vanillaStore as any).temporal.getState().pastStates.length).toBe(0);
     });
 
     it('resetStore: should reset the store to its initial base state', () => {
@@ -159,7 +144,7 @@ describe('useConceptMapStore', () => {
       expect(state.mapId).toBe(initialStateBase.mapId);
       expect(state.mapName).toBe(initialStateBase.mapName);
       expect(state.initialLoadComplete).toBe(false);
-      expect(vanillaStore.temporal.getState().pastStates.length).toBe(0);
+      expect((vanillaStore as any).temporal.getState().pastStates.length).toBe(0);
     });
   });
 
@@ -760,7 +745,7 @@ describe('useConceptMapStore', () => {
   describe('Undo/Redo (Zundo Integration)', () => {
     it('should allow undoing addNode action', () => {
       const store = useConceptMapStore.getState();
-      const temporalStore = useConceptMapStore.temporal.getState();
+      const temporalStore = (useConceptMapStore as any).temporal.getState();
 
       const initialNodeCount = store.mapData.nodes.length;
       store.addNode({
@@ -782,7 +767,7 @@ describe('useConceptMapStore', () => {
 
     it('should allow redoing addNode action after undo', () => {
       const store = useConceptMapStore.getState();
-      const temporalStore = useConceptMapStore.temporal.getState();
+      const temporalStore = (useConceptMapStore as any).temporal.getState();
       const initialNodeCount = store.mapData.nodes.length;
 
       const nodeId = store.addNode({

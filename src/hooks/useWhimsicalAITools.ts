@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react';
 
-import type { ConceptMapNode, NodeType } from '@/types';
+import type { ConceptMapNode } from '@/types';
+import { NodeType } from '@/types/concept-map';
 
 import {
   animateNodeAppearance,
@@ -12,7 +13,7 @@ import {
 } from '@/components/concept-map/ai-animation-utils';
 import { useToast } from '@/hooks/use-toast';
 import { getNodePlacement } from '@/lib/layout-utils';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;

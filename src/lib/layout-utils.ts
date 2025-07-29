@@ -124,13 +124,11 @@ export function getNodePlacement(
     finalX =
       selectedNode.x +
       (selectedNode.width || defaultNodeWidth) * 0.5 +
-      30 +
-      (Math.random() * 40 - 20);
+      30;
     finalY =
       selectedNode.y +
       (selectedNode.height || defaultNodeHeight) * 0.5 +
-      30 +
-      (Math.random() * 40 - 20);
+      30;
   } else {
     // Generic placement if no context
     let maxX = 0;

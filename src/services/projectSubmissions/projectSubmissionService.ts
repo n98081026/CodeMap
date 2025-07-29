@@ -49,7 +49,6 @@ export async function createSubmission(
       fileStoragePath: fileStoragePath || `mock/path/${originalFileName}`,
       submissionTimestamp: new Date().toISOString(),
       analysisStatus: ProjectSubmissionStatus.PENDING,
-      userGoals: userGoals,
     };
     MOCK_SUBMISSIONS_STORE.push(newSubmission);
     return newSubmission;

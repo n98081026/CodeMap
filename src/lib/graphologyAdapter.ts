@@ -1,5 +1,4 @@
-import Graph, { MultiGraph } from 'graphology';
-import type { GraphOptions } from 'graphology';
+import Graph, { MultiGraph, GraphOptions } from 'graphology';
 import louvain from 'graphology-communities-louvain';
 import { toDirected, toUndirected } from 'graphology-operators';
 import { bfsFromNode } from 'graphology-traversal';

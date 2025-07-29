@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               exampleKey,
               profile.id,
               router,
-              toast
+              toast,
             );
           }
         } else if (!isRegistering) {
@@ -532,13 +532,13 @@ export const useAuth = () => {
 };
 
 // Helper function (can be moved to a service or utility file if it grows)
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 async function handleCopyExampleAction(
   exampleKey: string,
   userId: string,
   router: ReturnType<typeof useRouter>, // Use NextRouterInstance for type
-  toast: ReturnType<typeof useToast>
+  toast: ({ ...props }: any) => void
 ) {
   console.log(
     `Handling copyExample action for key: ${exampleKey}, user: ${userId}`

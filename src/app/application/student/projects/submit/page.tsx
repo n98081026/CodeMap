@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import 'shepherd.js/dist/css/shepherd.css'; // Basic Shepherd CSS
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 export default function SubmitProjectPage() {
   const studentDashboardLink = '/application/student/dashboard';

@@ -1,4 +1,3 @@
-/*
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -13,7 +12,7 @@ global.fetch = vi.fn();
 
 // Mock useAuth
 vi.mock('@/contexts/auth-context', async () => {
-  const actual = await vi.importActual('@/contexts/auth-context');
+  const actual = await vi.importActual<typeof import('@/contexts/auth-context')>('@/contexts/auth-context');
   return {
     ...actual,
     useAuth: () => ({
@@ -29,17 +28,17 @@ vi.mock('@/contexts/auth-context', async () => {
   };
 });
 
-const createWrapper = () => {
-  const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <AuthProvider>{children}</AuthProvider>
-  );
-  Wrapper.displayName = 'TestWrapper';
-  return Wrapper;
-};
-
 describe('useTeacherDashboardMetrics', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  const createWrapper = () => {
+    const Wrapper = ({ children }: { children: React.ReactNode }) => {
+      return React.createElement(AuthProvider, null, children);
+    };
+    Wrapper.displayName = 'TestWrapper';
+    return Wrapper;
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('should fetch and return metrics successfully', async () => {
@@ -54,12 +53,12 @@ describe('useTeacherDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.classrooms.isLoading).toBe(false);
-      expect(result.current.students.isLoading).toBe(false);
+      expect(result.current.managedClassrooms.isLoading).toBe(false);
+      expect(result.current.totalStudents.isLoading).toBe(false);
     });
 
-    expect(result.current.classrooms.count).toBe(5);
-    expect(result.current.students.count).toBe(50);
+    expect(result.current.managedClassrooms.count).toBe(5);
+    expect(result.current.totalStudents.count).toBe(50);
   });
 
   it('should handle API errors', async () => {
@@ -70,15 +69,9 @@ describe('useTeacherDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.classrooms.isLoading).toBe(false);
+      expect(result.current.managedClassrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.classrooms.error).toBe('Failed to fetch teacher metrics');
-  });
-});
-*/
-describe.skip('useTeacherDashboardMetrics', () => {
-  it('should be skipped', () => {
-    expect(true).toBe(true);
+    expect(result.current.managedClassrooms.error).toBe('Failed to fetch teacher metrics');
   });
 });
