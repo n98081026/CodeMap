@@ -10,8 +10,8 @@ import type {
   Classroom,
   ConceptMap,
   ProjectSubmission,
-  NodeType,
 } from '@/types';
+import { NodeType } from '@/types';
 
 import { UserRole, ProjectSubmissionStatus } from '@/types';
 

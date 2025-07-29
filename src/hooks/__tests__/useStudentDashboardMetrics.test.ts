@@ -55,8 +55,8 @@ describe('useStudentDashboardMetrics', () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current.enrolledClassrooms.isLoading).toBe(true);
-    expect(result.current.projectSubmissions.isLoading).toBe(true);
+    expect(result.current.classrooms.isLoading).toBe(true);
+    expect(result.current.submissions.isLoading).toBe(true);
   });
 
   it('should fetch and return metrics successfully', async () => {
@@ -71,11 +71,11 @@ describe('useStudentDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.enrolledClassrooms.isLoading).toBe(false);
+      expect(result.current.classrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.enrolledClassrooms.count).toBe(3);
-    expect(result.current.projectSubmissions.count).toBe(1);
+    expect(result.current.classrooms.count).toBe(3);
+    expect(result.current.submissions.count).toBe(1);
   });
 
   it('should handle fetch errors', async () => {
@@ -86,9 +86,9 @@ describe('useStudentDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.enrolledClassrooms.isLoading).toBe(false);
+      expect(result.current.classrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.enrolledClassrooms.error).toBe('Failed to fetch student metrics');
+    expect(result.current.classrooms.error).toBe('Failed to fetch student metrics');
   });
 });

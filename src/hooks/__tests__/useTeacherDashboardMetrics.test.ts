@@ -53,12 +53,12 @@ describe('useTeacherDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.classrooms.isLoading).toBe(false);
-      expect(result.current.students.isLoading).toBe(false);
+      expect(result.current.managedClassrooms.isLoading).toBe(false);
+      expect(result.current.totalStudents.isLoading).toBe(false);
     });
 
-    expect(result.current.classrooms.count).toBe(5);
-    expect(result.current.students.count).toBe(50);
+    expect(result.current.managedClassrooms.count).toBe(5);
+    expect(result.current.totalStudents.count).toBe(50);
   });
 
   it('should handle API errors', async () => {
@@ -69,9 +69,9 @@ describe('useTeacherDashboardMetrics', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.classrooms.isLoading).toBe(false);
+      expect(result.current.managedClassrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.classrooms.error).toBe('Failed to fetch teacher metrics');
+    expect(result.current.managedClassrooms.error).toBe('Failed to fetch teacher metrics');
   });
 });

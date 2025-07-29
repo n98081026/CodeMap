@@ -2,17 +2,17 @@ import { z } from 'zod';
 import {
   temporal,
   type TemporalState as ZundoTemporalState,
-  createVanillaTemporal,
 } from 'zundo';
 import { create } from 'zustand';
+import { createVanillaTemporal } from 'zundo';
 
 import type {
   ConceptMap,
   ConceptMapData,
   ConceptMapNode,
   ConceptMapEdge,
-  NodeType,
 } from '@/types';
+import { NodeType } from '@/types';
 import type { LayoutNodeUpdate } from '@/types/graph-adapter';
 
 import { GraphAdapterUtility } from '@/lib/graphologyAdapter';
@@ -509,8 +509,8 @@ const store = temporal(
         triggerFocusView: false,
       };
       set(newMapState);
-      if (useConceptMapStore.temporal) {
-        useConceptMapStore.temporal.getState().clear();
+      if ((useConceptMapStore as any).temporal) {
+        (useConceptMapStore as any).temporal.getState().clear();
       }
     },
     setLoadedMap: (map, viewOnly = false) => {
@@ -535,8 +535,8 @@ const store = temporal(
         focusViewOnNodeIds: null,
         triggerFocusView: false,
       });
-      if (useConceptMapStore.temporal) {
-        useConceptMapStore.temporal.getState().clear();
+      if ((useConceptMapStore as any).temporal) {
+        (useConceptMapStore as any).temporal.getState().clear();
       }
     },
     importMapData: (importedData, fileName) => {
@@ -559,14 +559,14 @@ const store = temporal(
         focusViewOnNodeIds: null,
         triggerFocusView: false,
       }));
-      if (useConceptMapStore.temporal) {
-        useConceptMapStore.temporal.getState().clear();
+      if ((useConceptMapStore as any).temporal) {
+        (useConceptMapStore as any).temporal.getState().clear();
       }
     },
     resetStore: () => {
       set({ ...initialStateBase, initialLoadComplete: false, debugLogs: [] });
-      if (useConceptMapStore.temporal) {
-        useConceptMapStore.temporal.getState().clear();
+      if ((useConceptMapStore as any).temporal) {
+        (useConceptMapStore as any).temporal.getState().clear();
       }
     },
     addNode: (options) => {
