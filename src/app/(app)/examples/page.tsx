@@ -33,7 +33,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { exampleProjects, type ExampleProject } from '@/lib/example-data';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 const GuestCtaBanner = () => {
   const { isAuthenticated, isLoading } = useAuth();

@@ -150,3 +150,39 @@ vi.mock('@genkit-ai/googleai', () => ({
   }),
   gemini10Pro: {},
 }));
+
+vi.mock('zundo', () => ({
+  temporal: (fn) => fn,
+  createVanillaTemporal: () => ({
+    getState: () => ({
+      pastStates: [],
+      futureStates: [],
+      clear: vi.fn(),
+    }),
+    subscribe: vi.fn(),
+    setState: vi.fn(),
+  }),
+}));
+
+import { vi } from 'vitest';
+
+import { vi } from 'vitest';
+
+const storeState = {};
+
+vi.mock('zustand', () => ({
+  create: (fn) => {
+    const store = fn((partial) => {
+      const newState = typeof partial === 'function' ? partial(storeState) : partial;
+      Object.assign(storeState, newState);
+    }, () => storeState);
+
+    const useStore = () => store;
+    Object.assign(useStore, {
+      getState: () => store,
+      setState: (newState) => Object.assign(storeState, newState),
+    });
+
+    return useStore;
+  },
+}));

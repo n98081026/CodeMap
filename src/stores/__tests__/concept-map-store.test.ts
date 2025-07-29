@@ -3,23 +3,7 @@ import { act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { type TemporalState as ZundoTemporalState } from 'zundo'; // Correct import for TemporalState
 
-vi.mock('zustand', () => ({
-  create: (fn) => {
-    const set = (partial) => {
-      const state = useConceptMapStore.getState();
-      const newState = typeof partial === 'function' ? partial(state) : partial;
-      Object.assign(state, newState);
-    };
-    const get = () => useConceptMapStore.getState();
-    const store = fn(set, get);
-    const useStore = () => store;
-    Object.assign(useStore, {
-      getState: () => store,
-      setState: (newState) => Object.assign(store, newState),
-    });
-    return useStore;
-  },
-}));
+// No mock for zustand here. It's now in setup.ts
 
 import useConceptMapStore, {
   initialStateBase,

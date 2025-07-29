@@ -1,4 +1,3 @@
-/*
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -13,7 +12,7 @@ global.fetch = vi.fn();
 
 // Mock useAuth to provide a user for the AuthProvider wrapper
 vi.mock('@/contexts/auth-context', async () => {
-  const actual = await vi.importActual('@/contexts/auth-context');
+  const actual = await vi.importActual<typeof import('@/contexts/auth-context')>('@/contexts/auth-context');
   return {
     ...actual,
     useAuth: () => ({
@@ -29,16 +28,19 @@ vi.mock('@/contexts/auth-context', async () => {
   };
 });
 
-// Wrapper component that includes the AuthProvider
-const createWrapper = () => {
-  const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <AuthProvider>{children}</AuthProvider>
-  );
-  Wrapper.displayName = 'TestWrapper';
-  return Wrapper;
-};
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('useStudentDashboardMetrics', () => {
+  const createWrapper = () => {
+    const Wrapper = ({ children }: { children: React.ReactNode }) => {
+      return React.createElement(AuthProvider, null, children);
+    };
+    Wrapper.displayName = 'TestWrapper';
+    return Wrapper;
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -88,11 +90,5 @@ describe('useStudentDashboardMetrics', () => {
     });
 
     expect(result.current.enrolledClassrooms.error).toBe('Failed to fetch student metrics');
-  });
-});
-*/
-describe.skip('useStudentDashboardMetrics', () => {
-  it('should be skipped', () => {
-    expect(true).toBe(true);
   });
 });

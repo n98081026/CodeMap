@@ -63,5 +63,11 @@ export default function TeacherDashboardPage() {
   }
 
   // If user is authenticated and is a TEACHER or ADMIN, render the TeacherDashboardView
+  if (!user) {
+    // This case should ideally not be reached due to the checks above,
+    // but it satisfies TypeScript's null analysis.
+    return null;
+  }
+
   return <TeacherDashboardView user={user} />;
 }

@@ -7,7 +7,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 const GhostPreviewToolbar: React.FC = () => {
   const { ghostPreviewData, acceptGhostPreview, cancelGhostPreview } =

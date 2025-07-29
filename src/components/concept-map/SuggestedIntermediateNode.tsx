@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 interface SuggestedIntermediateNodeData {
   suggestionId: string; // Original suggestion ID from the store

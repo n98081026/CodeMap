@@ -45,7 +45,7 @@ import type { SnapResult, RFLayoutNode } from '@/types/graph-adapter'; // Import
 
 import { calculateSnappedPositionAndLines } from '@/lib/layout-utils'; // Import moved function
 import { cn } from '@/lib/utils';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 import { StructuralSuggestion } from '@/types/ai-suggestions';
 
 interface ExtractedConceptItem {

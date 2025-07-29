@@ -33,7 +33,7 @@ import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import useConceptMapStore from '@/stores/concept-map-store'; // Added import
+import { useConceptMapStore } from '@/stores/concept-map-store'; // Added import
 
 import { CheckIcon, XIcon } from 'lucide-react';
 

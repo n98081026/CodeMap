@@ -8,9 +8,13 @@ import { useToast } from '@/hooks/use-toast';
 import useConceptMapStore from '@/stores/concept-map-store';
 
 // Mock dependencies
-vi.mock('@/ai/flows', () => ({
-  runFlow: vi.fn(),
-}));
+vi.mock('@/ai/flows', async () => {
+  const actual = await vi.importActual<typeof import('@/ai/flows')>('@/ai/flows');
+  return {
+    ...actual,
+    runFlow: vi.fn(),
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({

@@ -41,7 +41,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { getNodePlacement } from '@/lib/layout-utils';
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 import { UserRole } from '@/types';
 
 // Dynamically import components
@@ -134,7 +134,7 @@ function ConceptMapEditorPageContent({
     setStoreIsViewOnlyMode(isViewOnlyModeQueryParam);
   }, [isViewOnlyModeQueryParam, setStoreIsViewOnlyMode]);
 
-  const temporalStoreAPI = useConceptMapStore.temporal;
+  const temporalStoreAPI = (useConceptMapStore as any).temporal;
   const canUndo = temporalStoreAPI.getState().pastStates.length > 0;
   const canRedo = temporalStoreAPI.getState().futureStates.length > 0;
 

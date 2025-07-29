@@ -9,7 +9,7 @@ import {
   PopoverContent,
 } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast'; // Corrected import path
-import useConceptMapStore from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 // Define the props for SuggestedEdge, extending basic edge props
 interface SuggestedEdgeProps {
