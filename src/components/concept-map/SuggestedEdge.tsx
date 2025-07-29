@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast'; // Corrected import path
 import { useConceptMapStore } from '@/stores/concept-map-store';
 
 // Define the props for SuggestedEdge, extending basic edge props
-interface SuggestedEdgeProps {
+export interface SuggestedEdgeProps {
   // id is the suggestion's own ID from the store, not the React Flow edge ID
   // The React Flow edge ID will be `suggestion-${id}` as constructed in FlowCanvasCore
   id: string; // This is the actual React Flow element ID (e.g., "suggestion-XYZ")
@@ -54,10 +54,10 @@ const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
-    sourcePosition: sourcePosition as any,
+    sourcePosition,
     targetX,
     targetY,
-    targetPosition: targetPosition as any,
+    targetPosition,
   });
 
   const onAccept = () => {

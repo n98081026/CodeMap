@@ -1,6 +1,6 @@
 import { Step } from 'react-joyride';
 
-export const getGhostPreviewsUsageTutorialSteps = (t: any): Step[] => [
+export const getGhostPreviewsUsageTutorialSteps = (t: (key: string) => string): Step[] => [
   {
     target: '#ghost-preview-toolbar',
     content: t(

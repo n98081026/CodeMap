@@ -1,3 +1,7 @@
-// This file is intentionally left blank.
-// It is used to resolve the module path for the AI flows.
-export {};
+export const runFlow = async <T, U>(
+  command: string,
+  payload: T
+): Promise<U | null> => {
+  console.log('runFlow', command, payload);
+  return null;
+};

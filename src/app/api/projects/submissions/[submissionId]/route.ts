@@ -10,7 +10,7 @@ import {
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder
 
 export async function GET(
-  request: Request,
+  _request: Request,
   context: { params: { submissionId: string } }
 ) {
   try {

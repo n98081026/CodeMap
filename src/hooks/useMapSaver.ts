@@ -96,7 +96,7 @@ export function useMapSaver({ user }: UseMapSaverProps) {
         } else {
           savedMapData = await mapService.updateConceptMap(
             storeMapId,
-            payload as any
+            payload
           );
         }
 

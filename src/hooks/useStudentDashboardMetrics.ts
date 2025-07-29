@@ -112,7 +112,7 @@ export function useStudentDashboardMetrics(): StudentDashboardMetrics {
         );
       }
       const data = (await mapsResponse.json()) as {
-        maps: any[];
+        maps: unknown[];
         totalCount: number;
       }; // API now returns paginated structure
       setConceptMapsMetric({
@@ -139,7 +139,7 @@ export function useStudentDashboardMetrics(): StudentDashboardMetrics {
         );
       }
       const data = (await submissionsResponse.json()) as {
-        submissions: any[];
+        submissions: unknown[];
         totalCount: number;
       }; // API now returns paginated structure
       setSubmissionsMetric({

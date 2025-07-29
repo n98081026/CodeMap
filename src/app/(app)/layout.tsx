@@ -2,7 +2,7 @@
 import { Loader2 } from 'lucide-react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 
 import { MainLayout } from '@/components/layout/main-layout';
 import AppTutorial from '@/components/tutorial/app-tutorial';
@@ -15,18 +15,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   // const [runDashboardTutorial, setRunDashboardTutorial] = useState(false); // Remove local state for this
-  const {
-    startOrResumeTutorial,
-    activeTutorialKey,
-    runTutorial,
-    setRunTutorialState,
-  } = useTutorialStore(
+  const { startOrResumeTutorial, activeTutorialKey } = useTutorialStore(
     useCallback(
       (s: any) => ({
         startOrResumeTutorial: s.startOrResumeTutorial,
         activeTutorialKey: s.activeTutorialKey,
-        runTutorial: s.runTutorial,
-        setRunTutorialState: s.setRunTutorialState, // If AppTutorial is always rendered here
       }),
       []
     )

@@ -1,7 +1,7 @@
 import { Step } from 'react-joyride';
 
 export const getManualCreateEdgeTutorialSteps = (
-  t: any,
+  t: (key: string) => string,
   dynamicEdgeId?: string | null
 ): Step[] => {
   const steps: Step[] = [

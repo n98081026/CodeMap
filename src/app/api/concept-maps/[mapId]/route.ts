@@ -11,7 +11,7 @@ import {
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder for actual auth
 
 export async function GET(
-  request: Request,
+  _request: Request,
   context: { params: { mapId: string } }
 ) {
   try {

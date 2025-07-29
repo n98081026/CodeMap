@@ -1,6 +1,6 @@
 import { Step } from 'react-joyride';
 
-export const getExtractConceptsToolTutorialSteps = (t: any): Step[] => [
+export const getExtractConceptsToolTutorialSteps = (t: (key: string) => string): Step[] => [
   {
     target: '#extract-concepts-modal',
     content: t(

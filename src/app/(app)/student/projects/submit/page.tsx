@@ -1,11 +1,10 @@
 'use client';
 
 import { FileText } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react'; // Import useCallback
+import { useEffect, useCallback } from 'react'; // Import useCallback
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { ProjectUploadForm } from '@/components/projects/project-upload-form';
-import AppTutorial from '@/components/tutorial/app-tutorial';
 import {
   Card,
   CardContent,
@@ -23,7 +22,7 @@ export default function SubmitProjectPage() {
   // const [runTutorial, setRunTutorial] = useState(false); // Removed local state
   const { user, isLoading } = useAuth();
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback((s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
+    useCallback((s: any) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
   );
 
   useEffect(() => {

@@ -68,8 +68,8 @@ const SuggestedGroupOverlayNode: React.FC<
   };
 
   // xPos and yPos are implicitly part of NodeProps from React Flow
-  const xPos = (data as any).xPos || 0;
-  const yPos = (data as any).yPos || 0;
+  const xPos = (data as { xPos?: number }).xPos || 0;
+  const yPos = (data as { yPos?: number }).yPos || 0;
 
   const overlayStyle: React.CSSProperties = {
     border: '2px dashed #10B981', // Emerald-500

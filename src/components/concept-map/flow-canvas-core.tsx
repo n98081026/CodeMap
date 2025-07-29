@@ -28,7 +28,7 @@ import OrthogonalEdge, {
   type OrthogonalEdgeData,
   getMarkerDefinition,
 } from './orthogonal-edge';
-import SuggestedEdge, { SuggestedEdgeProps } from './suggested-edge';
+import SuggestedEdge, { SuggestedEdgeProps } from './SuggestedEdge';
 import SuggestedGroupOverlayNode from './SuggestedGroupOverlayNode';
 import SuggestedIntermediateNode from './SuggestedIntermediateNode';
 
@@ -206,7 +206,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
   const edgeTypes = useMemo(
     () => ({
       orthogonal: OrthogonalEdge,
-      'suggested-edge': SuggestedEdge as React.ComponentType<SuggestedEdgeProps>,
+      'suggested-edge':
+        SuggestedEdge as React.ComponentType<SuggestedEdgeProps>,
     }),
     []
   );
@@ -601,20 +602,20 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
       const currentStagedNodeIds = new Set(rfStagedNodes.map((n) => n.id));
       const currentStagedEdgeIds = new Set(rfStagedEdges.map((e) => e.id));
       const newlySelectedStagedNodeIds = selectedRfNodes
-        .filter((n: any) => currentStagedNodeIds.has(n.id))
-        .map((n: any) => n.id);
+        .filter((n) => currentStagedNodeIds.has(n.id))
+        .map((n) => n.id);
       const newlySelectedStagedEdgeIds = selectedRfEdges
-        .filter((e: any) => currentStagedEdgeIds.has(e.id))
-        .map((e: any) => e.id);
+        .filter((e) => currentStagedEdgeIds.has(e.id))
+        .map((e) => e.id);
       onStagedElementsSelectionChange?.([
         ...newlySelectedStagedNodeIds,
         ...newlySelectedStagedEdgeIds,
       ]);
       const mainSelectedNodes = selectedRfNodes.filter(
-        (n: any) => !currentStagedNodeIds.has(n.id)
+        (n) => !currentStagedNodeIds.has(n.id)
       );
       const mainSelectedEdges = selectedRfEdges.filter(
-        (e: any) => !currentStagedEdgeIds.has(e.id)
+        (e) => !currentStagedEdgeIds.has(e.id)
       );
       if (mainSelectedNodes.length === 1 && mainSelectedEdges.length === 0) {
         onSelectionChange(mainSelectedNodes[0].id, 'node');
@@ -637,7 +638,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
         onSelectionChange(null, null);
       }
       onMultiNodeSelectionChange?.(
-        mainSelectedNodes.map((node: any) => node.id)
+        mainSelectedNodes.map((node) => node.id)
       );
     },
     [

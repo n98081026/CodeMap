@@ -1,7 +1,7 @@
 'use client';
 
 import { BookOpen, Loader2, AlertTriangle } from 'lucide-react';
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import type { Classroom } from '@/types';
 

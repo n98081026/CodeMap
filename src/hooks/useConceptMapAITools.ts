@@ -12,13 +12,14 @@ import type {
   ExpandConceptOutput,
   RewriteNodeContentOutput,
 } from '@/ai/flows/types';
-import type { ConceptMapNode, ConceptMapEdge } from '@/types';
-import type { RFNode, CustomNodeData } from '@/types/rf-flow';
+import type { ConceptMapNode, ConceptMapEdge } from '@/types/concept-map';
 
 import { runFlow } from '@/ai/flows';
-import { getNodePlacement } from '@/lib/layout-utils';
-import { useConceptMapStore } from '@/stores/concept-map-store';
-import { StagedMapDataWithContext } from '@/stores/concept-map-store';
+import { getNodePlacement } from '@/lib/dagreLayoutUtility';
+import {
+  useConceptMapStore,
+  StagedMapData,
+} from '@/stores/concept-map-store';
 
 type AICommand =
   | 'extractConcepts'
@@ -97,7 +98,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         });
         return result;
       } catch (err) {
-        const error = err as Error & { details?: any };
+        const error = err as Error & { details?: unknown };
         console.error(`Error executing AI command ${command}:`, error);
         setError(error.message);
         toast({
@@ -108,6 +109,9 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         return null;
       } finally {
         setIsProcessing(false);
+        if (toastId) {
+          // You might need a way to dismiss the toast if your toast implementation supports it
+        }
       }
     },
     [isViewOnly, toast]
@@ -125,29 +129,35 @@ export function useConceptMapAITools(isViewOnly: boolean) {
       });
 
       if (result && result.concepts) {
-        const newNodes: Partial<ConceptMapNode>[] = result.concepts.map((concept, index) => {
-          const { x, y } = getNodePlacement(
-            mapData.nodes,
-            'generic',
-            null,
-            null,
-            20,
-            index
-          );
-          return {
-            text: String(concept.text),
-            details: String(concept.reason),
-            type: 'ai-concept',
-            x: Number(x),
-            y: Number(y),
-          };
-        });
+        const newNodes: ConceptMapNode[] = result.concepts.map(
+          (concept, index) => {
+            const { x, y } = getNodePlacement(
+              mapData.nodes,
+              'generic',
+              null,
+              null,
+              20,
+              index
+            );
+            return {
+              id: '', // ID will be assigned when accepting
+              data: {
+                label: String(concept.text),
+                details: String(concept.reason),
+              },
+              type: 'ai-concept',
+              position: {
+                x: Number(x),
+                y: Number(y),
+              },
+            };
+          }
+        );
 
         setStagedMapData({
-          nodes: newNodes as ConceptMapNode[],
+          nodes: newNodes,
           edges: [],
-          actionType:
-            'extractConcepts' as StagedMapDataWithContext['actionType'],
+          actionType: 'extractConcepts',
         });
       }
     },
@@ -166,25 +176,24 @@ export function useConceptMapAITools(isViewOnly: boolean) {
     );
 
     if (result && result.relations) {
-      const newEdges: Partial<ConceptMapEdge>[] = result.relations
+      const newEdges: ConceptMapEdge[] = result.relations
         .filter(
           (relation) =>
             mapData.nodes.some((n) => n.id === relation.sourceNodeId) &&
             mapData.nodes.some((n) => n.id === relation.targetNodeId)
         )
         .map((relation) => ({
-          id: undefined,
+          id: '', // ID will be assigned when accepting
           source: relation.sourceNodeId,
           target: relation.targetNodeId,
           label: relation.label,
-          details: relation.reason,
+          data: { details: relation.reason },
         }));
 
       setStagedMapData({
         nodes: [],
-        edges: newEdges as ConceptMapEdge[],
-        actionType:
-          'suggestRelations' as StagedMapDataWithContext['actionType'],
+        edges: newEdges,
+        actionType: 'suggestRelations',
       });
     }
   }, [executeAICommand, mapData.nodes, setStagedMapData]);
@@ -205,7 +214,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         ExpandConceptOutput
       >(
         'expandConcept',
-        { concept: node.text, context: node.details || '' },
+        { concept: node.data.label, context: node.data.details || '' },
         {
           successTitle: 'Concept Expanded',
           successDescription:
@@ -216,39 +225,42 @@ export function useConceptMapAITools(isViewOnly: boolean) {
 
       if (result && result.newConcepts) {
         const parentNode = node;
-        const newNodes: Partial<ConceptMapNode>[] = result.newConcepts.map((concept, index) => {
-          const { x, y } = getNodePlacement(
-            mapData.nodes,
-            'child',
-            parentNode,
-            null,
-            150,
-            index,
-            result.newConcepts.length
-          );
-          return {
-            id: undefined,
-            text: concept.text,
-            details: concept.reason,
-            type: 'ai-expanded',
-            x,
-            y,
-          };
-        });
+        const newNodes: ConceptMapNode[] = result.newConcepts.map(
+          (concept, index) => {
+            const { x, y } = getNodePlacement(
+              mapData.nodes,
+              'child',
+              parentNode,
+              null,
+              150,
+              index,
+              result.newConcepts.length
+            );
+            return {
+              id: '', // ID will be assigned when accepting
+              data: {
+                label: concept.text,
+                details: concept.reason,
+              },
+              type: 'ai-expanded',
+              position: { x, y },
+            };
+          }
+        );
 
-        const newEdges: Partial<ConceptMapEdge>[] = newNodes.map((newNode) => ({
-          id: undefined,
+        const newEdges: ConceptMapEdge[] = newNodes.map((newNode) => ({
+          id: '', // ID will be assigned when accepting
           source: parentNode.id,
-          target: newNode.id,
+          target: newNode.id, // This will need to be updated when IDs are assigned
           label:
-            result.edges?.find((e) => e.target === newNode.text)?.label ||
+            result.edges?.find((e) => e.target === newNode.data.label)?.label ||
             'related to',
         }));
 
         setStagedMapData({
-          nodes: newNodes as ConceptMapNode[],
-          edges: newEdges as ConceptMapEdge[],
-          actionType: 'expandConcept' as StagedMapDataWithContext['actionType'],
+          nodes: newNodes,
+          edges: newEdges,
+          actionType: 'expandConcept',
         });
       }
     },
@@ -263,7 +275,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
       setRewriteModalState({
         isOpen: true,
         nodeId,
-        originalContent: `${node.text}\n\n${node.details || ''}`,
+        originalContent: `${node.data.label}\n\n${node.data.details || ''}`,
         rewrittenContent: null,
       });
     },
@@ -275,7 +287,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
       if (!rewriteModalState.nodeId || !rewriteModalState.originalContent)
         return;
 
-      const result = await executeAICommand<any, RewriteNodeContentOutput>(
+      const result = await executeAICommand<unknown, RewriteNodeContentOutput>(
         'rewriteNode',
         {
           text: rewriteModalState.originalContent,

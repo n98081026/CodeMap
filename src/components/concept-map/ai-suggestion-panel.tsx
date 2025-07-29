@@ -46,20 +46,20 @@ import {
 import { cn } from '@/lib/utils';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 
-interface ExtractedConceptItem {
+export interface ExtractedConceptItem {
   concept: string;
   context?: string;
   source?: string;
 }
 
-interface RelationSuggestion {
+export interface RelationSuggestion {
   source: string;
   target: string;
   relation: string;
   reason?: string;
 }
 
-interface AISuggestionPanelProps {
+export interface AISuggestionPanelProps {
   mapData?: ConceptMapData;
   currentMapNodes?: ConceptMapNode[];
   extractedConcepts?: ExtractedConceptItem[];
@@ -394,7 +394,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   const { setDragPreview, clearDragPreview, setDraggedRelationPreview } =
     useConceptMapStore(
       useCallback(
-        (s: any) => ({
+        (s) => ({
           setDragPreview: s.setDragPreview,
           clearDragPreview: s.clearDragPreview,
           setDraggedRelationPreview: s.setDraggedRelationPreview,
@@ -475,8 +475,8 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
                 React.SetStateAction<EditableRelationSuggestion[]>
               >);
 
-        setState((prevItems: any) =>
-          prevItems.map((item: any, idx: number) => {
+        setState((prevItems) =>
+          prevItems.map((item, idx: number) => {
             if (idx === index)
               return {
                 ...item,
@@ -511,8 +511,8 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
             : (setEditableRelations as React.Dispatch<
                 React.SetStateAction<EditableRelationSuggestion[]>
               >);
-        setState((prevItems: any) =>
-          prevItems.map((item: any, idx: number) => {
+        setState((prevItems) =>
+          prevItems.map((item, idx: number) => {
             if (idx === index)
               return {
                 ...item,
@@ -598,7 +598,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     itemKeyPrefix: string,
     parentRef: React.RefObject<HTMLDivElement>, // For virtualizer
     rowVirtualizerInstance: ReturnType<typeof useVirtualizer>, // Instance of useVirtualizer
-    onAddSelectedItems: (selectedItems: any[]) => void,
+    onAddSelectedItems: (selectedItems: (EditableExtractedConcept | EditableRelationSuggestion)[]) => void,
     onClearCategory?: () => void,
     cardClassName?: string,
     titleClassName?: string

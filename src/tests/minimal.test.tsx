@@ -1,12 +1,14 @@
 import { render } from '@testing-library/react';
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 import { AuthProvider } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 
 vi.mock('@/contexts/auth-context', async () => {
-  const actual = await vi.importActual<typeof import('@/contexts/auth-context')>('@/contexts/auth-context');
+  const actual = await vi.importActual<
+    typeof import('@/contexts/auth-context')
+  >('@/contexts/auth-context');
   return {
     ...actual,
     useAuth: () => ({

@@ -52,7 +52,7 @@ const SuggestedIntermediateNode: React.FC<
     addNode({
       // id: newNodeId, // Store's addNode should generate ID
       text: suggestionData.intermediateNodeText || 'New Concept',
-      type: 'customConceptNode', // Or your default node type
+      type: 'default', // Or your default node type
       position: { x: xPos, y: yPos }, // Use the position of the suggestion node itself
       // width: 150, height: 70, // Default dimensions or from suggestionData if available
     });

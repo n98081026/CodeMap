@@ -26,18 +26,7 @@ vi.mock('@/lib/config', () => ({
   MOCK_USER_FOR_TESTING_MAPS: {},
 }));
 
-vi.mock('@/stores/concept-map-store', () => {
-  const actual = vi.importActual('@/stores/concept-map-store');
-  return {
-    ...actual,
-    default: vi.fn(),
-    temporal: {
-      getState: () => ({
-        clear: vi.fn(),
-      }),
-    },
-  };
-});
+vi.mock('@/stores/concept-map-store');
 vi.mock('@/contexts/auth-context', () => ({
   useAuth: vi.fn(),
 }));
@@ -106,14 +95,12 @@ describe('useMapLoader', () => {
       }),
     };
 
-    (useConceptMapStore as unknown as Mock).mockImplementation(
-      (selector) => {
-        if (typeof selector === 'function') {
-          return selector(storeState);
-        }
-        return storeState;
+    (useConceptMapStore as unknown as Mock).mockImplementation((selector) => {
+      if (typeof selector === 'function') {
+        return selector(storeState);
       }
-    );
+      return storeState;
+    });
     (useConceptMapStore as any).getState = () => storeState;
     (useConceptMapStore as any).temporal = mockTemporal;
   });

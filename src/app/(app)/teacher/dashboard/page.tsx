@@ -2,16 +2,9 @@
 
 import { Loader2 } from 'lucide-react'; // For loading state
 import { useRouter } from 'next/navigation'; // For redirection
-import React from 'react';
 import { useEffect } from 'react'; // For redirection logic
 
 import TeacherDashboardView from '@/components/dashboard/teacher/TeacherDashboardView'; // Import the shared view
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from '@/components/ui/card'; // No longer needed
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 // import { BookOpen, Users, LayoutDashboard, AlertTriangle } from 'lucide-react'; // Icons are in TeacherDashboardView

@@ -9,7 +9,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import type { Classroom } from '@/types';
 
@@ -31,42 +31,6 @@ import { UserRole } from '@/types';
 
 const CLASSROOMS_PER_PAGE = 9;
 
-// Define the new memoized component for displaying a single classroom card
-interface TeacherClassroomDisplayCardProps {
-  classroom: Classroom;
-}
-
-const TeacherClassroomDisplayCard: React.FC<TeacherClassroomDisplayCardProps> =
-  React.memo(({ classroom }) => {
-    return (
-      <Card className='flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300'>
-        <CardHeader>
-          <CardTitle className='text-xl'>{classroom.name}</CardTitle>
-          <CardDescription>
-            Invite Code:{' '}
-            <span className='font-mono text-primary'>
-              {classroom.inviteCode}
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='flex-grow'>
-          <div className='flex items-center text-sm text-muted-foreground'>
-            <span>{classroom.studentIds.length} Students</span>
-          </div>
-          {/* Add more details like last activity, number of maps/submissions */}
-        </CardContent>
-        <CardFooter>
-          <Button asChild className='w-full'>
-            <Link href={`/application/teacher/classrooms/${classroom.id}`}>
-              View Details <ArrowRight className='ml-2 h-4 w-4' />
-            </Link>
-          </Button>
-        </CardFooter>
-      </Card>
-    );
-  });
-TeacherClassroomDisplayCard.displayName = 'TeacherClassroomDisplayCard';
-
 export default function TeacherClassroomsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -76,7 +40,6 @@ export default function TeacherClassroomsPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [totalClassrooms, setTotalClassrooms] = useState(0);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(

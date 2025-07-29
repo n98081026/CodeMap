@@ -22,7 +22,12 @@ import { cn } from '@/lib/utils'; // Import cn for conditional classNames
 import { useConceptMapStore } from '@/stores/concept-map-store';
 
 interface ProjectOverviewDisplayProps {
-  overviewData: any | null;
+  overviewData: {
+    overallSummary: string;
+    keyModules: { name: string; description: string, filePaths: string[] }[];
+    moduleConnections: { sourceModule: string; targetModule: string; relationshipDescription: string }[];
+    error?: string;
+  } | null;
   isLoading: boolean;
   onModuleClick?: (moduleName: string) => void;
 }

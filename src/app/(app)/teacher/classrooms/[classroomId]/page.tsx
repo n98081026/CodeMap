@@ -11,13 +11,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
-import type { Classroom, User, ConceptMap, ProjectSubmission } from '@/types';
+import type { Classroom, ConceptMap, ProjectSubmission } from '@/types';
 
 import { InviteStudentDialog } from '@/components/classrooms/invite-student-dialog';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { EmptyState } from '@/components/layout/empty-state';
 
 // Import new tab components
 import { ClassroomMapsTab } from '@/components/teacher/classrooms/tabs/ClassroomMapsTab';
@@ -39,7 +38,6 @@ export default function ClassroomDetailPage() {
   const paramsHook = useParams();
   const routeClassroomId = paramsHook.classroomId as string;
 
-  const { user } = useAuth();
   const [classroom, setClassroom] = useState<Classroom | null>(null);
   const [isLoadingClassroom, setIsLoadingClassroom] = useState(true); // For main classroom details and students
   const [errorClassroom, setErrorClassroom] = useState<string | null>(null); // For main classroom details and students

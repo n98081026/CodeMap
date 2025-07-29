@@ -409,7 +409,7 @@ export async function updateConceptMap(
     throw new Error('User not authorized to update this concept map.');
   }
 
-  const supabaseUpdates: { [key: string]: any } = {};
+        const supabaseUpdates: { [key: string]: unknown } = {};
   if (updates.name !== undefined) supabaseUpdates.name = updates.name;
   if (updates.mapData !== undefined)
     supabaseUpdates.map_data = updates.mapData as unknown as Json;

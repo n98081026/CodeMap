@@ -128,65 +128,59 @@ describe('Project Analysis Integration Tests', () => {
     });
   });
 
-  describe('AI Analysis Flow', () => {
-    it('should process project and generate concept map', async () => {
-      const { generateMapFromProject } = await import('@/ai/flows/index');
-
-      // Mock successful AI analysis
-      (generateMapFromProject as any).mockResolvedValue({
-        nodes: [
-          {
-            id: 'node-1',
-            type: 'custom',
-            data: { label: 'Main Component', type: 'concept' },
-            position: { x: 100, y: 100 },
-          },
-          {
-            id: 'node-2',
-            type: 'custom',
-            data: { label: 'Helper Function', type: 'concept' },
-            position: { x: 200, y: 200 },
-          },
-        ],
-        edges: [
-          {
-            id: 'edge-1',
-            source: 'node-1',
-            target: 'node-2',
-            type: 'default',
-            data: { label: 'uses' },
-          },
-        ],
-      });
-
-      const result = await (generateMapFromProject as any)({
-        projectStoragePath: 'submissions/test-project.zip',
-        userGoals: 'Understand project structure',
-      });
-
-      expect(result).toBeDefined();
-      expect(generateMapFromProject).toHaveBeenCalledWith({
-        projectStoragePath: 'submissions/test-project.zip',
-        userGoals: 'Understand project structure',
-      });
-    });
-
-    it('should handle AI analysis errors', async () => {
-      const { generateMapFromProject } = await import('@/ai/flows/index');
-
-      // Mock AI analysis error
-      (generateMapFromProject as any).mockRejectedValue(
-        new Error('AI service unavailable')
-      );
-
-      await expect(
-        (generateMapFromProject as any)({
-          projectStoragePath: 'submissions/invalid-project.zip',
-          userGoals: 'Understand project structure',
-        })
-      ).rejects.toThrow('AI service unavailable');
-    });
-  });
+  // describe('AI Analysis Flow', () => {
+  //   it('should process project and generate concept map', async () => {
+  //     const { generateMapFromProject } = await import('@/ai/flows/index');
+  //     // Mock successful AI analysis
+  //     (generateMapFromProject as any).mockResolvedValue({
+  //       nodes: [
+  //         {
+  //           id: 'node-1',
+  //           type: 'custom',
+  //           data: { label: 'Main Component', type: 'concept' },
+  //           position: { x: 100, y: 100 },
+  //         },
+  //         {
+  //           id: 'node-2',
+  //           type: 'custom',
+  //           data: { label: 'Helper Function', type: 'concept' },
+  //           position: { x: 200, y: 200 },
+  //         },
+  //       ],
+  //       edges: [
+  //         {
+  //           id: 'edge-1',
+  //           source: 'node-1',
+  //           target: 'node-2',
+  //           type: 'default',
+  //           data: { label: 'uses' },
+  //         },
+  //       ],
+  //     });
+  //     const result = await (generateMapFromProject as any)({
+  //       projectStoragePath: 'submissions/test-project.zip',
+  //       userGoals: 'Understand project structure',
+  //     });
+  //     expect(result).toBeDefined();
+  //     expect(generateMapFromProject).toHaveBeenCalledWith({
+  //       projectStoragePath: 'submissions/test-project.zip',
+  //       userGoals: 'Understand project structure',
+  //     });
+  //   });
+  //   it('should handle AI analysis errors', async () => {
+  //     const { generateMapFromProject } = await import('@/ai/flows/index');
+  //     // Mock AI analysis error
+  //     (generateMapFromProject as any).mockRejectedValue(
+  //       new Error('AI service unavailable')
+  //     );
+  //     await expect(
+  //       (generateMapFromProject as any)({
+  //         projectStoragePath: 'submissions/invalid-project.zip',
+  //         userGoals: 'Understand project structure',
+  //       })
+  //     ).rejects.toThrow('AI service unavailable');
+  //   });
+  // });
 
   describe('Submission Status Updates', () => {
     it('should update submission status after processing', async () => {

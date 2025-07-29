@@ -6,10 +6,12 @@ import { useConceptMapAITools } from '../useConceptMapAITools';
 import * as aiFlows from '@/ai/flows';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapStore } from '@/stores/concept-map-store';
+import { ConceptMapNode } from '@/types/concept-map';
 
 // Mock dependencies
 vi.mock('@/ai/flows', async () => {
-  const actual = await vi.importActual<typeof import('@/ai/flows')>('@/ai/flows');
+  const actual =
+    await vi.importActual<typeof import('@/ai/flows')>('@/ai/flows');
   return {
     ...actual,
     runFlow: vi.fn(),
@@ -35,16 +37,14 @@ vi.mock('@/hooks/use-toast');
 vi.mock('@/stores/concept-map-store');
 
 const mockNodeId = 'node-1';
-const mockNode = {
+const mockNode: ConceptMapNode = {
   id: mockNodeId,
-  text: 'Test Node',
-  details: 'Some details.',
+  data: {
+    label: 'Test Node',
+    details: 'Some details.',
+  },
   type: 'default',
-  x: 0,
-  y: 0,
-  width: 150,
-  height: 50,
-  childIds: [],
+  position: { x: 0, y: 0 },
 };
 
 describe('useConceptMapAITools', () => {
@@ -95,11 +95,12 @@ describe('useConceptMapAITools', () => {
       expect(setStagedMapData).toHaveBeenCalledWith({
         nodes: mockExtractedData.concepts.map((c: any) => ({
           id: expect.any(String),
-          text: c.text,
-          details: c.reason,
+          data: {
+            label: c.text,
+            details: c.reason,
+          },
           type: 'ai-concept',
-          x: expect.any(Number),
-          y: expect.any(Number),
+          position: { x: expect.any(Number), y: expect.any(Number) },
         })),
         edges: [],
         actionType: 'extractConcepts',

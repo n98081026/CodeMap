@@ -1,8 +1,10 @@
 import { Step } from 'react-joyride';
 
+import { User } from '@/types';
+
 export const getDashboardTutorialSteps = (
-  t: any,
-  user: any,
+  t: (key: string) => string,
+  user: User,
   commonWelcomeStep: Step,
   commonNavSteps: Step[]
 ): Step[] => [

@@ -13,7 +13,7 @@ import {
 import { UserRole } from '@/types';
 
 export async function GET(
-  request: Request,
+  _request: Request,
   context: { params: { classroomId: string } }
 ) {
   try {

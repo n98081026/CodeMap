@@ -126,10 +126,10 @@ export async function createClassroom(
 
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-  const classroomToInsert: any = {
+  const classroomToInsert: Partial<Classroom> = {
     name,
     description: description || null,
-    teacher_id: teacherId,
+    teacherId,
     invite_code: inviteCode,
   };
 
@@ -538,7 +538,7 @@ export async function updateClassroom(
 
   const { data, error } = await supabase
     .from('classrooms')
-    .update(supabaseUpdates)
+    .update(supabaseUpdates as any)
     .eq('id', classroomId)
     .select('*, teacher:profiles!teacher_id(name)')
     .single();
