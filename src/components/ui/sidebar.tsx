@@ -107,7 +107,7 @@ const SidebarProvider = React.forwardRef<
       }
     }, [toggleSidebar]);
 
-    const state = open ? 'expanded' : 'collapsed';
+    const state: 'expanded' | 'collapsed' = open ? 'expanded' : 'collapsed';
 
     const contextValue = React.useMemo(
       () => ({

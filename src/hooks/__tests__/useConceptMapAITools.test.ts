@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 
 import { useConceptMapAITools } from '../useConceptMapAITools';
 
@@ -48,23 +48,23 @@ const mockNode = {
 };
 
 describe('useConceptMapAITools', () => {
-  let setStagedMapData: vi.Mock;
-  let addDebugLog: vi.Mock;
-  let toast: vi.Mock;
+  let setStagedMapData: Mock;
+  let addDebugLog: Mock;
+  let toast: Mock;
 
   beforeEach(() => {
     setStagedMapData = vi.fn();
     addDebugLog = vi.fn();
     toast = vi.fn().mockReturnValue({ id: 'toast-id' });
 
-    (useConceptMapStore as unknown as vi.Mock).mockReturnValue({
+    (useConceptMapStore as unknown as Mock).mockReturnValue({
       setStagedMapData,
       addDebugLog,
       mapData: { nodes: [mockNode], edges: [] },
       // Add other store state/actions if needed by the hook
     });
 
-    (useToast as unknown as vi.Mock).mockReturnValue({ toast });
+    (useToast as unknown as Mock).mockReturnValue({ toast });
   });
 
   afterEach(() => {

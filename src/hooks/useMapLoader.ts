@@ -48,7 +48,7 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
       if (idToLoad === 'new') {
         if (effectiveUserForLoadHookId) {
           initializeNewMap(effectiveUserForLoadHookId);
-          useConceptMapStore.temporal.getState().clear();
+          (useConceptMapStore as any).temporal.getState().clear();
         }
         return;
       }

@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               exampleKey,
               profile.id,
               router,
-              toast
+              toast.toast,
             );
           }
         } else if (!isRegistering) {
@@ -538,7 +538,7 @@ async function handleCopyExampleAction(
   exampleKey: string,
   userId: string,
   router: ReturnType<typeof useRouter>, // Use NextRouterInstance for type
-  toast: ReturnType<typeof useToast>
+  toast: ({ ...props }: any) => void
 ) {
   console.log(
     `Handling copyExample action for key: ${exampleKey}, user: ${userId}`

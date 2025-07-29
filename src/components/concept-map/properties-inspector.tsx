@@ -35,8 +35,8 @@ import type {
   ConceptMap,
   ConceptMapNode,
   ConceptMapEdge,
-  NodeType,
 } from '@/types';
+import { NodeType } from '@/types/concept-map';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -800,7 +800,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             )
               return;
             onSelectedElementPropertyUpdate({
-              type: e.target.value as NodeType,
+              type: e.target.value,
             });
           }}
           disabled={isViewOnlyMode}

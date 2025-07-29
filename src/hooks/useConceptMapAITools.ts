@@ -11,17 +11,12 @@ import type {
   SuggestRelationsOutput,
   ExpandConceptOutput,
   RewriteNodeContentOutput,
-} from '@/ai/flows';
-import type {
-  ConceptMapNode,
-  ConceptMapEdge,
-  RFNode,
-  CustomNodeData,
-} from '@/types';
+} from '@/ai/flows/types';
+import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+import type { RFNode, CustomNodeData } from '@/types/rf-flow';
 
-import { runFlow } from '@/ai/flows';
-import { getNodePlacement } from '@/lib/dagreLayoutUtility';
-import { generateUniqueId } from '@/lib/utils';
+import { runFlow } from '@/ai/flows/run-flow';
+import { getNodePlacement } from '@/lib/layout-utils';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 import { StagedMapDataWithContext } from '@/stores/concept-map-store';
 
@@ -130,7 +125,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
       });
 
       if (result && result.concepts) {
-        const newNodes = result.concepts.map((concept, index) => {
+        const newNodes: Partial<ConceptMapNode>[] = result.concepts.map((concept, index) => {
           const { x, y } = getNodePlacement(
             mapData.nodes,
             'grid',
@@ -140,17 +135,16 @@ export function useConceptMapAITools(isViewOnly: boolean) {
             index
           );
           return {
-            id: generateUniqueId('concept'),
-            text: concept.text,
-            details: concept.reason,
+            text: String(concept.text),
+            details: String(concept.reason),
             type: 'ai-concept',
-            x,
-            y,
+            x: Number(x),
+            y: Number(y),
           };
         });
 
         setStagedMapData({
-          nodes: newNodes,
+          nodes: newNodes as ConceptMapNode[],
           edges: [],
           actionType:
             'extractConcepts' as StagedMapDataWithContext['actionType'],
@@ -172,7 +166,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
     );
 
     if (result && result.relations) {
-      const newEdges = result.relations
+      const newEdges: Partial<ConceptMapEdge>[] = result.relations
         .filter(
           (relation) =>
             mapData.nodes.some((n) => n.id === relation.sourceNodeId) &&
@@ -188,7 +182,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
 
       setStagedMapData({
         nodes: [],
-        edges: newEdges,
+        edges: newEdges as ConceptMapEdge[],
         actionType:
           'suggestRelations' as StagedMapDataWithContext['actionType'],
       });
@@ -222,7 +216,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
 
       if (result && result.newConcepts) {
         const parentNode = node;
-        const newNodes = result.newConcepts.map((concept, index) => {
+        const newNodes: Partial<ConceptMapNode>[] = result.newConcepts.map((concept, index) => {
           const { x, y } = getNodePlacement(
             mapData.nodes,
             'radial',
@@ -242,8 +236,8 @@ export function useConceptMapAITools(isViewOnly: boolean) {
           };
         });
 
-        const newEdges = newNodes.map((newNode) => ({
-          id: generateUniqueId('edge'),
+        const newEdges: Partial<ConceptMapEdge>[] = newNodes.map((newNode) => ({
+          id: undefined,
           source: parentNode.id,
           target: newNode.id,
           label:
@@ -252,8 +246,8 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         }));
 
         setStagedMapData({
-          nodes: newNodes,
-          edges: newEdges,
+          nodes: newNodes as ConceptMapNode[],
+          edges: newEdges as ConceptMapEdge[],
           actionType: 'expandConcept' as StagedMapDataWithContext['actionType'],
         });
       }
