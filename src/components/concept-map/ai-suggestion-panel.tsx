@@ -613,7 +613,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       return (
         <Card
           className={cn('mb-4 bg-background/80 shadow-md', cardClassName)}
-          data-tutorial-id={sectionId}
+          data-testid={sectionId}
         >
           <CardHeader>
             <CardTitle
@@ -720,7 +720,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           cardClassName
         )}
         style={{ minHeight: 200 }}
-        data-tutorial-id={sectionId} // Added data-tutorial-id here as well
+        data-testid={sectionId} // Added data-testid here as well
       >
         {' '}
         {/* Ensure card can shrink/grow */}
@@ -988,7 +988,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
       // This outer div will just hold the sections
       <div
         className='h-full w-full p-4 space-y-4 text-left overflow-y-auto'
-        data-tutorial-id='ai-suggestion-panel-content'
+        data-testid='ai-suggestion-panel-content'
       >
         {' '}
         {/* Added ID to content area */}
@@ -1027,7 +1027,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   return (
     <Card
       className='h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner'
-      data-tutorial-id='ai-suggestion-panel'
+      data-testid='ai-suggestion-panel'
     >
       <CardContent className='flex h-full flex-col items-center justify-center text-center p-0'>
         {mainContent()}
