@@ -30,10 +30,9 @@ export default defineConfig({
     // Limit memory usage
     maxConcurrency: 1,
     include: [
-      'src/hooks/**/*.test.{ts,tsx}',
-      'src/lib/**/*.test.{ts,tsx}',
-      'src/services/**/*.test.{ts,tsx}',
-      'src/stores/**/*.test.{ts,tsx}',
+      'src/**/*.test.{ts,tsx}',
+      'src/**/__tests__/**/*.{ts,tsx}',
+      'src/tests/**/*.test.{ts,tsx}',
     ], // Pattern for test files
       // Add manual mocks directory
       // Note: Vitest automatically looks for __mocks__ adjacent to node_modules or the project root.

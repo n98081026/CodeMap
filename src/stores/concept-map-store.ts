@@ -570,16 +570,23 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       height: options.height ?? 70,
     };
     set((state) => {
-      let newNodes = [...state.mapData.nodes, newNode];
+      const newNodes = [...state.mapData.nodes, newNode];
+      const newEdges = [...state.mapData.edges]; // Ensure edges are also new array
+
       if (options.parentNode) {
-        newNodes = newNodes.map((n) => {
-          if (n.id === options.parentNode) {
-            return { ...n, childIds: [...(n.childIds || []), newNode.id] };
-          }
-          return n;
-        });
+        const parentIndex = newNodes.findIndex(n => n.id === options.parentNode);
+        if (parentIndex > -1) {
+          const parentNode = { ...newNodes[parentIndex] };
+          parentNode.childIds = [...(parentNode.childIds || []), newNode.id];
+          newNodes[parentIndex] = parentNode;
+        }
       }
-      return { mapData: { nodes: newNodes, edges: state.mapData.edges } };
+      return {
+        mapData: {
+          nodes: newNodes,
+          edges: newEdges,
+        },
+      };
     });
     // After node is added, set it as the temporary target for tutorials
     get().setTutorialTempTargetNodeId(newNodeId);
