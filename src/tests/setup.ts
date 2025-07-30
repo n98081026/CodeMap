@@ -72,6 +72,8 @@ vi.mock('lucide-react', () => {
     Trash2: createIcon('Trash2'),
     CheckCircle: createIcon('CheckCircle'),
     XCircle: createIcon('XCircle'),
+    CheckIcon: createIcon('CheckIcon'), // Added for GhostPreviewToolbar
+    XIcon: createIcon('XIcon'), // Added for GhostPreviewToolbar
     Zap: createIcon('Zap'),
     Loader2: createIcon('Loader2'),
     ChevronDown: createIcon('ChevronDown'),
