@@ -31,6 +31,13 @@ import ProjectOverviewDisplay from '@/components/concept-map/project-overview-di
 import { PropertiesInspector } from '@/components/concept-map/properties-inspector';
 import { EditorHeader } from '@/components/concept-map/editor/EditorHeader';
 import { EditorSidePanels } from '@/components/concept-map/editor/EditorSidePanels';
+import EditorMainContent from '@/components/concept-map/editor/EditorMainContent';
+import EditorOverlays from '@/components/concept-map/editor/EditorOverlays';
+import { useEditorEventHandlers } from '@/hooks/useEditorEventHandlers';
+import { useEditorStagingActions } from '@/hooks/useEditorStagingActions';
+import { useEditorFloaterState } from '@/hooks/useEditorFloaterState';
+import { useEditorOverviewMode } from '@/hooks/useEditorOverviewMode';
+import { AISuggestionPanelRefactored } from '@/components/concept-map/ai-suggestion-panel';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
@@ -41,11 +48,20 @@ import {
   useConceptMapStore,
   type ConceptMapState,
 } from '@/stores/concept-map-store';
+import {
+  selectMapData,
+  selectMapId,
+  selectMapName,
+  selectEditorUIState,
+  selectMapStats,
+  selectCanUndo,
+  selectCanRedo,
+} from '@/stores/selectors';
 import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
 import { UserRole } from '@/types';
 
-const FlowCanvasCore = dynamic(
-  () => import('@/components/concept-map/flow-canvas-core'),
+const FlowCanvasRefactored = dynamic(
+  () => import('@/components/concept-map/flow-canvas').then(mod => mod.FlowCanvasRefactored),
   {
     ssr: false,
     loading: () => (
@@ -84,6 +100,34 @@ export default function ConceptMapEditorPage() {
   const editorState = useEditorState();
   const editorActions = useEditorActions(routeMapId);
   const aiActions = useEditorAIActions();
+
+  // Use refactored hooks for better organization
+  const editorEventHandlers = useEditorEventHandlers({
+    updateStoreNode,
+    updateStoreEdge,
+    setStoreSelectedElement,
+    setStoreMultiSelectedNodeIds,
+    storeIsViewOnlyMode,
+  });
+
+  const editorStagingActions = useEditorStagingActions({
+    storeStagedMapData,
+    commitStagedMapData,
+    clearStagedMapData,
+  });
+
+  const editorFloaterState = useEditorFloaterState();
+
+  const editorOverviewMode = useEditorOverviewMode({
+    storeIsViewOnlyMode,
+    isOverviewModeActive,
+    projectOverviewData,
+    currentSubmissionId,
+    storeMapData,
+    user,
+    toggleOverviewMode,
+    fetchProjectOverview,
+  });
 
   const {
     mapId: storeMapId,
@@ -782,95 +826,42 @@ export default function ConceptMapEditorPage() {
           id='tutorial-target-map-canvas-wrapper'
           className='flex-grow relative overflow-hidden'
         >
-          {showEmptyMapMessage ? (
-            <div className='absolute inset-0 flex flex-col items-center justify-center text-center p-8'>
-              <HelpCircle className='h-12 w-12 text-muted-foreground mb-4' />
-              <h2 className='text-xl font-semibold mb-2'>Empty Map</h2>
-              <p className='text-muted-foreground mb-4'>
-                It looks like this concept map is empty or could not be loaded.
-              </p>
-              <div className='flex gap-4'>
-                <Button onClick={handleNewMap} variant='default'>
-                  <Compass className='mr-2 h-4 w-4' /> Create a New Map
-                </Button>
-                <Button onClick={() => router.back()} variant='outline'>
-                  <ArrowLeft className='mr-2 h-4 w-4' /> Go Back
-                </Button>
-              </div>
-            </div>
-          ) : isOverviewModeActive ? (
-            <ProjectOverviewDisplay
-              overviewData={projectOverviewData}
-              isLoading={isFetchingOverview}
-            />
-          ) : (
-            <FlowCanvasCore
-              mapDataFromStore={storeMapData}
-              isViewOnlyMode={storeIsViewOnlyMode}
-              onSelectionChange={handleFlowSelectionChange}
-              onMultiNodeSelectionChange={handleMultiNodeSelectionChange}
-              onNodesChangeInStore={updateStoreNode}
-              onNodesDeleteInStore={deleteStoreNode}
-              onEdgesDeleteInStore={(edgeIds) => {
-                if (Array.isArray(edgeIds)) {
-                  edgeIds.forEach((edgeId) =>
-                    useConceptMapStore.getState().deleteEdge(edgeId)
-                  );
-                }
-              }}
-              onConnectInStore={(params) =>
-                useConceptMapStore.getState().addEdge(params)
-              }
-              onNodeContextMenuRequest={handleNodeContextMenu}
-              onPaneContextMenuRequest={handlePaneContextMenuRequest}
-              onStagedElementsSelectionChange={setSelectedStagedElementIds}
-              onConceptSuggestionDrop={handleConceptSuggestionDrop}
-              onNodeStartConnectionRequest={handleStartConnectionFromNode}
-              activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}
-              onAcceptVisualEdge={handleAcceptVisualEdge}
-              onRejectVisualEdge={handleRejectVisualEdge}
-            />
-          )}
-        </div>
-        <AIStagingToolbar
-          isVisible={isStagingActive && !isOverviewModeActive}
-          onCommit={handleCommitStagedData}
-          onClear={handleClearStagedData}
-          stagedItemCount={stagedItemCount}
-        />
-        <GhostPreviewToolbar /> {/* Add the GhostPreviewToolbar here */}
-        <AISuggestionFloater
-          isVisible={floaterState.isVisible && !isOverviewModeActive}
-          position={floaterState.position || { x: 0, y: 0 }}
-          suggestions={floaterState.suggestions}
-          onDismiss={Floater_handleDismiss}
-          title={floaterState.title || 'Quick Actions'}
-        />
-        {contextMenu?.isOpen && contextMenu.nodeId && !isOverviewModeActive && (
-          <NodeContextMenu
-            x={contextMenu.x}
-            y={contextMenu.y}
-            nodeId={contextMenu.nodeId}
-            onClose={closeContextMenu}
-            onDeleteNode={handleDeleteNodeFromContextMenu}
-            onExpandConcept={() => {
-              closeContextMenu();
-            }}
-            onSuggestRelations={() => {
-              closeContextMenu();
-            }}
-            onExtractConcepts={() => {
-              closeContextMenu();
-            }}
-            onAskQuestion={() => {
-              closeContextMenu();
-            }}
-            onRewriteContent={() => {
-              closeContextMenu();
-            }}
-            isViewOnlyMode={storeIsViewOnlyMode}
+          <EditorMainContent
+            isStoreLoading={isStoreLoading}
+            storeError={storeError}
+            isOverviewModeActive={isOverviewModeActive}
+            projectOverviewData={projectOverviewData}
+            isFetchingOverview={isFetchingOverview}
+            storeMapData={storeMapData}
+            storeIsViewOnlyMode={storeIsViewOnlyMode}
+            handleFlowSelectionChange={editorEventHandlers.handleFlowSelectionChange}
+            handleMultiNodeSelectionChange={editorEventHandlers.handleMultiNodeSelectionChange}
+            updateStoreNode={updateStoreNode}
+            deleteStoreNode={deleteStoreNode}
+            handleNodeContextMenu={editorEventHandlers.handleNodeContextMenu}
+            handlePaneContextMenuRequest={editorEventHandlers.handlePaneContextMenuRequest}
+            handleConceptSuggestionDrop={editorEventHandlers.handleConceptSuggestionDrop}
+            handleStartConnectionFromNode={editorEventHandlers.handleStartConnectionFromNode}
+            handleNewMap={handleNewMap}
+            setSelectedStagedElementIds={editorEventHandlers.setSelectedStagedElementIds}
+            activeVisualEdgeSuggestion={editorEventHandlers.activeVisualEdgeSuggestion}
+            handleAcceptVisualEdge={editorEventHandlers.handleAcceptVisualEdge}
+            handleRejectVisualEdge={editorEventHandlers.handleRejectVisualEdge}
           />
-        )}
+        </div>
+        <EditorOverlays
+          isStagingActive={isStagingActive}
+          isOverviewModeActive={isOverviewModeActive}
+          handleCommitStagedData={editorStagingActions.handleCommitStagedData}
+          handleClearStagedData={editorStagingActions.handleClearStagedData}
+          stagedItemCount={editorStagingActions.stagedItemCount}
+          floaterState={editorFloaterState.floaterState}
+          Floater_handleDismiss={editorFloaterState.Floater_handleDismiss}
+          contextMenu={editorEventHandlers.contextMenu}
+          closeContextMenu={editorEventHandlers.closeContextMenu}
+          handleDeleteNodeFromContextMenu={editorEventHandlers.handleDeleteNodeFromContextMenu}
+          storeIsViewOnlyMode={storeIsViewOnlyMode}
+        />
         <Sheet
           open={isPropertiesInspectorOpen && !isOverviewModeActive}
           onOpenChange={setIsPropertiesInspectorOpen}
@@ -894,25 +885,23 @@ export default function ConceptMapEditorPage() {
             />{' '}
           </SheetContent>{' '}
         </Sheet>
-        {/* <Sheet
+        <Sheet
           open={isAiPanelOpen && !isOverviewModeActive}
           onOpenChange={setIsAiPanelOpen}
         >
-          {' '}
           <SheetContent side='bottom' className='h-[40vh] sm:h-1/3'>
-            {' '}
-            <AISuggestionPanel
+            <AISuggestionPanelRefactored
               currentMapNodes={storeMapData.nodes}
-              extractedConcepts={[]}
-              suggestedRelations={[]}
-              onAddExtractedConcepts={() => {}}
-              onAddSuggestedRelations={() => {}}
-              onClearExtractedConcepts={() => {}}
-              onClearSuggestedRelations={() => {}}
+              extractedConcepts={aiExtractedConcepts || []}
+              suggestedRelations={aiSuggestedRelations || []}
+              onAddExtractedConcepts={handleAddExtractedConcepts}
+              onAddSuggestedRelations={handleAddSuggestedRelations}
+              onClearExtractedConcepts={clearExtractedConcepts}
+              onClearSuggestedRelations={clearSuggestedRelations}
               isViewOnlyMode={storeIsViewOnlyMode}
-            />{' '}
-          </SheetContent>{' '}
-        </Sheet> */}
+            />
+          </SheetContent>
+        </Sheet>
       </ReactFlowProvider>
       {/* AppTutorial is now globally managed via AppLayout and tutorial-store */}
       {/* <AppTutorial

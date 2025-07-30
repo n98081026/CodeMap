@@ -8,15 +8,15 @@ export interface MockSupabaseClient {
 }
 
 export interface MockSupabaseQueryBuilder {
-  insert: (data: any) => MockSupabaseQueryBuilder;
+  insert: (data: unknown) => MockSupabaseQueryBuilder;
   select: (columns?: string) => MockSupabaseQueryBuilder;
-  eq: (column: string, value: any) => MockSupabaseQueryBuilder;
-  single: () => Promise<{ data: any; error: any }>;
-  mockReturnValue: (value: any) => void;
+  eq: (column: string, value: unknown) => MockSupabaseQueryBuilder;
+  single: () => Promise<{ data: unknown; error: unknown }>;
+  mockReturnValue: (value: unknown) => void;
 }
 
 export interface MockSupabaseStorage {
-  upload: (path: string, file: File) => Promise<{ data: any; error: any }>;
+  upload: (path: string, file: File) => Promise<{ data: unknown; error: unknown }>;
   getPublicUrl: (path: string) => { data: { publicUrl: string } };
 }
 

@@ -729,7 +729,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   //   fetchAllStructuralSuggestionsFlow,
                   //   flowInput
                   // );
-                  const results: Array<{ id: string; type: string; data: any; reason: string }> = [];
+                  const results: Array<{ id: string; type: string; data: unknown; reason: string }> = [];
                   store.getState().setStructuralSuggestions(results);
                   toast({
                     title: 'AI Suggestions',

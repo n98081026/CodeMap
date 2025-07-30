@@ -41,7 +41,7 @@ interface LineData {
   label?: string;
 }
 
-const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
+const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = React.memo(({
   overviewData,
   isLoading,
   onModuleClick,
@@ -128,7 +128,7 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [overviewData, isLoading]);
 
-  const handleModuleCardClick = (module: any) => {
+  const handleModuleCardClick = useCallback((module: { name: string; description: string; filePaths: string[] }) => {
     // ... (existing click handler logic remains the same) ...
     if (!module.filePaths || module.filePaths.length === 0) {
       addDebugLog(
@@ -167,7 +167,7 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
       );
       setFocusOnNodes([], true);
     }
-  };
+  }, [addDebugLog, mapData.nodes, onModuleClick, setFocusOnNodes]);
 
   if (isLoading) {
     return (
@@ -420,6 +420,6 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> = ({
       </div>
     </ScrollArea>
   );
-};
+});
 
 export default ProjectOverviewDisplay;

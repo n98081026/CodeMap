@@ -2,7 +2,8 @@
 
 import React from 'react';
 
-import AISuggestionPanel, {
+import { 
+  AISuggestionPanelRefactored,
   type ExtractedConceptItem,
   type RelationSuggestion,
 } from '@/components/concept-map/ai-suggestion-panel';
@@ -93,7 +94,7 @@ export const EditorSidePanels: React.FC<EditorSidePanelsProps> = ({
       {/* AI Suggestion Panel */}
       <Sheet open={isAiPanelOpen}>
         <SheetContent side='left' className='w-96 p-4'>
-          <AISuggestionPanel
+          <AISuggestionPanelRefactored
             mapData={mapData}
             currentMapNodes={mapData.nodes}
             extractedConcepts={extractedConcepts}

@@ -1,234 +1,265 @@
-'use client';
-
+import React from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Search, PlusCircle, Trash2, type LucideIcon } from 'lucide-react';
-import React, { useState, useMemo, useRef } from 'react';
-
+import { PlusCircle, Trash2, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import ConceptSuggestionItem from './ConceptSuggestionItem';
+import RelationSuggestionItem from './RelationSuggestionItem';
+import type { ExtractedConceptItem, RelationSuggestion } from '../ai-suggestion-panel';
 
-interface SuggestionSectionProps<T> {
-  title: string;
-  icon: LucideIcon;
-  items: T[];
-  selectedIndices: Set<number>;
-  onSelectionChange: (indices: Set<number>) => void;
-  onAddSelected: (items: T[]) => void;
-  onClearAll?: () => void;
-  renderItem: (item: T, index: number, isSelected: boolean) => React.ReactNode;
-  isViewOnlyMode?: boolean;
-  className?: string;
-  headerClassName?: string;
+interface EditableExtractedConcept {
+  original: ExtractedConceptItem;
+  current: ExtractedConceptItem;
+  isEditing: boolean;
+  editingField: 'concept' | 'context' | 'source' | null;
 }
 
-export function SuggestionSection<T>({
+interface EditableRelationSuggestion {
+  original: RelationSuggestion;
+  current: RelationSuggestion;
+  isEditing: boolean;
+  editingField: 'source' | 'target' | 'relation' | 'reason' | null;
+}
+
+type ItemStatus = 'new' | 'exact-match' | 'similar-match';
+
+interface SuggestionSectionProps {
+  title: string;
+  icon: LucideIcon;
+  items: EditableExtractedConcept[] | EditableRelationSuggestion[];
+  selectedIndices: Set<number>;
+  itemKeyPrefix: string;
+  parentRef: React.RefObject<HTMLDivElement>;
+  rowVirtualizer: ReturnType<typeof useVirtualizer>;
+  onAddItems: (items: any[]) => void;
+  onClearItems?: () => void;
+  cardClassName: string;
+  titleClassName: string;
+  isViewOnlyMode?: boolean;
+  
+  // For concepts
+  getConceptStatus?: (item: ExtractedConceptItem) => ItemStatus;
+  onToggleConceptSelection?: (index: number) => void;
+  onToggleConceptEdit?: (index: number, field: 'concept') => void;
+  onConceptInputChange?: (index: number, value: string, field: 'concept') => void;
+  onConfirmConceptEdit?: (index: number) => void;
+  setDragPreview?: (item: { text: string; type: string } | null) => void;
+  clearDragPreview?: () => void;
+  
+  // For relations
+  checkRelationNodesExistOnMap?: (relation: RelationSuggestion) => boolean;
+  onToggleRelationSelection?: (index: number) => void;
+  onToggleRelationEdit?: (index: number, field: 'source' | 'target' | 'relation' | 'reason') => void;
+  onRelationInputChange?: (index: number, value: string, field: 'source' | 'target' | 'relation' | 'reason') => void;
+  onConfirmRelationEdit?: (index: number) => void;
+  setDraggedRelationPreview?: (relation: RelationSuggestion | null) => void;
+}
+
+const SuggestionSection: React.FC<SuggestionSectionProps> = React.memo(({
   title,
   icon: Icon,
   items,
   selectedIndices,
-  onSelectionChange,
-  onAddSelected,
-  onClearAll,
-  renderItem,
+  itemKeyPrefix,
+  parentRef,
+  rowVirtualizer,
+  onAddItems,
+  onClearItems,
+  cardClassName,
+  titleClassName,
   isViewOnlyMode,
-  className,
-  headerClassName,
-}: SuggestionSectionProps<T>) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  // Filter items based on search term
-  const filteredItems = useMemo(() => {
-    if (!searchTerm.trim()) return items;
-    
-    return items.filter((item, index) => {
-      // Convert item to string for searching
-      const itemString = JSON.stringify(item).toLowerCase();
-      return itemString.includes(searchTerm.toLowerCase());
-    });
-  }, [items, searchTerm]);
-
-  // Virtual scrolling for performance
-  const rowVirtualizer = useVirtualizer({
-    count: filteredItems.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 80, // Estimated height per item
-    overscan: 5,
-  });
-
-  const handleSelectAll = () => {
-    if (selectedIndices.size === items.length) {
-      onSelectionChange(new Set());
-    } else {
-      onSelectionChange(new Set(items.map((_, index) => index)));
+  
+  // Concept props
+  getConceptStatus,
+  onToggleConceptSelection,
+  onToggleConceptEdit,
+  onConceptInputChange,
+  onConfirmConceptEdit,
+  setDragPreview,
+  clearDragPreview,
+  
+  // Relation props
+  checkRelationNodesExistOnMap,
+  onToggleRelationSelection,
+  onToggleRelationEdit,
+  onRelationInputChange,
+  onConfirmRelationEdit,
+  setDraggedRelationPreview,
+}) => {
+  const isConceptSection = itemKeyPrefix.startsWith('extracted-');
+  
+  // Calculate counts
+  const countOfSelectedAndSelectable = Array.from(selectedIndices).filter(index => {
+    const item = items[index];
+    if (isConceptSection && getConceptStatus) {
+      const status = getConceptStatus((item as EditableExtractedConcept).current);
+      return status !== 'exact-match';
     }
-  };
+    return true;
+  }).length;
 
-  const handleItemSelection = (index: number) => {
-    const newSelection = new Set(selectedIndices);
-    if (newSelection.has(index)) {
-      newSelection.delete(index);
-    } else {
-      newSelection.add(index);
+  const countOfAllNewOrSimilar = items.filter((item, index) => {
+    if (isConceptSection && getConceptStatus) {
+      const status = getConceptStatus((item as EditableExtractedConcept).current);
+      return status !== 'exact-match';
     }
-    onSelectionChange(newSelection);
-  };
+    return true;
+  }).length;
 
   const handleAddSelected = () => {
-    const selectedItems = Array.from(selectedIndices).map(index => items[index]);
-    onAddSelected(selectedItems);
-    onSelectionChange(new Set()); // Clear selection after adding
+    const selectedItems = Array.from(selectedIndices)
+      .map(index => items[index])
+      .filter((item, index) => {
+        if (isConceptSection && getConceptStatus) {
+          const status = getConceptStatus((item as EditableExtractedConcept).current);
+          return status !== 'exact-match';
+        }
+        return true;
+      })
+      .map(item => (item as any).current);
+    
+    if (selectedItems.length > 0) {
+      onAddItems(selectedItems);
+      selectedIndices.clear();
+    }
   };
 
-  const selectedCount = selectedIndices.size;
-  const hasItems = items.length > 0;
-  const hasFilteredItems = filteredItems.length > 0;
+  const handleAddAllNewSimilar = () => {
+    const toAdd = items
+      .map(item => (item as any).current)
+      .filter(itemValue => {
+        if (isConceptSection && getConceptStatus) {
+          const status = getConceptStatus(itemValue as ExtractedConceptItem);
+          return status !== 'exact-match';
+        }
+        return true;
+      });
+    
+    if (toAdd.length > 0) {
+      onAddItems(toAdd);
+      selectedIndices.clear();
+    }
+  };
+
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
-      <CardHeader className={cn('pb-3', headerClassName)}>
-        <CardTitle className='flex items-center gap-2 text-lg'>
-          <Icon className='h-5 w-5' />
-          {title}
-          {hasItems && (
-            <span className='text-sm font-normal text-muted-foreground'>
-              ({items.length})
-            </span>
-          )}
+    <Card className={cn('w-full', cardClassName)}>
+      <CardHeader className="pb-3">
+        <CardTitle className={cn('flex items-center gap-2 text-lg', titleClassName)}>
+          <Icon className="h-5 w-5" />
+          {title} ({items.length})
         </CardTitle>
-
-        {hasItems && (
-          <div className='space-y-2'>
-            {/* Search */}
-            <div className='relative'>
-              <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
-              <Input
-                placeholder={`Search ${title.toLowerCase()}...`}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className='pl-8 h-9'
-              />
-            </div>
-
-            {/* Select All */}
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center space-x-2'>
-                <Checkbox
-                  id={`select-all-${title}`}
-                  checked={selectedIndices.size === items.length}
-                  onCheckedChange={handleSelectAll}
-                  disabled={isViewOnlyMode}
-                />
-                <Label
-                  htmlFor={`select-all-${title}`}
-                  className='text-sm font-medium'
-                >
-                  Select All
-                </Label>
-              </div>
-              
-              {selectedCount > 0 && (
-                <span className='text-xs text-muted-foreground'>
-                  {selectedCount} selected
-                </span>
-              )}
-            </div>
-          </div>
-        )}
       </CardHeader>
-
-      {/* Items List */}
-      <div className='flex-1 px-4'>
-        {!hasItems ? (
-          <div className='flex flex-col items-center justify-center h-32 text-center'>
-            <Icon className='h-8 w-8 text-muted-foreground mb-2' />
-            <p className='text-sm text-muted-foreground'>
-              No {title.toLowerCase()} available
-            </p>
-          </div>
-        ) : !hasFilteredItems ? (
-          <div className='flex flex-col items-center justify-center h-32 text-center'>
-            <Search className='h-8 w-8 text-muted-foreground mb-2' />
-            <p className='text-sm text-muted-foreground'>
-              No results found for "{searchTerm}"
-            </p>
-          </div>
-        ) : (
-          <ScrollArea className='h-full'>
-            <div
-              ref={parentRef}
-              className='space-y-2'
-              style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                position: 'relative',
-              }}
-            >
-              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                const item = filteredItems[virtualItem.index];
-                const originalIndex = items.indexOf(item);
-                const isSelected = selectedIndices.has(originalIndex);
-
-                return (
-                  <div
-                    key={virtualItem.index}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: `${virtualItem.size}px`,
-                      transform: `translateY(${virtualItem.start}px)`,
-                    }}
-                  >
-                    <div className='flex items-start gap-2 p-2'>
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => handleItemSelection(originalIndex)}
-                        disabled={isViewOnlyMode}
-                        className='mt-1'
-                      />
-                      <div className='flex-1 min-w-0'>
-                        {renderItem(item, originalIndex, isSelected)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        )}
-      </div>
-
-      {/* Actions */}
-      {hasItems && !isViewOnlyMode && (
-        <CardFooter className='pt-3 flex gap-2'>
-          <Button
-            onClick={handleAddSelected}
-            disabled={selectedCount === 0}
-            size='sm'
-            className='flex-1'
+      
+      <CardContent className="pt-0">
+        <div
+          ref={parentRef}
+          className="h-64 overflow-auto"
+          style={{ contain: 'strict' }}
+        >
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
           >
-            <PlusCircle className='h-4 w-4 mr-2' />
-            Add Selected ({selectedCount})
+            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+              const item = items[virtualItem.index];
+              const isSelected = selectedIndices.has(virtualItem.index);
+              
+              return (
+                <div
+                  key={`${itemKeyPrefix}-${virtualItem.index}`}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualItem.size}px`,
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  {isConceptSection ? (
+                    <ConceptSuggestionItem
+                      item={item as EditableExtractedConcept}
+                      index={virtualItem.index}
+                      itemStatus={getConceptStatus?.((item as EditableExtractedConcept).current) || 'new'}
+                      isViewOnlyMode={isViewOnlyMode}
+                      isSelected={isSelected}
+                      onToggleSelection={onToggleConceptSelection!}
+                      onToggleEdit={onToggleConceptEdit!}
+                      onInputChange={onConceptInputChange!}
+                      onConfirmEdit={onConfirmConceptEdit!}
+                      setDragPreview={setDragPreview!}
+                      clearDragPreview={clearDragPreview!}
+                    />
+                  ) : (
+                    <RelationSuggestionItem
+                      item={item as EditableRelationSuggestion}
+                      index={virtualItem.index}
+                      isViewOnlyMode={isViewOnlyMode}
+                      isSelected={isSelected}
+                      nodesExistOnMap={checkRelationNodesExistOnMap?.((item as EditableRelationSuggestion).current) || false}
+                      onToggleSelection={onToggleRelationSelection!}
+                      onToggleEdit={onToggleRelationEdit!}
+                      onInputChange={onRelationInputChange!}
+                      onConfirmEdit={onConfirmRelationEdit!}
+                      setDraggedRelationPreview={setDraggedRelationPreview!}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+      
+      <CardFooter className="flex flex-col sm:flex-row gap-2 pt-3">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleAddSelected}
+          disabled={isViewOnlyMode || countOfSelectedAndSelectable === 0}
+          className="w-full sm:w-auto"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add Selected ({countOfSelectedAndSelectable})
+        </Button>
+        
+        <Button
+          size="sm"
+          variant="default"
+          onClick={handleAddAllNewSimilar}
+          disabled={isViewOnlyMode || countOfAllNewOrSimilar === 0}
+          className="w-full sm:w-auto"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add All New/Similar ({countOfAllNewOrSimilar})
+        </Button>
+        
+        {onClearItems && (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={onClearItems}
+            disabled={isViewOnlyMode}
+            className="w-full sm:w-auto"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Clear All
           </Button>
-          
-          {onClearAll && (
-            <Button
-              onClick={onClearAll}
-              variant='outline'
-              size='sm'
-            >
-              <Trash2 className='h-4 w-4 mr-2' />
-              Clear All
-            </Button>
-          )}
-        </CardFooter>
-      )}
-    </div>
+        )}
+      </CardFooter>
+    </Card>
   );
-}
+});
+
+SuggestionSection.displayName = 'SuggestionSection';
+
+export default SuggestionSection;

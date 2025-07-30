@@ -153,7 +153,7 @@ vi.mock('@genkit-ai/googleai', () => ({
 
 import { temporal } from 'zundo';
 vi.mock('zundo', () => ({
-  temporal: (fn: any) => fn,
+  temporal: (fn: unknown) => fn,
   createVanillaTemporal: () => ({
     getState: () => ({
       pastStates: [],
@@ -175,14 +175,14 @@ vi.mock('zustand', async () => {
     '@/stores/concept-map-store'
   );
 
-  const mockCreate = (initializer: any) => {
+  const mockCreate = (initializer: unknown) => {
     // Check if it's the temporal store
     if (initializer && initializer.toString().includes('temporalStateCreator')) {
       const vanillaStore = initializer(temporalStateCreator);
       const useBoundStore = () => vanillaStore;
       Object.assign(useBoundStore, {
         getState: () => vanillaStore,
-        setState: (updater: any) => {
+        setState: (updater: unknown) => {
           const newState =
             typeof updater === 'function' ? updater(vanillaStore) : updater;
           Object.assign(vanillaStore, newState);
@@ -199,11 +199,11 @@ vi.mock('zustand', async () => {
       return useBoundStore;
     }
     // For other stores
-    return (actual as any).create(initializer);
+    return (actual as typeof import('zustand')).create(initializer);
   };
 
   return {
-    ...(actual as any),
+    ...(actual as typeof import('zustand')),
     create: mockCreate,
     default: mockCreate,
   };

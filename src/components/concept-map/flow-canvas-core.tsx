@@ -112,7 +112,7 @@ interface FlowCanvasCoreProps {
   onRejectVisualEdge?: (suggestionId: string) => void;
 }
 
-const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
+const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(({
   mapDataFromStore,
   isViewOnlyMode,
   onSelectionChange,
@@ -1092,6 +1092,8 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = ({
     </div>
   );
 };
+
+});
 
 const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => (
   <FlowCanvasCoreInternal {...props} />

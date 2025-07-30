@@ -20,11 +20,15 @@ export default defineConfig({
     poolOptions: {
       forks: {
         singleFork: true,
+        maxForks: 1,
+        minForks: 1,
       },
     },
-    // Set memory limits
-    testTimeout: 30000,
-    hookTimeout: 30000,
+    // Set memory limits and reduce timeout for faster feedback
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    // Limit memory usage
+    maxConcurrency: 1,
     include: [
       'src/**/*.test.{ts,tsx}',
       'src/**/__tests__/**/*.{ts,tsx}',
@@ -45,10 +49,10 @@ export default defineConfig({
       // The created mock file `src/tests/__mocks__/next/navigation.ts` is intended to be used with `vi.mock('next/navigation', () => import('@/tests/__mocks__/next/navigation'))`
       // in the test files or in the setup file.
     coverage: {
-      provider: 'v8', // or 'istanbul'
-      reporter: ['text', 'json', 'html'],
+      provider: 'v8',
+      reporter: ['text'],
       reportsDirectory: './coverage',
-      enabled: false, // Temporarily disable coverage
+      enabled: false, // Keep disabled to reduce memory usage
     },
       deps: {
         optimizer: {

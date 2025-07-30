@@ -146,6 +146,9 @@ export interface VisualEdgeSuggestion {
   id: string; // Unique ID for the suggestion itself (e.g., generated with uuid or timestamp)
   sourceNodeId: string;
   targetNodeId: string;
-  label: string;
+  suggestedLabel?: string;
+  label?: string;
   reason?: string;
+  midpointX?: number;
+  midpointY?: number;
 }

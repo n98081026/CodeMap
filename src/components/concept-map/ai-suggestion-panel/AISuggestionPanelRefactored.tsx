@@ -1,24 +1,22 @@
-'use client';
-
-import { GitFork, Lightbulb } from 'lucide-react';
-import React, { useState, useMemo, useCallback } from 'react';
-
+import React from 'react';
+import { Search, Lightbulb } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { useAISuggestionPanelLogic } from '@/hooks/useAISuggestionPanelLogic';
+import SuggestionSection from './SuggestionSection';
 import type { ConceptMapData, ConceptMapNode } from '@/types';
 
-import { EmptyState } from '@/components/layout/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+export interface ExtractedConceptItem {
+  concept: string;
+  context?: string;
+  source?: string;
+}
 
-import { EditableConceptLabel } from './EditableConceptLabel';
-import { EditableRelationLabel } from './EditableRelationLabel';
-import { SuggestionSection } from './SuggestionSection';
-import type {
-  ExtractedConceptItem,
-  RelationSuggestion,
-  EditableExtractedConcept,
-  EditableRelationSuggestion,
-  ItemStatus,
-} from './AISuggestionPanelTypes';
+export interface RelationSuggestion {
+  source: string;
+  target: string;
+  relation: string;
+  reason?: string;
+}
 
 export interface AISuggestionPanelProps {
   mapData?: ConceptMapData;
@@ -32,7 +30,7 @@ export interface AISuggestionPanelProps {
   isViewOnlyMode?: boolean;
 }
 
-export const AISuggestionPanelRefactored: React.FC<AISuggestionPanelProps> = ({
+const AISuggestionPanelRefactored: React.FC<AISuggestionPanelProps> = React.memo(({
   mapData,
   currentMapNodes = [],
   extractedConcepts = [],
@@ -41,258 +39,123 @@ export const AISuggestionPanelRefactored: React.FC<AISuggestionPanelProps> = ({
   onAddSuggestedRelations,
   onClearExtractedConcepts,
   onClearSuggestedRelations,
-  isViewOnlyMode = false,
+  isViewOnlyMode,
 }) => {
-  // Local state for editing
-  const [editableConcepts, setEditableConcepts] = useState<EditableExtractedConcept[]>([]);
-  const [editableRelations, setEditableRelations] = useState<EditableRelationSuggestion[]>([]);
-  const [selectedConceptIndices, setSelectedConceptIndices] = useState<Set<number>>(new Set());
-  const [selectedRelationIndices, setSelectedRelationIndices] = useState<Set<number>>(new Set());
-
-  // Store hooks for drag preview
-  const { setDragPreviewItem, updateDragPreviewPosition, setDraggedRelationLabel } = useConceptMapStore();
-
-  // Initialize editable items when props change
-  React.useEffect(() => {
-    setEditableConcepts(
-      extractedConcepts.map(concept => ({
-        original: concept,
-        current: { ...concept },
-        isEditing: false,
-        editingField: null,
-      }))
-    );
-  }, [extractedConcepts]);
-
-  React.useEffect(() => {
-    setEditableRelations(
-      suggestedRelations.map(relation => ({
-        original: relation,
-        current: { ...relation },
-        isEditing: false,
-        editingField: null,
-      }))
-    );
-  }, [suggestedRelations]);
-
-  // Determine concept status (new, exact match, similar match)
-  const getConceptStatus = useCallback((concept: string): ItemStatus => {
-    const normalizedConcept = concept.toLowerCase().trim();
-    const existingConcepts = currentMapNodes.map(node => node.text.toLowerCase().trim());
-    
-    if (existingConcepts.includes(normalizedConcept)) {
-      return 'exact-match';
-    }
-    
-    // Check for similar matches (simple similarity check)
-    const hasSimilar = existingConcepts.some(existing => 
-      existing.includes(normalizedConcept) || normalizedConcept.includes(existing)
-    );
-    
-    return hasSimilar ? 'similar-match' : 'new';
-  }, [currentMapNodes]);
-
-  // Check if relation nodes exist
-  const getRelationNodeExistence = useCallback((relation: RelationSuggestion) => {
-    const nodeTexts = currentMapNodes.map(node => node.text.toLowerCase().trim());
-    return {
-      source: nodeTexts.includes(relation.source.toLowerCase().trim()),
-      target: nodeTexts.includes(relation.target.toLowerCase().trim()),
-    };
-  }, [currentMapNodes]);
-
-  // Concept editing handlers
-  const handleConceptToggleEdit = useCallback((index: number, field: 'concept') => {
-    setEditableConcepts(prev => prev.map((item, i) => 
-      i === index 
-        ? { ...item, isEditing: !item.isEditing, editingField: item.isEditing ? null : field }
-        : { ...item, isEditing: false, editingField: null }
-    ));
-  }, []);
-
-  const handleConceptInputChange = useCallback((index: number, value: string, field: 'concept') => {
-    setEditableConcepts(prev => prev.map((item, i) => 
-      i === index 
-        ? { ...item, current: { ...item.current, [field]: value } }
-        : item
-    ));
-  }, []);
-
-  const handleConceptConfirmEdit = useCallback((index: number) => {
-    setEditableConcepts(prev => prev.map((item, i) => 
-      i === index 
-        ? { ...item, isEditing: false, editingField: null }
-        : item
-    ));
-  }, []);
-
-  // Relation editing handlers
-  const handleRelationToggleEdit = useCallback((index: number, field: 'source' | 'target' | 'relation') => {
-    setEditableRelations(prev => prev.map((item, i) => 
-      i === index 
-        ? { ...item, isEditing: !item.isEditing, editingField: item.isEditing ? null : field }
-        : { ...item, isEditing: false, editingField: null }
-    ));
-  }, []);
-
-  const handleRelationInputChange = useCallback((index: number, value: string, field: 'source' | 'target' | 'relation') => {
-    setEditableRelations(prev => prev.map((item, i) => 
-      i === index 
-        ? { ...item, current: { ...item.current, [field]: value } }
-        : item
-    ));
-  }, []);
-
-  const handleRelationConfirmEdit = useCallback((index: number) => {
-    setEditableRelations(prev => prev.map((item, i) => 
-      i === index 
-        ? { ...item, isEditing: false, editingField: null }
-        : item
-    ));
-  }, []);
-
-  // Drag handlers
-  const setDragPreview = useCallback((item: { text: string; type: string } | null) => {
-    setDragPreviewItem(item);
-  }, [setDragPreviewItem]);
-
-  const clearDragPreview = useCallback(() => {
-    setDragPreviewItem(null);
-    setDraggedRelationLabel(null);
-  }, [setDragPreviewItem, setDraggedRelationLabel]);
-
-  const setDraggedRelationPreview = useCallback((label: string | null) => {
-    setDraggedRelationLabel(label);
-  }, [setDraggedRelationLabel]);
-
-  // Add handlers
-  const handleAddSelectedConcepts = useCallback((concepts: EditableExtractedConcept[]) => {
-    const conceptItems = concepts.map(c => c.current);
-    onAddExtractedConcepts?.(conceptItems);
-  }, [onAddExtractedConcepts]);
-
-  const handleAddSelectedRelations = useCallback((relations: EditableRelationSuggestion[]) => {
-    const relationItems = relations.map(r => r.current);
-    onAddSuggestedRelations?.(relationItems);
-  }, [onAddSuggestedRelations]);
-
-  // Render functions
-  const renderConceptItem = useCallback((item: EditableExtractedConcept, index: number) => {
-    const status = getConceptStatus(item.current.concept);
-    
-    return (
-      <EditableConceptLabel
-        item={item}
-        index={index}
-        itemStatus={status}
-        isViewOnlyMode={isViewOnlyMode}
-        onToggleEdit={handleConceptToggleEdit}
-        onInputChange={handleConceptInputChange}
-        onConfirmEdit={handleConceptConfirmEdit}
-        setDragPreview={setDragPreview}
-        clearDragPreview={clearDragPreview}
-      />
-    );
-  }, [
-    getConceptStatus,
-    isViewOnlyMode,
-    handleConceptToggleEdit,
-    handleConceptInputChange,
-    handleConceptConfirmEdit,
+  const {
+    editableExtracted,
+    editableRelations,
+    selectedExtractedIndices,
+    selectedRelationIndices,
+    conceptsParentRef,
+    relationsParentRef,
+    conceptsRowVirtualizer,
+    relationsRowVirtualizer,
     setDragPreview,
     clearDragPreview,
-  ]);
-
-  const renderRelationItem = useCallback((item: EditableRelationSuggestion, index: number) => {
-    const nodeExistence = getRelationNodeExistence(item.current);
-    
-    return (
-      <EditableRelationLabel
-        item={item}
-        index={index}
-        isViewOnlyMode={isViewOnlyMode}
-        relationNodeExistence={nodeExistence}
-        onToggleEdit={handleRelationToggleEdit}
-        onInputChange={handleRelationInputChange}
-        onConfirmEdit={handleRelationConfirmEdit}
-        setDraggedRelationPreview={setDraggedRelationPreview}
-        clearDragPreview={clearDragPreview}
-      />
-    );
-  }, [
-    getRelationNodeExistence,
-    isViewOnlyMode,
-    handleRelationToggleEdit,
-    handleRelationInputChange,
-    handleRelationConfirmEdit,
     setDraggedRelationPreview,
-    clearDragPreview,
-  ]);
+    getConceptStatus,
+    checkRelationNodesExistOnMap,
+    handleToggleConceptEdit,
+    handleConceptInputChange,
+    handleConfirmConceptEdit,
+    handleToggleRelationEdit,
+    handleRelationInputChange,
+    handleConfirmRelationEdit,
+    handleToggleConceptSelection,
+    handleToggleRelationSelection,
+  } = useAISuggestionPanelLogic({
+    currentMapNodes,
+    extractedConcepts,
+    suggestedRelations,
+  });
 
-  // Main content
-  const hasAnySuggestions = extractedConcepts.length > 0 || suggestedRelations.length > 0;
+  const renderMainContent = () => {
+    const noExtracted = !editableExtracted || editableExtracted.length === 0;
+    const noRelations = !editableRelations || editableRelations.length === 0;
 
-  if (!hasAnySuggestions) {
+    if (!currentMapNodes && noExtracted && noRelations) {
+      return (
+        <div className='text-muted-foreground py-8 text-center'>
+          No suggestions available yet.
+        </div>
+      );
+    }
+
+    if (currentMapNodes && currentMapNodes.length > 0 && noExtracted && noRelations) {
+      return (
+        <div className='text-muted-foreground py-8 text-center'>
+          No suggestions available for the current map.
+        </div>
+      );
+    }
+
     return (
-      <Card
-        className='h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner'
-        data-tutorial-id='ai-suggestion-panel'
+      <div
+        className='h-full w-full p-4 space-y-4 text-left overflow-y-auto'
+        data-tutorial-id='ai-suggestion-panel-content'
       >
-        <CardContent className='flex h-full flex-col items-center justify-center text-center p-6'>
-          <EmptyState
-            icon={GitFork}
-            title='No AI Suggestions'
-            description='Use AI tools to extract concepts and suggest relations for your concept map.'
+        {onAddExtractedConcepts && editableExtracted.length > 0 && (
+          <SuggestionSection
+            title="Extracted Concepts"
+            icon={Search}
+            items={editableExtracted}
+            selectedIndices={selectedExtractedIndices}
+            itemKeyPrefix="extracted-concept"
+            parentRef={conceptsParentRef}
+            rowVirtualizer={conceptsRowVirtualizer}
+            onAddItems={onAddExtractedConcepts}
+            onClearItems={onClearExtractedConcepts}
+            cardClassName="bg-blue-500/5 border-blue-500/20"
+            titleClassName="text-blue-700 dark:text-blue-400"
+            isViewOnlyMode={isViewOnlyMode}
+            getConceptStatus={getConceptStatus}
+            onToggleConceptSelection={handleToggleConceptSelection}
+            onToggleConceptEdit={handleToggleConceptEdit}
+            onConceptInputChange={handleConceptInputChange}
+            onConfirmConceptEdit={handleConfirmConceptEdit}
+            setDragPreview={setDragPreview}
+            clearDragPreview={clearDragPreview}
           />
-        </CardContent>
-      </Card>
+        )}
+
+        {onAddSuggestedRelations && editableRelations.length > 0 && (
+          <SuggestionSection
+            title="Suggested Relations"
+            icon={Lightbulb}
+            items={editableRelations}
+            selectedIndices={selectedRelationIndices}
+            itemKeyPrefix="relation-"
+            parentRef={relationsParentRef}
+            rowVirtualizer={relationsRowVirtualizer}
+            onAddItems={onAddSuggestedRelations}
+            onClearItems={onClearSuggestedRelations}
+            cardClassName="bg-purple-500/5 border-purple-500/20"
+            titleClassName="text-purple-700 dark:text-purple-400"
+            isViewOnlyMode={isViewOnlyMode}
+            checkRelationNodesExistOnMap={checkRelationNodesExistOnMap}
+            onToggleRelationSelection={handleToggleRelationSelection}
+            onToggleRelationEdit={handleToggleRelationEdit}
+            onRelationInputChange={handleRelationInputChange}
+            onConfirmRelationEdit={handleConfirmRelationEdit}
+            setDraggedRelationPreview={setDraggedRelationPreview}
+          />
+        )}
+      </div>
     );
-  }
+  };
 
   return (
     <Card
-      className='h-full w-full rounded-lg border shadow-sm'
+      className='h-full w-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/10 shadow-inner'
       data-tutorial-id='ai-suggestion-panel'
     >
-      <CardContent className='h-full p-0 flex flex-col'>
-        <div className='flex-1 space-y-4 p-4'>
-          {/* Extracted Concepts Section */}
-          {extractedConcepts.length > 0 && (
-            <SuggestionSection
-              title='Extracted Concepts'
-              icon={GitFork}
-              items={editableConcepts}
-              selectedIndices={selectedConceptIndices}
-              onSelectionChange={setSelectedConceptIndices}
-              onAddSelected={handleAddSelectedConcepts}
-              onClearAll={onClearExtractedConcepts}
-              renderItem={renderConceptItem}
-              isViewOnlyMode={isViewOnlyMode}
-              className='bg-blue-500/5 border border-blue-500/20 rounded-lg'
-              headerClassName='text-blue-700 dark:text-blue-400'
-            />
-          )}
-
-          {/* Suggested Relations Section */}
-          {suggestedRelations.length > 0 && (
-            <SuggestionSection
-              title='Suggested Relations'
-              icon={Lightbulb}
-              items={editableRelations}
-              selectedIndices={selectedRelationIndices}
-              onSelectionChange={setSelectedRelationIndices}
-              onAddSelected={handleAddSelectedRelations}
-              onClearAll={onClearSuggestedRelations}
-              renderItem={renderRelationItem}
-              isViewOnlyMode={isViewOnlyMode}
-              className='bg-purple-500/5 border border-purple-500/20 rounded-lg'
-              headerClassName='text-purple-700 dark:text-purple-400'
-            />
-          )}
-        </div>
+      <CardContent className='flex h-full flex-col items-center justify-center text-center p-0'>
+        {renderMainContent()}
       </CardContent>
     </Card>
   );
-};
+});
 
 AISuggestionPanelRefactored.displayName = 'AISuggestionPanelRefactored';
+
+export default AISuggestionPanelRefactored;

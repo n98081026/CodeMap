@@ -1,16 +1,12 @@
-// Export all AI Suggestion Panel components and types
+// Export the refactored components
+export { default as AISuggestionPanelRefactored } from './AISuggestionPanelRefactored';
+export { default as ConceptSuggestionItem } from './ConceptSuggestionItem';
+export { default as RelationSuggestionItem } from './RelationSuggestionItem';
+export { default as SuggestionSection } from './SuggestionSection';
 
-export { AISuggestionPanelRefactored as AISuggestionPanel } from './AISuggestionPanelRefactored';
-export { EditableConceptLabel } from './EditableConceptLabel';
-export { EditableRelationLabel } from './EditableRelationLabel';
-export { SuggestionSection } from './SuggestionSection';
-
+// Re-export types for convenience
 export type {
   ExtractedConceptItem,
   RelationSuggestion,
-  EditableExtractedConcept,
-  EditableRelationSuggestion,
-  ItemStatus,
-  ConceptLabelProps,
-  RelationLabelProps,
-} from './AISuggestionPanelTypes';
+  AISuggestionPanelProps,
+} from './AISuggestionPanelRefactored';
