@@ -32,7 +32,7 @@ const AIStagingToolbar: React.FC<AIStagingToolbarProps> = ({
 
   return (
     <div
-      data-tutorial-id='ai-staging-toolbar'
+      data-testid='ai-staging-toolbar'
       className={cn(
         'fixed bottom-4 left-1/2 -translate-x-1/2 z-50 p-0 m-0 w-auto max-w-lg'
         // "animate-in slide-in-from-bottom-10 duration-300 ease-out" // Example animation
@@ -59,7 +59,7 @@ const AIStagingToolbar: React.FC<AIStagingToolbarProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    data-tutorial-id='staging-toolbar-accept-all'
+                    data-testid='staging-toolbar-accept-all'
                     size='sm'
                     onClick={onCommit}
                     className='bg-green-600 hover:bg-green-700 text-white'
@@ -78,7 +78,7 @@ const AIStagingToolbar: React.FC<AIStagingToolbarProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    data-tutorial-id='staging-toolbar-clear-all'
+                    data-testid='staging-toolbar-clear-all'
                     size='sm'
                     variant='outline'
                     onClick={onClear}

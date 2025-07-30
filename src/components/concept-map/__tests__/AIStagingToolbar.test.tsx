@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest'; // Added beforeEach
 import '@testing-library/jest-dom/vitest';
 
@@ -32,25 +32,22 @@ describe('AIStagingToolbar', () => {
         stagedItemCount={{ nodes: 1, edges: 2 }}
       />
     );
+    const toolbar = screen.getByTestId('ai-staging-toolbar');
+    const textElement = within(toolbar).getByText(/AI Staging Area/i);
 
-    const textElement = screen.getByText((content, element) => {
-      return (
-        element?.tagName.toLowerCase() === 'p' &&
-        content.startsWith('AI Staging Area: Reviewing')
-      );
-    });
     expect(textElement).toBeInTheDocument();
     expect(textElement.textContent).toContain('1 nodes');
     expect(textElement.textContent).toContain('2 edges');
 
-    // Updated queries to use the aria-label
     expect(
-      screen.getByRole('button', {
+      within(toolbar).getByRole('button', {
         name: /Commit staged AI suggestions to the map/i,
       })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Discard all staged AI suggestions/i })
+      within(toolbar).getByRole('button', {
+        name: /Discard all staged AI suggestions/i,
+      })
     ).toBeInTheDocument();
   });
 
@@ -61,20 +58,18 @@ describe('AIStagingToolbar', () => {
         stagedItemCount={{ nodes: 3, edges: 5 }}
       />
     );
-    const textElement = screen.getByText(
-      (content, element) =>
-        element?.tagName.toLowerCase() === 'p' &&
-        content.includes('AI Staging Area')
-    );
+    const toolbar = screen.getByTestId('ai-staging-toolbar');
+    const textElement = within(toolbar).getByText(/AI Staging Area/i);
+
     expect(textElement.textContent).toMatch(/3.*nodes/);
     expect(textElement.textContent).toMatch(/5.*edges/);
   });
 
   it('should call onCommit when "Commit to Map" button is clicked', () => {
     render(<AIStagingToolbar {...defaultProps} />);
-    // Updated query
+    const toolbar = screen.getByTestId('ai-staging-toolbar');
     fireEvent.click(
-      screen.getByRole('button', {
+      within(toolbar).getByRole('button', {
         name: /Commit staged AI suggestions to the map/i,
       })
     );
@@ -83,9 +78,11 @@ describe('AIStagingToolbar', () => {
 
   it('should call onClear when "Discard All" button is clicked', () => {
     render(<AIStagingToolbar {...defaultProps} />);
-    // Updated query
+    const toolbar = screen.getByTestId('ai-staging-toolbar');
     fireEvent.click(
-      screen.getByRole('button', { name: /Discard all staged AI suggestions/i })
+      within(toolbar).getByRole('button', {
+        name: /Discard all staged AI suggestions/i,
+      })
     );
     expect(mockOnClear).toHaveBeenCalledTimes(1);
   });
