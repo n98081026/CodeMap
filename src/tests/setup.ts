@@ -115,6 +115,28 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+// Mock window.location for tests that rely on it for URL construction
+const location = new URL('http://localhost:3000');
+Object.defineProperty(window, 'location', {
+  writable: true,
+  value: {
+    ...window.location,
+    ancestorOrigins: [],
+    assign: vi.fn(),
+    reload: vi.fn(),
+    replace: vi.fn(),
+    hash: location.hash,
+    host: location.host,
+    hostname: location.hostname,
+    href: location.href,
+    origin: location.origin,
+    pathname: location.pathname,
+    port: location.port,
+    protocol: location.protocol,
+    search: location.search,
+  },
+});
+
 import { z } from 'zod';
 
 vi.mock('genkit', async (importOriginal) => {
@@ -164,6 +186,8 @@ vi.mock('zundo', () => ({
     setState: vi.fn(),
   }),
 }));
+
+import { vi } from 'vitest';
 
 import { vi } from 'vitest';
 

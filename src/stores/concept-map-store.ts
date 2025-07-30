@@ -501,7 +501,7 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       triggerFocusView: false,
     };
     set(newMapState);
-    vanillaStore.getState().clear();
+    // vanillaStore.getState().clear(); // This is a problematic circular dependency
   },
   setLoadedMap: (map, viewOnly = false) => {
     get().addDebugLog(
@@ -525,7 +525,7 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       focusViewOnNodeIds: null,
       triggerFocusView: false,
     });
-    vanillaStore.getState().clear();
+    // vanillaStore.getState().clear();
   },
   importMapData: (importedData, fileName) => {
     const newName = fileName
@@ -547,11 +547,11 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       focusViewOnNodeIds: null,
       triggerFocusView: false,
     }));
-    vanillaStore.getState().clear();
+    // vanillaStore.getState().clear();
   },
   resetStore: () => {
     set({ ...initialStateBase, initialLoadComplete: false, debugLogs: [] });
-    vanillaStore.getState().clear();
+    // vanillaStore.getState().clear();
   },
   addNode: (options) => {
     const newNodeId = options.id || uniqueNodeId();
@@ -570,16 +570,23 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       height: options.height ?? 70,
     };
     set((state) => {
-      let newNodes = [...state.mapData.nodes, newNode];
+      const newNodes = [...state.mapData.nodes, newNode];
+      const newEdges = [...state.mapData.edges]; // Ensure edges are also new array
+
       if (options.parentNode) {
-        newNodes = newNodes.map((n) => {
-          if (n.id === options.parentNode) {
-            return { ...n, childIds: [...(n.childIds || []), newNode.id] };
-          }
-          return n;
-        });
+        const parentIndex = newNodes.findIndex(n => n.id === options.parentNode);
+        if (parentIndex > -1) {
+          const parentNode = { ...newNodes[parentIndex] };
+          parentNode.childIds = [...(parentNode.childIds || []), newNode.id];
+          newNodes[parentIndex] = parentNode;
+        }
       }
-      return { mapData: { ...state.mapData, nodes: newNodes } };
+      return {
+        mapData: {
+          nodes: newNodes,
+          edges: newEdges,
+        },
+      };
     });
     // After node is added, set it as the temporary target for tutorials
     get().setTutorialTempTargetNodeId(newNodeId);
@@ -995,30 +1002,31 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
   setProjectOverviewData: (data) =>
     set({ projectOverviewData: data, isFetchingOverview: false }),
   setIsFetchingOverview: (fetching) => set({ isFetchingOverview: fetching }),
-  fetchProjectOverview: async () => {
+  fetchProjectOverview: async (input) => { // Added input parameter
     if (get().isFetchingOverview) return;
     set({
       isFetchingOverview: true,
       projectOverviewData: null,
       error: null,
     });
-    // try {
-    //   const overviewData = await generateProjectOverviewFlow(input);
-    //   set({
-    //     projectOverviewData: overviewData,
-    //     isFetchingOverview: false,
-    //   });
-    // } catch (e: unknown) {
-    //   set({
-    //     projectOverviewData: {
-    //       overallSummary: 'Failed to generate overview.',
-    //       keyModules: [],
-    //       error: (e as Error).message,
-    //     },
-    //     isFetchingOverview: false,
-    //     error: `Overview Error: ${(e as Error).message}`,
-    //   });
-    // }
+    try {
+      // The actual flow is mocked in the test environment
+      const overviewData = await (await import('@/ai/flows/generate-project-overview')).generateProjectOverviewFlow(input);
+      set({
+        projectOverviewData: overviewData,
+        isFetchingOverview: false,
+      });
+    } catch (e: unknown) {
+      set({
+        projectOverviewData: {
+          overallSummary: 'Failed to generate overview.',
+          keyModules: [],
+          error: (e as Error).message,
+        },
+        isFetchingOverview: false,
+        error: `Overview Error: ${(e as Error).message}`,
+      });
+    }
   },
   loadExampleMapData: (mapDataToLoad, exampleName) => {
     get().addDebugLog(
@@ -1037,7 +1045,7 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       initialLoadComplete: true,
       debugLogs: get().debugLogs,
     });
-    vanillaStore.getState().clear();
+    // vanillaStore.getState().clear();
     set({ triggerFitView: true });
   },
   setGhostPreview: (nodesToPreview) => {
@@ -1255,5 +1263,5 @@ const temporalStore = temporal(storeDefinition, {
 
 export const useConceptMapStore = create(temporalStore);
 
-export const vanillaStore = (useConceptMapStore as any)
-  .temporal as TemporalStore<TrackedState>;
+// export const vanillaStore = (useConceptMapStore as any)
+//   .temporal as TemporalStore<TrackedState>;
