@@ -173,19 +173,19 @@ vi.mock('@genkit-ai/googleai', () => ({
   gemini10Pro: {},
 }));
 
-// import { temporal } from 'zundo';
-// vi.mock('zundo', () => ({
-//   temporal: (fn: unknown) => fn,
-//   createVanillaTemporal: () => ({
-//     getState: () => ({
-//       pastStates: [],
-//       futureStates: [],
-//       clear: vi.fn(),
-//     }),
-//     subscribe: vi.fn(),
-//     setState: vi.fn(),
-//   }),
-// }));
+import { temporal } from 'zundo';
+vi.mock('zundo', () => ({
+  temporal: (fn: unknown) => fn,
+  createVanillaTemporal: () => ({
+    getState: () => ({
+      pastStates: [],
+      futureStates: [],
+      clear: vi.fn(),
+    }),
+    subscribe: vi.fn(),
+    setState: vi.fn(),
+  }),
+}));
 
 import { vi } from 'vitest';
 
@@ -193,42 +193,42 @@ import { vi } from 'vitest';
 
 import { vi } from 'vitest';
 
-// vi.mock('zustand', async () => {
-//   const actual = await vi.importActual('zustand');
-//   const { temporalStateCreator } = await vi.importActual(
-//     '@/stores/concept-map-store'
-//   );
-//
-//   const mockCreate = (initializer: unknown) => {
-//     // Check if it's the temporal store
-//     if (initializer && initializer.toString().includes('temporalStateCreator')) {
-//       const vanillaStore = initializer(temporalStateCreator);
-//       const useBoundStore = () => vanillaStore;
-//       Object.assign(useBoundStore, {
-//         getState: () => vanillaStore,
-//         setState: (updater: unknown) => {
-//           const newState =
-//             typeof updater === 'function' ? updater(vanillaStore) : updater;
-//           Object.assign(vanillaStore, newState);
-//         },
-//         subscribe: vi.fn(),
-//         temporal: {
-//           pastStates: () => [],
-//           futureStates: () => [],
-//           undo: vi.fn(),
-//           redo: vi.fn(),
-//           clear: vi.fn(),
-//         },
-//       });
-//       return useBoundStore;
-//     }
-//     // For other stores
-//     return (actual as typeof import('zustand')).create(initializer);
-//   };
-//
-//   return {
-//     ...(actual as typeof import('zustand')),
-//     create: mockCreate,
-//     default: mockCreate,
-//   };
-// });
+vi.mock('zustand', async () => {
+  const actual = await vi.importActual('zustand');
+  const { temporalStateCreator } = await vi.importActual(
+    '@/stores/concept-map-store'
+  );
+
+  const mockCreate = (initializer: unknown) => {
+    // Check if it's the temporal store
+    if (initializer && initializer.toString().includes('temporalStateCreator')) {
+      const vanillaStore = initializer(temporalStateCreator);
+      const useBoundStore = () => vanillaStore;
+      Object.assign(useBoundStore, {
+        getState: () => vanillaStore,
+        setState: (updater: unknown) => {
+          const newState =
+            typeof updater === 'function' ? updater(vanillaStore) : updater;
+          Object.assign(vanillaStore, newState);
+        },
+        subscribe: vi.fn(),
+        temporal: {
+          pastStates: () => [],
+          futureStates: () => [],
+          undo: vi.fn(),
+          redo: vi.fn(),
+          clear: vi.fn(),
+        },
+      });
+      return useBoundStore;
+    }
+    // For other stores
+    return (actual as typeof import('zustand')).create(initializer);
+  };
+
+  return {
+    ...(actual as typeof import('zustand')),
+    create: mockCreate,
+    default: mockCreate,
+  };
+});
