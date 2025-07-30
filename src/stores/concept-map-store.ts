@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { temporal, type TemporalState as ZundoTemporalState } from 'zundo';
-import { create } from 'zustand';
+import { create, StateCreator } from 'zustand';
 
 import type {
   ConceptMap,
@@ -397,10 +397,7 @@ type TrackedState = Pick<
 >;
 export type ConceptMapStoreTemporalState = ZundoTemporalState<TrackedState>;
 
-const storeDefinition = (
-  set: (partial: ConceptMapState | Partial<ConceptMapState> | ((state: ConceptMapState) => ConceptMapState | Partial<ConceptMapState>), replace?: boolean | undefined) => void,
-  get: () => ConceptMapState
-): ConceptMapState => ({
+const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
   ...initialStateBase,
   // Ensure all functions from ConceptMapState (that are actions) are implemented
   // For properties that were removed from ConceptMapState, ensure their setters are also removed or handled
@@ -504,9 +501,7 @@ const storeDefinition = (
       triggerFocusView: false,
     };
     set(newMapState);
-    if ((useConceptMapStore as any).temporal) {
-      (useConceptMapStore as any).temporal.getState().clear();
-    }
+    vanillaStore.getState().clear();
   },
   setLoadedMap: (map, viewOnly = false) => {
     get().addDebugLog(
@@ -530,9 +525,7 @@ const storeDefinition = (
       focusViewOnNodeIds: null,
       triggerFocusView: false,
     });
-    if ((useConceptMapStore as any).temporal) {
-      (useConceptMapStore as any).temporal.getState().clear();
-    }
+    vanillaStore.getState().clear();
   },
   importMapData: (importedData, fileName) => {
     const newName = fileName
@@ -554,15 +547,11 @@ const storeDefinition = (
       focusViewOnNodeIds: null,
       triggerFocusView: false,
     }));
-    if ((useConceptMapStore as any).temporal) {
-      (useConceptMapStore as any).temporal.getState().clear();
-    }
+    vanillaStore.getState().clear();
   },
   resetStore: () => {
     set({ ...initialStateBase, initialLoadComplete: false, debugLogs: [] });
-    if ((useConceptMapStore as any).temporal) {
-      (useConceptMapStore as any).temporal.getState().clear();
-    }
+    vanillaStore.getState().clear();
   },
   addNode: (options) => {
     const newNodeId = options.id || uniqueNodeId();
@@ -1048,9 +1037,7 @@ const storeDefinition = (
       initialLoadComplete: true,
       debugLogs: get().debugLogs,
     });
-    if ((useConceptMapStore as any).temporal) {
-      (useConceptMapStore as any).temporal.getState().clear();
-    }
+    vanillaStore.getState().clear();
     set({ triggerFitView: true });
   },
   setGhostPreview: (nodesToPreview) => {
@@ -1213,53 +1200,60 @@ const storeDefinition = (
   },
 });
 
-export const useConceptMapStore = create<ConceptMapState>()(
-  temporal(storeDefinition, {
-    partialize: (state): TrackedState => {
-      const {
-        mapData,
-        mapName,
-        isPublic,
-        sharedWithClassroomId,
-        selectedElementId,
-        selectedElementType,
-        multiSelectedNodeIds,
-        editingNodeId,
-        stagedMapData,
-        isStagingActive,
-        ghostPreviewData,
-        structuralSuggestions,
-        isOverviewModeActive,
-        projectOverviewData,
-        focusViewOnNodeIds,
-      } = state;
-      return {
-        mapData,
-        mapName,
-        isPublic,
-        sharedWithClassroomId,
-        selectedElementId,
-        selectedElementType,
-        multiSelectedNodeIds,
-        editingNodeId,
-        stagedMapData,
-        isStagingActive,
-        ghostPreviewData,
-        structuralSuggestions,
-        isOverviewModeActive,
-        projectOverviewData,
-        focusViewOnNodeIds,
-      };
-    },
-    limit: 50,
-  })
-);
-export const vanillaStore = (useConceptMapStore as any).temporal as {
-  getState: () => {
-    pastStates: ConceptMapState[];
-    futureStates: ConceptMapState[];
+type WithTemporal<T> = (
+  store: StateCreator<T>
+) => UseBoundStore<StoreApi<T>>;
+
+interface TemporalStore<T> {
+  getState: () => ZundoTemporalState<T> & {
+    undo: (steps?: number) => void;
+    redo: (steps?: number) => void;
     clear: () => void;
-    undo: () => void;
-    redo: () => void;
   };
-};
+  subscribe: (listener: (state: ZundoTemporalState<T>) => void) => () => void;
+}
+
+const temporalStore = temporal(storeDefinition, {
+  partialize: (state): TrackedState => {
+    const {
+      mapData,
+      mapName,
+      isPublic,
+      sharedWithClassroomId,
+      selectedElementId,
+      selectedElementType,
+      multiSelectedNodeIds,
+      editingNodeId,
+      stagedMapData,
+      isStagingActive,
+      ghostPreviewData,
+      structuralSuggestions,
+      isOverviewModeActive,
+      projectOverviewData,
+      focusViewOnNodeIds,
+    } = state;
+    return {
+      mapData,
+      mapName,
+      isPublic,
+      sharedWithClassroomId,
+      selectedElementId,
+      selectedElementType,
+      multiSelectedNodeIds,
+      editingNodeId,
+      stagedMapData,
+      isStagingActive,
+      ghostPreviewData,
+      structuralSuggestions,
+      isOverviewModeActive,
+      projectOverviewData,
+      focusViewOnNodeIds,
+    };
+  },
+  limit: 50,
+});
+
+export const useConceptMapStore = create(temporalStore);
+
+export const vanillaStore = (useConceptMapStore as any)
+  .temporal as TemporalStore<TrackedState>;
