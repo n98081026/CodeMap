@@ -241,7 +241,7 @@ describe('Project Analysis Integration Tests', () => {
         error: null,
       });
 
-      (supabase.storage.from as jest.MockedFunction<any>).mockReturnValue({
+      (supabase.storage.from as any).mockReturnValue({
         upload: mockUpload,
         getPublicUrl: vi.fn(() => ({
           data: { publicUrl: 'https://example.com/test-project.zip' },
@@ -272,7 +272,7 @@ describe('Project Analysis Integration Tests', () => {
         error: { message: 'Storage quota exceeded' },
       });
 
-      (supabase.storage.from as jest.MockedFunction<any>).mockReturnValue({
+      (supabase.storage.from as any).mockReturnValue({
         upload: mockUpload,
       });
 

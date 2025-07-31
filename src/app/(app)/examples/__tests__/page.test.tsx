@@ -76,7 +76,7 @@ vi.doMock('@/lib/example-data', () => ({
   exampleProjects: mockExampleProjectList,
 }));
 
-describe.skip('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
+describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     // Ensure necessary mocks from next/navigation are setup if tests interact with router/params

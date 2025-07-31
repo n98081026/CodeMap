@@ -44,7 +44,7 @@ function TestAuthComponent() {
   );
 }
 
-describe.skip('Authentication Integration Tests', () => {
+describe('Authentication Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

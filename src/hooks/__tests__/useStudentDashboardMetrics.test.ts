@@ -30,9 +30,7 @@ vi.mock('@/contexts/auth-context', async () => {
   };
 });
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
+// Moved afterEach to be inside describe block
 
 describe('useStudentDashboardMetrics', () => {
   const createWrapper = () => {
@@ -45,6 +43,10 @@ describe('useStudentDashboardMetrics', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('should return loading state initially', () => {
