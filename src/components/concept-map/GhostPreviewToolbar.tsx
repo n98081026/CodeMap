@@ -30,7 +30,7 @@ const GhostPreviewToolbar: React.FC = () => {
   // Basic positioning, can be refined later if needed (e.g., based on ghost elements' bounding box)
   return (
     <div
-      data-tutorial-id='ghost-preview-toolbar'
+      data-testid='ghost-preview-toolbar'
       className={cn(
         'fixed bottom-4 left-1/2 -translate-x-1/2 z-50 p-0 m-0 w-auto max-w-md'
         // "animate-in slide-in-from-bottom-10 duration-300 ease-out"
@@ -48,7 +48,7 @@ const GhostPreviewToolbar: React.FC = () => {
           </div>
           <div className='flex space-x-2 flex-shrink-0'>
             <Button
-              data-tutorial-id='ghost-toolbar-accept'
+              data-testid='ghost-toolbar-accept'
               size='sm'
               onClick={acceptGhostPreview}
               className='bg-green-600 hover:bg-green-700 text-white'
@@ -57,7 +57,7 @@ const GhostPreviewToolbar: React.FC = () => {
               Accept Layout
             </Button>
             <Button
-              data-tutorial-id='ghost-toolbar-cancel'
+              data-testid='ghost-toolbar-cancel'
               size='sm'
               variant='outline'
               onClick={cancelGhostPreview}

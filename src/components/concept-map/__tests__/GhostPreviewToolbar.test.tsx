@@ -10,7 +10,7 @@ import { useConceptMapStore } from '@/stores/concept-map-store';
 // Mock the Zustand store
 vi.mock('@/stores/concept-map-store');
 
-describe.skip('GhostPreviewToolbar', () => {
+describe('GhostPreviewToolbar', () => {
   const mockAcceptGhostPreview = vi.fn();
   const mockCancelGhostPreview = vi.fn();
 

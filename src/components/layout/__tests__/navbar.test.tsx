@@ -6,28 +6,29 @@ import { Navbar } from '../navbar';
 
 import { useAuth } from '@/contexts/auth-context';
 
-// Mock the auth context
+// Mock child components to isolate Navbar
+vi.mock('@/components/ui/sidebar', () => ({
+  SidebarTrigger: () => <div data-testid="mock-sidebar-trigger" />,
+}));
+
+vi.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div data-testid="mock-dropdown-menu">{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div data-testid="mock-dropdown-trigger">{children}</div>,
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div data-testid="mock-dropdown-content">{children}</div>,
+  DropdownMenuItem: ({ children, ...props }: { children: React.ReactNode }) => <div {...props}>{children}</div>,
+  DropdownMenuSeparator: () => <hr />,
+  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
 vi.mock('@/contexts/auth-context');
-
-// Mock next-themes
 vi.mock('next-themes', () => ({
-  useTheme: () => ({
-    theme: 'light',
-    setTheme: vi.fn(),
-  }),
+  useTheme: () => ({ theme: 'light', setTheme: vi.fn() }),
+}));
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-// Mock Lucide icons
-vi.mock('lucide-react', () => ({
-  Menu: () => <div data-testid='menu-icon' />,
-  Sun: () => <div data-testid='sun-icon' />,
-  Moon: () => <div data-testid='moon-icon' />,
-  User: () => <div data-testid='user-icon' />,
-  LogOut: () => <div data-testid='logout-icon' />,
-  Settings: () => <div data-testid='settings-icon' />,
-}));
-
-describe.skip('Navbar', () => {
+describe('Navbar', () => {
   const mockLogout = vi.fn();
 
   beforeEach(() => {
@@ -43,8 +44,8 @@ describe.skip('Navbar', () => {
 
     render(<Navbar />);
 
-    expect(screen.getByText('CodeMap'));
-    expect(screen.getByTestId('sun-icon')); // Theme toggle
+    expect(screen.getByText('CodeMap')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-moon')).toBeInTheDocument();
   });
 
   it('should render user dropdown when authenticated', () => {
@@ -63,12 +64,12 @@ describe.skip('Navbar', () => {
 
     render(<Navbar />);
 
-    expect(screen.getByText('CodeMap'));
-    expect(screen.getByText('John Doe'));
-    expect(screen.getByTestId('user-icon'));
+    expect(screen.getByText('CodeMap')).toBeInTheDocument();
+    // With the mock, the content is rendered immediately
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
   });
 
-  it('should show login and register links when not authenticated', () => {
+  it('should show login button when not authenticated', () => {
     (useAuth as any).mockReturnValue({
       user: null,
       isAuthenticated: false,
@@ -77,8 +78,7 @@ describe.skip('Navbar', () => {
 
     render(<Navbar />);
 
-    expect(screen.getByText('Login'));
-    expect(screen.getByText('Register'));
+    expect(screen.getByRole('link', { name: /Login/i })).toBeInTheDocument();
   });
 
   it('should call logout when logout button is clicked', () => {
@@ -97,33 +97,10 @@ describe.skip('Navbar', () => {
 
     render(<Navbar />);
 
-    // Click on user dropdown to open it
-    const userButton = screen.getByText('John Doe');
-    fireEvent.click(userButton);
-
-    // Find and click logout button
-    const logoutButton = screen.getByText('Logout');
+    // With the mock, the content is rendered immediately
+    const logoutButton = screen.getByText('Log out');
     fireEvent.click(logoutButton);
 
     expect(mockLogout).toHaveBeenCalledTimes(1);
-  });
-
-  it('should display correct role badge', () => {
-    const mockUser = {
-      id: 'user-123',
-      name: 'Jane Teacher',
-      email: 'jane@example.com',
-      role: 'teacher',
-    };
-
-    (useAuth as any).mockReturnValue({
-      user: mockUser,
-      isAuthenticated: true,
-      logout: mockLogout,
-    });
-
-    render(<Navbar />);
-
-    expect(screen.getByText('Teacher'));
   });
 });

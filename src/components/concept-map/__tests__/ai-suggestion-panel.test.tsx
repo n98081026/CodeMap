@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
@@ -124,10 +124,15 @@ describe('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} extractedConcepts={mockConcepts} />
     );
-    expect(screen.getByText('React Hooks')).toBeInTheDocument();
-    expect(screen.getByText('State Management')).toBeInTheDocument();
+    const conceptsSection = screen.getByTestId('extracted-concepts-section');
+    expect(within(conceptsSection).getByText('React Hooks')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Add All New\/Similar \(2\)/i })
+      within(conceptsSection).getByText('State Management')
+    ).toBeInTheDocument();
+    expect(
+      within(conceptsSection).getByRole('button', {
+        name: /Add All New\/Similar \(2\)/i,
+      })
     ).toBeInTheDocument();
   });
 
@@ -135,10 +140,13 @@ describe('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} suggestedRelations={mockRelations} />
     );
-    expect(screen.getByText('Component')).toBeInTheDocument();
-    expect(screen.getAllByText('Hook')).toHaveLength(2);
+    const relationsSection = screen.getByTestId('suggested-relations-section');
+    expect(within(relationsSection).getByText('Component')).toBeInTheDocument();
+    expect(within(relationsSection).getAllByText('Hook')).toHaveLength(2);
     expect(
-      screen.getByRole('button', { name: /Add All New\/Similar \(2\)/i })
+      within(relationsSection).getByRole('button', {
+        name: /Add All New\/Similar \(2\)/i,
+      })
     ).toBeInTheDocument();
   });
 
@@ -146,8 +154,11 @@ describe('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} extractedConcepts={mockConcepts} />
     );
+    const conceptsSection = screen.getByTestId('extracted-concepts-section');
     fireEvent.click(
-      screen.getByRole('button', { name: /Add All New\/Similar \(2\)/i })
+      within(conceptsSection).getByRole('button', {
+        name: /Add All New\/Similar \(2\)/i,
+      })
     );
     expect(onAddExtractedConcepts).toHaveBeenCalledWith(mockConcepts);
   });
@@ -156,8 +167,11 @@ describe('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} suggestedRelations={mockRelations} />
     );
+    const relationsSection = screen.getByTestId('suggested-relations-section');
     fireEvent.click(
-      screen.getByRole('button', { name: /Add All New\/Similar \(2\)/i })
+      within(relationsSection).getByRole('button', {
+        name: /Add All New\/Similar \(2\)/i,
+      })
     );
     expect(onAddSuggestedRelations).toHaveBeenCalledWith(mockRelations);
   });
@@ -171,23 +185,27 @@ describe('AISuggestionPanel', () => {
         isViewOnlyMode={true}
       />
     );
-    const addButtons = screen.queryAllByRole('button', {
-      name: /Add All New\/Similar/i,
-    });
-    expect(addButtons).toHaveLength(0);
+    const conceptsSection = screen.getByTestId('extracted-concepts-section');
+    const relationsSection = screen.getByTestId('suggested-relations-section');
 
-    // Check individual add buttons are not present
-    const firstConceptAddButton = screen
-      .getByText('React Hooks')
-      .parentElement?.querySelector('button[title="Add this concept"]');
-    expect(firstConceptAddButton).toBeNull();
+    expect(
+      within(conceptsSection).queryByRole('button', {
+        name: /Add All/i,
+      })
+    ).toBeNull();
+    expect(
+      within(relationsSection).queryByRole('button', {
+        name: /Add All/i,
+      })
+    ).toBeNull();
   });
 
   it('calls onClearExtractedConcepts when "Clear" is clicked for concepts', () => {
     render(
       <AISuggestionPanel {...defaultProps} extractedConcepts={mockConcepts} />
     );
-    const clearButton = screen.getByTitle(
+    const conceptsSection = screen.getByTestId('extracted-concepts-section');
+    const clearButton = within(conceptsSection).getByTitle(
       'Clear all Extracted Concepts suggestions'
     );
     fireEvent.click(clearButton);
@@ -198,7 +216,8 @@ describe('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} suggestedRelations={mockRelations} />
     );
-    const clearButton = screen.getByTitle(
+    const relationsSection = screen.getByTestId('suggested-relations-section');
+    const clearButton = within(relationsSection).getByTitle(
       'Clear all Suggested Relations suggestions'
     );
     fireEvent.click(clearButton);
@@ -209,10 +228,14 @@ describe('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} extractedConcepts={mockConcepts} />
     );
-    const checkbox = screen.getByRole('checkbox', { name: 'React Hooks' });
+    const conceptsSection = screen.getByTestId('extracted-concepts-section');
+    // Find the specific item row by text, then find the checkbox within it.
+    const conceptRow = within(conceptsSection).getByText('React Hooks').closest('div.flex.items-start');
+    const checkbox = within(conceptRow as HTMLElement).getByRole('checkbox');
+
     fireEvent.click(checkbox);
     fireEvent.click(
-      screen.getByRole('button', { name: /Add Selected \(1\)/i })
+      within(conceptsSection).getByRole('button', { name: /Add Selected \(1\)/i })
     );
     expect(onAddExtractedConcepts).toHaveBeenCalledWith([mockConcepts[0]]);
   });
@@ -221,12 +244,14 @@ describe('AISuggestionPanel', () => {
     render(
       <AISuggestionPanel {...defaultProps} suggestedRelations={mockRelations} />
     );
-    const relationCheckboxes = screen.getAllByRole('checkbox');
-    // The first checkbox is for "Select All", so we start at index 1 for the actual items.
-    // The first relation is at index 1 of the checkboxes list.
-    fireEvent.click(relationCheckboxes[1]);
+    const relationsSection = screen.getByTestId('suggested-relations-section');
+    // Find the row by some unique text and then the checkbox within it.
+    const relationRow = within(relationsSection).getByText('Component').closest('div.flex.items-start');
+    const checkbox = within(relationRow as HTMLElement).getByRole('checkbox');
+
+    fireEvent.click(checkbox);
     fireEvent.click(
-      screen.getByRole('button', { name: /Add Selected \(1\)/i })
+      within(relationsSection).getByRole('button', { name: /Add Selected \(1\)/i })
     );
     expect(onAddSuggestedRelations).toHaveBeenCalledWith([mockRelations[0]]);
   });

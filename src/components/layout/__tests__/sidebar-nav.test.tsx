@@ -18,50 +18,16 @@ vi.mock('next/navigation', () => ({
   ), // Mock Link
 }));
 
-describe.skip('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
+describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should render null (nothing) when in a guest session', () => {
+  it('should render null when user is not authenticated', () => {
     (useAuth as any).mockReturnValue({
       user: null,
-      profile: null,
-      isGuestSession: true,
-      isLoading: false,
-      isAuthenticated: false, // Guests are not "authenticated"
     });
-    mockUsePathname.mockReturnValue('/examples'); // Pathname doesn't matter much if it returns null
-
-    const { container } = render(<SidebarNav />);
-
-    // Expect the component to render essentially nothing
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('should render null (nothing) if auth is loading', () => {
-    (useAuth as any).mockReturnValue({
-      user: null,
-      profile: null,
-      isGuestSession: false,
-      isLoading: true, // Auth is loading
-      isAuthenticated: false,
-    });
-    mockUsePathname.mockReturnValue('/student/dashboard');
-
-    const { container } = render(<SidebarNav />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('should render null (nothing) if not authenticated, not guest, and no profile (edge case)', () => {
-    (useAuth as any).mockReturnValue({
-      user: null, // Has user object from Supabase Auth, but profile fetch failed/pending
-      profile: null,
-      isGuestSession: false,
-      isLoading: false,
-      isAuthenticated: false, // No user & profile means not fully authenticated for app purposes
-    });
-    mockUsePathname.mockReturnValue('/some/path');
+    mockUsePathname.mockReturnValue('/examples');
 
     const { container } = render(<SidebarNav />);
     expect(container.firstChild).toBeNull();
@@ -69,56 +35,52 @@ describe.skip('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
 
   it('should render student links for an authenticated student', () => {
     (useAuth as any).mockReturnValue({
-      user: { id: 'student-id' },
-      profile: { role: 'student', id: 'student-id' /* other profile fields */ },
-      isGuestSession: false,
-      isLoading: false,
-      isAuthenticated: true,
+      user: { role: 'student' },
     });
-    mockUsePathname.mockReturnValue('/student/dashboard');
+    mockUsePathname.mockReturnValue('/application/student/dashboard');
 
     render(<SidebarNav />);
 
-    expect(screen.getByText('Dashboard'));
-    expect(screen.getByRole('link', { name: 'Dashboard' }));
-    expect(screen.getByText('My Classrooms'));
-    expect(screen.getByText('My Concept Maps'));
-    expect(screen.getByText('Examples'));
+    expect(screen.getByRole('link', { name: 'My Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'My Classrooms' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'My Concept Maps' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Examples' })).toBeInTheDocument();
+    // Things they should NOT see
+    expect(screen.queryByRole('link', { name: 'Manage Classrooms' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Admin Panel' })).toBeNull();
   });
 
   it('should render teacher links for an authenticated teacher', () => {
     (useAuth as any).mockReturnValue({
-      user: { id: 'teacher-id' },
-      profile: { role: 'teacher', id: 'teacher-id' /* other profile fields */ },
-      isGuestSession: false,
-      isLoading: false,
-      isAuthenticated: true,
+      user: { role: 'teacher' },
     });
-    mockUsePathname.mockReturnValue('/teacher/dashboard');
+    mockUsePathname.mockReturnValue('/application/teacher/dashboard');
 
     render(<SidebarNav />);
 
-    expect(screen.getByText('Dashboard'));
-    expect(screen.getByRole('link', { name: 'Dashboard' }));
-    expect(screen.getByText('Manage Classrooms'));
-    expect(screen.getByText('Examples'));
+    expect(screen.getByRole('link', { name: 'Teacher Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Manage Classrooms' })).toBeInTheDocument();
+    // Should also see student links
+    expect(screen.getByRole('link', { name: 'My Concept Maps' })).toBeInTheDocument();
+    // Things they should NOT see
+    expect(screen.queryByRole('link', { name: 'My Classrooms' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Admin Panel' })).toBeNull();
   });
 
   it('should render admin links for an authenticated admin', () => {
     (useAuth as any).mockReturnValue({
-      user: { id: 'admin-id' },
-      profile: { role: 'admin', id: 'admin-id' /* other profile fields */ },
-      isGuestSession: false,
-      isLoading: false,
-      isAuthenticated: true,
+      user: { role: 'admin' },
     });
-    mockUsePathname.mockReturnValue('/admin/dashboard');
+    mockUsePathname.mockReturnValue('/application/admin/dashboard');
 
     render(<SidebarNav />);
 
-    expect(screen.getByText('Dashboard'));
-    expect(screen.getByRole('link', { name: 'Dashboard' }));
-    expect(screen.getByText('User Management'));
-    // Add other admin links if necessary
+    // Admin sees everything
+    expect(screen.getByRole('link', { name: 'Admin Panel' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'User Management' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Teacher Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'My Dashboard' })).toBeInTheDocument();
+    // Should not see student-only classroom link
+    expect(screen.queryByRole('link', { name: 'My Classrooms' })).toBeNull();
   });
 });

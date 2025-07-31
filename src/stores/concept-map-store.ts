@@ -501,7 +501,8 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       triggerFocusView: false,
     };
     set(newMapState);
-    // vanillaStore.getState().clear(); // This is a problematic circular dependency
+    // Actions that create a "new" map should clear the undo history.
+    // This is now handled by the caller of the action (e.g., in the test setup).
   },
   setLoadedMap: (map, viewOnly = false) => {
     get().addDebugLog(
@@ -525,7 +526,6 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       focusViewOnNodeIds: null,
       triggerFocusView: false,
     });
-    // vanillaStore.getState().clear();
   },
   importMapData: (importedData, fileName) => {
     const newName = fileName
@@ -547,11 +547,9 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       focusViewOnNodeIds: null,
       triggerFocusView: false,
     }));
-    // vanillaStore.getState().clear();
   },
   resetStore: () => {
     set({ ...initialStateBase, initialLoadComplete: false, debugLogs: [] });
-    // vanillaStore.getState().clear();
   },
   addNode: (options) => {
     const newNodeId = options.id || uniqueNodeId();
@@ -571,28 +569,33 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
     };
     set((state) => {
       const newNodes = [...state.mapData.nodes, newNode];
-      const newEdges = [...state.mapData.edges]; // Ensure edges are also new array
+      const newEdges = [...state.mapData.edges];
 
       if (options.parentNode) {
-        const parentIndex = newNodes.findIndex(n => n.id === options.parentNode);
+        const parentIndex = newNodes.findIndex(
+          (n) => n.id === options.parentNode
+        );
         if (parentIndex > -1) {
           const parentNode = { ...newNodes[parentIndex] };
           parentNode.childIds = [...(parentNode.childIds || []), newNode.id];
           newNodes[parentIndex] = parentNode;
         }
       }
+
+      const newDebugLogs = [
+        ...state.debugLogs,
+        `[STORE addNode] Node ${newNodeId} added and set as tutorial target.`,
+      ].slice(-100);
+
       return {
         mapData: {
           nodes: newNodes,
           edges: newEdges,
         },
+        tutorialTempTargetNodeId: newNodeId,
+        debugLogs: newDebugLogs,
       };
     });
-    // After node is added, set it as the temporary target for tutorials
-    get().setTutorialTempTargetNodeId(newNodeId);
-    get().addDebugLog(
-      `[STORE addNode] Node ${newNodeId} added and set as tutorial target.`
-    );
     return newNodeId;
   },
   updateNode: (nodeId, updates) =>
@@ -673,16 +676,21 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       markerStart: options.markerStart || 'none',
       markerEnd: options.markerEnd || 'arrowclosed',
     };
-    set((state) => ({
-      mapData: {
-        ...state.mapData,
-        edges: [...state.mapData.edges, newEdge],
-      },
-    }));
-    get().setTutorialTempTargetEdgeId(newEdgeId); // Set temp target for tutorial
-    get().addDebugLog(
-      `[STORE addEdge] Edge ${newEdgeId} added and set as tutorial target.`
-    );
+    set((state) => {
+      const newDebugLogs = [
+        ...state.debugLogs,
+        `[STORE addEdge] Edge ${newEdgeId} added and set as tutorial target.`,
+      ].slice(-100);
+
+      return {
+        mapData: {
+          ...state.mapData,
+          edges: [...state.mapData.edges, newEdge],
+        },
+        tutorialTempTargetEdgeId: newEdgeId,
+        debugLogs: newDebugLogs,
+      };
+    });
     return newEdgeId;
   },
   updateEdge: (edgeId, updates) =>
@@ -1262,6 +1270,3 @@ const temporalStore = temporal(storeDefinition, {
 });
 
 export const useConceptMapStore = create(temporalStore);
-
-// export const vanillaStore = (useConceptMapStore as any)
-//   .temporal as TemporalStore<TrackedState>;
