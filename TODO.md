@@ -4,9 +4,15 @@ This document tracks the ongoing effort to improve the quality, maintainability,
 
 ## Ⅰ. Foundational Stability (In Progress)
 
+### 1. [CRITICAL BLOCKER] Unstable Development Environment
+
+**Problem:** The development environment's file system is unstable. Any attempt to read the contents of the `src/app` directory (using `ls`, `find`, or `grep`) results in a command timeout. This is a hard blocker for any development work inside the application's core directory.
+**Action:**
+- **[PENDING]** The environment needs to be reset, repaired, or replaced. All development work on the code is paused until this is resolved.
+
 This phase focuses on establishing a reliable and trustworthy test suite, which is the bedrock for all future refactoring and feature development.
 
-### 1. [COMPLETED] Stabilize Core Test Environment & Undo/Redo Functionality
+### 2. [COMPLETED] Stabilize Core Test Environment & Undo/Redo Functionality
 
 **Problem:** The test suite was fundamentally broken. A misconfigured test setup file (`src/tests/setup.ts`) incorrectly mocked `zustand` and `zundo`, causing a cascade of failures and making it impossible to test state management reliably. This also broke the tests for the critical undo/redo feature.
 
@@ -18,13 +24,16 @@ This phase focuses on establishing a reliable and trustworthy test suite, which 
 
 **Outcome:** The core state management of the application is now stable and fully tested. We have a reliable foundation to build upon.
 
-### 2. [HIGH PRIORITY] Fix Brittle Component Tests
+### 2. [COMPLETED] Fix Brittle Component Tests
 
-**Problem:** Component tests are failing due to fragile queries that break easily (e.g., finding multiple elements with the same role/name). This makes the tests unreliable.
+**Problem:** Component tests were failing intermittently when run as a group. The root cause was DOM pollution between test runs, causing non-unique query matches.
 
 **Action:**
-- Refactor test queries in `ai-suggestion-panel.test.tsx` and `AIStagingToolbar.test.tsx` to be more specific and resilient.
-- Use `data-testid` attributes where necessary to create stable test hooks for element selection.
+- **[DONE]** Systematically refactored the failing test suites in `src/components/concept-map/__tests__/`.
+- **[DONE]** Scoped test queries using `within()` and component-level `data-testid` attributes to ensure queries were isolated to the correct component instance.
+- **[DONE]** Added an `afterEach(cleanup)` hook to each test suite to guarantee a clean DOM before every test, preventing state leakage.
+
+**Outcome:** The component tests are now robust and reliable. The test suites for `editor-toolbar`, `GhostPreviewToolbar`, `AIStagingToolbar`, and `ai-suggestion-panel` now pass consistently when run together.
 
 ### 3. [HIGH PRIORITY] Eliminate Skipped Tests
 

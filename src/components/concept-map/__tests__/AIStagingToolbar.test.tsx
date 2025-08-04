@@ -1,5 +1,11 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest'; // Added beforeEach
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+  cleanup,
+} from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 import AIStagingToolbar, { AIStagingToolbarProps } from '../ai-staging-toolbar';
@@ -16,8 +22,11 @@ describe('AIStagingToolbar', () => {
   };
 
   beforeEach(() => {
-    // Added to ensure mocks are cleared
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('should not render if isVisible is false', () => {
