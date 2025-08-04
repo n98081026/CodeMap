@@ -1,6 +1,12 @@
 /// <reference types="vitest/globals" />
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+  cleanup,
+} from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 import GhostPreviewToolbar from '../GhostPreviewToolbar';
@@ -24,9 +30,13 @@ describe('GhostPreviewToolbar', () => {
     });
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   it('should not render if ghostPreviewData is null', () => {
     render(<GhostPreviewToolbar />);
-    expect(screen.queryByText(/Previewing layout for/i)).toBeNull();
+    expect(screen.queryByTestId('ghost-preview-toolbar')).toBeNull();
   });
 
   it('should not render if ghostPreviewData.nodes is empty', () => {
@@ -36,7 +46,7 @@ describe('GhostPreviewToolbar', () => {
       cancelGhostPreview: mockCancelGhostPreview,
     });
     render(<GhostPreviewToolbar />);
-    expect(screen.queryByText(/Previewing layout for/i)).toBeNull();
+    expect(screen.queryByTestId('ghost-preview-toolbar')).toBeNull();
   });
 
   it('should render correctly when ghostPreviewData is present with nodes', () => {
@@ -46,8 +56,11 @@ describe('GhostPreviewToolbar', () => {
       cancelGhostPreview: mockCancelGhostPreview,
     });
     render(<GhostPreviewToolbar />);
+    const toolbar = screen.getByTestId('ghost-preview-toolbar');
+    expect(toolbar).toBeInTheDocument();
+
     // Adjusted query to be more resilient to nested spans
-    const textElement = screen.getByText((content, element) => {
+    const textElement = within(toolbar).getByText((content, element) => {
       return (
         element?.tagName.toLowerCase() === 'p' &&
         content.startsWith('Previewing layout for') &&
@@ -59,9 +72,11 @@ describe('GhostPreviewToolbar', () => {
       /Previewing layout for 1 node\(s\)/i
     );
     expect(
-      screen.getByRole('button', { name: /Accept Layout/i })
+      within(toolbar).getByRole('button', { name: /Accept Layout/i })
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
+    expect(
+      within(toolbar).getByRole('button', { name: /Cancel/i })
+    ).toBeInTheDocument();
   });
 
   it('should display the correct node count', () => {
@@ -76,7 +91,8 @@ describe('GhostPreviewToolbar', () => {
       cancelGhostPreview: mockCancelGhostPreview,
     });
     render(<GhostPreviewToolbar />);
-    const textElement = screen.getByText((content, element) => {
+    const toolbar = screen.getByTestId('ghost-preview-toolbar');
+    const textElement = within(toolbar).getByText((content, element) => {
       return (
         element?.tagName.toLowerCase() === 'p' &&
         content.startsWith('Previewing layout for') &&
@@ -96,7 +112,10 @@ describe('GhostPreviewToolbar', () => {
       cancelGhostPreview: mockCancelGhostPreview,
     });
     render(<GhostPreviewToolbar />);
-    fireEvent.click(screen.getByRole('button', { name: /Accept Layout/i }));
+    const toolbar = screen.getByTestId('ghost-preview-toolbar');
+    fireEvent.click(
+      within(toolbar).getByRole('button', { name: /Accept Layout/i })
+    );
     expect(mockAcceptGhostPreview).toHaveBeenCalledTimes(1);
   });
 
@@ -107,7 +126,8 @@ describe('GhostPreviewToolbar', () => {
       cancelGhostPreview: mockCancelGhostPreview,
     });
     render(<GhostPreviewToolbar />);
-    fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
+    const toolbar = screen.getByTestId('ghost-preview-toolbar');
+    fireEvent.click(within(toolbar).getByRole('button', { name: /Cancel/i }));
     expect(mockCancelGhostPreview).toHaveBeenCalledTimes(1);
   });
 });

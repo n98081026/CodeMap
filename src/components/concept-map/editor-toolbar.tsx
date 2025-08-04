@@ -250,7 +250,10 @@ export const EditorToolbar = React.memo(function EditorToolbar({
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className='mb-2 flex h-14 items-center gap-1 rounded-lg border bg-card p-2 shadow-sm flex-wrap'>
+      <div
+        className='mb-2 flex h-14 items-center gap-1 rounded-lg border bg-card p-2 shadow-sm flex-wrap'
+        data-testid='editor-toolbar' // Added for test isolation
+      >
         {showCopyButton && (
           <>
             <Tooltip>
