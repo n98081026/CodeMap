@@ -35,6 +35,7 @@ import {
   updateUser as updateUserProfileService,
 } from '@/services/users/userService';
 import { UserRole } from '@/types';
+import { Routes } from '@/lib/routes';
 // Ensure V3 is the default for bypass
 
 // DEFAULT_BYPASS_USER is now MOCK_STUDENT_USER_V3 for student testing
@@ -298,16 +299,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Redirect based on the selected role
         switch (role) {
           case UserRole.ADMIN:
-            router.replace('/application/admin/dashboard');
+            router.replace(Routes.Legacy.ADMIN_DASHBOARD);
             break;
           case UserRole.TEACHER:
-            router.replace('/application/teacher/dashboard');
+            router.replace(Routes.Legacy.TEACHER_DASHBOARD);
             break;
           case UserRole.STUDENT:
-            router.replace('/application/student/dashboard');
+            router.replace(Routes.Legacy.STUDENT_DASHBOARD);
             break;
           default:
-            router.replace('/login');
+            router.replace(Routes.LOGIN);
         }
         return;
       }
@@ -394,7 +395,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // After successful Supabase Auth signUp, onAuthStateChange will trigger SIGNED_IN.
         // fetchAndSetSupabaseUser will then be called, which includes profile creation and post-login action handling.
         // It will also handle the toast for registration success.
-        router.push('/login'); // Redirect to login, user might need to confirm email depending on Supabase settings.
+        router.push(Routes.LOGIN); // Redirect to login, user might need to confirm email depending on Supabase settings.
       } catch (error) {
         console.error('Registration process failed:', error);
         setIsLoading(false);
@@ -411,7 +412,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
       setUser(null);
       setIsLoading(false);
-      router.replace('/login');
+      router.replace(Routes.LOGIN);
       return;
     }
     const currentPath = pathname;
@@ -424,11 +425,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (
-      !currentPath.startsWith('/login') &&
-      !currentPath.startsWith('/register') &&
-      currentPath !== '/'
+      !currentPath.startsWith(Routes.LOGIN) &&
+      !currentPath.startsWith(Routes.REGISTER) &&
+      currentPath !== Routes.HOME
     ) {
-      router.replace('/login');
+      router.replace(Routes.LOGIN);
     }
     setTimeout(() => {
       if (isLoading) setIsLoading(false);
@@ -549,7 +550,7 @@ async function handleCopyExampleAction(
       description: 'Example project not found.',
       variant: 'destructive',
     });
-    router.replace('/examples'); // Or some other sensible default
+    router.replace(Routes.Examples); // Or some other sensible default
     return;
   }
 
@@ -616,13 +617,13 @@ async function handleCopyExampleAction(
       title: 'Example Copied',
       description: `"${savedMap.name}" has been copied to your workspace.`,
     });
-    router.replace(`/concept-maps/editor/${savedMap.id}`);
+    router.replace(Routes.ConceptMaps.EDIT(savedMap.id));
   } catch (error) {
     toast({
       title: 'Copy Failed',
       description: (error as Error).message,
       variant: 'destructive',
     });
-    router.replace('/examples'); // Fallback
+    router.replace(Routes.Examples); // Fallback
   }
 }

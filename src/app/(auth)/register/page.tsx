@@ -13,20 +13,10 @@ import {
 } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
+import { Routes } from '@/lib/routes';
 
 export default function RegisterPage() {
   const { isAuthenticated, user, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      if (user.role === UserRole.ADMIN)
-        router.replace('/application/admin/dashboard');
-      else if (user.role === UserRole.TEACHER)
-        router.replace('/application/teacher/dashboard');
-      else router.replace('/application/student/dashboard');
-    }
-  }, [isAuthenticated, user, router, isLoading]);
 
   // Show loader if auth state is loading OR if user is authenticated (to prevent form flash before redirect)
   if (isLoading || isAuthenticated) {

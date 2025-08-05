@@ -14,6 +14,7 @@ import { EditActions } from './EditActions';
 import { AIActions } from './AIActions';
 import { LayoutActions, type ArrangeAction } from './LayoutActions';
 import { ViewActions } from './ViewActions';
+import { Routes } from '@/lib/routes';
 
 export interface EditorToolbarProps {
   onNewMap: () => void;
@@ -161,7 +162,7 @@ export const EditorToolbarRefactored: React.FC<EditorToolbarProps> = ({
         description: 'Please log in to access the tutorial.',
         variant: 'destructive',
       });
-      router.push('/login');
+      router.push(Routes.LOGIN);
       return;
     }
 

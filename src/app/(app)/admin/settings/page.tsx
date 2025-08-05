@@ -38,6 +38,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import { Routes } from '@/lib/routes';
 
 const settingsFormSchema = z.object({
   enable_ai_project_analysis: z.boolean().default(true),
@@ -133,8 +134,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const adminDashboardLink = '/application/admin/dashboard';
-
   if (isLoadingSettings) {
     return (
       <div className='space-y-6'>
@@ -142,7 +141,7 @@ export default function AdminSettingsPage() {
           title='System Settings'
           description='Configure global application settings and parameters.'
           icon={Settings}
-          iconLinkHref={adminDashboardLink}
+          iconLinkHref={Routes.Admin.DASHBOARD}
         />
         <div className='flex justify-center items-center py-10'>
           <Loader2 className='h-8 w-8 animate-spin text-primary' />
@@ -158,7 +157,7 @@ export default function AdminSettingsPage() {
         title='System Settings'
         description='Configure global application settings and parameters.'
         icon={Settings}
-        iconLinkHref={adminDashboardLink}
+        iconLinkHref={Routes.Admin.DASHBOARD}
       />
       {errorLoadingSettings && !isLoadingSettings && (
         <Card className='border-destructive bg-destructive/10'>

@@ -5,24 +5,22 @@ import { describe, it, expect } from 'vitest';
 import { AuthProvider } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 
-vi.mock('@/contexts/auth-context', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/contexts/auth-context')
-  >('@/contexts/auth-context');
-  return {
-    ...actual,
-    useAuth: () => ({
-      user: {
-        id: 'admin-user-id',
-        name: 'Admin User',
-        email: 'admin@example.com',
-        role: UserRole.ADMIN,
-      },
-      isAuthenticated: true,
-      isLoading: false,
-    }),
-  };
-});
+import { AuthProvider as ActualAuthProvider } from '@/contexts/auth-context';
+
+vi.mock('@/contexts/auth-context', () => ({
+  // We still need the actual AuthProvider for rendering, but we mock the hook.
+  AuthProvider: ActualAuthProvider,
+  useAuth: () => ({
+    user: {
+      id: 'admin-user-id',
+      name: 'Admin User',
+      email: 'admin@example.com',
+      role: UserRole.ADMIN,
+    },
+    isAuthenticated: true,
+    isLoading: false,
+  }),
+}));
 
 describe('Minimal Test Case', () => {
   it('should render AuthProvider without errors', () => {

@@ -61,6 +61,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseStorageUpload } from '@/hooks/useSupabaseStorageUpload';
 import { BYPASS_AUTH_FOR_TESTING } from '@/lib/config';
+import { Routes } from '@/lib/routes';
 import { ProjectSubmissionStatus } from '@/types';
 
 // import { generateMapFromProject as aiGenerateMapFromProject } from "@/ai/flows/generate-map-from-project"; // Will be replaced
@@ -459,7 +460,7 @@ export function ProjectUploadForm() {
       setIsConfirmAIDialogOpen(false);
       setCurrentSubmissionForAI(null);
       setCurrentUserGoalsForAI(undefined);
-      router.push('/application/student/projects/submissions');
+      router.push(Routes.Legacy.STUDENT_PROJECTS_SUBMISSIONS);
     }
   }, [
     currentSubmissionForAI,
@@ -478,7 +479,7 @@ export function ProjectUploadForm() {
     setIsConfirmAIDialogOpen(false);
     setCurrentSubmissionForAI(null);
     setCurrentUserGoalsForAI(undefined);
-    router.push('/application/student/projects/submissions');
+    router.push(Routes.Legacy.STUDENT_PROJECTS_SUBMISSIONS);
   }, [router, currentSubmissionForAI?.originalFileName, toast]);
 
   const isBusyOverall =

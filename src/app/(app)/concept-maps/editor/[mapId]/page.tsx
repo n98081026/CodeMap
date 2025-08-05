@@ -44,6 +44,7 @@ import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useEditorState } from '@/hooks/useEditorState';
 import { useEditorActions } from '@/hooks/useEditorActions';
 import { useEditorAIActions } from '@/hooks/useEditorAIActions';
+import { Routes } from '@/lib/routes';
 import {
   useConceptMapStore,
   type ConceptMapState,
@@ -416,12 +417,17 @@ export default function ConceptMapEditorPage() {
     /* ... */
   }, [storeIsViewOnlyMode, toast, storeMapData.nodes]);
   const getRoleBasedDashboardLink = useCallback(() => {
-    return user ? `/${user.role}/dashboard` : '/login';
+    if (!user) return Routes.LOGIN;
+    switch (user.role) {
+      case UserRole.ADMIN: return Routes.Admin.DASHBOARD;
+      case UserRole.TEACHER: return Routes.Teacher.DASHBOARD;
+      default: return Routes.Student.DASHBOARD;
+    }
   }, [user]);
   const getBackLink = useCallback(() => {
     return user && user.role === UserRole.TEACHER
-      ? '/application/teacher/classrooms'
-      : '/application/student/concept-maps';
+      ? Routes.Legacy.TEACHER_CLASSROOMS
+      : Routes.Legacy.STUDENT_CONCEPT_MAPS;
   }, [user]);
   const getBackButtonText = useCallback(() => {
     return user && user.role === UserRole.TEACHER
@@ -473,7 +479,7 @@ export default function ConceptMapEditorPage() {
   }
   const canAddEdge = storeMapData.nodes.length >= 2;
   const handleNewMap = useCallback(() => {
-    router.push('/application/concept-maps/editor/new');
+    router.push(Routes.Legacy.CONCEPT_MAPS_NEW);
   }, [router]);
   const handleExportMap = useCallback(() => {
     /* ... */

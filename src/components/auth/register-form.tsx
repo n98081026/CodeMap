@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Routes } from '@/lib/routes';
 import {
   Select,
   SelectContent,
@@ -170,7 +171,7 @@ export function RegisterForm() {
         <p className='text-center text-sm text-muted-foreground'>
           Already have an account?{' '}
           <Button variant='link' asChild className='p-0'>
-            <Link href='/login'>Login</Link>
+            <Link href={Routes.LOGIN}>Login</Link>
           </Button>
         </p>
       </form>

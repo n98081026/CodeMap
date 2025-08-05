@@ -24,6 +24,7 @@ import {
   TutorialMetaData,
 } from '@/components/tutorial/app-tutorial';
 import { Button } from '@/components/ui/button';
+import { Routes } from '@/lib/routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,16 +65,16 @@ export const Navbar = React.memo(function Navbar() {
   }, []);
 
   const getRoleBasedDashboardLink = useCallback(() => {
-    if (!user) return '/login';
+    if (!user) return Routes.LOGIN;
     switch (user.role) {
       case UserRole.ADMIN:
-        return '/application/admin/dashboard';
+        return Routes.Admin.DASHBOARD;
       case UserRole.TEACHER:
-        return '/application/teacher/dashboard';
+        return Routes.Teacher.DASHBOARD;
       case UserRole.STUDENT:
-        return '/application/student/dashboard';
+        return Routes.Student.DASHBOARD;
       default:
-        return '/login';
+        return Routes.LOGIN;
     }
   }, [user]);
 
@@ -81,7 +82,7 @@ export const Navbar = React.memo(function Navbar() {
     if (isAuthenticated && user) {
       return getRoleBasedDashboardLink();
     }
-    return '/login';
+    return Routes.LOGIN;
   }, [isAuthenticated, user, getRoleBasedDashboardLink]);
 
   if (!mounted) {
@@ -209,7 +210,7 @@ export const Navbar = React.memo(function Navbar() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href='/application/profile'>
+                  <Link href={Routes.Profile}>
                     <UserCircle className='mr-2 h-4 w-4' />
                     Profile
                   </Link>
@@ -223,7 +224,7 @@ export const Navbar = React.memo(function Navbar() {
             </DropdownMenu>
           ) : (
             <Button asChild>
-              <Link href='/login'>
+              <Link href={Routes.LOGIN}>
                 <LogIn className='mr-2 h-4 w-4' /> Login
               </Link>
             </Button>
