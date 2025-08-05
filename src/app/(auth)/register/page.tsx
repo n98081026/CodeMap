@@ -17,17 +17,6 @@ import { Routes } from '@/lib/routes';
 
 export default function RegisterPage() {
   const { isAuthenticated, user, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      if (user.role === UserRole.ADMIN)
-        router.replace(Routes.Legacy.ADMIN_DASHBOARD);
-      else if (user.role === UserRole.TEACHER)
-        router.replace(Routes.Legacy.TEACHER_DASHBOARD);
-      else router.replace(Routes.Legacy.STUDENT_DASHBOARD);
-    }
-  }, [isAuthenticated, user, router, isLoading]);
 
   // Show loader if auth state is loading OR if user is authenticated (to prevent form flash before redirect)
   if (isLoading || isAuthenticated) {

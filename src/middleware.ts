@@ -62,9 +62,15 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const publicRoutes = ['/login', '/register', '/examples'];
+  const publicRoutes = ['/login', '/register']; // Examples can be public
 
-  if (!session && !publicRoutes.includes(request.nextUrl.pathname)) {
+  if (session && publicRoutes.includes(request.nextUrl.pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/'; // Redirect to home, which will then redirect to the correct dashboard
+    return NextResponse.redirect(url);
+  }
+
+  if (!session && !publicRoutes.includes(request.nextUrl.pathname) && request.nextUrl.pathname !== '/') {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

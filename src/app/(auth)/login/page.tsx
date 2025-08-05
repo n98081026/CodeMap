@@ -17,27 +17,6 @@ import { Routes } from '@/lib/routes';
 
 export default function LoginPage() {
   const { isAuthenticated, user, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      // If user is already authenticated, redirect them from login page
-      switch (user.role) {
-        case UserRole.ADMIN:
-          router.replace(Routes.Legacy.ADMIN_DASHBOARD);
-          break;
-        case UserRole.TEACHER:
-          router.replace(Routes.Legacy.TEACHER_DASHBOARD);
-          break;
-        case UserRole.STUDENT:
-          router.replace(Routes.Legacy.STUDENT_DASHBOARD);
-          break;
-        default:
-          // Fallback, though ideally role should always be known
-          router.replace(Routes.Legacy.STUDENT_DASHBOARD);
-      }
-    }
-  }, [isAuthenticated, user, router, isLoading]);
 
   // Show loader if auth state is loading OR if user is authenticated (to prevent form flash before redirect)
   if (isLoading || (isAuthenticated && user)) {
