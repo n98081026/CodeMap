@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context'; // To get user for role specific elements like Admin Panel link
 import { useTeacherDashboardMetrics } from '@/hooks/useTeacherDashboardMetrics';
+import { Routes } from '@/lib/routes';
 import { UserRole, type User } from '@/types';
 
 // Renamed from TeacherDashboardContent and made default export
@@ -26,8 +27,6 @@ export default function TeacherDashboardView({ user }: { user: User }) {
     managedClassrooms: managedClassroomsMetric,
     totalStudents: totalStudentsMetric,
   } = useTeacherDashboardMetrics();
-
-  const adminDashboardLink = '/admin/dashboard';
 
   const renderCount = (
     metric: { count: number | null; isLoading: boolean; error: string | null },
@@ -54,7 +53,7 @@ export default function TeacherDashboardView({ user }: { user: User }) {
   const teacherQuickActions: QuickActionItem[] = [
     {
       label: 'Create New Classroom',
-      href: '/teacher/classrooms/new',
+      href: Routes.Teacher.CLASSROOMS_NEW,
       icon: Users,
       size: 'lg',
       className: 'w-full sm:w-auto',
@@ -67,15 +66,10 @@ export default function TeacherDashboardView({ user }: { user: User }) {
         title={`Welcome, ${user.name}!`}
         description='Manage your classrooms and student activities.'
         icon={LayoutDashboard}
-        // iconLinkHref could be passed as prop if needed, or removed if generic enough.
-        // For example: iconLinkHref="/application/teacher/dashboard"
       >
-        {/* Display Admin Panel link if the current user (who might be a teacher viewing their own dash, or an admin viewing a teacher's) is an ADMIN */}
-        {/* This requires the `user` prop passed to TeacherDashboardView to be the *currently authenticated* user, not necessarily the teacher whose dashboard is being viewed (if that scenario exists) */}
-        {/* For simplicity, assuming `user` is the logged-in user. */}
         {user.role === UserRole.ADMIN && (
           <Button asChild variant='outline'>
-            <Link href={adminDashboardLink}>Admin Panel</Link>
+            <Link href={Routes.Admin.DASHBOARD}>Admin Panel</Link>
           </Button>
         )}
       </DashboardHeader>
@@ -86,7 +80,7 @@ export default function TeacherDashboardView({ user }: { user: User }) {
           description='Classrooms you are currently teaching.'
           count={renderCount(managedClassroomsMetric, 'classrooms')}
           icon={BookOpen}
-          href='/teacher/classrooms'
+          href={Routes.Teacher.CLASSROOMS}
           linkText='Manage Classrooms'
         />
         <DashboardLinkCard
@@ -94,7 +88,7 @@ export default function TeacherDashboardView({ user }: { user: User }) {
           description='Students across all your classrooms.'
           count={renderCount(totalStudentsMetric, 'students')}
           icon={Users}
-          href='/teacher/classrooms'
+          href={Routes.Teacher.CLASSROOMS}
           linkText='View Student Lists'
         />
       </div>

@@ -21,6 +21,7 @@ import {
   type QuickActionItem,
 } from '@/components/dashboard/quick-actions-card';
 import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics';
+import { Routes } from '@/lib/routes';
 
 // Renamed from StudentDashboardContent and made default export
 export default function StudentDashboardView({ user }: { user: User }) {
@@ -55,14 +56,14 @@ export default function StudentDashboardView({ user }: { user: User }) {
   const studentQuickActions: QuickActionItem[] = [
     {
       label: 'Create New Concept Map',
-      href: '/concept-maps/new',
+      href: Routes.ConceptMaps.NEW,
       icon: Compass,
       size: 'lg',
       className: 'w-full',
     },
     {
       label: 'Submit New Project',
-      href: '/student/projects/submit',
+      href: Routes.Student.PROJECTS_SUBMIT,
       icon: FileText,
       variant: 'secondary',
       size: 'lg',
@@ -76,9 +77,6 @@ export default function StudentDashboardView({ user }: { user: User }) {
         title={`Welcome, ${user.name}!`}
         description="Here's an overview of your activities and tools."
         icon={LayoutDashboard}
-        // iconLinkHref might be passed as a prop if it needs to be dynamic based on the page using this view
-        // For now, assuming it's specific to the student dashboard context or handled by the page
-        // Example: iconLinkHref="/application/student/dashboard"
       />
 
       <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
@@ -87,7 +85,7 @@ export default function StudentDashboardView({ user }: { user: User }) {
           description='Classrooms you are enrolled in.'
           count={renderCount(classroomsMetric, 'classrooms')}
           icon={BookOpen}
-          href='/student/classrooms'
+          href={Routes.Student.CLASSROOMS}
           linkText='View Classrooms'
         />
         <DashboardLinkCard
@@ -95,7 +93,7 @@ export default function StudentDashboardView({ user }: { user: User }) {
           description='Concept maps you have created or have access to.'
           count={renderCount(conceptMapsMetric, 'maps')}
           icon={Share2}
-          href='/student/concept-maps'
+          href={Routes.Student.CONCEPT_MAPS}
           linkText='View Maps'
         />
         <DashboardLinkCard
@@ -103,7 +101,7 @@ export default function StudentDashboardView({ user }: { user: User }) {
           description='Projects you have submitted for analysis.'
           count={renderCount(submissionsMetric, 'submissions')}
           icon={FolderKanban}
-          href='/student/projects/submissions'
+          href={Routes.Student.PROJECTS_SUBMISSIONS}
           linkText='View Submissions'
         />
       </div>

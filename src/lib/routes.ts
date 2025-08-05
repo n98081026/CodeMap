@@ -12,6 +12,7 @@ export const Routes = {
   Teacher: {
     DASHBOARD: '/teacher/dashboard',
     CLASSROOMS: '/teacher/classrooms',
+    CLASSROOMS_NEW: '/teacher/classrooms/new',
     CLASSROOM_DETAIL: (id: string) => `/teacher/classrooms/${id}`,
   },
 
@@ -28,6 +29,7 @@ export const Routes = {
   Examples: '/examples',
 
   ConceptMaps: {
+    NEW: '/concept-maps/new',
     VIEW: (id: string) => `/concept-maps/${id}`,
     EDIT: (id: string) => `/concept-maps/${id}/edit`,
   },
