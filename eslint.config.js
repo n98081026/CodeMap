@@ -58,16 +58,18 @@ export default [
       react: {
         version: 'detect',
       },
-      'import/resolver': {
-        typescript: {
-          project: './tsconfig.json', // Explicitly point to tsconfig for resolver
-          alwaysTryTypes: true,
-        },
-        node: true,
-      },
-      'import/parsers': {
-        '@typescript-eslint/parser': ['.ts', '.tsx'], // Ensure import plugin uses TS parser for TS files
-      },
+      // The eslint-plugin-import resolver is causing issues.
+      // Let's remove it and see if the default TypeScript resolution works better.
+      // 'import/resolver': {
+      //   typescript: {
+      //     project: './tsconfig.json',
+      //     alwaysTryTypes: true,
+      //   },
+      //   node: true,
+      // },
+      // 'import/parsers': {
+      //   '@typescript-eslint/parser': ['.ts', '.tsx'],
+      // },
     },
     rules: {
       // Import plugin rules (from eslint-plugin-import)
@@ -169,6 +171,7 @@ export default [
         },
       ],
       'import/no-unresolved': 'off', // Still often handled better by TS/bundler
+      'import/no-cycle': ['error', { maxDepth: Infinity }], // Add rule to detect cycles
 
       // React plugin rules
       ...reactPlugin.configs.recommended.rules,
