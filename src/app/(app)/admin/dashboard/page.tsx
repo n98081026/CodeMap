@@ -15,17 +15,7 @@ import { Routes } from '@/lib/routes';
 // Loader2 might still be needed for the top-level loading state if not handled by AppLayout sufficiently
 
 export default function AdminDashboardPage() {
-  const { user, isLoading: authIsLoading } = useAuth(); // Use authIsLoading from useAuth
-  const router = useRouter();
-
-  useEffect(() => {
-    // Auth check logic is primarily handled by AppLayout for routes within (app)
-    // However, an additional role check specific to this page can be kept.
-    if (!authIsLoading && user && user.role !== UserRole.ADMIN) {
-      router.replace(Routes.LOGIN); // Or an unauthorized page
-    }
-    // If !authIsLoading && !user, AppLayout should have already initiated a redirect.
-  }, [user, authIsLoading, router]);
+  const { user, isLoading: authIsLoading } = useAuth();
 
   // isLoading from useAuth in AppLayout handles the initial loading state.
   // This page should only render if authentication is complete and successful.

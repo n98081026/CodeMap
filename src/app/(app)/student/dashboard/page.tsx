@@ -16,30 +16,6 @@ import { Routes } from '@/lib/routes';
 
 export default function StudentDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    // AppLayout handles general authentication. This page adds role-specific redirection.
-    if (!authIsLoading && user) {
-      if (user.role !== UserRole.STUDENT) {
-        // If the authenticated user is not a student, redirect them appropriately.
-        // For example, redirect teachers to teacher dashboard, admins to admin dashboard.
-        // Or a generic fallback if the role doesn't have a specific dashboard here.
-        switch (user.role) {
-          case UserRole.ADMIN:
-            router.replace(Routes.Admin.DASHBOARD);
-            break;
-          case UserRole.TEACHER:
-            router.replace(Routes.Teacher.DASHBOARD);
-            break;
-          default:
-            router.replace(Routes.HOME); // Fallback to a generic home or their (app) root if applicable
-            break;
-        }
-      }
-    }
-    // If !user and !authIsLoading, AppLayout should handle the redirect to /login.
-  }, [user, authIsLoading, router]);
 
   if (authIsLoading) {
     return (
