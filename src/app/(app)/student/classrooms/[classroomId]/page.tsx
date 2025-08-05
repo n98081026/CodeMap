@@ -31,6 +31,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { UserRole } from '@/types';
+import { Routes } from '@/lib/routes';
 
 export default function StudentClassroomDetailPage() {
   const paramsHook = useParams();
@@ -45,7 +46,7 @@ export default function StudentClassroomDetailPage() {
   const [errorClassroom, setErrorClassroom] = useState<string | null>(null);
   const [errorMaps, setErrorMaps] = useState<string | null>(null);
 
-  const studentDashboardLink = '/application/student/dashboard';
+  const studentDashboardLink = Routes.Student.DASHBOARD;
 
   const fetchClassroomDetails = useCallback(async () => {
     if (!routeClassroomId) return;
@@ -149,7 +150,7 @@ export default function StudentClassroomDetailPage() {
               Try Again
             </Button>
             <Button asChild variant='secondary' className='mt-4 ml-2'>
-              <Link href='/application/student/classrooms'>
+              <Link href={Routes.Student.CLASSROOMS}>
                 <ArrowLeft className='mr-2 h-4 w-4' /> Back to My Classrooms
               </Link>
             </Button>
@@ -168,7 +169,7 @@ export default function StudentClassroomDetailPage() {
         iconLinkHref={studentDashboardLink}
       >
         <Button asChild variant='outline'>
-          <Link href='/application/student/classrooms'>
+          <Link href={Routes.Student.CLASSROOMS}>
             <ArrowLeft className='mr-2 h-4 w-4' /> Back to My Classrooms
           </Link>
         </Button>
@@ -278,7 +279,7 @@ export default function StudentClassroomDetailPage() {
                       className='w-full'
                     >
                       <Link
-                        href={`/application/concept-maps/editor/${map.id}?viewOnly=${map.ownerId !== user?.id}`}
+                        href={Routes.ConceptMaps.VIEW(map.id)}
                       >
                         <Eye className='mr-2 h-4 w-4' /> View Map
                       </Link>
