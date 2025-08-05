@@ -6,6 +6,7 @@ export const Routes = {
   Admin: {
     DASHBOARD: '/admin/dashboard',
     USERS: '/admin/users',
+    SETTINGS: '/admin/settings',
   },
 
   Teacher: {
@@ -16,10 +17,15 @@ export const Routes = {
 
   Student: {
     DASHBOARD: '/student/dashboard',
-    PROJECTS: '/student/projects',
+    CONCEPT_MAPS: '/student/concept-maps',
+    PROJECTS_SUBMIT: '/student/projects/submit',
+    PROJECTS_SUBMISSIONS: '/student/projects/submissions',
+    CLASSROOMS: '/student/classrooms',
   },
 
   Profile: '/profile',
+
+  Examples: '/examples',
 
   ConceptMaps: {
     VIEW: (id: string) => `/concept-maps/${id}`,
