@@ -39,6 +39,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { UserRole } from '@/types';
+import { Routes } from '@/lib/routes';
 
 const classroomFormSchema = z.object({
   name: z
@@ -56,7 +57,7 @@ export default function CreateClassroomPage() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const headerIconLink = '/application/teacher/dashboard';
+  const headerIconLink = Routes.Legacy.TEACHER_DASHBOARD;
 
   const form = useForm<z.infer<typeof classroomFormSchema>>({
     resolver: zodResolver(classroomFormSchema),
@@ -106,7 +107,7 @@ export default function CreateClassroomPage() {
           title: 'Classroom Created',
           description: `Classroom "${newClassroom.name}" has been successfully created.`,
         });
-        router.push('/application/teacher/classrooms');
+        router.push(Routes.Legacy.TEACHER_CLASSROOMS);
       } catch (error) {
         toast({
           title: 'Error Creating Classroom',

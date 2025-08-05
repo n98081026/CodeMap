@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole, type User } from '@/types';
+import { Routes } from '@/lib/routes';
 
 export default function ProfilePage() {
   const {
@@ -55,16 +56,16 @@ export default function ProfilePage() {
   }, [user]);
 
   const getDashboardLink = useCallback(() => {
-    if (!user) return '/login';
+    if (!user) return Routes.LOGIN;
     switch (user.role) {
       case UserRole.ADMIN:
-        return '/application/admin/dashboard';
+        return Routes.Legacy.ADMIN_DASHBOARD;
       case UserRole.TEACHER:
-        return '/application/teacher/dashboard';
+        return Routes.Legacy.TEACHER_DASHBOARD;
       case UserRole.STUDENT:
-        return '/application/student/dashboard';
+        return Routes.Legacy.STUDENT_DASHBOARD;
       default:
-        return '/login';
+        return Routes.LOGIN;
     }
   }, [user]);
 
@@ -82,16 +83,16 @@ export default function ProfilePage() {
       setTestUserRole(newRole);
       switch (newRole) {
         case UserRole.ADMIN:
-          router.replace('/application/admin/dashboard');
+          router.replace(Routes.Legacy.ADMIN_DASHBOARD);
           break;
         case UserRole.TEACHER:
-          router.replace('/application/teacher/dashboard');
+          router.replace(Routes.Legacy.TEACHER_DASHBOARD);
           break;
         case UserRole.STUDENT:
-          router.replace('/application/student/dashboard');
+          router.replace(Routes.Legacy.STUDENT_DASHBOARD);
           break;
         default:
-          router.replace('/login');
+          router.replace(Routes.LOGIN);
       }
     }
   };
@@ -228,7 +229,7 @@ export default function ProfilePage() {
               settings.
             </p>
             <Button asChild className='mt-4'>
-              <Link href='/application/admin/dashboard'>
+              <Link href={Routes.Legacy.ADMIN_DASHBOARD}>
                 Go to Admin Dashboard
               </Link>
             </Button>

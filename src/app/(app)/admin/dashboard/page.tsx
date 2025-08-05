@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
+import { Routes } from '@/lib/routes';
 
 // DashboardHeader, useAdminDashboardMetrics, DashboardLinkCard, MetricState, Loader2, AlertTriangle, Users, Settings, LayoutDashboard
 // are now encapsulated within AdminDashboardView or not directly needed by this page component.
@@ -21,7 +22,7 @@ export default function AdminDashboardPage() {
     // Auth check logic is primarily handled by AppLayout for routes within (app)
     // However, an additional role check specific to this page can be kept.
     if (!authIsLoading && user && user.role !== UserRole.ADMIN) {
-      router.replace('/login'); // Or an unauthorized page
+      router.replace(Routes.LOGIN); // Or an unauthorized page
     }
     // If !authIsLoading && !user, AppLayout should have already initiated a redirect.
   }, [user, authIsLoading, router]);

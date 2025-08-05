@@ -7,6 +7,7 @@ import { useEffect } from 'react'; // For redirection logic
 import StudentDashboardView from '@/components/dashboard/student/StudentDashboardView'; // Import the new shared view
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types'; // Import UserRole
+import { Routes } from '@/lib/routes';
 
 // import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Now in StudentDashboardView
 // import { useStudentDashboardMetrics } from '@/hooks/useStudentDashboardMetrics'; // Now in StudentDashboardView
@@ -26,13 +27,13 @@ export default function StudentDashboardPage() {
         // Or a generic fallback if the role doesn't have a specific dashboard here.
         switch (user.role) {
           case UserRole.ADMIN:
-            router.replace('/admin/dashboard');
+            router.replace(Routes.Admin.DASHBOARD);
             break;
           case UserRole.TEACHER:
-            router.replace('/teacher/dashboard');
+            router.replace(Routes.Teacher.DASHBOARD);
             break;
           default:
-            router.replace('/'); // Fallback to a generic home or their (app) root if applicable
+            router.replace(Routes.HOME); // Fallback to a generic home or their (app) root if applicable
             break;
         }
       }

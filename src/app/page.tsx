@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { CardLink } from '@/components/common/CardLink';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
+import { Routes } from '@/lib/routes';
 
 export default function HomePage() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -20,20 +21,20 @@ export default function HomePage() {
     // User is authenticated, redirect to their respective dashboard
     switch (user.role) {
       case UserRole.ADMIN:
-        router.replace('/application/admin/dashboard');
+        router.replace(Routes.Legacy.ADMIN_DASHBOARD);
         break;
       case UserRole.TEACHER:
-        router.replace('/application/teacher/dashboard');
+        router.replace(Routes.Legacy.TEACHER_DASHBOARD);
         break;
       case UserRole.STUDENT:
-        router.replace('/application/student/dashboard');
+        router.replace(Routes.Legacy.STUDENT_DASHBOARD);
         break;
       default:
         // Fallback if role is somehow unknown, go to login
         console.warn(
           'Authenticated user with unknown role, redirecting to login.'
         );
-        router.replace('/login'); // Assuming /login is the public auth page
+        router.replace(Routes.LOGIN); // Assuming /login is the public auth page
     }
   }, [isLoading, isAuthenticated, user, router]);
 
@@ -66,19 +67,19 @@ export default function HomePage() {
 
         <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl w-full'>
           <CardLink
-            href='/examples'
+            href={Routes.Examples}
             title='Explore Examples'
             description='View pre-generated concept maps from various sample projects to see CodeMap in action.'
             icon={<Compass className='h-8 w-8 mb-2 text-accent' />}
           />
           <CardLink
-            href='/register'
+            href={Routes.REGISTER}
             title='Sign Up'
             description='Create an account to upload your own projects, generate maps, and save your work.'
             icon={<UserPlus className='h-8 w-8 mb-2 text-accent' />}
           />
           <CardLink
-            href='/login'
+            href={Routes.LOGIN}
             title='Log In'
             description='Already have an account? Log in to access your dashboard and continue your work.'
             icon={<LogIn className='h-8 w-8 mb-2 text-accent' />}

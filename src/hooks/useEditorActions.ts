@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+import { Routes } from '@/lib/routes';
 
 interface UseEditorActionsProps {
   routeMapId: string;
@@ -80,7 +81,7 @@ export const useEditorActions = ({ routeMapId, user }: UseEditorActionsProps) =>
 
   // Navigation actions
   const handleNewMap = useCallback(() => {
-    router.push('/concept-maps/new');
+    router.push(Routes.ConceptMaps.NEW);
   }, [router]);
 
   const handleExportMap = useCallback(() => {

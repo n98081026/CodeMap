@@ -36,5 +36,17 @@ export const Routes = {
 
   API: {
     // Add API routes here as needed
+  },
+
+  // Legacy routes that should be phased out.
+  // Added during refactoring to handle existing hardcoded paths.
+  Legacy: {
+    STUDENT_DASHBOARD: '/application/student/dashboard',
+    TEACHER_DASHBOARD: '/application/teacher/dashboard',
+    ADMIN_DASHBOARD: '/application/admin/dashboard',
+    TEACHER_CLASSROOMS: '/application/teacher/classrooms',
+    STUDENT_CONCEPT_MAPS: '/application/student/concept-maps',
+    STUDENT_PROJECTS_SUBMISSIONS: '/application/student/projects/submissions',
+    CONCEPT_MAPS_NEW: '/application/concept-maps/editor/new',
   }
 } as const;

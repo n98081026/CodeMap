@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
+import { Routes } from '@/lib/routes';
 
 interface EditorHeaderProps {
   mapName: string;
@@ -30,13 +31,13 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
   const handleBackClick = () => {
     if (user?.role === 'student') {
-      router.push('/student/concept-maps');
+      router.push(Routes.Student.CONCEPT_MAPS);
     } else if (user?.role === 'teacher') {
-      router.push('/teacher/dashboard');
+      router.push(Routes.Teacher.DASHBOARD);
     } else if (user?.role === 'admin') {
-      router.push('/admin/dashboard');
+      router.push(Routes.Admin.DASHBOARD);
     } else {
-      router.push('/examples');
+      router.push(Routes.Examples);
     }
   };
 

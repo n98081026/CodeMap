@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
+import { Routes } from '@/lib/routes';
 
 export default function LoginPage() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -23,17 +24,17 @@ export default function LoginPage() {
       // If user is already authenticated, redirect them from login page
       switch (user.role) {
         case UserRole.ADMIN:
-          router.replace('/application/admin/dashboard');
+          router.replace(Routes.Legacy.ADMIN_DASHBOARD);
           break;
         case UserRole.TEACHER:
-          router.replace('/application/teacher/dashboard');
+          router.replace(Routes.Legacy.TEACHER_DASHBOARD);
           break;
         case UserRole.STUDENT:
-          router.replace('/application/student/dashboard');
+          router.replace(Routes.Legacy.STUDENT_DASHBOARD);
           break;
         default:
           // Fallback, though ideally role should always be known
-          router.replace('/application/student/dashboard');
+          router.replace(Routes.Legacy.STUDENT_DASHBOARD);
       }
     }
   }, [isAuthenticated, user, router, isLoading]);

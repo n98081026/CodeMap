@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
+import { Routes } from '@/lib/routes';
 
 export default function RegisterPage() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -21,10 +22,10 @@ export default function RegisterPage() {
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
       if (user.role === UserRole.ADMIN)
-        router.replace('/application/admin/dashboard');
+        router.replace(Routes.Legacy.ADMIN_DASHBOARD);
       else if (user.role === UserRole.TEACHER)
-        router.replace('/application/teacher/dashboard');
-      else router.replace('/application/student/dashboard');
+        router.replace(Routes.Legacy.TEACHER_DASHBOARD);
+      else router.replace(Routes.Legacy.STUDENT_DASHBOARD);
     }
   }, [isAuthenticated, user, router, isLoading]);
 

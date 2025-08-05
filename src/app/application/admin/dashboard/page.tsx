@@ -16,6 +16,7 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Ke
 // import { useAdminDashboardMetrics } from '@/hooks/useAdminDashboardMetrics'; // Now part of AdminDashboardView
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole, type User } from '@/types';
+import { Routes } from '@/lib/routes';
 
 export default function AdminDashboardPage() {
   const { user, isLoading: authIsLoading } = useAuth();
@@ -24,9 +25,9 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!authIsLoading) {
       if (!user) {
-        router.replace('/login');
+        router.replace(Routes.LOGIN);
       } else if (user.role !== UserRole.ADMIN) {
-        router.replace('/login'); // Or a more specific unauthorized page for non-admins
+        router.replace(Routes.LOGIN); // Or a more specific unauthorized page for non-admins
       }
     }
   }, [user, authIsLoading, router]);

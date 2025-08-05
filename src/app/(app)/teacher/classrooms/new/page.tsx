@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Routes } from '@/lib/routes';
 
 const classroomFormSchema = z.object({
   name: z
@@ -55,7 +56,7 @@ export default function CreateClassroomPage() {
       title: 'Classroom Created',
       description: `Classroom "${values.name}" has been successfully created.`,
     });
-    router.push('/teacher/classrooms'); // Redirect to classrooms list
+    router.push(Routes.Teacher.CLASSROOMS); // Redirect to classrooms list
   }
 
   return (
