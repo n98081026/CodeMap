@@ -10,11 +10,9 @@ import '@testing-library/jest-dom/vitest';
 
 import {
   AISuggestionPanel,
-  AISuggestionPanelProps,
-} from '../ai-suggestion-panel';
-import type {
-  ExtractedConceptItem,
-  RelationSuggestion,
+  type AISuggestionPanelProps,
+  type ExtractedConceptItem,
+  type RelationSuggestion,
 } from '../ai-suggestion-panel';
 import { ConceptMapNode } from '@/types';
 

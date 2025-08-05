@@ -8,7 +8,7 @@ import {
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
-import AIStagingToolbar, { AIStagingToolbarProps } from '../ai-staging-toolbar';
+import AIStagingToolbar, { type AIStagingToolbarProps } from '../ai-staging-toolbar';
 
 describe('AIStagingToolbar', () => {
   const mockOnCommit = vi.fn();

@@ -2,7 +2,7 @@
 
 // Set this to true to bypass Supabase auth and use a mock student user.
 // REMEMBER TO SET TO FALSE FOR ACTUAL AUTH TESTING/PRODUCTION.
-export const BYPASS_AUTH_FOR_TESTING = true;
+export const BYPASS_AUTH_FOR_TESTING = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
 
 // Define mock user data that can be shared across services when BYPASS_AUTH_FOR_TESTING is true.
 import type { User, Classroom, ConceptMap, ProjectSubmission } from '@/types';
@@ -132,10 +132,50 @@ export const MOCK_CONCEPT_MAP_TEACHER: ConceptMap = {
   updatedAt: new Date().toISOString(),
 };
 
-export const MOCK_CONCEPT_MAPS_STORE: ConceptMap[] = [
-  MOCK_CONCEPT_MAP_STUDENT,
-  MOCK_CONCEPT_MAP_TEACHER,
-];
+// Mock data store for bypass mode (persistent in localStorage for development)
+const STORAGE_KEY = 'codemap_mock_store';
+
+const getMockStore = (): ConceptMap[] => {
+  if (typeof window === 'undefined') return [MOCK_CONCEPT_MAP_STUDENT, MOCK_CONCEPT_MAP_TEACHER];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [MOCK_CONCEPT_MAP_STUDENT, MOCK_CONCEPT_MAP_TEACHER];
+  } catch {
+    return [MOCK_CONCEPT_MAP_STUDENT, MOCK_CONCEPT_MAP_TEACHER];
+  }
+};
+
+const setMockStore = (maps: ConceptMap[]): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(maps));
+  } catch (error) {
+    console.warn('Failed to save mock store to localStorage:', error);
+  }
+};
+
+export const MOCK_CONCEPT_MAPS_STORE = {
+  get: getMockStore,
+  set: setMockStore,
+  add: (map: ConceptMap) => {
+    const maps = getMockStore();
+    maps.push(map);
+    setMockStore(maps);
+  },
+  update: (mapId: string, updatedMap: ConceptMap) => {
+    const maps = getMockStore();
+    const index = maps.findIndex(m => m.id === mapId);
+    if (index !== -1) {
+      maps[index] = updatedMap;
+      setMockStore(maps);
+    }
+  },
+  remove: (mapId: string) => {
+    const maps = getMockStore();
+    const filtered = maps.filter(m => m.id !== mapId);
+    setMockStore(filtered);
+  }
+};
 
 export const MOCK_PROJECT_SUBMISSION_STUDENT: ProjectSubmission = {
   id: 'sub-student-v3-sps01',

@@ -8,10 +8,15 @@ import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 
-export const useEditorActions = (routeMapId: string) => {
+interface UseEditorActionsProps {
+  routeMapId: string;
+  user: any;
+}
+
+export const useEditorActions = ({ routeMapId, user }: UseEditorActionsProps) => {
   const { toast } = useToast();
   const router = useRouter();
-  const { saveMapData, isLoading: isSaving } = useConceptMapDataManager();
+  const { saveMap } = useConceptMapDataManager({ routeMapId, user });
   
   const {
     updateNode,
@@ -26,21 +31,18 @@ export const useEditorActions = (routeMapId: string) => {
   } = useConceptMapStore();
 
   // Save map action
-  const handleSaveMap = useCallback(async () => {
+  const handleSaveMap = useCallback(async (isViewOnly = false) => {
     try {
-      await saveMapData();
-      toast({
-        title: 'Map saved successfully',
-        description: 'Your concept map has been saved.',
-      });
+      await saveMap(isViewOnly);
     } catch (error) {
+      console.error('Save map error:', error);
       toast({
         title: 'Save failed',
-        description: 'Failed to save the concept map. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to save the concept map. Please try again.',
         variant: 'destructive',
       });
     }
-  }, [saveMapData, toast]);
+  }, [saveMap, toast]);
 
   // Node actions
   const handleUpdateNode = useCallback((nodeId: string, updates: Partial<ConceptMapNode>) => {
@@ -82,19 +84,75 @@ export const useEditorActions = (routeMapId: string) => {
   }, [router]);
 
   const handleExportMap = useCallback(() => {
-    // TODO: Implement export functionality
-    toast({
-      title: 'Export feature',
-      description: 'Export functionality will be implemented soon.',
-    });
+    try {
+      const { mapData, mapName } = useConceptMapStore.getState();
+      const dataStr = JSON.stringify(mapData, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      const exportFileDefaultName = `${mapName || 'concept-map'}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+      
+      toast({
+        title: 'Map exported',
+        description: `${exportFileDefaultName} has been downloaded.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Export failed',
+        description: 'Failed to export the concept map.',
+        variant: 'destructive',
+      });
+    }
   }, [toast]);
 
   const handleTriggerImport = useCallback(() => {
-    // TODO: Implement import functionality
-    toast({
-      title: 'Import feature',
-      description: 'Import functionality will be implemented soon.',
-    });
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const content = e.target?.result as string;
+              const importedData = JSON.parse(content);
+              
+              // Validate the imported data structure
+              if (importedData.nodes && importedData.edges) {
+                const { setMapData } = useConceptMapStore.getState();
+                setMapData(importedData);
+                toast({
+                  title: 'Map imported',
+                  description: 'Concept map has been imported successfully.',
+                });
+              } else {
+                throw new Error('Invalid concept map format');
+              }
+            } catch (parseError) {
+              toast({
+                title: 'Import failed',
+                description: 'Invalid file format. Please select a valid concept map JSON file.',
+                variant: 'destructive',
+              });
+            }
+          };
+          reader.readAsText(file);
+        }
+      };
+      input.click();
+    } catch (error) {
+      toast({
+        title: 'Import failed',
+        description: 'Failed to import the concept map.',
+        variant: 'destructive',
+      });
+    }
   }, [toast]);
 
   // Context menu actions
@@ -111,11 +169,24 @@ export const useEditorActions = (routeMapId: string) => {
         }
         break;
       case 'duplicate':
-        // TODO: Implement duplicate functionality
-        toast({
-          title: 'Duplicate feature',
-          description: 'Duplicate functionality will be implemented soon.',
-        });
+        if (nodeId) {
+          const { mapData, addNode } = useConceptMapStore.getState();
+          const nodeToDuplicate = mapData.nodes.find(n => n.id === nodeId);
+          if (nodeToDuplicate) {
+            const duplicatedNode = {
+              ...nodeToDuplicate,
+              id: `${nodeId}-copy-${Date.now()}`,
+              text: `${nodeToDuplicate.text} (Copy)`,
+              x: (nodeToDuplicate.x || 0) + 50,
+              y: (nodeToDuplicate.y || 0) + 50,
+            };
+            addNode(duplicatedNode);
+            toast({
+              title: 'Node duplicated',
+              description: 'Node has been duplicated successfully.',
+            });
+          }
+        }
         break;
       default:
         break;
@@ -124,7 +195,7 @@ export const useEditorActions = (routeMapId: string) => {
 
   return {
     // State
-    isSaving,
+    isSaving: false, // This should come from the store or data manager
     
     // Actions
     handleSaveMap,

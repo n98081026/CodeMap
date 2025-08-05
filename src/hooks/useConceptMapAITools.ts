@@ -12,7 +12,7 @@ import type {
   ExpandConceptOutput,
   RewriteNodeContentOutput,
 } from '@/ai/flows/types';
-import type { ConceptMapNode, ConceptMapEdge } from '@/types/concept-map';
+import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 
 import { runFlow } from '@/ai/flows';
 import { getNodePlacement } from '@/lib/dagreLayoutUtility';

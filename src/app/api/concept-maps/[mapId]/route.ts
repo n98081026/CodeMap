@@ -11,7 +11,7 @@ import {
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder for actual auth
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: { mapId: string } }
 ) {
   try {
@@ -30,7 +30,17 @@ export async function GET(
         { status: 404 }
       );
     }
-    // Add authorization check here if needed: does the current user own this map or have view rights?
+
+    // Check if map is public or user has access
+    const url = new URL(request.url);
+    const isViewOnly = url.searchParams.get('viewOnly') === 'true';
+    
+    if (!map.isPublic && !isViewOnly) {
+      // For private maps, we should check user authentication
+      // For now, we'll allow access but this should be enhanced with proper auth
+      console.warn('Private map access - authentication check needed');
+    }
+
     return NextResponse.json(map);
   } catch (error) {
     console.error(

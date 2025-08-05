@@ -61,7 +61,7 @@ import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
 import { UserRole } from '@/types';
 
 const FlowCanvasRefactored = dynamic(
-  () => import('@/components/concept-map/flow-canvas').then(mod => mod.FlowCanvasRefactored),
+  () => import('@/components/concept-map/flow-canvas').then(mod => ({ default: mod.FlowCanvasRefactored })),
   {
     ssr: false,
     loading: () => (
@@ -253,15 +253,21 @@ export default function ConceptMapEditorPage() {
     (useConceptMapStore.getState() as ConceptMapState).initialLoadComplete,
   ]);
 
-  const { canUndo, canRedo } = {
-    canUndo: false,
-    canRedo: false,
-  };
+  const { canUndo, canRedo } = useConceptMapStore((state) => ({
+    canUndo: state.past.length > 0,
+    canRedo: state.future.length > 0,
+  }));
 
-  const { saveMap, currentSubmissionId } = useConceptMapDataManager({
-    routeMapId,
+  const { saveMap, loadMapData, currentSubmissionId } = useConceptMapDataManager({
+    routeMapId: mapId,
     user,
   });
+
+  // Initialize editor actions with proper dependencies
+  const editorActions = useEditorActions({ routeMapId: mapId, user });
+  
+  // Initialize AI actions
+  const aiActions = useEditorAIActions();
 
   const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<
     string[]
@@ -788,12 +794,12 @@ export default function ConceptMapEditorPage() {
           isSaving={isStoreSaving}
           onExportMap={handleExportMap}
           onTriggerImport={handleTriggerImport}
-          onExtractConcepts={() => {}}
-          onSuggestRelations={() => {}}
-          onExpandConcept={() => {}}
-          onQuickCluster={() => {}}
-          onGenerateSnippetFromText={() => {}}
-          onSummarizeSelectedNodes={() => {}}
+          onExtractConcepts={aiActions.handleExtractConcepts}
+          onSuggestRelations={aiActions.handleSuggestRelations}
+          onExpandConcept={aiActions.handleExpandConcept}
+          onQuickCluster={aiActions.handleQuickCluster}
+          onGenerateSnippetFromText={aiActions.handleGenerateSnippetFromText}
+          onSummarizeSelectedNodes={aiActions.handleSummarizeSelectedNodes}
           isViewOnlyMode={storeIsViewOnlyMode}
           onAddNodeToData={handleAddNodeToData}
           onAddEdgeToData={handleAddEdgeToData}
@@ -802,8 +808,8 @@ export default function ConceptMapEditorPage() {
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen}
           isAiPanelOpen={isAiPanelOpen}
-          onUndo={() => {}}
-          onRedo={() => {}}
+          onUndo={() => useConceptMapStore.getState().undo()}
+          onRedo={() => useConceptMapStore.getState().redo()}
           canUndo={canUndo}
           canRedo={canRedo}
           selectedNodeId={selectedElementId}

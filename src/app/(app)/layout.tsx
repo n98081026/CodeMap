@@ -49,9 +49,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     } else if (isAuthenticated && !isLoading) {
       const isDashboardPage =
         pathname.endsWith('/dashboard') ||
-        pathname === '/application/student/dashboard' ||
-        pathname === '/application/teacher/dashboard' ||
-        pathname === '/application/admin/dashboard' ||
+        pathname === '/student/dashboard' ||
+        pathname === '/teacher/dashboard' ||
+        pathname === '/admin/dashboard' ||
         pathname === '/';
       if (isDashboardPage) {
         const dashboardTutorialCompleted =

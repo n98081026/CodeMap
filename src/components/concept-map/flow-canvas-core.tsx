@@ -754,6 +754,11 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(({
         }
       } catch (e) {
         console.error('Failed to parse dropped data in FlowCanvasCore:', e);
+        // Show user-friendly error message
+        if (onConceptSuggestionDrop) {
+          // Could add toast notification here if available
+          console.warn('Invalid data format dropped on canvas');
+        }
       }
     },
     [isViewOnlyMode, reactFlowInstance, onConceptSuggestionDrop]

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 import { AuthProvider } from '@/contexts/auth-context';
-import { EditorToolbar, EditorToolbarProps } from '../editor-toolbar';
+import { EditorToolbar, type EditorToolbarProps } from '../editor-toolbar';
 
 // Mock child components
 vi.mock('@/components/concept-map/genai-modals', () => ({

@@ -55,14 +55,14 @@ export default function StudentDashboardView({ user }: { user: User }) {
   const studentQuickActions: QuickActionItem[] = [
     {
       label: 'Create New Concept Map',
-      href: '/application/concept-maps/editor/new', // This path is from application folder
+      href: '/concept-maps/new',
       icon: Compass,
       size: 'lg',
       className: 'w-full',
     },
     {
       label: 'Submit New Project',
-      href: '/application/student/projects/submit', // This path is from application folder
+      href: '/student/projects/submit',
       icon: FileText,
       variant: 'secondary',
       size: 'lg',
@@ -87,7 +87,7 @@ export default function StudentDashboardView({ user }: { user: User }) {
           description='Classrooms you are enrolled in.'
           count={renderCount(classroomsMetric, 'classrooms')}
           icon={BookOpen}
-          href='/application/student/classrooms'
+          href='/student/classrooms'
           linkText='View Classrooms'
         />
         <DashboardLinkCard
@@ -95,7 +95,7 @@ export default function StudentDashboardView({ user }: { user: User }) {
           description='Concept maps you have created or have access to.'
           count={renderCount(conceptMapsMetric, 'maps')}
           icon={Share2}
-          href='/application/student/concept-maps'
+          href='/student/concept-maps'
           linkText='View Maps'
         />
         <DashboardLinkCard
@@ -103,7 +103,7 @@ export default function StudentDashboardView({ user }: { user: User }) {
           description='Projects you have submitted for analysis.'
           count={renderCount(submissionsMetric, 'submissions')}
           icon={FolderKanban}
-          href='/application/student/projects/submissions'
+          href='/student/projects/submissions'
           linkText='View Submissions'
         />
       </div>

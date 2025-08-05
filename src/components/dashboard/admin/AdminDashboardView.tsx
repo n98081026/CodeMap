@@ -61,7 +61,7 @@ export default function AdminDashboardView({ user }: { user: User }) {
           description='Total registered users in the system.'
           count={renderCount(usersMetric, 'users')}
           icon={Users}
-          href='/application/admin/users' // These links are specific to the admin application flow
+          href='/admin/users'
           linkText='Manage Users'
         />
         <DashboardLinkCard
@@ -69,7 +69,7 @@ export default function AdminDashboardView({ user }: { user: User }) {
           description='Active classrooms. Configure system parameters here.'
           count={renderCount(classroomsMetric, 'classrooms')}
           icon={Settings}
-          href='/application/admin/settings' // These links are specific to the admin application flow
+          href='/admin/settings'
           linkText='Configure Settings'
         />
       </div>

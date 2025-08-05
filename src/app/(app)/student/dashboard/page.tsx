@@ -26,10 +26,10 @@ export default function StudentDashboardPage() {
         // Or a generic fallback if the role doesn't have a specific dashboard here.
         switch (user.role) {
           case UserRole.ADMIN:
-            router.replace('/application/admin/dashboard');
+            router.replace('/admin/dashboard');
             break;
           case UserRole.TEACHER:
-            router.replace('/application/teacher/dashboard');
+            router.replace('/teacher/dashboard');
             break;
           default:
             router.replace('/'); // Fallback to a generic home or their (app) root if applicable

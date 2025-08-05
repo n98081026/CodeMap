@@ -27,7 +27,7 @@ export default function TeacherDashboardView({ user }: { user: User }) {
     totalStudents: totalStudentsMetric,
   } = useTeacherDashboardMetrics();
 
-  const adminDashboardLink = '/application/admin/dashboard';
+  const adminDashboardLink = '/admin/dashboard';
 
   const renderCount = (
     metric: { count: number | null; isLoading: boolean; error: string | null },
@@ -54,7 +54,7 @@ export default function TeacherDashboardView({ user }: { user: User }) {
   const teacherQuickActions: QuickActionItem[] = [
     {
       label: 'Create New Classroom',
-      href: '/application/teacher/classrooms/new',
+      href: '/teacher/classrooms/new',
       icon: Users,
       size: 'lg',
       className: 'w-full sm:w-auto',
@@ -86,7 +86,7 @@ export default function TeacherDashboardView({ user }: { user: User }) {
           description='Classrooms you are currently teaching.'
           count={renderCount(managedClassroomsMetric, 'classrooms')}
           icon={BookOpen}
-          href='/application/teacher/classrooms'
+          href='/teacher/classrooms'
           linkText='Manage Classrooms'
         />
         <DashboardLinkCard
@@ -94,7 +94,7 @@ export default function TeacherDashboardView({ user }: { user: User }) {
           description='Students across all your classrooms.'
           count={renderCount(totalStudentsMetric, 'students')}
           icon={Users}
-          href='/application/teacher/classrooms' // Link to view students, likely within classroom management
+          href='/teacher/classrooms'
           linkText='View Student Lists'
         />
       </div>

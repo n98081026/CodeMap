@@ -1,7 +1,7 @@
 // src/tests/setup.ts
 import React from 'react'; // Import React
 import * as matchers from '@testing-library/jest-dom/matchers';
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 
 expect.extend(matchers);
 
@@ -98,6 +98,33 @@ vi.mock('lucide-react', () => {
     Brain: createIcon('Brain'),
     Search: createIcon('Search'),
     PlusCircle: createIcon('PlusCircle'),
+    FilePlus: createIcon('FilePlus'),
+    Save: createIcon('Save'),
+    Upload: createIcon('Upload'),
+    Download: createIcon('Download'),
+    Undo: createIcon('Undo'),
+    Redo: createIcon('Redo'),
+    PlusSquare: createIcon('PlusSquare'),
+    Spline: createIcon('Spline'),
+    Shuffle: createIcon('Shuffle'),
+    BoxSelect: createIcon('BoxSelect'),
+    LayoutGrid: createIcon('LayoutGrid'),
+    ScanSearch: createIcon('ScanSearch'),
+    Wand2: createIcon('Wand2'),
+    Settings2: createIcon('Settings2'),
+    BotMessageSquare: createIcon('BotMessageSquare'),
+    TextSearch: createIcon('TextSearch'),
+    ListCollapse: createIcon('ListCollapse'),
+    ScrollText: createIcon('ScrollText'),
+    TestTube2: createIcon('TestTube2'),
+    Eye: createIcon('Eye'),
+    EyeOff: createIcon('EyeOff'),
+    FileTextIcon: createIcon('FileTextIcon'),
+    MessagesSquare: createIcon('MessagesSquare'),
+    GraduationCap: createIcon('GraduationCap'),
+    Grid: createIcon('Grid'),
+    AlignHorizontalDistributeCenter: createIcon('AlignHorizontalDistributeCenter'),
+    BrainCircuit: createIcon('BrainCircuit'),
     // Add any other icons that might be used across the application
   };
 });

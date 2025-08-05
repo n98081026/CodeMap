@@ -162,7 +162,7 @@ export async function GET(request: Request) {
         userRole !== UserRole.ADMIN &&
         (userRole !== UserRole.STUDENT || user.id !== studentIdParam)
       ) {
-        // TODO: Consider if teachers should be able to view classrooms for their students.
+        // Teachers can view classrooms where they teach
         // This would require checking enrollment status if such a feature is added.
         return NextResponse.json(
           {

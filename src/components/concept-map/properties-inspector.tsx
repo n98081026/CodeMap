@@ -107,7 +107,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const nodeLabelInputRef = useRef<HTMLInputElement>(null); // Ref for node label input
   const nodeDetailsTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // const aiToolsHook = useConceptMapAITools(!!isViewOnlyMode);
+  // AI tools integration would go here
   const { toast } = useToast();
 
   // AI Command Palette states (merge both approaches)

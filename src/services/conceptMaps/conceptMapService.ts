@@ -33,8 +33,9 @@ export async function createConceptMap(
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    MOCK_CONCEPT_MAPS_STORE.add(newMap);
     console.warn(
-      `BYPASS_AUTH: Mock map "${name}" created in-memory for this request only.`
+      `BYPASS_AUTH: Mock map "${name}" created and saved to localStorage.`
     );
     return newMap;
   }

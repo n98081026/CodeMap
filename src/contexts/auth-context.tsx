@@ -616,7 +616,7 @@ async function handleCopyExampleAction(
       title: 'Example Copied',
       description: `"${savedMap.name}" has been copied to your workspace.`,
     });
-    router.replace(`/application/concept-maps/editor/${savedMap.id}`);
+    router.replace(`/concept-maps/editor/${savedMap.id}`);
   } catch (error) {
     toast({
       title: 'Copy Failed',
