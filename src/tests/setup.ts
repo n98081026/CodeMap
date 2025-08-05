@@ -21,19 +21,16 @@ expect.extend(matchers);
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 
+// Import the mock implementations statically
+import * as navigationMock from '@/tests/__mocks__/next/navigation';
+import * as mainLayoutMock from '@/tests/__mocks__/components/layout/main-layout';
+
 // Global mock for next/navigation
 // This ensures that all tests that import from 'next/navigation' will use our mock.
-vi.mock('next/navigation', () => {
-  // Dynamically import the mock implementation
-  const mockModule = import('@/tests/__mocks__/next/navigation');
-  return mockModule; // Return all exports from the mock file
-});
+vi.mock('next/navigation', () => navigationMock);
 
 // Global mock for MainLayout
-vi.mock('@/components/layout/main-layout', () => {
-  const mockModule = import('@/tests/__mocks__/components/layout/main-layout');
-  return mockModule;
-});
+vi.mock('@/components/layout/main-layout', () => mainLayoutMock);
 
 // Mock lucide-react icons globally
 vi.mock('lucide-react', () => {
@@ -168,24 +165,21 @@ Object.defineProperty(window, 'location', {
 
 import { z } from 'zod';
 
-vi.mock('genkit', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...(actual as any),
-    default: {
-      defineTool: vi.fn((tool) => tool),
-      defineFlow: vi.fn((flow) => flow),
-      definePrompt: vi.fn((prompt) => prompt),
-      configureGenkit: vi.fn(),
-      z,
-    },
+// Rewritten to be synchronous to prevent test runner hangs.
+vi.mock('genkit', () => ({
+  default: {
     defineTool: vi.fn((tool) => tool),
     defineFlow: vi.fn((flow) => flow),
     definePrompt: vi.fn((prompt) => prompt),
     configureGenkit: vi.fn(),
     z,
-  };
-});
+  },
+  defineTool: vi.fn((tool) => tool),
+  defineFlow: vi.fn((flow) => flow),
+  definePrompt: vi.fn((prompt) => prompt),
+  configureGenkit: vi.fn(),
+  z,
+}));
 
 vi.mock('@genkit-ai/core', () => ({
   defineTool: vi.fn((tool) => tool),

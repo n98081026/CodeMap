@@ -1,8 +1,5 @@
 import { vi } from 'vitest';
 
-// Store the actual implementations
-const actualNav = await vi.importActual('next/navigation');
-
 // Default mock implementations
 let mockRouter = {
   push: vi.fn(),
@@ -78,20 +75,5 @@ export const __setMockSearchParams = (params: URLSearchParams | string) => {
 // For now, assume only the above are used or need mocking.
 // If other exports are needed, they might need to be added explicitly or the mocking strategy revised.
 
-// Fallback for any other exports (might not work as expected with top-level await importActual)
-// This is a basic attempt, might need adjustment based on actual usage.
-for (const key in actualNav) {
-  if (
-    key !== 'useRouter' &&
-    key !== 'usePathname' &&
-    key !== 'useSearchParams' &&
-    key !== 'redirect' &&
-    key !== 'permanentRedirect'
-  ) {
-    if (typeof (actualNav as any)[key] === 'function') {
-      (exports as any)[key] = vi.fn((actualNav as any)[key]);
-    } else {
-      (exports as any)[key] = (actualNav as any)[key];
-    }
-  }
-}
+// The fallback logic has been removed as it was causing a hang due to top-level await
+// and is generally an unsafe practice in mock files. Mocks should be explicit.
