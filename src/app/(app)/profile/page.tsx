@@ -59,11 +59,11 @@ export default function ProfilePage() {
     if (!user) return Routes.LOGIN;
     switch (user.role) {
       case UserRole.ADMIN:
-        return Routes.Legacy.ADMIN_DASHBOARD;
+        return Routes.Admin.DASHBOARD;
       case UserRole.TEACHER:
-        return Routes.Legacy.TEACHER_DASHBOARD;
+        return Routes.Teacher.DASHBOARD;
       case UserRole.STUDENT:
-        return Routes.Legacy.STUDENT_DASHBOARD;
+        return Routes.Student.DASHBOARD;
       default:
         return Routes.LOGIN;
     }
@@ -83,13 +83,13 @@ export default function ProfilePage() {
       setTestUserRole(newRole);
       switch (newRole) {
         case UserRole.ADMIN:
-          router.replace(Routes.Legacy.ADMIN_DASHBOARD);
+          router.replace(Routes.Admin.DASHBOARD);
           break;
         case UserRole.TEACHER:
-          router.replace(Routes.Legacy.TEACHER_DASHBOARD);
+          router.replace(Routes.Teacher.DASHBOARD);
           break;
         case UserRole.STUDENT:
-          router.replace(Routes.Legacy.STUDENT_DASHBOARD);
+          router.replace(Routes.Student.DASHBOARD);
           break;
         default:
           router.replace(Routes.LOGIN);
@@ -229,7 +229,7 @@ export default function ProfilePage() {
               settings.
             </p>
             <Button asChild className='mt-4'>
-              <Link href={Routes.Legacy.ADMIN_DASHBOARD}>
+              <Link href={Routes.Admin.DASHBOARD}>
                 Go to Admin Dashboard
               </Link>
             </Button>
