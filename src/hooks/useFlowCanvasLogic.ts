@@ -1,9 +1,21 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { useNodesState, useEdgesState, useReactFlow, type Node as RFNode, type Edge as RFEdge } from 'reactflow';
-import { useConceptMapStore } from '@/stores/concept-map-store';
-import { calculateSnappedPositionAndLines } from '@/lib/layout-utils';
-import type { ConceptMapData, ConceptMapNode, VisualEdgeSuggestion } from '@/types';
+import {
+  useNodesState,
+  useEdgesState,
+  useReactFlow,
+  type Node as RFNode,
+  type Edge as RFEdge,
+} from 'reactflow';
+
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
+import type {
+  ConceptMapData,
+  ConceptMapNode,
+  VisualEdgeSuggestion,
+} from '@/types';
+
+import { calculateSnappedPositionAndLines } from '@/lib/layout-utils';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8;
@@ -11,7 +23,10 @@ const SNAP_THRESHOLD = 8;
 interface UseFlowCanvasLogicProps {
   mapDataFromStore: ConceptMapData;
   isViewOnlyMode?: boolean;
-  onNodesChangeInStore: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
+  onNodesChangeInStore: (
+    nodeId: string,
+    updates: Partial<ConceptMapNode>
+  ) => void;
   onNodesDeleteInStore: (nodeId: string) => void;
   onEdgesDeleteInStore: (edgeId: string) => void;
   onConnectInStore: (options: {
@@ -120,10 +135,13 @@ export const useFlowCanvasLogic = ({
   // Node types and edge types
   const nodeTypes = useMemo(() => {
     const CustomNode = require('@/components/concept-map/custom-node').default;
-    const GhostNodeComponent = require('@/components/concept-map/GhostNodeComponent').default;
-    const SuggestedGroupOverlayNode = require('@/components/concept-map/SuggestedGroupOverlayNode').default;
-    const SuggestedIntermediateNode = require('@/components/concept-map/SuggestedIntermediateNode').default;
-    
+    const GhostNodeComponent =
+      require('@/components/concept-map/GhostNodeComponent').default;
+    const SuggestedGroupOverlayNode =
+      require('@/components/concept-map/SuggestedGroupOverlayNode').default;
+    const SuggestedIntermediateNode =
+      require('@/components/concept-map/SuggestedIntermediateNode').default;
+
     return {
       custom: CustomNode,
       ghost: GhostNodeComponent,
@@ -133,9 +151,11 @@ export const useFlowCanvasLogic = ({
   }, []);
 
   const edgeTypes = useMemo(() => {
-    const OrthogonalEdge = require('@/components/concept-map/orthogonal-edge').default;
-    const SuggestedEdge = require('@/components/concept-map/SuggestedEdge').default;
-    
+    const OrthogonalEdge =
+      require('@/components/concept-map/orthogonal-edge').default;
+    const SuggestedEdge =
+      require('@/components/concept-map/SuggestedEdge').default;
+
     return {
       orthogonal: OrthogonalEdge,
       suggested: SuggestedEdge,
@@ -149,35 +169,35 @@ export const useFlowCanvasLogic = ({
     activeSnapLinesLocal,
     reactFlowWrapperRef,
     connectingNodeId,
-    
+
     // Converted data
     convertedNodes,
     convertedEdges,
-    
+
     // Types
     nodeTypes,
     edgeTypes,
-    
+
     // React Flow handlers
     setRfNodes,
     setRfEdges,
     onNodesChangeReactFlow,
     onEdgesChangeReactFlow,
-    
+
     // Store actions
     setSelectedElement,
     addEdgeToStore,
     storeCancelConnection,
     storeCompleteConnectionMode,
-    
+
     // Local state setters
     setActiveSnapLinesLocal,
-    
+
     // Store data
     stagedMapData,
     ghostPreviewData,
     structuralSuggestions,
-    
+
     // Visual edge suggestion
     activeVisualEdgeSuggestion,
     onAcceptVisualEdge,

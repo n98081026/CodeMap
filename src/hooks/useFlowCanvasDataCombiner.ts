@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
+
 import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import type { ConceptMapData } from '@/types';
+import type { Node as RFNode, Edge as RFEdge } from 'reactflow';
 
 interface UseFlowCanvasDataCombinerProps {
   convertedNodes: RFNode<CustomNodeData>[];
@@ -20,7 +21,6 @@ export const useFlowCanvasDataCombiner = ({
   structuralSuggestions,
   isViewOnlyMode,
 }: UseFlowCanvasDataCombinerProps) => {
-
   // Combine nodes from different sources
   const combinedNodes = useMemo(() => {
     let baseNodes = [...convertedNodes];
