@@ -1,8 +1,12 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Compass, EyeOff, HelpCircle, Loader2, Save, Share2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { ReactFlowProvider, useReactFlow } from 'reactflow';
 
