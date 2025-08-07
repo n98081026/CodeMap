@@ -78,7 +78,7 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
           const stagedNodes: ConceptMapNode[] = [];
           const existingNodesForPlacement = [...mapData.nodes];
 
-        result.concepts.forEach((conceptItem, index) => {
+          result.concepts.forEach((conceptItem, index) => {
             const newNodeId = `whimsical-${Date.now()}-${index}`;
             const position = getNodePlacement(
               existingNodesForPlacement,

@@ -1,12 +1,21 @@
 import { useCallback, useState } from 'react';
+
+import type {
+  ConceptMapNode,
+  ConceptMapEdge,
+  VisualEdgeSuggestion,
+} from '@/types';
+
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapStore } from '@/stores/concept-map-store';
-import type { ConceptMapNode, ConceptMapEdge, VisualEdgeSuggestion } from '@/types';
 
 interface UseEditorEventHandlersProps {
   updateStoreNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   updateStoreEdge: (edgeId: string, updates: Partial<ConceptMapEdge>) => void;
-  setStoreSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => void;
+  setStoreSelectedElement: (
+    id: string | null,
+    type: 'node' | 'edge' | null
+  ) => void;
   setStoreMultiSelectedNodeIds: (nodeIds: string[]) => void;
   storeIsViewOnlyMode: boolean;
 }
@@ -19,7 +28,7 @@ export const useEditorEventHandlers = ({
   storeIsViewOnlyMode,
 }: UseEditorEventHandlersProps) => {
   const { toast } = useToast();
-  
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
@@ -29,11 +38,13 @@ export const useEditorEventHandlers = ({
   } | null>(null);
 
   // Visual edge suggestion state
-  const [activeVisualEdgeSuggestion, setActiveVisualEdgeSuggestion] = 
+  const [activeVisualEdgeSuggestion, setActiveVisualEdgeSuggestion] =
     useState<VisualEdgeSuggestion | null>(null);
 
   // Staged element selection state
-  const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<string[]>([]);
+  const [selectedStagedElementIds, setSelectedStagedElementIds] = useState<
+    string[]
+  >([]);
 
   // Flow selection handlers
   const handleFlowSelectionChange = useCallback(
@@ -54,7 +65,7 @@ export const useEditorEventHandlers = ({
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: any) => {
       if (storeIsViewOnlyMode) return;
-      
+
       event.preventDefault();
       setContextMenu({
         isOpen: true,
@@ -93,7 +104,7 @@ export const useEditorEventHandlers = ({
   const handleConceptSuggestionDrop = useCallback(
     (conceptItem: any, position: { x: number; y: number }) => {
       if (storeIsViewOnlyMode) return;
-      
+
       // Add the concept as a new node
       const newNode: ConceptMapNode = {
         id: `node-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -104,7 +115,7 @@ export const useEditorEventHandlers = ({
         width: 150,
         height: 70,
       };
-      
+
       useConceptMapStore.getState().addNode(newNode);
       toast({
         title: 'Concept added',
@@ -127,7 +138,10 @@ export const useEditorEventHandlers = ({
   // Visual edge suggestion handlers
   const handleAcceptVisualEdge = useCallback(
     (suggestionId: string) => {
-      if (activeVisualEdgeSuggestion && activeVisualEdgeSuggestion.id === suggestionId) {
+      if (
+        activeVisualEdgeSuggestion &&
+        activeVisualEdgeSuggestion.id === suggestionId
+      ) {
         // Convert suggestion to actual edge
         const newEdge: ConceptMapEdge = {
           id: `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -135,10 +149,10 @@ export const useEditorEventHandlers = ({
           target: activeVisualEdgeSuggestion.targetNodeId,
           label: activeVisualEdgeSuggestion.suggestedLabel || '',
         };
-        
+
         useConceptMapStore.getState().addEdge(newEdge);
         setActiveVisualEdgeSuggestion(null);
-        
+
         toast({
           title: 'Edge added',
           description: 'The suggested connection has been added to the map.',
@@ -150,7 +164,10 @@ export const useEditorEventHandlers = ({
 
   const handleRejectVisualEdge = useCallback(
     (suggestionId: string) => {
-      if (activeVisualEdgeSuggestion && activeVisualEdgeSuggestion.id === suggestionId) {
+      if (
+        activeVisualEdgeSuggestion &&
+        activeVisualEdgeSuggestion.id === suggestionId
+      ) {
         setActiveVisualEdgeSuggestion(null);
       }
     },
@@ -171,7 +188,7 @@ export const useEditorEventHandlers = ({
     contextMenu,
     activeVisualEdgeSuggestion,
     selectedStagedElementIds,
-    
+
     // Handlers
     handleFlowSelectionChange,
     handleMultiNodeSelectionChange,

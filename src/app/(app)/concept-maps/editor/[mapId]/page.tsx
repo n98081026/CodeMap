@@ -94,6 +94,7 @@ export default function ConceptMapEditorPage() {
     )
   );
 
+
   const routeMapId = paramsHook.mapId as string;
   const isViewOnlyModeQueryParam = searchParams.get('viewOnly') === 'true';
 
@@ -146,6 +147,8 @@ export default function ConceptMapEditorPage() {
     selectedElementId,
     selectedElementType,
     multiSelectedNodeIds,
+    aiExtractedConcepts,
+    aiSuggestedRelations,
     isStagingActive,
     stagedMapData: storeStagedMapData,
     commitStagedMapData,
@@ -163,9 +166,11 @@ export default function ConceptMapEditorPage() {
     isOverviewModeActive,
     projectOverviewData,
     isFetchingOverview,
-    setIsViewOnlyMode: setStoreIsViewOnlyMode,
-    addDebugLog,
-  } = useConceptMapStore();
+    toggleOverviewMode,
+    fetchProjectOverview,
+  } = useConceptMapStore(
+    useCallback(
+      (s: ConceptMapState) => ({
         mapId: s.mapId,
         mapName: s.mapName,
         currentMapOwnerId: s.currentMapOwnerId,
@@ -188,9 +193,6 @@ export default function ConceptMapEditorPage() {
         commitStagedMapData: s.commitStagedMapData,
         clearStagedMapData: s.clearStagedMapData,
         deleteFromStagedMapData: s.deleteFromStagedMapData,
-        setMapName: s.setMapName,
-        setIsPublic: s.setIsPublic,
-        setSharedWithClassroomId: s.setSharedWithClassroomId,
         deleteNode: s.deleteNode,
         updateNode: s.updateNode,
         updateEdge: s.updateEdge,
@@ -200,8 +202,6 @@ export default function ConceptMapEditorPage() {
         setIsViewOnlyMode: s.setIsViewOnlyMode,
         addDebugLog: s.addDebugLog,
         applyLayout: s.applyLayout,
-        applySemanticTidyUp: s.applySemanticTidyUp,
-        isApplyingSemanticTidyUp: s.isApplyingSemanticTidyUp,
         isOverviewModeActive: s.isOverviewModeActive,
         projectOverviewData: s.projectOverviewData,
         isFetchingOverview: s.isFetchingOverview,
@@ -814,10 +814,6 @@ export default function ConceptMapEditorPage() {
           onToggleAiPanel={onToggleAiPanel}
           isPropertiesPanelOpen={isPropertiesInspectorOpen}
           isAiPanelOpen={isAiPanelOpen}
-          onUndo={() => useConceptMapStore.getState().undo()}
-          onRedo={() => useConceptMapStore.getState().redo()}
-          canUndo={canUndo}
-          canRedo={canRedo}
           selectedNodeId={selectedElementId}
           numMultiSelectedNodes={multiSelectedNodeIds.length}
           onAutoLayout={handleAutoLayout}

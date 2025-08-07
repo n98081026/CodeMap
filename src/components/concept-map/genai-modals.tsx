@@ -15,101 +15,8 @@ const extractConceptsSchema = z.object({
   extractionFocus: z.string().optional(),
 });
 
-interface GenAIModalsProps {
-  mapId: string;
-  isViewOnly?: boolean;
-}
-
-export const GenAIModals: React.FC<GenAIModalsProps> = ({ mapId, isViewOnly = false }) => {
-  const aiTools = useConceptMapAITools(isViewOnly);
-
-  // Return null for now as the modals are not fully implemented
-  // This prevents the syntax errors while maintaining the interface
-  return null;
-};
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" data-tutorial-id="extract-concepts-modal-content">
-        <DialogHeader>
-          <DialogTitle id="extract-concepts-title">AI 幫你抓重點 (Extract Concepts)</DialogTitle>
-          <DialogDescription>
-            把一段文字貼進來，或者直接使用選中節點的內容。AI
-            會自動幫你找出裡面最重要的詞彙或短語，並顯示在「AI
-            建議」面板中，方便你加到概念圖裡。
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 py-4"
-          >
-            <FormField
-              control={form.control}
-              name="textToExtract"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Text to Extract Concepts From</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Paste your text here..."
-                      {...field}
-                      rows={10}
-                      disabled={isProcessingExtraction}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="extractionFocus"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Focus of Extraction (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., 'key technologies', 'main actors', 'challenges'"
-                      {...field}
-                      disabled={isProcessingExtraction}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Guide the AI on what kind of concepts to prioritize.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isProcessingExtraction}
-              >
-                Cancel
-              </Button>
-              <Button
-                data-tutorial-id="extract-concepts-submit-button"
-                type="submit"
-                disabled={
-                  isProcessingExtraction || !form.watch('textToExtract')?.trim()
-                }
-              >
-                {isProcessingExtraction && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isProcessingExtraction ? 'Extracting...' : 'Extract Concepts'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-};
+export const GenAIModals: React.FC = () => {
+  const aiTools = useConceptMapAITools();
 
 export const SuggestRelationsModal: React.FC<
   Omit<GenAIModalProps<typeof suggestRelationsSchema>, 'isProcessing'> & {
@@ -322,31 +229,11 @@ export const ExpandConceptModal: React.FC<
 };
 
 export const AskQuestionModal: React.FC<
-  Omit<GenAIModalProps<typeof askQuestionAboutSelectedNodeSchema>, 'isProcessing'> & {
-    nodeContextText?: string;
-    nodeContextDetails?: string;
-  }
+  Omit<GenAIModalProps<typeof askQuestionAboutSelectedNodeSchema>, 'isProcessing'>
 > = ({
   isOpen,
   onOpenChange,
-  onSubmit,
-  nodeContextText,
-  nodeContextDetails,
 }) => {
-  const form = useForm<z.infer<typeof askQuestionAboutSelectedNodeSchema>>({
-    resolver: zodResolver(askQuestionAboutSelectedNodeSchema),
-    defaultValues: { question: '', context: '' },
-  });
-  const { isProcessing: isProcessingQuestion } = useConceptMapAITools();
-
-  useEffect(() => {
-    if (isOpen) {
-      let context = `Node: ${nodeContextText || 'N/A'}`;
-      if (nodeContextDetails) context += `\nDetails: ${nodeContextDetails}`;
-      form.reset({ question: '', context });
-    }
-  }, [isOpen, nodeContextText, nodeContextDetails, form]);
-
   return (
     <>
       <ExtractConceptsModal
@@ -423,5 +310,3 @@ export const AskQuestionModal: React.FC<
     </>
   );
 };
-*/
-export {};

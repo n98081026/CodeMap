@@ -25,19 +25,19 @@ export function useMemoryCleanup() {
 
   const cleanup = () => {
     // Clear all timeouts
-    timeoutsRef.current.forEach(timeout => {
+    timeoutsRef.current.forEach((timeout) => {
       clearTimeout(timeout);
     });
     timeoutsRef.current.clear();
 
     // Clear all intervals
-    intervalsRef.current.forEach(interval => {
+    intervalsRef.current.forEach((interval) => {
       clearInterval(interval);
     });
     intervalsRef.current.clear();
 
     // Abort all controllers
-    abortControllersRef.current.forEach(controller => {
+    abortControllersRef.current.forEach((controller) => {
       if (!controller.signal.aborted) {
         controller.abort();
       }

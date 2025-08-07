@@ -112,27 +112,28 @@ interface FlowCanvasCoreProps {
   onRejectVisualEdge?: (suggestionId: string) => void;
 }
 
-const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(({
-  mapDataFromStore,
-  isViewOnlyMode,
-  onSelectionChange,
-  onMultiNodeSelectionChange,
-  onNodesChangeInStore,
-  onNodesDeleteInStore,
-  onEdgesDeleteInStore,
-  onConnectInStore,
-  onNodeContextMenuRequest,
-  onNodeAIExpandTriggered,
-  onPaneContextMenuRequest,
-  onStagedElementsSelectionChange,
-  onNewEdgeSuggestLabels,
-  onConceptSuggestionDrop,
-  onNodeStartConnectionRequest,
-  panActivationKeyCode,
-  activeVisualEdgeSuggestion,
-  onAcceptVisualEdge,
-  onRejectVisualEdge,
-}) => {
+const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
+  ({
+    mapDataFromStore,
+    isViewOnlyMode,
+    onSelectionChange,
+    onMultiNodeSelectionChange,
+    onNodesChangeInStore,
+    onNodesDeleteInStore,
+    onEdgesDeleteInStore,
+    onConnectInStore,
+    onNodeContextMenuRequest,
+    onNodeAIExpandTriggered,
+    onPaneContextMenuRequest,
+    onStagedElementsSelectionChange,
+    onNewEdgeSuggestLabels,
+    onConceptSuggestionDrop,
+    onNodeStartConnectionRequest,
+    panActivationKeyCode,
+    activeVisualEdgeSuggestion,
+    onAcceptVisualEdge,
+    onRejectVisualEdge,
+  }) => {
   useConceptMapStore
     .getState()
     .addDebugLog(
@@ -1096,12 +1097,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(({
       />
     </div>
   );
-};
-
 });
-
-const FlowCanvasCoreWrapper: React.FC<FlowCanvasCoreProps> = (props) => (
-  <FlowCanvasCoreInternal {...props} />
-);
 
 export default React.memo(FlowCanvasCoreWrapper);

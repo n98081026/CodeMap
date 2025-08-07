@@ -94,10 +94,7 @@ export function useMapSaver({ user }: UseMapSaverProps) {
             payload.sharedWithClassroomId
           );
         } else {
-          savedMapData = await mapService.updateConceptMap(
-            storeMapId,
-            payload
-          );
+          savedMapData = await mapService.updateConceptMap(storeMapId, payload);
         }
 
         const currentViewOnlyModeInStore =
