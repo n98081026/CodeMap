@@ -53,7 +53,9 @@ export const TUTORIAL_KEYS = [
 ];
 
 // Function to get metadata, to be used in Navbar
-export const getAvailableTutorials = (t: any): TutorialMetaData[] =>
+export const getAvailableTutorials = (
+  t: (key: string) => string
+): TutorialMetaData[] =>
   TUTORIAL_KEYS.map((key) => ({
     key,
     title: t(`availableTutorials.${key}.title`),
@@ -184,7 +186,7 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
   ]);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status, type, lifecycle, index, action, step } = data;
+    const { status, type, index, action, step } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
     if (

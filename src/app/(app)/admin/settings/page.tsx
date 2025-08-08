@@ -2,7 +2,6 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Settings, Save, Loader2, AlertTriangle } from 'lucide-react';
-import Link from 'next/link';
 import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -61,7 +60,6 @@ const defaultFormValues: SettingsFormValues = {
 };
 
 export default function AdminSettingsPage() {
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);

@@ -18,9 +18,7 @@ export const ToolbarSection: React.FC<ToolbarSectionProps> = ({
 }) => {
   return (
     <>
-      <div className={cn('flex items-center gap-1', className)}>
-        {children}
-      </div>
+      <div className={cn('flex items-center gap-1', className)}>{children}</div>
       {withSeparator && <Separator orientation='vertical' className='h-6' />}
     </>
   );

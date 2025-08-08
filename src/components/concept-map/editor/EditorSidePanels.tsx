@@ -2,7 +2,9 @@
 
 import React from 'react';
 
-import { 
+import type { ConceptMapData, ConceptMapNode } from '@/types';
+
+import {
   AISuggestionPanelRefactored,
   type ExtractedConceptItem,
   type RelationSuggestion,
@@ -11,7 +13,6 @@ import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import ProjectOverviewDisplay from '@/components/concept-map/project-overview-display';
 import { PropertiesInspector } from '@/components/concept-map/properties-inspector';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import type { ConceptMapData, ConceptMapNode } from '@/types';
 
 interface EditorSidePanelsProps {
   // Properties Panel
@@ -22,7 +23,10 @@ interface EditorSidePanelsProps {
   mapData: ConceptMapData;
   isViewOnlyMode: boolean;
   onUpdateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
-  onUpdateEdge: (edgeId: string, updates: any) => void;
+  onUpdateEdge: (
+    edgeId: string,
+    updates: { label?: string; color?: string }
+  ) => void;
   onDeleteSelectedElements: () => void;
 
   // AI Panel
@@ -36,7 +40,16 @@ interface EditorSidePanelsProps {
 
   // Project Overview
   isOverviewModeActive: boolean;
-  projectOverviewData: any;
+  projectOverviewData: {
+    overallSummary: string;
+    keyModules: Array<{
+      name: string;
+      description: string;
+      importance: 'high' | 'medium' | 'low';
+    }>;
+    suggestedConcepts?: string[];
+    error?: string;
+  } | null;
   isFetchingOverview: boolean;
 
   // Context Menu

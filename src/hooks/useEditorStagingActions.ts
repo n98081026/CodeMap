@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+
 import { useToast } from '@/hooks/use-toast';
 
 interface UseEditorStagingActionsProps {
@@ -16,7 +17,7 @@ export const useEditorStagingActions = ({
 
   const handleCommitStagedData = useCallback(() => {
     commitStagedMapData();
-    toast({ 
+    toast({
       title: 'Staged items added to map.',
       description: 'All staged elements have been committed to the main map.',
     });
@@ -24,7 +25,7 @@ export const useEditorStagingActions = ({
 
   const handleClearStagedData = useCallback(() => {
     clearStagedMapData();
-    toast({ 
+    toast({
       title: 'Staging area cleared.',
       description: 'All staged elements have been removed.',
     });

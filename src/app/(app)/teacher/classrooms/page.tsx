@@ -17,14 +17,6 @@ import { ClassroomListItem } from '@/components/classrooms/classroom-list-item';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { EditClassroomDialog } from '@/components/teacher/classrooms/edit-classroom-dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { UserRole } from '@/types';

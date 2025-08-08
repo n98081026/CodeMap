@@ -176,14 +176,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
   const currentMapId = useConceptMapStore((s) => s.mapId);
-  const isFetchingOverview = useConceptMapStore(
-    (s) => s.isFetchingOverview
-  );
+  const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview);
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback(
-      (s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }),
-      []
-    )
+    useCallback((s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
   );
 
   // TEMP: Button to test manualAddNodeTutorial
@@ -715,24 +710,16 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 }
                 setIsLoadingSuggestions(true);
                 try {
-                  const currentMapData = store.getState().mapData;
-                  const flowInput = {
-                    nodes: currentMapData.nodes.map((n) => ({
-                      id: n.id,
-                      text: n.text,
-                      details: n.details || '',
-                    })),
-                    edges: currentMapData.edges.map((e) => ({
-                      source: e.source,
-                      target: e.target,
-                      label: e.label || '',
-                    })),
-                  };
                   // const results = await runFlow(
                   //   fetchAllStructuralSuggestionsFlow,
                   //   flowInput
                   // );
-                  const results: Array<{ id: string; type: string; data: unknown; reason: string }> = [];
+                  const results: Array<{
+                    id: string;
+                    type: string;
+                    data: unknown;
+                    reason: string;
+                  }> = [];
                   store.getState().setStructuralSuggestions(results);
                   toast({
                     title: 'AI Suggestions',

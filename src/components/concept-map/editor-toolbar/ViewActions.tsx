@@ -4,9 +4,6 @@ import {
   Settings2,
   BotMessageSquare,
   ScrollText,
-  Eye,
-  EyeOff,
-  MessagesSquare,
   GraduationCap,
 } from 'lucide-react';
 import React from 'react';
@@ -49,10 +46,7 @@ export const ViewActions: React.FC<ViewActionsProps> = ({
             variant='ghost'
             size='sm'
             onClick={onToggleProperties}
-            className={cn(
-              'h-8 w-8 p-0',
-              isPropertiesPanelOpen && 'bg-accent'
-            )}
+            className={cn('h-8 w-8 p-0', isPropertiesPanelOpen && 'bg-accent')}
           >
             <Settings2 className='h-4 w-4' />
           </Button>
@@ -69,10 +63,7 @@ export const ViewActions: React.FC<ViewActionsProps> = ({
               variant='ghost'
               size='sm'
               onClick={onToggleAiPanel}
-              className={cn(
-                'h-8 w-8 p-0',
-                isAiPanelOpen && 'bg-accent'
-              )}
+              className={cn('h-8 w-8 p-0', isAiPanelOpen && 'bg-accent')}
             >
               <BotMessageSquare className='h-4 w-4' />
             </Button>
@@ -90,10 +81,7 @@ export const ViewActions: React.FC<ViewActionsProps> = ({
               variant='ghost'
               size='sm'
               onClick={onToggleDebugLogViewer}
-              className={cn(
-                'h-8 w-8 p-0',
-                isDebugLogViewerOpen && 'bg-accent'
-              )}
+              className={cn('h-8 w-8 p-0', isDebugLogViewerOpen && 'bg-accent')}
             >
               <ScrollText className='h-4 w-4' />
             </Button>

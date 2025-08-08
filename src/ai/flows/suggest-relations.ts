@@ -7,7 +7,7 @@ export async function suggestRelationsFlow(input: {
 }): Promise<SuggestRelationsOutput> {
   // Mock implementation for now
   // In a real implementation, this would analyze node relationships using AI
-  
+
   const { nodes } = input;
   const mockRelations = [];
 
@@ -24,7 +24,7 @@ export async function suggestRelationsFlow(input: {
   }
 
   // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  await new Promise((resolve) => setTimeout(resolve, 1500));
 
   return {
     relations: mockRelations.slice(0, 5), // Limit to 5 suggestions

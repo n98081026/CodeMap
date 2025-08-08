@@ -10,7 +10,6 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
-import Link from 'next/link'; // Link is used in QuickActionsCard, so keep if actions are part of this view
 
 import type { User } from '@/types';
 

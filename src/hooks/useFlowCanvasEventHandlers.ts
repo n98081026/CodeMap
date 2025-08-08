@@ -1,16 +1,18 @@
 import { useCallback } from 'react';
-import type { 
-  OnNodesChange, 
-  OnEdgesChange, 
-  OnNodesDelete, 
-  OnEdgesDelete, 
+
+import type { CustomNodeData } from '@/components/concept-map/custom-node';
+import type {
+  OnNodesChange,
+  OnEdgesChange,
+  OnNodesDelete,
+  OnEdgesDelete,
   Connection,
   NodeSelectionChange,
-  Node as RFNode 
+  Node as RFNode,
 } from 'reactflow';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+
 import { calculateSnappedPositionAndLines } from '@/lib/layout-utils';
-import type { CustomNodeData } from '@/components/concept-map/custom-node';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8;
@@ -25,16 +27,30 @@ interface UseFlowCanvasEventHandlersProps {
   onConnectInStore: (options: any) => string | undefined;
   onSelectionChange: (id: string | null, type: 'node' | 'edge' | null) => void;
   onMultiNodeSelectionChange?: (nodeIds: string[]) => void;
-  onNewEdgeSuggestLabels?: (edgeId: string, sourceNodeId: string, targetNodeId: string, existingLabel?: string) => Promise<void>;
+  onNewEdgeSuggestLabels?: (
+    edgeId: string,
+    sourceNodeId: string,
+    targetNodeId: string,
+    existingLabel?: string
+  ) => Promise<void>;
   setActiveSnapLinesLocal: (lines: any[]) => void;
   reactFlowWrapperRef: React.RefObject<HTMLDivElement>;
   setSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => void;
   addEdgeToStore: (options: any) => string;
   storeCancelConnection: () => void;
   storeCompleteConnectionMode: () => void;
-  onNodeContextMenuRequest?: (event: React.MouseEvent, node: RFNode<CustomNodeData>) => void;
-  onPaneContextMenuRequest?: (event: React.MouseEvent, positionInFlow: { x: number; y: number }) => void;
-  onConceptSuggestionDrop?: (conceptItem: any, position: { x: number; y: number }) => void;
+  onNodeContextMenuRequest?: (
+    event: React.MouseEvent,
+    node: RFNode<CustomNodeData>
+  ) => void;
+  onPaneContextMenuRequest?: (
+    event: React.MouseEvent,
+    positionInFlow: { x: number; y: number }
+  ) => void;
+  onConceptSuggestionDrop?: (
+    conceptItem: any,
+    position: { x: number; y: number }
+  ) => void;
 }
 
 export const useFlowCanvasEventHandlers = ({
@@ -58,17 +74,17 @@ export const useFlowCanvasEventHandlers = ({
   onPaneContextMenuRequest,
   onConceptSuggestionDrop,
 }: UseFlowCanvasEventHandlersProps) => {
-
   // Node drag handlers
   const onNodeDragInternal = useCallback(
     (_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>) => {
       if (isViewOnlyMode || !draggedNode.positionAbsolute) return;
 
-      const { snappedPosition, activeSnapLines } = calculateSnappedPositionAndLines(
-        draggedNode.positionAbsolute,
-        [],
-        SNAP_THRESHOLD
-      );
+      const { snappedPosition, activeSnapLines } =
+        calculateSnappedPositionAndLines(
+          draggedNode.positionAbsolute,
+          [],
+          SNAP_THRESHOLD
+        );
 
       if (
         draggedNode.positionAbsolute.x !== snappedPosition.x ||
@@ -92,8 +108,10 @@ export const useFlowCanvasEventHandlers = ({
     (_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>) => {
       if (isViewOnlyMode || !draggedNode.positionAbsolute) return;
       setActiveSnapLinesLocal([]);
-      const finalX = Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
-      const finalY = Math.round(draggedNode.positionAbsolute.y / GRID_SIZE) * GRID_SIZE;
+      const finalX =
+        Math.round(draggedNode.positionAbsolute.x / GRID_SIZE) * GRID_SIZE;
+      const finalY =
+        Math.round(draggedNode.positionAbsolute.y / GRID_SIZE) * GRID_SIZE;
       onNodesChangeInStore(draggedNode.id, {
         x: finalX,
         y: finalY,
@@ -169,7 +187,7 @@ export const useFlowCanvasEventHandlers = ({
       if (selectedRfNodes.length === 1) {
         onSelectionChange(selectedRfNodes[0].id, 'node');
       } else if (selectedRfNodes.length > 1) {
-        onMultiNodeSelectionChange?.(selectedRfNodes.map(n => n.id));
+        onMultiNodeSelectionChange?.(selectedRfNodes.map((n) => n.id));
         onSelectionChange(null, null);
       } else {
         onSelectionChange(null, null);
@@ -182,7 +200,8 @@ export const useFlowCanvasEventHandlers = ({
   const handleNodeClickInternal = useCallback(
     (event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
       if (isViewOnlyMode) return;
-      const currentConnectingNodeId = useConceptMapStore.getState().connectingNodeId;
+      const currentConnectingNodeId =
+        useConceptMapStore.getState().connectingNodeId;
 
       if (currentConnectingNodeId) {
         event.stopPropagation();
@@ -218,7 +237,8 @@ export const useFlowCanvasEventHandlers = ({
   );
 
   const handlePaneClickInternal = useCallback(() => {
-    const currentConnectingNodeId = useConceptMapStore.getState().connectingNodeId;
+    const currentConnectingNodeId =
+      useConceptMapStore.getState().connectingNodeId;
     if (currentConnectingNodeId) {
       storeCancelConnection();
       if (reactFlowWrapperRef.current)
@@ -252,19 +272,16 @@ export const useFlowCanvasEventHandlers = ({
   );
 
   // Drag and drop handlers
-  const handleCanvasDragOver = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
-    },
-    []
-  );
+  const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }, []);
 
   const handleCanvasDrop = useCallback(
     (event: React.DragEvent) => {
       if (isViewOnlyMode) return;
       event.preventDefault();
-      
+
       const bounds = (event.target as Element).getBoundingClientRect();
       const position = {
         x: event.clientX - bounds.left,
@@ -272,7 +289,9 @@ export const useFlowCanvasEventHandlers = ({
       };
 
       try {
-        const conceptData = JSON.parse(event.dataTransfer.getData('text/plain'));
+        const conceptData = JSON.parse(
+          event.dataTransfer.getData('text/plain')
+        );
         onConceptSuggestionDrop?.(conceptData, position);
       } catch {
         // Handle plain text drop if needed
@@ -290,7 +309,7 @@ export const useFlowCanvasEventHandlers = ({
     onNodeDragInternal,
     onNodeDragStopInternal,
     handleNodeClickInternal,
-    
+
     // React Flow handlers
     handleRfNodesChange,
     handleRfEdgesChange,
@@ -298,12 +317,12 @@ export const useFlowCanvasEventHandlers = ({
     handleRfEdgesDeleted,
     handleRfConnect,
     handleRfSelectionChange,
-    
+
     // Pane handlers
     handlePaneClickInternal,
     handlePaneDoubleClickInternal,
     handlePaneContextMenuInternal,
-    
+
     // Drag and drop handlers
     handleCanvasDragOver,
     handleCanvasDrop,

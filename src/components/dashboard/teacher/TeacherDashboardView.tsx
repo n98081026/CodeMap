@@ -16,7 +16,6 @@ import {
   type QuickActionItem,
 } from '@/components/dashboard/quick-actions-card';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/auth-context'; // To get user for role specific elements like Admin Panel link
 import { useTeacherDashboardMetrics } from '@/hooks/useTeacherDashboardMetrics';
 import { Routes } from '@/lib/routes';
 import { UserRole, type User } from '@/types';

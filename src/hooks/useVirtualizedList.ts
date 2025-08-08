@@ -24,7 +24,9 @@ export const useVirtualizedList = <T>({
     getScrollElement: () => parentRef.current,
     estimateSize,
     overscan,
-    getItemKey: getItemKey ? (index) => getItemKey(index, items[index]) : undefined,
+    getItemKey: getItemKey
+      ? (index) => getItemKey(index, items[index])
+      : undefined,
   });
 
   // Memoize virtual items to prevent unnecessary re-renders
@@ -34,7 +36,10 @@ export const useVirtualizedList = <T>({
 
   // Memoized scroll to item function
   const scrollToItem = useCallback(
-    (index: number, options?: { align?: 'start' | 'center' | 'end' | 'auto' }) => {
+    (
+      index: number,
+      options?: { align?: 'start' | 'center' | 'end' | 'auto' }
+    ) => {
       virtualizer.scrollToIndex(index, options);
     },
     [virtualizer]
@@ -54,13 +59,16 @@ export const useVirtualizedList = <T>({
   );
 
   // Performance metrics
-  const metrics = useMemo(() => ({
-    totalSize: virtualizer.getTotalSize(),
-    visibleItemsCount: virtualItems.length,
-    totalItemsCount: items.length,
-    startIndex: virtualItems[0]?.index ?? 0,
-    endIndex: virtualItems[virtualItems.length - 1]?.index ?? 0,
-  }), [virtualizer, virtualItems, items.length]);
+  const metrics = useMemo(
+    () => ({
+      totalSize: virtualizer.getTotalSize(),
+      visibleItemsCount: virtualItems.length,
+      totalItemsCount: items.length,
+      startIndex: virtualItems[0]?.index ?? 0,
+      endIndex: virtualItems[virtualItems.length - 1]?.index ?? 0,
+    }),
+    [virtualizer, virtualItems, items.length]
+  );
 
   return {
     parentRef,

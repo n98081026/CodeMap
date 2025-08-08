@@ -1,15 +1,14 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Info } from 'lucide-react'; // Added
 import {
+  Info,
   UploadCloud,
   Loader2,
   AlertTriangle,
   FileUp,
   Brain,
-  Workflow,
-} from 'lucide-react'; // Added Workflow
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
@@ -195,7 +194,11 @@ export function ProjectUploadForm() {
       analysisError?: string | null
     ) => {
       try {
-        const payload: any = { status };
+        const payload: {
+          status: ProjectSubmissionStatus;
+          generatedConceptMapId?: string | null;
+          analysisError?: string | null;
+        } = { status };
         if (generatedConceptMapId !== undefined)
           payload.generatedConceptMapId = generatedConceptMapId;
         if (analysisError !== undefined) payload.analysisError = analysisError;
@@ -227,11 +230,20 @@ export function ProjectUploadForm() {
   );
 
   const processAISteps = useCallback(
-    async (submission: ProjectSubmission, userGoals?: string) => {
+    async (submission: ProjectSubmission) => {
       if (!user) throw new Error('User not authenticated for AI processing.');
       setIsProcessingAIInDialog(true);
       let loadingToast:
-        | { id: string; dismiss: () => void; update: (props: any) => void }
+        | {
+            id: string;
+            dismiss: () => void;
+            update: (props: {
+              id: string;
+              description: string;
+              title?: string;
+              variant?: 'default' | 'destructive';
+            }) => void;
+          }
         | undefined = undefined;
 
       try {
@@ -256,8 +268,6 @@ export function ProjectUploadForm() {
             'File storage path is missing. Cannot proceed with AI analysis.'
           );
         }
-        const aiInputUserGoals =
-          userGoals || `Analyze the project: ${submission.originalFileName}`;
 
         // Stage 1: Analyze project structure
         // const analysisOutput = await projectStructureAnalyzerTool.run({

@@ -81,7 +81,9 @@ describe('ExamplesPage (/app/(app)/examples/page.tsx)', () => {
     vi.clearAllMocks();
     // Ensure necessary mocks from next/navigation are setup if tests interact with router/params
     // For this page, useRouter is used.
-    const { __setMockRouter } = await import('@/tests/__mocks__/next/navigation');
+    const { __setMockRouter } = await import(
+      '@/tests/__mocks__/next/navigation'
+    );
     __setMockRouter({ push: vi.fn(), replace: vi.fn() });
   });
 

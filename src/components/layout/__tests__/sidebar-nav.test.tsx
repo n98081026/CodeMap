@@ -41,12 +41,20 @@ describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
 
     render(<SidebarNav />);
 
-    expect(screen.getByRole('link', { name: 'My Dashboard' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'My Classrooms' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'My Concept Maps' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'My Dashboard' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'My Classrooms' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'My Concept Maps' })
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Examples' })).toBeInTheDocument();
     // Things they should NOT see
-    expect(screen.queryByRole('link', { name: 'Manage Classrooms' })).toBeNull();
+    expect(
+      screen.queryByRole('link', { name: 'Manage Classrooms' })
+    ).toBeNull();
     expect(screen.queryByRole('link', { name: 'Admin Panel' })).toBeNull();
   });
 
@@ -58,10 +66,16 @@ describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
 
     render(<SidebarNav />);
 
-    expect(screen.getByRole('link', { name: 'Teacher Dashboard' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Manage Classrooms' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Teacher Dashboard' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Manage Classrooms' })
+    ).toBeInTheDocument();
     // Should also see student links
-    expect(screen.getByRole('link', { name: 'My Concept Maps' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'My Concept Maps' })
+    ).toBeInTheDocument();
     // Things they should NOT see
     expect(screen.queryByRole('link', { name: 'My Classrooms' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Admin Panel' })).toBeNull();
@@ -76,10 +90,18 @@ describe('SidebarNav (/components/layout/sidebar-nav.tsx)', () => {
     render(<SidebarNav />);
 
     // Admin sees everything
-    expect(screen.getByRole('link', { name: 'Admin Panel' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'User Management' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Teacher Dashboard' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'My Dashboard' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Admin Panel' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'User Management' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Teacher Dashboard' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'My Dashboard' })
+    ).toBeInTheDocument();
     // Should not see student-only classroom link
     expect(screen.queryByRole('link', { name: 'My Classrooms' })).toBeNull();
   });

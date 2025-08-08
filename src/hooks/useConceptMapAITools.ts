@@ -12,14 +12,12 @@ import type {
   ExpandConceptOutput,
   RewriteNodeContentOutput,
 } from '@/ai/flows/types';
+import type { StagedMapDataWithContext } from '@/stores/concept-map-store';
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 
 import { runFlow } from '@/ai/flows';
 import { getNodePlacement } from '@/lib/dagreLayoutUtility';
-import {
-  useConceptMapStore,
-  StagedMapData,
-} from '@/stores/concept-map-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 type AICommand =
   | 'extractConcepts'
@@ -35,7 +33,7 @@ interface RewriteModalState {
   rewrittenContent: string | null;
 }
 
-export function useConceptMapAITools(isViewOnly: boolean) {
+export function useConceptMapAITools() {
   const { toast } = useToast();
   const {
     mapData,
@@ -75,14 +73,6 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         errorTitle: string;
       }
     ): Promise<U | null> => {
-      if (isViewOnly) {
-        toast({
-          title: 'View-only mode',
-          description: 'AI tools are disabled in view-only mode.',
-        });
-        return null;
-      }
-
       setIsProcessing(true);
       setError(null);
       const { id: toastId } = toast({
@@ -114,7 +104,7 @@ export function useConceptMapAITools(isViewOnly: boolean) {
         }
       }
     },
-    [isViewOnly, toast]
+    [toast]
   );
 
   const handleExtractConcepts = useCallback(
@@ -141,15 +131,11 @@ export function useConceptMapAITools(isViewOnly: boolean) {
             );
             return {
               id: '', // ID will be assigned when accepting
-              data: {
-                label: String(concept.text),
-                details: String(concept.reason),
-              },
+              text: String(concept.text),
+              x: Number(x),
+              y: Number(y),
+              details: String(concept.reason),
               type: 'ai-concept',
-              position: {
-                x: Number(x),
-                y: Number(y),
-              },
             };
           }
         );
@@ -238,12 +224,11 @@ export function useConceptMapAITools(isViewOnly: boolean) {
             );
             return {
               id: '', // ID will be assigned when accepting
-              data: {
-                label: concept.text,
-                details: concept.reason,
-              },
+              text: concept.text,
+              x,
+              y,
+              details: concept.reason,
               type: 'ai-expanded',
-              position: { x, y },
             };
           }
         );

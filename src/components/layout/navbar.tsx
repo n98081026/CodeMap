@@ -7,36 +7,29 @@ import {
   LogOut,
   Sun,
   Moon,
-  Settings,
   LayoutDashboard,
-  PanelLeft,
   HelpCircle,
 } from 'lucide-react'; // Added HelpCircle
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import React, { useEffect, useState, useCallback, useMemo } from 'react'; // Added useMemo
 import { useTranslation } from 'react-i18next'; // Added i18next
 
 // Import the function to get translated tutorials and the metadata type
-import {
-  getAvailableTutorials,
-  TutorialMetaData,
-} from '@/components/tutorial/app-tutorial';
+import { getAvailableTutorials } from '@/components/tutorial/app-tutorial';
 import { Button } from '@/components/ui/button';
-import { Routes } from '@/lib/routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuGroup, // Added for grouping
   DropdownMenuLabel, // Added for grouping
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import { Routes } from '@/lib/routes';
 import useTutorialStore from '@/stores/tutorial-store';
 import { UserRole } from '@/types';
 
@@ -44,7 +37,6 @@ export const Navbar = React.memo(function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const pathname = usePathname();
   const { startOrResumeTutorial, resetTutorialProgress } = useTutorialStore(
     useCallback(
       (s) => ({

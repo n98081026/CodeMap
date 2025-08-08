@@ -146,13 +146,16 @@ export const SidebarNav = React.memo(function SidebarNav() {
     }
   };
 
-  const filteredNavItems = navItems.filter((item) => item.roles.includes(user.role));
+  const filteredNavItems = navItems.filter((item) =>
+    item.roles.includes(user.role)
+  );
 
   return (
     <nav className='flex flex-col space-y-1 px-2 py-4'>
       {filteredNavItems.map((item, index) => {
         // Dynamically set the correct dashboard href
-        const href = item.label === 'My Dashboard' ? getRoleDashboard() : item.href;
+        const href =
+          item.label === 'My Dashboard' ? getRoleDashboard() : item.href;
 
         const isActive = item.exact
           ? pathname === href

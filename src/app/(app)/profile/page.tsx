@@ -33,8 +33,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/auth-context';
-import { UserRole, type User } from '@/types';
 import { Routes } from '@/lib/routes';
+import { UserRole, type User } from '@/types';
 
 export default function ProfilePage() {
   const {
@@ -229,9 +229,7 @@ export default function ProfilePage() {
               settings.
             </p>
             <Button asChild className='mt-4'>
-              <Link href={Routes.Admin.DASHBOARD}>
-                Go to Admin Dashboard
-              </Link>
+              <Link href={Routes.Admin.DASHBOARD}>Go to Admin Dashboard</Link>
             </Button>
           </CardContent>
         </Card>

@@ -6,8 +6,8 @@ import { useEffect } from 'react';
 
 import { CardLink } from '@/components/common/CardLink';
 import { useAuth } from '@/contexts/auth-context';
-import { UserRole } from '@/types';
 import { Routes } from '@/lib/routes';
+import { UserRole } from '@/types';
 
 export default function HomePage() {
   const { user, isAuthenticated, isLoading } = useAuth();

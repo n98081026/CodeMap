@@ -11,8 +11,6 @@ import {
   ArrowBigLeft,
   ArrowBigRight,
   Ruler,
-  Brain,
-  Sparkles,
   Info,
   HelpCircle,
   Lightbulb,
@@ -116,14 +114,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     null
   );
   const [commandFilterText, setCommandFilterText] = useState('');
-  const [showPalette, setShowPalette] = useState(false);
-  const [paletteQuery, setPaletteQuery] = useState('');
-  const [paletteTargetRef, setPaletteTargetRef] = useState<React.RefObject<
-    HTMLInputElement | HTMLTextAreaElement
-  > | null>(null);
-  const [activeCommandField, setActiveCommandField] = useState<
-    'label' | 'details' | null
-  >(null);
 
   // Node Q&A states
   const [nodeQuestion, setNodeQuestion] = useState('');
@@ -134,34 +124,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   >(null);
 
   // Loading state for AI suggest intermediate node
-
-  // Define AI Commands (merge both approaches)
-  const availableAiCommands: AICommand[] = React.useMemo(() => {
-    const commands: AICommand[] = [];
-    if (selectedElementType === 'node' && selectedElement?.id && aiTools) {
-      const nodeId = selectedElement.id;
-      if (aiTools.openExpandConceptModal) {
-        commands.push({
-          id: 'expand-node',
-          label: 'Expand Node',
-          description: 'Generate child concepts for this node.',
-          icon: Brain,
-          action: () => aiTools.openExpandConceptModal(nodeId),
-        });
-      }
-      if (aiTools.openRewriteNodeContentModal) {
-        commands.push({
-          id: 'rewrite-content',
-          label: 'Rewrite Content',
-          description: `Refine this node's ${activeCommandField || 'content'}.`,
-          icon: Sparkles,
-          action: () => aiTools.openRewriteNodeContentModal(nodeId),
-        });
-      }
-    }
-    // Add more commands as needed
-    return commands;
-  }, [selectedElement?.id, selectedElementType, aiTools, activeCommandField]);
 
   useEffect(() => {
     if (
@@ -319,17 +281,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const handleElementLabelChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       handleInputChangeForPalette(e.target.value, 'label', nodeLabelInputRef);
-    },
-    [handleInputChangeForPalette]
-  );
-
-  const handleElementDetailsChange = React.useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      handleInputChangeForPalette(
-        e.target.value,
-        'details',
-        nodeDetailsTextareaRef
-      );
     },
     [handleInputChangeForPalette]
   );
@@ -588,7 +539,6 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       });
       return;
     }
-    const edge = selectedElement as ConceptMapEdge;
     // The rest of the logic is commented out, but the basic checks are here.
   }, [isViewOnlyMode, selectedElement, selectedElementType, toast]);
 
@@ -795,7 +745,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             )
               return;
             onSelectedElementPropertyUpdate({
-              type: e.target.value as any,
+              type: e.target.value,
             });
           }}
           disabled={isViewOnlyMode}

@@ -18,11 +18,11 @@ const SnapLines: React.FC<SnapLinesProps> = React.memo(({ snapLines }) => {
   }
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-10">
+    <div className='pointer-events-none absolute inset-0 z-10'>
       {snapLines.map((line) => (
         <div
           key={line.id}
-          className="absolute bg-blue-500 opacity-60"
+          className='absolute bg-blue-500 opacity-60'
           style={{
             ...(line.type === 'horizontal'
               ? {

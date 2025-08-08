@@ -1,7 +1,5 @@
 'use client';
 import { CodeXml, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 import { RegisterForm } from '@/components/auth/register-form';
 import {
@@ -12,11 +10,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
-import { UserRole } from '@/types';
-import { Routes } from '@/lib/routes';
 
 export default function RegisterPage() {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Show loader if auth state is loading OR if user is authenticated (to prevent form flash before redirect)
   if (isLoading || isAuthenticated) {

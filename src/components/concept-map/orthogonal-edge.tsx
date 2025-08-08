@@ -262,13 +262,6 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> =
     const lineTypeStyle =
       data?.lineType === 'dashed' ? { strokeDasharray: '5,5' } : {};
 
-    // Convert string markers to EdgeMarkerType objects
-    const actualMarkerStart = getMarkerDefinition(
-      markerStart as string,
-      edgeColor
-    );
-    const actualMarkerEnd = getMarkerDefinition(markerEnd as string, edgeColor);
-
     return (
       <>
         <BaseEdge

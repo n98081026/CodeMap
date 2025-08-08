@@ -185,25 +185,6 @@ export async function GET(request: Request) {
     }
 
     // Admin path: Fetch all classrooms with pagination
-    if (pageParam) {
-      // pageParam and limitParam were already parsed from searchParams earlier
-      const parsedPage = parseInt(pageParam, 10);
-      // Silently use default if parsing fails or value is invalid, or return 400
-      if (!isNaN(parsedPage) && parsedPage > 0) {
-      } else {
-        // Optional: Return 400 for explicitly invalid parameters by admin
-        // return NextResponse.json({ message: "Invalid 'page' parameter for admin. Must be a positive integer." }, { status: 400 });
-      }
-    }
-
-    if (limitParam) {
-      const parsedLimit = parseInt(limitParam, 10);
-      if (!isNaN(parsedLimit) && parsedLimit > 0) {
-      } else {
-        // Optional: Return 400
-        // return NextResponse.json({ message: "Invalid 'limit' parameter for admin. Must be a positive integer." }, { status: 400 });
-      }
-    }
 
     // getAllClassrooms service function already defaults page to 1 and limit to 10 if not provided.
     // Here, we ensure that if the API is called without params, it uses its own defaults before calling service.

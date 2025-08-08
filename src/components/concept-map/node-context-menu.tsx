@@ -5,8 +5,6 @@ import {
   Lightbulb,
   Search,
   HelpCircle,
-  Sparkles,
-  TextSearch,
   MessageSquareQuote,
 } from 'lucide-react';
 import React from 'react';

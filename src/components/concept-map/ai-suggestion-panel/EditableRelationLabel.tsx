@@ -3,9 +3,10 @@
 import { CheckSquare, Edit3, AlertCircle, ArrowRight } from 'lucide-react';
 import React from 'react';
 
+import type { RelationLabelProps } from './AISuggestionPanelTypes';
+
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { RelationLabelProps } from './AISuggestionPanelTypes';
 
 export const EditableRelationLabel: React.FC<RelationLabelProps> = ({
   item,
@@ -33,11 +34,10 @@ export const EditableRelationLabel: React.FC<RelationLabelProps> = ({
           }}
           onBlur={() => onConfirmEdit(index)}
           disabled={isViewOnlyMode}
-          autoFocus
         />
       );
     }
-    
+
     return (
       <span
         role='button'
