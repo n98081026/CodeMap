@@ -1,14 +1,12 @@
 // src/app/api/admin/settings/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-import type { SystemSettings } from '@/types';
-
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   getSystemSettings,
   updateSystemSettings,
 } from '@/services/admin/settingsService';
+import type { SystemSettings } from '@/types';
 import { UserRole } from '@/types'; // Assuming UserRole enum/type exists
 
 async function checkAdminAuth(): Promise<{
@@ -17,8 +15,7 @@ async function checkAdminAuth(): Promise<{
   status?: number;
 }> {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = createSupabaseServerClient();
     const {
       data: { user },
       error: authError,

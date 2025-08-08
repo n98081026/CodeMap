@@ -5,9 +5,35 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
-import { Brain } from 'lucide-react';
+import { Brain, Lightbulb, Loader2 } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+import { ExtractConceptsModal } from './ExtractConceptsModal';
+import { QuickClusterModal } from './quick-cluster-modal';
+import { GenerateSnippetModal } from './generate-snippet-modal';
+import { MapSummaryModal } from './map-summary-modal';
+import { RewriteNodeContentModal } from './rewrite-node-content-modal';
+import { AskQuestionAboutEdgeModal } from './AskQuestionAboutEdgeModal';
+import { SuggestIntermediateNodeModal } from './suggest-intermediate-node-modal';
 
 // Define schemas for form validation
 const extractConceptsSchema = z.object({
@@ -15,8 +41,26 @@ const extractConceptsSchema = z.object({
   extractionFocus: z.string().optional(),
 });
 
-export const GenAIModals: React.FC = () => {
-  const aiTools = useConceptMapAITools();
+const suggestRelationsSchema = z.object({
+  customPrompt: z.string().optional(),
+});
+
+const expandConceptSchema = z.object({
+  conceptToExpand: z.string().min(1, 'Concept is required'),
+  userRefinementPrompt: z.string().optional(),
+});
+
+const askQuestionAboutSelectedNodeSchema = z.object({
+  question: z.string().min(1, 'Question is required'),
+  context: z.string().optional(),
+});
+
+interface GenAIModalProps<T extends z.ZodType<any, any>> {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    onSubmit: (values: z.infer<T>) => void;
+    isProcessing: boolean;
+}
 
 export const SuggestRelationsModal: React.FC<
   Omit<GenAIModalProps<typeof suggestRelationsSchema>, 'isProcessing'> & {
@@ -228,12 +272,9 @@ export const ExpandConceptModal: React.FC<
   );
 };
 
-export const AskQuestionModal: React.FC<
-  Omit<GenAIModalProps<typeof askQuestionAboutSelectedNodeSchema>, 'isProcessing'>
-> = ({
-  isOpen,
-  onOpenChange,
-}) => {
+export const GenAIModals: React.FC = () => {
+  const aiTools = useConceptMapAITools();
+
   return (
     <>
       <ExtractConceptsModal
