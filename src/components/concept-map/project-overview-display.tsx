@@ -154,8 +154,8 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> =
             const nodePath1 =
               typeof node.text === 'string' ? node.text.trim() : null;
             const nodePath2 =
-              typeof (node as ConceptMapNode)?.filePath === 'string'
-                ? (node as ConceptMapNode)?.filePath.trim()
+              typeof (node as any)?.filePath === 'string'
+                ? (node as any)?.filePath.trim()
                 : null;
             return (
               (nodePath1 && moduleFilePathsSet.has(nodePath1)) ||

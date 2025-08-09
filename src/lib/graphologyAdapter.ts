@@ -20,9 +20,7 @@ export class GraphAdapterUtility implements GraphAdapter {
   ): GraphologyInstance {
     const { nodes, edges } = conceptMapData;
     const graph =
-      options?.type === 'multi'
-        ? new MultiGraph(options)
-        : new Graph(options);
+      options?.type === 'multi' ? new MultiGraph(options) : new Graph(options);
 
     nodes.forEach((node) => {
       const { id, ...attributes } = node;

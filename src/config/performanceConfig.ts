@@ -72,13 +72,13 @@ export const PERFORMANCE_THRESHOLDS = {
     ACCEPTABLE: 33, // 30fps
     SLOW: 100,
   },
-  
+
   COMPUTATION: {
     FAST: 10,
     ACCEPTABLE: 50,
     SLOW: 200,
   },
-  
+
   NETWORK: {
     FAST: 100,
     ACCEPTABLE: 500,
@@ -95,13 +95,15 @@ export const PERFORMANCE_FEATURES = {
   ENABLE_MEMORY_OPTIMIZATION: true,
   ENABLE_DEBOUNCING: true,
   ENABLE_THROTTLING: true,
-  ENABLE_PERFORMANCE_MONITORING: PERFORMANCE_CONFIG.DEV.ENABLE_PERFORMANCE_MONITORING,
+  ENABLE_PERFORMANCE_MONITORING:
+    PERFORMANCE_CONFIG.DEV.ENABLE_PERFORMANCE_MONITORING,
 } as const;
 
 // Get performance config based on device capabilities
 export const getDeviceOptimizedConfig = () => {
   const isLowEndDevice = navigator.hardwareConcurrency <= 2;
-  const isSlowNetwork = 'connection' in navigator && 
+  const isSlowNetwork =
+    'connection' in navigator &&
     (navigator as any).connection?.effectiveType === 'slow-2g';
 
   return {
@@ -119,7 +121,8 @@ export const getDeviceOptimizedConfig = () => {
     },
     ANIMATION: {
       ...PERFORMANCE_CONFIG.ANIMATION,
-      REDUCED_MOTION: isLowEndDevice || 
+      REDUCED_MOTION:
+        isLowEndDevice ||
         window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     },
   };

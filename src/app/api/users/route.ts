@@ -1,5 +1,6 @@
 // src/app/api/users/route.ts
 import { NextResponse } from 'next/server';
+
 import type { User } from '@supabase/supabase-js';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -29,11 +30,16 @@ async function authorize(user: User): Promise<NextResponse | null> {
 
 export async function GET(request: Request) {
   try {
-    const supabase = createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
+      return NextResponse.json(
+        { message: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
     const authError = await authorize(user);
@@ -47,7 +53,10 @@ export async function GET(request: Request) {
     const searchTerm = searchParams.get('search') || undefined;
 
     if (isNaN(page) || page < 1 || isNaN(limit) || limit < 1) {
-        return NextResponse.json({ message: 'Invalid page or limit parameters' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Invalid page or limit parameters' },
+        { status: 400 }
+      );
     }
 
     const { users, totalCount } = await getAllUsers(page, limit, searchTerm);

@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import type { ConceptMapData, ConceptMapNode } from '@/types';
 
 import {
-  AISuggestionPanelRefactored,
+  AISuggestionPanel,
   type ExtractedConceptItem,
   type RelationSuggestion,
 } from '@/components/concept-map/ai-suggestion-panel';
@@ -23,10 +23,7 @@ interface EditorSidePanelsProps {
   mapData: ConceptMapData;
   isViewOnlyMode: boolean;
   onUpdateNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
-  onUpdateEdge: (
-    edgeId: string,
-    updates: { label?: string; color?: string }
-  ) => void;
+  onUpdateEdge: (edgeId: string, updates: any) => void;
   onDeleteSelectedElements: () => void;
 
   // AI Panel
@@ -40,16 +37,7 @@ interface EditorSidePanelsProps {
 
   // Project Overview
   isOverviewModeActive: boolean;
-  projectOverviewData: {
-    overallSummary: string;
-    keyModules: Array<{
-      name: string;
-      description: string;
-      importance: 'high' | 'medium' | 'low';
-    }>;
-    suggestedConcepts?: string[];
-    error?: string;
-  } | null;
+  projectOverviewData: any;
   isFetchingOverview: boolean;
 
   // Context Menu
@@ -86,20 +74,40 @@ export const EditorSidePanels: React.FC<EditorSidePanelsProps> = ({
   onCloseContextMenu,
   onContextMenuAction,
 }) => {
+  const selectedElement = useMemo(() => {
+    if (!selectedElementId || !selectedElementType) return null;
+    return selectedElementType === 'node'
+      ? mapData.nodes.find((n) => n.id === selectedElementId)
+      : mapData.edges.find((e) => e.id === selectedElementId);
+  }, [selectedElementId, selectedElementType, mapData.nodes, mapData.edges]);
+
+  const handleContextMenuAction = (action: string) => {
+    if (contextMenuState.nodeId) {
+      onContextMenuAction(action, contextMenuState.nodeId);
+    }
+  };
+
+  const onSelectedElementPropertyUpdate = (updates: any) => {
+    if (!selectedElement) return;
+    if (selectedElementType === 'node') {
+      onUpdateNode(selectedElement.id, updates);
+    } else {
+      onUpdateEdge(selectedElement.id, updates);
+    }
+  };
+
   return (
     <>
       {/* Properties Panel */}
       <Sheet open={isPropertiesPanelOpen}>
         <SheetContent side='right' className='w-80 p-0'>
           <PropertiesInspector
-            selectedElementId={selectedElementId}
+            currentMap={null}
+            onMapPropertiesChange={() => {}}
+            selectedElement={selectedElement}
             selectedElementType={selectedElementType}
-            multiSelectedNodeIds={multiSelectedNodeIds}
-            mapData={mapData}
+            onSelectedElementPropertyUpdate={onSelectedElementPropertyUpdate}
             isViewOnlyMode={isViewOnlyMode}
-            onUpdateNode={onUpdateNode}
-            onUpdateEdge={onUpdateEdge}
-            onDeleteSelectedElements={onDeleteSelectedElements}
           />
         </SheetContent>
       </Sheet>
@@ -107,7 +115,7 @@ export const EditorSidePanels: React.FC<EditorSidePanelsProps> = ({
       {/* AI Suggestion Panel */}
       <Sheet open={isAiPanelOpen}>
         <SheetContent side='left' className='w-96 p-4'>
-          <AISuggestionPanelRefactored
+          <AISuggestionPanel
             mapData={mapData}
             currentMapNodes={mapData.nodes}
             extractedConcepts={extractedConcepts}
@@ -125,23 +133,26 @@ export const EditorSidePanels: React.FC<EditorSidePanelsProps> = ({
       <Sheet open={isOverviewModeActive}>
         <SheetContent side='left' className='w-96 p-4'>
           <ProjectOverviewDisplay
-            projectOverviewData={projectOverviewData}
+            overviewData={projectOverviewData}
             isLoading={isFetchingOverview}
-            onClose={() => {
-              // This will be handled by the parent component
-            }}
           />
         </SheetContent>
       </Sheet>
 
       {/* Context Menu */}
-      {contextMenuState.isOpen && (
+      {contextMenuState.isOpen && contextMenuState.nodeId && (
         <NodeContextMenu
-          isOpen={contextMenuState.isOpen}
-          position={contextMenuState.position}
+          x={contextMenuState.position.x}
+          y={contextMenuState.position.y}
           nodeId={contextMenuState.nodeId}
           onClose={onCloseContextMenu}
-          onAction={onContextMenuAction}
+          onDeleteNode={() => handleContextMenuAction('delete')}
+          onExpandConcept={() => handleContextMenuAction('expand')}
+          onSuggestRelations={() => handleContextMenuAction('suggest-relations')}
+          onExtractConcepts={() => handleContextMenuAction('extract-concepts')}
+          onAskQuestion={() => handleContextMenuAction('ask-question')}
+          onRewriteContent={() => handleContextMenuAction('rewrite-content')}
+          isViewOnlyMode={isViewOnlyMode}
         />
       )}
     </>

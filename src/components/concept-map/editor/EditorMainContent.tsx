@@ -27,16 +27,7 @@ interface EditorMainContentProps {
 
   // Overview mode
   isOverviewModeActive: boolean;
-  projectOverviewData: {
-    overallSummary: string;
-    keyModules: Array<{
-      name: string;
-      description: string;
-      importance: 'high' | 'medium' | 'low';
-    }>;
-    suggestedConcepts?: string[];
-    error?: string;
-  } | null;
+  projectOverviewData: any;
   isFetchingOverview: boolean;
 
   // Map data and view mode
@@ -51,28 +42,13 @@ interface EditorMainContentProps {
   handleMultiNodeSelectionChange: (nodeIds: string[]) => void;
   updateStoreNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   deleteStoreNode: (nodeId: string) => void;
-  deleteStoreEdge: (edgeId: string) => void; // Added this
-  onConnectInStore: (params: {
-    source: string | null;
-    target: string | null;
-    sourceHandle?: string | null;
-    targetHandle?: string | null;
-  }) => void; // Added this
-  handleNodeContextMenu: (
-    event: React.MouseEvent,
-    node: ConceptMapNode
-  ) => void;
+  handleNodeContextMenu: (event: React.MouseEvent, node: any) => void;
   handlePaneContextMenuRequest: (
     event: React.MouseEvent,
     position: { x: number; y: number }
   ) => void;
   handleConceptSuggestionDrop: (
-    conceptItem: {
-      text: string;
-      type: string;
-      context?: string;
-      source?: string;
-    },
+    conceptItem: any,
     position: { x: number; y: number }
   ) => void;
   handleStartConnectionFromNode: (nodeId: string) => void;
@@ -82,12 +58,7 @@ interface EditorMainContentProps {
   setSelectedStagedElementIds: (ids: string[]) => void;
 
   // Visual edge suggestions
-  activeVisualEdgeSuggestion: {
-    id: string;
-    source: string;
-    target: string;
-    label: string;
-  } | null;
+  activeVisualEdgeSuggestion: any;
   handleAcceptVisualEdge: (suggestionId: string) => void;
   handleRejectVisualEdge: (suggestionId: string) => void;
 }
@@ -105,8 +76,6 @@ const EditorMainContent: React.FC<EditorMainContentProps> = React.memo(
     handleMultiNodeSelectionChange,
     updateStoreNode,
     deleteStoreNode,
-    deleteStoreEdge,
-    onConnectInStore,
     handleNodeContextMenu,
     handlePaneContextMenuRequest,
     handleConceptSuggestionDrop,
@@ -168,10 +137,20 @@ const EditorMainContent: React.FC<EditorMainContentProps> = React.memo(
         onNodesDeleteInStore={deleteStoreNode}
         onEdgesDeleteInStore={(edgeIds) => {
           if (Array.isArray(edgeIds)) {
-            edgeIds.forEach((edgeId) => deleteStoreEdge(edgeId));
+            edgeIds.forEach((edgeId) =>
+              // Note: This should be passed as a prop instead of direct store access
+              require('@/stores/concept-map-store')
+                .useConceptMapStore.getState()
+                .deleteEdge(edgeId)
+            );
           }
         }}
-        onConnectInStore={onConnectInStore}
+        onConnectInStore={(params) =>
+          // Note: This should be passed as a prop instead of direct store access
+          require('@/stores/concept-map-store')
+            .useConceptMapStore.getState()
+            .addEdge(params)
+        }
         onNodeContextMenuRequest={handleNodeContextMenu}
         onPaneContextMenuRequest={handlePaneContextMenuRequest}
         onStagedElementsSelectionChange={setSelectedStagedElementIds}

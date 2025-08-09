@@ -19,7 +19,7 @@ class PerformanceMonitor {
   start(name: string, metadata?: Record<string, any>): void {
     const startTime = performance.now();
     this.activeTimers.set(name, startTime);
-    
+
     if (process.env.NODE_ENV === 'development') {
       console.time(`Performance: ${name}`);
     }
@@ -106,8 +106,8 @@ class PerformanceMonitor {
     total: number;
     entries: PerformanceEntry[];
   } {
-    const filteredEntries = name 
-      ? this.entries.filter(entry => entry.name === name)
+    const filteredEntries = name
+      ? this.entries.filter((entry) => entry.name === name)
       : this.entries;
 
     if (filteredEntries.length === 0) {
@@ -121,7 +121,7 @@ class PerformanceMonitor {
       };
     }
 
-    const durations = filteredEntries.map(entry => entry.duration);
+    const durations = filteredEntries.map((entry) => entry.duration);
     const total = durations.reduce((sum, duration) => sum + duration, 0);
 
     return {
@@ -138,7 +138,7 @@ class PerformanceMonitor {
    * Get all unique measurement names
    */
   getNames(): string[] {
-    return Array.from(new Set(this.entries.map(entry => entry.name)));
+    return Array.from(new Set(this.entries.map((entry) => entry.name)));
   }
 
   /**
@@ -154,10 +154,12 @@ class PerformanceMonitor {
    */
   getReport(): string {
     const names = this.getNames();
-    const report = names.map(name => {
-      const stats = this.getStats(name);
-      return `${name}: ${stats.count} calls, avg: ${stats.average.toFixed(2)}ms, min: ${stats.min.toFixed(2)}ms, max: ${stats.max.toFixed(2)}ms`;
-    }).join('\n');
+    const report = names
+      .map((name) => {
+        const stats = this.getStats(name);
+        return `${name}: ${stats.count} calls, avg: ${stats.average.toFixed(2)}ms, min: ${stats.min.toFixed(2)}ms, max: ${stats.max.toFixed(2)}ms`;
+      })
+      .join('\n');
 
     return `Performance Report:\n${report}`;
   }

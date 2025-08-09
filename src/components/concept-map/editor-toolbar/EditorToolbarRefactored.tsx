@@ -83,6 +83,10 @@ export const EditorToolbarRefactored: React.FC<EditorToolbarProps> = ({
   const { isAuthenticated } = useAuth();
   const router = useRouter();
 
+  // Store state
+  const store = useConceptMapStore();
+  const currentMapId = useConceptMapStore((s) => s.mapId);
+  const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview);
 
   // Tutorial store
   const { startOrResumeTutorial } = useTutorialStore(

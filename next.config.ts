@@ -18,12 +18,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    // Remove hardcoded dev origins - use environment variables instead
-    allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS 
-      ? process.env.ALLOWED_DEV_ORIGINS.split(',')
-      : [],
-  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Don't resolve 'async_hooks' or 'fs' on the client-side

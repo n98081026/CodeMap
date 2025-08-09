@@ -1,5 +1,7 @@
 'use client';
 import { CodeXml, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 import { LoginForm } from '@/components/auth/login-form';
 import {
@@ -10,6 +12,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
+import { Routes } from '@/lib/routes';
+import { UserRole } from '@/types';
 
 export default function LoginPage() {
   const { isAuthenticated, user, isLoading } = useAuth();

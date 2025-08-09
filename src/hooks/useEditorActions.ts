@@ -24,6 +24,7 @@ export const useEditorActions = ({
   const { saveMap } = useConceptMapDataManager({ routeMapId, user });
 
   const {
+    addNode,
     updateNode,
     updateEdge,
     deleteNode,
@@ -33,9 +34,11 @@ export const useEditorActions = ({
     multiSelectedNodeIds,
     selectedElementId,
     selectedElementType,
+    importMapData,
+    setMapName,
+    setIsPublic,
   } = useConceptMapStore();
 
-  // Save map action
   const handleSaveMap = useCallback(
     async (isViewOnly = false) => {
       try {
@@ -55,22 +58,59 @@ export const useEditorActions = ({
     [saveMap, toast]
   );
 
-  // Node actions
-  const handleUpdateNode = useCallback(
-    (nodeId: string, updates: Partial<ConceptMapNode>) => {
-      updateNode(nodeId, updates);
+  const handleAddNode = useCallback(() => {
+    const { x, y } = useConceptMapStore.getState().mapData.nodes.reduce(
+      (acc, node) => ({
+        x: acc.x + (node.x || 0),
+        y: acc.y + (node.y || 0),
+      }),
+      { x: 0, y: 0 }
+    );
+    const count = useConceptMapStore.getState().mapData.nodes.length;
+    const position =
+      count > 0 ? { x: x / count + 100, y: y / count } : { x: 250, y: 150 };
+
+    const newNodeId = addNode({
+      text: 'New Concept',
+      type: 'default',
+      position,
+    });
+    const newNode = useConceptMapStore
+      .getState()
+      .mapData.nodes.find((n) => n.id === newNodeId);
+    if (!newNode) {
+      throw new Error('Failed to create and find new node in store.');
+    }
+    return newNode;
+  }, [addNode]);
+
+  const handleUpdateElement = useCallback(
+    (
+      elementId: string,
+      elementType: 'node' | 'edge' | null,
+      updates: Partial<ConceptMapNode> | Partial<ConceptMapEdge>
+    ) => {
+      if (elementType === 'node') {
+        updateNode(elementId, updates as Partial<ConceptMapNode>);
+      } else if (elementType === 'edge') {
+        updateEdge(elementId, updates as Partial<ConceptMapEdge>);
+      }
     },
-    [updateNode]
+    [updateNode, updateEdge]
   );
 
-  const handleUpdateEdge = useCallback(
-    (edgeId: string, updates: Partial<ConceptMapEdge>) => {
-      updateEdge(edgeId, updates);
+  const handleDeleteElement = useCallback(
+    (elementId: string, elementType: 'node' | 'edge' | null) => {
+      if (elementType === 'node') {
+        deleteNode(elementId);
+      } else if (elementType === 'edge') {
+        deleteEdge(elementId);
+      }
+      setSelectedElement(null, null);
     },
-    [updateEdge]
+    [deleteNode, deleteEdge, setSelectedElement]
   );
 
-  // Delete selected elements
   const handleDeleteSelectedElements = useCallback(() => {
     if (selectedElementType === 'node' && selectedElementId) {
       deleteNode(selectedElementId);
@@ -80,7 +120,6 @@ export const useEditorActions = ({
       setSelectedElement(null, null);
     }
 
-    // Delete multi-selected nodes
     if (multiSelectedNodeIds.length > 0) {
       multiSelectedNodeIds.forEach((nodeId) => deleteNode(nodeId));
       setMultiSelectedNodeIds([]);
@@ -95,7 +134,6 @@ export const useEditorActions = ({
     setMultiSelectedNodeIds,
   ]);
 
-  // Navigation actions
   const handleNewMap = useCallback(() => {
     router.push(Routes.ConceptMaps.NEW);
   }, [router]);
@@ -106,14 +144,11 @@ export const useEditorActions = ({
       const dataStr = JSON.stringify(mapData, null, 2);
       const dataUri =
         'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
       const exportFileDefaultName = `${mapName || 'concept-map'}.json`;
-
       const linkElement = document.createElement('a');
       linkElement.setAttribute('href', dataUri);
       linkElement.setAttribute('download', exportFileDefaultName);
       linkElement.click();
-
       toast({
         title: 'Map exported',
         description: `${exportFileDefaultName} has been downloaded.`,
@@ -127,80 +162,75 @@ export const useEditorActions = ({
     }
   }, [toast]);
 
-  const handleTriggerImport = useCallback(() => {
-    try {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json';
-      input.onchange = (event) => {
-        const file = (event.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              const content = e.target?.result as string;
-              const importedData = JSON.parse(content);
+  const handleImportMap = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-              // Validate the imported data structure
-              if (importedData.nodes && importedData.edges) {
-                const { setMapData } = useConceptMapStore.getState();
-                setMapData(importedData);
-                toast({
-                  title: 'Map imported',
-                  description: 'Concept map has been imported successfully.',
-                });
-              } else {
-                throw new Error('Invalid concept map format');
-              }
-            } catch (parseError) {
-              toast({
-                title: 'Import failed',
-                description:
-                  'Invalid file format. Please select a valid concept map JSON file.',
-                variant: 'destructive',
-              });
-            }
-          };
-          reader.readAsText(file);
+      try {
+        const content = await file.text();
+        const importedData = JSON.parse(content);
+        if (importedData.nodes && importedData.edges) {
+          importMapData(importedData, file.name);
+          toast({
+            title: 'Map imported',
+            description: 'Concept map has been imported successfully.',
+          });
+        } else {
+          throw new Error('Invalid concept map format');
         }
-      };
-      input.click();
-    } catch (error) {
-      toast({
-        title: 'Import failed',
-        description: 'Failed to import the concept map.',
-        variant: 'destructive',
-      });
-    }
-  }, [toast]);
+      } catch (error) {
+        toast({
+          title: 'Import failed',
+          description:
+            'Invalid file format or error reading file. Please select a valid concept map JSON file.',
+          variant: 'destructive',
+        });
+      }
+    },
+    [importMapData, toast]
+  );
 
-  // Context menu actions
+  const handleUpdateMapProperties = useCallback(
+    (updates: { name?: string; isPublic?: boolean }) => {
+      if (updates.name !== undefined) {
+        setMapName(updates.name);
+      }
+      if (updates.isPublic !== undefined) {
+        setIsPublic(updates.isPublic);
+      }
+      toast({
+        title: 'Map updated',
+        description: 'Map properties have been updated.',
+      });
+    },
+    [setMapName, setIsPublic, toast]
+  );
+
   const handleContextMenuAction = useCallback(
     (action: string, nodeId?: string) => {
       switch (action) {
         case 'edit':
-          if (nodeId) {
-            setSelectedElement(nodeId, 'node');
-          }
+          if (nodeId) setSelectedElement(nodeId, 'node');
           break;
         case 'delete':
-          if (nodeId) {
-            deleteNode(nodeId);
-          }
+          if (nodeId) deleteNode(nodeId);
           break;
         case 'duplicate':
           if (nodeId) {
-            const { mapData, addNode } = useConceptMapStore.getState();
-            const nodeToDuplicate = mapData.nodes.find((n) => n.id === nodeId);
+            const nodeToDuplicate = useConceptMapStore
+              .getState()
+              .mapData.nodes.find((n) => n.id === nodeId);
             if (nodeToDuplicate) {
-              const duplicatedNode = {
+              addNode({
                 ...nodeToDuplicate,
-                id: `${nodeId}-copy-${Date.now()}`,
+                id: undefined,
                 text: `${nodeToDuplicate.text} (Copy)`,
-                x: (nodeToDuplicate.x || 0) + 50,
-                y: (nodeToDuplicate.y || 0) + 50,
-              };
-              addNode(duplicatedNode);
+                position: {
+                  x: (nodeToDuplicate.x || 0) + 50,
+                  y: (nodeToDuplicate.y || 0) + 50,
+                },
+              });
               toast({
                 title: 'Node duplicated',
                 description: 'Node has been duplicated successfully.',
@@ -212,21 +242,20 @@ export const useEditorActions = ({
           break;
       }
     },
-    [setSelectedElement, deleteNode, toast]
+    [setSelectedElement, deleteNode, addNode, toast]
   );
 
   return {
-    // State
-    isSaving: false, // This should come from the store or data manager
-
-    // Actions
-    handleSaveMap,
-    handleUpdateNode,
-    handleUpdateEdge,
-    handleDeleteSelectedElements,
-    handleNewMap,
-    handleExportMap,
-    handleTriggerImport,
-    handleContextMenuAction,
+    isSaving: useConceptMapStore((s) => s.isSaving),
+    saveMap: handleSaveMap,
+    addNode: handleAddNode,
+    updateElement: handleUpdateElement,
+    deleteElement: handleDeleteElement,
+    deleteSelectedElements: handleDeleteSelectedElements,
+    newMap: handleNewMap,
+    exportMap: handleExportMap,
+    importMap: handleImportMap,
+    updateMapProperties: handleUpdateMapProperties,
+    contextMenuAction: handleContextMenuAction,
   };
 };

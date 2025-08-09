@@ -6,8 +6,13 @@ import {
   useEdgesState,
   type Node as RFNode,
   type Edge as RFEdge,
+  type OnNodesChange,
+  type OnEdgesChange,
+  type OnNodesDelete,
+  type OnEdgesDelete,
   type Connection,
   useReactFlow,
+  NodeSelectionChange,
 } from 'reactflow';
 
 import type { ConceptMapData, ConceptMapNode } from '@/types';
@@ -31,6 +36,7 @@ const MemoizedOrthogonalEdge = memo(
 interface OptimizedFlowCanvasProps {
   mapData: ConceptMapData;
   isViewOnlyMode?: boolean;
+  onSelectionChange: (id: string | null, type: 'node' | 'edge' | null) => void;
   onNodesChange: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
   onNodesDelete: (nodeId: string) => void;
   onEdgesDelete: (edgeId: string) => void;
@@ -47,6 +53,7 @@ export const OptimizedFlowCanvas: React.FC<OptimizedFlowCanvasProps> = memo(
   ({
     mapData,
     isViewOnlyMode = false,
+    onSelectionChange,
     onNodesChange,
     onNodesDelete,
     onEdgesDelete,
@@ -136,7 +143,7 @@ export const OptimizedFlowCanvas: React.FC<OptimizedFlowCanvasProps> = memo(
     // Throttled handlers for better performance
     const throttledNodesChange = useMemo(
       () =>
-        throttle((changes: RFNode[]) => {
+        throttle((changes: any[]) => {
           onNodesChangeReactFlow(changes);
           changes.forEach((change) => {
             if (change.type === 'position' && change.dragging === false) {
@@ -158,10 +165,27 @@ export const OptimizedFlowCanvas: React.FC<OptimizedFlowCanvasProps> = memo(
 
     const throttledEdgesChange = useMemo(
       () =>
-        throttle((changes: RFEdge[]) => {
+        throttle((changes: any[]) => {
           onEdgesChangeReactFlow(changes);
         }, 16),
       [onEdgesChangeReactFlow, throttle]
+    );
+
+    // Optimized selection handler
+    const handleSelectionChange = useCallback(
+      (selection: NodeSelectionChange) => {
+        const selectedNodes = selection.nodes || [];
+        const selectedEdges = selection.edges || [];
+
+        if (selectedNodes.length === 1 && selectedEdges.length === 0) {
+          onSelectionChange(selectedNodes[0].id, 'node');
+        } else if (selectedEdges.length === 1 && selectedNodes.length === 0) {
+          onSelectionChange(selectedEdges[0].id, 'edge');
+        } else {
+          onSelectionChange(null, null);
+        }
+      },
+      [onSelectionChange]
     );
 
     // Optimized connect handler

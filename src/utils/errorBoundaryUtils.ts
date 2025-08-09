@@ -33,7 +33,8 @@ export function createErrorReport(
     } as Error,
     errorInfo,
     timestamp: new Date().toISOString(),
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+    userAgent:
+      typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
     url: typeof window !== 'undefined' ? window.location.href : 'Unknown',
     userId,
   };
@@ -74,7 +75,10 @@ export function isRecoverableError(error: Error): boolean {
   }
 
   // Chunk loading errors (common in React apps) are recoverable
-  if (error.message.includes('Loading chunk') || error.message.includes('ChunkLoadError')) {
+  if (
+    error.message.includes('Loading chunk') ||
+    error.message.includes('ChunkLoadError')
+  ) {
     return true;
   }
 
@@ -94,11 +98,17 @@ export function getUserFriendlyErrorMessage(error: Error): string {
     return 'The request timed out. Please try again.';
   }
 
-  if (error.message.includes('Loading chunk') || error.message.includes('ChunkLoadError')) {
+  if (
+    error.message.includes('Loading chunk') ||
+    error.message.includes('ChunkLoadError')
+  ) {
     return 'Failed to load application resources. Please refresh the page.';
   }
 
-  if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+  if (
+    error.message.includes('permission') ||
+    error.message.includes('unauthorized')
+  ) {
     return 'You do not have permission to perform this action.';
   }
 

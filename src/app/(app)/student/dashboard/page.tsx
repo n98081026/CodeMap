@@ -1,9 +1,12 @@
 'use client';
 
 import { Loader2 } from 'lucide-react'; // Added Users, Settings
+import { useRouter } from 'next/navigation'; // For redirection
+import { useEffect } from 'react'; // For redirection logic
 
 import StudentDashboardView from '@/components/dashboard/student/StudentDashboardView'; // Import the new shared view
 import { useAuth } from '@/contexts/auth-context';
+import { Routes } from '@/lib/routes';
 import { UserRole } from '@/types'; // Import UserRole
 
 // import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Now in StudentDashboardView

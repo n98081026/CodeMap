@@ -18,6 +18,7 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 interface EditableExtractedConcept {
@@ -43,10 +44,8 @@ interface SuggestionSectionProps {
   selectedIndices: Set<number>;
   itemKeyPrefix: string;
   parentRef: React.RefObject<HTMLDivElement>;
-  rowVirtualizer: ReturnType<typeof useVirtualizer>;
-  onAddItems: (
-    items: (ExtractedConceptItem | RelationSuggestion)[]
-  ) => void;
+  rowVirtualizer: ReturnType<typeof useVirtualizer<HTMLDivElement, Element>>;
+  onAddItems: (items: any[]) => void;
   onClearItems?: () => void;
   cardClassName: string;
   titleClassName: string;
@@ -129,7 +128,7 @@ const SuggestionSection: React.FC<SuggestionSectionProps> = React.memo(
       }
     ).length;
 
-    const countOfAllNewOrSimilar = items.filter((item) => {
+    const countOfAllNewOrSimilar = items.filter((item, index) => {
       if (isConceptSection && getConceptStatus) {
         const status = getConceptStatus(
           (item as EditableExtractedConcept).current
@@ -142,7 +141,7 @@ const SuggestionSection: React.FC<SuggestionSectionProps> = React.memo(
     const handleAddSelected = () => {
       const selectedItems = Array.from(selectedIndices)
         .map((index) => items[index])
-        .filter((item) => {
+        .filter((item, index) => {
           if (isConceptSection && getConceptStatus) {
             const status = getConceptStatus(
               (item as EditableExtractedConcept).current
@@ -151,11 +150,7 @@ const SuggestionSection: React.FC<SuggestionSectionProps> = React.memo(
           }
           return true;
         })
-        .map(
-          (item) =>
-            (item as EditableExtractedConcept | EditableRelationSuggestion)
-              .current
-        );
+        .map((item) => (item as any).current);
 
       if (selectedItems.length > 0) {
         onAddItems(selectedItems);
@@ -165,11 +160,7 @@ const SuggestionSection: React.FC<SuggestionSectionProps> = React.memo(
 
     const handleAddAllNewSimilar = () => {
       const toAdd = items
-        .map(
-          (item) =>
-            (item as EditableExtractedConcept | EditableRelationSuggestion)
-              .current
-        )
+        .map((item) => (item as any).current)
         .filter((itemValue) => {
           if (isConceptSection && getConceptStatus) {
             const status = getConceptStatus(itemValue as ExtractedConceptItem);

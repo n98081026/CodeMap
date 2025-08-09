@@ -1,5 +1,7 @@
 // src/app/api/classrooms/[classroomId]/route.ts
 import { NextResponse } from 'next/server';
+
+import type { Classroom } from '@/types';
 import type { User } from '@supabase/supabase-js';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -8,14 +10,13 @@ import {
   getClassroomById,
   updateClassroom,
 } from '@/services/classrooms/classroomService';
-import type { Classroom } from '@/types';
 import { UserRole } from '@/types';
 
 // This helper function centralizes authentication and authorization for the classroom resource.
 async function authorizeRequest(
   classroomId: string
 ): Promise<{ user: User; classroom: Classroom } | NextResponse> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
     error,
@@ -49,17 +50,14 @@ async function authorizeRequest(
   return { user, classroom };
 }
 
-function handleApiError(
-  error: unknown,
-  context: string
-): NextResponse {
-    console.error(context, error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json(
-      { message: `Failed to process request: ${errorMessage}` },
-      { status: 500 }
-    );
+function handleApiError(error: unknown, context: string): NextResponse {
+  console.error(context, error);
+  const errorMessage =
+    error instanceof Error ? error.message : 'An unexpected error occurred';
+  return NextResponse.json(
+    { message: `Failed to process request: ${errorMessage}` },
+    { status: 500 }
+  );
 }
 
 export async function GET(
@@ -69,7 +67,10 @@ export async function GET(
   try {
     const { classroomId } = context.params;
     if (!classroomId) {
-      return NextResponse.json({ message: 'Classroom ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Classroom ID is required' },
+        { status: 400 }
+      );
     }
 
     const authResult = await authorizeRequest(classroomId);
@@ -79,7 +80,10 @@ export async function GET(
 
     return NextResponse.json(authResult.classroom);
   } catch (error) {
-    return handleApiError(error, `Get Classroom API error (ID: ${context.params.classroomId}):`);
+    return handleApiError(
+      error,
+      `Get Classroom API error (ID: ${context.params.classroomId}):`
+    );
   }
 }
 
@@ -90,7 +94,10 @@ export async function PUT(
   try {
     const { classroomId } = context.params;
     if (!classroomId) {
-      return NextResponse.json({ message: 'Classroom ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Classroom ID is required' },
+        { status: 400 }
+      );
     }
 
     const authResult = await authorizeRequest(classroomId);
@@ -103,7 +110,10 @@ export async function PUT(
 
     return NextResponse.json(updatedClassroom);
   } catch (error) {
-    return handleApiError(error, `Update Classroom API error (ID: ${context.params.classroomId}):`);
+    return handleApiError(
+      error,
+      `Update Classroom API error (ID: ${context.params.classroomId}):`
+    );
   }
 }
 
@@ -114,7 +124,10 @@ export async function DELETE(
   try {
     const { classroomId } = context.params;
     if (!classroomId) {
-      return NextResponse.json({ message: 'Classroom ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Classroom ID is required' },
+        { status: 400 }
+      );
     }
 
     const authResult = await authorizeRequest(classroomId);
@@ -129,6 +142,9 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error) {
-    return handleApiError(error, `Delete Classroom API error (ID: ${context.params.classroomId}):`);
+    return handleApiError(
+      error,
+      `Delete Classroom API error (ID: ${context.params.classroomId}):`
+    );
   }
 }

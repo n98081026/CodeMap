@@ -1,4 +1,4 @@
-import { Edit3, AlertCircle } from 'lucide-react';
+import { Edit3, CheckSquare, AlertCircle } from 'lucide-react';
 import React from 'react';
 
 import type { ExtractedConceptItem } from '../ai-suggestion-panel';

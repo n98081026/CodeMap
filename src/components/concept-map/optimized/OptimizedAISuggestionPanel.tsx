@@ -4,6 +4,7 @@ import React, { memo, useMemo, useCallback, useState } from 'react';
 
 import { EditableConceptLabel } from '../ai-suggestion-panel/EditableConceptLabel';
 import { EditableRelationLabel } from '../ai-suggestion-panel/EditableRelationLabel';
+import { SuggestionSection } from '../ai-suggestion-panel/SuggestionSection';
 
 import type {
   ExtractedConceptItem,
@@ -118,9 +119,14 @@ MemoizedRelationItem.displayName = 'MemoizedRelationItem';
 export const OptimizedAISuggestionPanel: React.FC<OptimizedAISuggestionPanelProps> =
   memo(
     ({
+      mapData,
       currentMapNodes = [],
       extractedConcepts = [],
       suggestedRelations = [],
+      onAddExtractedConcepts,
+      onAddSuggestedRelations,
+      onClearExtractedConcepts,
+      onClearSuggestedRelations,
       isViewOnlyMode = false,
     }) => {
       const { measure } = usePerformanceMonitor();
@@ -135,6 +141,12 @@ export const OptimizedAISuggestionPanel: React.FC<OptimizedAISuggestionPanelProp
       const [editableRelations, setEditableRelations] = useState<
         EditableRelationSuggestion[]
       >([]);
+      const [selectedConceptIndices, setSelectedConceptIndices] = useState<
+        Set<number>
+      >(new Set());
+      const [selectedRelationIndices, setSelectedRelationIndices] = useState<
+        Set<number>
+      >(new Set());
 
       // Memoized filtered concepts with performance monitoring
       const filteredConcepts = useMemo(() => {

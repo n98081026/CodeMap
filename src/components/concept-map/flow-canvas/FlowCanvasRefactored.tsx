@@ -13,6 +13,7 @@ import ConceptMapErrorBoundary from '../ErrorBoundary';
 import SnapLines from './SnapLines';
 import VisualEdgeSuggestionOverlay from './VisualEdgeSuggestionOverlay';
 
+import type { CustomNodeData } from '@/components/concept-map/custom-node';
 import type {
   ConceptMapData,
   ConceptMapNode,
@@ -45,22 +46,14 @@ export interface FlowCanvasCoreProps {
     markerStart?: string;
     markerEnd?: string;
   }) => string | undefined;
-  onNodeContextMenuRequest?: (
-    event: React.MouseEvent,
-    node: ConceptMapNode
-  ) => void;
+  onNodeContextMenuRequest?: (event: React.MouseEvent, node: any) => void;
   onPaneContextMenuRequest?: (
     event: React.MouseEvent,
     positionInFlow: { x: number; y: number }
   ) => void;
   onStagedElementsSelectionChange?: (elementIds: string[]) => void;
   onConceptSuggestionDrop?: (
-    conceptItem: {
-      text: string;
-      type: string;
-      context?: string;
-      source?: string;
-    },
+    conceptItem: any,
     position: { x: number; y: number }
   ) => void;
   onNodeStartConnectionRequest?: (nodeId: string) => void;
@@ -87,7 +80,9 @@ const FlowCanvasRefactored: React.FC<FlowCanvasCoreProps> = React.memo(
     onConnectInStore,
     onNodeContextMenuRequest,
     onPaneContextMenuRequest,
+    onStagedElementsSelectionChange,
     onConceptSuggestionDrop,
+    onNodeStartConnectionRequest,
     onNewEdgeSuggestLabels,
     activeVisualEdgeSuggestion,
     onAcceptVisualEdge,
@@ -167,17 +162,7 @@ const FlowCanvasRefactored: React.FC<FlowCanvasCoreProps> = React.memo(
       setSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => {
         onSelectionChange(id, type);
       },
-      addEdgeToStore: (options: {
-        source: string;
-        target: string;
-        sourceHandle?: string | null;
-        targetHandle?: string | null;
-        label?: string;
-        color?: string;
-        lineType?: 'solid' | 'dashed';
-        markerStart?: string;
-        markerEnd?: string;
-      }) => {
+      addEdgeToStore: (options: any) => {
         const result = onConnectInStore(options);
         return result || '';
       },

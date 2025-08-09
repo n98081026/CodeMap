@@ -7,7 +7,7 @@ import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface DashboardHeaderProps {
-  title: string;
+  title: React.ReactNode;
   description?: string;
   icon?: LucideIcon;
   iconClassName?: string;

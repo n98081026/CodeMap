@@ -1,5 +1,7 @@
 // src/app/api/concept-maps/route.ts
 import { NextResponse } from 'next/server';
+
+import type { ConceptMapData } from '@/types';
 import type { User } from '@supabase/supabase-js';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -8,7 +10,6 @@ import {
   getConceptMapsByClassroomId,
   getConceptMapsByOwnerId,
 } from '@/services/conceptMaps/conceptMapService';
-import type { ConceptMapData } from '@/types';
 import { UserRole } from '@/types';
 
 interface ConceptMapCreationPayload {
@@ -35,7 +36,10 @@ async function authorizeCreateMap(
 ): Promise<NextResponse | null> {
   if (user.id !== payload.ownerId) {
     return NextResponse.json(
-      { message: 'Forbidden: Users can only create concept maps for themselves.' },
+      {
+        message:
+          'Forbidden: Users can only create concept maps for themselves.',
+      },
       { status: 403 }
     );
   }
@@ -74,16 +78,24 @@ async function authorizeViewMaps(
 
 export async function POST(request: Request) {
   try {
-    const supabase = createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
+      return NextResponse.json(
+        { message: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
     const payload = (await request.json()) as ConceptMapCreationPayload;
     if (!payload.name || !payload.ownerId || !payload.mapData) {
-      return NextResponse.json({ message: 'Name, ownerId, and mapData are required' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Name, ownerId, and mapData are required' },
+        { status: 400 }
+      );
     }
 
     const authError = await authorizeCreateMap(user, payload);
@@ -91,7 +103,13 @@ export async function POST(request: Request) {
       return authError;
     }
 
-    const newMap = await createConceptMap(payload);
+    const newMap = await createConceptMap(
+      payload.name,
+      payload.ownerId,
+      payload.mapData,
+      payload.isPublic,
+      payload.sharedWithClassroomId
+    );
     return NextResponse.json(newMap, { status: 201 });
   } catch (error) {
     return handleApiError(error, 'Create Concept Map API error:');
@@ -100,11 +118,16 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const supabase = createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
+      return NextResponse.json(
+        { message: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -119,7 +142,11 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '10', 10);
 
     if (classroomId) {
-      const result = await getConceptMapsByClassroomId(classroomId, page, limit);
+      const result = await getConceptMapsByClassroomId(
+        classroomId,
+        page,
+        limit
+      );
       return NextResponse.json(result);
     }
 
@@ -129,8 +156,7 @@ export async function GET(request: Request) {
     }
 
     // This case is handled by authorizeViewMaps, but as a fallback:
-    return NextResponse.json({ message: "Invalid request" }, { status: 400 });
-
+    return NextResponse.json({ message: 'Invalid request' }, { status: 400 });
   } catch (error) {
     return handleApiError(error, 'Get Concept Maps API error:');
   }

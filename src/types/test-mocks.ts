@@ -16,7 +16,10 @@ export interface MockSupabaseQueryBuilder {
 }
 
 export interface MockSupabaseStorage {
-  upload: (path: string, file: File) => Promise<{ data: unknown; error: unknown }>;
+  upload: (
+    path: string,
+    file: File
+  ) => Promise<{ data: unknown; error: unknown }>;
   getPublicUrl: (path: string) => { data: { publicUrl: string } };
 }
 

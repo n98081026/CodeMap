@@ -31,6 +31,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { Routes } from '@/lib/routes';
+import { UserRole } from '@/types';
 
 export default function StudentClassroomDetailPage() {
   const paramsHook = useParams();

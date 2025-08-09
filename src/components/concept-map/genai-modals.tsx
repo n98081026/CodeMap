@@ -6,19 +6,14 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import {
-  ExtractConceptsModal,
-  QuickClusterModal,
-  GenerateSnippetModal,
-  MapSummaryModal,
-  RewriteNodeContentModal,
-  AskQuestionAboutEdgeModal,
-  SuggestIntermediateNodeModal,
-} from './ai-tools-integration';
-
-
-import { useEffect } from 'react';
-import { Brain, Lightbulb, Loader2 } from 'lucide-react';
+// TODO: The following modal components are not yet implemented or have been removed.
+// Re-enable them once they are available.
+// import { AskQuestionAboutEdgeModal } from './AskQuestionAboutEdgeModal';
+import { GenerateSnippetModal } from './generate-snippet-modal';
+// import { MapSummaryModal } from './map-summary-modal';
+// import { QuickClusterModal } from './quick-cluster-modal';
+// import { RewriteNodeContentModal } from './rewrite-node-content-modal';
+// import { SuggestIntermediateNodeModal } from './suggest-intermediate-node-modal';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -40,107 +35,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
-import { GenAIModalProps } from '@/types';
-import { ExtractConceptsModal } from './ExtractConceptsModal';
-import { QuickClusterModal } from './quick-cluster-modal';
-import { GenerateSnippetModal } from './generate-snippet-modal';
-import { MapSummaryModal } from './map-summary-modal';
-import { RewriteNodeContentModal } from './rewrite-node-content-modal';
-import { AskQuestionAboutEdgeModal } from './AskQuestionAboutEdgeModal';
-import { SuggestIntermediateNodeModal } from './suggest-intermediate-node-modal';
 
-const suggestRelationsSchema = z.object({
-  customPrompt: z.string().optional(),
+// Define schemas for form validation
+const extractConceptsSchema = z.object({
+  textToExtract: z.string().min(1, 'Text is required'),
+  extractionFocus: z.string().optional(),
 });
 
-const expandConceptSchema = z.object({
-  conceptToExpand: z.string().min(1, 'Concept is required'),
-  userRefinementPrompt: z.string().optional(),
-});
-
-const askQuestionAboutSelectedNodeSchema = z.object({
-  question: z.string().min(1, 'Question is required'),
-});
-
-export const GenAIModals: React.FC = () => {
-  const aiTools = useConceptMapAITools();
-
-  return (
-    <>
-      <ExtractConceptsModal
-        isOpen={aiTools.isExtractConceptsModalOpen}
-        onOpenChange={aiTools.setIsExtractConceptsModalOpen}
-        onConfirm={aiTools.handleExtractConcepts}
-        isLoading={aiTools.isProcessing}
-        contextText={aiTools.textForExtraction}
-      />
-      <QuickClusterModal
-        isOpen={aiTools.isQuickClusterModalOpen}
-        onOpenChange={aiTools.setIsQuickClusterModalOpen}
-        onConfirm={aiTools.handleQuickCluster}
-        isLoading={aiTools.isProcessing}
-      />
-      <GenerateSnippetModal
-        isOpen={aiTools.isGenerateSnippetModalOpen}
-        onOpenChange={aiTools.setIsGenerateSnippetModalOpen}
-        onConfirm={aiTools.handleGenerateSnippetFromText}
-        isLoading={aiTools.isProcessing}
-      />
-      <MapSummaryModal
-        isOpen={aiTools.isSummarizeMapModalOpen}
-        onOpenChange={aiTools.setIsSummarizeMapModalOpen}
-        onConfirm={() => aiTools.handleSummarizeMap()}
-        isLoading={aiTools.isProcessing}
-        summary={aiTools.mapSummary}
-      />
-      <RewriteNodeContentModal
-        isOpen={!!aiTools.rewriteModalState.isOpen}
-        onOpenChange={(isOpen) =>
-          aiTools.setRewriteModalState((prev) => ({ ...prev, isOpen }))
-        }
-        onConfirm={(style, customInstruction) =>
-          aiTools.handleRewriteNodeContent(style, customInstruction)
-        }
-        isLoading={aiTools.isProcessing}
-        originalContent={aiTools.rewriteModalState.originalContent}
-        rewrittenContent={aiTools.rewriteModalState.rewrittenContent}
-        nodeId={aiTools.rewriteModalState.nodeId}
-      />
-      <AskQuestionAboutEdgeModal
-        isOpen={!!aiTools.askQuestionAboutEdgeState.isOpen}
-        onOpenChange={(isOpen) =>
-          aiTools.setAskQuestionAboutEdgeState((prev) => ({ ...prev, isOpen }))
-        }
-        edgeContext={aiTools.askQuestionAboutEdgeState.edgeContext}
-        onSubmitQuestion={aiTools.handleAskQuestionAboutEdge}
-        isLoading={aiTools.isProcessing}
-        answer={aiTools.askQuestionAboutEdgeState.answer}
-        onCloseModal={() =>
-          aiTools.setAskQuestionAboutEdgeState({
-            isOpen: false,
-            edgeContext: null,
-            answer: null,
-          })
-        }
-      />
-      <SuggestIntermediateNodeModal
-        isOpen={!!aiTools.suggestIntermediateNodeState.isOpen}
-        onOpenChange={(isOpen) =>
-          aiTools.setSuggestIntermediateNodeState((prev) => ({
-            ...prev,
-            isOpen,
-          }))
-        }
-        edgeInfo={aiTools.suggestIntermediateNodeState.edgeInfo}
-        suggestions={aiTools.suggestIntermediateNodeState.suggestions}
-        isLoading={aiTools.isProcessing}
-        onConfirm={(suggestion) =>
-          aiTools.confirmAddIntermediateNode(suggestion)
-        }
-      />
-    </>
-  );
-};
 const suggestRelationsSchema = z.object({
   customPrompt: z.string().optional(),
 });
@@ -156,10 +57,10 @@ const askQuestionAboutSelectedNodeSchema = z.object({
 });
 
 interface GenAIModalProps<T extends z.ZodType<any, any>> {
-    isOpen: boolean;
-    onOpenChange: (isOpen: boolean) => void;
-    onSubmit: (values: z.infer<T>) => void;
-    isProcessing: boolean;
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  onSubmit: (values: z.infer<T>) => void;
+  isProcessing: boolean;
 }
 
 export const SuggestRelationsModal: React.FC<
@@ -385,77 +286,75 @@ export const ExpandConceptModal: React.FC<
   );
 };
 
-export const AskQuestionModal: React.FC<
-  Omit<
-    GenAIModalProps<typeof askQuestionAboutSelectedNodeSchema>,
-    'isProcessing'
-  >
-> = ({ isOpen, onOpenChange }) => {
-  const form = useForm<z.infer<typeof askQuestionAboutSelectedNodeSchema>>({
-    resolver: zodResolver(askQuestionAboutSelectedNodeSchema),
-    defaultValues: { question: '' },
-  });
-  const { isProcessing: isProcessingQuestion } = useConceptMapAITools();
-
-  useEffect(() => {
-    if (isOpen) {
-      form.reset({ question: '' });
-    }
-  }, [form, isOpen]);
-
 export const GenAIModals: React.FC = () => {
   const aiTools = useConceptMapAITools();
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-md'>
-        <DialogHeader>
-          <DialogTitle>Ask a Question</DialogTitle>
-          <DialogDescription>
-            Ask a question about the selected node.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(() => {})}
-            className='space-y-4 py-4'
-          >
-            <FormField
-              control={form.control}
-              name='question'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Question</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder='e.g., What are the applications of this concept?'
-                      {...field}
-                      disabled={isProcessingQuestion}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button
-                type='button'
-                variant='outline'
-                onClick={() => onOpenChange(false)}
-                disabled={isProcessingQuestion}
-              >
-                Cancel
-              </Button>
-              <Button type='submit' disabled={isProcessingQuestion}>
-                {isProcessingQuestion && (
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                )}
-                Ask
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <>
+      {/* <QuickClusterModal
+        isOpen={aiTools.isQuickClusterModalOpen}
+        onOpenChange={aiTools.setIsQuickClusterModalOpen}
+        onConfirm={aiTools.handleQuickCluster}
+        isLoading={aiTools.isProcessing}
+      /> */}
+      <GenerateSnippetModal
+        isOpen={aiTools.isGenerateSnippetModalOpen}
+        onOpenChange={aiTools.setIsGenerateSnippetModalOpen}
+        onConfirm={aiTools.handleGenerateSnippetFromText}
+        isLoading={aiTools.isProcessing}
+      />
+      {/* <MapSummaryModal
+        isOpen={aiTools.isSummarizeMapModalOpen}
+        onOpenChange={aiTools.setIsSummarizeMapModalOpen}
+        onConfirm={() => aiTools.handleSummarizeMap()}
+        isLoading={aiTools.isProcessing}
+        summary={aiTools.mapSummary}
+      /> */}
+      {/* <RewriteNodeContentModal
+        isOpen={!!aiTools.rewriteModalState.isOpen}
+        onOpenChange={(isOpen) =>
+          aiTools.setRewriteModalState((prev) => ({ ...prev, isOpen }))
+        }
+        onConfirm={(style, customInstruction) =>
+          aiTools.handleRewriteNodeContent(style, customInstruction)
+        }
+        isLoading={aiTools.isProcessing}
+        originalContent={aiTools.rewriteModalState.originalContent}
+        rewrittenContent={aiTools.rewriteModalState.rewrittenContent}
+        nodeId={aiTools.rewriteModalState.nodeId}
+      /> */}
+      {/* <AskQuestionAboutEdgeModal
+        isOpen={!!aiTools.askQuestionAboutEdgeState.isOpen}
+        onOpenChange={(isOpen) =>
+          aiTools.setAskQuestionAboutEdgeState((prev) => ({ ...prev, isOpen }))
+        }
+        edgeContext={aiTools.askQuestionAboutEdgeState.edgeContext}
+        onSubmitQuestion={aiTools.handleAskQuestionAboutEdge}
+        isLoading={aiTools.isProcessing}
+        answer={aiTools.askQuestionAboutEdgeState.answer}
+        onCloseModal={() =>
+          aiTools.setAskQuestionAboutEdgeState({
+            isOpen: false,
+            edgeContext: null,
+            answer: null,
+          })
+        }
+      /> */}
+      {/* <SuggestIntermediateNodeModal
+        isOpen={!!aiTools.suggestIntermediateNodeState.isOpen}
+        onOpenChange={(isOpen) =>
+          aiTools.setSuggestIntermediateNodeState((prev) => ({
+            ...prev,
+            isOpen,
+          }))
+        }
+        edgeInfo={aiTools.suggestIntermediateNodeState.edgeInfo}
+        suggestions={aiTools.suggestIntermediateNodeState.suggestions}
+        isLoading={aiTools.isProcessing}
+        onConfirm={(suggestion) =>
+          aiTools.confirmAddIntermediateNode(suggestion)
+        }
+      /> */}
+    </>
   );
 };

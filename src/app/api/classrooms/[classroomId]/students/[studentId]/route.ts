@@ -1,5 +1,6 @@
 // src/app/api/classrooms/[classroomId]/students/[studentId]/route.ts
 import { NextResponse } from 'next/server';
+
 import type { User } from '@supabase/supabase-js';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -12,7 +13,7 @@ import { UserRole } from '@/types';
 async function authorizeTeacherOrAdmin(
   classroomId: string
 ): Promise<{ user: User } | NextResponse> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
     error,

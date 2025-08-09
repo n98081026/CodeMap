@@ -36,6 +36,7 @@ export interface AISuggestionPanelProps {
 const AISuggestionPanelRefactored: React.FC<AISuggestionPanelProps> =
   React.memo(
     ({
+      mapData,
       currentMapNodes = [],
       extractedConcepts = [],
       suggestedRelations = [],
@@ -72,6 +73,12 @@ const AISuggestionPanelRefactored: React.FC<AISuggestionPanelProps> =
         extractedConcepts,
         suggestedRelations,
       });
+
+      const handleSetDraggedRelationPreview = (
+        relation: RelationSuggestion | null
+      ) => {
+        setDraggedRelationPreview(relation ? relation.relation : null);
+      };
 
       const renderMainContent = () => {
         const noExtracted =
@@ -148,7 +155,7 @@ const AISuggestionPanelRefactored: React.FC<AISuggestionPanelProps> =
                 onToggleRelationEdit={handleToggleRelationEdit}
                 onRelationInputChange={handleRelationInputChange}
                 onConfirmRelationEdit={handleConfirmRelationEdit}
-                setDraggedRelationPreview={setDraggedRelationPreview}
+                setDraggedRelationPreview={handleSetDraggedRelationPreview}
               />
             )}
           </div>

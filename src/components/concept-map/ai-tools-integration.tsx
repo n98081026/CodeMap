@@ -20,11 +20,11 @@ export const AIToolsIntegration: React.FC<AIToolsIntegrationProps> = ({
   onToolComplete,
 }) => {
   const { toast } = useToast();
-  const aiTools = useConceptMapAITools(isViewOnly);
+  const aiTools = useConceptMapAITools();
 
   const handleExtractConcepts = async () => {
     try {
-      await aiTools.handleExtractConcepts();
+      await aiTools.handleExtractConcepts({ context: '' });
       toast({
         title: 'Concepts Extracted',
         description: 'AI has extracted concepts from your content.',

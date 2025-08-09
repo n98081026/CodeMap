@@ -21,13 +21,13 @@ export default function HomePage() {
     // User is authenticated, redirect to their respective dashboard
     switch (user.role) {
       case UserRole.ADMIN:
-        router.replace(Routes.Legacy.ADMIN_DASHBOARD);
+        router.replace(Routes.Admin.DASHBOARD);
         break;
       case UserRole.TEACHER:
-        router.replace(Routes.Legacy.TEACHER_DASHBOARD);
+        router.replace(Routes.Teacher.DASHBOARD);
         break;
       case UserRole.STUDENT:
-        router.replace(Routes.Legacy.STUDENT_DASHBOARD);
+        router.replace(Routes.Student.DASHBOARD);
         break;
       default:
         // Fallback if role is somehow unknown, go to login

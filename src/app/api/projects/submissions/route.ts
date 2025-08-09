@@ -1,5 +1,6 @@
 // src/app/api/projects/submissions/route.ts
 import { NextResponse } from 'next/server';
+
 import type { User } from '@supabase/supabase-js';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -30,17 +31,25 @@ function handleApiError(error: unknown, context: string): NextResponse {
   );
 }
 
-async function authorizeCreate(user: User, payload: SubmissionPayload): Promise<NextResponse | null> {
+async function authorizeCreate(
+  user: User,
+  payload: SubmissionPayload
+): Promise<NextResponse | null> {
   if (user.id !== payload.studentId) {
     return NextResponse.json(
-      { message: 'Forbidden: Students can only submit projects for themselves.' },
+      {
+        message: 'Forbidden: Students can only submit projects for themselves.',
+      },
       { status: 403 }
     );
   }
   return null;
 }
 
-async function authorizeView(user: User, params: URLSearchParams): Promise<NextResponse | null> {
+async function authorizeView(
+  user: User,
+  params: URLSearchParams
+): Promise<NextResponse | null> {
   const userRole = user.user_metadata?.role as UserRole;
   const studentId = params.get('studentId');
   const classroomId = params.get('classroomId');
@@ -64,21 +73,39 @@ async function authorizeView(user: User, params: URLSearchParams): Promise<NextR
 
 export async function POST(request: Request) {
   try {
-    const supabase = createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
+      return NextResponse.json(
+        { message: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
     const payload = (await request.json()) as SubmissionPayload;
-    if (!payload.studentId || !payload.originalFileName || payload.fileSize === undefined) {
-      return NextResponse.json({ message: 'Missing required submission fields' }, { status: 400 });
+    if (
+      !payload.studentId ||
+      !payload.originalFileName ||
+      payload.fileSize === undefined
+    ) {
+      return NextResponse.json(
+        { message: 'Missing required submission fields' },
+        { status: 400 }
+      );
     }
 
     const authError = await authorizeCreate(user, payload);
     if (authError) return authError;
 
-    const newSubmission = await createSubmission(payload);
+    const newSubmission = await createSubmission(
+      payload.studentId,
+      payload.originalFileName,
+      payload.fileSize,
+      payload.classroomId,
+      payload.fileStoragePath
+    );
     return NextResponse.json(newSubmission, { status: 201 });
   } catch (error) {
     return handleApiError(error, 'Create Submission API error:');
@@ -87,10 +114,15 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const supabase = createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
+      return NextResponse.json(
+        { message: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -103,7 +135,11 @@ export async function GET(request: Request) {
     const classroomId = searchParams.get('classroomId');
 
     if (classroomId) {
-      const result = await getSubmissionsByClassroomId(classroomId, page, limit);
+      const result = await getSubmissionsByClassroomId(
+        classroomId,
+        page,
+        limit
+      );
       return NextResponse.json(result);
     }
     if (studentId) {

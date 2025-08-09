@@ -4,7 +4,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { MockSupabaseClient, MockSupabaseQueryBuilder } from '@/types/test-mocks';
+import type {
+  MockSupabaseClient,
+  MockSupabaseQueryBuilder,
+} from '@/types/test-mocks';
 
 import {
   createSubmission,

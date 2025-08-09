@@ -6,7 +6,7 @@ import React, { Suspense, lazy } from 'react';
 // Lazy load heavy components to improve initial bundle size
 export const LazyAISuggestionPanel = lazy(() =>
   import('../ai-suggestion-panel').then((module) => ({
-    default: module.default,
+    default: module.AISuggestionPanelRefactored,
   }))
 );
 

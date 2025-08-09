@@ -86,9 +86,10 @@ export const EditableConceptLabel: React.FC<ConceptLabelProps> = ({
           />
         ) : (
           <div className='flex items-center gap-2'>
-            <span
+            <button
+              type='button'
               className={cn(
-                'font-medium truncate',
+                'font-medium truncate text-left bg-transparent p-0 h-auto',
                 !isViewOnlyMode && 'cursor-pointer hover:underline'
               )}
               onClick={
@@ -96,18 +97,10 @@ export const EditableConceptLabel: React.FC<ConceptLabelProps> = ({
                   ? undefined
                   : () => onToggleEdit(index, 'concept')
               }
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  if (!isViewOnlyMode) {
-                    onToggleEdit(index, 'concept');
-                  }
-                }
-              }}
-              role='button'
-              tabIndex={isViewOnlyMode ? -1 : 0}
+              disabled={isViewOnlyMode}
             >
               {item.current.concept}
-            </span>
+            </button>
             {getStatusIcon()}
           </div>
         )}

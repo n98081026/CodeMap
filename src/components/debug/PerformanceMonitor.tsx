@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, Clock, Cpu, HardDrive, Zap } from 'lucide-react';
+import { Activity, BarChart3, Clock, Cpu, HardDrive, Zap } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -91,6 +91,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   }, [isMonitoring, startMemoryMonitoring, stopMemoryMonitoring]);
 
   // Get performance statistics
+  const performanceStats = getStats();
   const allStats = getStats();
 
   // Format memory size

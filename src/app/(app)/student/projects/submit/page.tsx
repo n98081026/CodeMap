@@ -13,16 +13,17 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
-import useTutorialStore, {
-  type TutorialState,
-} from '@/stores/tutorial-store'; // Import tutorial store
+
+// AppTutorial is now globally managed via AppLayout and tutorial-store
+// import AppTutorial from "@/components/tutorial/app-tutorial";
+import useTutorialStore from '@/stores/tutorial-store'; // Import tutorial store
 
 export default function SubmitProjectPage() {
   // const [runTutorial, setRunTutorial] = useState(false); // Removed local state
   const { user, isLoading } = useAuth();
   const { startOrResumeTutorial } = useTutorialStore(
     useCallback(
-      (s: TutorialState) => ({ startOrResumeTutorial: s.startOrResumeTutorial }),
+      (s: any) => ({ startOrResumeTutorial: s.startOrResumeTutorial }),
       []
     )
   );
