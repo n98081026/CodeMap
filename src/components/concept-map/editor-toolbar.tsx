@@ -38,8 +38,10 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState, useCallback } from 'react';
+import { z } from 'zod';
 
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+import { StructuralSuggestionItemSchema } from '@/types/ai-suggestions';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -174,11 +176,26 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   isDagreTidying,
 }: EditorToolbarProps) {
   const { toast } = useToast();
-  const store = useConceptMapStore();
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
-  const currentMapId = useConceptMapStore((s) => s.mapId);
-  const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview);
+  const {
+    mapId: currentMapId,
+    isFetchingOverview,
+    mapData,
+    setStructuralSuggestions,
+    clearStructuralSuggestions,
+  } = useConceptMapStore(
+    useCallback(
+      (s) => ({
+        mapId: s.mapId,
+        isFetchingOverview: s.isFetchingOverview,
+        mapData: s.mapData,
+        setStructuralSuggestions: s.setStructuralSuggestions,
+        clearStructuralSuggestions: s.clearStructuralSuggestions,
+      }),
+      []
+    )
+  );
   const { startOrResumeTutorial } = useTutorialStore(
     useCallback((s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
   );
@@ -716,14 +733,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 }
                 setIsLoadingSuggestions(true);
                 try {
-                  const currentMapData = useConceptMapStore.getState().mapData;
                   const flowInput = {
-                    nodes: currentMapData.nodes.map((n: ConceptMapNode) => ({
+                    nodes: mapData.nodes.map((n: ConceptMapNode) => ({
                       id: n.id,
                       text: n.text,
                       details: n.details || '',
                     })),
-                    edges: currentMapData.edges.map((e: ConceptMapEdge) => ({
+                    edges: mapData.edges.map((e: ConceptMapEdge) => ({
                       source: e.source,
                       target: e.target,
                       label: e.label || '',
@@ -733,13 +749,10 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   //   fetchAllStructuralSuggestionsFlow,
                   //   flowInput
                   // );
-                  const results: Array<{
-                    id: string;
-                    type: string;
-                    data: unknown;
-                    reason: string;
-                  }> = [];
-                  store.getState().setStructuralSuggestions(results);
+                  const results: z.infer<
+                    typeof StructuralSuggestionItemSchema
+                  >[] = [];
+                  setStructuralSuggestions(results);
                   toast({
                     title: 'AI Suggestions',
                     description: `Received ${results.length} structural suggestions.`,
@@ -754,7 +767,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                     description: 'Failed to fetch AI structural suggestions.',
                     variant: 'destructive',
                   });
-                  store.clearStructuralSuggestions();
+                  clearStructuralSuggestions();
                 } finally {
                   setIsLoadingSuggestions(false);
                 }

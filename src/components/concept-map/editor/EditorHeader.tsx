@@ -74,7 +74,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           </div>
         </div>
       }
-      actions={
+      children={
         <div className='flex items-center gap-2'>
           <Button
             variant='ghost'
