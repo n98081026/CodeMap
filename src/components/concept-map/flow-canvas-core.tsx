@@ -105,6 +105,7 @@ interface FlowCanvasCoreProps {
 }
 
 const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = React.memo(
+const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
   ({
     mapDataFromStore,
     isViewOnlyMode,
@@ -128,6 +129,9 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = React.memo(
   }) => {
     const addDebugLog = useConceptMapStore((s) => s.addDebugLog);
     addDebugLog(
+  useConceptMapStore
+    .getState()
+    .addDebugLog(
       `[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${
         mapDataFromStore.nodes?.length ?? 'N/A'
       }`
@@ -1040,3 +1044,25 @@ const FlowCanvasCore: React.FC<FlowCanvasCoreProps> = React.memo(
 FlowCanvasCore.displayName = 'FlowCanvasCore';
 
 export default FlowCanvasCore;
+
+          onNodeContextMenuRequest?.(event, node);
+        }}
+        onNodeDrag={onNodeDragInternal}
+        onNodeDragStop={onNodeDragStopInternal}
+        onNodeClick={handleNodeClickInternal}
+        onPaneDoubleClick={handlePaneDoubleClickInternal}
+        onPaneContextMenu={handlePaneContextMenuInternal}
+        onDragOver={handleCanvasDragOver}
+        onDrop={handleCanvasDrop}
+        onDragLeave={handleCanvasDragLeave}
+        activeSnapLines={activeSnapLinesLocal}
+        panActivationKeyCode={panActivationKeyCode}
+        activeVisualEdgeSuggestion={activeVisualEdgeSuggestion}
+        onAcceptVisualEdge={onAcceptVisualEdge}
+        onRejectVisualEdge={onRejectVisualEdge}
+      />
+    </div>
+  );
+});
+
+export default React.memo(FlowCanvasCoreWrapper);
