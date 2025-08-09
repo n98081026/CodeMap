@@ -2,10 +2,14 @@
 
 import { useCallback } from 'react';
 
+import type {
+  ExtractedConceptItem,
+  RelationSuggestion,
+} from '@/components/concept-map/ai-suggestion-panel';
+
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { useConceptMapStore } from '@/stores/concept-map-store';
-import type { ExtractedConceptItem, RelationSuggestion } from '@/components/concept-map/ai-suggestion-panel';
 
 export const useEditorAIActions = () => {
   const { toast } = useToast();
@@ -150,22 +154,28 @@ export const useEditorAIActions = () => {
   }, [multiSelectedNodeIds, toast]);
 
   // Add extracted concepts to map
-  const handleAddExtractedConcepts = useCallback((concepts: ExtractedConceptItem[]) => {
-    addConceptsToMap(concepts);
-    toast({
-      title: 'Concepts added',
-      description: `Added ${concepts.length} concepts to the map.`,
-    });
-  }, [addConceptsToMap, toast]);
+  const handleAddExtractedConcepts = useCallback(
+    (concepts: ExtractedConceptItem[]) => {
+      addConceptsToMap(concepts);
+      toast({
+        title: 'Concepts added',
+        description: `Added ${concepts.length} concepts to the map.`,
+      });
+    },
+    [addConceptsToMap, toast]
+  );
 
   // Add suggested relations to map
-  const handleAddSuggestedRelations = useCallback((relations: RelationSuggestion[]) => {
-    addRelationsToMap(relations);
-    toast({
-      title: 'Relations added',
-      description: `Added ${relations.length} relations to the map.`,
-    });
-  }, [addRelationsToMap, toast]);
+  const handleAddSuggestedRelations = useCallback(
+    (relations: RelationSuggestion[]) => {
+      addRelationsToMap(relations);
+      toast({
+        title: 'Relations added',
+        description: `Added ${relations.length} relations to the map.`,
+      });
+    },
+    [addRelationsToMap, toast]
+  );
 
   // Clear extracted concepts
   const handleClearExtractedConcepts = useCallback(() => {
@@ -189,7 +199,7 @@ export const useEditorAIActions = () => {
     // State
     aiExtractedConcepts,
     aiSuggestedRelations,
-    
+
     // Actions
     handleExtractConcepts,
     handleSuggestRelations,

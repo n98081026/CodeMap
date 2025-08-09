@@ -1,15 +1,22 @@
 'use client';
 
-import { ArrowLeft, Compass, Share2, EyeOff, HelpCircle, Save } from 'lucide-react';
+import {
+  ArrowLeft,
+  Compass,
+  Share2,
+  EyeOff,
+  HelpCircle,
+  Save,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
-import { Button } from '@/components/ui/button';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
-import { cn } from '@/lib/utils';
 import { Routes } from '@/lib/routes';
+import { cn } from '@/lib/utils';
 
 interface EditorHeaderProps {
   mapName: string;
@@ -78,18 +85,14 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             <HelpCircle className='h-4 w-4 mr-2' />
             Tutorial
           </Button>
-          
+
           {!isViewOnlyMode && (
             <>
-              <Button
-                variant='ghost'
-                size='sm'
-                className='hidden sm:flex'
-              >
+              <Button variant='ghost' size='sm' className='hidden sm:flex'>
                 <Share2 className='h-4 w-4 mr-2' />
                 Share
               </Button>
-              
+
               <Button
                 onClick={onSaveMap}
                 disabled={isSaving}

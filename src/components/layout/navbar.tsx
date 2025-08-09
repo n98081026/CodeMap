@@ -24,7 +24,6 @@ import {
   TutorialMetaData,
 } from '@/components/tutorial/app-tutorial';
 import { Button } from '@/components/ui/button';
-import { Routes } from '@/lib/routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +36,7 @@ import {
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import { Routes } from '@/lib/routes';
 import useTutorialStore from '@/stores/tutorial-store';
 import { UserRole } from '@/types';
 

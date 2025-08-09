@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import React, { useState, useCallback } from 'react';
+
+import { AIActions } from './AIActions';
+import { EditActions } from './EditActions';
+import { FileActions } from './FileActions';
+import { LayoutActions, type ArrangeAction } from './LayoutActions';
+import { ToolbarSection } from './ToolbarSection';
+import { ViewActions } from './ViewActions';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import { Routes } from '@/lib/routes';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 import useTutorialStore from '@/stores/tutorial-store';
-
-import { ToolbarSection } from './ToolbarSection';
-import { FileActions } from './FileActions';
-import { EditActions } from './EditActions';
-import { AIActions } from './AIActions';
-import { LayoutActions, type ArrangeAction } from './LayoutActions';
-import { ViewActions } from './ViewActions';
-import { Routes } from '@/lib/routes';
 
 export interface EditorToolbarProps {
   onNewMap: () => void;
@@ -82,18 +82,15 @@ export const EditorToolbarRefactored: React.FC<EditorToolbarProps> = ({
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
-  
+
   // Store state
   const store = useConceptMapStore();
   const currentMapId = useConceptMapStore((s) => s.mapId);
   const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview);
-  
+
   // Tutorial store
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback(
-      (s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }),
-      []
-    )
+    useCallback((s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
   );
 
   // Local state for AI loading

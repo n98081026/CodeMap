@@ -6,7 +6,7 @@ export async function extractConceptsFlow(input: {
 }): Promise<ExtractConceptsOutput> {
   // Mock implementation for now
   // In a real implementation, this would call an AI service
-  
+
   const mockConcepts = [
     {
       text: 'Data Processing',
@@ -23,7 +23,7 @@ export async function extractConceptsFlow(input: {
   ];
 
   // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return {
     concepts: mockConcepts,

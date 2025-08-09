@@ -104,7 +104,9 @@ describe('EditorToolbar (/components/concept-map/editor-toolbar.tsx)', () => {
 
     // Toggle buttons for side panels should still be enabled
     expect(within(toolbar).getByTitle(/Show Properties/i)).not.toBeDisabled();
-    expect(within(toolbar).getByTitle(/Show AI Suggestions/i)).not.toBeDisabled();
+    expect(
+      within(toolbar).getByTitle(/Show AI Suggestions/i)
+    ).not.toBeDisabled();
   });
 
   it('Undo and Redo buttons should be disabled based on canUndo/canRedo props', async () => {

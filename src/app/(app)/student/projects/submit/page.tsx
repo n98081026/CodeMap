@@ -22,7 +22,10 @@ export default function SubmitProjectPage() {
   // const [runTutorial, setRunTutorial] = useState(false); // Removed local state
   const { user, isLoading } = useAuth();
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback((s: any) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
+    useCallback(
+      (s: any) => ({ startOrResumeTutorial: s.startOrResumeTutorial }),
+      []
+    )
   );
 
   useEffect(() => {

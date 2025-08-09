@@ -868,10 +868,7 @@ describe('useConceptMapStore', () => {
       });
       let newGroupId = '';
       act(() => {
-        newGroupId = store.applyFormGroupSuggestion(
-          [childId1],
-          'Test Group'
-        );
+        newGroupId = store.applyFormGroupSuggestion([childId1], 'Test Group');
       });
       const state = useConceptMapStore.getState();
       const groupNode = state.mapData.nodes.find((n) => n.id === newGroupId);

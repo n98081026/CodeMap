@@ -8,16 +8,26 @@ import { useAuth } from '@/contexts/auth-context';
 
 // Mock child components to isolate Navbar
 vi.mock('@/components/ui/sidebar', () => ({
-  SidebarTrigger: () => <div data-testid="mock-sidebar-trigger" />,
+  SidebarTrigger: () => <div data-testid='mock-sidebar-trigger' />,
 }));
 
 vi.mock('@/components/ui/dropdown-menu', () => ({
-  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div data-testid="mock-dropdown-menu">{children}</div>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div data-testid="mock-dropdown-trigger">{children}</div>,
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div data-testid="mock-dropdown-content">{children}</div>,
-  DropdownMenuItem: ({ children, ...props }: { children: React.ReactNode }) => <div {...props}>{children}</div>,
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='mock-dropdown-menu'>{children}</div>
+  ),
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='mock-dropdown-trigger'>{children}</div>
+  ),
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='mock-dropdown-content'>{children}</div>
+  ),
+  DropdownMenuItem: ({ children, ...props }: { children: React.ReactNode }) => (
+    <div {...props}>{children}</div>
+  ),
   DropdownMenuSeparator: () => <hr />,
-  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 vi.mock('@/contexts/auth-context');

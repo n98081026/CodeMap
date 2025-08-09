@@ -28,6 +28,7 @@ import {
   MOCK_TEACHER_USER,
 } from '@/lib/config';
 import { exampleProjects } from '@/lib/example-data';
+import { Routes } from '@/lib/routes';
 import { supabase } from '@/lib/supabaseClient';
 import {
   createUserProfile,
@@ -35,7 +36,6 @@ import {
   updateUser as updateUserProfileService,
 } from '@/services/users/userService';
 import { UserRole } from '@/types';
-import { Routes } from '@/lib/routes';
 // Ensure V3 is the default for bypass
 
 // DEFAULT_BYPASS_USER is now MOCK_STUDENT_USER_V3 for student testing
@@ -299,13 +299,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Redirect based on the selected role
         switch (role) {
           case UserRole.ADMIN:
-            router.replace(Routes.Legacy.ADMIN_DASHBOARD);
+            router.replace(Routes.Admin.DASHBOARD);
             break;
           case UserRole.TEACHER:
-            router.replace(Routes.Legacy.TEACHER_DASHBOARD);
+            router.replace(Routes.Teacher.DASHBOARD);
             break;
           case UserRole.STUDENT:
-            router.replace(Routes.Legacy.STUDENT_DASHBOARD);
+            router.replace(Routes.Student.DASHBOARD);
             break;
           default:
             router.replace(Routes.LOGIN);
@@ -538,7 +538,11 @@ async function handleCopyExampleAction(
   exampleKey: string,
   userId: string,
   router: ReturnType<typeof useRouter>, // Use NextRouterInstance for type
-  toast: (props: { title?: string; description?: string; variant?: 'default' | 'destructive' }) => void
+  toast: (props: {
+    title?: string;
+    description?: string;
+    variant?: 'default' | 'destructive';
+  }) => void
 ) {
   console.log(
     `Handling copyExample action for key: ${exampleKey}, user: ${userId}`

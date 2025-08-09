@@ -611,20 +611,49 @@ export async function deleteClassroom(classroomId: string): Promise<boolean> {
   return count !== null && count > 0;
 }
 
-export async function getAllClassrooms(): Promise<Classroom[]> {
+export async function getAllClassrooms(
+  page?: number,
+  limit?: number,
+  searchTerm?: string
+): Promise<{ classrooms: Classroom[]; totalCount: number }> {
   if (BYPASS_AUTH_FOR_TESTING) {
-    return MOCK_CLASSROOMS_STORE_LOCAL.map((c) => ({
-      ...c,
-      studentIds: MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.filter(
-        (cs) => cs.classroom_id === c.id
-      ).map((cs) => cs.student_id),
-    }));
+    let filtered = [...MOCK_CLASSROOMS_STORE_LOCAL];
+    if (searchTerm) {
+      filtered = filtered.filter((c) =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    const totalCount = filtered.length;
+    if (page && limit) {
+      filtered = filtered.slice((page - 1) * limit, page * limit);
+    }
+    return {
+      classrooms: filtered.map((c) => ({
+        ...c,
+        studentIds: MOCK_CLASSROOM_STUDENTS_STORE_LOCAL.filter(
+          (cs) => cs.classroom_id === c.id
+        ).map((cs) => cs.student_id),
+      })),
+      totalCount,
+    };
   }
 
-  const { data: classroomRows, error: classroomError } = await supabase
+  let query = supabase
     .from('classrooms')
-    .select('*, teacher:profiles!teacher_id(name)')
+    .select('*, teacher:profiles!teacher_id(name)', { count: 'exact' })
     .order('name', { ascending: true });
+
+  if (searchTerm && searchTerm.trim() !== '') {
+    const cleanedSearchTerm = searchTerm.trim().replace(/[%_]/g, '\\$&');
+    query = query.ilike('name', `%${cleanedSearchTerm}%`);
+  }
+
+  if (page && limit) {
+    const startIndex = (page - 1) * limit;
+    query = query.range(startIndex, startIndex + limit - 1);
+  }
+
+  const { data: classroomRows, error: classroomError, count } = await query;
 
   if (classroomError) {
     console.error(
@@ -637,7 +666,7 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
   }
 
   if (!classroomRows) {
-    return [];
+    return { classrooms: [], totalCount: 0 };
   }
 
   const classroomsPromises = classroomRows.map(async (row) => {
@@ -669,5 +698,6 @@ export async function getAllClassrooms(): Promise<Classroom[]> {
     return classroom;
   });
 
-  return Promise.all(classroomsPromises);
+  const classrooms = await Promise.all(classroomsPromises);
+  return { classrooms, totalCount: count || 0 };
 }

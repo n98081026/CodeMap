@@ -7,9 +7,9 @@ export async function expandConceptFlow(input: {
 }): Promise<ExpandConceptOutput> {
   // Mock implementation for now
   // In a real implementation, this would expand a concept using AI
-  
+
   const { conceptText } = input;
-  
+
   const mockNewConcepts = [
     {
       text: `${conceptText} Implementation`,
@@ -44,7 +44,7 @@ export async function expandConceptFlow(input: {
   ];
 
   // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 1200));
+  await new Promise((resolve) => setTimeout(resolve, 1200));
 
   return {
     newConcepts: mockNewConcepts,

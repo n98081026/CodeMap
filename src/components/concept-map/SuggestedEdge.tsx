@@ -1,6 +1,11 @@
 import { PlusCircleIcon, CheckCircle, XCircle } from 'lucide-react'; // Added more icons
 import React, { useState } from 'react'; // Added useState
-import { getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow';
+import {
+  getBezierPath,
+  EdgeLabelRenderer,
+  BaseEdge,
+  Position,
+} from 'reactflow';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,8 +25,8 @@ export interface SuggestedEdgeProps {
   sourceY: number;
   targetX: number;
   targetY: number;
-  sourcePosition: string;
-  targetPosition: string;
+  sourcePosition: Position;
+  targetPosition: Position;
   style?: React.CSSProperties;
   markerEnd?: string;
   data: {

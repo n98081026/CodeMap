@@ -1,32 +1,88 @@
 // src/app/api/concept-maps/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 import type { ConceptMapData } from '@/types';
+import type { User } from '@supabase/supabase-js';
 
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   createConceptMap,
-  getConceptMapsByOwnerId,
   getConceptMapsByClassroomId,
+  getConceptMapsByOwnerId,
 } from '@/services/conceptMaps/conceptMapService';
 import { UserRole } from '@/types';
 
-export async function POST(request: Request) {
-  try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+interface ConceptMapCreationPayload {
+  name: string;
+  ownerId: string;
+  mapData: ConceptMapData;
+  isPublic: boolean;
+  sharedWithClassroomId?: string | null;
+}
 
-    if (authError) {
+function handleApiError(error: unknown, context: string): NextResponse {
+  console.error(context, error);
+  const errorMessage =
+    error instanceof Error ? error.message : 'An unexpected error occurred';
+  return NextResponse.json(
+    { message: `Failed to process request: ${errorMessage}` },
+    { status: 500 }
+  );
+}
+
+async function authorizeCreateMap(
+  user: User,
+  payload: ConceptMapCreationPayload
+): Promise<NextResponse | null> {
+  if (user.id !== payload.ownerId) {
+    return NextResponse.json(
+      {
+        message:
+          'Forbidden: Users can only create concept maps for themselves.',
+      },
+      { status: 403 }
+    );
+  }
+  return null;
+}
+
+async function authorizeViewMaps(
+  user: User,
+  params: URLSearchParams
+): Promise<NextResponse | null> {
+  const ownerId = params.get('ownerId');
+  const classroomId = params.get('classroomId');
+
+  if (!ownerId && !classroomId) {
+    return NextResponse.json(
+      { message: "Query parameter 'ownerId' or 'classroomId' is required." },
+      { status: 400 }
+    );
+  }
+
+  if (ownerId) {
+    const userRole = user.user_metadata?.role as UserRole;
+    if (userRole !== UserRole.ADMIN && user.id !== ownerId) {
       return NextResponse.json(
-        { message: 'Authentication error' },
-        { status: 500 }
+        { message: 'Forbidden: Insufficient permissions.' },
+        { status: 403 }
       );
     }
+  }
+
+  // For classroomId, auth is assumed to be handled by RLS in the service layer,
+  // so we only need to ensure the user is authenticated.
+
+  return null;
+}
+
+export async function POST(request: Request) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.json(
         { message: 'Authentication required' },
@@ -34,71 +90,39 @@ export async function POST(request: Request) {
       );
     }
 
-    const {
-      name,
-      ownerId: ownerIdFromRequest,
-      mapData,
-      isPublic,
-      sharedWithClassroomId,
-    } = (await request.json()) as {
-      name: string;
-      ownerId: string;
-      mapData: ConceptMapData;
-      isPublic: boolean;
-      sharedWithClassroomId?: string | null;
-    };
-
-    if (!name || !ownerIdFromRequest || !mapData) {
+    const payload = (await request.json()) as ConceptMapCreationPayload;
+    if (!payload.name || !payload.ownerId || !payload.mapData) {
       return NextResponse.json(
         { message: 'Name, ownerId, and mapData are required' },
         { status: 400 }
       );
     }
 
-    if (user.id !== ownerIdFromRequest) {
-      return NextResponse.json(
-        {
-          message:
-            'Forbidden: Users can only create concept maps for themselves.',
-        },
-        { status: 403 }
-      );
+    const authError = await authorizeCreateMap(user, payload);
+    if (authError) {
+      return authError;
     }
 
     const newMap = await createConceptMap(
-      name,
-      ownerIdFromRequest,
-      mapData,
-      isPublic,
-      sharedWithClassroomId
+      payload.name,
+      payload.ownerId,
+      payload.mapData,
+      payload.isPublic,
+      payload.sharedWithClassroomId
     );
     return NextResponse.json(newMap, { status: 201 });
   } catch (error) {
-    console.error('Create Concept Map API error:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json(
-      { message: `Failed to create concept map: ${errorMessage}` },
-      { status: 500 }
-    );
+    return handleApiError(error, 'Create Concept Map API error:');
   }
 }
 
 export async function GET(request: Request) {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = await createSupabaseServerClient();
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError) {
-      return NextResponse.json(
-        { message: 'Authentication error' },
-        { status: 500 }
-      );
-    }
     if (!user) {
       return NextResponse.json(
         { message: 'Authentication required' },
@@ -106,131 +130,34 @@ export async function GET(request: Request) {
       );
     }
 
-    const userRole = user.user_metadata?.role as UserRole;
-
     const { searchParams } = new URL(request.url);
-    const ownerIdParam = searchParams.get('ownerId');
-    const classroomIdParam = searchParams.get('classroomId');
+    const authError = await authorizeViewMaps(user, searchParams);
+    if (authError) {
+      return authError;
+    }
 
-    if (classroomIdParam) {
-      // User is authenticated at this point.
-      // Further authorization for classroom-specific maps is handled by RLS / service layer.
+    const classroomId = searchParams.get('classroomId');
+    const ownerId = searchParams.get('ownerId');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
 
-      const pageParam = searchParams.get('page');
-      const limitParam = searchParams.get('limit');
-      let page = 1;
-      if (pageParam) {
-        const parsedPage = parseInt(pageParam, 10);
-        if (isNaN(parsedPage) || parsedPage < 1) {
-          return NextResponse.json(
-            {
-              message: "Invalid 'page' parameter. Must be a positive integer.",
-            },
-            { status: 400 }
-          );
-        }
-        page = parsedPage;
-      }
-      let limit = 10; // Default limit
-      if (limitParam) {
-        const parsedLimit = parseInt(limitParam, 10);
-        if (isNaN(parsedLimit) || parsedLimit < 1) {
-          return NextResponse.json(
-            {
-              message: "Invalid 'limit' parameter. Must be a positive integer.",
-            },
-            { status: 400 }
-          );
-        }
-        limit = parsedLimit;
-      }
-
-      const { maps, totalCount } = await getConceptMapsByClassroomId(
-        classroomIdParam,
+    if (classroomId) {
+      const result = await getConceptMapsByClassroomId(
+        classroomId,
         page,
         limit
       );
-      return NextResponse.json({
-        maps,
-        totalCount,
-        page,
-        limit,
-        totalPages: Math.ceil(totalCount / limit),
-      });
+      return NextResponse.json(result);
     }
 
-    if (ownerIdParam) {
-      if (userRole !== UserRole.ADMIN && user.id !== ownerIdParam) {
-        return NextResponse.json(
-          {
-            message:
-              'Forbidden: Insufficient permissions to view these concept maps.',
-          },
-          { status: 403 }
-        );
-      }
-
-      const pageParam = searchParams.get('page');
-      const limitParam = searchParams.get('limit');
-
-      let page = 1;
-      if (pageParam) {
-        const parsedPage = parseInt(pageParam, 10);
-        if (isNaN(parsedPage) || parsedPage < 1) {
-          return NextResponse.json(
-            {
-              message: "Invalid 'page' parameter. Must be a positive integer.",
-            },
-            { status: 400 }
-          );
-        }
-        page = parsedPage;
-      }
-
-      let limit = 10; // Default limit
-      if (limitParam) {
-        const parsedLimit = parseInt(limitParam, 10);
-        if (isNaN(parsedLimit) || parsedLimit < 1) {
-          return NextResponse.json(
-            {
-              message: "Invalid 'limit' parameter. Must be a positive integer.",
-            },
-            { status: 400 }
-          );
-        }
-        limit = parsedLimit;
-      }
-
-      const { maps, totalCount } = await getConceptMapsByOwnerId(
-        ownerIdParam,
-        page,
-        limit
-      );
-
-      return NextResponse.json({
-        maps,
-        totalCount,
-        page,
-        limit,
-        totalPages: Math.ceil(totalCount / limit),
-      });
+    if (ownerId) {
+      const result = await getConceptMapsByOwnerId(ownerId, page, limit);
+      return NextResponse.json(result);
     }
 
-    // If neither ownerId nor classroomId is provided, it's an invalid request for this endpoint.
-    return NextResponse.json(
-      {
-        message:
-          "Query parameter 'ownerId' or 'classroomId' is required to list concept maps.",
-      },
-      { status: 400 }
-    );
+    // This case is handled by authorizeViewMaps, but as a fallback:
+    return NextResponse.json({ message: 'Invalid request' }, { status: 400 });
   } catch (error) {
-    console.error('Get Concept Maps API error:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json(
-      { message: `Failed to fetch concept maps: ${errorMessage}` },
-      { status: 500 }
-    );
+    return handleApiError(error, 'Get Concept Maps API error:');
   }
 }

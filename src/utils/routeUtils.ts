@@ -115,7 +115,10 @@ export function getAvailableRoutes(role: UserRole): string[] {
 /**
  * Redirects user to appropriate route based on their role
  */
-export function getRedirectRoute(currentRoute: string, role: UserRole): string | null {
+export function getRedirectRoute(
+  currentRoute: string,
+  role: UserRole
+): string | null {
   if (isRouteAccessible(currentRoute, role)) {
     return null; // No redirect needed
   }

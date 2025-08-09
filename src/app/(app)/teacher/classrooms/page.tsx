@@ -72,7 +72,6 @@ export default function TeacherClassroomsPage() {
         }
         const data = await response.json();
         setClassrooms(data.classrooms);
-        setTotalClassrooms(data.totalCount);
         setTotalPages(data.totalPages);
         setCurrentPage(data.page);
       } catch (err) {

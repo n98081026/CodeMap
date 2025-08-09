@@ -39,6 +39,8 @@ import {
 import { useRouter } from 'next/navigation';
 import React, { useState, useCallback } from 'react';
 
+import type { ConceptMapNode, ConceptMapEdge } from '@/types';
+
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -176,14 +178,9 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
   const currentMapId = useConceptMapStore((s) => s.mapId);
-  const isFetchingOverview = useConceptMapStore(
-    (s) => s.isFetchingOverview
-  );
+  const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview);
   const { startOrResumeTutorial } = useTutorialStore(
-    useCallback(
-      (s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }),
-      []
-    )
+    useCallback((s) => ({ startOrResumeTutorial: s.startOrResumeTutorial }), [])
   );
 
   // TEMP: Button to test manualAddNodeTutorial
@@ -295,7 +292,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               variant='ghost'
               size='icon'
               onClick={onSaveMap}
-              disabled={isSaving || isViewOnlyMode || showCopyButton}
+              disabled={!!(isSaving || isViewOnlyMode || showCopyButton)}
               title={
                 showCopyButton
                   ? 'Log in to save maps'
@@ -325,7 +322,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               variant='ghost'
               size='icon'
               onClick={onTriggerImport}
-              disabled={isViewOnlyMode || showCopyButton}
+              disabled={!!(isViewOnlyMode || showCopyButton)}
               title={
                 showCopyButton
                   ? 'Log in to import maps'
@@ -367,7 +364,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               variant='ghost'
               size='icon'
               onClick={onUndo}
-              disabled={isViewOnlyMode || !canUndo || showCopyButton}
+              disabled={!!(isViewOnlyMode || !canUndo || showCopyButton)}
               title={
                 showCopyButton
                   ? 'Log in to use undo/redo'
@@ -397,7 +394,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               variant='ghost'
               size='icon'
               onClick={onRedo}
-              disabled={isViewOnlyMode || !canRedo || showCopyButton}
+              disabled={!!(isViewOnlyMode || !canRedo || showCopyButton)}
               title={
                 showCopyButton
                   ? 'Log in to use undo/redo'
@@ -430,7 +427,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               variant='ghost'
               size='icon'
               onClick={onAddNodeToData}
-              disabled={isViewOnlyMode || showCopyButton}
+              disabled={!!(isViewOnlyMode || showCopyButton)}
               title={
                 showCopyButton
                   ? 'Log in to add elements'
@@ -456,7 +453,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
               variant='ghost'
               size='icon'
               onClick={onAddEdgeToData}
-              disabled={isViewOnlyMode || !canAddEdge || showCopyButton}
+              disabled={!!(isViewOnlyMode || !canAddEdge || showCopyButton)}
               title={
                 showCopyButton
                   ? 'Log in to add elements'
@@ -491,7 +488,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 <Button
                   variant='ghost'
                   size='icon'
-                  disabled={isViewOnlyMode || showCopyButton}
+                  disabled={!!(isViewOnlyMode || showCopyButton)}
                   aria-label='AI Tools'
                   data-tutorial-id='editor-toolbar-ai-tools-button' // Added tutorial ID
                 >
@@ -566,7 +563,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 onClick={() =>
                   handleGenAIClick(onSummarizeMap, 'Summarize Map')
                 }
-                disabled={isViewOnlyMode || isSummarizingMap}
+              disabled={!!(isViewOnlyMode || isSummarizingMap)}
               >
                 {isSummarizingMap ? (
                   <Loader2 className='mr-2 h-4 w-4 animate-spin' />
@@ -584,7 +581,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                     'Ask AI About Map'
                   )
                 }
-                disabled={isViewOnlyMode || isAskingAboutMapContext}
+              disabled={!!(isViewOnlyMode || isAskingAboutMapContext)}
               >
                 {isAskingAboutMapContext ? (
                   <Loader2 className='mr-2 h-4 w-4 animate-spin' />
@@ -605,7 +602,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 <Button
                   variant='ghost'
                   size='icon'
-                  disabled={isViewOnlyMode || showCopyButton}
+                  disabled={!!(isViewOnlyMode || showCopyButton)}
                   aria-label='Layout Tools'
                 >
                   <LayoutGrid className='h-5 w-5' />
@@ -624,7 +621,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
             {onAutoLayout && (
               <DropdownMenuItem
                 onClick={() => handleGenAIClick(onAutoLayout, 'Auto Layout')}
-                disabled={isViewOnlyMode}
+              disabled={!!isViewOnlyMode}
               >
                 <Shuffle className='mr-2 h-4 w-4' /> Auto-layout Full Map (Old)
               </DropdownMenuItem>
@@ -636,9 +633,11 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   handleGenAIClick(onDagreTidySelection, 'Dagre Tidy Selection')
                 }
                 disabled={
+                !!(
                   isViewOnlyMode ||
                   isDagreTidying ||
                   numMultiSelectedNodeIds < 2
+                )
                 }
               >
                 {isDagreTidying ? (
@@ -654,7 +653,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 onClick={() =>
                   handleGenAIClick(onAiTidySelection, 'AI Tidy Selection')
                 }
-                disabled={isViewOnlyMode || numMultiSelectedNodeIds < 2}
+              disabled={!!(isViewOnlyMode || numMultiSelectedNodeIds < 2)}
               >
                 <AlignHorizontalDistributeCenter className='mr-2 h-4 w-4' /> AI
                 Tidy Selection
@@ -666,9 +665,11 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   handleGenAIClick(onApplySemanticTidyUp, 'AI Semantic Tidy')
                 }
                 disabled={
+                !!(
                   isViewOnlyMode ||
                   isApplyingSemanticTidyUp ||
                   numMultiSelectedNodeIds < 2
+                )
                 }
               >
                 {isApplyingSemanticTidyUp ? (
@@ -689,7 +690,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                     <DropdownMenuItem
                       key={actionItem.id}
                       onSelect={actionItem.action}
-                      disabled={isViewOnlyMode || numMultiSelectedNodes < 1}
+                    disabled={!!(isViewOnlyMode || numMultiSelectedNodeIds < 1)}
                     >
                       {actionItem.icon && (
                         <actionItem.icon className='mr-2 h-4 w-4' />
@@ -715,14 +716,14 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 }
                 setIsLoadingSuggestions(true);
                 try {
-                  const currentMapData = store.getState().mapData;
+                  const currentMapData = useConceptMapStore.getState().mapData;
                   const flowInput = {
-                    nodes: currentMapData.nodes.map((n) => ({
+                    nodes: currentMapData.nodes.map((n: ConceptMapNode) => ({
                       id: n.id,
                       text: n.text,
                       details: n.details || '',
                     })),
-                    edges: currentMapData.edges.map((e) => ({
+                    edges: currentMapData.edges.map((e: ConceptMapEdge) => ({
                       source: e.source,
                       target: e.target,
                       label: e.label || '',
@@ -732,7 +733,12 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   //   fetchAllStructuralSuggestionsFlow,
                   //   flowInput
                   // );
-                  const results: Array<{ id: string; type: string; data: unknown; reason: string }> = [];
+                  const results: Array<{
+                    id: string;
+                    type: string;
+                    data: unknown;
+                    reason: string;
+                  }> = [];
                   store.getState().setStructuralSuggestions(results);
                   toast({
                     title: 'AI Suggestions',
@@ -754,7 +760,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                 }
               }}
               disabled={
-                isViewOnlyMode || isLoadingSuggestions || showCopyButton
+                !!(isViewOnlyMode || isLoadingSuggestions || showCopyButton)
               }
             >
               {isLoadingSuggestions ? (
@@ -812,7 +818,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                       'AI Suggest Arrangement'
                     )
                   }
-                  disabled={isSuggestingAIArrangement}
+                disabled={!!isSuggestingAIArrangement}
                 >
                   {isSuggestingAIArrangement ? (
                     <Loader2 className='h-5 w-5 animate-spin' />
@@ -839,7 +845,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                   onClick={() =>
                     handleGenAIClick(onAIDiscoverGroup, 'AI Discover Group')
                   }
-                  disabled={isAIDiscoveringGroup}
+                disabled={!!isAIDiscoveringGroup}
                 >
                   {isAIDiscoveringGroup ? (
                     <Loader2 className='h-5 w-5 animate-spin' />
@@ -996,7 +1002,7 @@ export const EditorToolbar = React.memo(function EditorToolbar({
                     'bg-accent text-accent-foreground'
                 )}
                 disabled={
-                  isViewOnlyMode || showCopyButton || isFetchingOverview
+                !!(isViewOnlyMode || showCopyButton || isFetchingOverview)
                 }
               >
                 {isFetchingOverview ? (

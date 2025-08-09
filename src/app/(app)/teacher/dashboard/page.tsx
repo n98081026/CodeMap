@@ -6,8 +6,8 @@ import { useEffect } from 'react'; // For redirection logic
 
 import TeacherDashboardView from '@/components/dashboard/teacher/TeacherDashboardView'; // Import the shared view
 import { useAuth } from '@/contexts/auth-context';
-import { UserRole } from '@/types';
 import { Routes } from '@/lib/routes';
+import { UserRole } from '@/types';
 // import { BookOpen, Users, LayoutDashboard, AlertTriangle } from 'lucide-react'; // Icons are in TeacherDashboardView
 // import { DashboardHeader } from '@/components/dashboard/dashboard-header'; // Now in TeacherDashboardView
 // import { useTeacherDashboardMetrics } from '@/hooks/useTeacherDashboardMetrics'; // Now in TeacherDashboardView

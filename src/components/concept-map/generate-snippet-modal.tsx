@@ -1,4 +1,3 @@
-/*
 'use client';
 
 import { Loader2, Sparkles } from 'lucide-react';
@@ -110,5 +109,3 @@ export const GenerateSnippetModal: React.FC<GenerateSnippetModalProps> = ({
     </Dialog>
   );
 };
-*/
-export {};

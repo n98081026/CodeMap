@@ -56,8 +56,8 @@ const defaultEdgeTypesConfig: EdgeTypes = {
 };
 
 interface InteractiveCanvasProps {
-  nodes: Node<CustomNodeData>[];
-  edges: Edge<OrthogonalEdgeData>[]; // This type might need to be more generic if SuggestionEdgeData is very different
+  nodes: Node<any>[];
+  edges: Edge<any>[];
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onNodesDelete?: OnNodesDelete;
@@ -65,23 +65,20 @@ interface InteractiveCanvasProps {
   onSelectionChange?: ReactFlowProps['onSelectionChange'];
   onConnect?: (params: Connection) => void;
   isViewOnlyMode?: boolean;
-  onNodeContextMenu?: (
-    event: React.MouseEvent,
-    node: Node<CustomNodeData>
-  ) => void;
+  onNodeContextMenu?: (event: React.MouseEvent, node: Node<any>) => void;
   onNodeDrag?: (
     event: React.MouseEvent,
-    node: Node<CustomNodeData>,
-    nodes: Node<CustomNodeData>[]
+    node: Node<any>,
+    nodes: Node<any>[]
   ) => void;
   onNodeDragStop?: (
     event: React.MouseEvent,
-    node: Node<CustomNodeData>,
-    nodes: Node<CustomNodeData>[]
+    node: Node<any>,
+    nodes: Node<any>[]
   ) => void;
   onPaneDoubleClick?: (event: React.MouseEvent) => void;
   onPaneContextMenu?: (event: React.MouseEvent) => void;
-  onNodeClick?: (event: React.MouseEvent, node: Node<CustomNodeData>) => void;
+  onNodeClick?: (event: React.MouseEvent, node: Node<any>) => void;
   onDragOver?: (event: React.DragEvent) => void;
   onDrop?: (event: React.DragEvent) => void;
   onDragLeave?: (event: React.DragEvent) => void; // Added onDragLeave
@@ -123,7 +120,7 @@ const fitViewOptions: FitViewOptions = {
   duration: 300,
 };
 
-const nodeColor = (node: Node<CustomNodeData>) => {
+const nodeColor = (node: Node<any>) => {
   if (node.data?.backgroundColor) {
     return node.data.backgroundColor;
   }

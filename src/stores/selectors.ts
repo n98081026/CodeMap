@@ -5,37 +5,57 @@ import type { ConceptMapState } from './concept-map-store';
 export const selectMapData = (state: ConceptMapState) => state.mapData;
 export const selectMapId = (state: ConceptMapState) => state.mapId;
 export const selectMapName = (state: ConceptMapState) => state.mapName;
-export const selectSelectedElementId = (state: ConceptMapState) => state.selectedElementId;
-export const selectSelectedElementType = (state: ConceptMapState) => state.selectedElementType;
-export const selectMultiSelectedNodeIds = (state: ConceptMapState) => state.multiSelectedNodeIds;
-export const selectIsConnectingMode = (state: ConceptMapState) => state.isConnectingMode;
+export const selectSelectedElementId = (state: ConceptMapState) =>
+  state.selectedElementId;
+export const selectSelectedElementType = (state: ConceptMapState) =>
+  state.selectedElementType;
+export const selectMultiSelectedNodeIds = (state: ConceptMapState) =>
+  state.multiSelectedNodeIds;
+export const selectIsConnectingMode = (state: ConceptMapState) =>
+  state.isConnectingMode;
 
 // Computed selectors that derive data
-export const selectNodesCount = (state: ConceptMapState) => state.mapData.nodes.length;
-export const selectEdgesCount = (state: ConceptMapState) => state.mapData.edges.length;
-export const selectHasSelection = (state: ConceptMapState) => 
+export const selectNodesCount = (state: ConceptMapState) =>
+  state.mapData.nodes.length;
+export const selectEdgesCount = (state: ConceptMapState) =>
+  state.mapData.edges.length;
+export const selectHasSelection = (state: ConceptMapState) =>
   state.selectedElementId !== null || state.multiSelectedNodeIds.length > 0;
 
 // AI-related selectors
-export const selectAIExtractedConcepts = (state: ConceptMapState) => state.aiExtractedConcepts;
-export const selectAISuggestedRelations = (state: ConceptMapState) => state.aiSuggestedRelations;
-export const selectStagedMapData = (state: ConceptMapState) => state.stagedMapData;
-export const selectGhostPreviewData = (state: ConceptMapState) => state.ghostPreviewData;
+export const selectAIExtractedConcepts = (state: ConceptMapState) =>
+  state.aiExtractedConcepts;
+export const selectAISuggestedRelations = (state: ConceptMapState) =>
+  state.aiSuggestedRelations;
+export const selectStagedMapData = (state: ConceptMapState) =>
+  state.stagedMapData;
+export const selectGhostPreviewData = (state: ConceptMapState) =>
+  state.ghostPreviewData;
 
 // Complex computed selectors
 export const selectSelectedNode = (state: ConceptMapState) => {
-  if (state.selectedElementType !== 'node' || !state.selectedElementId) return null;
-  return state.mapData.nodes.find(node => node.id === state.selectedElementId) || null;
+  if (state.selectedElementType !== 'node' || !state.selectedElementId)
+    return null;
+  return (
+    state.mapData.nodes.find((node) => node.id === state.selectedElementId) ||
+    null
+  );
 };
 
 export const selectSelectedEdge = (state: ConceptMapState) => {
-  if (state.selectedElementType !== 'edge' || !state.selectedElementId) return null;
-  return state.mapData.edges.find(edge => edge.id === state.selectedElementId) || null;
+  if (state.selectedElementType !== 'edge' || !state.selectedElementId)
+    return null;
+  return (
+    state.mapData.edges.find((edge) => edge.id === state.selectedElementId) ||
+    null
+  );
 };
 
 export const selectMultiSelectedNodes = (state: ConceptMapState) => {
   if (state.multiSelectedNodeIds.length === 0) return [];
-  return state.mapData.nodes.filter(node => state.multiSelectedNodeIds.includes(node.id));
+  return state.mapData.nodes.filter((node) =>
+    state.multiSelectedNodeIds.includes(node.id)
+  );
 };
 
 // Undo/Redo selectors
@@ -61,7 +81,8 @@ export const selectEditorUIState = (state: ConceptMapState) => ({
 export const selectMapStats = (state: ConceptMapState) => ({
   nodeCount: state.mapData.nodes.length,
   edgeCount: state.mapData.edges.length,
-  hasSelection: state.selectedElementId !== null || state.multiSelectedNodeIds.length > 0,
+  hasSelection:
+    state.selectedElementId !== null || state.multiSelectedNodeIds.length > 0,
 });
 
 export const selectAIState = (state: ConceptMapState) => ({

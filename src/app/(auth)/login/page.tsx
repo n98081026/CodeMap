@@ -12,8 +12,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
-import { UserRole } from '@/types';
 import { Routes } from '@/lib/routes';
+import { UserRole } from '@/types';
 
 export default function LoginPage() {
   const { isAuthenticated, user, isLoading } = useAuth();

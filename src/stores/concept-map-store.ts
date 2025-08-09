@@ -44,7 +44,7 @@ export interface StagedMapDataWithContext {
   originalElementIds?: string[];
 }
 
-interface ConceptMapState {
+export interface ConceptMapState {
   mapId: string | null;
   mapName: string;
   currentMapOwnerId: string | null;
@@ -1010,7 +1010,8 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
   setProjectOverviewData: (data) =>
     set({ projectOverviewData: data, isFetchingOverview: false }),
   setIsFetchingOverview: (fetching) => set({ isFetchingOverview: fetching }),
-  fetchProjectOverview: async (input) => { // Added input parameter
+  fetchProjectOverview: async (input) => {
+    // Added input parameter
     if (get().isFetchingOverview) return;
     set({
       isFetchingOverview: true,
@@ -1019,7 +1020,9 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
     });
     try {
       // The actual flow is mocked in the test environment
-      const overviewData = await (await import('@/ai/flows/generate-project-overview')).generateProjectOverviewFlow(input);
+      const overviewData = await (
+        await import('@/ai/flows/generate-project-overview')
+      ).generateProjectOverviewFlow(input);
       set({
         projectOverviewData: overviewData,
         isFetchingOverview: false,
@@ -1216,9 +1219,7 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
   },
 });
 
-type WithTemporal<T> = (
-  store: StateCreator<T>
-) => UseBoundStore<StoreApi<T>>;
+type WithTemporal<T> = (store: StateCreator<T>) => UseBoundStore<StoreApi<T>>;
 
 interface TemporalStore<T> {
   getState: () => ZundoTemporalState<T> & {

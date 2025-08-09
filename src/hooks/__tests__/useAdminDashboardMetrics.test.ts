@@ -122,7 +122,11 @@ describe('useAdminDashboardMetrics', () => {
       expect(result.current.classrooms.isLoading).toBe(false);
     });
 
-    expect(result.current.users.error).toBe('Failed to fetch users: Server Error');
-    expect(result.current.classrooms.error).toBe('Failed to fetch classrooms: Server Error');
+    expect(result.current.users.error).toBe(
+      'Failed to fetch users: Server Error'
+    );
+    expect(result.current.classrooms.error).toBe(
+      'Failed to fetch classrooms: Server Error'
+    );
   });
 });

@@ -466,26 +466,43 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           | 'reason'
       ) => {
         if (isViewOnlyMode) return;
-        const setState =
-          type === 'extracted'
-            ? (setEditableExtracted as React.Dispatch<
-                React.SetStateAction<EditableExtractedConcept[]>
-              >)
-            : (setEditableRelations as React.Dispatch<
-                React.SetStateAction<EditableRelationSuggestion[]>
-              >);
-
-        setState((prevItems) =>
-          prevItems.map((item, idx: number) => {
-            if (idx === index)
-              return {
-                ...item,
-                isEditing: !item.isEditing,
-                editingField: field || null,
-              };
-            return { ...item, isEditing: false, editingField: null }; // Close other edits
-          })
-        );
+        if (isViewOnlyMode) return;
+        if (type === 'extracted') {
+          setEditableExtracted((prevItems) =>
+            prevItems.map((item, idx) => {
+              if (idx === index) {
+                return {
+                  ...item,
+                  isEditing: !item.isEditing,
+                  editingField: field as
+                    | 'concept'
+                    | 'context'
+                    | 'source'
+                    | null,
+                };
+              }
+              return { ...item, isEditing: false, editingField: null };
+            })
+          );
+        } else {
+          setEditableRelations((prevItems) =>
+            prevItems.map((item, idx) => {
+              if (idx === index) {
+                return {
+                  ...item,
+                  isEditing: !item.isEditing,
+                  editingField: field as
+                    | 'source'
+                    | 'target'
+                    | 'relation'
+                    | 'reason'
+                    | null,
+                };
+              }
+              return { ...item, isEditing: false, editingField: null };
+            })
+          );
+        }
       },
     [isViewOnlyMode]
   );
@@ -503,24 +520,31 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
           | 'relation'
           | 'reason'
       ) => {
-        const setState =
-          type === 'extracted'
-            ? (setEditableExtracted as React.Dispatch<
-                React.SetStateAction<EditableExtractedConcept[]>
-              >)
-            : (setEditableRelations as React.Dispatch<
-                React.SetStateAction<EditableRelationSuggestion[]>
-              >);
-        setState((prevItems) =>
-          prevItems.map((item, idx: number) => {
-            if (idx === index)
-              return {
-                ...item,
-                current: { ...item.current, [field]: value },
-              };
-            return item;
-          })
-        );
+        if (type === 'extracted') {
+          setEditableExtracted((prevItems) =>
+            prevItems.map((item, idx) => {
+              if (idx === index) {
+                return {
+                  ...item,
+                  current: { ...item.current, [field]: value },
+                };
+              }
+              return item;
+            })
+          );
+        } else {
+          setEditableRelations((prevItems) =>
+            prevItems.map((item, idx) => {
+              if (idx === index) {
+                return {
+                  ...item,
+                  current: { ...item.current, [field]: value },
+                };
+              }
+              return item;
+            })
+          );
+        }
       },
     []
   );
@@ -597,8 +621,10 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     selectedIndicesSet: Set<number>,
     itemKeyPrefix: string,
     parentRef: React.RefObject<HTMLDivElement>, // For virtualizer
-    rowVirtualizerInstance: ReturnType<typeof useVirtualizer>, // Instance of useVirtualizer
-    onAddSelectedItems: (selectedItems: (EditableExtractedConcept | EditableRelationSuggestion)[]) => void,
+    rowVirtualizerInstance: ReturnType<
+      typeof useVirtualizer<HTMLDivElement, Element>
+    >, // Instance of useVirtualizer
+    onAddSelectedItems?: (selectedItems: any[]) => void,
     onClearCategory?: () => void,
     cardClassName?: string,
     titleClassName?: string

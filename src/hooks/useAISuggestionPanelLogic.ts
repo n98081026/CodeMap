@@ -1,8 +1,13 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+
+import type {
+  ExtractedConceptItem,
+  RelationSuggestion,
+} from '@/components/concept-map/ai-suggestion-panel';
 import type { ConceptMapNode } from '@/types';
-import type { ExtractedConceptItem, RelationSuggestion } from '@/components/concept-map/ai-suggestion-panel';
+
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 interface EditableExtractedConcept {
   original: ExtractedConceptItem;
@@ -45,12 +50,20 @@ export const useAISuggestionPanelLogic = ({
     );
 
   // State for editable items
-  const [editableExtracted, setEditableExtracted] = useState<EditableExtractedConcept[]>([]);
-  const [editableRelations, setEditableRelations] = useState<EditableRelationSuggestion[]>([]);
+  const [editableExtracted, setEditableExtracted] = useState<
+    EditableExtractedConcept[]
+  >([]);
+  const [editableRelations, setEditableRelations] = useState<
+    EditableRelationSuggestion[]
+  >([]);
 
   // Selection state
-  const [selectedExtractedIndices, setSelectedExtractedIndices] = useState<Set<number>>(new Set());
-  const [selectedRelationIndices, setSelectedRelationIndices] = useState<Set<number>>(new Set());
+  const [selectedExtractedIndices, setSelectedExtractedIndices] = useState<
+    Set<number>
+  >(new Set());
+  const [selectedRelationIndices, setSelectedRelationIndices] = useState<
+    Set<number>
+  >(new Set());
 
   // Refs for virtualization
   const conceptsParentRef = useRef<HTMLDivElement>(null);
@@ -119,7 +132,10 @@ export const useAISuggestionPanelLogic = ({
       }
       // Simple similarity check - could be enhanced
       for (const existingText of existingNodeTexts) {
-        if (existingText.includes(conceptText) || conceptText.includes(existingText)) {
+        if (
+          existingText.includes(conceptText) ||
+          conceptText.includes(existingText)
+        ) {
           return 'similar-match';
         }
       }
@@ -130,8 +146,12 @@ export const useAISuggestionPanelLogic = ({
 
   const checkRelationNodesExistOnMap = useCallback(
     (relation: RelationSuggestion): boolean => {
-      const sourceExists = existingNodeTexts.has(relation.source.toLowerCase().trim());
-      const targetExists = existingNodeTexts.has(relation.target.toLowerCase().trim());
+      const sourceExists = existingNodeTexts.has(
+        relation.source.toLowerCase().trim()
+      );
+      const targetExists = existingNodeTexts.has(
+        relation.target.toLowerCase().trim()
+      );
       return sourceExists && targetExists;
     },
     [existingNodeTexts]
@@ -140,10 +160,14 @@ export const useAISuggestionPanelLogic = ({
   // Edit handlers for concepts
   const handleToggleConceptEdit = useCallback(
     (index: number, field: 'concept') => {
-      setEditableExtracted(prev => 
-        prev.map((item, i) => 
-          i === index 
-            ? { ...item, isEditing: !item.isEditing, editingField: item.isEditing ? null : field }
+      setEditableExtracted((prev) =>
+        prev.map((item, i) =>
+          i === index
+            ? {
+                ...item,
+                isEditing: !item.isEditing,
+                editingField: item.isEditing ? null : field,
+              }
             : { ...item, isEditing: false, editingField: null }
         )
       );
@@ -153,9 +177,9 @@ export const useAISuggestionPanelLogic = ({
 
   const handleConceptInputChange = useCallback(
     (index: number, value: string, field: 'concept') => {
-      setEditableExtracted(prev => 
-        prev.map((item, i) => 
-          i === index 
+      setEditableExtracted((prev) =>
+        prev.map((item, i) =>
+          i === index
             ? { ...item, current: { ...item.current, [field]: value } }
             : item
         )
@@ -164,26 +188,25 @@ export const useAISuggestionPanelLogic = ({
     []
   );
 
-  const handleConfirmConceptEdit = useCallback(
-    (index: number) => {
-      setEditableExtracted(prev => 
-        prev.map((item, i) => 
-          i === index 
-            ? { ...item, isEditing: false, editingField: null }
-            : item
-        )
-      );
-    },
-    []
-  );
+  const handleConfirmConceptEdit = useCallback((index: number) => {
+    setEditableExtracted((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, isEditing: false, editingField: null } : item
+      )
+    );
+  }, []);
 
   // Edit handlers for relations
   const handleToggleRelationEdit = useCallback(
     (index: number, field: 'source' | 'target' | 'relation' | 'reason') => {
-      setEditableRelations(prev => 
-        prev.map((item, i) => 
-          i === index 
-            ? { ...item, isEditing: !item.isEditing, editingField: item.isEditing ? null : field }
+      setEditableRelations((prev) =>
+        prev.map((item, i) =>
+          i === index
+            ? {
+                ...item,
+                isEditing: !item.isEditing,
+                editingField: item.isEditing ? null : field,
+              }
             : { ...item, isEditing: false, editingField: null }
         )
       );
@@ -192,10 +215,14 @@ export const useAISuggestionPanelLogic = ({
   );
 
   const handleRelationInputChange = useCallback(
-    (index: number, value: string, field: 'source' | 'target' | 'relation' | 'reason') => {
-      setEditableRelations(prev => 
-        prev.map((item, i) => 
-          i === index 
+    (
+      index: number,
+      value: string,
+      field: 'source' | 'target' | 'relation' | 'reason'
+    ) => {
+      setEditableRelations((prev) =>
+        prev.map((item, i) =>
+          i === index
             ? { ...item, current: { ...item.current, [field]: value } }
             : item
         )
@@ -204,49 +231,38 @@ export const useAISuggestionPanelLogic = ({
     []
   );
 
-  const handleConfirmRelationEdit = useCallback(
-    (index: number) => {
-      setEditableRelations(prev => 
-        prev.map((item, i) => 
-          i === index 
-            ? { ...item, isEditing: false, editingField: null }
-            : item
-        )
-      );
-    },
-    []
-  );
+  const handleConfirmRelationEdit = useCallback((index: number) => {
+    setEditableRelations((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, isEditing: false, editingField: null } : item
+      )
+    );
+  }, []);
 
   // Selection handlers
-  const handleToggleConceptSelection = useCallback(
-    (index: number) => {
-      setSelectedExtractedIndices(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(index)) {
-          newSet.delete(index);
-        } else {
-          newSet.add(index);
-        }
-        return newSet;
-      });
-    },
-    []
-  );
+  const handleToggleConceptSelection = useCallback((index: number) => {
+    setSelectedExtractedIndices((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  }, []);
 
-  const handleToggleRelationSelection = useCallback(
-    (index: number) => {
-      setSelectedRelationIndices(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(index)) {
-          newSet.delete(index);
-        } else {
-          newSet.add(index);
-        }
-        return newSet;
-      });
-    },
-    []
-  );
+  const handleToggleRelationSelection = useCallback((index: number) => {
+    setSelectedRelationIndices((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  }, []);
 
   return {
     // State
@@ -254,24 +270,24 @@ export const useAISuggestionPanelLogic = ({
     editableRelations,
     selectedExtractedIndices,
     selectedRelationIndices,
-    
+
     // Refs
     conceptsParentRef,
     relationsParentRef,
-    
+
     // Virtualizers
     conceptsRowVirtualizer,
     relationsRowVirtualizer,
-    
+
     // Store actions
     setDragPreview,
     clearDragPreview,
     setDraggedRelationPreview,
-    
+
     // Status functions
     getConceptStatus,
     checkRelationNodesExistOnMap,
-    
+
     // Handlers
     handleToggleConceptEdit,
     handleConceptInputChange,

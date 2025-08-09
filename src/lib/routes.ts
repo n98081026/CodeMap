@@ -36,5 +36,5 @@ export const Routes = {
 
   API: {
     // Add API routes here as needed
-  }
+  },
 } as const;

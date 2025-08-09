@@ -3,7 +3,7 @@ import { create } from 'zustand';
 // Import the static list of keys instead of the t-dependent function/object
 import { TUTORIAL_KEYS } from '@/components/tutorial/app-tutorial';
 
-interface TutorialStoreState {
+export interface TutorialStoreState {
   activeTutorialKey: string | null;
   runTutorial: boolean;
   currentStepIndex: number;

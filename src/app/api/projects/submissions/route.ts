@@ -1,32 +1,82 @@
 // src/app/api/projects/submissions/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-import { getClassroomById } from '@/services/classrooms/classroomService'; // For checking teacher ownership
+import type { User } from '@supabase/supabase-js';
+
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getClassroomById } from '@/services/classrooms/classroomService';
 import {
   createSubmission,
-  getSubmissionsByStudentId,
-  getSubmissionsByClassroomId,
   getAllSubmissions,
+  getSubmissionsByClassroomId,
+  getSubmissionsByStudentId,
 } from '@/services/projectSubmissions/projectSubmissionService';
 import { UserRole } from '@/types';
 
+interface SubmissionPayload {
+  studentId: string;
+  originalFileName: string;
+  fileSize: number;
+  classroomId?: string | null;
+  fileStoragePath?: string | null;
+}
+
+function handleApiError(error: unknown, context: string): NextResponse {
+  console.error(context, error);
+  const errorMessage =
+    error instanceof Error ? error.message : 'An unexpected error occurred';
+  return NextResponse.json(
+    { message: `Failed to process request: ${errorMessage}` },
+    { status: 500 }
+  );
+}
+
+async function authorizeCreate(
+  user: User,
+  payload: SubmissionPayload
+): Promise<NextResponse | null> {
+  if (user.id !== payload.studentId) {
+    return NextResponse.json(
+      {
+        message: 'Forbidden: Students can only submit projects for themselves.',
+      },
+      { status: 403 }
+    );
+  }
+  return null;
+}
+
+async function authorizeView(
+  user: User,
+  params: URLSearchParams
+): Promise<NextResponse | null> {
+  const userRole = user.user_metadata?.role as UserRole;
+  const studentId = params.get('studentId');
+  const classroomId = params.get('classroomId');
+
+  if (classroomId) {
+    if (userRole === UserRole.ADMIN) return null;
+    const classroom = await getClassroomById(classroomId);
+    if (!classroom || classroom.teacherId !== user.id) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
+  } else if (studentId) {
+    if (userRole !== UserRole.ADMIN && user.id !== studentId) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
+  } else if (userRole !== UserRole.ADMIN) {
+    return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+  }
+
+  return null;
+}
+
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = await createSupabaseServerClient();
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser();
-
-    if (authError) {
-      return NextResponse.json(
-        { message: 'Authentication error' },
-        { status: 500 }
-      );
-    }
     if (!user) {
       return NextResponse.json(
         { message: 'Authentication required' },
@@ -34,80 +84,40 @@ export async function POST(request: Request) {
       );
     }
 
-    const {
-      studentId: studentIdFromRequest,
-      originalFileName,
-      fileSize,
-      classroomId,
-      fileStoragePath,
-    } = (await request.json()) as {
-      studentId: string;
-      originalFileName: string;
-      fileSize: number;
-      classroomId?: string | null;
-      fileStoragePath?: string | null;
-    };
-
-    if (!studentIdFromRequest || !originalFileName || fileSize === undefined) {
+    const payload = (await request.json()) as SubmissionPayload;
+    if (
+      !payload.studentId ||
+      !payload.originalFileName ||
+      payload.fileSize === undefined
+    ) {
       return NextResponse.json(
-        {
-          message: 'Student ID, original file name, and file size are required',
-        },
+        { message: 'Missing required submission fields' },
         { status: 400 }
       );
     }
 
-    // Authorization: Students can only submit projects for themselves.
-    if (user.id !== studentIdFromRequest) {
-      // Admins might be an exception, but typically submissions are user-centric.
-      // If Admins need to submit on behalf of users, this check would need userRole check too.
-      // For now, strictly user-for-themselves.
-      return NextResponse.json(
-        {
-          message:
-            'Forbidden: Students can only submit projects for themselves.',
-        },
-        { status: 403 }
-      );
-    }
-
-    // Optional: Further validation if classroomId is provided (e.g., student is enrolled).
-    // This would involve fetching classroom enrollment data. For now, handled by service or RLS.
+    const authError = await authorizeCreate(user, payload);
+    if (authError) return authError;
 
     const newSubmission = await createSubmission(
-      studentIdFromRequest,
-      originalFileName,
-      fileSize,
-      classroomId,
-      fileStoragePath
+      payload.studentId,
+      payload.originalFileName,
+      payload.fileSize,
+      payload.classroomId,
+      payload.fileStoragePath
     );
     return NextResponse.json(newSubmission, { status: 201 });
   } catch (error) {
-    console.error('Create Project Submission API error:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json(
-      { message: `Failed to create submission: ${errorMessage}` },
-      { status: 500 }
-    );
+    return handleApiError(error, 'Create Submission API error:');
   }
 }
 
 export async function GET(request: Request) {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = await createSupabaseServerClient();
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser();
-
-    if (authError) {
-      return NextResponse.json(
-        { message: 'Authentication error' },
-        { status: 500 }
-      );
-    }
     if (!user) {
       return NextResponse.json(
         { message: 'Authentication required' },
@@ -115,195 +125,31 @@ export async function GET(request: Request) {
       );
     }
 
-    const userRole = user.user_metadata?.role as UserRole;
-
     const { searchParams } = new URL(request.url);
-    const studentIdParam = searchParams.get('studentId');
-    const classroomIdParam = searchParams.get('classroomId');
+    const authError = await authorizeView(user, searchParams);
+    if (authError) return authError;
 
-    if (classroomIdParam) {
-      if (userRole !== UserRole.ADMIN) {
-        try {
-          const classroom = await getClassroomById(classroomIdParam);
-          if (!classroom || classroom.teacherId !== user.id) {
-            return NextResponse.json(
-              {
-                message:
-                  'Forbidden: Not authorized to view submissions for this classroom.',
-              },
-              { status: 403 }
-            );
-          }
-          // Teacher is authorized
-        } catch (e) {
-          // This includes classroom not found by ID
-          return NextResponse.json(
-            {
-              message:
-                'Error validating classroom access or classroom not found.',
-            },
-            { status: 404 }
-          );
-        }
-      }
-      // Admin or authorized Teacher can proceed
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const studentId = searchParams.get('studentId');
+    const classroomId = searchParams.get('classroomId');
 
-      const pageParam = searchParams.get('page');
-      const limitParam = searchParams.get('limit');
-      let page = 1;
-      if (pageParam) {
-        const parsedPage = parseInt(pageParam, 10);
-        if (isNaN(parsedPage) || parsedPage < 1) {
-          return NextResponse.json(
-            {
-              message: "Invalid 'page' parameter. Must be a positive integer.",
-            },
-            { status: 400 }
-          );
-        }
-        page = parsedPage;
-      }
-      let limit = 10; // Default limit
-      if (limitParam) {
-        const parsedLimit = parseInt(limitParam, 10);
-        if (isNaN(parsedLimit) || parsedLimit < 1) {
-          return NextResponse.json(
-            {
-              message: "Invalid 'limit' parameter. Must be a positive integer.",
-            },
-            { status: 400 }
-          );
-        }
-        limit = parsedLimit;
-      }
-
-      const { submissions, totalCount } = await getSubmissionsByClassroomId(
-        classroomIdParam,
+    if (classroomId) {
+      const result = await getSubmissionsByClassroomId(
+        classroomId,
         page,
         limit
       );
-      return NextResponse.json({
-        submissions,
-        totalCount,
-        page,
-        limit,
-        totalPages: Math.ceil(totalCount / limit),
-      });
+      return NextResponse.json(result);
+    }
+    if (studentId) {
+      const result = await getSubmissionsByStudentId(studentId, page, limit);
+      return NextResponse.json(result);
     }
 
-    if (studentIdParam) {
-      if (userRole !== UserRole.ADMIN && user.id !== studentIdParam) {
-        return NextResponse.json(
-          { message: 'Forbidden: Not authorized to view these submissions.' },
-          { status: 403 }
-        );
-      }
-
-      // Parse and validate page/limit for studentId route
-      const pageParam = searchParams.get('page');
-      const limitParam = searchParams.get('limit');
-      let page = 1;
-      if (pageParam) {
-        const parsedPage = parseInt(pageParam, 10);
-        if (isNaN(parsedPage) || parsedPage < 1) {
-          return NextResponse.json(
-            {
-              message: "Invalid 'page' parameter. Must be a positive integer.",
-            },
-            { status: 400 }
-          );
-        }
-        page = parsedPage;
-      }
-      let limit = 10; // Default limit
-      if (limitParam) {
-        const parsedLimit = parseInt(limitParam, 10);
-        if (isNaN(parsedLimit) || parsedLimit < 1) {
-          return NextResponse.json(
-            {
-              message: "Invalid 'limit' parameter. Must be a positive integer.",
-            },
-            { status: 400 }
-          );
-        }
-        limit = parsedLimit;
-      }
-
-      const { submissions, totalCount } = await getSubmissionsByStudentId(
-        studentIdParam,
-        page,
-        limit
-      );
-      return NextResponse.json({
-        submissions,
-        totalCount,
-        page,
-        limit,
-        totalPages: Math.ceil(totalCount / limit),
-      });
-    }
-
-    // If neither classroomIdParam nor studentIdParam, only Admin can list all (this part already handles pagination)
-    if (userRole !== UserRole.ADMIN) {
-      return NextResponse.json(
-        {
-          message:
-            'Forbidden: Only admins can list all submissions unless querying by studentId or classroomId.',
-        },
-        { status: 403 }
-      );
-    }
-
-    // Admin fetching all submissions - parse page/limit here for this case
-    const pageParamForAll = searchParams.get('page');
-    const limitParamForAll = searchParams.get('limit');
-    let pageForAll = 1;
-    if (pageParamForAll) {
-      const parsedPage = parseInt(pageParamForAll, 10);
-      if (isNaN(parsedPage) || parsedPage < 1) {
-        return NextResponse.json(
-          {
-            message:
-              "Invalid 'page' parameter for all submissions. Must be a positive integer.",
-          },
-          { status: 400 }
-        );
-      }
-      pageForAll = parsedPage;
-    }
-    let limitForAll = 10; // Default limit
-    if (limitParamForAll) {
-      const parsedLimit = parseInt(limitParamForAll, 10);
-      if (isNaN(parsedLimit) || parsedLimit < 1) {
-        return NextResponse.json(
-          {
-            message:
-              "Invalid 'limit' parameter for all submissions. Must be a positive integer.",
-          },
-          { status: 400 }
-        );
-      }
-      limitForAll = parsedLimit;
-    }
-
-    const { submissions, totalCount } = await getAllSubmissions(
-      pageForAll,
-      limitForAll
-    );
-    return NextResponse.json({
-      submissions,
-      totalCount,
-      page: pageForAll,
-      limit: limitForAll,
-      totalPages: Math.ceil(totalCount / limitForAll),
-    });
+    const result = await getAllSubmissions(page, limit);
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Get Project Submissions API error:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'An unexpected error occurred';
-    return NextResponse.json(
-      { message: `Failed to fetch submissions: ${errorMessage}` },
-      { status: 500 }
-    );
+    return handleApiError(error, 'Get Submissions API error:');
   }
 }

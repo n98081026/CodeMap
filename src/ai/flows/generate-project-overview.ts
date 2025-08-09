@@ -20,9 +20,10 @@ export async function generateProjectOverview(
 ): Promise<ProjectOverviewOutput> {
   // Mock implementation for now
   // In a real implementation, this would analyze project files using AI
-  
+
   const mockOverview: ProjectOverviewOutput = {
-    overallSummary: 'This appears to be a modern web application built with React and TypeScript. The project follows a component-based architecture with clear separation of concerns.',
+    overallSummary:
+      'This appears to be a modern web application built with React and TypeScript. The project follows a component-based architecture with clear separation of concerns.',
     keyModules: [
       {
         name: 'User Interface Components',
@@ -55,7 +56,7 @@ export async function generateProjectOverview(
   };
 
   // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 
   return mockOverview;
 }

@@ -25,22 +25,43 @@ export const FormGroupDataSchema = z.object({
   suggestedParentName: z.string(), // Made suggestedParentName mandatory
 });
 
-// Schema for individual suggestion items
-export const StructuralSuggestionItemSchema = z.object({
+// Base schema for common properties across all suggestion types
+const BaseSuggestionSchema = z.object({
   id: z.string().uuid(),
-  type: z.enum(['ADD_EDGE', 'NEW_INTERMEDIATE_NODE', 'FORM_GROUP']),
-  data: z.union([
-    AddEdgeDataSchema,
-    NewIntermediateNodeDataSchema,
-    FormGroupDataSchema,
-  ]),
-  // The flow will ensure data structure corresponds to 'type'.
-  // Client-side will interpret 'data' based on 'type'.
   reason: z.string().optional(),
   status: z.enum(['pending', 'accepted', 'dismissed']),
 });
+
+// Discriminated union for individual suggestion items
+// This allows TypeScript to correctly infer the type of `data` based on the `type` property.
+export const StructuralSuggestionItemSchema = z.discriminatedUnion('type', [
+  BaseSuggestionSchema.merge(
+    z.object({
+      type: z.literal('ADD_EDGE'),
+      data: AddEdgeDataSchema,
+    })
+  ),
+  BaseSuggestionSchema.merge(
+    z.object({
+      type: z.literal('NEW_INTERMEDIATE_NODE'),
+      data: NewIntermediateNodeDataSchema,
+    })
+  ),
+  BaseSuggestionSchema.merge(
+    z.object({
+      type: z.literal('FORM_GROUP'),
+      data: FormGroupDataSchema,
+    })
+  ),
+]);
 
 // Schema for the array of suggestions
 export const AllStructuralSuggestionsSchema = z.array(
   StructuralSuggestionItemSchema
 );
+
+export interface VisualEdgeSuggestion {
+  source: string;
+  target: string;
+  label: string;
+}

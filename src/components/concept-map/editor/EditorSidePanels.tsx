@@ -2,7 +2,9 @@
 
 import React from 'react';
 
-import { 
+import type { ConceptMapData, ConceptMapNode } from '@/types';
+
+import {
   AISuggestionPanelRefactored,
   type ExtractedConceptItem,
   type RelationSuggestion,
@@ -11,7 +13,6 @@ import { NodeContextMenu } from '@/components/concept-map/node-context-menu';
 import ProjectOverviewDisplay from '@/components/concept-map/project-overview-display';
 import { PropertiesInspector } from '@/components/concept-map/properties-inspector';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import type { ConceptMapData, ConceptMapNode } from '@/types';
 
 interface EditorSidePanelsProps {
   // Properties Panel

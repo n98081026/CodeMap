@@ -6,8 +6,8 @@ import { useEffect } from 'react';
 
 import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
 import { useAuth } from '@/contexts/auth-context';
-import { UserRole } from '@/types';
 import { Routes } from '@/lib/routes';
+import { UserRole } from '@/types';
 
 // DashboardHeader, useAdminDashboardMetrics, DashboardLinkCard, MetricState, Loader2, AlertTriangle, Users, Settings, LayoutDashboard
 // are now encapsulated within AdminDashboardView or not directly needed by this page component.

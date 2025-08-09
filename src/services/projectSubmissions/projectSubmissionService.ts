@@ -294,20 +294,37 @@ export async function getSubmissionsByClassroomId(
     );
   }
 
-  const mappedSubmissions = (submissionsData || []).map((s) => ({
-    id: s.id,
-    studentId: s.student_id,
-    studentName: (s as any).student?.name || 'N/A',
-    originalFileName: s.original_file_name,
-    fileSize: s.file_size,
-    classroomId: s.classroom_id,
-    fileStoragePath: s.file_storage_path,
-    submissionTimestamp: s.submission_timestamp,
-    analysisStatus: s.analysis_status as ProjectSubmissionStatus,
-    analysisError: s.analysis_error,
-    generatedConceptMapId: s.generated_concept_map_id,
-    userGoals: s.user_goals,
-  }));
+  type SubmissionRow = {
+    id: string;
+    student_id: string;
+    original_file_name: string;
+    file_size: number;
+    classroom_id: string | null;
+    file_storage_path: string | null;
+    submission_timestamp: string;
+    analysis_status: string;
+    analysis_error: string | null;
+    generated_concept_map_id: string | null;
+    user_goals?: string | null;
+    student: { name: string } | null;
+  };
+
+  const mappedSubmissions = ((submissionsData as SubmissionRow[]) || []).map(
+    (s) => ({
+      id: s.id,
+      studentId: s.student_id,
+      studentName: s.student?.name || 'N/A',
+      originalFileName: s.original_file_name,
+      fileSize: s.file_size,
+      classroomId: s.classroom_id,
+      fileStoragePath: s.file_storage_path,
+      submissionTimestamp: s.submission_timestamp,
+      analysisStatus: s.analysis_status as ProjectSubmissionStatus,
+      analysisError: s.analysis_error,
+      generatedConceptMapId: s.generated_concept_map_id,
+      userGoals: s.user_goals,
+    })
+  );
 
   return { submissions: mappedSubmissions, totalCount };
 }

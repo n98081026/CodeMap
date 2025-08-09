@@ -72,11 +72,7 @@ export const LayoutActions: React.FC<LayoutActionsProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  className='h-8 w-8 p-0'
-                >
+                <Button variant='ghost' size='sm' className='h-8 w-8 p-0'>
                   <LayoutGrid className='h-4 w-4' />
                 </Button>
               </DropdownMenuTrigger>
@@ -93,10 +89,7 @@ export const LayoutActions: React.FC<LayoutActionsProps> = ({
               const Icon = action.icon || Grid;
 
               return (
-                <DropdownMenuItem
-                  key={action.id}
-                  onClick={action.action}
-                >
+                <DropdownMenuItem key={action.id} onClick={action.action}>
                   <Icon className='mr-2 h-4 w-4' />
                   {action.label}
                 </DropdownMenuItem>
