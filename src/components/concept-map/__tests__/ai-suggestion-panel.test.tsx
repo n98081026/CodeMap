@@ -133,7 +133,9 @@ describe('AISuggestionPanel', () => {
       <AISuggestionPanel {...defaultProps} extractedConcepts={mockConcepts} />
     );
     const conceptsSection = screen.getByTestId('extracted-concepts-section');
-    expect(within(conceptsSection).getByText('React Hooks')).toBeInTheDocument();
+    expect(
+      within(conceptsSection).getByText('React Hooks')
+    ).toBeInTheDocument();
     expect(
       within(conceptsSection).getByText('State Management')
     ).toBeInTheDocument();
@@ -238,12 +240,16 @@ describe('AISuggestionPanel', () => {
     );
     const conceptsSection = screen.getByTestId('extracted-concepts-section');
     // Find the specific item row by text, then find the checkbox within it.
-    const conceptRow = within(conceptsSection).getByText('React Hooks').closest('div.flex.items-start');
+    const conceptRow = within(conceptsSection)
+      .getByText('React Hooks')
+      .closest('div.flex.items-start');
     const checkbox = within(conceptRow as HTMLElement).getByRole('checkbox');
 
     fireEvent.click(checkbox);
     fireEvent.click(
-      within(conceptsSection).getByRole('button', { name: /Add Selected \(1\)/i })
+      within(conceptsSection).getByRole('button', {
+        name: /Add Selected \(1\)/i,
+      })
     );
     expect(onAddExtractedConcepts).toHaveBeenCalledWith([mockConcepts[0]]);
   });
@@ -254,12 +260,16 @@ describe('AISuggestionPanel', () => {
     );
     const relationsSection = screen.getByTestId('suggested-relations-section');
     // Find the row by some unique text and then the checkbox within it.
-    const relationRow = within(relationsSection).getByText('Component').closest('div.flex.items-start');
+    const relationRow = within(relationsSection)
+      .getByText('Component')
+      .closest('div.flex.items-start');
     const checkbox = within(relationRow as HTMLElement).getByRole('checkbox');
 
     fireEvent.click(checkbox);
     fireEvent.click(
-      within(relationsSection).getByRole('button', { name: /Add Selected \(1\)/i })
+      within(relationsSection).getByRole('button', {
+        name: /Add Selected \(1\)/i,
+      })
     );
     expect(onAddSuggestedRelations).toHaveBeenCalledWith([mockRelations[0]]);
   });

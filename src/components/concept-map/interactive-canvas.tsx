@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -13,12 +13,10 @@ import ReactFlow, {
   type OnEdgesChange,
   type OnNodesDelete,
   type OnEdgesDelete,
-  type NodeSelectionChange,
   type Connection,
   type NodeTypes,
   type EdgeTypes,
   useReactFlow,
-  type Viewport,
   type ReactFlowProps, // Import ReactFlowProps
 } from 'reactflow';
 
@@ -30,18 +28,10 @@ import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
 import type { VisualEdgeSuggestion } from '@/types';
 
 import 'reactflow/dist/style.css';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { useConceptMapStore } from '@/stores/concept-map-store'; // Added import
 
 import { CheckIcon, XIcon } from 'lucide-react';
-
-interface ExtractedConceptItem {
-  concept: string;
-  context?: string;
-  source?: string;
-}
 
 // Define nodeTypesConfig as top-level constant here
 const nodeTypesConfig: NodeTypes = {
@@ -170,12 +160,7 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
   edgeTypes: propEdgeTypes,
   onNodeDragStart, // Destructure onNodeDrop
 }) => {
-  const {
-    project,
-    getNodes: rfGetNodes,
-    getViewport,
-    screenToFlowPosition,
-  } = useReactFlow();
+  const { project, getViewport } = useReactFlow();
   const [calculatedTranslateExtent, setCalculatedTranslateExtent] = useState<
     [[number, number], [number, number]] | undefined
   >([
@@ -205,8 +190,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
       ]);
       return;
     }
-
-    const currentVpZoom = currentViewport.zoom;
 
     if (nodes.length === 0) {
       setCalculatedTranslateExtent([
@@ -247,9 +230,6 @@ const InteractiveCanvasComponent: React.FC<InteractiveCanvasProps> = ({
     }
 
     const PADDING_FLOW = 150;
-
-    const contentWidthWithPadding = maxX - minX + 2 * PADDING_FLOW;
-    const contentHeightWithPadding = maxY - minY + 2 * PADDING_FLOW;
 
     const maxVpX = minX - PADDING_FLOW;
 

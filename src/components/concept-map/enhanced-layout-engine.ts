@@ -135,7 +135,7 @@ export class EnhancedLayoutEngine {
     });
 
     // 計算邊的路徑
-    this.edges.forEach((edge, index) => {
+    this.edges.forEach((edge) => {
       const sourcePos = result.nodes.find((n) => n.id === edge.source);
       const targetPos = result.nodes.find((n) => n.id === edge.target);
 
@@ -188,7 +188,7 @@ export class EnhancedLayoutEngine {
     });
 
     // 計算邊
-    this.edges.forEach((edge, index) => {
+    this.edges.forEach((edge) => {
       const sourcePos = result.nodes.find((n) => n.id === edge.source);
       const targetPos = result.nodes.find((n) => n.id === edge.target);
 
@@ -312,7 +312,7 @@ export class EnhancedLayoutEngine {
     });
 
     // 計算邊
-    this.edges.forEach((edge, index) => {
+    this.edges.forEach((edge) => {
       const sourcePos = result.nodes.find((n) => n.id === edge.source);
       const targetPos = result.nodes.find((n) => n.id === edge.target);
 
@@ -365,7 +365,7 @@ export class EnhancedLayoutEngine {
     });
 
     // 計算邊
-    this.edges.forEach((edge, index) => {
+    this.edges.forEach((edge) => {
       const sourcePos = result.nodes.find((n) => n.id === edge.source);
       const targetPos = result.nodes.find((n) => n.id === edge.target);
 

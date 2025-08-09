@@ -32,7 +32,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { MOCK_ADMIN_USER_V3 } from '@/lib/config';
 import { User, UserRole } from '@/types';
 
 const editUserSchema = z.object({

@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  motion,
-  AnimatePresence,
-  useSpring,
-  useMotionValue,
-} from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
 
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
@@ -159,7 +154,6 @@ interface EnhancedEdgeProps {
 }
 
 export function EnhancedEdge({
-  edge,
   sourceNode,
   targetNode,
   isSelected,
@@ -330,8 +324,6 @@ export function AnimatedConnection({
   isActive,
   color = '#667eea',
 }: AnimatedConnectionProps) {
-  const pathLength = useMotionValue(0);
-
   const path = `M ${start.x} ${start.y} Q ${(start.x + end.x) / 2} ${start.y - 50} ${end.x} ${end.y}`;
 
   return (

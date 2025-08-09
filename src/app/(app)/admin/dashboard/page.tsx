@@ -1,13 +1,9 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-
 import AdminDashboardView from '@/components/dashboard/admin/AdminDashboardView'; // Import the new shared view
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
-import { Routes } from '@/lib/routes';
 
 // DashboardHeader, useAdminDashboardMetrics, DashboardLinkCard, MetricState, Loader2, AlertTriangle, Users, Settings, LayoutDashboard
 // are now encapsulated within AdminDashboardView or not directly needed by this page component.

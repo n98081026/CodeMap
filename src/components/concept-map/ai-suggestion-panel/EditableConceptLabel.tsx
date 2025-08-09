@@ -3,9 +3,10 @@
 import { CheckSquare, Edit3, AlertCircle } from 'lucide-react';
 import React from 'react';
 
+import type { ConceptLabelProps } from './AISuggestionPanelTypes';
+
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { ConceptLabelProps } from './AISuggestionPanelTypes';
 
 export const EditableConceptLabel: React.FC<ConceptLabelProps> = ({
   item,
@@ -70,7 +71,9 @@ export const EditableConceptLabel: React.FC<ConceptLabelProps> = ({
       }}
     >
       <div className='flex-1 min-w-0'>
-        {item.isEditing && item.editingField === 'concept' && !isViewOnlyMode ? (
+        {item.isEditing &&
+        item.editingField === 'concept' &&
+        !isViewOnlyMode ? (
           <Input
             value={item.current.concept}
             onChange={(e) => onInputChange(index, e.target.value, 'concept')}
@@ -80,7 +83,6 @@ export const EditableConceptLabel: React.FC<ConceptLabelProps> = ({
               if (e.key === 'Escape') onConfirmEdit(index);
             }}
             onBlur={() => onConfirmEdit(index)}
-            autoFocus
           />
         ) : (
           <div className='flex items-center gap-2'>
@@ -94,19 +96,28 @@ export const EditableConceptLabel: React.FC<ConceptLabelProps> = ({
                   ? undefined
                   : () => onToggleEdit(index, 'concept')
               }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  if (!isViewOnlyMode) {
+                    onToggleEdit(index, 'concept');
+                  }
+                }
+              }}
+              role='button'
+              tabIndex={isViewOnlyMode ? -1 : 0}
             >
               {item.current.concept}
             </span>
             {getStatusIcon()}
           </div>
         )}
-        
+
         {item.current.context && (
           <div className='text-xs text-muted-foreground mt-1 truncate'>
             Context: {item.current.context}
           </div>
         )}
-        
+
         {item.current.source && (
           <div className='text-xs text-muted-foreground mt-1 truncate'>
             Source: {item.current.source}

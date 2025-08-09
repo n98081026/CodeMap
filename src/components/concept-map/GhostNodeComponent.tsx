@@ -16,11 +16,7 @@ export interface GhostNodeData {
 const NODE_DEFAULT_WIDTH = 150;
 const NODE_DEFAULT_HEIGHT = 70;
 
-const GhostNodeComponent: React.FC<NodeProps<GhostNodeData>> = ({
-  data,
-  xPos,
-  yPos,
-}) => {
+const GhostNodeComponent: React.FC<NodeProps<GhostNodeData>> = ({ data }) => {
   const width = data.width || NODE_DEFAULT_WIDTH;
   const height = data.height || NODE_DEFAULT_HEIGHT;
 

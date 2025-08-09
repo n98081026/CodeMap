@@ -133,6 +133,19 @@ export async function GET(request: Request) {
       return NextResponse.json(classrooms);
     }
 
+    // If neither teacherIdParam nor studentIdParam is provided, fetch all classrooms (admin only)
+    if (userRole !== UserRole.ADMIN) {
+      return NextResponse.json(
+        { message: 'Forbidden: Only admins can list all classrooms.' },
+        { status: 403 }
+      );
+    }
+
+    // Admin path: Fetch all classrooms with pagination
+
+    // getAllClassrooms service function already defaults page to 1 and limit to 10 if not provided.
+    // Here, we ensure that if the API is called without params, it uses its own defaults before calling service.
+    const result = await getAllClassrooms();
     const result = await getAllClassrooms(page, limit, searchTerm);
     return NextResponse.json(result);
   } catch (error) {

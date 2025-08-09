@@ -11,13 +11,7 @@ import React, {
   useRef,
 } from 'react';
 
-import type { User } from '@/types';
-import type { ConceptMapData } from '@/types'; // Assuming ConceptMapData is defined
-import type {
-  AuthChangeEvent,
-  Session,
-  User as SupabaseUser,
-} from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
 
 import { useToast } from '@/hooks/use-toast';
@@ -28,18 +22,15 @@ import {
   MOCK_TEACHER_USER,
 } from '@/lib/config';
 import { exampleProjects } from '@/lib/example-data';
+import { Routes } from '@/lib/routes';
 import { supabase } from '@/lib/supabaseClient';
 import {
   createUserProfile,
   getUserById as fetchSupabaseUserProfile,
   updateUser as updateUserProfileService,
 } from '@/services/users/userService';
+import type { User, ConceptMapData } from '@/types';
 import { UserRole } from '@/types';
-import { Routes } from '@/lib/routes';
-// Ensure V3 is the default for bypass
-
-// DEFAULT_BYPASS_USER is now MOCK_STUDENT_USER_V3 for student testing
-const DEFAULT_BYPASS_USER = MOCK_STUDENT_USER;
 
 interface AuthContextType {
   user: User | null;
@@ -532,13 +523,15 @@ export const useAuth = () => {
 };
 
 // Helper function (can be moved to a service or utility file if it grows)
-import { useConceptMapStore } from '@/stores/concept-map-store';
-
 async function handleCopyExampleAction(
   exampleKey: string,
   userId: string,
   router: ReturnType<typeof useRouter>, // Use NextRouterInstance for type
-  toast: (props: { title?: string; description?: string; variant?: 'default' | 'destructive' }) => void
+  toast: (props: {
+    title?: string;
+    description?: string;
+    variant?: 'default' | 'destructive';
+  }) => void
 ) {
   console.log(
     `Handling copyExample action for key: ${exampleKey}, user: ${userId}`
@@ -567,14 +560,7 @@ async function handleCopyExampleAction(
     // For now, let's assume a conceptual 'createMapFromExample' or adapt saveMap
     // This part requires careful integration with concept-map-store.ts
 
-    const {
-      initializeNewMap,
-      setLoadedMap,
-      mapName: currentMapName,
-      mapData: currentMapData,
-      isPublic: currentIsPublic,
-      sharedWithClassroomId: currentSharedClassroomId,
-    } = useConceptMapStore.getState();
+    const { initializeNewMap } = useConceptMapStore.getState();
 
     // 1. Initialize a new map context in the store, primarily to set the ownerId correctly.
     //    This sets `isNewMapMode = true` and `mapId = 'new'`.

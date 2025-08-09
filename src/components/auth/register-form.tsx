@@ -17,7 +17,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Routes } from '@/lib/routes';
 import {
   Select,
   SelectContent,
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import { Routes } from '@/lib/routes';
 import { UserRole } from '@/types';
 
 const formSchema = z.object({

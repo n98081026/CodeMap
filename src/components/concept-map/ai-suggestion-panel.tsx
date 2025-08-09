@@ -598,7 +598,9 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
     itemKeyPrefix: string,
     parentRef: React.RefObject<HTMLDivElement>, // For virtualizer
     rowVirtualizerInstance: ReturnType<typeof useVirtualizer>, // Instance of useVirtualizer
-    onAddSelectedItems: (selectedItems: (EditableExtractedConcept | EditableRelationSuggestion)[]) => void,
+    onAddSelectedItems: (
+      selectedItems: (EditableExtractedConcept | EditableRelationSuggestion)[]
+    ) => void,
     onClearCategory?: () => void,
     cardClassName?: string,
     titleClassName?: string

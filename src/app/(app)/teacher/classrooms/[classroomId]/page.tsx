@@ -17,8 +17,6 @@ import type { Classroom, ConceptMap, ProjectSubmission } from '@/types';
 
 import { InviteStudentDialog } from '@/components/classrooms/invite-student-dialog';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-
-// Import new tab components
 import { ClassroomMapsTab } from '@/components/teacher/classrooms/tabs/ClassroomMapsTab';
 import { ClassroomStudentsTab } from '@/components/teacher/classrooms/tabs/ClassroomStudentsTab';
 import { ClassroomSubmissionsTab } from '@/components/teacher/classrooms/tabs/ClassroomSubmissionsTab';
@@ -31,7 +29,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ClassroomDetailPage() {

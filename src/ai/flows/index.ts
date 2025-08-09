@@ -1,21 +1,41 @@
+import { expandConceptFlow } from './expand-concept';
 import { extractConceptsFlow } from './extract-concepts';
 import { suggestRelationsFlow } from './suggest-relations';
-import { expandConceptFlow } from './expand-concept';
+import type {
+  ExtractConceptsOutput,
+  SuggestRelationsOutput,
+  ExpandConceptOutput,
+  ExtractConceptsInput,
+  SuggestRelationsInput,
+  ExpandConceptInput,
+} from './types';
 
-export const runFlow = async <T, U>(
+export const runFlow = async (
   command: string,
-  payload: T
-): Promise<U | null> => {
+  payload:
+    | ExtractConceptsInput
+    | SuggestRelationsInput
+    | ExpandConceptInput
+    | any
+): Promise<
+  ExtractConceptsOutput | SuggestRelationsOutput | ExpandConceptOutput | null
+> => {
   console.log('runFlow', command, payload);
-  
+
   try {
     switch (command) {
       case 'extractConcepts':
-        return await extractConceptsFlow(payload as any) as U;
+        return (await extractConceptsFlow(
+          payload as ExtractConceptsInput
+        )) as ExtractConceptsOutput;
       case 'suggestRelations':
-        return await suggestRelationsFlow(payload as any) as U;
+        return (await suggestRelationsFlow(
+          payload as SuggestRelationsInput
+        )) as SuggestRelationsOutput;
       case 'expandConcept':
-        return await expandConceptFlow(payload as any) as U;
+        return (await expandConceptFlow(
+          payload as ExpandConceptInput
+        )) as ExpandConceptOutput;
       default:
         console.warn(`Unknown AI flow command: ${command}`);
         return null;

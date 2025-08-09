@@ -1,5 +1,4 @@
 'use client';
-import { CodeXml } from 'lucide-react';
 
 import { Navbar } from './navbar';
 import { SidebarNav } from './sidebar-nav';
@@ -13,7 +12,6 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarFooter,
   SidebarInset,
 } from '@/components/ui/sidebar'; // Import Sidebar components
 

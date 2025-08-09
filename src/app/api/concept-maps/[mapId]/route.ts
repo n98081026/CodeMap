@@ -34,7 +34,7 @@ export async function GET(
     // Check if map is public or user has access
     const url = new URL(request.url);
     const isViewOnly = url.searchParams.get('viewOnly') === 'true';
-    
+
     if (!map.isPublic && !isViewOnly) {
       // For private maps, we should check user authentication
       // For now, we'll allow access but this should be enhanced with proper auth

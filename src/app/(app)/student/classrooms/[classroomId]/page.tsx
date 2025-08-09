@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { UserRole } from '@/types';
 import { Routes } from '@/lib/routes';
 
 export default function StudentClassroomDetailPage() {
@@ -278,9 +277,7 @@ export default function StudentClassroomDetailPage() {
                       size='sm'
                       className='w-full'
                     >
-                      <Link
-                        href={Routes.ConceptMaps.VIEW(map.id)}
-                      >
+                      <Link href={Routes.ConceptMaps.VIEW(map.id)}>
                         <Eye className='mr-2 h-4 w-4' /> View Map
                       </Link>
                     </Button>
