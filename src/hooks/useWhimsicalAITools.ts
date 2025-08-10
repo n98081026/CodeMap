@@ -11,7 +11,6 @@ import {
   DEFAULT_ANIMATIONS,
 } from '@/components/concept-map/ai-animation-utils';
 import { useToast } from '@/hooks/use-toast';
-import { getNodePlacement } from '@/lib/layout-utils';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 
 const DEFAULT_NODE_WIDTH = 150;
@@ -70,7 +69,16 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
           duration: 999999,
         });
 
-        const result = { concepts: [] };
+        // Define a type for the concept item to fix the 'never' type issue
+        type WhimsicalConcept = {
+          concept: string;
+          context?: string;
+          pedagogicalNote?: string;
+          source?: string;
+          category?: string;
+        };
+
+        const result: { concepts: WhimsicalConcept[] } = { concepts: [] };
         loadingToast.dismiss();
 
         if (result.concepts && result.concepts.length > 0) {
@@ -80,15 +88,9 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
 
           result.concepts.forEach((conceptItem, index) => {
             const newNodeId = `whimsical-${Date.now()}-${index}`;
-            const position = getNodePlacement(
-              existingNodesForPlacement,
-              'generic',
-              null,
-              null,
-              GRID_SIZE_FOR_AI_PLACEMENT,
-              index,
-              result.concepts.length
-            );
+            // Simple placement logic to arrange new nodes in a row
+            const x = index * (DEFAULT_NODE_WIDTH + 20) + 50;
+            const y = 400; // A fixed Y position for the staging row
 
             const newNode: ConceptMapNode = {
               id: newNodeId,
@@ -101,9 +103,9 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
               ]
                 .filter(Boolean)
                 .join('\n\n'),
-              type: `ai-${conceptItem.category}` as ConceptMapNode['type'],
-              x: position.x,
-              y: position.y,
+              type: `ai-${conceptItem.category || 'concept'}` as ConceptMapNode['type'],
+              x: x,
+              y: y,
               width: DEFAULT_NODE_WIDTH,
               height: DEFAULT_NODE_HEIGHT,
               childIds: [],

@@ -63,7 +63,7 @@ export const useEditorEventHandlers = ({
 
   // Context menu handlers
   const handleNodeContextMenu = useCallback(
-    (event: React.MouseEvent, node: any) => {
+    (event: React.MouseEvent, node: ConceptMapNode) => {
       if (storeIsViewOnlyMode) return;
 
       event.preventDefault();
@@ -102,21 +102,19 @@ export const useEditorEventHandlers = ({
 
   // Concept suggestion drop handler
   const handleConceptSuggestionDrop = useCallback(
-    (conceptItem: any, position: { x: number; y: number }) => {
+    (
+      conceptItem: { concept: string; context?: string },
+      position: { x: number; y: number }
+    ) => {
       if (storeIsViewOnlyMode) return;
 
-      // Add the concept as a new node
-      const newNode: ConceptMapNode = {
-        id: `node-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      useConceptMapStore.getState().addNode({
         text: conceptItem.concept,
         details: conceptItem.context || '',
-        x: position.x,
-        y: position.y,
-        width: 150,
-        height: 70,
-      };
+        position: position,
+        type: 'manual-node', // Assign a default type for dropped nodes
+      });
 
-      useConceptMapStore.getState().addNode(newNode);
       toast({
         title: 'Concept added',
         description: `Added "${conceptItem.concept}" to the map.`,
@@ -129,8 +127,7 @@ export const useEditorEventHandlers = ({
   const handleStartConnectionFromNode = useCallback(
     (nodeId: string) => {
       if (storeIsViewOnlyMode) return;
-      // Handle connection start logic
-      useConceptMapStore.getState().setIsConnectingMode(true);
+      useConceptMapStore.getState().startConnectionMode(nodeId);
     },
     [storeIsViewOnlyMode]
   );

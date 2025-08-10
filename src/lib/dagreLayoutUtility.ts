@@ -79,7 +79,12 @@ export class DagreLayoutUtility {
 
     const layoutNodes: Array<{ id: string; x: number; y: number }> = [];
     dagreGraph.nodes().forEach((nodeId) => {
-      const dagreNode = dagreGraph.node(nodeId);
+      const dagreNode = dagreGraph.node(nodeId) as {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
       if (dagreNode) {
         layoutNodes.push({
           id: nodeId,

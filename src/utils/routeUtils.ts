@@ -48,7 +48,7 @@ export function isRouteAccessible(route: string, role: UserRole): boolean {
 
   // Admin-only routes
   if (route.startsWith('/admin/')) {
-    return role === UserRole.ADMIN;
+    return false; // Already handled if user is admin at the top
   }
 
   // Public routes (concept maps, etc.)

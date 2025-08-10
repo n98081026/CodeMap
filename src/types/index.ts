@@ -102,6 +102,7 @@ export enum ProjectSubmissionStatus {
 export interface ProjectSubmission {
   id: string;
   studentId: string;
+  studentName?: string; // From joined queries
   classroomId?: string | null;
   originalFileName: string;
   fileSize: number;

@@ -110,9 +110,7 @@ export const useEditorOverviewMode = ({
             .map((n: ConceptMapNode) => ({
               name: n.text,
               description: n.details || 'A key concept from the map.',
-              filePaths: [], // Add required filePaths property
             })),
-          moduleConnections: [], // Add required moduleConnections property
         });
       } else {
         toast({
@@ -128,7 +126,6 @@ export const useEditorOverviewMode = ({
           overallSummary:
             'No content available to generate an overview. Try uploading a project or adding nodes to your map.',
           keyModules: [],
-          moduleConnections: [], // Add required moduleConnections property
           error: 'No content for overview.',
         });
       }

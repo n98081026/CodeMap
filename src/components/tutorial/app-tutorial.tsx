@@ -112,6 +112,7 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
 
       switch (tutorialKey) {
         case 'dashboardTutorial':
+          if (!user) return []; // Cannot show dashboard tutorial without a user
           return getDashboardTutorialSteps(
             t,
             user,

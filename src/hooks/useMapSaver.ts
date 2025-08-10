@@ -94,7 +94,14 @@ export function useMapSaver({ user }: UseMapSaverProps) {
             payload.sharedWithClassroomId
           );
         } else {
-          savedMapData = await mapService.updateConceptMap(storeMapId, payload);
+          const updatedMap = await mapService.updateConceptMap(
+            storeMapId,
+            payload
+          );
+          if (!updatedMap) {
+            throw new Error('Failed to update map: No data returned from service.');
+          }
+          savedMapData = updatedMap;
         }
 
         const currentViewOnlyModeInStore =

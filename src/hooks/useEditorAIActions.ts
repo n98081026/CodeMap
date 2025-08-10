@@ -2,11 +2,6 @@
 
 import { useCallback } from 'react';
 
-import type {
-  ExtractedConceptItem,
-  RelationSuggestion,
-} from '@/components/concept-map/ai-suggestion-panel';
-
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { useConceptMapStore } from '@/stores/concept-map-store';
@@ -19,27 +14,25 @@ export const useEditorAIActions = () => {
     openExpandConceptModal: expandConcept,
     handleQuickCluster: quickCluster,
     handleGenerateSnippetFromText: generateSnippetFromText,
-    // summarizeSelectedNodes, // This function doesn't exist in useConceptMapAITools
-  } = useConceptMapAITools(false);
+  } = useConceptMapAITools();
 
   const {
     aiExtractedConcepts,
     aiSuggestedRelations,
-    clearExtractedConcepts,
-    clearSuggestedRelations,
-    addConceptsToMap,
-    addRelationsToMap,
+    resetAiSuggestions,
+    commitStagedMapData,
     selectedElementId,
     multiSelectedNodeIds,
   } = useConceptMapStore();
 
-  // Extract concepts action
   const handleExtractConcepts = useCallback(async () => {
     try {
-      await extractConcepts();
+      // TODO: The context should be provided from a UI element, e.g., a text area.
+      // Passing an empty string for now to satisfy the type signature.
+      await extractConcepts({ context: '' });
       toast({
         title: 'Concepts extracted',
-        description: 'AI has extracted concepts from your content.',
+        description: 'AI has extracted concepts for your review.',
       });
     } catch (error) {
       toast({
@@ -50,13 +43,12 @@ export const useEditorAIActions = () => {
     }
   }, [extractConcepts, toast]);
 
-  // Suggest relations action
   const handleSuggestRelations = useCallback(async () => {
     try {
       await suggestRelations();
       toast({
         title: 'Relations suggested',
-        description: 'AI has suggested new relations between concepts.',
+        description: 'AI has suggested new relations for your review.',
       });
     } catch (error) {
       toast({
@@ -67,7 +59,6 @@ export const useEditorAIActions = () => {
     }
   }, [suggestRelations, toast]);
 
-  // Expand concept action
   const handleExpandConcept = useCallback(async () => {
     if (!selectedElementId) {
       toast({
@@ -77,12 +68,11 @@ export const useEditorAIActions = () => {
       });
       return;
     }
-
     try {
       expandConcept(selectedElementId);
       toast({
         title: 'Concept expansion started',
-        description: 'AI is expanding the selected concept.',
+        description: 'AI is expanding the selected concept for your review.',
       });
     } catch (error) {
       toast({
@@ -93,10 +83,9 @@ export const useEditorAIActions = () => {
     }
   }, [expandConcept, selectedElementId, toast]);
 
-  // Quick cluster action
   const handleQuickCluster = useCallback(async () => {
     try {
-      await quickCluster();
+      await quickCluster({});
       toast({
         title: 'Concepts clustered',
         description: 'AI has organized your concepts into clusters.',
@@ -110,10 +99,10 @@ export const useEditorAIActions = () => {
     }
   }, [quickCluster, toast]);
 
-  // Generate snippet action
   const handleGenerateSnippetFromText = useCallback(async () => {
     try {
-      await generateSnippetFromText();
+      // TODO: The text should be provided from a UI element.
+      await generateSnippetFromText({ text: '' });
       toast({
         title: 'Snippet generated',
         description: 'AI has generated a concept snippet from text.',
@@ -127,7 +116,6 @@ export const useEditorAIActions = () => {
     }
   }, [generateSnippetFromText, toast]);
 
-  // Summarize selected nodes action
   const handleSummarizeSelectedNodes = useCallback(async () => {
     if (multiSelectedNodeIds.length === 0) {
       toast({
@@ -137,9 +125,8 @@ export const useEditorAIActions = () => {
       });
       return;
     }
-
     try {
-      // Mock implementation for now
+      // TODO: Implement the actual summarization logic
       toast({
         title: 'Nodes summarized',
         description: 'AI has created a summary of the selected nodes.',
@@ -153,63 +140,33 @@ export const useEditorAIActions = () => {
     }
   }, [multiSelectedNodeIds, toast]);
 
-  // Add extracted concepts to map
-  const handleAddExtractedConcepts = useCallback(
-    (concepts: ExtractedConceptItem[]) => {
-      addConceptsToMap(concepts);
-      toast({
-        title: 'Concepts added',
-        description: `Added ${concepts.length} concepts to the map.`,
-      });
-    },
-    [addConceptsToMap, toast]
-  );
-
-  // Add suggested relations to map
-  const handleAddSuggestedRelations = useCallback(
-    (relations: RelationSuggestion[]) => {
-      addRelationsToMap(relations);
-      toast({
-        title: 'Relations added',
-        description: `Added ${relations.length} relations to the map.`,
-      });
-    },
-    [addRelationsToMap, toast]
-  );
-
-  // Clear extracted concepts
-  const handleClearExtractedConcepts = useCallback(() => {
-    clearExtractedConcepts();
+  // This function now directly commits what's in the staging area.
+  const handleAddStagedDataToMap = useCallback(() => {
+    commitStagedMapData();
     toast({
-      title: 'Concepts cleared',
-      description: 'Extracted concepts have been cleared.',
+      title: 'Changes committed',
+      description: 'The staged AI suggestions have been added to the map.',
     });
-  }, [clearExtractedConcepts, toast]);
+  }, [commitStagedMapData, toast]);
 
-  // Clear suggested relations
-  const handleClearSuggestedRelations = useCallback(() => {
-    clearSuggestedRelations();
+  const handleClearSuggestions = useCallback(() => {
+    resetAiSuggestions();
     toast({
-      title: 'Relations cleared',
-      description: 'Suggested relations have been cleared.',
+      title: 'Suggestions cleared',
+      description: 'AI suggestions have been cleared.',
     });
-  }, [clearSuggestedRelations, toast]);
+  }, [resetAiSuggestions, toast]);
 
   return {
-    // State
     aiExtractedConcepts,
     aiSuggestedRelations,
-
-    // Actions
     handleExtractConcepts,
     handleSuggestRelations,
     handleExpandConcept,
     handleQuickCluster,
     handleGenerateSnippetFromText,
     handleSummarizeSelectedNodes,
-    handleAddExtractedConcepts,
-    handleAddSuggestedRelations,
-    handleClearExtractedConcepts,
-    handleClearSuggestedRelations,
+    handleAddStagedDataToMap, // Renamed for clarity
+    handleClearSuggestions, // Renamed for clarity
   };
 };

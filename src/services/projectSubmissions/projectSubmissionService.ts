@@ -15,6 +15,30 @@ import {
 import { supabase } from '@/lib/supabaseClient';
 import { getUserById } from '@/services/users/userService';
 import { ProjectSubmissionStatus, UserRole } from '@/types';
+import { Database } from '@/types/supabase';
+
+type DbSubmission = Database['public']['Tables']['project_submissions']['Row'] & {
+  student?: { name: string } | null;
+};
+
+function dbSubmissionToProjectSubmission(
+  dbSubmission: DbSubmission
+): ProjectSubmission {
+  return {
+    id: dbSubmission.id,
+    studentId: dbSubmission.student_id,
+    originalFileName: dbSubmission.original_file_name,
+    fileSize: dbSubmission.file_size,
+    classroomId: dbSubmission.classroom_id,
+    fileStoragePath: dbSubmission.file_storage_path,
+    submissionTimestamp: dbSubmission.submission_timestamp,
+    analysisStatus: dbSubmission.analysis_status as ProjectSubmissionStatus,
+    analysisError: dbSubmission.analysis_error,
+    generatedConceptMapId: dbSubmission.generated_concept_map_id,
+    userGoals: (dbSubmission as any).user_goals,
+    studentName: dbSubmission.student?.name,
+  };
+}
 
 // Mock data store for bypass mode
 const MOCK_SUBMISSIONS_STORE: ProjectSubmission[] = [
@@ -82,19 +106,7 @@ export async function createSubmission(
   if (!data)
     throw new Error('Failed to create project submission: No data returned.');
 
-  return {
-    id: data.id,
-    studentId: data.student_id,
-    originalFileName: data.original_file_name,
-    fileSize: data.file_size,
-    classroomId: data.classroom_id,
-    fileStoragePath: data.file_storage_path,
-    submissionTimestamp: data.submission_timestamp,
-    analysisStatus: data.analysis_status as ProjectSubmissionStatus,
-    analysisError: data.analysis_error,
-    generatedConceptMapId: data.generated_concept_map_id,
-    userGoals: data.user_goals,
-  };
+  return dbSubmissionToProjectSubmission(data);
 }
 
 /**
@@ -119,19 +131,7 @@ export async function getSubmissionById(
   }
   if (!data) return null;
 
-  return {
-    id: data.id,
-    studentId: data.student_id,
-    originalFileName: data.original_file_name,
-    fileSize: data.file_size,
-    classroomId: data.classroom_id,
-    fileStoragePath: data.file_storage_path,
-    submissionTimestamp: data.submission_timestamp,
-    analysisStatus: data.analysis_status as ProjectSubmissionStatus,
-    analysisError: data.analysis_error,
-    generatedConceptMapId: data.generated_concept_map_id,
-    userGoals: data.user_goals,
-  };
+  return dbSubmissionToProjectSubmission(data);
 }
 
 /**
@@ -205,19 +205,9 @@ export async function getSubmissionsByStudentId(
     );
   }
 
-  const mappedSubmissions = (submissionsData || []).map((s) => ({
-    id: s.id,
-    studentId: s.student_id,
-    originalFileName: s.original_file_name,
-    fileSize: s.file_size,
-    classroomId: s.classroom_id,
-    fileStoragePath: s.file_storage_path,
-    submissionTimestamp: s.submission_timestamp,
-    analysisStatus: s.analysis_status as ProjectSubmissionStatus,
-    analysisError: s.analysis_error,
-    generatedConceptMapId: s.generated_concept_map_id,
-    userGoals: s.user_goals,
-  }));
+  const mappedSubmissions = (submissionsData || []).map(
+    dbSubmissionToProjectSubmission
+  );
 
   return { submissions: mappedSubmissions, totalCount };
 }
@@ -248,9 +238,6 @@ export async function getSubmissionsByClassroomId(
         page * limit
       );
     }
-    // Assuming MOCK_SUBMISSIONS_STORE contains full ProjectSubmission objects with studentName already if needed,
-    // or this mock path doesn't require the student name join for simplicity.
-    // For this example, we'll return them as is.
     return { submissions: paginatedSubmissions, totalCount };
   }
 
@@ -274,7 +261,7 @@ export async function getSubmissionsByClassroomId(
   // Fetch paginated submissions
   let query = supabase
     .from('project_submissions')
-    .select('*, student:profiles(name)') // Keep the join for student name
+    .select('*, student:profiles(name)')
     .eq('classroom_id', classroomId)
     .order('submission_timestamp', { ascending: false });
 
@@ -294,36 +281,8 @@ export async function getSubmissionsByClassroomId(
     );
   }
 
-  type SubmissionRow = {
-    id: string;
-    student_id: string;
-    original_file_name: string;
-    file_size: number;
-    classroom_id: string | null;
-    file_storage_path: string | null;
-    submission_timestamp: string;
-    analysis_status: string;
-    analysis_error: string | null;
-    generated_concept_map_id: string | null;
-    user_goals?: string | null;
-    student: { name: string } | null;
-  };
-
-  const mappedSubmissions = ((submissionsData as SubmissionRow[]) || []).map(
-    (s) => ({
-      id: s.id,
-      studentId: s.student_id,
-      studentName: s.student?.name || 'N/A',
-      originalFileName: s.original_file_name,
-      fileSize: s.file_size,
-      classroomId: s.classroom_id,
-      fileStoragePath: s.file_storage_path,
-      submissionTimestamp: s.submission_timestamp,
-      analysisStatus: s.analysis_status as ProjectSubmissionStatus,
-      analysisError: s.analysis_error,
-      generatedConceptMapId: s.generated_concept_map_id,
-      userGoals: s.user_goals,
-    })
+  const mappedSubmissions = (submissionsData || []).map(
+    dbSubmissionToProjectSubmission
   );
 
   return { submissions: mappedSubmissions, totalCount };
@@ -358,10 +317,10 @@ export async function updateSubmissionStatus(
     return MOCK_SUBMISSIONS_STORE[index];
   }
 
-  const updates: Partial<ProjectSubmission> = {
-    analysisStatus: status,
-    analysisError: analysisError === undefined ? null : analysisError,
-    generatedConceptMapId:
+  const updates: Partial<DbSubmission> = {
+    analysis_status: status,
+    analysis_error: analysisError === undefined ? null : analysisError,
+    generated_concept_map_id:
       generatedConceptMapId === undefined ? null : generatedConceptMapId,
   };
 
@@ -378,18 +337,7 @@ export async function updateSubmissionStatus(
   }
   if (!data) return null;
 
-  return {
-    id: data.id,
-    studentId: data.student_id,
-    originalFileName: data.original_file_name,
-    fileSize: data.file_size,
-    classroomId: data.classroom_id,
-    fileStoragePath: data.file_storage_path,
-    submissionTimestamp: data.submission_timestamp,
-    analysisStatus: data.analysis_status as ProjectSubmissionStatus,
-    analysisError: data.analysis_error,
-    generatedConceptMapId: data.generated_concept_map_id,
-  };
+  return dbSubmissionToProjectSubmission(data);
 }
 
 /**
@@ -419,18 +367,6 @@ export async function getAllSubmissions(
     console.error('Supabase getAllSubmissions error:', error);
     throw new Error(`Failed to fetch all submissions: ${error.message}`);
   }
-  const submissions = (data || []).map((s) => ({
-    id: s.id,
-    studentId: s.student_id,
-    originalFileName: s.original_file_name,
-    fileSize: s.file_size,
-    classroomId: s.classroom_id,
-    fileStoragePath: s.file_storage_path,
-    submissionTimestamp: s.submission_timestamp,
-    analysisStatus: s.analysis_status as ProjectSubmissionStatus,
-    analysisError: s.analysis_error,
-    generatedConceptMapId: s.generated_concept_map_id,
-    userGoals: s.user_goals,
-  }));
+  const submissions = (data || []).map(dbSubmissionToProjectSubmission);
   return { submissions, totalCount: count || 0 };
 }

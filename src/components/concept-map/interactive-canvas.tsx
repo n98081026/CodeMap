@@ -28,6 +28,7 @@ import OrthogonalEdge, { type OrthogonalEdgeData } from './orthogonal-edge';
 import type { VisualEdgeSuggestion } from '@/types';
 
 import 'reactflow/dist/style.css';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 

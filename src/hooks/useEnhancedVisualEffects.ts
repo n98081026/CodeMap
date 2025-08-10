@@ -143,8 +143,8 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
       addVisualEffect({
         type: 'sparkle',
         position: {
-          x: node.x + (node.width || 150) / 2,
-          y: node.y + (node.height || 70) / 2,
+          x: (node.x ?? 0) + (node.width || 150) / 2,
+          y: (node.y ?? 0) + (node.height || 70) / 2,
         },
         isActive: true,
         duration: 1000,
@@ -173,8 +173,8 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
       addVisualEffect({
         type: 'pulse',
         position: {
-          x: node.x + (node.width || 150) / 2,
-          y: node.y + (node.height || 70) / 2,
+          x: (node.x ?? 0) + (node.width || 150) / 2,
+          y: (node.y ?? 0) + (node.height || 70) / 2,
         },
         isActive: true,
         duration: 800,
@@ -185,8 +185,8 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
       addVisualEffect({
         type: 'particle',
         position: {
-          x: node.x + (node.width || 150) / 2,
-          y: node.y + (node.height || 70) / 2,
+          x: (node.x ?? 0) + (node.width || 150) / 2,
+          y: (node.y ?? 0) + (node.height || 70) / 2,
         },
         isActive: true,
         duration: 1200,
@@ -209,8 +209,8 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
         addVisualEffect({
           type: 'aura',
           position: {
-            x: node.x + (node.width || 150) / 2,
-            y: node.y + (node.height || 70) / 2,
+            x: (node.x ?? 0) + (node.width || 150) / 2,
+            y: (node.y ?? 0) + (node.height || 70) / 2,
           },
           isActive: true,
           duration: 2000,
@@ -243,8 +243,8 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
       addVisualEffect({
         type: 'connection',
         position: {
-          x: sourceNode.x + (sourceNode.width || 150) / 2,
-          y: sourceNode.y + (sourceNode.height || 70) / 2,
+          x: (sourceNode.x ?? 0) + (sourceNode.width || 150) / 2,
+          y: (sourceNode.y ?? 0) + (sourceNode.height || 70) / 2,
         },
         isActive: true,
         duration: 1000,
@@ -297,8 +297,8 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
             addVisualEffect({
               type: 'sparkle',
               position: {
-                x: node.x + (node.width || 150) / 2,
-                y: node.y + (node.height || 70) / 2,
+                x: (node.x ?? 0) + (node.width || 150) / 2,
+                y: (node.y ?? 0) + (node.height || 70) / 2,
               },
               isActive: true,
               duration: 600,

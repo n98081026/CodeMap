@@ -458,7 +458,7 @@ export function ProjectUploadForm() {
   const handleConfirmAIGeneration = useCallback(async () => {
     if (!currentSubmissionForAI) return;
     try {
-      await processAISteps(currentSubmissionForAI, currentUserGoalsForAI);
+      await processAISteps(currentSubmissionForAI);
     } catch (aiError) {
       toast({
         title: 'AI Map Generation Failed',
@@ -470,15 +470,9 @@ export function ProjectUploadForm() {
       setIsConfirmAIDialogOpen(false);
       setCurrentSubmissionForAI(null);
       setCurrentUserGoalsForAI(undefined);
-      router.push(Routes.Legacy.STUDENT_PROJECTS_SUBMISSIONS);
+      router.push(Routes.Student.PROJECTS_SUBMISSIONS);
     }
-  }, [
-    currentSubmissionForAI,
-    currentUserGoalsForAI,
-    processAISteps,
-    toast,
-    router,
-  ]);
+  }, [currentSubmissionForAI, processAISteps, toast, router]);
 
   const handleDeclineAIGeneration = useCallback(() => {
     toast({
@@ -489,7 +483,7 @@ export function ProjectUploadForm() {
     setIsConfirmAIDialogOpen(false);
     setCurrentSubmissionForAI(null);
     setCurrentUserGoalsForAI(undefined);
-    router.push(Routes.Legacy.STUDENT_PROJECTS_SUBMISSIONS);
+    router.push(Routes.Student.PROJECTS_SUBMISSIONS);
   }, [router, currentSubmissionForAI?.originalFileName, toast]);
 
   const isBusyOverall =
