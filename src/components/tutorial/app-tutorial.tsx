@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next'; // Import useTranslation
-import Joyride, { CallBackProps, STATUS, Step, EVENTS } from 'react-joyride';
+import dynamic from 'next/dynamic';
+import type { CallBackProps, Step } from 'react-joyride';
+
+// Dynamically import Joyride on the client to avoid SSR build issues
+const Joyride = dynamic(() => import('react-joyride'), { ssr: false }) as unknown as React.ComponentType<any>;
 
 // TutorialMetaData remains the same, but its instances will be constructed using t()
 export interface TutorialMetaData {
@@ -188,18 +192,13 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, type, index, action, step } = data;
-    const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+    const finishedStatuses: string[] = ['finished', 'skipped'];
 
-    if (
-      ([EVENTS.STEP_AFTER, EVENTS.TARGET_NOT_FOUND] as string[]).includes(type)
-    ) {
+    if ((['step:after', 'target:notFound'] as string[]).includes(type)) {
       setStepIndex(index + (action === 'prev' ? -1 : 1));
     }
 
-    if (
-      finishedStatuses.includes(status) ||
-      (type === EVENTS.TOOLTIP && action === 'close')
-    ) {
+    if (finishedStatuses.includes(status) || (type === 'tooltip' && action === 'close')) {
       setRunTutorialState(false);
       if (activeTutorialKey === 'manualAddNodeTutorial') {
         clearTutorialTempTargetNodeId(null);
@@ -208,13 +207,13 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
         clearTutorialTempTargetEdgeId(null);
       }
     } else if (
-      type === EVENTS.STEP_AFTER &&
+      type === 'step:after' &&
       activeTutorialKey === 'manualAddNodeTutorial' &&
       step.title === t('tutorialSteps.manualAddNodeTutorial.2.title') // Compare with translated title
     ) {
       // Logic for specific step handling if needed
     } else if (
-      type === EVENTS.STEP_AFTER &&
+      type === 'step:after' &&
       activeTutorialKey === 'manualCreateEdgeTutorial' &&
       step.title === t('tutorialSteps.manualCreateEdgeTutorial.3.title') // Compare with translated title
     ) {

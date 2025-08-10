@@ -5,10 +5,10 @@ import { addStudentToClassroom } from '@/services/classrooms/classroomService';
 
 export async function POST(
   request: Request,
-  context: { params: { classroomId: string } }
+  context: { params: Promise<{ classroomId: string }> }
 ) {
+  const { classroomId } = await context.params;
   try {
-    const { classroomId } = context.params;
     const { studentId } = (await request.json()) as { studentId: string };
 
     if (!classroomId || !studentId) {
@@ -32,7 +32,7 @@ export async function POST(
     return NextResponse.json(updatedClassroom, { status: 200 });
   } catch (error) {
     console.error(
-      `Add Student to Classroom API error (Classroom ID: ${context.params.classroomId}):`,
+      `Add Student to Classroom API error (Classroom ID: ${classroomId}):`,
       error
     );
     const errorMessage =

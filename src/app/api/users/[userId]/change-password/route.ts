@@ -40,9 +40,9 @@ async function authorize(
 
 export async function POST(
   request: Request,
-  context: { params: { userId: string } }
+  context: { params: Promise<{ userId: string }> }
 ) {
-  const { userId } = context.params;
+  const { userId } = await context.params;
   if (!userId) {
     return NextResponse.json(
       { message: 'User ID is required' },
@@ -85,7 +85,7 @@ export async function POST(
   } catch (error) {
     return handleApiError(
       error,
-      `Change Password API error for user ${userId}:`
+      `Change Password API error for user ${(await context.params).userId}:`
     );
   }
 }

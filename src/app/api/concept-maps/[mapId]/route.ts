@@ -12,10 +12,10 @@ import {
 
 export async function GET(
   request: Request,
-  context: { params: { mapId: string } }
+  context: { params: Promise<{ mapId: string }> }
 ) {
   try {
-    const { mapId } = context.params;
+    const { mapId } = await context.params;
     if (!mapId) {
       return NextResponse.json(
         { message: 'Map ID is required' },
@@ -44,7 +44,7 @@ export async function GET(
     return NextResponse.json(map);
   } catch (error) {
     console.error(
-      `Get Concept Map API error (ID: ${context.params.mapId}):`,
+      `Get Concept Map API error (ID: ${(await context.params).mapId}):`,
       error
     );
     const errorMessage =
@@ -58,10 +58,10 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  context: { params: { mapId: string } }
+  context: { params: Promise<{ mapId: string }> }
 ) {
   try {
-    const { mapId } = context.params;
+    const { mapId } = await context.params;
     // const { userId } = getAuth(request as any); // Example
     // if (!userId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
@@ -109,7 +109,7 @@ export async function PUT(
     return NextResponse.json(updatedMap);
   } catch (error) {
     console.error(
-      `Update Concept Map API error (ID: ${context.params.mapId}):`,
+      `Update Concept Map API error (ID: ${(await context.params).mapId}):`,
       error
     );
     const errorMessage =
@@ -125,10 +125,10 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  context: { params: { mapId: string } }
+  context: { params: Promise<{ mapId: string }> }
 ) {
   try {
-    const { mapId } = context.params;
+    const { mapId } = await context.params;
     // const { userId } = getAuth(request as any); // Example
     // if (!userId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     const { ownerId } = (await request.json()) as { ownerId: string }; // Client must send ownerId for auth check
@@ -155,7 +155,7 @@ export async function DELETE(
     );
   } catch (error) {
     console.error(
-      `Delete Concept Map API error (ID: ${context.params.mapId}):`,
+      `Delete Concept Map API error (ID: ${(await context.params).mapId}):`,
       error
     );
     const errorMessage =

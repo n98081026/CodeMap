@@ -73,9 +73,9 @@ function handleApiError(error: unknown, context: string): NextResponse {
 
 export async function DELETE(
   _request: Request,
-  context: { params: { classroomId: string; studentId: string } }
+  context: { params: Promise<{ classroomId: string; studentId: string }> }
 ) {
-  const { classroomId, studentId } = context.params;
+  const { classroomId, studentId } = await context.params;
 
   if (!classroomId || !studentId) {
     return NextResponse.json(

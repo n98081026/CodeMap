@@ -62,10 +62,10 @@ function handleApiError(error: unknown, context: string): NextResponse {
 
 export async function GET(
   _request: Request,
-  context: { params: { classroomId: string } }
+  context: { params: Promise<{ classroomId: string }> }
 ) {
+  const { classroomId } = await context.params;
   try {
-    const { classroomId } = context.params;
     if (!classroomId) {
       return NextResponse.json(
         { message: 'Classroom ID is required' },
@@ -82,17 +82,17 @@ export async function GET(
   } catch (error) {
     return handleApiError(
       error,
-      `Get Classroom API error (ID: ${context.params.classroomId}):`
+      `Get Classroom API error (ID: ${classroomId}):`
     );
   }
 }
 
 export async function PUT(
   request: Request,
-  context: { params: { classroomId: string } }
+  context: { params: Promise<{ classroomId: string }> }
 ) {
+  const { classroomId } = await context.params;
   try {
-    const { classroomId } = context.params;
     if (!classroomId) {
       return NextResponse.json(
         { message: 'Classroom ID is required' },
@@ -112,17 +112,17 @@ export async function PUT(
   } catch (error) {
     return handleApiError(
       error,
-      `Update Classroom API error (ID: ${context.params.classroomId}):`
+      `Update Classroom API error (ID: ${classroomId}):`
     );
   }
 }
 
 export async function DELETE(
   _request: Request,
-  context: { params: { classroomId: string } }
+  context: { params: Promise<{ classroomId: string }> }
 ) {
+  const { classroomId } = await context.params;
   try {
-    const { classroomId } = context.params;
     if (!classroomId) {
       return NextResponse.json(
         { message: 'Classroom ID is required' },
@@ -144,7 +144,7 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(
       error,
-      `Delete Classroom API error (ID: ${context.params.classroomId}):`
+      `Delete Classroom API error (ID: ${classroomId}):`
     );
   }
 }
