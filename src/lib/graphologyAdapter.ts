@@ -98,7 +98,7 @@ export class GraphAdapterUtility implements GraphAdapter {
       return [];
     }
     try {
-      bfsFromNode(graphInstance, nodeId, (visitedNodeId) => {
+      bfsFromNode(graphInstance as any, nodeId, (visitedNodeId: string) => {
         if (visitedNodeId !== nodeId) {
           descendants.add(visitedNodeId);
         }
@@ -121,17 +121,17 @@ export class GraphAdapterUtility implements GraphAdapter {
       return [];
     }
 
-    const reversedGraph = toDirected(graphInstance, {
-      mergeEdge: (edge, attrs) => ({ ...attrs }),
+    const reversedGraph = toDirected(graphInstance as any, {
+      mergeEdge: (edge: string, attrs: Record<string, any>) => ({ ...attrs }),
     });
-    reversedGraph.forEachEdge((edge, attrs, source, target) => {
+    reversedGraph.forEachEdge((edge: string, attrs: Record<string, any>, source: string, target: string) => {
       reversedGraph.dropEdge(edge);
       reversedGraph.addEdge(target, source, attrs);
     });
 
     if (reversedGraph.hasNode(nodeId)) {
       try {
-        bfsFromNode(reversedGraph, nodeId, (visitedNodeId) => {
+        bfsFromNode(reversedGraph as any, nodeId, (visitedNodeId: string) => {
           if (visitedNodeId !== nodeId) ancestors.add(visitedNodeId);
         });
       } catch (e) {
@@ -239,13 +239,13 @@ export class GraphAdapterUtility implements GraphAdapter {
     }
     const communityAttribute = options?.communityAttribute || 'community';
     try {
-      const undirected = toUndirected(graphInstance);
+      const undirected = toUndirected(graphInstance as any) as any;
       louvain.assign(undirected, {
         nodeCommunityAttribute: communityAttribute,
       });
 
       const communities: Record<string, number> = {};
-      undirected.forEachNode((nodeId, attrs) => {
+      undirected.forEachNode((nodeId: string, attrs: Record<string, any>) => {
         if (attrs[communityAttribute] !== undefined) {
           communities[nodeId] = attrs[communityAttribute] as number;
         }
