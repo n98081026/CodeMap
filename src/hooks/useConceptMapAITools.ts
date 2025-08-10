@@ -16,7 +16,6 @@ import type { StagedMapDataWithContext } from '@/stores/concept-map-store';
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 
 import { runFlow } from '@/ai/flows';
-import { getNodePlacement } from '@/lib/dagreLayoutUtility';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 
 type AICommand =
@@ -121,16 +120,11 @@ export function useConceptMapAITools() {
       if (result && result.concepts) {
         const newNodes: ConceptMapNode[] = result.concepts.map(
           (concept, index) => {
-            const { x, y } = getNodePlacement(
-              mapData.nodes,
-              'generic',
-              null,
-              null,
-              20,
-              index
-            );
+            // Simple placement logic to arrange new nodes in a row
+            const x = index * 170 + 50; // 150 width + 20 padding
+            const y = 400; // A fixed Y position for the staging row
             return {
-              id: '', // ID will be assigned when accepting
+              id: `staged-${Date.now()}-${index}`,
               text: String(concept.text),
               x: Number(x),
               y: Number(y),
@@ -147,7 +141,7 @@ export function useConceptMapAITools() {
         });
       }
     },
-    [executeAICommand, mapData.nodes, setStagedMapData]
+    [executeAICommand, setStagedMapData]
   );
 
   const handleSuggestRelations = useCallback(async () => {
@@ -169,11 +163,11 @@ export function useConceptMapAITools() {
             mapData.nodes.some((n) => n.id === relation.targetNodeId)
         )
         .map((relation) => ({
-          id: '', // ID will be assigned when accepting
+          id: `staged-${Date.now()}`,
           source: relation.sourceNodeId,
           target: relation.targetNodeId,
           label: relation.label,
-          data: { details: relation.reason },
+          details: relation.reason, // Correctly assign details to the edge
         }));
 
       setStagedMapData({
@@ -185,8 +179,6 @@ export function useConceptMapAITools() {
   }, [executeAICommand, mapData.nodes, setStagedMapData]);
 
   const openExpandConceptModal = (nodeId: string) => {
-    // Logic to open a modal for expansion will go here
-    // For now, we directly call the expansion logic
     handleExpandConcept(nodeId);
   };
 
@@ -200,7 +192,7 @@ export function useConceptMapAITools() {
         ExpandConceptOutput
       >(
         'expandConcept',
-        { concept: node.data.label, context: node.data.details || '' },
+        { concept: node.text, context: node.details || '' },
         {
           successTitle: 'Concept Expanded',
           successDescription:
@@ -213,17 +205,12 @@ export function useConceptMapAITools() {
         const parentNode = node;
         const newNodes: ConceptMapNode[] = result.newConcepts.map(
           (concept, index) => {
-            const { x, y } = getNodePlacement(
-              mapData.nodes,
-              'child',
-              parentNode,
-              null,
-              150,
-              index,
-              result.newConcepts.length
-            );
+            // Simple placement logic: circle around the parent node
+            const angle = (index / result.newConcepts.length) * 2 * Math.PI;
+            const x = (parentNode.x ?? 0) + 200 * Math.cos(angle);
+            const y = (parentNode.y ?? 0) + 150 * Math.sin(angle);
             return {
-              id: '', // ID will be assigned when accepting
+              id: `staged-${Date.now()}-${index}`,
               text: concept.text,
               x,
               y,
@@ -234,11 +221,11 @@ export function useConceptMapAITools() {
         );
 
         const newEdges: ConceptMapEdge[] = newNodes.map((newNode) => ({
-          id: '', // ID will be assigned when accepting
+          id: `staged-edge-${Date.now()}-${newNode.id}`,
           source: parentNode.id,
-          target: newNode.id, // This will need to be updated when IDs are assigned
+          target: newNode.id,
           label:
-            result.edges?.find((e) => e.target === newNode.data.label)?.label ||
+            result.edges?.find((e) => e.target === newNode.text)?.label ||
             'related to',
         }));
 
@@ -260,7 +247,7 @@ export function useConceptMapAITools() {
       setRewriteModalState({
         isOpen: true,
         nodeId,
-        originalContent: `${node.data.label}\n\n${node.data.details || ''}`,
+        originalContent: `${node.text}\n\n${node.details || ''}`,
         rewrittenContent: null,
       });
     },

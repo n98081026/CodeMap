@@ -9,7 +9,7 @@ import { z } from 'zod';
 // TODO: The following modal components are not yet implemented or have been removed.
 // Re-enable them once they are available.
 // import { AskQuestionAboutEdgeModal } from './AskQuestionAboutEdgeModal';
-import { GenerateSnippetModal } from './generate-snippet-modal';
+// import { GenerateSnippetModal } from './generate-snippet-modal';
 // import { MapSummaryModal } from './map-summary-modal';
 // import { QuickClusterModal } from './quick-cluster-modal';
 // import { RewriteNodeContentModal } from './rewrite-node-content-modal';
@@ -297,12 +297,12 @@ export const GenAIModals: React.FC = () => {
         onConfirm={aiTools.handleQuickCluster}
         isLoading={aiTools.isProcessing}
       /> */}
-      <GenerateSnippetModal
+      {/* <GenerateSnippetModal
         isOpen={aiTools.isGenerateSnippetModalOpen}
         onOpenChange={aiTools.setIsGenerateSnippetModalOpen}
         onConfirm={aiTools.handleGenerateSnippetFromText}
         isLoading={aiTools.isProcessing}
-      />
+      /> */}
       {/* <MapSummaryModal
         isOpen={aiTools.isSummarizeMapModalOpen}
         onOpenChange={aiTools.setIsSummarizeMapModalOpen}

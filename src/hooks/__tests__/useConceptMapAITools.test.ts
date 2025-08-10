@@ -7,7 +7,7 @@ import { useConceptMapAITools } from '../useConceptMapAITools';
 import * as aiFlows from '@/ai/flows';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapStore } from '@/stores/concept-map-store';
-import { ConceptMapNode } from '@/types/concept-map';
+import { ConceptMapNode } from '@/types';
 
 // Mock dependencies
 vi.mock('@/ai/flows', async () => {
@@ -40,12 +40,11 @@ vi.mock('@/stores/concept-map-store');
 const mockNodeId = 'node-1';
 const mockNode: ConceptMapNode = {
   id: mockNodeId,
-  data: {
-    label: 'Test Node',
-    details: 'Some details.',
-  },
+  text: 'Test Node',
+  details: 'Some details.',
   type: 'default',
-  position: { x: 0, y: 0 },
+  x: 0,
+  y: 0,
 };
 
 describe('useConceptMapAITools', () => {
@@ -82,7 +81,7 @@ describe('useConceptMapAITools', () => {
       };
       (aiFlows as any).runFlow.mockResolvedValue(mockExtractedData);
 
-      const { result } = renderHook(() => useConceptMapAITools(false));
+      const { result } = renderHook(() => useConceptMapAITools());
 
       await act(async () => {
         await result.current.handleExtractConcepts({
@@ -118,7 +117,7 @@ describe('useConceptMapAITools', () => {
       const error = new Error('AI failed');
       (aiFlows as any).runFlow.mockRejectedValue(error);
 
-      const { result } = renderHook(() => useConceptMapAITools(false));
+      const { result } = renderHook(() => useConceptMapAITools());
 
       await act(async () => {
         await result.current.handleExtractConcepts({
@@ -139,7 +138,7 @@ describe('useConceptMapAITools', () => {
   // Example for another function
   describe('handleRewriteNodeContent', () => {
     it('should open the rewrite modal with correct content', async () => {
-      const { result } = renderHook(() => useConceptMapAITools(false));
+      const { result } = renderHook(() => useConceptMapAITools());
 
       act(() => {
         result.current.openRewriteNodeContentModal(mockNodeId);
@@ -156,7 +155,7 @@ describe('useConceptMapAITools', () => {
       const mockRewrite = { rewrittenText: 'Rewritten content' };
       (aiFlows as any).runFlow.mockResolvedValue(mockRewrite);
 
-      const { result } = renderHook(() => useConceptMapAITools(false));
+      const { result } = renderHook(() => useConceptMapAITools());
 
       // First, open the modal
       act(() => {

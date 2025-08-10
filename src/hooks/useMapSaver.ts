@@ -84,7 +84,7 @@ export function useMapSaver({ user }: UseMapSaverProps) {
       };
 
       try {
-        let savedMapData: ConceptMap;
+        let savedMapData: ConceptMap | null;
         if (isNewMapMode || storeMapId === 'new' || storeMapId === null) {
           savedMapData = await mapService.createConceptMap(
             payload.name,
@@ -94,7 +94,18 @@ export function useMapSaver({ user }: UseMapSaverProps) {
             payload.sharedWithClassroomId
           );
         } else {
-          savedMapData = await mapService.updateConceptMap(storeMapId, payload);
+          const updatedMap = await mapService.updateConceptMap(
+            storeMapId,
+            payload
+          );
+          if (!updatedMap) {
+            throw new Error('Failed to update map: No data returned from service.');
+          }
+          savedMapData = updatedMap;
+        }
+
+        if (!savedMapData) {
+          throw new Error('Save operation did not return a valid map.');
         }
 
         const currentViewOnlyModeInStore =

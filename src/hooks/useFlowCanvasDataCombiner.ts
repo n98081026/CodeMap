@@ -30,7 +30,7 @@ export const useFlowCanvasDataCombiner = ({
       const rfStagedNodes = stagedMapData.nodes.map((node) => ({
         id: node.id,
         type: 'custom',
-        position: { x: node.x, y: node.y },
+        position: { x: node.x ?? 0, y: node.y ?? 0 },
         data: {
           label: node.text,
           details: node.details,
@@ -54,7 +54,7 @@ export const useFlowCanvasDataCombiner = ({
       const rfGhostNodes = ghostPreviewData.nodes.map((node) => ({
         id: `ghost-${node.id}`,
         type: 'ghost',
-        position: { x: node.x, y: node.y },
+        position: { x: node.x ?? 0, y: node.y ?? 0 },
         data: {
           label: node.text,
           details: node.details,
@@ -84,9 +84,10 @@ export const useFlowCanvasDataCombiner = ({
           type: 'suggestedGroup',
           position: { x: suggestion.data.x || 0, y: suggestion.data.y || 0 },
           data: {
+            label: suggestion.data.label || 'Group', // Ensure label is present
             suggestion: suggestion.data,
             isViewOnly: isViewOnlyMode,
-          },
+          } as CustomNodeData,
           className: 'suggestion-node',
           selectable: false,
           draggable: false,

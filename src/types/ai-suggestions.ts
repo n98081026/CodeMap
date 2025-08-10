@@ -59,9 +59,3 @@ export const StructuralSuggestionItemSchema = z.discriminatedUnion('type', [
 export const AllStructuralSuggestionsSchema = z.array(
   StructuralSuggestionItemSchema
 );
-
-export interface VisualEdgeSuggestion {
-  source: string;
-  target: string;
-  label: string;
-}

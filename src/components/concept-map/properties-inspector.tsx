@@ -252,28 +252,29 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       // Check if "/ai" is present and is the last typed part of a word or followed by a space
       const commandRegex = /\/ai(?:\s|$)/i; // /ai followed by space or end of string
       const match = commandRegex.exec(value);
-      const commandIndex = match ? match.index : -1;
+      // const commandIndex = match ? match.index : -1;
 
-      if (commandIndex !== -1) {
-        const textAfterCommand = value.substring(
-          commandIndex + commandPrefix.length
-        );
-        // Only show palette if there's a space after /ai or it's just /ai
-        if (
-          value.charAt(commandIndex + commandPrefix.length) === ' ' ||
-          value.substring(commandIndex) === commandPrefix
-        ) {
-          const query = textAfterCommand.trimStart();
-          setPaletteQuery(query);
-          setShowPalette(true);
-          setPaletteTargetRef(ref);
-          setActiveCommandField(field);
-        } else {
-          setShowPalette(false);
-        }
-      } else {
-        setShowPalette(false);
-      }
+      // if (commandIndex !== -1) {
+      //   const textAfterCommand = value.substring(
+      //     commandIndex + commandPrefix.length
+      //   );
+      //   // Only show palette if there's a space after /ai or it's just /ai
+      //   if (
+      //     value.charAt(commandIndex + commandPrefix.length) === ' ' ||
+      //     value.substring(commandIndex) === commandPrefix
+      //   ) {
+      //     const query = textAfterCommand.trimStart();
+      //     // FIXME: Re-implement AI Palette logic
+      //     // setPaletteQuery(query);
+      //     // setShowPalette(true);
+      //     // setPaletteTargetRef(ref);
+      //     // setActiveCommandField(field);
+      //   } else {
+      //     // setShowPalette(false);
+      //   }
+      // } else {
+      //   // setShowPalette(false);
+      // }
     },
     [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
@@ -745,7 +746,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             )
               return;
             onSelectedElementPropertyUpdate({
-              type: e.target.value,
+              type: e.target.value as ConceptMapNode['type'],
             });
           }}
           disabled={isViewOnlyMode}

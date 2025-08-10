@@ -41,5 +41,5 @@ export default function AdminDashboardPage() {
   // Render the shared view component
   // The 'user' prop might be passed if AdminDashboardView needs it,
   // though AdminDashboardView itself uses useAdminDashboardMetrics which doesn't strictly need user from props.
-  return <AdminDashboardView user={user} />;
+  return <AdminDashboardView />;
 }

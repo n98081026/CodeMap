@@ -53,11 +53,8 @@ export const MemoizedCustomNode: React.FC<NodeProps<CustomNodeData>> = memo(
 
     // Memoize text content to prevent unnecessary re-renders
     const textContent = useMemo(() => {
-      if (typeof data.label === 'string') {
-        return data.label;
-      }
-      return data.text || 'Untitled Node';
-    }, [data.label, data.text]);
+      return data.label || 'Untitled Node';
+    }, [data.label]);
 
     // Memoize node dimensions
     const dimensions = useMemo(
@@ -69,17 +66,12 @@ export const MemoizedCustomNode: React.FC<NodeProps<CustomNodeData>> = memo(
     );
 
     // Memoized event handlers
-    const handleAIExpand = useCallback(() => {
-      if (data.onTriggerAIExpand && !data.isViewOnly) {
-        data.onTriggerAIExpand(id);
-      }
-    }, [data.onTriggerAIExpand, data.isViewOnly, id]);
-
     const handleStartConnection = useCallback(() => {
-      if (data.onStartConnectionRequest && !data.isViewOnly) {
-        data.onStartConnectionRequest(id);
-      }
-    }, [data.onStartConnectionRequest, data.isViewOnly, id]);
+      // TODO: Re-implement onStartConnectionRequest if needed for this component
+      // if (data.onStartConnectionRequest && !data.isViewOnly) {
+      //   data.onStartConnectionRequest(id);
+      // }
+    }, [id]);
 
     // Memoize shape classes
     const shapeClasses = useMemo(() => {
@@ -87,12 +79,8 @@ export const MemoizedCustomNode: React.FC<NodeProps<CustomNodeData>> = memo(
         'relative flex items-center justify-center p-3 border rounded shadow-sm hover:shadow-md transition-all duration-200';
 
       switch (data.shape) {
-        case 'circle':
+        case 'ellipse':
           return cn(baseClasses, 'rounded-full');
-        case 'diamond':
-          return cn(baseClasses, 'transform rotate-45');
-        case 'hexagon':
-          return cn(baseClasses, 'clip-path-hexagon');
         default:
           return cn(baseClasses, 'rounded-lg');
       }
@@ -166,16 +154,8 @@ export const MemoizedCustomNode: React.FC<NodeProps<CustomNodeData>> = memo(
         {/* Action Buttons */}
         {!data.isViewOnly && selected && (
           <div className='absolute -top-8 left-1/2 transform -translate-x-1/2 flex gap-1 bg-background border rounded-md shadow-lg p-1'>
-            {data.onTriggerAIExpand && (
-              <button
-                onClick={handleAIExpand}
-                className='p-1 hover:bg-accent rounded text-xs'
-                title='AI Expand'
-              >
-                🧠
-              </button>
-            )}
-            {data.onStartConnectionRequest && (
+            {/* TODO: Re-implement connection button if needed */}
+            {/* {data.onStartConnectionRequest && (
               <button
                 onClick={handleStartConnection}
                 className='p-1 hover:bg-accent rounded text-xs'
@@ -183,7 +163,7 @@ export const MemoizedCustomNode: React.FC<NodeProps<CustomNodeData>> = memo(
               >
                 🔗
               </button>
-            )}
+            )} */}
           </div>
         )}
 
@@ -207,7 +187,6 @@ export const MemoizedCustomNode: React.FC<NodeProps<CustomNodeData>> = memo(
       prevProps.selected === nextProps.selected &&
       prevProps.dragging === nextProps.dragging &&
       prevData.label === nextData.label &&
-      prevData.text === nextData.text &&
       prevData.details === nextData.details &&
       prevData.backgroundColor === nextData.backgroundColor &&
       prevData.shape === nextData.shape &&

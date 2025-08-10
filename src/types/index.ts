@@ -102,6 +102,7 @@ export enum ProjectSubmissionStatus {
 export interface ProjectSubmission {
   id: string;
   studentId: string;
+  studentName?: string; // From joined queries
   classroomId?: string | null;
   originalFileName: string;
   fileSize: number;
@@ -152,3 +153,10 @@ export interface VisualEdgeSuggestion {
   midpointX?: number;
   midpointY?: number;
 }
+
+/**
+ * Extracts the possible node types from the ConceptMapNode interface.
+ * This ensures that any changes to the node types in the interface are automatically
+ * reflected wherever NodeType is used.
+ */
+export type NodeType = ConceptMapNode['type'];

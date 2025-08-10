@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { temporal, type TemporalState as ZundoTemporalState } from 'zundo';
-import { create, StateCreator } from 'zustand';
+import { create, StateCreator, StoreApi, UseBoundStore } from 'zustand';
 
 import type {
   ConceptMap,
@@ -35,6 +35,9 @@ export interface StagedMapDataWithContext {
   nodes: ConceptMapNode[];
   edges: ConceptMapEdge[];
   actionType?:
+    | 'extractConcepts'
+    | 'suggestRelations'
+    | 'expandConcept'
     | 'intermediateNode'
     | 'summarizeNodes'
     | 'quickCluster'
@@ -1022,7 +1025,10 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       // The actual flow is mocked in the test environment
       const overviewData = await (
         await import('@/ai/flows/generate-project-overview')
-      ).generateProjectOverviewFlow(input);
+      ).generateProjectOverview({
+        projectPath: input.projectStoragePath,
+        context: input.userGoals,
+      });
       set({
         projectOverviewData: overviewData,
         isFetchingOverview: false,
@@ -1105,11 +1111,14 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       structuralSuggestions: [...state.structuralSuggestions, suggestion],
     })),
   updateStructuralSuggestion: (updatedSuggestion) =>
-    set((state) => ({
-      structuralSuggestions: state.structuralSuggestions.map((s) =>
-        s.id === updatedSuggestion.id ? { ...s, ...updatedSuggestion } : s
-      ),
-    })),
+    set(
+      (state) =>
+        ({
+          structuralSuggestions: state.structuralSuggestions.map((s) =>
+            s.id === updatedSuggestion.id ? { ...s, ...updatedSuggestion } : s
+          ),
+        }) as any
+    ), // FIXME: This is a temporary fix for a complex type issue
   removeStructuralSuggestion: (suggestionId) =>
     set((state) => ({
       structuralSuggestions: state.structuralSuggestions.filter(
