@@ -74,16 +74,32 @@ export const useFlowCanvasEventHandlers = ({
   onPaneContextMenuRequest,
   onConceptSuggestionDrop,
 }: UseFlowCanvasEventHandlersProps) => {
+  const { nodes: allNodes } = useConceptMapStore(
+    useCallback((s) => ({ nodes: s.mapData.nodes }), [])
+  );
+
   // Node drag handlers
   const onNodeDragInternal = useCallback(
     (_event: React.MouseEvent, draggedNode: RFNode<CustomNodeData>) => {
       if (isViewOnlyMode || !draggedNode.positionAbsolute) return;
 
+      const rfNodes = allNodes.map((n) => ({
+        id: n.id,
+        position: { x: n.x ?? 0, y: n.y ?? 0 },
+        data: { id: n.id, label: n.text, details: n.details, type: n.type },
+        width: n.width,
+        height: n.height,
+        positionAbsolute: { x: n.x ?? 0, y: n.y ?? 0 },
+      }));
+
       const { snappedPosition, activeSnapLines } =
         calculateSnappedPositionAndLines(
           draggedNode.positionAbsolute,
-          [],
-          SNAP_THRESHOLD
+          { width: draggedNode.width || 0, height: draggedNode.height || 0 },
+          rfNodes,
+          GRID_SIZE,
+          SNAP_THRESHOLD,
+          draggedNode.id
         );
 
       if (
@@ -182,12 +198,12 @@ export const useFlowCanvasEventHandlers = ({
 
   // Selection handler
   const handleRfSelectionChange = useCallback(
-    (selection: NodeSelectionChange) => {
+    (selection: any) => {
       const selectedRfNodes = selection.nodes || [];
       if (selectedRfNodes.length === 1) {
         onSelectionChange(selectedRfNodes[0].id, 'node');
       } else if (selectedRfNodes.length > 1) {
-        onMultiNodeSelectionChange?.(selectedRfNodes.map((n) => n.id));
+        onMultiNodeSelectionChange?.(selectedRfNodes.map((n: RFNode) => n.id));
         onSelectionChange(null, null);
       } else {
         onSelectionChange(null, null);
