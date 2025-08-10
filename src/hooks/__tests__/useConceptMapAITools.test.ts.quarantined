@@ -1,0 +1,141 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
+
+import { useConceptMapAITools } from '../useConceptMapAITools';
+import * as aiFlows from '@/ai/flows';
+import { useToast } from '@/hooks/use-toast';
+import { useConceptMapStore } from '@/stores/concept-map-store';
+import { ConceptMapNode } from '@/types';
+
+// --- Mocks ---
+vi.mock('@/ai/flows', () => ({
+  runFlow: vi.fn(),
+}));
+
+vi.mock('@/hooks/use-toast', () => ({
+  useToast: vi.fn(),
+}));
+
+vi.mock('@/stores/concept-map-store');
+
+const mockNodeId = 'node-1';
+const mockNode: ConceptMapNode = {
+  id: mockNodeId,
+  text: 'Test Node',
+  details: 'Some details.',
+  type: 'default',
+  x: 0,
+  y: 0,
+};
+
+describe('useConceptMapAITools', () => {
+  let setStagedMapData: Mock;
+  let addDebugLog: Mock;
+  let toast: Mock;
+  let mockSetState: Mock;
+
+  beforeEach(() => {
+    // Reset mocks before each test
+    vi.clearAllMocks();
+
+    // Setup mock implementations
+    setStagedMapData = vi.fn();
+    addDebugLog = vi.fn();
+    toast = vi.fn().mockReturnValue({ id: 'toast-id' });
+    mockSetState = vi.fn();
+
+    // Mock the return value of the custom hooks
+    (useToast as Mock).mockReturnValue({ toast });
+    (useConceptMapStore as unknown as Mock).mockImplementation((selector: any) => {
+      const state = {
+        setStagedMapData,
+        addDebugLog,
+        mapData: { nodes: [mockNode], edges: [] },
+        // Add any other state properties that the hook might need during the test
+      };
+      if (selector) {
+        return selector(state);
+      }
+      return state;
+    });
+
+    // A simplified mock for the store's setState function if needed
+    (useConceptMapStore as any).setState = mockSetState;
+  });
+
+  describe('handleExtractConcepts', () => {
+    it('should call extractConcepts flow and stage data on success', async () => {
+      // Arrange
+      const mockExtractedData = {
+        concepts: [{ text: 'concept1', reason: 'reason1' }],
+      };
+      vi.mocked(aiFlows.runFlow).mockResolvedValue(mockExtractedData);
+      const { result } = renderHook(() => useConceptMapAITools());
+
+      // Act
+      await act(async () => {
+        await result.current.handleExtractConcepts({ context: 'some context' });
+      });
+
+      // Assert
+      expect(aiFlows.runFlow).toHaveBeenCalledWith('extractConcepts', { context: 'some context' });
+      expect(setStagedMapData).toHaveBeenCalled();
+      expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Concepts Extracted' }));
+    });
+
+    it('should show an error toast on failure', async () => {
+      // Arrange
+      const error = new Error('AI extraction failed');
+      vi.mocked(aiFlows.runFlow).mockRejectedValue(error);
+      const { result } = renderHook(() => useConceptMapAITools());
+
+      // Act
+      await act(async () => {
+        await result.current.handleExtractConcepts({ context: 'some context' });
+      });
+
+      // Assert
+      expect(toast).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'Error Extracting Concepts',
+        variant: 'destructive',
+      }));
+    });
+  });
+
+  describe('handleRewriteNodeContent', () => {
+     it('should open the rewrite modal with correct content', async () => {
+      const { result } = renderHook(() => useConceptMapAITools());
+
+      act(() => {
+        result.current.openRewriteNodeContentModal(mockNodeId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.rewriteModalState.isOpen).toBe(true);
+        expect(result.current.rewriteModalState.nodeId).toBe(mockNodeId);
+      });
+    });
+
+    it('should call rewriteNodeContent flow and update state', async () => {
+      // Arrange
+      const mockRewrite = { rewrittenText: 'Rewritten content' };
+      vi.mocked(aiFlows.runFlow).mockResolvedValue(mockRewrite);
+      const { result } = renderHook(() => useConceptMapAITools());
+
+      // Act
+      act(() => {
+        result.current.openRewriteNodeContentModal(mockNodeId);
+      });
+      await act(async () => {
+        await result.current.handleRewriteNodeContent('concise');
+      });
+
+      // Assert
+      expect(aiFlows.runFlow).toHaveBeenCalledWith('rewriteNode', expect.any(Object));
+      await waitFor(() => {
+         expect(result.current.rewriteModalState.rewrittenContent).toBe(mockRewrite.rewrittenText);
+      });
+    });
+  });
+});
