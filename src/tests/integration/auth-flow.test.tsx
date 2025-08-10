@@ -3,41 +3,12 @@
  * Tests the complete user authentication journey
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import { AuthProvider } from '@/contexts/auth-context';
 import { supabase } from '@/lib/supabaseClient';
 
-// A more robust mock for the Supabase client
-vi.mock('@/lib/supabaseClient', () => {
-  const mockAuth: any = {
-    signUp: vi.fn(),
-    signInWithPassword: vi.fn(),
-    signOut: vi.fn(),
-    getSession: vi.fn(),
-    onAuthStateChange: vi.fn(() => ({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    })),
-  };
-
-  const mockFrom: any = (table: string) => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-    single: vi.fn().mockResolvedValue({ data: null, error: null }),
-  });
-
-  return {
-    supabase: {
-      auth: mockAuth,
-      from: vi.fn(mockFrom),
-    },
-  };
-});
+vi.mock('@/lib/supabaseClient');
 
 // Test component that uses auth context
 function TestAuthComponent() {
@@ -49,13 +20,44 @@ function TestAuthComponent() {
 }
 
 describe('Authentication Integration Tests', () => {
+  let mockSupabaseBuilder: {
+    select: any;
+    insert: any;
+    update: any;
+    delete: any;
+    eq: any;
+    in: any;
+    maybeSingle: any;
+    single: any;
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+
+    mockSupabaseBuilder = {
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    };
+
+    vi.mocked(supabase, true).auth = {
+      signUp: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn(),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      }),
+    } as any;
+
+    vi.mocked(supabase, true).from = vi.fn().mockReturnValue(mockSupabaseBuilder);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
 
   describe('User Registration Flow', () => {
     it('should handle successful user registration', async () => {
@@ -77,8 +79,7 @@ describe('Authentication Integration Tests', () => {
       });
 
       // Mock profile creation
-      (supabase.from as any).mockReturnValue({
-        insert: vi.fn().mockReturnValue({
+      (mockSupabaseBuilder.insert as vi.Mock).mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
               data: {
@@ -90,8 +91,7 @@ describe('Authentication Integration Tests', () => {
               error: null,
             }),
           }),
-        }),
-      });
+        });
 
       render(<TestAuthComponent />);
 
@@ -122,7 +122,7 @@ describe('Authentication Integration Tests', () => {
         data: { user: mockUser, session: mockSession },
         error: null,
       });
-      (supabase.from as any)().select().eq().single.mockResolvedValueOnce({
+      (mockSupabaseBuilder.single as vi.Mock).mockResolvedValueOnce({
         data: { id: 'user-123', name: 'Test User', email: 'test@example.com', role: 'student' },
         error: null,
       });
@@ -155,7 +155,7 @@ describe('Authentication Integration Tests', () => {
         data: { session: mockSession },
         error: null,
       });
-      (supabase.from as any)().select().eq().single.mockResolvedValueOnce({
+      (mockSupabaseBuilder.single as vi.Mock).mockResolvedValueOnce({
         data: { id: 'user-123', name: 'Test User', email: 'test@example.com', role: 'student' },
         error: null,
       });
@@ -190,7 +190,7 @@ describe('Authentication Integration Tests', () => {
         data: { user: mockUser, session: { user: mockUser } },
         error: null,
       });
-      (supabase.from as any)().insert().select().single.mockResolvedValueOnce({
+      (mockSupabaseBuilder.single as vi.Mock).mockResolvedValueOnce({
         data: { id: 'user-123', name: 'Test User', email: 'test@example.com', role: 'student' },
         error: null,
       });

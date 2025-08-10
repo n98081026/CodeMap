@@ -1111,14 +1111,15 @@ const storeDefinition: StateCreator<ConceptMapState> = (set, get) => ({
       structuralSuggestions: [...state.structuralSuggestions, suggestion],
     })),
   updateStructuralSuggestion: (updatedSuggestion) =>
-    set(
-      (state) =>
-        ({
-          structuralSuggestions: state.structuralSuggestions.map((s) =>
-            s.id === updatedSuggestion.id ? { ...s, ...updatedSuggestion } : s
-          ),
-        }) as any
-    ), // FIXME: This is a temporary fix for a complex type issue
+    set((state) => ({
+      structuralSuggestions: state.structuralSuggestions.map((s) =>
+        s.id === updatedSuggestion.id
+          ? ({ ...s, ...updatedSuggestion } as z.infer<
+              typeof StructuralSuggestionItemSchema
+            >)
+          : s
+      ),
+    })),
   removeStructuralSuggestion: (suggestionId) =>
     set((state) => ({
       structuralSuggestions: state.structuralSuggestions.filter(
