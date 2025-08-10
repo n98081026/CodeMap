@@ -34,8 +34,20 @@
     -   **後續**: 見下方新增的待辦事項。
 
 2.  **[ ] (修復) 調查被隔離的 `useConceptMapAITools.test.ts`**
-    -   **背景**: 此測試檔案 (`src/hooks/__tests__/useConceptMapAITools.test.ts.quarantined`) 是導致測試套件超時的根本原因。
+    -   **背景**: 此測試檔案 (`src/hooks/__tests__/useConceptMapAITools.test.ts.quarantined`) 是導致測試套件超時的原因之一。
     -   **任務**: 需要深入調試此測試，找出導致無限掛起的具體原因（可能是 Mock 問題或 hook 內的無限循環），並予以修復。
+
+3.  **[ ] (修復) 調查被隔離的 `useMapLoader.test.ts`**
+    -   **背景**: 此測試檔案 (`src/hooks/__tests__/useMapLoader.test.ts.quarantined`) 同樣會導致測試套件超時。
+    -   **任務**: 同上，需要調試並修復此測試中的無限掛起問題。
+
+4.  **[ ] (修復) 調查被隔離的 `conceptMapService.test.ts`**
+    -   **背景**: 此測試檔案 (`src/services/conceptMaps/__tests__/conceptMapService.test.ts.quarantined`) 同樣會導致測試套件超時，且存在與其他被隔離測試類似的深層 Mocking 問題。
+    -   **任務**: 應使用更高層級的服務 Mocking 策略重寫此測試，而不是模擬底層的 Supabase client。
+
+5.  **[ ] (修復) 調查被隔離的 `concept-map-store.test.ts`**
+    -   **背景**: 此測試檔案 (`src/stores/__tests__/concept-map-store.test.ts.quarantined`) 同樣會導致測試套件超時。`zundo` (時間旅行) 和 `zustand` 的複雜交互作用可能是導致測試掛起的根本原因。
+    -   **任務**: 需要徹底重寫此測試，可能需要為 `zundo` store 創建一個簡化的測試專用 mock。
 
 2.  **[ ] (配置) 設置生產環境變數**
 3.  **[ ] (部署) 部署前檢查**
