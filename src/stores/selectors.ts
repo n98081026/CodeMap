@@ -97,5 +97,4 @@ export const selectAIState = (state: ConceptMapState) => ({
   suggestedRelations: state.aiSuggestedRelations,
   stagedMapData: state.stagedMapData,
   ghostPreviewData: state.ghostPreviewData,
-  isAIProcessing: state.isAIProcessing,
 });

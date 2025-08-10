@@ -153,3 +153,10 @@ export interface VisualEdgeSuggestion {
   midpointX?: number;
   midpointY?: number;
 }
+
+/**
+ * Extracts the possible node types from the ConceptMapNode interface.
+ * This ensures that any changes to the node types in the interface are automatically
+ * reflected wherever NodeType is used.
+ */
+export type NodeType = ConceptMapNode['type'];

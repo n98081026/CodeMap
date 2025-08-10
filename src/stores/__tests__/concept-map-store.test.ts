@@ -17,7 +17,7 @@ import type {
   ConceptMapEdge,
   ConceptMapData,
 } from '@/types';
-import { NodeType } from '@/types/concept-map';
+import { NodeType } from '@/types';
 
 // Mocking uuid
 vi.mock('uuid', () => ({
@@ -26,7 +26,7 @@ vi.mock('uuid', () => ({
 
 // Mocking the external flow used in fetchProjectOverview
 vi.mock('@/ai/flows/generate-project-overview', () => ({
-  generateProjectOverviewFlow: vi.fn(),
+  generateProjectOverview: vi.fn(),
 }));
 // We will get the mock instance dynamically inside the test
 
@@ -805,10 +805,10 @@ describe('useConceptMapStore', () => {
         overallSummary: 'Summary',
         keyModules: [],
       };
-      const { generateProjectOverviewFlow } = await import(
+      const { generateProjectOverview } = await import(
         '@/ai/flows/generate-project-overview'
       );
-      vi.mocked(generateProjectOverviewFlow).mockResolvedValue(mockOverview);
+      vi.mocked(generateProjectOverview).mockResolvedValue(mockOverview);
 
       const store = useConceptMapStore.getState();
       await act(async () => {
@@ -843,14 +843,35 @@ describe('useConceptMapStore', () => {
 
   describe('Structural Suggestions Actions', () => {
     const suggestion1 = {
-      id: 'sug1',
-      type: 'ADD_NODE',
-      data: { text: 'New Node Sug' },
+      id: '123e4567-e89b-12d3-a456-426614174000', // Mock UUID
+      type: 'ADD_EDGE',
+      status: 'pending' as const,
       reason: 'Reason 1',
+      data: {
+        sourceNodeId: 'node-1',
+        targetNodeId: 'node-2',
+        label: 'connects',
+      },
     };
     it('addStructuralSuggestion: should add a suggestion', () => {
+      // Need to add nodes for the edge to be valid, though the action itself doesn't check
       act(() => {
-        useConceptMapStore.getState().addStructuralSuggestion(suggestion1);
+        useConceptMapStore.getState().addNode({
+          id: 'node-1',
+          text: 'Node 1',
+          type: 'default',
+          position: { x: 0, y: 0 },
+        });
+        useConceptMapStore.getState().addNode({
+          id: 'node-2',
+          text: 'Node 2',
+          type: 'default',
+          position: { x: 100, y: 0 },
+        });
+      });
+
+      act(() => {
+        useConceptMapStore.getState().addStructuralSuggestion(suggestion1 as any); // Using 'as any' because the input type in store is complex Zod
       });
       expect(
         useConceptMapStore.getState().structuralSuggestions
