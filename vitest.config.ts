@@ -20,8 +20,9 @@ export default defineConfig({
     // Set memory limits and reduce timeout for faster feedback
     testTimeout: 10000,
     hookTimeout: 10000,
-    // Limit memory usage
-    maxConcurrency: 1,
+    // maxConcurrency: 1 was likely a workaround for the 'forks' issue.
+    // With the pool back to the default 'threads', this may no longer be needed
+    // and could be the source of the new timeout. Removing it to allow default concurrency.
     include: [
       'src/**/*.test.{ts,tsx}',
       'src/**/__tests__/**/*.{ts,tsx}',
