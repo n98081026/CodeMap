@@ -23,7 +23,7 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 
 // Import the mock implementations statically
 import * as navigationMock from '@/tests/__mocks__/next/navigation';
-import * as mainLayoutMock from '@/tests/__mocks__/components/layout/main-layout';
+import * as mainLayoutMock from '@/tests/__mocks__/components/layout/main-layout.tsx';
 
 // Global mock for next/navigation
 // This ensures that all tests that import from 'next/navigation' will use our mock.
@@ -34,9 +34,8 @@ vi.mock('@/components/layout/main-layout', () => mainLayoutMock);
 
 // Mock lucide-react icons globally using a Proxy for maintainability.
 // This avoids having to manually add every single icon used in the project.
-vi.mock('lucide-react', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('lucide-react')>();
-
+// The mock factory MUST be synchronous. Using an async factory can cause the test runner to hang.
+vi.mock('lucide-react', () => {
   // A function to create a mock icon component
   const createIcon = (displayName: string) => {
     const IconComponent = (props: React.SVGProps<SVGSVGElement>) =>
@@ -48,15 +47,13 @@ vi.mock('lucide-react', async (importOriginal) => {
     return IconComponent;
   };
 
-  // Use a Proxy to dynamically create mocks for any requested icon
-  return new Proxy(actual, {
+  // Use a Proxy to dynamically create mocks for any requested icon.
+  // We return a proxy to a new plain object. Any property access on this object
+  // will be intercepted by the `get` handler, which then returns a mock icon.
+  // This is a fully synchronous and safe way to mock a module with many exports.
+  return new Proxy({}, {
     get: (target, prop: string) => {
-      // If the property exists in the actual module (e.g., for non-component exports), return it.
-      if (prop in target) {
-        return (target as any)[prop];
-      }
-      // Otherwise, dynamically create a mock component for the icon.
-      // This assumes any property that isn't in the actual module is an icon component.
+      // For any property access, just return a mock icon.
       return createIcon(prop);
     },
   });
