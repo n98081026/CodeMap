@@ -1,4 +1,5 @@
 import { Inter } from 'next/font/google';
+import { Suspense } from 'react';
 
 import type { Metadata } from 'next';
 
@@ -29,7 +30,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-body antialiased`}>
         <I18nInitializer /> {/* Add the initializer here */}
         <AuthProvider>
-          {children}
+          <Suspense fallback={<div />}>{children}</Suspense>
           <Toaster />
         </AuthProvider>
       </body>
