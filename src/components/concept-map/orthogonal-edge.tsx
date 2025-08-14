@@ -14,7 +14,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapDataStore } from '@/stores/map-data-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 export interface OrthogonalEdgeData {
   label?: string;
@@ -210,8 +211,8 @@ export const OrthogonalEdge: React.FC<EdgeProps<OrthogonalEdgeData>> =
     markerEnd,
     selected,
   }) {
-    const updateEdgeInStore = useConceptMapStore((state) => state.updateEdge);
-    const isViewOnlyMode = useConceptMapStore((state) => state.isViewOnlyMode);
+    const updateEdgeInStore = useMapDataStore((state) => state.updateEdge);
+    const isViewOnlyMode = useMapMetaStore((state) => state.isViewOnlyMode);
 
     const [isEditingLabel, setIsEditingLabel] = useState(false);
     const [currentLabelValue, setCurrentLabelValue] = useState(

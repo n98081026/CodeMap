@@ -24,8 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-// import { useConceptMapAITools } from '@/hooks/useConceptMapAITools'; // Added
-import { useConceptMapStore } from '@/stores/concept-map-store'; // Added to get isViewOnlyMode if needed
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 interface SelectedNodeToolbarProps {
   numMultiSelectedNodes: number;
@@ -66,8 +65,7 @@ const SelectedNodeToolbar: React.FC<SelectedNodeToolbarProps> = ({
   onAISuggestRelations,
   onDeleteNode,
 }) => {
-  const isViewOnlyMode = useConceptMapStore((state) => state.isViewOnlyMode); // Get from store
-  // const { handleDagreLayoutSelection } = useConceptMapAITools(isViewOnlyMode); // Get the new function
+  const isViewOnlyMode = useMapMetaStore((state) => state.isViewOnlyMode);
 
   const handleInteraction = (
     e: React.MouseEvent | React.TouchEvent | React.PointerEvent

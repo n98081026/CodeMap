@@ -6,7 +6,8 @@ import type { ConceptMap, User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER } from '@/lib/config';
 import * as mapService from '@/services/conceptMaps/conceptMapService';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 interface UseMapSaverProps {
   user: User | null;
@@ -22,12 +23,13 @@ export function useMapSaver({ user }: UseMapSaverProps) {
     isPublic,
     sharedWithClassroomId,
     isNewMapMode,
-    mapData,
     setLoadedMap,
     setIsLoading,
     setError,
     addDebugLog,
-  } = useConceptMapStore();
+  } = useMapMetaStore();
+  const { mapData } = useMapDataStore();
+
 
   const saveMap = useCallback(
     async (isViewOnlyParam: boolean) => {
@@ -109,7 +111,7 @@ export function useMapSaver({ user }: UseMapSaverProps) {
         }
 
         const currentViewOnlyModeInStore =
-          useConceptMapStore.getState().isViewOnlyMode;
+          useMapMetaStore.getState().isViewOnlyMode;
         setLoadedMap(savedMapData, currentViewOnlyModeInStore);
         toast({
           title: 'Map Saved',

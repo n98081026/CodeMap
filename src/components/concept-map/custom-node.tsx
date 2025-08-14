@@ -29,9 +29,10 @@ import SelectedNodeToolbar from './selected-node-toolbar';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-// import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { cn } from '@/lib/utils';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 export interface CustomNodeData {
   label: string;
@@ -88,14 +89,9 @@ const CustomNodeComponent: React.FC<NodeProps<CustomNodeData>> = ({
   xPos,
   yPos,
 }) => {
-  const {
-    isViewOnlyMode: globalIsViewOnlyMode,
-    setEditingNodeId,
-    aiProcessingNodeId,
-    deleteNode,
-    updateNode,
-    multiSelectedNodeIds,
-  } = useConceptMapStore();
+  const { isViewOnlyMode: globalIsViewOnlyMode } = useMapMetaStore();
+  const { setEditingNodeId, aiProcessingNodeId, multiSelectedNodeIds } = useEditorUIStore();
+  const { deleteNode, updateNode } = useMapDataStore();
 
   // onRefineGhostNode removed from data destructuring
   const nodeIsViewOnly = data.isViewOnly || globalIsViewOnlyMode;

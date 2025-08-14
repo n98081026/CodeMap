@@ -44,7 +44,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
 
 export interface ExtractedConceptItem {
   concept: string;
@@ -392,7 +392,7 @@ export const AISuggestionPanel = React.memo(function AISuggestionPanel({
   isViewOnlyMode,
 }: AISuggestionPanelProps) {
   const { setDragPreview, clearDragPreview, setDraggedRelationPreview } =
-    useConceptMapStore(
+    useEditorUIStore(
       useCallback(
         (s) => ({
           setDragPreview: s.setDragPreview,
