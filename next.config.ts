@@ -10,10 +10,10 @@ const nextConfig: NextConfig = {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy-anon-key',
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // 生產環境應檢查 TypeScript 錯誤
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false, // 生產環境應檢查 ESLint 錯誤
   },
   images: {
     remotePatterns: [

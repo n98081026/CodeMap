@@ -14,7 +14,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom', // For testing components that interact with DOM APIs
-    setupFiles: ['./src/tests/setup.ts'],
+    setupFiles: ['./src/tests/vitest-setup-enhanced.ts'],
     // The 'forks' pool was causing the test runner to hang.
     // Reverting to the default 'threads' pool by removing the custom config.
     // Set memory limits and reduce timeout for faster feedback

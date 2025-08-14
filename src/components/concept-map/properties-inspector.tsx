@@ -57,7 +57,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-// import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
+import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { cn } from '@/lib/utils';
 
 interface PropertiesInspectorProps {
@@ -105,8 +105,9 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   const nodeLabelInputRef = useRef<HTMLInputElement>(null); // Ref for node label input
   const nodeDetailsTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // AI tools integration would go here
+  // AI tools integration
   const { toast } = useToast();
+  const aiToolsHook = useConceptMapAITools();
 
   // AI Command Palette states (merge both approaches)
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -124,6 +125,14 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
   >(null);
 
   // Loading state for AI suggest intermediate node
+  const handleTriggerSuggestIntermediateNode = useCallback(() => {
+    if (!selectedElement || selectedElementType !== 'edge') return;
+    
+    toast({
+      title: 'AI Feature',
+      description: 'Suggest intermediate node feature is coming soon!',
+    });
+  }, [selectedElement, selectedElementType, toast]);
 
   useEffect(() => {
     if (
@@ -254,27 +263,30 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
       const match = commandRegex.exec(value);
       // const commandIndex = match ? match.index : -1;
 
-      // if (commandIndex !== -1) {
-      //   const textAfterCommand = value.substring(
-      //     commandIndex + commandPrefix.length
-      //   );
-      //   // Only show palette if there's a space after /ai or it's just /ai
-      //   if (
-      //     value.charAt(commandIndex + commandPrefix.length) === ' ' ||
-      //     value.substring(commandIndex) === commandPrefix
-      //   ) {
-      //     const query = textAfterCommand.trimStart();
-      //     // FIXME: Re-implement AI Palette logic
-      //     // setPaletteQuery(query);
-      //     // setShowPalette(true);
-      //     // setPaletteTargetRef(ref);
-      //     // setActiveCommandField(field);
-      //   } else {
-      //     // setShowPalette(false);
-      //   }
-      // } else {
-      //   // setShowPalette(false);
-      // }
+      if (match) {
+        const textAfterCommand = value.substring(
+          match.index + commandPrefix.length
+        );
+        // Only show palette if there's a space after /ai or it's just /ai
+        if (
+          value.charAt(match.index + commandPrefix.length) === ' ' ||
+          value.substring(match.index) === commandPrefix
+        ) {
+          const query = textAfterCommand.trimStart();
+          setCommandFilterText(query);
+          setIsPaletteOpen(true);
+          
+          // Get the target rect for positioning
+          if (ref.current) {
+            const rect = ref.current.getBoundingClientRect();
+            setPaletteTargetRect(rect);
+          }
+        } else {
+          setIsPaletteOpen(false);
+        }
+      } else {
+        setIsPaletteOpen(false);
+      }
     },
     [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
@@ -399,43 +411,49 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     [isViewOnlyMode, onSelectedElementPropertyUpdate, selectedElementType]
   );
 
-  const aiCommands = useMemo<AICommand[]>(() => {
+  const availableAICommands = useMemo<AICommand[]>(() => {
     if (!selectedElement || selectedElementType !== 'node') return [];
-    // const nodeText = (selectedElement as ConceptMapNode).text;
-    // const nodeDetails = (selectedElement as ConceptMapNode).details || "";
-
+    
+    const nodeId = selectedElement.id;
     return [
-      // {
-      //   id: 'expand',
-      //   label: 'Expand Node',
-      //   icon: Sparkles,
-      //   description: 'Generate related ideas',
-      //   action: () => openExpandConceptModal(nodeId),
-      // },
-      // {
-      //   id: 'rewrite',
-      //   label: 'Rewrite Content',
-      //   icon: MessageSquareQuote,
-      //   description: 'Refine text using AI',
-      //   action: () => openRewriteNodeContentModal(nodeId),
-      // },
-      // {
-      //   id: 'ask',
-      //   label: 'Ask Question',
-      //   icon: HelpCircle,
-      //   description: 'Get insights about this node',
-      //   action: () => openAskQuestionModal(nodeId),
-      // },
-      // {
-      //   id: 'extract',
-      //   label: 'Extract Concepts',
-      //   icon: Brain,
-      //   description: 'Identify key concepts from details',
-      //   action: () => openExtractConceptsModal(nodeId),
-      // },
-      // Add more commands as needed
+      {
+        id: 'expand-concept',
+        label: 'Expand Concept',
+        icon: Lightbulb,
+        description: 'Generate related concepts and connections',
+        action: () => {
+          if (aiToolsHook?.openExpandConceptModal) {
+            aiToolsHook.openExpandConceptModal(nodeId);
+          }
+          setIsPaletteOpen(false);
+        },
+      },
+      {
+        id: 'rewrite-content',
+        label: 'Rewrite Content',
+        icon: Eraser,
+        description: 'Improve or rephrase the node content',
+        action: () => {
+          if (aiToolsHook?.openRewriteNodeContentModal) {
+            aiToolsHook.openRewriteNodeContentModal(nodeId);
+          }
+          setIsPaletteOpen(false);
+        },
+      },
+      {
+        id: 'ask-question',
+        label: 'Ask Question',
+        icon: MessageCircleQuestion,
+        description: 'Ask AI about this concept',
+        action: () => {
+          if (aiToolsHook?.openAskQuestionAboutNodeModal) {
+            aiToolsHook.openAskQuestionAboutNodeModal(nodeId);
+          }
+          setIsPaletteOpen(false);
+        },
+      },
     ];
-  }, [selectedElement, selectedElementType]);
+  }, [selectedElement, selectedElementType, aiToolsHook]);
 
   const originalHandleElementDetailsChange = React.useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -1235,14 +1253,14 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
             This map is in view-only mode. Editing features are disabled.
           </p>
         )}
-        {/* <AICommandPalette
-          isOpen={showPalette}
-          targetRect={paletteTargetRef?.current?.getBoundingClientRect()}
-          commands={availableAiCommands}
-          onSelectCommand={_handlePaletteSelectCommand}
-          onClose={_handlePaletteClose}
-          query={paletteQuery}
-        /> */}
+        <AICommandPalette
+          isOpen={isPaletteOpen}
+          targetRect={paletteTargetRect}
+          commands={availableAICommands}
+          filterText={commandFilterText}
+          onSelectCommand={(command) => command.action()}
+          onClose={() => setIsPaletteOpen(false)}
+        />
       </CardContent>
 
       {/* AlertDialog for intermediate node suggestion removed, will use Staging Area */}
