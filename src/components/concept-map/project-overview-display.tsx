@@ -139,7 +139,7 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> =
           addDebugLog(
             `[ProjectOverviewDisplay] Module '${module.name}' clicked, but it has no filePaths.`
           );
-          setFocusOnNodes([], true);
+          setFocusOnNodes([]);
           return;
         }
         const allNodes = mapData.nodes;
@@ -167,12 +167,12 @@ const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> =
           addDebugLog(
             `[ProjectOverviewDisplay] Focusing on ${matchingNodeIds.length} nodes for module '${module.name}'. Node IDs: [${matchingNodeIds.join(', ')}]`
           );
-          setFocusOnNodes(matchingNodeIds, true);
+          setFocusOnNodes(matchingNodeIds);
         } else {
           addDebugLog(
             `[ProjectOverviewDisplay] No matching nodes found for module '${module.name}'. Looked for paths: [${module.filePaths.join(', ')}]. Exiting overview to full map.`
           );
-          setFocusOnNodes([], true);
+          setFocusOnNodes([]);
         }
       },
       [addDebugLog, mapData.nodes, onModuleClick, setFocusOnNodes]

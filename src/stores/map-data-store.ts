@@ -195,7 +195,7 @@ const storeDefinition: StateCreator<MapDataState> = (set, get) => ({
       return { ...state, mapData: { ...state.mapData, nodes: updatedNodes } };
     });
   },
-}));
+});
 
 export const useMapDataStore = create(
   temporal(storeDefinition, {

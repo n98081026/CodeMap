@@ -446,8 +446,8 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         icon: MessageCircleQuestion,
         description: 'Ask AI about this concept',
         action: () => {
-          if (aiToolsHook?.openAskQuestionAboutNodeModal) {
-            aiToolsHook.openAskQuestionAboutNodeModal(nodeId);
+          if (aiToolsHook?.openAskQuestionModal && selectedElement) {
+            aiToolsHook.openAskQuestionModal(selectedElement.id);
           }
           setIsPaletteOpen(false);
         },
@@ -549,7 +549,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
     // Optionally, clear the /ai command from textarea here too if desired upon manual close
   }, []);
 
-  const handleTriggerSuggestIntermediateNode = useCallback(async () => {
+  const handleTriggerSuggestIntermediateNodeAsync = useCallback(async () => {
     if (isViewOnlyMode || selectedElementType !== 'edge' || !selectedElement) {
       toast({
         title: 'Action Unavailable',
@@ -700,7 +700,7 @@ export const PropertiesInspector = React.memo(function PropertiesInspector({
         <AICommandPalette
           isOpen={isPaletteOpen && !isViewOnlyMode}
           targetRect={paletteTargetRect || undefined}
-          commands={aiCommands}
+          commands={availableAICommands}
           filterText={commandFilterText}
           onSelectCommand={handleSelectCommand}
           onClose={handleClosePalette}

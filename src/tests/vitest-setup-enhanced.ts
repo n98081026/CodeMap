@@ -27,7 +27,7 @@ vi.mock('zustand', () => ({
         return selector(store);
       }
       return store;
-    });
+    }) as any;
     useStore.getState = () => store;
     useStore.setState = vi.fn();
     useStore.subscribe = vi.fn();

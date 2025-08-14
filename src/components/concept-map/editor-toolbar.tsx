@@ -65,6 +65,7 @@ import { useMapMetaStore } from '@/stores/map-meta-store';
 import { useEditorUIStore } from '@/stores/editor-ui-store';
 import { useAISuggestionStore } from '@/stores/ai-suggestion-store';
 import { useMapDataStore } from '@/stores/map-data-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 import useTutorialStore from '@/stores/tutorial-store';
 
 export interface ArrangeAction {
@@ -182,10 +183,13 @@ export const EditorToolbar = React.memo(function EditorToolbar({
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
 
-  const { mapId: currentMapId, isFetchingOverview } = useMapMetaStore(
-    useCallback((s) => ({ mapId: s.mapId, isFetchingOverview: s.isFetchingOverview }), [])
+  const { mapId: currentMapId } = useMapMetaStore(
+    useCallback((s) => ({ mapId: s.mapId }), [])
   );
   const { mapData } = useMapDataStore(useCallback((s) => ({ mapData: s.mapData }), []));
+  const { isFetchingOverview } = useConceptMapStore(
+    useCallback((s) => ({ isFetchingOverview: s.isFetchingOverview }), [])
+  );
   const { setStructuralSuggestions, clearStructuralSuggestions } = useAISuggestionStore(
     useCallback((s) => ({
       setStructuralSuggestions: s.setStructuralSuggestions,

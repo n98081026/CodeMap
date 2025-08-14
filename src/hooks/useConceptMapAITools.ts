@@ -192,7 +192,7 @@ export function useConceptMapAITools() {
         ExpandConceptOutput
       >(
         'expandConcept',
-        { concept: node.data.label, context: node.data.details || '' },
+        { concept: node.text, context: node.details || '' },
         {
           successTitle: 'Concept Expanded',
           successDescription:
@@ -207,8 +207,8 @@ export function useConceptMapAITools() {
           (concept, index) => {
             // Simple placement logic: circle around the parent node
             const angle = (index / result.newConcepts.length) * 2 * Math.PI;
-            const x = (parentNode.position.x ?? 0) + 200 * Math.cos(angle);
-            const y = (parentNode.position.y ?? 0) + 150 * Math.sin(angle);
+            const x = (parentNode.x ?? 0) + 200 * Math.cos(angle);
+            const y = (parentNode.y ?? 0) + 150 * Math.sin(angle);
             return {
               id: `staged-${Date.now()}-${index}`,
               text: concept.text,
@@ -247,7 +247,7 @@ export function useConceptMapAITools() {
       setRewriteModalState({
         isOpen: true,
         nodeId,
-      originalContent: `${node.data.label}\n\n${node.data.details || ''}`,
+              originalContent: `${node.text}\n\n${node.details || ''}`,
         rewrittenContent: null,
       });
     },

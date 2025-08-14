@@ -1,4 +1,4 @@
-import { z } from 'zustand';
+import { z } from 'zod';
 import { create } from 'zustand';
 import type { ConceptMapNode, ConceptMapEdge, ConceptMapData } from '@/types';
 import { StructuralSuggestionItemSchema } from '@/types/ai-suggestions';
@@ -117,7 +117,17 @@ export const useAISuggestionStore = create<AISuggestionState>((set, get) => ({
 
     const stagedNodeToPermanentIdMap = new Map<string, string>();
     stagedData.nodes.forEach((node) => {
-        const permanentId = addNode(node);
+        const permanentId = addNode({
+            text: node.text,
+            type: node.type,
+            position: { x: node.x || 0, y: node.y || 0 },
+            details: node.details,
+            parentNode: node.parentNode,
+            backgroundColor: node.backgroundColor,
+            shape: node.shape,
+            width: node.width,
+            height: node.height,
+        });
         stagedNodeToPermanentIdMap.set(node.id, permanentId);
     });
 

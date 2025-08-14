@@ -171,7 +171,7 @@ export const useEditorActions = ({
         const content = await file.text();
         const importedData = JSON.parse(content);
         if (importedData.nodes && importedData.edges) {
-          importMapData(importedData, file.name);
+          importMapData(importedData);
           toast({
             title: 'Map imported',
             description: 'Concept map has been imported successfully.',

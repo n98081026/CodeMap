@@ -11,6 +11,7 @@ import {
 } from '@/lib/config';
 import { useMapMetaStore } from '@/stores/map-meta-store';
 import { useMapDataStore } from '@/stores/map-data-store';
+import { useConceptMapStore } from '@/stores/concept-map-store';
 
 interface UseMapLoaderProps {
   routeMapId?: string;
@@ -35,7 +36,7 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
     setInitialLoadComplete,
     addDebugLog,
   } = useMapMetaStore();
-  const { mapData, loadExampleMapData: storeLoadExampleMapData } = useMapDataStore();
+  const { mapData } = useMapDataStore();
 
 
   const loadMapData = useCallback(
@@ -375,7 +376,8 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
                   });
                 })
                 .then((exampleMapData) => {
-                  storeLoadExampleMapData(exampleMapData, exampleProject.name);
+                  // Use the concept map store instead
+                  useConceptMapStore.getState().setMapData(exampleMapData);
                   addDebugLog(
                     `[DataManager useEffect V14] Example map '${exampleKey}' loaded directly and set in store.`
                   );
@@ -563,7 +565,7 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
     setIsViewOnlyMode,
     paramsHook.viewOnly,
     toast,
-    storeLoadExampleMapData,
+    // storeLoadExampleMapData removed
   ]);
 
   return { loadMapData };
