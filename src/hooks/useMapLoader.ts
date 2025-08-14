@@ -9,7 +9,8 @@ import {
   MOCK_STUDENT_USER,
   MOCK_USER_FOR_TESTING_MAPS,
 } from '@/lib/config';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 interface UseMapLoaderProps {
   routeMapId?: string;
@@ -26,7 +27,6 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
     initialLoadComplete,
     currentMapOwnerId,
     isViewOnlyMode: isViewOnlyModeInStore,
-    mapData,
     initializeNewMap,
     setLoadedMap,
     setIsLoading,
@@ -34,7 +34,9 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
     setIsViewOnlyMode,
     setInitialLoadComplete,
     addDebugLog,
-  } = useConceptMapStore();
+  } = useMapMetaStore();
+  const { mapData, loadExampleMapData: storeLoadExampleMapData } = useMapDataStore();
+
 
   const loadMapData = useCallback(
     async (idToLoad: string, targetViewOnlyMode: boolean) => {
@@ -64,12 +66,12 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
           `[DataManager loadMapDataInternal V12] Attempt to load example map '${idToLoad}' via API. This path should ideally be avoided if data is pre-loaded by ExamplesPage.`
         );
 
-        const store = useConceptMapStore.getState();
+        const store = useMapMetaStore.getState();
         if (
           store.mapId === idToLoad &&
-          store.mapData &&
-          store.mapData.nodes &&
-          store.mapData.nodes.length > 0
+          useMapDataStore.getState().mapData &&
+          useMapDataStore.getState().mapData.nodes &&
+          useMapDataStore.getState().mapData.nodes.length > 0
         ) {
           addDebugLog(
             `[DataManager loadMapDataInternal V12] Data for example map '${idToLoad}' is already present in the store. Using store data.`
@@ -207,7 +209,7 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
             });
             initializeNewMap(effectiveUserForLoadHookId);
             if (
-              useConceptMapStore.getState().isViewOnlyMode !==
+              useMapMetaStore.getState().isViewOnlyMode !==
               targetViewOnlyMode
             ) {
               setIsViewOnlyMode(targetViewOnlyMode);
@@ -288,8 +290,7 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
       ? (MOCK_STUDENT_USER?.id ?? null)
       : (user?.id ?? null);
     const currentViewOnlyQueryParam = String(paramsHook.viewOnly) === 'true';
-    const { loadExampleMapData: storeLoadExampleMapData } =
-      useConceptMapStore.getState();
+
     addDebugLog(
       `[DataManager useEffect V13] RUNNING: RouteID='${routeMapId}', Store(ID='${storeMapId}', isNew=${isNewMapMode}, Owner='${currentMapOwnerId}', isLoading=${isLoading}, initComp=${initialLoadComplete}, viewOnly=${isViewOnlyModeInStore}). EffectiveUser='${effectiveUserId}', URLViewOnly=${currentViewOnlyQueryParam}`
     );
@@ -327,14 +328,14 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
       const exampleKey = routeMapId.substring('example-'.length);
       const isExampleCorrectlyLoaded =
         storeMapId === routeMapId &&
-        useConceptMapStore.getState().mapData.nodes.length > 0 &&
+        useMapDataStore.getState().mapData.nodes.length > 0 &&
         initialLoadComplete &&
         isViewOnlyModeInStore;
 
       if (!isExampleCorrectlyLoaded) {
         addDebugLog(
           `[DataManager useEffect V13] Action: Attempting to load example map '${exampleKey}' directly. Store state: (mapId: ${storeMapId}, nodes: ${
-            useConceptMapStore.getState().mapData.nodes.length
+            useMapDataStore.getState().mapData.nodes.length
           }, initComp: ${initialLoadComplete}, viewOnly: ${isViewOnlyModeInStore})`
         );
         setIsLoading(true);
@@ -562,6 +563,7 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
     setIsViewOnlyMode,
     paramsHook.viewOnly,
     toast,
+    storeLoadExampleMapData,
   ]);
 
   return { loadMapData };

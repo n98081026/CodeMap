@@ -34,18 +34,19 @@ import SuggestedIntermediateNode from './SuggestedIntermediateNode';
 
 import type { CustomNodeData } from './custom-node';
 
-// getNodePlacement is still needed for other AI tools that might use staging area
-// import { getNodePlacement } from '@/lib/layout-utils'; // Already used if needed
 import type {
   ConceptMapData,
   ConceptMapNode,
   VisualEdgeSuggestion,
 } from '@/types';
-import type { SnapResult, RFLayoutNode } from '@/types/graph-adapter'; // Import moved types
+import type { SnapResult, RFLayoutNode } from '@/types/graph-adapter';
 
-import { calculateSnappedPositionAndLines } from '@/lib/layout-utils'; // Import moved function
+import { calculateSnappedPositionAndLines } from '@/lib/layout-utils';
 import { cn } from '@/lib/utils';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapDataStore } from '@/stores/map-data-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
+import { useAISuggestionStore } from '@/stores/ai-suggestion-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 import { StructuralSuggestionItemSchema } from '@/types/ai-suggestions';
 import * as z from 'zod';
 
@@ -60,9 +61,6 @@ const SNAP_THRESHOLD = 8;
 const NODE_DRAG_SNAP_THRESHOLD = SNAP_THRESHOLD;
 const NODE_PREVIEW_WIDTH = 150;
 const NODE_PREVIEW_HEIGHT = 70;
-
-// calculateSnappedPositionAndLines and SnapResult moved to lib/layout-utils.ts
-// and types to types/graph-adapter.ts
 
 interface FlowCanvasCoreProps {
   mapDataFromStore: ConceptMapData;
@@ -135,30 +133,36 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
     onAcceptVisualEdge,
     onRejectVisualEdge,
   }) => {
-    useConceptMapStore
-      .getState()
-      .addDebugLog(
+    useMapMetaStore.getState().addDebugLog(
         `[FlowCanvasCoreInternal Render] mapDataFromStore.nodes count: ${
           mapDataFromStore.nodes?.length ?? 'N/A'
         }`
       );
+
+    const { addNode: addNodeToStore, addEdge: addEdgeToStore } = useMapDataStore();
     const {
-      addNode: addNodeToStore,
-      setSelectedElement,
-      setEditingNodeId,
-      connectingNodeId,
-      completeConnectionMode: storeCompleteConnectionMode,
-      cancelConnection: storeCancelConnection,
-      dragPreviewItem,
-      dragPreviewPosition,
-      updateDragPreviewPosition,
-      draggedRelationLabel,
-      addEdge: addEdgeToStore,
-      triggerFitView,
-      setTriggerFitView,
-      structuralSuggestions,
-      // structuralGroupSuggestions, // This was removed from the store selector in a previous step, ensure it's not used or re-add if necessary
-    } = useConceptMapStore();
+        setSelectedElement,
+        setEditingNodeId,
+        connectingNodeId,
+        completeConnectionMode: storeCompleteConnectionMode,
+        cancelConnection: storeCancelConnection,
+        dragPreviewItem,
+        dragPreviewPosition,
+        updateDragPreviewPosition,
+        draggedRelationLabel,
+        triggerFitView,
+        setTriggerFitView,
+        focusViewOnNodeIds,
+        triggerFocusView: triggerFocusViewFromStore,
+        clearFocusViewTrigger,
+    } = useEditorUIStore();
+
+    const {
+        stagedMapData,
+        isStagingActive,
+        ghostPreviewData,
+        structuralSuggestions,
+    } = useAISuggestionStore();
 
     const reactFlowInstance = useReactFlow();
     const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -178,27 +182,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
       useNodesState<CustomNodeData>([]);
     const [rfEdges, setRfEdges, onEdgesChangeReactFlow] =
       useEdgesState<OrthogonalEdgeData>([]);
-
-    const {
-      stagedMapData,
-      isStagingActive,
-      focusViewOnNodeIds,
-      triggerFocusView: triggerFocusViewFromStore,
-      clearFocusViewTrigger,
-      ghostPreviewData,
-    } = useConceptMapStore(
-      useCallback(
-        (s) => ({
-          stagedMapData: s.stagedMapData,
-          isStagingActive: s.isStagingActive,
-          ghostPreviewData: s.ghostPreviewData,
-          focusViewOnNodeIds: s.focusViewOnNodeIds,
-          triggerFocusView: s.triggerFocusView,
-          clearFocusViewTrigger: s.clearFocusViewTrigger,
-        }),
-        []
-      )
-    );
 
     const [rfStagedNodes, setRfStagedNodes] = useNodesState<CustomNodeData>([]);
     const [rfStagedEdges, setRfStagedEdges] = useEdgesState<OrthogonalEdgeData>(
@@ -422,8 +405,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
     ]);
 
     useEffect(() => {
-      const currentConnectingNodeId =
-        useConceptMapStore.getState().connectingNodeId;
+      const currentConnectingNodeId = useEditorUIStore.getState().connectingNodeId;
       if (!currentConnectingNodeId) {
         if (reactFlowWrapperRef.current) {
           reactFlowWrapperRef.current.classList.remove(
@@ -480,7 +462,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
           setActiveSnapLinesLocal([]);
           return;
         }
-        // Ensure allNodes are cast or mapped to RFLayoutNode if necessary
         const layoutNodesToSnapAgainst: RFLayoutNode[] = allNodes.map(
           (n: RFNode<CustomNodeData>) => ({
             id: n.id,
@@ -489,13 +470,13 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
             width: n.width || 0,
             height: n.height || 0,
           })
-        ); // Assuming RFNode<CustomNodeData> is compatible enough for now
+        );
 
         const { snappedPosition, activeSnapLines } =
           calculateSnappedPositionAndLines(
             draggedNode.positionAbsolute as { x: number; y: number },
             { width: draggedNode.width, height: draggedNode.height },
-            layoutNodesToSnapAgainst, // Use casted/mapped nodes
+            layoutNodesToSnapAgainst,
             GRID_SIZE,
             NODE_DRAG_SNAP_THRESHOLD,
             draggedNode.id
@@ -666,7 +647,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
         const snappedX = Math.round(positionInFlow.x / GRID_SIZE) * GRID_SIZE;
         const snappedY = Math.round(positionInFlow.y / GRID_SIZE) * GRID_SIZE;
         const newNodeId = addNodeToStore({
-          text: `Node ${useConceptMapStore.getState().mapData.nodes.length + 1}`,
+          text: `Node ${useMapDataStore.getState().mapData.nodes.length + 1}`,
           type: 'manual-node',
           position: { x: snappedX, y: snappedY },
           details: '',
@@ -705,7 +686,6 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
             x: event.clientX,
             y: event.clientY,
           });
-          // Cast rfNodes to RFLayoutNode[] for calculateSnappedPositionAndLines
           const layoutNodesForSnapping: RFLayoutNode[] = rfNodes
             .filter((n) => n.width && n.height && n.positionAbsolute)
             .map((n: RFNode<CustomNodeData>) => ({
@@ -719,7 +699,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
             calculateSnappedPositionAndLines(
               flowPosition,
               { width: NODE_PREVIEW_WIDTH, height: NODE_PREVIEW_HEIGHT },
-              layoutNodesForSnapping, // Use casted nodes
+              layoutNodesForSnapping,
               GRID_SIZE,
               SNAP_THRESHOLD
             );
@@ -765,9 +745,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
           }
         } catch (e) {
           console.error('Failed to parse dropped data in FlowCanvasCore:', e);
-          // Show user-friendly error message
           if (onConceptSuggestionDrop) {
-            // Could add toast notification here if available
             console.warn('Invalid data format dropped on canvas');
           }
         }
@@ -1026,8 +1004,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
     const handleNodeClickInternal = useCallback(
       (event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
         if (isViewOnlyMode) return;
-        const currentConnectingNodeId =
-          useConceptMapStore.getState().connectingNodeId;
+        const currentConnectingNodeId = useEditorUIStore.getState().connectingNodeId;
 
         if (currentConnectingNodeId) {
           event.stopPropagation();
@@ -1067,8 +1044,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
     );
 
     const handlePaneClickInternal = useCallback(() => {
-      const currentConnectingNodeId =
-        useConceptMapStore.getState().connectingNodeId;
+      const currentConnectingNodeId = useEditorUIStore.getState().connectingNodeId;
       if (currentConnectingNodeId) {
         storeCancelConnection();
         if (reactFlowWrapperRef.current)

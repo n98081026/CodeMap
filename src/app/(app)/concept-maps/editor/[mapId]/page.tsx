@@ -36,10 +36,10 @@ import { useEditorFloaterState } from '@/hooks/useEditorFloaterState';
 import { useEditorOverviewMode } from '@/hooks/useEditorOverviewMode';
 import { useEditorStagingActions } from '@/hooks/useEditorStagingActions';
 import { Routes } from '@/lib/routes';
-import {
-  useConceptMapStore,
-  type ConceptMapState,
-} from '@/stores/concept-map-store';
+import { useMapDataStore } from '@/stores/map-data-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
+import { useAISuggestionStore } from '@/stores/ai-suggestion-store';
 import useTutorialStore, {
   type TutorialStoreState,
 } from '@/stores/tutorial-store';
@@ -66,6 +66,7 @@ export default function ConceptMapEditorPage() {
   const routeMapId = paramsHook.mapId as string;
   const isViewOnlyModeQueryParam = searchParams.get('viewOnly') === 'true';
 
+  // State from map-meta-store
   const {
     mapId: storeMapId,
     mapName,
@@ -75,13 +76,34 @@ export default function ConceptMapEditorPage() {
     sharedWithClassroomId,
     isNewMapMode,
     isViewOnlyMode: storeIsViewOnlyMode,
-    mapData: storeMapData,
     isLoading: isStoreLoading,
     isSaving: isStoreSaving,
     error: storeError,
+    addDebugLog,
+    setIsViewOnlyMode: setStoreIsViewOnlyMode,
+  } = useMapMetaStore();
+
+  // State from map-data-store
+  const {
+    mapData: storeMapData,
+    updateNode: updateStoreNode,
+    updateEdge: updateStoreEdge,
+    applyLayout: storeApplyLayout,
+    temporal,
+  } = useMapDataStore();
+  const { undo, redo, pastStates, futureStates } = temporal;
+
+  // State from editor-ui-store
+  const {
     selectedElementId,
     selectedElementType,
     multiSelectedNodeIds,
+    setSelectedElement: setStoreSelectedElement,
+    setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
+  } = useEditorUIStore();
+
+  // State from ai-suggestion-store
+  const {
     aiExtractedConcepts,
     aiSuggestedRelations,
     isStagingActive,
@@ -89,69 +111,13 @@ export default function ConceptMapEditorPage() {
     commitStagedMapData,
     clearStagedMapData,
     deleteFromStagedMapData,
-    updateNode: updateStoreNode,
-    updateEdge: updateStoreEdge,
-    setSelectedElement: setStoreSelectedElement,
-    setMultiSelectedNodeIds: setStoreMultiSelectedNodeIds,
-    setIsViewOnlyMode: setStoreIsViewOnlyMode,
-    addDebugLog,
-    applyLayout: storeApplyLayout,
     isOverviewModeActive,
     projectOverviewData,
     isFetchingOverview,
     toggleOverviewMode,
     fetchProjectOverview,
-    undo,
-    redo,
-    pastStates,
-    futureStates,
-  } = useConceptMapStore(
-    useCallback(
-      (s: any) => ({
-        mapId: s.mapId,
-        mapName: s.mapName,
-        currentMapOwnerId: s.currentMapOwnerId,
-        currentMapCreatedAt: s.currentMapCreatedAt,
-        isPublic: s.isPublic,
-        sharedWithClassroomId: s.sharedWithClassroomId,
-        isNewMapMode: s.isNewMapMode,
-        isViewOnlyMode: s.isViewOnlyMode,
-        mapData: s.mapData,
-        isLoading: s.isLoading,
-        isSaving: s.isSaving,
-        error: s.error,
-        selectedElementId: s.selectedElementId,
-        selectedElementType: s.selectedElementType,
-        multiSelectedNodeIds: s.multiSelectedNodeIds,
-        aiExtractedConcepts: s.aiExtractedConcepts,
-        aiSuggestedRelations: s.aiSuggestedRelations,
-        isStagingActive: s.isStagingActive,
-        stagedMapData: s.stagedMapData,
-        commitStagedMapData: s.commitStagedMapData,
-        clearStagedMapData: s.clearStagedMapData,
-        deleteFromStagedMapData: s.deleteFromStagedMapData,
-        deleteNode: s.deleteNode,
-        updateNode: s.updateNode,
-        updateEdge: s.updateEdge,
-        setSelectedElement: s.setSelectedElement,
-        setMultiSelectedNodeIds: s.setMultiSelectedNodeIds,
-        importMapData: s.importMapData,
-        setIsViewOnlyMode: s.setIsViewOnlyMode,
-        addDebugLog: s.addDebugLog,
-        applyLayout: s.applyLayout,
-        isOverviewModeActive: s.isOverviewModeActive,
-        projectOverviewData: s.projectOverviewData,
-        isFetchingOverview: s.isFetchingOverview,
-        toggleOverviewMode: s.toggleOverviewMode,
-        fetchProjectOverview: s.fetchProjectOverview,
-        undo: s.temporal?.undo,
-        redo: s.temporal?.redo,
-        pastStates: s.temporal?.past,
-        futureStates: s.temporal?.future,
-      }),
-      []
-    )
-  );
+  } = useAISuggestionStore();
+
 
   const canUndo = pastStates?.length > 0;
   const canRedo = futureStates?.length > 0;
@@ -200,7 +166,7 @@ export default function ConceptMapEditorPage() {
       }, Edges: ${
         storeMapData.edges?.length ?? 'N/A'
       }. isLoading: ${isStoreLoading}, initialLoadComplete: ${
-        (useConceptMapStore.getState() as ConceptMapState).initialLoadComplete
+        useMapMetaStore.getState().initialLoadComplete
       }`
     );
   }, [storeMapData, isStoreLoading, addDebugLog]);
@@ -213,7 +179,7 @@ export default function ConceptMapEditorPage() {
     if (
       !isAuthLoading &&
       user &&
-      (useConceptMapStore.getState() as ConceptMapState).initialLoadComplete &&
+      useMapMetaStore.getState().initialLoadComplete &&
       !isStoreLoading
     ) {
       const tutorialCompleted =
@@ -583,7 +549,7 @@ export default function ConceptMapEditorPage() {
           isPropertiesPanelOpen={isPropertiesInspectorOpen}
           isAiPanelOpen={isAiPanelOpen}
           selectedNodeId={selectedElementId}
-          numMultiSelectedNodes={multiSelectedNodeIds.length}
+          numMultiSelectedNodeIds={multiSelectedNodeIds.length}
           onAutoLayout={handleAutoLayout}
           onSuggestMapImprovements={() => {}}
           onAiTidySelection={() => {}}
