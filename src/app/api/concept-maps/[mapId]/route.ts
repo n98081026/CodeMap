@@ -1,5 +1,7 @@
 // src/app/api/concept-maps/[mapId]/route.ts
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 
 import type { ConceptMapData } from '@/types';
 
@@ -8,14 +10,13 @@ import {
   updateConceptMap,
   deleteConceptMap,
 } from '@/services/conceptMaps/conceptMapService';
-// import { getAuth } from '@clerk/nextjs/server'; // Placeholder for actual auth
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ mapId: string }> }
+  { params }: { params: { mapId: string } }
 ) {
   try {
-    const { mapId } = await context.params;
+    const { mapId } = params;
     if (!mapId) {
       return NextResponse.json(
         { message: 'Map ID is required' },
@@ -31,20 +32,34 @@ export async function GET(
       );
     }
 
-    // Check if map is public or user has access
-    const url = new URL(request.url);
-    const isViewOnly = url.searchParams.get('viewOnly') === 'true';
+    // Authorization Check
+    if (!map.isPublic) {
+      const cookieStore = await cookies();
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get: (name) => cookieStore.get(name)?.value,
+          },
+        }
+      );
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!map.isPublic && !isViewOnly) {
-      // For private maps, we should check user authentication
-      // For now, we'll allow access but this should be enhanced with proper auth
-      console.warn('Private map access - authentication check needed');
+      if (user?.id !== map.ownerId) {
+        return NextResponse.json(
+          { message: 'Concept map not found or you do not have access.' },
+          { status: 404 }
+        );
+      }
     }
 
     return NextResponse.json(map);
   } catch (error) {
     console.error(
-      `Get Concept Map API error (ID: ${(await context.params).mapId}):`,
+      `Get Concept Map API error (ID: ${params.mapId}):`,
       error
     );
     const errorMessage =
@@ -58,12 +73,27 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  context: { params: Promise<{ mapId: string }> }
+  { params }: { params: { mapId: string } }
 ) {
   try {
-    const { mapId } = await context.params;
-    // const { userId } = getAuth(request as any); // Example
-    // if (!userId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const { mapId } = params;
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name: any) => cookieStore.get(name)?.value,
+        },
+      }
+    );
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
 
     if (!mapId) {
       return NextResponse.json(
@@ -76,30 +106,12 @@ export async function PUT(
       mapData?: ConceptMapData;
       isPublic?: boolean;
       sharedWithClassroomId?: string | null;
-      ownerId: string;
-    }; // ownerId for auth check
+    };
 
-    // Authorization: Check if current user (userId) owns mockConceptMapsData.find(m => m.id === mapId && m.ownerId === userId)
-    // For now, let service handle if it needs ownerId for checks or assume client sends ownerId for updates if it's complex.
-    // The service's updateConceptMap currently doesn't take ownerId for auth, but delete does.
-
-    const mapToUpdate = await getConceptMapById(mapId);
-    if (!mapToUpdate) {
-      return NextResponse.json(
-        { message: 'Concept map not found' },
-        { status: 404 }
-      );
-    }
-    // Simple auth check for mock:
-    if (mapToUpdate.ownerId !== updates.ownerId) {
-      // Assuming client sends ownerId for this check
-      return NextResponse.json(
-        { message: 'Unauthorized to update this map' },
-        { status: 403 }
-      );
-    }
-
-    const updatedMap = await updateConceptMap(mapId, updates);
+    const updatedMap = await updateConceptMap(mapId, {
+      ...updates,
+      ownerId: user.id,
+    });
     if (!updatedMap) {
       return NextResponse.json(
         { message: 'Concept map not found or update failed' },
@@ -125,22 +137,36 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  context: { params: Promise<{ mapId: string }> }
+  { params }: { params: { mapId: string } }
 ) {
   try {
-    const { mapId } = await context.params;
-    // const { userId } = getAuth(request as any); // Example
-    // if (!userId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    const { ownerId } = (await request.json()) as { ownerId: string }; // Client must send ownerId for auth check
+    const { mapId } = params;
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name: any) => cookieStore.get(name)?.value,
+        },
+      }
+    );
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!mapId || !ownerId) {
+    if (!user) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!mapId) {
       return NextResponse.json(
-        { message: 'Map ID and owner ID are required' },
+        { message: 'Map ID is required' },
         { status: 400 }
       );
     }
 
-    const deleted = await deleteConceptMap(mapId, ownerId); // Service handles ownership check
+    const deleted = await deleteConceptMap(mapId, user.id); // Service handles ownership check
     if (!deleted) {
       // This could be due to map not found or auth error handled by service
       // Service throws error for auth, so check that
