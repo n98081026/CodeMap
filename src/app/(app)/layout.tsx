@@ -87,9 +87,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
-    // If not authenticated (and not loading), the useEffect above will trigger a redirect.
-    // Return a minimal loader to prevent MainLayout from flashing content briefly before redirection.
+  const isPublicRoute =
+    pathname.startsWith('/examples') ||
+    (pathname.startsWith('/concept-maps/editor/') &&
+      pathname.split('/').pop()?.startsWith('example-') &&
+      searchParams.get('viewOnly') === 'true');
+
+  if (!isAuthenticated && !isPublicRoute) {
+    // If not authenticated and not on a public route, the useEffect will redirect.
+    // Show a loader to prevent content flash.
     return (
       <div className='flex h-screen w-screen items-center justify-center bg-background'>
         <Loader2 className='h-12 w-12 animate-spin text-primary' />

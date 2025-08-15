@@ -1,148 +1,87 @@
-import { SupabaseClient, User as SupabaseUser } from '@supabase/supabase-js';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-import { AuthProvider, useAuth } from '../auth-context'; // Import the function for testing
+import { AuthProvider, useAuth } from '../auth-context';
 import { UserRole } from '@/types';
+import { SupabaseClient, User as SupabaseUser } from '@supabase/supabase-js';
 
-// Mock Supabase client
-const mockSupabaseAuth = {
-  onAuthStateChange: vi
-    .fn()
-    .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
-  signOut: vi.fn().mockResolvedValue({ error: null }),
-  signInWithPassword: vi.fn(),
-  signUp: vi.fn(),
-  getSession: vi
-    .fn()
-    .mockResolvedValue({ data: { session: null }, error: null }),
-  getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-};
-const mockSupabaseFrom = vi.fn(() => ({
-  select: vi.fn().mockReturnThis(),
-  insert: vi.fn().mockReturnThis(),
-  update: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  single: vi.fn(),
-}));
-
-// Mock localStorage (already in the original file, kept for consistency)
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value.toString();
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-  };
-})();
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
-
-// Mock global fetch
-global.fetch = vi.fn();
-
-// Original AuthContext tests (Guest Session State Management)
-// These tests can remain as they test different aspects of the AuthContext
-describe('AuthContext - Guest Session State Management', () => {
-  beforeEach(() => {
-    localStorageMock.clear();
-    vi.clearAllMocks();
-    // Default to no session for these state tests
-    mockSupabaseAuth.onAuthStateChange.mockImplementation((callback: any) => {
-      callback('INITIAL_SESSION', null);
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
-    });
-    mockSupabaseAuth.getSession.mockResolvedValue({
-      data: { session: null },
-      error: null,
-    });
-    mockSupabaseAuth.getUser.mockResolvedValue({
-      data: { user: null },
-      error: null,
-    });
-  });
-
-  // Note: The original tests for isGuestSession, startGuestSession, clearGuestSession
-  // depend on these functions being part of the useAuth() hook's return value.
-  // If they were removed or changed, these tests would need adjustment.
-  // Assuming they are still part of the context for this example:
-
-  it('should initialize with user as null and isAuthenticated as false by default', () => {
-    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
-    expect(result.current.user).toBeNull();
-    expect(result.current.isAuthenticated).toBe(false);
-  });
-
-  it('login and subsequent onAuthStateChange should set user and clear guest session', async () => {
-    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
-
-    const mockAuthUser = {
-      id: 'student-mock-v3-s001',
-      email: 'test@example.com',
-    } as SupabaseUser;
-    const mockSession = {
-      access_token: 'token',
-      user: mockAuthUser,
-      user_metadata: {},
-    };
-    const mockProfile = {
-      id: 'user-123',
-      full_name: 'Test User',
-      email: 'test@example.com',
-      role: UserRole.STUDENT,
+// Mock the Supabase client at the module level
+vi.mock('@/lib/supabaseClient', () => {
+    const mockSupabaseAuth = {
+      onAuthStateChange: vi.fn(),
+      signOut: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signUp: vi.fn(),
+      getSession: vi.fn(),
+      getUser: vi.fn(),
     };
 
-    (
-      mockSupabaseAuth.signInWithPassword as ReturnType<typeof vi.fn>
-    ).mockResolvedValueOnce({
-      data: { user: mockAuthUser, session: mockSession },
-      error: null,
-    });
-    (
-      mockSupabaseFrom().select().eq().single as ReturnType<typeof vi.fn>
-    ).mockResolvedValueOnce({
-      data: mockProfile,
-      error: null,
-    });
-
-    // Simulate onAuthStateChange emitting SIGNED_IN after login
-    mockSupabaseAuth.onAuthStateChange.mockImplementation((callback: any) => {
-      callback('INITIAL_SESSION', null);
-      setTimeout(() => callback('SIGNED_IN', mockSession), 0); // Cast to Session type
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
-    });
-
-    await act(async () => {
-      await result.current.login(
-        'test@example.com',
-        'password',
-        UserRole.STUDENT
-      );
-    });
-
-    // Wait for async operations within onAuthStateChange and fetchAndSetSupabaseUser
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-
-    expect(result.current.user?.id).toBe(mockAuthUser.id);
-    expect(result.current.isAuthenticated).toBe(true);
-  });
-
-  // ... other original tests for login failure, signup, logout etc. would go here ...
-  // For brevity, I'm focusing on the new tests for handleCopyExampleAction.
+    const mockSupabaseClient = {
+      auth: mockSupabaseAuth,
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn(),
+    };
+    return { supabase: mockSupabaseClient };
 });
 
-// Export the function for testing by renaming it slightly
-// This is a common pattern if you don't want to alter the original file's exports for non-test code.
-// In auth-context.tsx, you would add:
-// export { handleCopyExampleAction as __test__handleCopyExampleAction };
-// For this exercise, I will assume it's exported as __test__handleCopyExampleAction
-// If not, the test would need to be structured differently or the function refactored out.
-// For now, I'll import it directly.
+import { supabase } from '@/lib/supabaseClient';
+
+describe('AuthContext', () => {
+  const mockSupabaseAuth = supabase.auth;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Make the mock synchronous to avoid flakiness with isLoading state
+    mockSupabaseAuth.onAuthStateChange.mockImplementation((callback) => {
+      callback('INITIAL_SESSION', null);
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    });
+    mockSupabaseAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+  });
+
+  it('should initialize with user as null and isLoading as false', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.user).toBeNull();
+  });
+
+  it('should handle successful login and fetch user profile', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+    const mockAuthUser = { id: 'user-123', email: 'test@example.com' } as SupabaseUser;
+    const mockSession = { access_token: 'token', user: mockAuthUser };
+    const mockProfile = { id: 'user-123', full_name: 'Test User', role: UserRole.STUDENT, email: 'test@example.com' };
+
+    vi.mocked(mockSupabaseAuth.signInWithPassword).mockResolvedValueOnce({
+      data: { user: mockAuthUser, session: mockSession as any },
+      error: null,
+    });
+    vi.mocked(supabase.from('profiles').select().eq().maybeSingle).mockResolvedValueOnce({ data: mockProfile, error: null });
+
+    await act(async () => {
+      // Pass the correct role to the login function
+      await result.current.login('test@example.com', 'password', UserRole.STUDENT);
+    });
+
+    act(() => {
+        const onAuthStateChangeCallback = mockSupabaseAuth.onAuthStateChange.mock.calls[0][0];
+        onAuthStateChangeCallback('SIGNED_IN', mockSession);
+    });
+
+    await waitFor(() => {
+      expect(result.current.isAuthenticated).toBe(true);
+      expect(result.current.user?.full_name).toBe(mockProfile.full_name);
+    });
+  });
+
+  it('should handle login failure', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    const error = new Error('Invalid credentials');
+    vi.mocked(mockSupabaseAuth.signInWithPassword).mockResolvedValueOnce({ data: {}, error: error as any });
+
+    await expect(result.current.login('test@example.com', 'wrong-password', UserRole.STUDENT)).rejects.toThrow(error.message);
+  });
+});

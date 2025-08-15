@@ -1,13 +1,15 @@
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
-import type { ConceptMap, User } from '@/types';
+import type { User } from '@/types';
 
 import { useToast } from '@/hooks/use-toast';
-import { BYPASS_AUTH_FOR_TESTING, MOCK_STUDENT_USER } from '@/lib/config';
-import * as mapService from '@/services/conceptMaps/conceptMapService';
-import { useMapMetaStore } from '@/stores/map-meta-store';
+import {
+  createConceptMap,
+  updateConceptMap,
+} from '@/services/conceptMaps/conceptMapService';
 import { useMapDataStore } from '@/stores/map-data-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 interface UseMapSaverProps {
   user: User | null;
@@ -19,132 +21,89 @@ export function useMapSaver({ user }: UseMapSaverProps) {
   const pathname = usePathname();
   const {
     mapId: storeMapId,
+    isNewMapMode,
     mapName,
     isPublic,
     sharedWithClassroomId,
-    isNewMapMode,
     setLoadedMap,
     setIsLoading,
-    setError,
     addDebugLog,
+    setError,
   } = useMapMetaStore();
   const { mapData } = useMapDataStore();
 
-
   const saveMap = useCallback(
     async (isViewOnlyParam: boolean) => {
-      console.log('saveMap called with isViewOnlyParam:', isViewOnlyParam);
-      if (isViewOnlyParam) {
-        toast({
-          title: 'View Only Mode',
-          description: 'Cannot save changes in view-only mode.',
-          variant: 'default',
-        });
-        addDebugLog(
-          '[DataManager saveMap V3] Attempted save in view-only mode. Aborted.'
-        );
-        return;
-      }
-      const effectiveUserForSave = BYPASS_AUTH_FOR_TESTING
-        ? (MOCK_STUDENT_USER ?? null)
-        : user;
-
-      if (!effectiveUserForSave) {
+      if (!user) {
         toast({
           title: 'Authentication Error',
           description: 'You must be logged in to save a map.',
           variant: 'destructive',
         });
-        addDebugLog(
-          '[DataManager saveMap V3] Auth Error: No user to save map.'
-        );
         return;
       }
       if (!mapName.trim()) {
         toast({
           title: 'Map Name Required',
-          description: 'Please provide a name for your concept map.',
+          description: 'Please enter a name for your map before saving.',
           variant: 'destructive',
         });
-        addDebugLog(
-          '[DataManager saveMap V3] Validation Error: Map name required.'
-        );
         return;
       }
 
       setIsLoading(true);
       addDebugLog(
-        `[DataManager saveMap V3] Attempting to save. isNewMapMode: ${isNewMapMode}, storeMapId: ${storeMapId}, mapName: ${mapName}, Owner: ${effectiveUserForSave.id}`
+        `[DataManager saveMap V3] Attempting to save. isNewMapMode: ${isNewMapMode}`
       );
 
-      const payload = {
-        name: mapName,
-        ownerId: effectiveUserForSave.id as string,
-        mapData: mapData,
-        isPublic: isPublic,
-        sharedWithClassroomId: sharedWithClassroomId,
-      };
-
       try {
-        let savedMapData: ConceptMap | null;
-        if (isNewMapMode || storeMapId === 'new' || storeMapId === null) {
-          savedMapData = await mapService.createConceptMap(
-            payload.name,
-            payload.ownerId,
-            payload.mapData,
-            payload.isPublic,
-            payload.sharedWithClassroomId
+        if (isNewMapMode) {
+          const newMap = await createConceptMap(
+            mapName,
+            user.id,
+            mapData,
+            isPublic,
+            sharedWithClassroomId
           );
-        } else {
-          const updatedMap = await mapService.updateConceptMap(
-            storeMapId,
-            payload
-          );
-          if (!updatedMap) {
-            throw new Error('Failed to update map: No data returned from service.');
-          }
-          savedMapData = updatedMap;
-        }
-
-        if (!savedMapData) {
-          throw new Error('Save operation did not return a valid map.');
-        }
-
-        const currentViewOnlyModeInStore =
-          useMapMetaStore.getState().isViewOnlyMode;
-        setLoadedMap(savedMapData, currentViewOnlyModeInStore);
-        toast({
-          title: 'Map Saved',
-          description: `"${savedMapData.name}" has been saved successfully.`,
-        });
-
-        if (
-          (isNewMapMode || storeMapId === 'new' || storeMapId === null) &&
-          savedMapData.id
-        ) {
           addDebugLog(
-            `[DataManager saveMap V3] New map saved, redirecting to /editor/${savedMapData.id}`
+            `[DataManager saveMap V3] Map created with ID: ${newMap.id}`
           );
-          const newPath = pathname.replace(/(new|map-\w+)/, savedMapData.id);
-          router.replace(
-            `${newPath}${currentViewOnlyModeInStore ? '?viewOnly=true' : ''}`,
-            { scroll: false }
+          setLoadedMap(newMap, isViewOnlyParam);
+          toast({
+            title: 'Map Saved',
+            description: `"${mapName}" has been saved successfully.`,
+          });
+          if (!pathname.includes(newMap.id)) {
+            router.push(`/concept-maps/editor/${newMap.id}`);
+          }
+        } else if (storeMapId) {
+          const updatedMap = await updateConceptMap(storeMapId, {
+            name: mapName,
+            mapData,
+            isPublic,
+            sharedWithClassroomId,
+          });
+          addDebugLog(
+            `[DataManager saveMap V3] Map updated for ID: ${storeMapId}`
           );
+          setLoadedMap(updatedMap, isViewOnlyParam);
+          toast({
+            title: 'Map Saved',
+            description: `"${mapName}" has been saved successfully.`,
+          });
         }
-      } catch (err) {
-        const errorMsg = (err as Error).message;
-        addDebugLog(`[DataManager saveMap V3] Catch block error: ${errorMsg}`);
-        setError(errorMsg);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'An unknown error occurred.';
+        addDebugLog(`[DataManager saveMap V3] Save failed: ${errorMessage}`);
+        setError(errorMessage);
         toast({
           title: 'Save Failed',
-          description: errorMsg,
+          description: errorMessage,
           variant: 'destructive',
         });
       } finally {
         setIsLoading(false);
-        addDebugLog(
-          `[DataManager saveMap V3] Finished save attempt, isLoading set to false.`
-        );
       }
     },
     [
@@ -155,13 +114,13 @@ export function useMapSaver({ user }: UseMapSaverProps) {
       sharedWithClassroomId,
       isNewMapMode,
       storeMapId,
-      router,
-      toast,
       setIsLoading,
+      addDebugLog,
+      toast,
       setLoadedMap,
       setError,
-      addDebugLog,
       pathname,
+      router,
     ]
   );
 

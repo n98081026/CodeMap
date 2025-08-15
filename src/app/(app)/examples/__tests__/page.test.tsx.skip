@@ -1,0 +1,85 @@
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useRouter } from 'next/navigation';
+import ExamplesPage from '../page';
+import { useAuth } from '@/contexts/auth-context';
+import { exampleProjects } from '@/lib/example-data';
+
+// Mock dependencies
+vi.mock('next/navigation');
+vi.mock('@/contexts/auth-context');
+vi.mock('@/lib/example-data');
+
+// Add the standard zustand mock to prevent the store from hanging the test
+vi.mock('zustand', () => {
+    const allStores = new Map();
+    const create = () => (creator) => {
+      let state;
+      const listeners = new Set();
+      const setState = (updater, replace = false) => {
+        const oldState = state;
+        const partial = typeof updater === 'function' ? updater(oldState) : updater;
+        if (Object.is(oldState, partial)) return;
+        state = replace ? partial : { ...oldState, ...partial };
+        listeners.forEach(listener => listener(state, oldState));
+      };
+      const getState = () => state;
+      const subscribe = (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      };
+      const api = { setState, getState, subscribe, destroy: () => listeners.clear() };
+      state = creator(setState, getState, api);
+      const useStore = (selector) => selector(state);
+      Object.assign(useStore, api);
+      allStores.set(creator, {
+        reset: () => {
+          const newState = creator(setState, getState, api);
+          state = Object.assign({}, newState);
+        }
+      });
+      return useStore;
+    };
+    vi.mocked(global, true).resetAllZustandStores = () => {
+       allStores.forEach(store => store.reset());
+    };
+    return { create };
+  });
+
+describe('ExamplesPage', () => {
+  const mockRouter = {
+    push: vi.fn(),
+  };
+
+  const mockExampleProjects = [
+    {
+      key: 'proj1',
+      name: 'Example Project 1',
+      description: 'Desc 1',
+      tags: ['tag1'],
+      mapJsonPath: '/path/to/map1.json',
+    },
+    {
+      key: 'proj2',
+      name: 'Example Project 2',
+      description: 'Desc 2',
+      tags: ['tag2'],
+      mapJsonPath: '/path/to/map2.json',
+    },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useRouter).mockReturnValue(mockRouter as any);
+    vi.mocked(exampleProjects, true).splice(0, exampleProjects.length, ...mockExampleProjects);
+  });
+
+  it('should render DashboardHeader and example project cards', () => {
+    vi.mocked(useAuth).mockReturnValue({ isAuthenticated: false, isLoading: false } as any);
+    render(<ExamplesPage />);
+
+    expect(screen.getByText('Example Project Gallery')).toBeInTheDocument();
+    expect(screen.getByText('Example Project 1')).toBeInTheDocument();
+    expect(screen.getByText('Example Project 2')).toBeInTheDocument();
+  });
+});
