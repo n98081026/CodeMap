@@ -68,7 +68,6 @@ export const useFlowCanvasLogic = ({
   // Store selectors
   const {
     connectingNodeId,
-    setSelectedElement,
     addEdgeToStore,
     storeCancelConnection,
     storeCompleteConnectionMode,
@@ -77,7 +76,6 @@ export const useFlowCanvasLogic = ({
     structuralSuggestions,
   } = useConceptMapStore((s) => ({
     connectingNodeId: s.connectingNodeId,
-    setSelectedElement: s.setSelectedElement,
     addEdgeToStore: s.addEdge,
     storeCancelConnection: s.cancelConnection,
     storeCompleteConnectionMode: s.completeConnectionMode,
@@ -185,7 +183,6 @@ export const useFlowCanvasLogic = ({
     onEdgesChangeReactFlow,
 
     // Store actions
-    setSelectedElement,
     addEdgeToStore,
     storeCancelConnection,
     storeCompleteConnectionMode,

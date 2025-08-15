@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
 
 interface QuickAction {
   id: string;
@@ -48,17 +49,16 @@ export function WhimsicalAIAssistant({
   const [naturalInput, setNaturalInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { mapData, selectedElementId, multiSelectedNodeIds } =
-    useConceptMapStore(
-      useCallback(
-        (s) => ({
-          mapData: s.mapData,
-          selectedElementId: s.selectedElementId,
-          multiSelectedNodeIds: s.multiSelectedNodeIds,
-        }),
-        []
-      )
-    );
+  const mapData = useConceptMapStore(useCallback((s) => s.mapData, []));
+  const { selectedElementId, multiSelectedNodeIds } = useEditorUIStore(
+    useCallback(
+      (s) => ({
+        selectedElementId: s.selectedElementId,
+        multiSelectedNodeIds: s.multiSelectedNodeIds,
+      }),
+      []
+    )
+  );
 
   // 智能解析自然語言輸入
   const handleNaturalInput = useCallback(async () => {

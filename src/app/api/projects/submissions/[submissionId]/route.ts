@@ -10,11 +10,11 @@ import {
 // import { getAuth } from '@clerk/nextjs/server'; // Placeholder
 
 export async function GET(
-  _request: Request,
-  context: { params: { submissionId: string } }
+  request: Request,
+  { params }: { params: { submissionId: string } }
 ) {
   try {
-    const { submissionId } = context.params;
+    const { submissionId } = params;
     // const { userId } = getAuth(request as any); // Example
 
     if (!submissionId) {
@@ -41,7 +41,7 @@ export async function GET(
     return NextResponse.json(submission);
   } catch (error) {
     console.error(
-      `Get Submission API error (ID: ${context.params.submissionId}):`,
+      `Get Submission API error (ID: ${params.submissionId}):`,
       error
     );
     const errorMessage =
@@ -56,10 +56,10 @@ export async function GET(
 // PUT might be used by an analysis worker to update status
 export async function PUT(
   request: Request,
-  context: { params: { submissionId: string } }
+  { params }: { params: { submissionId: string } }
 ) {
   try {
-    const { submissionId } = context.params;
+    const { submissionId } = params;
     if (!submissionId) {
       return NextResponse.json(
         { message: 'Submission ID is required' },
@@ -96,7 +96,7 @@ export async function PUT(
     return NextResponse.json(updatedSubmission);
   } catch (error) {
     console.error(
-      `Update Submission API error (ID: ${context.params.submissionId}):`,
+      `Update Submission API error (ID: ${params.submissionId}):`,
       error
     );
     const errorMessage =

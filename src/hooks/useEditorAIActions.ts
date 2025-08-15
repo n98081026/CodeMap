@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
 import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
 
 export const useEditorAIActions = () => {
   const { toast } = useToast();
@@ -21,9 +22,9 @@ export const useEditorAIActions = () => {
     aiSuggestedRelations,
     resetAiSuggestions,
     commitStagedMapData,
-    selectedElementId,
-    multiSelectedNodeIds,
   } = useConceptMapStore();
+
+  const { selectedElementId, multiSelectedNodeIds } = useEditorUIStore();
 
   const handleExtractConcepts = useCallback(async () => {
     try {
