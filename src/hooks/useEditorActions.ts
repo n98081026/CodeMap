@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { Routes } from '@/lib/routes';
 import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
 
 interface UseEditorActionsProps {
   routeMapId: string;
@@ -29,15 +30,18 @@ export const useEditorActions = ({
     updateEdge,
     deleteNode,
     deleteEdge,
+    importMapData,
+    setMapName,
+    setIsPublic,
+  } = useConceptMapStore();
+
+  const {
     setSelectedElement,
     setMultiSelectedNodeIds,
     multiSelectedNodeIds,
     selectedElementId,
     selectedElementType,
-    importMapData,
-    setMapName,
-    setIsPublic,
-  } = useConceptMapStore();
+  } = useEditorUIStore();
 
   const handleSaveMap = useCallback(
     async (isViewOnly = false) => {

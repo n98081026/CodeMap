@@ -28,9 +28,6 @@ export interface ConceptMapState {
   isApplyingSemanticTidyUp: boolean;
 
   // UI state
-  selectedElementId: string | null;
-  selectedElementType: 'node' | 'edge' | null;
-  multiSelectedNodeIds: string[];
   connectingNodeId: string | null;
   isConnectionMode: boolean;
 
@@ -127,8 +124,6 @@ export interface ConceptMapState {
   loadExampleMapData: () => void;
 
   // UI actions
-  setSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => void;
-  setMultiSelectedNodeIds: (ids: string[]) => void;
   setConnectingNodeId: (id: string | null) => void;
   startConnectionMode: (nodeId: string) => void;
   cancelConnection: () => void;
@@ -172,7 +167,7 @@ const initialState: Omit<ConceptMapState,
   'setMapData' | 'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 
   'deleteEdge' | 'applyLayout' | 'findEdgeByNodes' | 'applyFormGroupSuggestion' | 
   'applySemanticTidyUp' | 'loadExampleMapData' |
-  'setSelectedElement' | 'setMultiSelectedNodeIds' | 'setConnectingNodeId' | 'startConnectionMode' |
+  'setConnectingNodeId' | 'startConnectionMode' |
   'cancelConnection' | 'completeConnectionMode' | 'setAiExtractedConcepts' | 'setAiSuggestedRelations' |
   'resetAiSuggestions' | 'setStagedMapData' | 'commitStagedMapData' | 'setGhostPreview' |
   'acceptGhostPreview' | 'cancelGhostPreview' | 'setStructuralSuggestions' | 'removeStructuralSuggestion' |
@@ -200,9 +195,6 @@ const initialState: Omit<ConceptMapState,
   isApplyingSemanticTidyUp: false,
 
   // UI state
-  selectedElementId: null,
-  selectedElementType: null,
-  multiSelectedNodeIds: [],
   connectingNodeId: null,
   isConnectionMode: false,
 
@@ -459,8 +451,6 @@ export const useConceptMapStore = create<ConceptMapState>()(
       },
 
       // UI actions
-      setSelectedElement: (id, type) => set({ selectedElementId: id, selectedElementType: type }),
-      setMultiSelectedNodeIds: (ids) => set({ multiSelectedNodeIds: ids }),
       setConnectingNodeId: (id) => set({ connectingNodeId: id }),
       startConnectionMode: (nodeId) => set({ connectingNodeId: nodeId, isConnectionMode: true }),
       cancelConnection: () => set({ connectingNodeId: null, isConnectionMode: false }),

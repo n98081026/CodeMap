@@ -123,24 +123,7 @@ describe('useConceptMapStore', () => {
   });
 
   describe('Selection State', () => {
-    it('should set and clear selected element', () => {
-      const store = useConceptMapStore.getState();
-
-      act(() => {
-        store.setSelectedElement('node-1', 'node');
-      });
-
-      let state = useConceptMapStore.getState();
-      expect(state.selectedElementId).toBe('node-1');
-      expect(state.selectedElementType).toBe('node');
-
-      act(() => {
-        store.setSelectedElement(null, null);
-      });
-
-      state = useConceptMapStore.getState();
-      expect(state.selectedElementId).toBeNull();
-      expect(state.selectedElementType).toBeNull();
-    });
+    // This functionality has been moved to editor-ui-store.ts
+    // These tests are no longer valid for concept-map-store.
   });
 });
