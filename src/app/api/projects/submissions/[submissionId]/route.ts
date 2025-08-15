@@ -50,7 +50,7 @@ export async function GET(
 
     if (!isOwner && !isTeacher) {
       return NextResponse.json(
-        { message: 'Forbidden' },
+        { message: 'Forbidden: You do not have access to this submission.' },
         { status: 403 }
       );
     }
