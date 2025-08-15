@@ -91,10 +91,10 @@ async function authorize(
 
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ userId: string }> }
+  context: any // Using `any` as a workaround
 ) {
   try {
-    const { userId } = await context.params;
+    const { userId } = context.params;
     const authResult = await authorize(userId, 'GET');
     if (authResult instanceof NextResponse) return authResult;
 
@@ -106,17 +106,17 @@ export async function GET(
   } catch (error) {
     return handleApiError(
       error,
-      `GET user failed for ID: ${(await context.params).userId}`
+      `GET user failed for ID: ${context.params.userId}`
     );
   }
 }
 
 export async function PUT(
   request: Request,
-  context: { params: Promise<{ userId: string }> }
+  context: any // Using `any` as a workaround
 ) {
   try {
-    const { userId } = await context.params;
+    const { userId } = context.params;
     const updates = (await request.json()) as {
       name?: string;
       email?: string;
@@ -137,17 +137,17 @@ export async function PUT(
   } catch (error) {
     return handleApiError(
       error,
-      `PUT user failed for ID: ${(await context.params).userId}`
+      `PUT user failed for ID: ${context.params.userId}`
     );
   }
 }
 
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ userId: string }> }
+  context: any // Using `any` as a workaround
 ) {
   try {
-    const { userId } = await context.params;
+    const { userId } = context.params;
     const authResult = await authorize(userId, 'DELETE');
     if (authResult instanceof NextResponse) return authResult;
 
@@ -158,7 +158,7 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(
       error,
-      `DELETE user failed for ID: ${(await context.params).userId}`
+      `DELETE user failed for ID: ${context.params.userId}`
     );
   }
 }
