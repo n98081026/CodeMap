@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 /**
  * Integration tests for authentication flow with Supabase
  * Tests the complete user authentication journey
