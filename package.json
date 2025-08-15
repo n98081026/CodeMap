@@ -16,7 +16,10 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore",
     "analyze": "cross-env ANALYZE=true next build",
     "depcheck": "depcheck",
-    "test": "vitest run",
+    "test": "npm run test:services && npm run test:hooks && npm run test:components",
+    "test:services": "cross-env NODE_OPTIONS=--max-old-space-size=8192 vitest run src/services",
+    "test:hooks": "cross-env NODE_OPTIONS=--max-old-space-size=8192 vitest run src/hooks",
+    "test:components": "cross-env NODE_OPTIONS=--max-old-space-size=8192 vitest run src/components",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test"
   },
