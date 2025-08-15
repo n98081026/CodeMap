@@ -62,9 +62,9 @@ function handleApiError(error: unknown, context: string): NextResponse {
 
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ classroomId: string }> }
+  context: any // Using `any` as a workaround for stubborn build errors
 ) {
-  const { classroomId } = await context.params;
+  const { classroomId } = context.params;
   try {
     if (!classroomId) {
       return NextResponse.json(
@@ -89,9 +89,9 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  context: { params: Promise<{ classroomId: string }> }
+  context: any // Using `any` as a workaround
 ) {
-  const { classroomId } = await context.params;
+  const { classroomId } = context.params;
   try {
     if (!classroomId) {
       return NextResponse.json(
@@ -119,9 +119,9 @@ export async function PUT(
 
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ classroomId: string }> }
+  context: any // Using `any` as a workaround
 ) {
-  const { classroomId } = await context.params;
+  const { classroomId } = context.params;
   try {
     if (!classroomId) {
       return NextResponse.json(
