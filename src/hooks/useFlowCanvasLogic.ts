@@ -16,6 +16,7 @@ import type {
 
 import { calculateSnappedPositionAndLines } from '@/lib/layout-utils';
 import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8;
@@ -68,7 +69,6 @@ export const useFlowCanvasLogic = ({
   // Store selectors
   const {
     connectingNodeId,
-    addEdgeToStore,
     storeCancelConnection,
     storeCompleteConnectionMode,
     stagedMapData,
@@ -76,13 +76,13 @@ export const useFlowCanvasLogic = ({
     structuralSuggestions,
   } = useConceptMapStore((s) => ({
     connectingNodeId: s.connectingNodeId,
-    addEdgeToStore: s.addEdge,
     storeCancelConnection: s.cancelConnection,
     storeCompleteConnectionMode: s.completeConnectionMode,
     stagedMapData: s.stagedMapData,
     ghostPreviewData: s.ghostPreviewData,
     structuralSuggestions: s.structuralSuggestions,
   }));
+  const addEdgeToStore = useMapDataStore((s) => s.addEdge);
 
   // React Flow state
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState([]);

@@ -12,6 +12,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 interface SuggestedIntermediateNodeData {
   suggestionId: string; // Original suggestion ID from the store
@@ -36,13 +37,9 @@ const SuggestedIntermediateNode: React.FC<
   yPos, // position from React Flow
 }) => {
   const { suggestionId, suggestionData, reason } = data;
-  const {
-    addNode,
-    addEdge,
-    deleteEdge,
-    removeStructuralSuggestion,
-    findEdgeByNodes,
-  } = useConceptMapStore.getState();
+  const { removeStructuralSuggestion } = useConceptMapStore.getState();
+  const { addNode, addEdge, deleteEdge, findEdgeByNodes } =
+    useMapDataStore.getState();
   const { toast } = useToast();
   const [popoverOpen, setPopoverOpen] = useState(false);
 

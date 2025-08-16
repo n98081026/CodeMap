@@ -48,9 +48,10 @@ export interface MapDataState {
     overlayGeometry?: { x: number; y: number; width?: number; height?: number }
   ) => string;
   applySemanticTidyUp: (updates: { id: string; x: number; y: number }[]) => void;
+  importMapData: (data: ConceptMapData) => void;
 }
 
-const initialState: Omit<MapDataState, 'setMapData' | 'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' | 'applyLayout' | 'findEdgeByNodes' | 'applyFormGroupSuggestion' | 'applySemanticTidyUp'> = {
+const initialState: Omit<MapDataState, 'setMapData' | 'addNode' | 'updateNode' | 'deleteNode' | 'addEdge' | 'updateEdge' | 'deleteEdge' | 'applyLayout' | 'findEdgeByNodes' | 'applyFormGroupSuggestion' | 'applySemanticTidyUp' | 'importMapData'> = {
   mapData: { nodes: [], edges: [] },
   isApplyingSemanticTidyUp: false,
 };
@@ -195,6 +196,7 @@ const storeDefinition: StateCreator<MapDataState> = (set, get) => ({
       return { ...state, mapData: { ...state.mapData, nodes: updatedNodes } };
     });
   },
+  importMapData: (data) => set({ mapData: data }),
 });
 
 export const useMapDataStore = create(
