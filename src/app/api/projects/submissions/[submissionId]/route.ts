@@ -1,5 +1,6 @@
 // src/app/api/projects/submissions/[submissionId]/route.ts
 import { NextResponse } from 'next/server';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 import type { ProjectSubmissionStatus } from '@/types';
 
@@ -7,15 +8,22 @@ import {
   getSubmissionById,
   updateSubmissionStatus,
 } from '@/services/projectSubmissions/projectSubmissionService';
-// import { getAuth } from '@clerk/nextjs/server'; // Placeholder
+import { getClassroomById } from '@/services/classrooms/classroomService';
 
 export async function GET(
-  _request: Request,
-  context: { params: { submissionId: string } }
+  request: Request,
+  context: any // Using `any` as a workaround for stubborn build errors
 ) {
   try {
     const { submissionId } = context.params;
-    // const { userId } = getAuth(request as any); // Example
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
 
     if (!submissionId) {
       return NextResponse.json(
@@ -32,18 +40,23 @@ export async function GET(
       );
     }
 
-    // Authorization check: Ensure the logged-in user can view this submission
-    // (e.g., is the owner or a teacher of the associated classroom)
-    // if (userId !== submission.studentId /* && !isTeacherOfClassroom(userId, submission.classroomId) */) {
-    //    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    // }
+    // Authorization check: User must be the student who submitted or the teacher of the classroom.
+    let isTeacher = false;
+    if (submission.classroomId) {
+      const classroom = await getClassroomById(submission.classroomId);
+      isTeacher = user.id === classroom?.teacherId;
+    }
+    const isOwner = user.id === submission.studentId;
+
+    if (!isOwner && !isTeacher) {
+      return NextResponse.json(
+        { message: 'Forbidden: You do not have access to this submission.' },
+        { status: 403 }
+      );
+    }
 
     return NextResponse.json(submission);
   } catch (error) {
-    console.error(
-      `Get Submission API error (ID: ${context.params.submissionId}):`,
-      error
-    );
     const errorMessage =
       error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json(
@@ -56,9 +69,12 @@ export async function GET(
 // PUT might be used by an analysis worker to update status
 export async function PUT(
   request: Request,
-  context: { params: { submissionId: string } }
+  context: any // Using `any` as a workaround
 ) {
   try {
+    // SECURITY TODO: This endpoint should be protected by a service role key
+    // or other mechanism to ensure it is only called by trusted backend workers,
+    // not by end-users.
     const { submissionId } = context.params;
     if (!submissionId) {
       return NextResponse.json(
@@ -80,7 +96,6 @@ export async function PUT(
       );
     }
 
-    // In a real app, this endpoint should be protected (e.g., only callable by internal services/workers)
     const updatedSubmission = await updateSubmissionStatus(
       submissionId,
       status,
@@ -95,10 +110,6 @@ export async function PUT(
     }
     return NextResponse.json(updatedSubmission);
   } catch (error) {
-    console.error(
-      `Update Submission API error (ID: ${context.params.submissionId}):`,
-      error
-    );
     const errorMessage =
       error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json(

@@ -13,7 +13,7 @@ import { ViewActions } from './ViewActions';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { Routes } from '@/lib/routes';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 import useTutorialStore from '@/stores/tutorial-store';
 
 export interface EditorToolbarProps {
@@ -84,9 +84,9 @@ export const EditorToolbarRefactored: React.FC<EditorToolbarProps> = ({
   const router = useRouter();
 
   // Store state
-  const store = useConceptMapStore();
-  const currentMapId = useConceptMapStore((s) => s.mapId);
-  const isFetchingOverview = useConceptMapStore((s) => s.isFetchingOverview);
+  const { currentMapId, isFetchingOverview } = useMapMetaStore(
+    useCallback((s) => ({ currentMapId: s.mapId, isFetchingOverview: s.isFetchingOverview }), [])
+  );
 
   // Tutorial store
   const { startOrResumeTutorial } = useTutorialStore(

@@ -12,11 +12,13 @@ import type {
   ExpandConceptOutput,
   RewriteNodeContentOutput,
 } from '@/ai/flows/types';
-import type { StagedMapDataWithContext } from '@/stores/concept-map-store';
+import type { StagedMapDataWithContext } from '@/stores/ai-suggestion-store'; // Updated import
 import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 
 import { runFlow } from '@/ai/flows';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useAISuggestionStore } from '@/stores/ai-suggestion-store';
+import { useMapDataStore } from '@/stores/map-data-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 type AICommand =
   | 'extractConcepts'
@@ -34,14 +36,10 @@ interface RewriteModalState {
 
 export function useConceptMapAITools() {
   const { toast } = useToast();
-  const {
-    mapData,
-    setStagedMapData,
-    addNode: addNodeToMap,
-    addEdge: addEdgeToMap,
-    updateNode,
-    addDebugLog,
-  } = useConceptMapStore();
+  const { addDebugLog } = useMapMetaStore();
+  const { mapData } = useMapDataStore();
+  const { setStagedMapData } = useAISuggestionStore();
+
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);

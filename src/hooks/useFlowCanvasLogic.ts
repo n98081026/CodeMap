@@ -15,7 +15,9 @@ import type {
 } from '@/types';
 
 import { calculateSnappedPositionAndLines } from '@/lib/layout-utils';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useAISuggestionStore, type AISuggestionState } from '@/stores/ai-suggestion-store';
+import { useEditorUIStore, type EditorUIState } from '@/stores/editor-ui-store';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8;
@@ -68,23 +70,31 @@ export const useFlowCanvasLogic = ({
   // Store selectors
   const {
     connectingNodeId,
-    setSelectedElement,
-    addEdgeToStore,
-    storeCancelConnection,
-    storeCompleteConnectionMode,
-    stagedMapData,
-    ghostPreviewData,
-    structuralSuggestions,
-  } = useConceptMapStore((s) => ({
-    connectingNodeId: s.connectingNodeId,
-    setSelectedElement: s.setSelectedElement,
-    addEdgeToStore: s.addEdge,
-    storeCancelConnection: s.cancelConnection,
-    storeCompleteConnectionMode: s.completeConnectionMode,
-    stagedMapData: s.stagedMapData,
-    ghostPreviewData: s.ghostPreviewData,
-    structuralSuggestions: s.structuralSuggestions,
-  }));
+    cancelConnection: storeCancelConnection,
+    finishConnectionAttempt: storeCompleteConnectionMode,
+  } = useEditorUIStore(
+    useCallback(
+      (s: EditorUIState) => ({
+        connectingNodeId: s.connectingNodeId,
+        cancelConnection: s.cancelConnection,
+        finishConnectionAttempt: s.finishConnectionAttempt,
+      }),
+      []
+    )
+  );
+
+  const { stagedMapData, ghostPreviewData, structuralSuggestions } =
+    useAISuggestionStore(
+      useCallback(
+        (s: AISuggestionState) => ({
+          stagedMapData: s.stagedMapData,
+          ghostPreviewData: s.ghostPreviewData,
+          structuralSuggestions: s.structuralSuggestions,
+        }),
+        []
+      )
+    );
+  const addEdgeToStore = useMapDataStore((s) => s.addEdge);
 
   // React Flow state
   const [rfNodes, setRfNodes, onNodesChangeReactFlow] = useNodesState([]);
@@ -185,7 +195,6 @@ export const useFlowCanvasLogic = ({
     onEdgesChangeReactFlow,
 
     // Store actions
-    setSelectedElement,
     addEdgeToStore,
     storeCancelConnection,
     storeCompleteConnectionMode,

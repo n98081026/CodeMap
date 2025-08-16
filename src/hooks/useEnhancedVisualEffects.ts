@@ -9,7 +9,7 @@ import {
   type LayoutOptions,
 } from '@/components/concept-map/enhanced-layout-engine';
 import { useToast } from '@/hooks/use-toast';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 interface VisualEffect {
   id: string;
@@ -42,7 +42,7 @@ export function useEnhancedVisualEffects(isViewOnlyMode: boolean = false) {
   const effectTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const animationFrameRef = useRef<number>();
 
-  const { mapData, applyLayout } = useConceptMapStore(
+  const { mapData, applyLayout } = useMapDataStore(
     useCallback(
       (s) => ({
         mapData: s.mapData,

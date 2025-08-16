@@ -11,7 +11,6 @@ import {
 } from '@/lib/config';
 import { useMapMetaStore } from '@/stores/map-meta-store';
 import { useMapDataStore } from '@/stores/map-data-store';
-import { useConceptMapStore } from '@/stores/concept-map-store';
 
 interface UseMapLoaderProps {
   routeMapId?: string;
@@ -376,8 +375,8 @@ export function useMapLoader({ routeMapId, user }: UseMapLoaderProps) {
                   });
                 })
                 .then((exampleMapData) => {
-                  // Use the concept map store instead
-                  useConceptMapStore.getState().setMapData(exampleMapData);
+                  // This is a data action, so it should use the map data store
+                  useMapDataStore.getState().setMapData(exampleMapData);
                   addDebugLog(
                     `[DataManager useEffect V14] Example map '${exampleKey}' loaded directly and set in store.`
                   );

@@ -8,7 +8,9 @@ import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { Routes } from '@/lib/routes';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
+import { useMapDataStore } from '@/stores/map-data-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 interface UseEditorActionsProps {
   routeMapId: string;
@@ -23,21 +25,23 @@ export const useEditorActions = ({
   const router = useRouter();
   const { saveMap } = useConceptMapDataManager({ routeMapId, user });
 
+  const { setMapName, setIsPublic } = useMapMetaStore();
   const {
     addNode,
     updateNode,
     updateEdge,
     deleteNode,
     deleteEdge,
+    importMapData,
+  } = useMapDataStore();
+
+  const {
     setSelectedElement,
     setMultiSelectedNodeIds,
     multiSelectedNodeIds,
     selectedElementId,
     selectedElementType,
-    importMapData,
-    setMapName,
-    setIsPublic,
-  } = useConceptMapStore();
+  } = useEditorUIStore();
 
   const handleSaveMap = useCallback(
     async (isViewOnly = false) => {
@@ -59,14 +63,14 @@ export const useEditorActions = ({
   );
 
   const handleAddNode = useCallback(() => {
-    const { x, y } = useConceptMapStore.getState().mapData.nodes.reduce(
+    const { x, y } = useMapDataStore.getState().mapData.nodes.reduce(
       (acc, node) => ({
         x: acc.x + (node.x || 0),
         y: acc.y + (node.y || 0),
       }),
       { x: 0, y: 0 }
     );
-    const count = useConceptMapStore.getState().mapData.nodes.length;
+    const count = useMapDataStore.getState().mapData.nodes.length;
     const position =
       count > 0 ? { x: x / count + 100, y: y / count } : { x: 250, y: 150 };
 
@@ -75,7 +79,7 @@ export const useEditorActions = ({
       type: 'default',
       position,
     });
-    const newNode = useConceptMapStore
+    const newNode = useMapDataStore
       .getState()
       .mapData.nodes.find((n) => n.id === newNodeId);
     if (!newNode) {
@@ -140,7 +144,8 @@ export const useEditorActions = ({
 
   const handleExportMap = useCallback(() => {
     try {
-      const { mapData, mapName } = useConceptMapStore.getState();
+      const { mapData } = useMapDataStore.getState();
+      const { mapName } = useMapMetaStore.getState();
       const dataStr = JSON.stringify(mapData, null, 2);
       const dataUri =
         'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
@@ -218,7 +223,7 @@ export const useEditorActions = ({
           break;
         case 'duplicate':
           if (nodeId) {
-            const nodeToDuplicate = useConceptMapStore
+            const nodeToDuplicate = useMapDataStore
               .getState()
               .mapData.nodes.find((n) => n.id === nodeId);
             if (nodeToDuplicate) {
@@ -246,7 +251,7 @@ export const useEditorActions = ({
   );
 
   return {
-    isSaving: useConceptMapStore((s) => s.isSaving),
+    isSaving: useMapMetaStore((s) => s.isSaving),
     saveMap: handleSaveMap,
     addNode: handleAddNode,
     updateElement: handleUpdateElement,

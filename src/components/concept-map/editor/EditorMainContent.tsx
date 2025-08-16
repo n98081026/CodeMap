@@ -7,6 +7,7 @@ import type { ConceptMapData, ConceptMapNode } from '@/types';
 
 import ProjectOverviewDisplay from '@/components/concept-map/project-overview-display';
 import { Button } from '@/components/ui/button';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 const FlowCanvasCore = dynamic(
   () => import('@/components/concept-map/flow-canvas-core'),
@@ -139,17 +140,13 @@ const EditorMainContent: React.FC<EditorMainContentProps> = React.memo(
           if (Array.isArray(edgeIds)) {
             edgeIds.forEach((edgeId) =>
               // Note: This should be passed as a prop instead of direct store access
-              require('@/stores/concept-map-store')
-                .useConceptMapStore.getState()
-                .deleteEdge(edgeId)
+              useMapDataStore.getState().deleteEdge(edgeId)
             );
           }
         }}
         onConnectInStore={(params) =>
           // Note: This should be passed as a prop instead of direct store access
-          require('@/stores/concept-map-store')
-            .useConceptMapStore.getState()
-            .addEdge(params)
+          useMapDataStore.getState().addEdge(params)
         }
         onNodeContextMenuRequest={handleNodeContextMenu}
         onPaneContextMenuRequest={handlePaneContextMenuRequest}

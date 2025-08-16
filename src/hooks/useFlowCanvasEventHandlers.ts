@@ -12,7 +12,8 @@ import type {
 } from 'reactflow';
 
 import { calculateSnappedPositionAndLines } from '@/lib/layout-utils';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapDataStore, type MapDataState } from '@/stores/map-data-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
 
 const GRID_SIZE = 20;
 const SNAP_THRESHOLD = 8;
@@ -74,8 +75,8 @@ export const useFlowCanvasEventHandlers = ({
   onPaneContextMenuRequest,
   onConceptSuggestionDrop,
 }: UseFlowCanvasEventHandlersProps) => {
-  const { nodes: allNodes } = useConceptMapStore(
-    useCallback((s) => ({ nodes: s.mapData.nodes }), [])
+  const { nodes: allNodes } = useMapDataStore(
+    useCallback((s: MapDataState) => ({ nodes: s.mapData.nodes }), [])
   );
 
   // Node drag handlers
@@ -217,7 +218,7 @@ export const useFlowCanvasEventHandlers = ({
     (event: React.MouseEvent, node: RFNode<CustomNodeData>) => {
       if (isViewOnlyMode) return;
       const currentConnectingNodeId =
-        useConceptMapStore.getState().connectingNodeId;
+        useEditorUIStore.getState().connectingNodeId;
 
       if (currentConnectingNodeId) {
         event.stopPropagation();
@@ -254,7 +255,7 @@ export const useFlowCanvasEventHandlers = ({
 
   const handlePaneClickInternal = useCallback(() => {
     const currentConnectingNodeId =
-      useConceptMapStore.getState().connectingNodeId;
+      useEditorUIStore.getState().connectingNodeId;
     if (currentConnectingNodeId) {
       storeCancelConnection();
       if (reactFlowWrapperRef.current)

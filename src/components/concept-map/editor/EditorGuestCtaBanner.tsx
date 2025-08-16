@@ -7,7 +7,7 @@ import React from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 interface EditorGuestCtaBannerProps {
   routeMapId: string;
@@ -17,7 +17,7 @@ export const EditorGuestCtaBanner: React.FC<EditorGuestCtaBannerProps> = ({
   routeMapId,
 }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  const storeIsViewOnlyMode = useConceptMapStore(
+  const storeIsViewOnlyMode = useMapMetaStore(
     (state) => state.isViewOnlyMode
   );
 

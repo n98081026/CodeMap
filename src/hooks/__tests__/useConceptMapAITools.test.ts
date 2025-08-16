@@ -4,31 +4,54 @@ import type { Mock } from 'vitest';
 
 import { useConceptMapAITools } from '../useConceptMapAITools';
 
-// Create a simple mock store
-const mockStore = {
-  mapData: { 
-    nodes: [{ 
-      id: 'node-1', 
-      data: { label: 'Test Node', details: 'Some details.' },
-      type: 'default',
-      position: { x: 0, y: 0 }
-    }], 
-    edges: [] 
+// Mock individual stores
+const mockMapDataStoreState = {
+  mapData: {
+    nodes: [
+      {
+        id: 'node-1',
+        text: 'Test Node',
+        details: 'Some details.',
+        type: 'default',
+        x: 0,
+        y: 0,
+      },
+    ],
+    edges: [],
   },
-  setStagedMapData: vi.fn(),
-  addDebugLog: vi.fn(),
-  getNode: vi.fn((id: string) => 
-    id === 'node-1' ? mockStore.mapData.nodes[0] : undefined
-  ),
 };
 
-// Mock the store
-vi.mock('@/stores/concept-map-store', () => ({
-  useConceptMapStore: vi.fn((selector) => {
+const mockAISuggestionStoreState = {
+  setStagedMapData: vi.fn(),
+};
+
+const mockMapMetaStoreState = {
+  addDebugLog: vi.fn(),
+};
+
+// Mock the stores
+vi.mock('@/stores/map-data-store', () => ({
+  useMapDataStore: vi.fn((selector) => {
     if (typeof selector === 'function') {
-      return selector(mockStore);
+      return selector(mockMapDataStoreState);
     }
-    return mockStore;
+    return mockMapDataStoreState;
+  }),
+}));
+vi.mock('@/stores/ai-suggestion-store', () => ({
+  useAISuggestionStore: vi.fn((selector) => {
+    if (typeof selector === 'function') {
+      return selector(mockAISuggestionStoreState);
+    }
+    return mockAISuggestionStoreState;
+  }),
+}));
+vi.mock('@/stores/map-meta-store', () => ({
+  useMapMetaStore: vi.fn((selector) => {
+    if (typeof selector === 'function') {
+      return selector(mockMapMetaStoreState);
+    }
+    return mockMapMetaStoreState;
   }),
 }));
 
@@ -39,7 +62,7 @@ describe('useConceptMapAITools', () => {
 
   it('should initialize without hanging', () => {
     const { result } = renderHook(() => useConceptMapAITools());
-    
+
     expect(result.current).toBeDefined();
     expect(typeof result.current.handleExtractConcepts).toBe('function');
     expect(typeof result.current.openRewriteNodeContentModal).toBe('function');
@@ -67,7 +90,7 @@ describe('useConceptMapAITools', () => {
       });
     });
 
-    expect(mockStore.setStagedMapData).toHaveBeenCalled();
+    expect(mockAISuggestionStoreState.setStagedMapData).toHaveBeenCalled();
   });
 
   it('should handle rewrite node content modal', () => {

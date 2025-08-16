@@ -7,7 +7,7 @@ import type {
 } from '@/components/concept-map/ai-suggestion-panel';
 import type { ConceptMapNode } from '@/types';
 
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
 
 interface EditableExtractedConcept {
   original: ExtractedConceptItem;
@@ -38,7 +38,7 @@ export const useAISuggestionPanelLogic = ({
 }: UseAISuggestionPanelLogicProps) => {
   // Store selectors
   const { setDragPreview, clearDragPreview, setDraggedRelationPreview } =
-    useConceptMapStore(
+    useEditorUIStore(
       useCallback(
         (s) => ({
           setDragPreview: s.setDragPreview,

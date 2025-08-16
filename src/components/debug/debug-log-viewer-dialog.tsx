@@ -14,7 +14,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 interface DebugLogViewerDialogProps {
   isOpen: boolean;
@@ -25,7 +25,7 @@ export function DebugLogViewerDialog({
   isOpen,
   onOpenChange,
 }: DebugLogViewerDialogProps) {
-  const { debugLogs, clearDebugLogs } = useConceptMapStore();
+  const { debugLogs, clearDebugLogs } = useMapMetaStore();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -46,7 +46,7 @@ export function DebugLogViewerDialog({
               No logs yet. Interact with the map or change routes.
             </p>
           ) : (
-            debugLogs.map((log, index) => (
+            debugLogs.map((log: string, index: number) => (
               <div
                 key={index}
                 className='whitespace-pre-wrap break-all py-0.5 border-b border-border/50 last:border-b-0'

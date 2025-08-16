@@ -11,7 +11,8 @@ import {
   DEFAULT_ANIMATIONS,
 } from '@/components/concept-map/ai-animation-utils';
 import { useToast } from '@/hooks/use-toast';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useAISuggestionStore, type AISuggestionState } from '@/stores/ai-suggestion-store';
+import { useMapDataStore, type MapDataState } from '@/stores/map-data-store';
 
 const DEFAULT_NODE_WIDTH = 150;
 const DEFAULT_NODE_HEIGHT = 70;
@@ -21,18 +22,15 @@ export function useWhimsicalAITools(isViewOnlyMode: boolean) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { mapData, setStagedMapData } = useConceptMapStore(
-    useCallback(
-      (s) => ({
-        mapData: s.mapData,
-        addNode: s.addNode,
-        addEdge: s.addEdge,
-        setStagedMapData: s.setStagedMapData,
-        setAiExtractedConcepts: s.setAiExtractedConcepts,
-      }),
-      []
-    )
+  const mapData = useMapDataStore(
+    useCallback((s: MapDataState) => s.mapData, [])
   );
+  const setStagedMapData = useAISuggestionStore(
+    useCallback((s: AISuggestionState) => s.setStagedMapData, [])
+  );
+  // NOTE: addNode and addEdge are not used in this hook, but were causing type errors.
+  // This hook should be reviewed to see if it needs to call these actions from useMapDataStore.
+  // For now, removing the incorrect selectors is sufficient to fix the build.
 
   /**
    * Whimsical 風格的智能概念提取

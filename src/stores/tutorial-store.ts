@@ -16,12 +16,20 @@ export interface TutorialStoreState {
   setRunTutorialState: (run: boolean) => void;
   setStepIndex: (index: number) => void;
   resetTutorialProgress: (tutorialKey?: string) => void; // Can reset one or all
+  tutorialTempTargetNodeId: string | null;
+  tutorialTempTargetEdgeId: string | null;
+  setTutorialTempTargetNodeId: (id: string | null) => void;
+  setTutorialTempTargetEdgeId: (id: string | null) => void;
 }
 
 const useTutorialStore = create<TutorialStoreState>((set, get) => ({
   activeTutorialKey: null,
   runTutorial: false,
   currentStepIndex: 0,
+  tutorialTempTargetNodeId: null,
+  tutorialTempTargetEdgeId: null,
+  setTutorialTempTargetNodeId: (id) => set({ tutorialTempTargetNodeId: id }),
+  setTutorialTempTargetEdgeId: (id) => set({ tutorialTempTargetEdgeId: id }),
   startOrResumeTutorial: (tutorialKey, stepIndex = 0, forceRestart = false) => {
     const currentKey = get().activeTutorialKey;
     const isRunning = get().runTutorial;

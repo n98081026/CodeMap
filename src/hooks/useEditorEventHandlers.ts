@@ -7,7 +7,8 @@ import type {
 } from '@/types';
 
 import { useToast } from '@/hooks/use-toast';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 interface UseEditorEventHandlersProps {
   updateStoreNode: (nodeId: string, updates: Partial<ConceptMapNode>) => void;
@@ -91,7 +92,7 @@ export const useEditorEventHandlers = ({
 
   const handleDeleteNodeFromContextMenu = useCallback(() => {
     if (contextMenu?.nodeId) {
-      useConceptMapStore.getState().deleteNode(contextMenu.nodeId);
+      useMapDataStore.getState().deleteNode(contextMenu.nodeId);
       closeContextMenu();
       toast({
         title: 'Node deleted',
@@ -108,7 +109,7 @@ export const useEditorEventHandlers = ({
     ) => {
       if (storeIsViewOnlyMode) return;
 
-      useConceptMapStore.getState().addNode({
+      useMapDataStore.getState().addNode({
         text: conceptItem.concept,
         details: conceptItem.context || '',
         position: position,
@@ -127,7 +128,7 @@ export const useEditorEventHandlers = ({
   const handleStartConnectionFromNode = useCallback(
     (nodeId: string) => {
       if (storeIsViewOnlyMode) return;
-      useConceptMapStore.getState().startConnectionMode(nodeId);
+      useEditorUIStore.getState().startConnection(nodeId);
     },
     [storeIsViewOnlyMode]
   );
@@ -147,7 +148,7 @@ export const useEditorEventHandlers = ({
           label: activeVisualEdgeSuggestion.suggestedLabel || '',
         };
 
-        useConceptMapStore.getState().addEdge(newEdge);
+        useMapDataStore.getState().addEdge(newEdge);
         setActiveVisualEdgeSuggestion(null);
 
         toast({

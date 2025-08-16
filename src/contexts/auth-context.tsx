@@ -532,7 +532,8 @@ export const useAuth = () => {
 };
 
 // Helper function (can be moved to a service or utility file if it grows)
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
+import { useMapDataStore } from '@/stores/map-data-store';
 
 async function handleCopyExampleAction(
   exampleKey: string,
@@ -569,30 +570,20 @@ async function handleCopyExampleAction(
 
     // Use a new store action or existing saveMap logic adapted for this
     // For now, let's assume a conceptual 'createMapFromExample' or adapt saveMap
-    // This part requires careful integration with concept-map-store.ts
+    // This part requires careful integration with the new separated stores.
 
-    const {
-      initializeNewMap,
-      setLoadedMap,
-      mapName: currentMapName,
-      mapData: currentMapData,
-      isPublic: currentIsPublic,
-      sharedWithClassroomId: currentSharedClassroomId,
-    } = useConceptMapStore.getState();
+    // 1. Initialize a new map context in the meta store, which also resets the data store.
+    useMapMetaStore.getState().initializeNewMap(userId);
 
-    // 1. Initialize a new map context in the store, primarily to set the ownerId correctly.
-    //    This sets `isNewMapMode = true` and `mapId = 'new'`.
-    initializeNewMap(userId);
-
-    // 2. Update the store's state with the example data.
+    // 2. Update the stores' state with the example data.
     const newMapName = `Copy of ${exampleProject.name}`;
-    useConceptMapStore.setState({
+    useMapMetaStore.setState({
       mapName: newMapName,
-      mapData: exampleMapData,
       isPublic: false, // Default new maps to private
       sharedWithClassroomId: null, // Not shared by default
-      // currentMapOwnerId is set by initializeNewMap
-      // isNewMapMode is true from initializeNewMap
+    });
+    useMapDataStore.setState({
+      mapData: exampleMapData,
     });
 
     // 3. Call the saveMap equivalent which will perform a POST request

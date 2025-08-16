@@ -65,6 +65,9 @@ export function useMapSaver({ user }: UseMapSaverProps) {
             isPublic,
             sharedWithClassroomId
           );
+          if (!newMap) {
+            throw new Error('Failed to create new map. Result was null.');
+          }
           addDebugLog(
             `[DataManager saveMap V3] Map created with ID: ${newMap.id}`
           );
@@ -78,11 +81,15 @@ export function useMapSaver({ user }: UseMapSaverProps) {
           }
         } else if (storeMapId) {
           const updatedMap = await updateConceptMap(storeMapId, {
+            ownerId: user.id, // Add ownerId for authorization
             name: mapName,
             mapData,
             isPublic,
             sharedWithClassroomId,
           });
+          if (!updatedMap) {
+            throw new Error('Failed to update map. Result was null.');
+          }
           addDebugLog(
             `[DataManager saveMap V3] Map updated for ID: ${storeMapId}`
           );
