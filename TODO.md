@@ -27,8 +27,8 @@
 - **執行計畫:**
     - [x] **完成**: `concept-maps/[mapId]/route.ts`
     - [x] **完成**: 為 `projects/submissions/[submissionId]/route.ts` 添加授權檢查 (GET請求針對學生/老師，PUT請求針對服務角色)。
-    - [ ] **下一步**: 為 `classrooms/[classroomId]/route.ts` 添加授權檢查 (課堂老師)。
-    - [ ] 為 `users/[userId]/route.ts` 添加授權檢查 (用戶本人或管理員)。
+    - [x] **完成**: 為 `classrooms/[classroomId]/route.ts` 驗證並補全測試 (權限已存在，老師或管理員)。
+    - [ ] **下一步**: 為 `users/[userId]/route.ts` 添加授權檢查 (用戶本人或管理員)。
 
 ### **2. [架構] 完成狀態管理重構**
 - **問題:** `concept-map-store.ts` 仍然是一個巨大的「上帝物件」，混合了過多職責。
