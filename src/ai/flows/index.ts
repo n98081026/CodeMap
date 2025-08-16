@@ -1,27 +1,29 @@
-import { expandConceptFlow } from './expand-concept';
-import { extractConceptsFlow } from './extract-concepts';
-import { suggestRelationsFlow } from './suggest-relations';
-
 export const runFlow = async <T, U>(
   command: string,
   payload: T
-): Promise<U | null> => {
-  console.log('runFlow', command, payload);
-
+): Promise<U> => {
   try {
-    switch (command) {
-      case 'extractConcepts':
-        return (await extractConceptsFlow(payload as any)) as U;
-      case 'suggestRelations':
-        return (await suggestRelationsFlow(payload as any)) as U;
-      case 'expandConcept':
-        return (await expandConceptFlow(payload as any)) as U;
-      default:
-        console.warn(`Unknown AI flow command: ${command}`);
-        return null;
+    const response = await fetch('/api/ai/run-flow', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ command, payload }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('AI flow execution failed:', errorData);
+      throw new Error(
+        `AI flow execution failed: ${errorData.message || response.statusText}`
+      );
     }
+
+    return (await response.json()) as U;
   } catch (error) {
     console.error(`Error executing AI flow ${command}:`, error);
-    throw error;
+    // Re-throw a more generic error to avoid leaking implementation details
+    // to the UI, which can then handle it gracefully.
+    throw new Error('AI flow execution failed');
   }
 };
