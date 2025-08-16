@@ -532,7 +532,6 @@ export const useAuth = () => {
 };
 
 // Helper function (can be moved to a service or utility file if it grows)
-import { useConceptMapStore } from '@/stores/concept-map-store';
 import { useMapMetaStore } from '@/stores/map-meta-store';
 import { useMapDataStore } from '@/stores/map-data-store';
 

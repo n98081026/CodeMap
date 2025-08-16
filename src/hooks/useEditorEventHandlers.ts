@@ -7,7 +7,7 @@ import type {
 } from '@/types';
 
 import { useToast } from '@/hooks/use-toast';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useEditorUIStore } from '@/stores/editor-ui-store';
 import { useMapDataStore } from '@/stores/map-data-store';
 
 interface UseEditorEventHandlersProps {
@@ -128,7 +128,7 @@ export const useEditorEventHandlers = ({
   const handleStartConnectionFromNode = useCallback(
     (nodeId: string) => {
       if (storeIsViewOnlyMode) return;
-      useConceptMapStore.getState().startConnectionMode(nodeId);
+      useEditorUIStore.getState().startConnection(nodeId);
     },
     [storeIsViewOnlyMode]
   );

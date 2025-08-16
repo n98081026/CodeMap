@@ -13,7 +13,6 @@ import { ViewActions } from './ViewActions';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { Routes } from '@/lib/routes';
-import { useConceptMapStore } from '@/stores/concept-map-store';
 import { useMapMetaStore } from '@/stores/map-meta-store';
 import useTutorialStore from '@/stores/tutorial-store';
 

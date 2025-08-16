@@ -3,10 +3,9 @@ import { useCallback } from 'react';
 import type { ConceptMapNode } from '@/types';
 
 import { useToast } from '@/hooks/use-toast';
-import {
-  useConceptMapStore,
-  type ConceptMapState,
-} from '@/stores/concept-map-store';
+import { useAISuggestionStore } from '@/stores/ai-suggestion-store';
+import { useMapDataStore } from '@/stores/map-data-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 interface UseEditorOverviewModeProps {
   storeIsViewOnlyMode: boolean;
@@ -52,8 +51,7 @@ export const useEditorOverviewMode = ({
       if (currentSubmissionId) {
         // This is a placeholder for deriving projectStoragePath from currentSubmissionId
         const projectStoragePath =
-          (useConceptMapStore.getState() as ConceptMapState).mapData
-            .projectFileStoragePath || // Check if already in mapData
+          useMapDataStore.getState().mapData.projectFileStoragePath || // Check if already in mapData
           `user-${user?.id}/project-archives/some-path-derived-from-${currentSubmissionId}.zip`; // Placeholder
 
         if (
@@ -72,9 +70,7 @@ export const useEditorOverviewMode = ({
           });
 
           // Provide some minimal data or rely on the flow's error handling
-          (
-            useConceptMapStore.getState() as ConceptMapState
-          ).setProjectOverviewData({
+          useAISuggestionStore.getState().setProjectOverviewData({
             overallSummary:
               'Project source information is unclear. Cannot generate a detailed AI overview for this map at the moment.',
             keyModules: [],
@@ -100,9 +96,7 @@ export const useEditorOverviewMode = ({
           variant: 'default',
         });
 
-        (
-          useConceptMapStore.getState() as ConceptMapState
-        ).setProjectOverviewData({
+        useAISuggestionStore.getState().setProjectOverviewData({
           overallSummary:
             'This is an overview based on the current concepts on your map. For a more detailed AI analysis, please upload a project.',
           keyModules: storeMapData.nodes
@@ -120,9 +114,7 @@ export const useEditorOverviewMode = ({
           variant: 'default',
         });
 
-        (
-          useConceptMapStore.getState() as ConceptMapState
-        ).setProjectOverviewData({
+        useAISuggestionStore.getState().setProjectOverviewData({
           overallSummary:
             'No content available to generate an overview. Try uploading a project or adding nodes to your map.',
           keyModules: [],

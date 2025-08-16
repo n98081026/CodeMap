@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/popover';
 // uuidv4 might not be needed here if group creation doesn't generate ID on client
 import { useToast } from '@/hooks/use-toast';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useAISuggestionStore } from '@/stores/ai-suggestion-store';
 import { useMapDataStore } from '@/stores/map-data-store';
 
 interface SuggestedGroupOverlayNodeData {
@@ -32,7 +32,7 @@ const SuggestedGroupOverlayNode: React.FC<
   // width and height are passed in node object by FlowCanvasCore
 }) => {
   const { suggestionId, suggestionData, reason, width, height } = data;
-  const { removeStructuralSuggestion } = useConceptMapStore.getState();
+  const { removeStructuralSuggestion } = useAISuggestionStore.getState();
   const { applyFormGroupSuggestion } = useMapDataStore.getState();
   const { toast } = useToast();
   const [popoverOpen, setPopoverOpen] = useState(false);

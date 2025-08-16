@@ -14,7 +14,7 @@ import {
   PopoverContent,
 } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast'; // Corrected import path
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useAISuggestionStore } from '@/stores/ai-suggestion-store';
 import { useMapDataStore } from '@/stores/map-data-store';
 
 // Define the props for SuggestedEdge, extending basic edge props
@@ -53,7 +53,7 @@ const SuggestedEdge: React.FC<SuggestedEdgeProps> = ({
   markerEnd,
   data, // Contains suggestionId, suggestionData, reason
 }) => {
-  const { removeStructuralSuggestion } = useConceptMapStore.getState();
+  const { removeStructuralSuggestion } = useAISuggestionStore.getState();
   const { addEdge } = useMapDataStore.getState();
   const { toast } = useToast();
   const [popoverOpen, setPopoverOpen] = useState(false);

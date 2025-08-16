@@ -18,8 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useConceptMapStore } from '@/stores/concept-map-store';
-import { useEditorUIStore } from '@/stores/editor-ui-store';
+import { useMapDataStore, type MapDataState } from '@/stores/map-data-store';
+import { useEditorUIStore, type EditorUIState } from '@/stores/editor-ui-store';
 
 interface QuickAction {
   id: string;
@@ -49,10 +49,10 @@ export function WhimsicalAIAssistant({
   const [naturalInput, setNaturalInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const mapData = useConceptMapStore(useCallback((s) => s.mapData, []));
+  const mapData = useMapDataStore(useCallback((s: MapDataState) => s.mapData, []));
   const { selectedElementId, multiSelectedNodeIds } = useEditorUIStore(
     useCallback(
-      (s) => ({
+      (s: EditorUIState) => ({
         selectedElementId: s.selectedElementId,
         multiSelectedNodeIds: s.multiSelectedNodeIds,
       }),

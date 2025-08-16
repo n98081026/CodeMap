@@ -2,45 +2,63 @@ import { create } from 'zustand';
 import { useMapDataStore } from './map-data-store';
 
 export interface EditorUIState {
+  // Selection
   selectedElementId: string | null;
   selectedElementType: 'node' | 'edge' | null;
   multiSelectedNodeIds: string[];
+
+  // Node states
   editingNodeId: string | null;
   aiProcessingNodeId: string | null;
+
+  // Connection mode
   connectingNodeId: string | null;
   isConnectingMode: boolean;
   connectionSourceNodeId: string | null;
+
+  // Drag and Drop
   dragPreviewItem: { text: string; type: string } | null;
   dragPreviewPosition: { x: number; y: number } | null;
   draggedRelationLabel: string | null;
+
+  // Viewport control
   triggerFitView: boolean;
   focusViewOnNodeIds: string[] | null;
   triggerFocusView: boolean;
+
+  // Tutorial
   tutorialTempTargetNodeId: string | null;
   tutorialTempTargetEdgeId: string | null;
 
+  // Actions
   setSelectedElement: (id: string | null, type: 'node' | 'edge' | null) => void;
   setMultiSelectedNodeIds: (ids: string[]) => void;
   setEditingNodeId: (nodeId: string | null) => void;
   setAiProcessingNodeId: (nodeId: string | null) => void;
+
+  // Connection actions
   startConnection: (nodeId: string) => void;
   cancelConnection: () => void;
   finishConnectionAttempt: (targetNodeId: string) => void;
-  startConnectionMode: (nodeId: string) => void;
-  completeConnectionMode: (targetNodeId?: string, targetHandleId?: string | null) => void;
-  cancelConnectionMode: () => void;
+
+  // Drag and Drop actions
   setDragPreview: (item: { text: string; type: string } | null) => void;
   updateDragPreviewPosition: (position: { x: number; y: number } | null) => void;
   clearDragPreview: () => void;
   setDraggedRelationPreview: (label: string | null) => void;
+
+  // Viewport actions
   setTriggerFitView: (value: boolean) => void;
   setFocusOnNodes: (nodeIds: string[], isOverviewExit?: boolean) => void;
   clearFocusViewTrigger: () => void;
+
+  // Tutorial actions
   setTutorialTempTargetNodeId: (nodeId: string | null) => void;
   setTutorialTempTargetEdgeId: (edgeId: string | null) => void;
 }
 
 export const useEditorUIStore = create<EditorUIState>((set, get) => ({
+  // Initial State
   selectedElementId: null,
   selectedElementType: null,
   multiSelectedNodeIds: [],
@@ -58,6 +76,7 @@ export const useEditorUIStore = create<EditorUIState>((set, get) => ({
   tutorialTempTargetNodeId: null,
   tutorialTempTargetEdgeId: null,
 
+  // Actions
   setSelectedElement: (id, type) =>
     set({
       selectedElementId: id,
@@ -67,6 +86,7 @@ export const useEditorUIStore = create<EditorUIState>((set, get) => ({
   setMultiSelectedNodeIds: (ids) => set({ multiSelectedNodeIds: ids }),
   setEditingNodeId: (nodeId) => set({ editingNodeId: nodeId }),
   setAiProcessingNodeId: (nodeId) => set({ aiProcessingNodeId: nodeId }),
+
   startConnection: (nodeId) =>
     set({
       connectingNodeId: nodeId,
@@ -74,7 +94,7 @@ export const useEditorUIStore = create<EditorUIState>((set, get) => ({
       selectedElementType: null,
       multiSelectedNodeIds: [],
     }),
-  cancelConnection: () => set({ connectingNodeId: null }),
+  cancelConnection: () => set({ connectingNodeId: null, isConnectingMode: false, connectionSourceNodeId: null }),
   finishConnectionAttempt: (targetNodeId) => {
     const sourceNodeId = get().connectingNodeId;
     if (sourceNodeId && targetNodeId) {
@@ -86,32 +106,7 @@ export const useEditorUIStore = create<EditorUIState>((set, get) => ({
     }
     set({ connectingNodeId: null });
   },
-  startConnectionMode: (nodeId) =>
-    set({
-      isConnectingMode: true,
-      connectionSourceNodeId: nodeId,
-      selectedElementId: null,
-      selectedElementType: null,
-      multiSelectedNodeIds: [],
-    }),
-  completeConnectionMode: (targetNodeId?: string) => {
-    const sourceNodeId = get().connectionSourceNodeId;
-    if (sourceNodeId && targetNodeId) {
-      useMapDataStore.getState().addEdge({
-        source: sourceNodeId,
-        target: targetNodeId,
-        label: 'connects',
-      });
-    }
-    set({ isConnectingMode: false, connectionSourceNodeId: null });
-  },
-  cancelConnectionMode: () =>
-    set({
-      isConnectingMode: false,
-      connectionSourceNodeId: null,
-      dragPreviewItem: null,
-      draggedRelationLabel: null,
-    }),
+
   setDragPreview: (item) => set({ dragPreviewItem: item }),
   updateDragPreviewPosition: (position) => set({ dragPreviewPosition: position }),
   clearDragPreview: () =>
@@ -121,16 +116,16 @@ export const useEditorUIStore = create<EditorUIState>((set, get) => ({
       draggedRelationLabel: null,
     }),
   setDraggedRelationPreview: (label) => set({ draggedRelationLabel: label }),
+
   setTriggerFitView: (value) => set({ triggerFitView: value }),
   setFocusOnNodes: (nodeIds, isOverviewExit = false) => {
-    // This action might need to interact with other stores, e.g., the AI store
-    // to clear previews. For now, it only sets its own state.
     set({
       focusViewOnNodeIds: nodeIds,
       triggerFocusView: true,
     });
   },
   clearFocusViewTrigger: () => set({ triggerFocusView: false }),
+
   setTutorialTempTargetNodeId: (nodeId) => set({ tutorialTempTargetNodeId: nodeId }),
   setTutorialTempTargetEdgeId: (edgeId) => set({ tutorialTempTargetEdgeId: edgeId }),
 }));

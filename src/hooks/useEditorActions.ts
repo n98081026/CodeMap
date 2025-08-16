@@ -8,7 +8,6 @@ import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapDataManager } from '@/hooks/useConceptMapDataManager';
 import { Routes } from '@/lib/routes';
-import { useConceptMapStore } from '@/stores/concept-map-store';
 import { useEditorUIStore } from '@/stores/editor-ui-store';
 import { useMapDataStore } from '@/stores/map-data-store';
 import { useMapMetaStore } from '@/stores/map-meta-store';

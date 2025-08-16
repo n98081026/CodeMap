@@ -7,11 +7,11 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useAISuggestionStore } from '@/stores/ai-suggestion-store';
 
 const GhostPreviewToolbar: React.FC = () => {
   const { ghostPreviewData, acceptGhostPreview, cancelGhostPreview } =
-    useConceptMapStore((s) => ({
+    useAISuggestionStore((s) => ({
       ghostPreviewData: s.ghostPreviewData,
       acceptGhostPreview: s.acceptGhostPreview,
       cancelGhostPreview: s.cancelGhostPreview,

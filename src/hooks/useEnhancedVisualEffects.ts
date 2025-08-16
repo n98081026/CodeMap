@@ -9,7 +9,6 @@ import {
   type LayoutOptions,
 } from '@/components/concept-map/enhanced-layout-engine';
 import { useToast } from '@/hooks/use-toast';
-import { useConceptMapStore } from '@/stores/concept-map-store';
 import { useMapDataStore } from '@/stores/map-data-store';
 
 interface VisualEffect {

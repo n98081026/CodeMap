@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 
 import { useToast } from '@/hooks/use-toast';
 import { useConceptMapAITools } from '@/hooks/useConceptMapAITools';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useAISuggestionStore } from '@/stores/ai-suggestion-store';
 import { useEditorUIStore } from '@/stores/editor-ui-store';
 
 export const useEditorAIActions = () => {
@@ -22,7 +22,7 @@ export const useEditorAIActions = () => {
     aiSuggestedRelations,
     resetAiSuggestions,
     commitStagedMapData,
-  } = useConceptMapStore();
+  } = useAISuggestionStore();
 
   const { selectedElementId, multiSelectedNodeIds } = useEditorUIStore();
 

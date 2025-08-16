@@ -30,7 +30,6 @@ import { getSuggestRelationsToolTutorialSteps } from './flows/suggest-relations-
 import type { LucideIcon } from 'lucide-react';
 
 import { useAuth } from '@/contexts/auth-context';
-import { useConceptMapStore } from '@/stores/concept-map-store';
 import useTutorialStore from '@/stores/tutorial-store';
 
 // TutorialMetaData remains the same
@@ -93,17 +92,21 @@ const AppTutorial: React.FC<AppTutorialProps> = () => {
     )
   );
 
-  const tutorialTempTargetNodeId = useConceptMapStore(
-    (state) => state.tutorialTempTargetNodeId
-  );
-  const clearTutorialTempTargetNodeId = useConceptMapStore(
-    (state) => state.setTutorialTempTargetNodeId
-  );
-  const tutorialTempTargetEdgeId = useConceptMapStore(
-    (state) => state.tutorialTempTargetEdgeId
-  );
-  const clearTutorialTempTargetEdgeId = useConceptMapStore(
-    (state) => state.setTutorialTempTargetEdgeId
+  const {
+    tutorialTempTargetNodeId,
+    setTutorialTempTargetNodeId: clearTutorialTempTargetNodeId,
+    tutorialTempTargetEdgeId,
+    setTutorialTempTargetEdgeId: clearTutorialTempTargetEdgeId,
+  } = useTutorialStore(
+    useCallback(
+      (s) => ({
+        tutorialTempTargetNodeId: s.tutorialTempTargetNodeId,
+        setTutorialTempTargetNodeId: s.setTutorialTempTargetNodeId,
+        tutorialTempTargetEdgeId: s.tutorialTempTargetEdgeId,
+        setTutorialTempTargetEdgeId: s.setTutorialTempTargetEdgeId,
+      }),
+      []
+    )
   );
 
   const getStepsForTutorial = useCallback(

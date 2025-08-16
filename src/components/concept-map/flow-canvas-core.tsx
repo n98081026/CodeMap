@@ -144,7 +144,7 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
         setSelectedElement,
         setEditingNodeId,
         connectingNodeId,
-        completeConnectionMode: storeCompleteConnectionMode,
+        finishConnectionAttempt,
         cancelConnection: storeCancelConnection,
         dragPreviewItem,
         dragPreviewPosition,
@@ -1014,31 +1014,18 @@ const FlowCanvasCoreInternal: React.FC<FlowCanvasCoreProps> = React.memo(
             if (reactFlowWrapperRef.current)
               reactFlowWrapperRef.current.classList.remove('cursor-crosshair');
           } else {
-            const newEdgeId = addEdgeToStore({
-              source: currentConnectingNodeId,
-              target: node.id,
-              label: '',
-            });
-            onNewEdgeSuggestLabels?.(
-              newEdgeId,
-              currentConnectingNodeId,
-              node.id
-            );
-            storeCompleteConnectionMode();
+            // TODO: Refactor the store to return the new edge ID to re-enable label suggestions and selection.
+            finishConnectionAttempt(node.id);
             if (reactFlowWrapperRef.current)
               reactFlowWrapperRef.current.classList.remove('cursor-crosshair');
-            setSelectedElement(newEdgeId, 'edge');
           }
           return;
         }
       },
       [
         isViewOnlyMode,
-        addEdgeToStore,
-        setSelectedElement,
         storeCancelConnection,
-        storeCompleteConnectionMode,
-        onNewEdgeSuggestLabels,
+        finishConnectionAttempt,
         reactFlowWrapperRef,
       ]
     );
