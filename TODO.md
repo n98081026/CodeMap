@@ -21,14 +21,13 @@
 
 > **總體目標:** 全面完善前後端，並完整開發 Supabase 後端服務，為未來的產品功能打下堅實、安全的基礎。
 
-### **1. [安全] 完成所有 API 的安全授權 (Highest Priority)**
-- **問題:** 目前仍有 API 路由缺乏嚴格的伺服器端權限檢查，這是一個嚴重的安全隱患。
-- **目標:** 確保沒有任何數據可以在未經授權的情況下被存取。
+### **1. [安全] 完成所有 API 的安全授權 (Highest Priority) - ✅ ALL COMPLETE**
+- **成果:** 已對所有核心資源 API (`concept-maps`, `project-submissions`, `classrooms`, `users`) 的權限進行了實作或驗證，並為其添加了完整的單元測試。API 的基礎安全防護已達到標準。
 - **執行計畫:**
     - [x] **完成**: `concept-maps/[mapId]/route.ts`
     - [x] **完成**: 為 `projects/submissions/[submissionId]/route.ts` 添加授權檢查 (GET請求針對學生/老師，PUT請求針對服務角色)。
     - [x] **完成**: 為 `classrooms/[classroomId]/route.ts` 驗證並補全測試 (權限已存在，老師或管理員)。
-    - [ ] **下一步**: 為 `users/[userId]/route.ts` 添加授權檢查 (用戶本人或管理員)。
+    - [x] **完成**: 為 `users/[userId]/route.ts` 驗證並補全測試 (權限已存在，包含用戶本人、管理員的多種複雜規則)。
 
 ### **2. [架構] 完成狀態管理重構**
 - **問題:** `concept-map-store.ts` 仍然是一個巨大的「上帝物件」，混合了過多職責。
