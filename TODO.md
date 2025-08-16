@@ -1,6 +1,6 @@
 # CodeMap 專案 - 開發藍圖 (Jules 版本)
 
-**[最後更新於 2025-08-15]**
+**[最後更新於 2025-08-16]**
 
 ---
 
@@ -26,8 +26,8 @@
 - **目標:** 確保沒有任何數據可以在未經授權的情況下被存取。
 - **執行計畫:**
     - [x] **完成**: `concept-maps/[mapId]/route.ts`
-    - [ ] **下一步**: 為 `projects/submissions/[submissionId]/route.ts` 添加授權檢查 (學生本人或課堂老師)。
-    - [ ] 為 `classrooms/[classroomId]/route.ts` 添加授權檢查 (課堂老師)。
+    - [x] **完成**: 為 `projects/submissions/[submissionId]/route.ts` 添加授權檢查 (GET請求針對學生/老師，PUT請求針對服務角色)。
+    - [ ] **下一步**: 為 `classrooms/[classroomId]/route.ts` 添加授權檢查 (課堂老師)。
     - [ ] 為 `users/[userId]/route.ts` 添加授權檢查 (用戶本人或管理員)。
 
 ### **2. [架構] 完成狀態管理重構**
@@ -56,6 +56,7 @@
     - **問題:** `npm test` 會因記憶體溢出而崩潰。測試檔案目前被排除在 TypeScript 編譯之外。
     - **目標:** 建立一個可以快速、穩定地運行完整測試套件的環境。
     - **可能的解決方案:** 深入研究 Vitest/Vite 設定，或考慮升級相關依賴。
+    - **進度:** 透過在 `vitest.config.ts` 中手動設定路徑別名，解決了 `vite-tsconfig-paths` 無法解析新測試檔案路徑的問題。這是一個局部修復，但為未來的測試鋪平了道路。
 - **[品質] 統一測試檔案存放位置:**
     - **問題:** `__tests__` 和 `src/tests` 並存。
     - **目標:** 團隊決策後統一（建議與元件共置）。

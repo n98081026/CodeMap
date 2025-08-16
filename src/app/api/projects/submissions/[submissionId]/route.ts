@@ -12,7 +12,7 @@ import { getClassroomById } from '@/services/classrooms/classroomService';
 
 export async function GET(
   request: Request,
-  context: any // Using `any` as a workaround for stubborn build errors
+  context: { params: { submissionId: string } }
 ) {
   try {
     const { submissionId } = context.params;
@@ -66,15 +66,21 @@ export async function GET(
   }
 }
 
-// PUT might be used by an analysis worker to update status
+// PUT is used by an analysis worker to update submission status.
 export async function PUT(
   request: Request,
-  context: any // Using `any` as a workaround
+  context: { params: { submissionId: string } }
 ) {
   try {
-    // SECURITY TODO: This endpoint should be protected by a service role key
-    // or other mechanism to ensure it is only called by trusted backend workers,
-    // not by end-users.
+    // This endpoint is protected by a service role key.
+    const serviceRoleKey = process.env.SERVICE_ROLE_KEY;
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.split(' ')[1];
+
+    if (!serviceRoleKey || !bearerToken || bearerToken !== serviceRoleKey) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     const { submissionId } = context.params;
     if (!submissionId) {
       return NextResponse.json(
