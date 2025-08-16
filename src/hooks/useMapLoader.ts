@@ -11,7 +11,6 @@ import {
 } from '@/lib/config';
 import { useMapMetaStore } from '@/stores/map-meta-store';
 import { useMapDataStore } from '@/stores/map-data-store';
-import { useConceptMapStore } from '@/stores/concept-map-store';
 
 interface UseMapLoaderProps {
   routeMapId?: string;

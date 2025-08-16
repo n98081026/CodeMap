@@ -16,6 +16,7 @@ export interface MapMetaState {
   isSaving: boolean;
   error: string | null;
   debugLogs: string[];
+  isFetchingOverview: boolean; // Added from concept-map-store
 
   setMapId: (id: string | null) => void;
   setMapName: (name: string) => void;
@@ -34,9 +35,10 @@ export interface MapMetaState {
   initializeNewMap: (userId: string) => void;
   setLoadedMap: (map: ConceptMap, viewOnly?: boolean) => void;
   resetStore: () => void;
+  setIsFetchingOverview: (fetching: boolean) => void; // Added from concept-map-store
 }
 
-const initialState: Omit<MapMetaState, 'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsViewOnlyMode' | 'setInitialLoadComplete' | 'setIsLoading' | 'setIsSaving' | 'setError' | 'addDebugLog' | 'clearDebugLogs' | 'initializeNewMap' | 'setLoadedMap' | 'resetStore'> = {
+const initialState: Omit<MapMetaState, 'setMapId' | 'setMapName' | 'setCurrentMapOwnerId' | 'setCurrentMapCreatedAt' | 'setIsPublic' | 'setSharedWithClassroomId' | 'setIsNewMapMode' | 'setIsViewOnlyMode' | 'setInitialLoadComplete' | 'setIsLoading' | 'setIsSaving' | 'setError' | 'addDebugLog' | 'clearDebugLogs' | 'initializeNewMap' | 'setLoadedMap' | 'resetStore' | 'setIsFetchingOverview'> = {
   mapId: null,
   mapName: 'Untitled Concept Map',
   currentMapOwnerId: null,
@@ -50,10 +52,12 @@ const initialState: Omit<MapMetaState, 'setMapId' | 'setMapName' | 'setCurrentMa
   isSaving: false,
   error: null,
   debugLogs: [],
+  isFetchingOverview: false,
 };
 
 export const useMapMetaStore = create<MapMetaState>((set, get) => ({
   ...initialState,
+  setIsFetchingOverview: (fetching) => set({ isFetchingOverview: fetching }),
   setMapId: (id) => set({ mapId: id }),
   setMapName: (name) => set({ mapName: name }),
   setCurrentMapOwnerId: (ownerId) => set({ currentMapOwnerId: ownerId }),

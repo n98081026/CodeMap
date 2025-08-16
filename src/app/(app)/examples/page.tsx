@@ -30,7 +30,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { exampleProjects, type ExampleProject } from '@/lib/example-data';
-import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 const GuestCtaBanner = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -70,7 +70,7 @@ export default function ExamplesPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authIsLoading } = useAuth();
-  const { setLoadedMap, setIsLoading, setError } = useConceptMapStore(
+  const { setLoadedMap, setIsLoading, setError } = useMapMetaStore(
     React.useCallback(
       (s) => ({
         setLoadedMap: s.setLoadedMap,

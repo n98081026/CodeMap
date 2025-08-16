@@ -18,6 +18,7 @@ import type { ConceptMapNode, ConceptMapEdge } from '@/types';
 import { runFlow } from '@/ai/flows';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 import { useMapDataStore } from '@/stores/map-data-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 type AICommand =
   | 'extractConcepts'
@@ -35,8 +36,10 @@ interface RewriteModalState {
 
 export function useConceptMapAITools() {
   const { toast } = useToast();
-  const { mapData, setStagedMapData, addDebugLog } = useConceptMapStore();
+  const { setStagedMapData } = useConceptMapStore();
+  const { addDebugLog } = useMapMetaStore();
   const {
+    mapData,
     addNode: addNodeToMap,
     addEdge: addEdgeToMap,
     updateNode,

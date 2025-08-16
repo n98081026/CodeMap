@@ -8,20 +8,7 @@ const uniqueNodeId = () => `node-${Date.now()}-${Math.random().toString(16).slic
 const uniqueEdgeId = () => `edge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 export interface ConceptMapState {
-  // Map metadata
-  mapId: string | null;
-  mapName: string;
-  currentMapOwnerId: string | null;
-  currentMapCreatedAt: string | null;
-  isPublic: boolean;
-  sharedWithClassroomId: string | null;
-  isNewMapMode: boolean;
-  isViewOnlyMode: boolean;
-  initialLoadComplete: boolean;
-  isLoading: boolean;
-  isSaving: boolean;
-  error: string | null;
-  debugLogs: string[];
+  // Map metadata is now in map-meta-store.ts
 
   // Map data
   mapData: ConceptMapData;
@@ -64,24 +51,7 @@ export interface ConceptMapState {
   dragPreview: any;
   draggedRelationPreview: any;
 
-  // Actions
-  setMapId: (id: string | null) => void;
-  setMapName: (name: string) => void;
-  setCurrentMapOwnerId: (ownerId: string | null) => void;
-  setCurrentMapCreatedAt: (createdAt: string | null) => void;
-  setIsPublic: (isPublic: boolean) => void;
-  setSharedWithClassroomId: (classroomId: string | null) => void;
-  setIsNewMapMode: (isNew: boolean) => void;
-  setIsViewOnlyMode: (isViewOnly: boolean) => void;
-  setInitialLoadComplete: (complete: boolean) => void;
-  setIsLoading: (loading: boolean) => void;
-  setIsSaving: (saving: boolean) => void;
-  setError: (error: string | null) => void;
-  addDebugLog: (log: string) => void;
-  clearDebugLogs: () => void;
-  initializeNewMap: (userId: string) => void;
-  setLoadedMap: (map: ConceptMap, viewOnly?: boolean) => void;
-  resetStore: () => void;
+  // Actions are now in their respective stores.
 
   // Map data actions are now in map-data-store.ts
 
@@ -133,20 +103,7 @@ const initialState: Omit<ConceptMapState,
   'setTutorialTempTargetNodeId' | 'setTutorialTempTargetEdgeId' | 'setDragPreview' | 'clearDragPreview' |
   'setDraggedRelationPreview' | 'setFocusOnNodes'
 > = {
-  // Map metadata
-  mapId: null,
-  mapName: 'Untitled Concept Map',
-  currentMapOwnerId: null,
-  currentMapCreatedAt: null,
-  isPublic: false,
-  sharedWithClassroomId: null,
-  isNewMapMode: true,
-  isViewOnlyMode: false,
-  initialLoadComplete: false,
-  isLoading: false,
-  isSaving: false,
-  error: null,
-  debugLogs: [],
+  // Map metadata is now in map-meta-store.ts
 
   // Map data
   mapData: { nodes: [], edges: [] },
@@ -184,55 +141,7 @@ export const useConceptMapStore = create<ConceptMapState>()(
     (set, get) => ({
       ...initialState,
 
-      // Map metadata actions
-      setMapId: (id) => set({ mapId: id }),
-      setMapName: (name) => set({ mapName: name }),
-      setCurrentMapOwnerId: (ownerId) => set({ currentMapOwnerId: ownerId }),
-      setCurrentMapCreatedAt: (createdAt) => set({ currentMapCreatedAt: createdAt }),
-      setIsPublic: (isPublicStatus) => set({ isPublic: isPublicStatus }),
-      setSharedWithClassroomId: (id) => set({ sharedWithClassroomId: id }),
-      setIsNewMapMode: (isNew) => set({ isNewMapMode: isNew }),
-      setIsViewOnlyMode: (isViewOnly) => set({ isViewOnlyMode: isViewOnly }),
-      setInitialLoadComplete: (complete) => set({ initialLoadComplete: complete }),
-      setIsLoading: (loading) => set({ isLoading: loading }),
-      setIsSaving: (saving) => set({ isSaving: saving }),
-      setError: (errorMsg) => set({ error: errorMsg }),
-      addDebugLog: (log) =>
-        set((state) => ({
-          debugLogs: [...state.debugLogs, `${new Date().toISOString()}: ${log}`].slice(-100),
-        })),
-      clearDebugLogs: () => set({ debugLogs: [] }),
-      initializeNewMap: (userId: string) => {
-        get().addDebugLog(`[STORE initializeNewMap] User: ${userId}.`);
-        set({
-          ...initialState,
-          mapId: 'new',
-          mapName: 'New Concept Map',
-          currentMapOwnerId: userId,
-          currentMapCreatedAt: new Date().toISOString(),
-          isNewMapMode: true,
-          initialLoadComplete: true,
-          debugLogs: get().debugLogs,
-        });
-      },
-      setLoadedMap: (map, viewOnly = false) => {
-        get().addDebugLog(`[STORE setLoadedMap] Map ID: ${map.id}, ViewOnly: ${viewOnly}`);
-        set({
-          ...initialState,
-          mapId: map.id,
-          mapName: map.name,
-          currentMapOwnerId: map.ownerId,
-          currentMapCreatedAt: map.createdAt,
-          isPublic: map.isPublic,
-          sharedWithClassroomId: map.sharedWithClassroomId || null,
-          isNewMapMode: false,
-          isViewOnlyMode: viewOnly,
-          initialLoadComplete: true,
-          mapData: map.mapData || { nodes: [], edges: [] },
-          debugLogs: get().debugLogs,
-        });
-      },
-      resetStore: () => set(initialState),
+      // Map metadata actions are now in map-meta-store.ts
 
       // Map data actions are now in map-data-store.ts
 

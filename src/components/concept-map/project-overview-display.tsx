@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils'; // Import cn for conditional classNames
 import { useConceptMapStore } from '@/stores/concept-map-store';
+import { useMapDataStore } from '@/stores/map-data-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 interface ProjectOverviewDisplayProps {
   overviewData: {
@@ -47,13 +49,9 @@ interface LineData {
 
 const ProjectOverviewDisplay: React.FC<ProjectOverviewDisplayProps> =
   React.memo(({ overviewData, isLoading, onModuleClick }) => {
-    const { setFocusOnNodes, mapData, addDebugLog } = useConceptMapStore(
-      (s) => ({
-        setFocusOnNodes: s.setFocusOnNodes,
-        mapData: s.mapData,
-        addDebugLog: s.addDebugLog,
-      })
-    );
+    const setFocusOnNodes = useConceptMapStore((s) => s.setFocusOnNodes);
+    const mapData = useMapDataStore((s) => s.mapData);
+    const addDebugLog = useMapMetaStore((s) => s.addDebugLog);
 
     const [lines, setLines] = useState<LineData[]>([]);
     const moduleCardRefs = useRef<(HTMLDivElement | null)[]>([]);

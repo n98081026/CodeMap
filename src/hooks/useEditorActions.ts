@@ -11,6 +11,7 @@ import { Routes } from '@/lib/routes';
 import { useConceptMapStore } from '@/stores/concept-map-store';
 import { useEditorUIStore } from '@/stores/editor-ui-store';
 import { useMapDataStore } from '@/stores/map-data-store';
+import { useMapMetaStore } from '@/stores/map-meta-store';
 
 interface UseEditorActionsProps {
   routeMapId: string;
@@ -25,7 +26,7 @@ export const useEditorActions = ({
   const router = useRouter();
   const { saveMap } = useConceptMapDataManager({ routeMapId, user });
 
-  const { setMapName, setIsPublic } = useConceptMapStore();
+  const { setMapName, setIsPublic } = useMapMetaStore();
   const {
     addNode,
     updateNode,
@@ -145,7 +146,7 @@ export const useEditorActions = ({
   const handleExportMap = useCallback(() => {
     try {
       const { mapData } = useMapDataStore.getState();
-      const { mapName } = useConceptMapStore.getState(); // Still need meta from old store
+      const { mapName } = useMapMetaStore.getState();
       const dataStr = JSON.stringify(mapData, null, 2);
       const dataUri =
         'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
@@ -251,7 +252,7 @@ export const useEditorActions = ({
   );
 
   return {
-    isSaving: useConceptMapStore((s) => s.isSaving),
+    isSaving: useMapMetaStore((s) => s.isSaving),
     saveMap: handleSaveMap,
     addNode: handleAddNode,
     updateElement: handleUpdateElement,
